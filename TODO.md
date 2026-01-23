@@ -1,8 +1,8 @@
 # Chess Program To‑Do List
 
 ## 1. Project Setup
-- [ ] Initialize project repository
-- [ ] Create virtual environment and install dependencies
+- [x] Initialize project repository
+- [x] Create virtual environment and install dependencies
 - [ ] Set up CI/CD pipeline (optional)
 
 ## 2. Core Engine
