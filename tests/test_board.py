@@ -1,68 +1,60 @@
-import pytest
+import unittest
 
 from chess_engine.board import Board
 
-# Helper to compare board string representation
+class TestBoard(unittest.TestCase):
+    def setUp(self):
+        self.board = Board()
 
-def board_repr(board):
-    return str(board)
+    def test_starting_position(self):
+        board = self.board
+        # check ranks 1 and 8
+        self.assertEqual(board.get_piece("a1"), "R")
+        self.assertEqual(board.get_piece("h1"), "R")
+        self.assertEqual(board.get_piece("e1"), "K")
+        self.assertEqual(board.get_piece("a8"), "r")
+        self.assertEqual(board.get_piece("h8"), "r")
+        self.assertEqual(board.get_piece("e8"), "k")
+        # pawns
+        for file in "abcdefgh":
+            self.assertEqual(board.get_piece(file + "2"), "P")
+            self.assertEqual(board.get_piece(file + "7"), "p")
+        # empty squares
+        for file in "abcdefgh":
+            self.assertIsNone(board.get_piece(file + "4"))
 
-# Test that starting position is correct
+    def test_move_piece(self):
+        board = self.board
+        board.move_piece("e2", "e4")
+        self.assertEqual(board.get_piece("e4"), "P")
+        self.assertIsNone(board.get_piece("e2"))
 
-def test_starting_position():
-    board = Board()
-    # check ranks 1 and 8
-    assert board.get_piece("a1") == "R"
-    assert board.get_piece("h1") == "R"
-    assert board.get_piece("e1") == "K"
-    assert board.get_piece("a8") == "r"
-    assert board.get_piece("h8") == "r"
-    assert board.get_piece("e8") == "k"
-    # pawns
-    for file in "abcdefgh":
-        assert board.get_piece(file + "2") == "P"
-        assert board.get_piece(file + "7") == "p"
-    # empty squares
-    for file in "abcdefgh":
-        assert board.get_piece(file + "4") is None
+    def test_repr_contains_rows(self):
+        board = self.board
+        rep = str(board)
+        lines = rep.split("\n")
+        # 8 rows
+        self.assertEqual(len(lines), 8)
+        # first row should have black pieces
+        self.assertEqual(lines[0], "♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜")
+        # last row should have white pieces
+        self.assertEqual(lines[7], "♖ ♘ ♗ ♕ ♔ ♗ ♘ ♖")
+        # middle empty rows
+        for i in range(2, 6):
+            self.assertEqual(lines[i], ". . . . . . . .")
 
-# Test moving a piece
+    def test_capture(self):
+        board = self.board
+        board.move_piece("e2", "e4")
+        board.move_piece("e7", "e5")
+        board.move_piece("e4", "e5")  # capture pawn
+        self.assertEqual(board.get_piece("e5"), "P")
+        self.assertIsNone(board.get_piece("e4"))
 
-def test_move_piece():
-    board = Board()
-    board.move_piece("e2", "e4")
-    assert board.get_piece("e4") == "P"
-    assert board.get_piece("e2") is None
+    def test_invalid_move(self):
+        board = self.board
+        with self.assertRaises(ValueError):
+            board.move_piece("a3", "a4")  # no piece at a3
 
-# Test string representation contains expected rows
-
-def test_repr_contains_rows():
-    board = Board()
-    rep = board_repr(board)
-    lines = rep.split("\n")
-    # 8 rows
-    assert len(lines) == 8
-    # first row should have black pieces
-    assert lines[0] == "♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜"
-    # last row should have white pieces
-    assert lines[7] == "♖ ♘ ♗ ♕ ♔ ♗ ♘ ♖"
-    # middle empty rows
-    for i in range(2, 6):
-        assert lines[i] == ". . . . . . . ."
-
-# Test that moving to occupied square replaces it
-
-def test_capture():
-    board = Board()
-    board.move_piece("e2", "e4")
-    board.move_piece("e7", "e5")
-    board.move_piece("e4", "e5")  # capture pawn
-    assert board.get_piece("e5") == "P"
-    assert board.get_piece("e4") is None
-
-# Test invalid move raises error
-
-def test_invalid_move():
-    board = Board()
-    with pytest.raises(ValueError):
-        board.move_piece("a3", "a4")  # no piece at a3
+if __name__ == "__main__":
+    unittest.main()
