@@ -2,7 +2,17 @@
   "permissions": {
     "allow": [
       "Bash(git init)",
-      "Bash(git add .)"
+      "Bash(git add .)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nInitial project setup: create directories and basic files\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push -u origin master)",
+      "Bash(git add environment.yml TODO.md)",
+      "Bash(git add README.md)",
+      "Bash(git commit -m \"Add CI badge to README\")",
+      "Bash(git add TODO.md)",
+      "Bash(pytest -q)",
+      "Bash(micromamba run -n chess-test-env pytest -q)",
+      "Bash(micromamba run -n chess-test-env pytest tests/test_board.py::test_repr_contains_rows -q)",
+      "Bash(git add -A)"
     ]
   }
 }

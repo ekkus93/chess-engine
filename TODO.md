@@ -3,7 +3,7 @@
 ## 1. Project Setup
 - [x] Initialize project repository
 - [x] Create virtual environment and install dependencies
-- [ ] Set up CI/CD pipeline (optional)
+- [x] Set up CI/CD pipeline (optional)
 
 ## 2. Core Engine
 - [ ] Implement `Board` class
