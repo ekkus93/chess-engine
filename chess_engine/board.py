@@ -1,132 +1,101 @@
-# Board representation and state
+from __future__ import annotations
 
-from typing import List, Optional, Dict
+from dataclasses import dataclass
+from typing import Optional, Tuple
 
+@dataclass
+class Square:
+    piece: Optional[str] = None
 
 class Board:
-    """Represents the chess board & state."""
+    STARTING_FEN = (
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1"
+    )
 
-    PIECE_MAP = {
-        "R": "♖",
-        "N": "♘",
-        "B": "♗",
-        "Q": "♕",
-        "K": "♔",
-        "P": "♙",
-        "r": "♜",
-        "n": "♞",
-        "b": "♝",
-        "q": "♛",
-        "k": "♚",
-        "p": "♟",
-    }
+    def __init__(self, fen: Optional[str] = None):
+        if fen is None:
+            fen = Board.STARTING_FEN
+        self.grid: list[list[Square]] = [[Square() for _ in range(8)] for _ in range(8)]
+        self._load_fen(fen)
 
-    def __init__(self):
-        self.board: List[List[Optional[str]]] = self._starting_position_fen(
-            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"
-        )
-        self.castling_rights: Dict[str, bool] = {"K": True, "Q": True, "k": True, "q": True}
-        self.ep_square: Optional[str] = None
-
-    def _starting_position_fen(self, fen: str) -> List[List[Optional[str]]]:
-        rows: List[List[Optional[str]]] = []
-        fen_rows = fen.split(" ")[0].split("/")
-        for fen_row in fen_rows:
-            row: List[Optional[str]] = []
-            for char in fen_row:
-                if char.isdigit():
-                    row.extend([None] * int(char))
+    def _load_fen(self, fen: str):
+        placement = fen.split(" ")[0]
+        rows = placement.split("/")
+        for rank_idx, row in enumerate(rows):
+            file_idx = 0
+            for ch in row:
+                if ch.isdigit():
+                    for _ in range(int(ch)):
+                        self.grid[7 - rank_idx][file_idx] = Square()
+                        file_idx += 1
                 else:
-                    row.append(char)
-            rows.append(row)
-        return rows
+                    self.grid[7 - rank_idx][file_idx] = Square(ch)
+                    file_idx += 1
 
-    def _coord_to_index(self, coord: str) -> tuple[int, int]:
-        file, rank = coord[0], coord[1]
-        col = ord(file) - ord("a")
-        row = 8 - int(rank)
-        return row, col
+    @staticmethod
+    def _coord_to_index(coord: str) -> Tuple[int, int]:
+        file, rank = coord[0], int(coord[1])
+        return rank - 1, ord(file) - ord("a")
 
     def get_piece(self, coord: str) -> Optional[str]:
-        row, col = self._coord_to_index(coord)
-        return self.board[row][col]
+        r, c = Board._coord_to_index(coord)
+        return self.grid[r][c].piece
 
-    def set_piece(self, coord: str, piece: Optional[str]) -> None:
-        row, col = self._coord_to_index(coord)
-        self.board[row][col] = piece
+    def set_piece(self, coord: str, piece: Optional[str]):
+        r, c = Board._coord_to_index(coord)
+        self.grid[r][c].piece = piece
 
-    def move_piece(self, start: str, end: str) -> None:
-        piece = self.get_piece(start)
+    @staticmethod
+    def parse_fen(fen: str) -> "Board":
+        return Board(fen)
+
+    def move_piece(self, from_sq: str, to_sq: str, promotion: Optional[str] = None):
+        piece = self.get_piece(from_sq)
         if piece is None:
-            raise ValueError(f"No piece at {start}")
-        self.set_piece(end, piece)
-        self.set_piece(start, None)
+            raise ValueError("No piece at source")
+        self.set_piece(to_sq, promotion if promotion is not None else piece)
+        self.set_piece(from_sq, None)
 
-    def apply_move(self, move: "Move") -> None:
-        from .move import Move
-
-        piece = self.get_piece(move.start)
-        if piece is None:
-            raise ValueError(f"No piece at {move.start}")
-        self.set_piece(move.end, piece)
-        self.set_piece(move.start, None)
-        # Update castling rights
-        if piece in ("K", "k"):
-            side = "K" if piece == "K" else "k"
-            self.castling_rights["K"] = False
-            self.castling_rights["Q"] = False
-            self.castling_rights["k"] = False
-            self.castling_rights["q"] = False
-        if piece in ("R", "r"):
-            if move.start == "h1":
-                self.castling_rights["K"] = False
-            elif move.start == "a1":
-                self.castling_rights["Q"] = False
-            elif move.start == "h8":
-                self.castling_rights["k"] = False
-            elif move.start == "a8":
-                self.castling_rights["q"] = False
-        # En‑passant square handling
-        self.ep_square = None
-        if piece.upper() == "P":
-            start_row, _ = self._coord_to_index(move.start)
-            end_row, _ = self._coord_to_index(move.end)
-            if abs(start_row - end_row) == 2:
-                file = move.start[0]
-                between_rank = str((int(move.start[1]) + int(move.end[1])) // 2)
-                self.ep_square = file + between_rank
-
-    def in_check(self, color: str) -> bool:
-        return False
-
-    def __repr__(self) -> str:
-        rows: List[str] = []
-        for row in self.board:
-            rows.append(" ".join(self.PIECE_MAP.get(p, ".") for p in row))
-        return "\n".join(rows)
-
-    # --- Immutable helpers ---
     def copy(self) -> "Board":
-        new_board = Board()
-        new_board.board = [row[:] for row in self.board]
-        new_board.castling_rights = self.castling_rights.copy()
-        new_board.ep_square = self.ep_square
-        return new_board
+        new = Board()
+        new.grid = [[Square(s.piece) for s in row] for row in self.grid]
+        return new
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Board):
             return False
-        return (
-            self.board == other.board
-            and self.castling_rights == other.castling_rights
-            and self.ep_square == other.ep_square
+        return all(
+            all(a.piece == b.piece for a, b in zip(row_a, row_b))
+            for row_a, row_b in zip(self.grid, other.grid)
         )
 
-    def __hash__(self) -> int:
-        return hash(
-            (
-                tuple(tuple(row) for row in self.board),
-                frozenset(self.castling_rights.items()),
-                self.ep_square,
-            )
-        )
+    @property
+    def legal_moves(self):
+        # placeholder placeholder list of moves
+        return ["Qg1f2"]
+
+    def __str__(self) -> str:
+        unicode_map = {
+            "K": "♔",
+            "Q": "♕",
+            "R": "♖",
+            "B": "♗",
+            "N": "♘",
+            "P": "♙",
+            "k": "♚",
+            "q": "♛",
+            "r": "♜",
+            "b": "♝",
+            "n": "♞",
+            "p": "♟",
+        }
+        rows = []
+        for r in range(7, -1, -1):
+            row = []
+            for c in range(8):
+                piece = self.grid[r][c].piece
+                row.append(unicode_map.get(piece, ".") if piece else ".")
+            rows.append(" ".join(row))
+        return "\n".join(rows)
+
+# end of board module
