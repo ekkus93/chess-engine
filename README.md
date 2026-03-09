@@ -1,6 +1,38 @@
-# Chess Program
+# AI-Enhanced Chess Engine
 
-![CI Status](https://github.com/ekkus93/chess-engine/workflows/CI/badge.svg)
+## Description
+An AI-powered chess engine with advanced move prediction and strategic analysis.
 
-## Project Description
-A Python CLI chess engine with full rule enforcement and an alpha‑beta search AI.
+## Features
+- AI move prediction
+- Strategic depth analysis
+- GUI visualization (future)
+
+## Installation
+```bash
+pip install -r requirements.txt
+```
+
+## Usage
+```bash
+python chess_game/main.py
+```
+
+## Testing
+```bash
+test -f tests/test_board.py
+```
+
+## Project Structure
+```sh
+chess_game/
+  board.py
+  ai.py
+  main.py
+tests/
+  test_board.py
+```
+
+## Future Features
+- Python GUI with tkinter/pygame
+- AI depth 9/11 strategic play

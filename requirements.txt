@@ -1,3 +1,0 @@
-# Requirements
-
-# Add project dependencies here

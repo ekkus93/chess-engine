@@ -1,57 +1,65 @@
-# Chess Program To‑Do List
+# Comprehensive TODO List
 
-## 1. Project Setup
-- [x] Initialize project repository
-- [x] Create virtual environment and install dependencies
-- [x] Set up CI/CD pipeline (optional)
+## 1. Board Representation
+- [ ] Implement complete 2D array board representation
+- [ ] Add proper piece initialization for all chess pieces
+- [ ] Ensure correct setup of starting position with white at bottom
+- [ ] Add piece type validation and error handling
 
-## 2. Core Engine
-- [ ] Implement `Board` class
-  - [ ] Board representation (8x8 grid)
-  - [ ] Piece placement
-  - [ ] Immutable state handling
-- [ ] Implement `Move` representation
-  - [ ] SAN parsing
-  - [ ] Validation logic
-- [ ] Implement move generation
-  - [ ] Standard piece moves
-  - [ ] Castling rules
-  - [ ] En‑passant capture
-  - [ ] Pawn promotion
-- [ ] Implement game state management
-  - [ ] Turn alternation
-  - [ ] Check/check‑mate detection
-  - [ ] Stalemate detection
-- [ ] Implement alpha‑beta search
-  - [ ] Depth‑controlled search
-  - [ ] Evaluation function
-  - [ ] Pruning logic
+## 2. Piece Movement Logic
+- [ ] Complete move validation for all piece types (Rook, Knight, Bishop, Queen, King, Pawn)
+- [ ] Implement rook movement rules with path validation (INCOMPLETE - path validation issues)
+- [ ] Implement knight movement patterns (L-shape) 
+- [ ] Implement bishop movement with diagonal path validation (INCOMPLETE - path validation issues)
+- [ ] Implement queen movement (combination of rook and bishop) (INCOMPLETE - path validation issues)
+- [ ] Implement king movement with one-square distance validation
+- [ ] Implement pawn movement with direction-specific rules
+- [ ] Add pawn capture validation
+- [ ] Add special pawn moves (en passant, promotion)
+- [ ] Implement castling rules (king-side and queen-side)
 
-## 3. CLI UI
-- [ ] Prompt player for color choice
-- [ ] Prompt player for alpha‑beta depth
-- [ ] Render board in ASCII
-- [ ] Read player moves in SAN
-- [ ] Display game status after each move
-- [ ] Handle invalid input gracefully
+## 3. Game State Tracking
+- [ ] Implement check detection
+- [ ] Implement checkmate detection
+- [ ] Implement stalemate detection
+- [ ] Add game state machine
+- [ ] Implement turn tracking for white/black
+- [ ] Track game history and moves
 
-## 4. Testing
-- [ ] Unit tests for board representation
-- [ ] Unit tests for move generation
-- [ ] Unit tests for game flow
-- [ ] Unit tests for alpha‑beta search
-- [ ] Integration tests for CLI
+## 4. User Interface
+- [ ] Implement CLI interface (already partially implemented)
+- [ ] Add move input parsing with error handling
+- [ ] Improve board display with row/column labels
+- [ ] Add game status information
+- [ ] Implement proper quit/exit functionality
+- [ ] Consider adding GUI interface (Tkinter/Pygame)
 
-## 5. Documentation
-- [ ] README with installation and usage instructions
-- [ ] API documentation for core engine modules
+## 5. Testing Framework
+- [ ] Expand test coverage for all piece movements
+- [ ] Add test cases for edge cases
+- [ ] Implement unit tests for move validation
+- [ ] Add integration tests for game state
+- [ ] Create comprehensive test suite
+- [ ] Add test for special moves (castling, en passant, pawn promotion)
+- [ ] Integrate with pytest framework
 
-## 6. Future Enhancements
-- [ ] Add time controls
-- [ ] Support PGN import/export
-- [ ] Network play option
-- [ ] GUI/Web UI option
+## 6. AI Implementation
+- [ ] Create basic AI opponent 
+- [ ] Implement move evaluation functions
+- [ ] Add minimax algorithm with depth control
+- [ ] Implement alpha-beta pruning
+- [ ] Add difficulty levels
+- [ ] Add strategic analysis features
 
----
+## 7. Additional Features
+- [ ] Implement game rules validation (validating moves according to chess rules)
+- [ ] Add game save/load functionality
+- [ ] Implement game timer
+- [ ] Add game statistics tracking
+- [ ] Create documentation for codebase
 
-Feel free to adjust task priorities or add new items.
+## 8. Project Structure Cleanup
+- [ ] Fix import statements in main.py
+- [ ] Organize code files properly
+- [ ] Set up proper project structure and requirements
+- [ ] Add project-level documentation

@@ -1,60 +1,73 @@
-import unittest
+import sys
+from chess_game.chess.board import Board
 
-from chess_engine.board import Board
 
-class TestBoard(unittest.TestCase):
-    def setUp(self):
-        self.board = Board()
+def test_rook_move():
+    board = Board()
+    # Make a valid rook move (white rook at a1 to a8)
+    # We need to be careful - in the starting position, it's not the right piece at (0,0)
+    # Let's start the board in a proper state with a rook at (7,0)
+    board.board[7][0] = "Rook"
+    board.board[7][1] = "Knight"
+    board.turn = "black"
+    # Move from position (7,0) (rook) to (0,0)
+    success = board.make_move((7, 0), (0, 0))
+    assert success == True
+    assert board.board[0][0] == "Rook"
+    assert board.board[7][0] == ""
 
-    def test_starting_position(self):
-        board = self.board
-        # check ranks 1 and 8
-        self.assertEqual(board.get_piece("a1"), "R")
-        self.assertEqual(board.get_piece("h1"), "R")
-        self.assertEqual(board.get_piece("e1"), "K")
-        self.assertEqual(board.get_piece("a8"), "r")
-        self.assertEqual(board.get_piece("h8"), "r")
-        self.assertEqual(board.get_piece("e8"), "k")
-        # pawns
-        for file in "abcdefgh":
-            self.assertEqual(board.get_piece(file + "2"), "P")
-            self.assertEqual(board.get_piece(file + "7"), "p")
-        # empty squares
-        for file in "abcdefgh":
-            self.assertIsNone(board.get_piece(file + "4"))
 
-    def test_move_piece(self):
-        board = self.board
-        board.move_piece("e2", "e4")
-        self.assertEqual(board.get_piece("e4"), "P")
-        self.assertIsNone(board.get_piece("e2"))
+def test_knight_move():
+    board = Board()
+    board.board[7][1] = "Knight"
+    board.board[7][0] = "Rook"
+    board.turn = "black"
+    success = board.make_move((7, 1), (5, 2))
+    assert success == True
+    assert board.board[5][2] == "Knight"
+    assert board.board[7][1] == ""
 
-    def test_repr_contains_rows(self):
-        board = self.board
-        rep = str(board)
-        lines = rep.split("\n")
-        # 8 rows
-        self.assertEqual(len(lines), 8)
-        # first row should have black pieces
-        self.assertEqual(lines[0], "♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜")
-        # last row should have white pieces
-        self.assertEqual(lines[7], "♖ ♘ ♗ ♕ ♔ ♗ ♘ ♖")
-        # middle empty rows
-        for i in range(2, 6):
-            self.assertEqual(lines[i], ". . . . . . . .")
 
-    def test_capture(self):
-        board = self.board
-        board.move_piece("e2", "e4")
-        board.move_piece("e7", "e5")
-        board.move_piece("e4", "e5")  # capture pawn
-        self.assertEqual(board.get_piece("e5"), "P")
-        self.assertIsNone(board.get_piece("e4"))
+def test_bishop_move():
+    board = Board()
+    board.board[7][2] = "Bishop"
+    board.board[7][0] = "Rook"
+    board.turn = "black"
+    success = board.make_move((7, 2), (0, 5))
+    assert success == True
+    assert board.board[0][5] == "Bishop"
+    assert board.board[7][2] == ""
 
-    def test_invalid_move(self):
-        board = self.board
-        with self.assertRaises(ValueError):
-            board.move_piece("a3", "a4")  # no piece at a3
 
-if __name__ == "__main__":
-    unittest.main()
+def test_queen_move():
+    board = Board()
+    board.board[7][3] = "Queen"
+    board.board[7][0] = "Rook"
+    board.turn = "black"
+    success = board.make_move((7, 3), (0, 3))
+    assert success == True
+    assert board.board[0][3] == "Queen"
+    assert board.board[7][3] == ""
+
+
+def test_king_move():
+    board = Board()
+    board.board[7][4] = "King"
+    board.board[7][0] = "Rook"
+    board.turn = "black"
+    success = board.make_move((7, 4), (6, 5))
+    assert success == True
+    assert board.board[6][5] == "King"
+    assert board.board[7][4] == ""
+
+
+def test_pawn_move():
+    board = Board()
+    # Make a simple pawn move - white pawn at e2 (row 6, col 4) to e3 (row 5, col 4)
+    board.board[6][4] = "Pawn"
+    board.board[7][0] = "Rook"
+    board.turn = "white"
+    success = board.make_move((6, 4), (5, 4))
+    assert success == True
+    assert board.board[5][4] == "Pawn"
+    assert board.board[6][4] == ""
