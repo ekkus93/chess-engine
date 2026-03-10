@@ -14,6 +14,7 @@ class Board:
     def __init__(self):
         self.board = self.create_board()
         self.turn = Color.WHITE
+        self.en_passant_target = None
 
     def create_board(self) -> List[List[Optional[Piece]]]:
         # Initialize board with pieces
