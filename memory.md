@@ -15,3 +15,7 @@
 - Added `tests/test_legality.py` covering all required T3 attack/check/self-check scenarios.
 - Implemented TODO Phase 4 in `board.py`: explicit castling rights tracking, castling validation/execution, en passant edge-case handling, and promotion choice support in `make_move`.
 - Added `tests/test_special_moves.py` for castling, en passant, and promotion requirements.
+- Implemented TODO Phase 5 in `board.py`: added `get_legal_moves(color=None)`, `is_checkmate(color=None)`, and `is_stalemate(color=None)` using existing legal-move simulation.
+- Added `tests/test_game_status.py` covering legal move enumeration baseline, Fool's Mate checkmate, in-check-with-escape non-checkmate, classic stalemate, and non-stalemate with one legal move.
+- Updated `TODO.md` to mark T5.1/T5.2/T5.3 complete.
+- Verification after Phase 5: `ruff check .`, `mypy chess_game`, and `pytest tests/ -q` all pass (`83 passed`).

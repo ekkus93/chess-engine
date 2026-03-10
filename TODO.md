@@ -543,6 +543,8 @@ Detect when a pawn reaches the last rank.
 ## Phase 5 — Game status detection
 ### T5.1 Generate all legal moves for side to move
 
+- [x] Added legal move enumeration helper with promotion-aware move generation.
+
  Add a helper that enumerates all legal moves for a color or current side.
 
  This is needed for checkmate and stalemate.
@@ -553,6 +555,8 @@ Detect when a pawn reaches the last rank.
 
 ### T5.2 Implement checkmate detection
 
+- [x] Added `is_checkmate(side)` based on in-check + zero legal moves.
+
  is_checkmate(side) should return true only when side is in check and has zero legal moves.
 
 **Tests required**
@@ -562,6 +566,8 @@ Detect when a pawn reaches the last rank.
  position in check but with one legal escape is not checkmate
 
 ### T5.3 Implement stalemate detection
+
+- [x] Added `is_stalemate(side)` based on not-in-check + zero legal moves.
 
  is_stalemate(side) should return true only when side is not in check and has zero legal moves.
 

@@ -5,6 +5,7 @@ from typing import Optional
 from chess_game.chess.types import Color, Piece, PieceType
 
 Square = tuple[int, int]
+LegalMove = tuple[Square, Square, Optional[PieceType]]
 
 
 def create_piece(color: Color, piece_type: PieceType) -> Piece:
@@ -349,6 +350,46 @@ class Board:
 
         enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
         return self.is_square_attacked(king_square, enemy_color)
+
+    def _promotion_options_for_move(self, piece: Piece, end_pos: Square) -> list[Optional[PieceType]]:
+        if piece.kind == PieceType.PAWN and end_pos[0] in {0, 7}:
+            return [
+                PieceType.QUEEN,
+                PieceType.ROOK,
+                PieceType.BISHOP,
+                PieceType.KNIGHT,
+            ]
+        return [None]
+
+    def get_legal_moves(self, color: Optional[Color] = None) -> list[LegalMove]:
+        side = self.turn if color is None else color
+        legal_moves: list[LegalMove] = []
+
+        for start_row in range(8):
+            for start_col in range(8):
+                piece = self.get_piece(start_row, start_col)
+                if piece is None or piece.color != side:
+                    continue
+
+                start = (start_row, start_col)
+                for end_row in range(8):
+                    for end_col in range(8):
+                        end = (end_row, end_col)
+                        for promotion in self._promotion_options_for_move(piece, end):
+                            simulated = self.clone()
+                            simulated.turn = side
+                            if simulated.make_move(start, end, promotion=promotion):
+                                legal_moves.append((start, end, promotion))
+
+        return legal_moves
+
+    def is_checkmate(self, color: Optional[Color] = None) -> bool:
+        side = self.turn if color is None else color
+        return self.is_in_check(side) and len(self.get_legal_moves(side)) == 0
+
+    def is_stalemate(self, color: Optional[Color] = None) -> bool:
+        side = self.turn if color is None else color
+        return not self.is_in_check(side) and len(self.get_legal_moves(side)) == 0
 
     def _apply_move_unchecked(self, start_pos: Square, end_pos: Square) -> None:
         start_piece = self.get_piece(*start_pos)
