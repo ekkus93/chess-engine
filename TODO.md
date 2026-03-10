@@ -593,6 +593,8 @@ The existing tests are weak and in some cases based on broken assumptions.
 
 ### T6.1 Delete or rewrite invalid tests
 
+- [x] Replaced mixed/legacy test coverage with focused rule tests and removed the old `tests/test_board.py` bundle.
+
  Remove tests that manually place pieces in contradictory locations without clearly documenting why.
 
  Remove tests that assume wrong board orientation.
@@ -601,6 +603,8 @@ The existing tests are weak and in some cases based on broken assumptions.
 
 ### T6.2 Add fixture helpers for clean board setup
 
+- [x] Added shared board setup helpers/fixtures in `tests/conftest.py` (`clear_board`, `empty_board`, `board_with_kings`).
+
  Create helper(s) to build an empty board.
 
  Create helper(s) to place only the pieces needed for a targeted rule test.
@@ -608,6 +612,8 @@ The existing tests are weak and in some cases based on broken assumptions.
  Keep kings on the board when testing legal move generation unless the helper explicitly documents otherwise.
 
 ### T6.3 Organize test files by subject
+
+- [x] Added subject-focused files: `tests/test_coords.py`, `tests/test_setup.py`, and `tests/test_cli_parsing.py`.
 
 Suggested structure:
 

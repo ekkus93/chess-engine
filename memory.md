@@ -19,3 +19,7 @@
 - Added `tests/test_game_status.py` covering legal move enumeration baseline, Fool's Mate checkmate, in-check-with-escape non-checkmate, classic stalemate, and non-stalemate with one legal move.
 - Updated `TODO.md` to mark T5.1/T5.2/T5.3 complete.
 - Verification after Phase 5: `ruff check .`, `mypy chess_game`, and `pytest tests/ -q` all pass (`83 passed`).
+- Implemented TODO Phase 6: added shared test fixtures (`empty_board`, `board_with_kings`) and `clear_board` helper in `tests/conftest.py` for cleaner setup patterns.
+- Reorganized foundational tests by subject: added `tests/test_setup.py`, `tests/test_coords.py`, and `tests/test_cli_parsing.py`; removed legacy mixed file `tests/test_board.py`.
+- Rewrote castling-rights persistence tests in `tests/test_special_moves.py` to use natural alternating turns instead of forcing `board.turn` between same-side moves.
+- Verification after Phase 6: `ruff check .`, `mypy chess_game`, and `pytest tests/ -q` all pass (`84 passed`).

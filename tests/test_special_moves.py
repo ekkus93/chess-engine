@@ -99,9 +99,9 @@ def test_cannot_castle_after_king_moved() -> None:
     board.set_piece(7, 7, create_piece(Color.WHITE, PieceType.ROOK))
 
     assert board.make_move((7, 4), (6, 4)) is True
-    board.turn = Color.WHITE
+    assert board.make_move((0, 4), (1, 4)) is True
     assert board.make_move((6, 4), (7, 4)) is True
-    board.turn = Color.WHITE
+    assert board.make_move((1, 4), (0, 4)) is True
 
     assert board.make_move((7, 4), (7, 6)) is False
 
@@ -113,9 +113,9 @@ def test_cannot_castle_after_rook_moved() -> None:
     board.set_piece(7, 7, create_piece(Color.WHITE, PieceType.ROOK))
 
     assert board.make_move((7, 7), (7, 6)) is True
-    board.turn = Color.WHITE
+    assert board.make_move((0, 4), (1, 4)) is True
     assert board.make_move((7, 6), (7, 7)) is True
-    board.turn = Color.WHITE
+    assert board.make_move((1, 4), (0, 4)) is True
 
     assert board.make_move((7, 4), (7, 6)) is False
 
