@@ -9,3 +9,5 @@
 - Fixed Ruff F401 issues in `chess_game/__init__.py` and `chess_game/main.py`; `ruff`, `mypy`, and `pytest` now pass (pytest still shows existing experimental warning noise).
 - Resolved pytest warning noise at source by adding a local `record_xml_attribute` fixture in `tests/conftest.py` to avoid external plugin (`pytest_embedded`) pulling pytest's experimental fixture.
 - Added README testing note documenting why `tests/conftest.py` defines `record_xml_attribute` and that it should not be removed casually.
+- Implemented full TODO Phase 2 pseudo-legal movement coverage with dedicated tests in `tests/test_piece_moves.py` (rook, bishop, queen, knight, king, and pawn cases).
+- Cleaned `TODO.md` formatting after copy/paste artifacts: removed duplicated T1.2 block, restored missing phase/task markdown headings, and normalized acceptance/tests labels.

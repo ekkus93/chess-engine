@@ -86,79 +86,57 @@ Create helper(s) for algebraic notation conversion.
 
 Create helper(s) for bounds checking.
 
-Test helper(s) with canonical coordinate examples.
+Create a Move type with optional promotion.
+
+**Must support**
+- `e2e4`
+- `e7e8q`
+- rejection of malformed inputs like `e9e4`, `abc`, `e2-e4`
 
 **Acceptance criteria**
-- `algebraic_to_index("e2")` returns `(6, 4)` 
+- `algebraic_to_index("e2")` returns `(6, 4)`
 - `index_to_algebraic(6, 4)` returns `"e2"`
 - `parse_algebraic_move("e2e4")` returns `((6, 4), (4, 4))`
 - Canonical board orientation works correctly (row 0 = rank 8)
+- Board cells can distinguish white pawn from black pawn.
+- Tests can assert piece color and piece kind separately.
+- Parsing tests exist and pass.
 
-Acceptance criteria
+### T1.3 Rebuild starting position correctly
 
-Board cells can distinguish white pawn from black pawn.
+Ensure white major pieces are on rank 1 and white pawns on rank 2.
 
-Tests can assert piece color and piece kind separately.
+Ensure black major pieces are on rank 8 and black pawns on rank 7.
 
-T1.2 Define square and move helpers
+Use the canonical indexing convention.
 
- Create helper(s) for algebraic notation conversion.
+**Required piece placement**
+- White back rank on row 7
+- White pawns on row 6
+- Black pawns on row 1
+- Black back rank on row 0
 
- Create helper(s) for bounds checking.
+**Acceptance criteria**
+- Tests verify a1, e1, d1, a8, e8, d8, e2, and e7 explicitly.
 
- Create a Move type with optional promotion.
+### T1.4 Add board helper methods
 
-Must support
+Add helpers for get/set/clear square.
 
-e2e4
+Add a copy/clone method or equivalent immutable update path for simulation.
 
-e7e8q
+Add helper to find a king of a given color.
 
-rejection of malformed inputs like e9e4, abc, e2-e4
+**Acceptance criteria**
+- Code no longer depends on magic indexing everywhere.
 
-Acceptance criteria
-
-Parsing tests exist and pass.
-
-T1.3 Rebuild starting position correctly
-
- Ensure white major pieces are on rank 1 and white pawns on rank 2.
-
- Ensure black major pieces are on rank 8 and black pawns on rank 7.
-
- Use the canonical indexing convention.
-
-Required piece placement
-
-White back rank on row 7
-
-White pawns on row 6
-
-Black pawns on row 1
-
-Black back rank on row 0
-
-Acceptance criteria
-
-Tests verify a1, e1, d1, a8, e8, d8, e2, and e7 explicitly.
-
-T1.4 Add board helper methods
-
- Add helpers for get/set/clear square.
-
- Add a copy/clone method or equivalent immutable update path for simulation.
-
- Add helper to find a king of a given color.
-
-Acceptance criteria
-
-Code no longer depends on magic indexing everywhere.
-
-Phase 2 — Implement pseudo-legal movement rules
+## Phase 2 — Implement pseudo-legal movement rules
 
 Pseudo-legal means the piece movement pattern is allowed without yet considering whether own king is left in check.
 
-T2.1 Create piece-specific movement helpers
+### T2.1 Create piece-specific movement helpers
+
+- [x] Implemented rook, bishop, queen, knight, king, and pawn pseudo-legal move helpers.
 
  rook pseudo-legal move helper
 
@@ -180,19 +158,23 @@ Is the path clear?
 
 Is the destination occupiable?
 
-T2.2 Implement reusable path-check logic for sliders
+### T2.2 Implement reusable path-check logic for sliders
+
+- [x] Added reusable straight-line path traversal helper used by rook, bishop, and queen.
 
  Add a helper for straight-line path traversal.
 
  Use it for rook, bishop, and queen.
 
-Acceptance criteria
+**Acceptance criteria**
 
 Rook, bishop, and queen do not jump over pieces.
 
 Knight still ignores blockers.
 
-T2.3 Implement rook rules
+### T2.3 Implement rook rules
+
+- [x] Implemented and tested rook pseudo-legal movement rules.
 
  Allow horizontal/vertical movement only.
 
@@ -202,7 +184,7 @@ T2.3 Implement rook rules
 
  Reject capture of friendly piece.
 
-Tests required
+**Tests required**
 
  rook valid horizontal move
 
@@ -216,7 +198,9 @@ Tests required
 
  rook cannot capture friendly piece
 
-T2.4 Implement bishop rules
+### T2.4 Implement bishop rules
+
+- [x] Implemented and tested bishop pseudo-legal movement rules.
 
  Allow diagonal movement only.
 
@@ -224,7 +208,7 @@ T2.4 Implement bishop rules
 
  Reject zero-length move.
 
-Tests required
+**Tests required**
 
  bishop valid diagonal move
 
@@ -234,13 +218,15 @@ Tests required
 
  bishop cannot capture friendly piece
 
-T2.5 Implement queen rules
+### T2.5 Implement queen rules
+
+- [x] Implemented and tested queen pseudo-legal movement rules.
 
  Allow rook-like and bishop-like movement only.
 
  Reuse tested helpers; do not duplicate logic badly.
 
-Tests required
+**Tests required**
 
  queen straight move
 
@@ -250,13 +236,15 @@ Tests required
 
  queen illegal knight-like move
 
-T2.6 Implement knight rules
+### T2.6 Implement knight rules
+
+- [x] Implemented and tested knight pseudo-legal movement rules.
 
  Allow exactly (2,1) or (1,2) deltas.
 
  Knight ignores blockers between start and end.
 
-Tests required
+**Tests required**
 
  knight valid L-move both orientations
 
@@ -268,7 +256,9 @@ Tests required
 
  knight cannot capture friendly piece
 
-T2.7 Implement king normal move rules
+### T2.7 Implement king normal move rules
+
+- [x] Implemented and tested king normal one-square pseudo-legal movement rules.
 
  Allow exactly one square in any direction for normal king moves.
 
@@ -276,7 +266,7 @@ T2.7 Implement king normal move rules
 
  Reject friendly capture.
 
-Tests required
+**Tests required**
 
  king one-step orthogonal
 
@@ -284,7 +274,7 @@ Tests required
 
  king cannot move two squares except castling path handled separately
 
-T2.8 Implement pawn rules carefully
+### T2.8 Implement pawn rules carefully
 
 - [x] Implemented comprehensive pawn movement rules including all special cases
 - [x] Forward movement with one/two-square start options
@@ -323,7 +313,7 @@ Black pawn must do exactly this
 
  never move forward into an occupied square
 
-Tests required
+**Tests required**
 
  white pawn one-step from e2 to e3
 
@@ -347,15 +337,15 @@ Tests required
 
  black pawn cannot move backward
 
-Acceptance criteria
+**Acceptance criteria**
 
 Pawn direction matches the canonical orientation.
 
-Phase 3 — Implement legal move validation via king safety
+## Phase 3 — Implement legal move validation via king safety
 
 A pseudo-legal move is not enough. Legal chess moves must not leave your own king in check.
 
-T3.1 Implement attack detection
+### T3.1 Implement attack detection
 
  Add a function like is_square_attacked(board, square, by_color).
 
@@ -363,7 +353,7 @@ T3.1 Implement attack detection
 
  Be careful with pawn attack patterns; pawn attacks are not the same as pawn forward moves.
 
-Tests required
+**Tests required**
 
  rook attack on open file/rank
 
@@ -377,13 +367,13 @@ Tests required
 
  king adjacent attack
 
-T3.2 Implement is_in_check(color)
+### T3.2 Implement is_in_check(color)
 
  Locate the king for that color.
 
  Use attack detection to determine if the enemy attacks it.
 
-Tests required
+**Tests required**
 
  simple check by rook
 
@@ -393,13 +383,13 @@ Tests required
 
  simple check by queen
 
-T3.3 Reject self-check moves
+### T3.3 Reject self-check moves
 
  Simulate candidate move on a copy of state.
 
  Reject move if mover’s king is in check after simulation.
 
-Tests required
+**Tests required**
 
  pinned piece cannot move exposing king
 
@@ -409,12 +399,12 @@ Tests required
 
  capturing the checking piece is allowed when it resolves check
 
-Acceptance criteria
+**Acceptance criteria**
 
 The engine distinguishes pseudo-legal from legal moves.
 
-Phase 4 — Special rules
-T4.1 Track castling rights explicitly
+## Phase 4 — Special rules
+### T4.1 Track castling rights explicitly
 
  Add explicit castling rights to game state.
 
@@ -426,11 +416,11 @@ T4.1 Track castling rights explicitly
 
  Update rights when a rook is captured on its original square if relevant.
 
-Acceptance criteria
+**Acceptance criteria**
 
 Rights never reappear once lost.
 
-T4.2 Implement castling move validation
+### T4.2 Implement castling move validation
 
  Support white kingside: e1g1
 
@@ -454,7 +444,7 @@ Legal only if
 
  king does not end on attacked square
 
-Tests required
+**Tests required**
 
  white kingside castle legal case
 
@@ -476,7 +466,7 @@ Tests required
 
  cannot castle if path blocked
 
-T4.3 Implement en passant state tracking
+### T4.3 Implement en passant state tracking
 
 - [x] Added en_passant_target attribute to Board class
 - [x] Set up proper tracking for pawn capture situations
@@ -488,7 +478,7 @@ Add en_passant_target to game state.
 
  Clear it after one opponent turn if not used.
 
-T4.4 Implement en passant legality and capture
+### T4.4 Implement en passant legality and capture
 
 - [x] Implemented en passant capture validation
 - [x] Proper detection of en passant opportunities
@@ -501,7 +491,7 @@ Allow en passant only on the immediately following move.
 
  Ensure king-safety validation still applies.
 
-Tests required
+**Tests required**
 
  white en passant legal example
 
@@ -513,7 +503,7 @@ Tests required
 
  en passant cannot be used if it leaves own king in check
 
-T4.5 Implement promotion
+### T4.5 Implement promotion
 
 - [x] Detection when pawn reaches last rank
 - [x] Support for promotion choice in parsed move input
@@ -528,7 +518,7 @@ Detect when a pawn reaches the last rank.
 
  Replace pawn with promoted piece.
 
-Tests required
+**Tests required**
 
  white promotion to queen
 
@@ -540,38 +530,38 @@ Tests required
 
  default promotion is queen when unspecified
 
-Phase 5 — Game status detection
-T5.1 Generate all legal moves for side to move
+## Phase 5 — Game status detection
+### T5.1 Generate all legal moves for side to move
 
  Add a helper that enumerates all legal moves for a color or current side.
 
  This is needed for checkmate and stalemate.
 
-Tests required
+**Tests required**
 
  position with multiple legal moves returns expected move count or at least expected move membership
 
-T5.2 Implement checkmate detection
+### T5.2 Implement checkmate detection
 
  is_checkmate(side) should return true only when side is in check and has zero legal moves.
 
-Tests required
+**Tests required**
 
  Fool’s Mate or another simple forced mate position
 
  position in check but with one legal escape is not checkmate
 
-T5.3 Implement stalemate detection
+### T5.3 Implement stalemate detection
 
  is_stalemate(side) should return true only when side is not in check and has zero legal moves.
 
-Tests required
+**Tests required**
 
  one classic stalemate position
 
  position with no check but one legal move is not stalemate
 
-T5.4 Optional later draw-state tasks
+### T5.4 Optional later draw-state tasks
 
 Do not implement unless earlier phases are complete.
 
@@ -581,11 +571,11 @@ Do not implement unless earlier phases are complete.
 
  insufficient material
 
-Phase 6 — Rewrite the current tests so they stop asserting nonsense
+## Phase 6 — Rewrite the current tests so they stop asserting nonsense
 
 The existing tests are weak and in some cases based on broken assumptions.
 
-T6.1 Delete or rewrite invalid tests
+### T6.1 Delete or rewrite invalid tests
 
  Remove tests that manually place pieces in contradictory locations without clearly documenting why.
 
@@ -593,7 +583,7 @@ T6.1 Delete or rewrite invalid tests
 
  Remove tests that set turn just to make a broken move appear valid.
 
-T6.2 Add fixture helpers for clean board setup
+### T6.2 Add fixture helpers for clean board setup
 
  Create helper(s) to build an empty board.
 
@@ -601,7 +591,7 @@ T6.2 Add fixture helpers for clean board setup
 
  Keep kings on the board when testing legal move generation unless the helper explicitly documents otherwise.
 
-T6.3 Organize test files by subject
+### T6.3 Organize test files by subject
 
 Suggested structure:
 
@@ -619,12 +609,12 @@ Suggested structure:
 
  tests/test_cli_parsing.py
 
-Acceptance criteria
+**Acceptance criteria**
 
 Tests are readable enough that someone unfamiliar with the code can infer the intended rule from them.
 
-Phase 7 — CLI cleanup
-T7.1 Fix move parsing in main.py
+## Phase 7 — CLI cleanup
+### T7.1 Fix move parsing in main.py
 
 The current parser is wrong because it slices move[2:4] and move[4:6] for a 4-character move string.
 
@@ -634,13 +624,13 @@ The current parser is wrong because it slices move[2:4] and move[4:6] for a 4-ch
 
  Reject malformed move strings with a good message.
 
-Examples
+**Examples**
 
 valid: e2e4, g1f3, e7e8q
 
 invalid: e2, e2-e4, hello, e9e4, a1a1
 
-T7.2 Improve board display
+### T7.2 Improve board display
 
  Display ranks 8 to 1 top to bottom.
 
@@ -648,7 +638,7 @@ T7.2 Improve board display
 
  Display distinguishable symbols/codes for white and black pieces.
 
-T7.3 Improve user feedback
+### T7.3 Improve user feedback
 
  On illegal move, explain why if practical.
 
@@ -658,8 +648,8 @@ T7.3 Improve user feedback
 
  End the game cleanly on checkmate or stalemate.
 
-Phase 8 — Documentation cleanup
-T8.1 Update README
+## Phase 8 — Documentation cleanup
+### T8.1 Update README
 
  Describe the current real capabilities.
 
@@ -669,7 +659,7 @@ T8.1 Update README
 
  State clearly that correctness comes before AI.
 
-T8.2 Add developer notes
+### T8.2 Add developer notes
 
  Briefly document coordinate conventions.
 
@@ -677,11 +667,11 @@ T8.2 Add developer notes
 
  Briefly document how castling rights and en passant state are stored.
 
-Phase 9 — Only after all rules tests are green
+## Phase 9 — Only after all rules tests are green
 
 Do not start this phase until every earlier acceptance criterion is met.
 
-T9.1 Optional AI baseline
+### T9.1 Optional AI baseline
 
  legal move generation hookup
 
@@ -689,7 +679,7 @@ T9.1 Optional AI baseline
 
  shallow minimax
 
-T9.2 Optional GUI
+### T9.2 Optional GUI
 
  render board
 
@@ -699,7 +689,7 @@ T9.2 Optional GUI
 
 These are intentionally last.
 
-Mandatory regression checklist
+## Mandatory regression checklist
 
 Before declaring the repo "fixed," verify all of these:
 
@@ -735,7 +725,7 @@ Before declaring the repo "fixed," verify all of these:
 
  CLI uses validated engine API only
 
-Advice to the coding model working on this repo
+## Advice to the coding model working on this repo
 
 When in doubt:
 
