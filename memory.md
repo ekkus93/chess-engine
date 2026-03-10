@@ -23,3 +23,5 @@
 - Reorganized foundational tests by subject: added `tests/test_setup.py`, `tests/test_coords.py`, and `tests/test_cli_parsing.py`; removed legacy mixed file `tests/test_board.py`.
 - Rewrote castling-rights persistence tests in `tests/test_special_moves.py` to use natural alternating turns instead of forcing `board.turn` between same-side moves.
 - Verification after Phase 6: `ruff check .`, `mypy chess_game`, and `pytest tests/ -q` all pass (`84 passed`).
+- Implemented TODO Phase 7: rewrote `chess_game/main.py` — replaced broken `parse_move` with `parse_move_notation` (supports promotion suffix, rejects malformed input with clear message); prompt shows active side; displays check status after each move; ends cleanly on checkmate/stalemate; display() already correct.
+- Verification after Phase 7: `ruff check .`, `mypy chess_game`, and `pytest tests/ -q` all pass (`84 passed`).

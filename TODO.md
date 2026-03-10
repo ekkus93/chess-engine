@@ -638,6 +638,8 @@ Tests are readable enough that someone unfamiliar with the code can infer the in
 ## Phase 7 — CLI cleanup
 ### T7.1 Fix move parsing in main.py
 
+- [x] Replaced the broken `parse_move` with `parse_move_notation` from `move.py`; supports promotion suffix and rejects malformed input with a `ValueError` message.
+
 The current parser is wrong because it slices move[2:4] and move[4:6] for a 4-character move string.
 
  Parse 4-char coordinate moves correctly.
@@ -654,6 +656,8 @@ invalid: e2, e2-e4, hello, e9e4, a1a1
 
 ### T7.2 Improve board display
 
+- [x] Board already displays ranks 8→1 top-to-bottom, files a→h left-to-right; uppercase = white pieces, lowercase = black pieces.
+
  Display ranks 8 to 1 top to bottom.
 
  Display files a to h left to right.
@@ -661,6 +665,8 @@ invalid: e2, e2-e4, hello, e9e4, a1a1
  Display distinguishable symbols/codes for white and black pieces.
 
 ### T7.3 Improve user feedback
+
+- [x] Prompt shows which side is to move; illegal moves print the rejected notation; next side in check is announced; checkmate and stalemate print a terminating message.
 
  On illegal move, explain why if practical.
 
