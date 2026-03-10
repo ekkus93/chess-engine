@@ -58,6 +58,171 @@ class Board:
 
         return board
 
+    def is_valid_position(self, row: int, col: int) -> bool:
+        """Check if position is valid (within board boundaries)"""
+        return 0 <= row < 8 and 0 <= col < 8
+
+    def is_valid_rook_move(self, start: Tuple[int, int], end: Tuple[int, int]) -> bool:
+        """Check if a rook move from start to end is valid."""
+        if not self.is_valid_position(start[0], start[1]) or not self.is_valid_position(
+            end[0], end[1]
+        ):
+            return False
+
+        if start[0] == end[0] and start[1] == end[1]:
+            return False
+
+        # Check if it's moving in a straight line
+        if start[0] != end[0] and start[1] != end[1]:
+            return False
+
+        # Check if path is clear
+        row_step = 0 if start[0] == end[0] else (1 if end[0] > start[0] else -1)
+        col_step = 0 if start[1] == end[1] else (1 if end[1] > start[1] else -1)
+
+        current_row, current_col = start[0] + row_step, start[1] + col_step
+        while (current_row, current_col) != end:
+            if self.board[current_row][current_col] is not None:
+                return False
+            current_row += row_step
+            current_col += col_step
+
+        return True
+
+    def is_valid_knight_move(
+        self, start: Tuple[int, int], end: Tuple[int, int]
+    ) -> bool:
+        """Check if a knight move from start to end is valid."""
+        if not self.is_valid_position(start[0], start[1]) or not self.is_valid_position(
+            end[0], end[1]
+        ):
+            return False
+
+        row_diff = abs(end[0] - start[0])
+        col_diff = abs(end[1] - start[1])
+
+        return (row_diff == 2 and col_diff == 1) or (row_diff == 1 and col_diff == 2)
+
+    def is_valid_bishop_move(
+        self, start: Tuple[int, int], end: Tuple[int, int]
+    ) -> bool:
+        """Check if a bishop move from start to end is valid."""
+        if not self.is_valid_position(start[0], start[1]) or not self.is_valid_position(
+            end[0], end[1]
+        ):
+            return False
+
+        if start[0] == end[0] and start[1] == end[1]:
+            return False
+
+        # Check if it's moving diagonally
+        row_diff = abs(end[0] - start[0])
+        col_diff = abs(end[1] - start[1])
+
+        if row_diff != col_diff:
+            return False
+
+        # Check if path is clear
+        row_step = 1 if end[0] > start[0] else -1
+        col_step = 1 if end[1] > start[1] else -1
+
+        current_row, current_col = start[0] + row_step, start[1] + col_step
+        while (current_row, current_col) != end:
+            if self.board[current_row][current_col] is not None:
+                return False
+            current_row += row_step
+            current_col += col_step
+
+        return True
+
+    def is_valid_queen_move(self, start: Tuple[int, int], end: Tuple[int, int]) -> bool:
+        """Check if a queen move from start to end is valid."""
+        return self.is_valid_rook_move(start, end) or self.is_valid_bishop_move(
+            start, end
+        )
+
+    def is_valid_king_move(self, start: Tuple[int, int], end: Tuple[int, int]) -> bool:
+        """Check if a king move from start to end is valid."""
+        if not self.is_valid_position(start[0], start[1]) or not self.is_valid_position(
+            end[0], end[1]
+        ):
+            return False
+
+        row_diff = abs(end[0] - start[0])
+        col_diff = abs(end[1] - start[1])
+
+        return row_diff <= 1 and col_diff <= 1
+
+    def is_valid_pawn_move(self, start: Tuple[int, int], end: Tuple[int, int]) -> bool:
+        """Check if a pawn move from start to end is valid."""
+        if not self.is_valid_position(start[0], start[1]) or not self.is_valid_position(
+            end[0], end[1]
+        ):
+            return False
+
+        if start[0] == end[0] and start[1] == end[1]:
+            return False
+
+        start_piece = self.get_piece(*start)
+        if start_piece is None or start_piece.kind != PieceType.PAWN:
+            return False
+
+        row_diff = end[0] - start[0]
+        col_diff = end[1] - start[1]
+
+        # Check for correct direction
+        if start_piece.color == Color.WHITE:
+            if row_diff <= 0:
+                return False
+            direction = 1
+        else:
+            if row_diff >= 0:
+                return False
+            direction = -1
+
+        # Check for valid movement
+        if col_diff == 0:  # Moving forward
+            # Move one square
+            if row_diff == direction:
+                # Must not be blocked
+                if self.board[end[0]][end[1]] is not None:
+                    return False
+                return True
+            # Move two squares
+            elif row_diff == 2 * direction:
+                # Must be from starting position
+                if (start_piece.color == Color.WHITE and start[0] != 6) or (
+                    start_piece.color == Color.BLACK and start[0] != 1
+                ):
+                    return False
+                # Must not be blocked
+                if self.board[end[0]][end[1]] is not None:
+                    return False
+                # Middle square must not be blocked
+                if start_piece.color == Color.WHITE:
+                    if self.board[start[0] - direction][start[1]] is not None:
+                        return False
+                else:
+                    if self.board[start[0] - direction][start[1]] is not None:
+                        return False
+                return True
+            else:
+                return False
+        elif abs(col_diff) == 1 and row_diff == direction:  # Capturing diagonally
+            # Must be capturing
+            if self.board[end[0]][end[1]] is None:
+                # Check for en passant capture
+                if (
+                    self.en_passant_target is not None
+                    and end[0] == self.en_passant_target[0]
+                    and end[1] == self.en_passant_target[1]
+                ):
+                    return True
+                return False
+            return True
+        else:
+            return False
+
     def get_piece(self, row: int, col: int) -> Optional[Piece]:
         """Get piece at position (row, col)"""
         if 0 <= row < 8 and 0 <= col < 8:
