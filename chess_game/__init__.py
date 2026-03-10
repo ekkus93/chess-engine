@@ -1,1 +1,1 @@
-from .chess.board import Board
+from .chess.board import Board as Board

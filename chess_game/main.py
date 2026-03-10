@@ -2,8 +2,6 @@
 # Entry point for the chess program
 from chess_game.chess.board import Board
 
-import sys
-
 
 def parse_move(move):
     # Convert algebraic notation (e2e4) to board indices

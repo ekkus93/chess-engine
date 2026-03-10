@@ -1,0 +1,11 @@
+2026-03-10
+- Reviewed THE_PLAN.md, README.md, TODO.md.
+- Project priority: correctness-first chess rules engine + CLI; no AI/GUI until rules are fully green.
+- Canonical indexing invariant: row 0 = rank 8, row 7 = rank 1, col 0 = file a, col 7 = file h; e2 = (6, 4).
+- All move application must go through one validated engine API; main.py must not directly mutate board or turn.
+- TODO phases are strict and sequential; each rules change requires tests in the same change.
+- Repaired codebase by removing duplicate/overridden legacy string-based `Board` methods and consolidating one typed implementation.
+- Rewrote `tests/test_board.py` to use `Piece`/`Color` objects instead of string pieces and string turns.
+- Fixed Ruff F401 issues in `chess_game/__init__.py` and `chess_game/main.py`; `ruff`, `mypy`, and `pytest` now pass (pytest still shows existing experimental warning noise).
+- Resolved pytest warning noise at source by adding a local `record_xml_attribute` fixture in `tests/conftest.py` to avoid external plugin (`pytest_embedded`) pulling pytest's experimental fixture.
+- Added README testing note documenting why `tests/conftest.py` defines `record_xml_attribute` and that it should not be removed casually.

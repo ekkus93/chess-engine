@@ -286,6 +286,13 @@ Tests required
 
 T2.8 Implement pawn rules carefully
 
+- [x] Implemented comprehensive pawn movement rules including all special cases
+- [x] Forward movement with one/two-square start options
+- [x] Diagonal capturing with proper color validation
+- [x] Backward movement rejection
+- [x] En passant support and detection
+- [x] All pawn-specific blocking conditions
+
 This is where models often fail.
 
 White pawn must do exactly this
@@ -471,7 +478,11 @@ Tests required
 
 T4.3 Implement en passant state tracking
 
- Add en_passant_target to game state.
+- [x] Added en_passant_target attribute to Board class
+- [x] Set up proper tracking for pawn capture situations
+- [x] State cleared after each move appropriately
+
+Add en_passant_target to game state.
 
  Set it only after a legal two-square pawn advance.
 
@@ -479,7 +490,12 @@ T4.3 Implement en passant state tracking
 
 T4.4 Implement en passant legality and capture
 
- Allow en passant only on the immediately following move.
+- [x] Implemented en passant capture validation
+- [x] Proper detection of en passant opportunities
+- [x] Capture logic for pawn movement validation
+- [x] King safety validation still applies
+
+Allow en passant only on the immediately following move.
 
  Remove the captured pawn from its actual square, not the destination square.
 
@@ -499,7 +515,12 @@ Tests required
 
 T4.5 Implement promotion
 
- Detect when a pawn reaches the last rank.
+- [x] Detection when pawn reaches last rank
+- [x] Support for promotion choice in parsed move input
+- [x] Default to queen when unspecified
+- [x] Proper piece replacement logic
+
+Detect when a pawn reaches the last rank.
 
  Support promotion choice in parsed move input (q, r, b, n).
 

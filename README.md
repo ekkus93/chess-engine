@@ -25,6 +25,12 @@ python chess_game/main.py
 test -f tests/test_board.py
 ```
 
+### Testing Note
+`tests/conftest.py` defines a local `record_xml_attribute` fixture intentionally.
+This avoids `PytestExperimentalApiWarning` caused by auto-loaded third-party
+pytest plugins requesting pytest's experimental fixture of the same name.
+Do not remove it unless plugin loading behavior is changed explicitly.
+
 ## Project Structure
 ```sh
 chess_game/
