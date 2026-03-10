@@ -679,21 +679,11 @@ invalid: e2, e2-e4, hello, e9e4, a1a1
 ## Phase 8 — Documentation cleanup
 ### T8.1 Update README
 
- Describe the current real capabilities.
-
- Explain how to run tests.
-
- Explain move input format.
-
- State clearly that correctness comes before AI.
+- [x] Rewrote README to describe real capabilities, correct how-to-run instructions, move input table, project structure, and testing note.
 
 ### T8.2 Add developer notes
 
- Briefly document coordinate conventions.
-
- Briefly document pseudo-legal vs legal move distinction.
-
- Briefly document how castling rights and en passant state are stored.
+- [x] Added Developer Notes section to README covering coordinate conventions, pseudo-legal vs. legal move distinction, castling rights storage, and en passant state.
 
 ## Phase 9 — Only after all rules tests are green
 
