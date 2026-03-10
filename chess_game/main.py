@@ -1,10 +1,8 @@
 # chess_game/main.py
 # Entry point for the chess program
-from chess.board import Board
+from chess_game.chess.board import Board
 
 import sys
-
-from chess.board import Board
 
 
 def parse_move(move):
@@ -33,14 +31,12 @@ if __name__ == "__main__":
 
         try:
             from_pos, to_pos = parse_move(move)
-            piece = board.board[from_pos[0]][from_pos[1]]
-
-            # Make move
-            board.board[to_pos[0]][to_pos[1]] = piece
-            board.board[from_pos[0]][from_pos[1]] = ""
-
-            # Switch turn
-            board.turn = "black" if board.turn == "white" else "white"
+            # Use proper move validation API instead of direct board mutation
+            success = board.make_move(from_pos, to_pos)
+            if success:
+                print(f"Move {move} accepted")
+            else:
+                print(f"Move {move} rejected")
 
             board.display()
         except Exception as e:

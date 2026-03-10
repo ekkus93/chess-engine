@@ -1,65 +1,68 @@
-# Comprehensive TODO List
 
-## 1. Board Representation
-- [ ] Implement complete 2D array board representation
-- [ ] Add proper piece initialization for all chess pieces
-- [ ] Ensure correct setup of starting position with white at bottom
-- [ ] Add piece type validation and error handling
+## TODO.md
 
-## 2. Piece Movement Logic
-- [ ] Complete move validation for all piece types (Rook, Knight, Bishop, Queen, King, Pawn)
-- [ ] Implement rook movement rules with path validation (INCOMPLETE - path validation issues)
-- [ ] Implement knight movement patterns (L-shape) 
-- [ ] Implement bishop movement with diagonal path validation (INCOMPLETE - path validation issues)
-- [ ] Implement queen movement (combination of rook and bishop) (INCOMPLETE - path validation issues)
-- [ ] Implement king movement with one-square distance validation
-- [ ] Implement pawn movement with direction-specific rules
-- [ ] Add pawn capture validation
-- [ ] Add special pawn moves (en passant, promotion)
-- [ ] Implement castling rules (king-side and queen-side)
+```md
+# TODO.md
 
-## 3. Game State Tracking
-- [ ] Implement check detection
-- [ ] Implement checkmate detection
-- [ ] Implement stalemate detection
-- [ ] Add game state machine
-- [ ] Implement turn tracking for white/black
-- [ ] Track game history and moves
+This file is intentionally strict and explicit so that a weaker coding model can make progress without inventing chess rules.
 
-## 4. User Interface
-- [ ] Implement CLI interface (already partially implemented)
-- [ ] Add move input parsing with error handling
-- [ ] Improve board display with row/column labels
-- [ ] Add game status information
-- [ ] Implement proper quit/exit functionality
-- [ ] Consider adding GUI interface (Tkinter/Pygame)
+Read `THE_PLAN.md` first. Follow this TODO in order. Do not skip phases. Do not add AI or GUI work until the rules engine is correct.
 
-## 5. Testing Framework
-- [ ] Expand test coverage for all piece movements
-- [ ] Add test cases for edge cases
-- [ ] Implement unit tests for move validation
-- [ ] Add integration tests for game state
-- [ ] Create comprehensive test suite
-- [ ] Add test for special moves (castling, en passant, pawn promotion)
-- [ ] Integrate with pytest framework
+---
 
-## 6. AI Implementation
-- [ ] Create basic AI opponent 
-- [ ] Implement move evaluation functions
-- [ ] Add minimax algorithm with depth control
-- [ ] Implement alpha-beta pruning
-- [ ] Add difficulty levels
-- [ ] Add strategic analysis features
+## Global rules for the model editing this repo
 
-## 7. Additional Features
-- [ ] Implement game rules validation (validating moves according to chess rules)
-- [ ] Add game save/load functionality
-- [ ] Implement game timer
-- [ ] Add game statistics tracking
-- [ ] Create documentation for codebase
+### Rule 1: never mutate the board from `main.py`
+All moves must go through a single validated API.
 
-## 8. Project Structure Cleanup
-- [ ] Fix import statements in main.py
-- [ ] Organize code files properly
-- [ ] Set up proper project structure and requirements
-- [ ] Add project-level documentation
+### Rule 2: do not preserve broken behavior for compatibility
+If an existing test encodes incorrect chess behavior, fix or replace the test.
+
+### Rule 3: every completed task needs tests
+When implementing a rule, add or update tests in the same change.
+
+### Rule 4: use the coordinate convention from `THE_PLAN.md`
+- `row 0 = rank 8`
+- `row 7 = rank 1`
+- `col 0 = file a`
+- `col 7 = file h`
+- `e2 = (6, 4)`
+- white moves "up" the internal array (toward smaller rows)
+
+### Rule 5: do not implement AI yet
+Any AI code is blocked until all rules tasks are green.
+
+---
+
+## Phase 0 — Inspect and clean the foundation
+
+### T0.3 Remove invalid direct-mutation flow from CLI
+Current `main.py` directly moves pieces on the board and flips turns without validation. That is wrong.
+
+- [x] Replace raw board mutation in `main.py` with a call to a single engine method.
+- [x] The CLI cannot make a move without validation.
+- [x] The CLI does not directly assign `board[to] = piece`.
+- [x] The CLI does not directly flip the turn.
+
+**Acceptance criteria**
+- The CLI cannot make a move without validation.
+- The CLI does not directly assign `board[to] = piece`.
+- The CLI does not directly flip the turn.
+
+---
+
+## Phase 1 — Define clean core types and conventions
+
+### T1.1 Define `Piece` representation
+The current board stores strings like `"Pawn"`, which loses color information.
+
+- [ ] Create an explicit piece representation.
+- [ ] It must encode both color and kind.
+- [ ] Prefer a dataclass and enums, but a compact validated representation is acceptable.
+
+**Recommended shape**
+```python
+@dataclass(frozen=True)
+class Piece:
+    color: Color
+    kind: PieceType

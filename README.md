@@ -1,12 +1,14 @@
-# AI-Enhanced Chess Engine
+# Chess Rules Engine
 
 ## Description
-An AI-powered chess engine with advanced move prediction and strategic analysis.
+A correct, test-driven chess rules engine with a small CLI front-end.
 
 ## Features
-- AI move prediction
-- Strategic depth analysis
-- GUI visualization (future)
+- Complete chess board representation
+- Legal move validation for all pieces
+- Turn-based gameplay
+- Standard chess rules implementation
+- CLI interface
 
 ## Installation
 ```bash
@@ -27,12 +29,11 @@ test -f tests/test_board.py
 ```sh
 chess_game/
   board.py
-  ai.py
   main.py
 tests/
   test_board.py
 ```
 
 ## Future Features
-- Python GUI with tkinter/pygame
-- AI depth 9/11 strategic play
+- Python GUI with tkinter/pygame (planned)
+- AI engines (planned)
