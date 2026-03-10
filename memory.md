@@ -11,3 +11,7 @@
 - Added README testing note documenting why `tests/conftest.py` defines `record_xml_attribute` and that it should not be removed casually.
 - Implemented full TODO Phase 2 pseudo-legal movement coverage with dedicated tests in `tests/test_piece_moves.py` (rook, bishop, queen, knight, king, and pawn cases).
 - Cleaned `TODO.md` formatting after copy/paste artifacts: removed duplicated T1.2 block, restored missing phase/task markdown headings, and normalized acceptance/tests labels.
+- Implemented TODO Phase 3 in `board.py`: added `clone`, `find_king`, `is_square_attacked`, `is_in_check`, and self-check rejection in `make_move` via simulated `_apply_move_unchecked`.
+- Added `tests/test_legality.py` covering all required T3 attack/check/self-check scenarios.
+- Implemented TODO Phase 4 in `board.py`: explicit castling rights tracking, castling validation/execution, en passant edge-case handling, and promotion choice support in `make_move`.
+- Added `tests/test_special_moves.py` for castling, en passant, and promotion requirements.

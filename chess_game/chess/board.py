@@ -16,11 +16,19 @@ class Board:
     board: list[list[Optional[Piece]]]
     turn: Color
     en_passant_target: Optional[Square]
+    white_kingside: bool
+    white_queenside: bool
+    black_kingside: bool
+    black_queenside: bool
 
     def __init__(self) -> None:
         self.board = self.create_board()
         self.turn = Color.WHITE
         self.en_passant_target = None
+        self.white_kingside = True
+        self.white_queenside = True
+        self.black_kingside = True
+        self.black_queenside = True
 
     def create_board(self) -> list[list[Optional[Piece]]]:
         board: list[list[Optional[Piece]]] = [[None for _ in range(8)] for _ in range(8)]
@@ -61,6 +69,17 @@ class Board:
 
     def clear_square(self, row: int, col: int) -> None:
         self.set_piece(row, col, None)
+
+    def clone(self) -> Board:
+        cloned = Board()
+        cloned.board = [row.copy() for row in self.board]
+        cloned.turn = self.turn
+        cloned.en_passant_target = self.en_passant_target
+        cloned.white_kingside = self.white_kingside
+        cloned.white_queenside = self.white_queenside
+        cloned.black_kingside = self.black_kingside
+        cloned.black_queenside = self.black_queenside
+        return cloned
 
     def is_empty(self, row: int, col: int) -> bool:
         return self.get_piece(row, col) is None
@@ -162,11 +181,60 @@ class Board:
         if not self.is_valid_position(*end) or start == end:
             return False
 
+        if self._is_castling_move(start, end):
+            return self._can_castle(start, end, piece.color)
+
         row_diff = abs(end[0] - start[0])
         col_diff = abs(end[1] - start[1])
         if max(row_diff, col_diff) != 1:
             return False
         return self._destination_occupiable(piece, end)
+
+    def _is_castling_move(self, start: Square, end: Square) -> bool:
+        return start[0] == end[0] and start[1] == 4 and end[1] in {2, 6}
+
+    def _can_castle(self, start: Square, end: Square, color: Color) -> bool:
+        home_row = 7 if color == Color.WHITE else 0
+        if start != (home_row, 4):
+            return False
+
+        enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
+
+        if end == (home_row, 6):
+            if color == Color.WHITE and not self.white_kingside:
+                return False
+            if color == Color.BLACK and not self.black_kingside:
+                return False
+
+            rook_square = (home_row, 7)
+            between = [(home_row, 5), (home_row, 6)]
+            king_path = [(home_row, 5), (home_row, 6)]
+        elif end == (home_row, 2):
+            if color == Color.WHITE and not self.white_queenside:
+                return False
+            if color == Color.BLACK and not self.black_queenside:
+                return False
+
+            rook_square = (home_row, 0)
+            between = [(home_row, 1), (home_row, 2), (home_row, 3)]
+            king_path = [(home_row, 3), (home_row, 2)]
+        else:
+            return False
+
+        rook_piece = self.get_piece(*rook_square)
+        if rook_piece is None or rook_piece.kind != PieceType.ROOK or rook_piece.color != color:
+            return False
+
+        if any(not self.is_empty(*square) for square in between):
+            return False
+
+        if self.is_in_check(color):
+            return False
+
+        if any(self.is_square_attacked(square, enemy_color) for square in king_path):
+            return False
+
+        return True
 
     def is_valid_pawn_move(self, start: Square, end: Square) -> bool:
         piece = self.get_piece(*start)
@@ -219,16 +287,76 @@ class Board:
         }
         return validators[piece.kind](start, end)
 
-    def make_move(self, start_pos: Square, end_pos: Square) -> bool:
-        if not self.is_valid_position(*start_pos) or not self.is_valid_position(*end_pos):
+    def find_king(self, color: Color) -> Optional[Square]:
+        for row in range(8):
+            for col in range(8):
+                piece = self.get_piece(row, col)
+                if piece is not None and piece.color == color and piece.kind == PieceType.KING:
+                    return (row, col)
+        return None
+
+    def _piece_attacks_square(self, start: Square, piece: Piece, target: Square) -> bool:
+        row_diff = target[0] - start[0]
+        col_diff = target[1] - start[1]
+
+        if piece.kind == PieceType.PAWN:
+            direction = -1 if piece.color == Color.WHITE else 1
+            return row_diff == direction and abs(col_diff) == 1
+
+        if piece.kind == PieceType.KNIGHT:
+            return (abs(row_diff), abs(col_diff)) in {(2, 1), (1, 2)}
+
+        if piece.kind == PieceType.BISHOP:
+            if abs(row_diff) != abs(col_diff) or start == target:
+                return False
+            return self._path_is_clear(start, target)
+
+        if piece.kind == PieceType.ROOK:
+            if start == target:
+                return False
+            if start[0] != target[0] and start[1] != target[1]:
+                return False
+            return self._path_is_clear(start, target)
+
+        if piece.kind == PieceType.QUEEN:
+            if start == target:
+                return False
+            is_straight = start[0] == target[0] or start[1] == target[1]
+            is_diagonal = abs(row_diff) == abs(col_diff)
+            if not (is_straight or is_diagonal):
+                return False
+            return self._path_is_clear(start, target)
+
+        if piece.kind == PieceType.KING:
+            return start != target and max(abs(row_diff), abs(col_diff)) == 1
+
+        return False
+
+    def is_square_attacked(self, square: Square, by_color: Color) -> bool:
+        for row in range(8):
+            for col in range(8):
+                piece = self.get_piece(row, col)
+                if piece is None or piece.color != by_color:
+                    continue
+                if self._piece_attacks_square((row, col), piece, square):
+                    return True
+        return False
+
+    def is_in_check(self, color: Color) -> bool:
+        king_square = self.find_king(color)
+        if king_square is None:
             return False
 
+        enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
+        return self.is_square_attacked(king_square, enemy_color)
+
+    def _apply_move_unchecked(self, start_pos: Square, end_pos: Square) -> None:
         start_piece = self.get_piece(*start_pos)
-        if start_piece is None or start_piece.color != self.turn:
-            return False
+        if start_piece is None:
+            return
 
-        if not self._is_valid_piece_move(start_pos, end_pos):
-            return False
+        captured_piece = self.get_piece(*end_pos)
+        self._update_castling_rights_for_move(start_pos, end_pos, start_piece, captured_piece)
 
         is_en_passant_capture = (
             start_piece.kind == PieceType.PAWN
@@ -239,10 +367,30 @@ class Board:
 
         if is_en_passant_capture:
             captured_row = end_pos[0] + 1 if start_piece.color == Color.WHITE else end_pos[0] - 1
+            captured_piece = self.get_piece(captured_row, end_pos[1])
             self.clear_square(captured_row, end_pos[1])
+            if (
+                captured_piece is not None
+                and captured_piece.kind == PieceType.ROOK
+                and captured_piece.color != start_piece.color
+            ):
+                self._clear_castling_right_for_captured_rook((captured_row, end_pos[1]))
 
         self.set_piece(*end_pos, start_piece)
         self.clear_square(*start_pos)
+
+        if start_piece.kind == PieceType.KING and self._is_castling_move(start_pos, end_pos):
+            home_row = start_pos[0]
+            if end_pos[1] == 6:
+                rook_from = (home_row, 7)
+                rook_to = (home_row, 5)
+            else:
+                rook_from = (home_row, 0)
+                rook_to = (home_row, 3)
+
+            rook_piece = self.get_piece(*rook_from)
+            self.clear_square(*rook_from)
+            self.set_piece(*rook_to, rook_piece)
 
         if start_piece.kind == PieceType.PAWN and abs(end_pos[0] - start_pos[0]) == 2:
             step = -1 if start_piece.color == Color.WHITE else 1
@@ -252,6 +400,107 @@ class Board:
 
         if start_piece.kind == PieceType.PAWN and end_pos[0] in {0, 7}:
             self.set_piece(end_pos[0], end_pos[1], create_piece(start_piece.color, PieceType.QUEEN))
+
+    def _clear_castling_right_for_captured_rook(self, square: Square) -> None:
+        if square == (7, 0):
+            self.white_queenside = False
+        elif square == (7, 7):
+            self.white_kingside = False
+        elif square == (0, 0):
+            self.black_queenside = False
+        elif square == (0, 7):
+            self.black_kingside = False
+
+    def _update_castling_rights_for_move(
+        self,
+        start_pos: Square,
+        end_pos: Square,
+        moving_piece: Piece,
+        captured_piece: Optional[Piece],
+    ) -> None:
+        if moving_piece.kind == PieceType.KING:
+            if moving_piece.color == Color.WHITE:
+                self.white_kingside = False
+                self.white_queenside = False
+            else:
+                self.black_kingside = False
+                self.black_queenside = False
+
+        if moving_piece.kind == PieceType.ROOK:
+            if start_pos == (7, 0):
+                self.white_queenside = False
+            elif start_pos == (7, 7):
+                self.white_kingside = False
+            elif start_pos == (0, 0):
+                self.black_queenside = False
+            elif start_pos == (0, 7):
+                self.black_kingside = False
+
+        if captured_piece is not None and captured_piece.kind == PieceType.ROOK:
+            self._clear_castling_right_for_captured_rook(end_pos)
+
+    def _is_valid_promotion_choice(
+        self,
+        piece: Piece,
+        end_pos: Square,
+        promotion: Optional[PieceType],
+    ) -> bool:
+        if promotion is None:
+            return True
+
+        if piece.kind != PieceType.PAWN:
+            return False
+
+        if end_pos[0] not in {0, 7}:
+            return False
+
+        return promotion in {
+            PieceType.QUEEN,
+            PieceType.ROOK,
+            PieceType.BISHOP,
+            PieceType.KNIGHT,
+        }
+
+    def make_move(
+        self,
+        start_pos: Square,
+        end_pos: Square,
+        promotion: Optional[PieceType] = None,
+    ) -> bool:
+        if not self.is_valid_position(*start_pos) or not self.is_valid_position(*end_pos):
+            return False
+
+        start_piece = self.get_piece(*start_pos)
+        if start_piece is None or start_piece.color != self.turn:
+            return False
+
+        if not self._is_valid_promotion_choice(start_piece, end_pos, promotion):
+            return False
+
+        if not self._is_valid_piece_move(start_pos, end_pos):
+            return False
+
+        simulated = self.clone()
+        simulated._apply_move_unchecked(start_pos, end_pos)
+
+        if (
+            start_piece.kind == PieceType.PAWN
+            and end_pos[0] in {0, 7}
+            and promotion is not None
+        ):
+            simulated.set_piece(
+                end_pos[0],
+                end_pos[1],
+                create_piece(start_piece.color, promotion),
+            )
+
+        if simulated.is_in_check(start_piece.color):
+            return False
+
+        self._apply_move_unchecked(start_pos, end_pos)
+
+        if start_piece.kind == PieceType.PAWN and end_pos[0] in {0, 7} and promotion is not None:
+            self.set_piece(end_pos[0], end_pos[1], create_piece(start_piece.color, promotion))
 
         self.turn = Color.BLACK if self.turn == Color.WHITE else Color.WHITE
         return True

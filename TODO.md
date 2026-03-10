@@ -347,6 +347,8 @@ A pseudo-legal move is not enough. Legal chess moves must not leave your own kin
 
 ### T3.1 Implement attack detection
 
+- [x] Implemented `is_square_attacked(board, square, by_color)` with correct per-piece attack patterns.
+
  Add a function like is_square_attacked(board, square, by_color).
 
  It must evaluate whether a square is attacked by enemy pieces.
@@ -369,6 +371,8 @@ A pseudo-legal move is not enough. Legal chess moves must not leave your own kin
 
 ### T3.2 Implement is_in_check(color)
 
+- [x] Implemented `is_in_check(color)` using king lookup plus attack detection.
+
  Locate the king for that color.
 
  Use attack detection to determine if the enemy attacks it.
@@ -384,6 +388,8 @@ A pseudo-legal move is not enough. Legal chess moves must not leave your own kin
  simple check by queen
 
 ### T3.3 Reject self-check moves
+
+- [x] Implemented move simulation on a cloned board and rejection of moves that leave own king in check.
 
  Simulate candidate move on a copy of state.
 
@@ -406,6 +412,8 @@ The engine distinguishes pseudo-legal from legal moves.
 ## Phase 4 — Special rules
 ### T4.1 Track castling rights explicitly
 
+- [x] Added explicit castling-right state and updates for king moves, rook moves, and rook captures on original squares.
+
  Add explicit castling rights to game state.
 
  Initialize all four rights to true in the starting position.
@@ -421,6 +429,8 @@ The engine distinguishes pseudo-legal from legal moves.
 Rights never reappear once lost.
 
 ### T4.2 Implement castling move validation
+
+- [x] Implemented castling validation and execution for all four castle types with king-safety checks.
 
  Support white kingside: e1g1
 
