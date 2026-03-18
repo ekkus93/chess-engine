@@ -208,8 +208,8 @@ class Board:
                 return False
 
             rook_square = (home_row, 7)
-            between = [(home_row, 5), (home_row, 6)]
-            king_path = [(home_row, 5), (home_row, 6)]
+            between = [(home_row, 5)]  # Only check f1, the square king passes through
+            king_path = [(home_row, 5)]  # King moves e1->f1->g1, attackable square is f1
         elif end == (home_row, 2):
             if color == Color.WHITE and not self.white_queenside:
                 return False
@@ -217,8 +217,8 @@ class Board:
                 return False
 
             rook_square = (home_row, 0)
-            between = [(home_row, 1), (home_row, 2), (home_row, 3)]
-            king_path = [(home_row, 3), (home_row, 2)]
+            between = [(home_row, 3), (home_row, 2)]  # Check d1 and c1 for attacks
+            king_path = [(home_row, 3), (home_row, 2)]  # King passes through d1 to c1, attackable squares are d1,c1
         else:
             return False
 

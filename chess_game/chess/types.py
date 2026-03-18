@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
+from typing import Optional
 
 
 class Color(Enum):
@@ -20,3 +21,6 @@ class PieceType(Enum):
 class Piece:
     color: Color
     kind: PieceType
+
+
+LegalMove = tuple[tuple[int, int], tuple[int, int], Optional[PieceType]]

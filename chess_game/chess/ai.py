@@ -1,0 +1,328 @@
+"""AI/Minimax implementation for chess engine."""
+from __future__ import annotations
+
+from collections import defaultdict
+from dataclasses import dataclass
+from typing import Optional
+
+from chess_game.chess.board import Board
+from chess_game.chess.evaluation import (
+    MATERIAL_VALUES,
+    PAWN_TABLE,
+    KNIGHT_TABLE,
+    BISHOP_TABLE,
+    ROOK_TABLE,
+    QUEEN_TABLE,
+    KING_TABLE,
+)
+from chess_game.chess.types import Color, Piece, PieceType, LegalMove
+
+
+@dataclass
+class MoveOrderingKey:
+    """Score for move ordering (higher = prioritize first)."""
+
+    score: int
+    start: tuple[int, int]
+    end: tuple[int, int]
+
+    def __init__(self, score: int, start: tuple[int, int], end: tuple[int, int]):
+        self.score = score
+        self.start = start
+        self.end = end
+
+    def __lt__(self, other: MoveOrderingKey) -> bool:
+        return self.score < other.score
+
+
+def evaluate(board: Board) -> int:
+    """Evaluate the board position from White's perspective.
+
+    Args:
+        board: The current board state
+
+    Returns:
+        Positive score if White is ahead, negative if Black is ahead,
+        zero if equal. Score is in "centipawn" units (1/100 of a pawn).
+    """
+    total_score: int = 0
+
+    # Iterate over all squares to evaluate material + position
+    for row in range(8):
+        for col in range(8):
+            piece = board.get_piece(row, col)
+            if piece is None:
+                continue
+
+            color_bonus = 1 if piece.color == Color.WHITE else -1
+            piece_score = _evaluate_piece(piece, row, col)
+            total_score += color_bonus * piece_score
+
+    return total_score
+
+
+def _evaluate_piece(piece: Piece, row: int, col: int) -> int:
+    """Get evaluation score for a single piece."""
+
+    # Material value (baseline)
+    material = MATERIAL_VALUES[piece.kind]
+
+    # Positional bonus using piece-square tables
+    # Table indices are reversed from standard notation
+    # row 0 = rank 8, row 7 = rank 1; col 0 = file a, col 7 = file h
+    positional_bias = 0
+    if piece.kind == PieceType.PAWN:
+        positional_bias = PAWN_TABLE[row][col]
+    elif piece.kind == PieceType.KNIGHT:
+        positional_bias = KNIGHT_TABLE[row][col]
+    elif piece.kind == PieceType.BISHOP:
+        positional_bias = BISHOP_TABLE[row][col]
+    elif piece.kind == PieceType.ROOK:
+        positional_bias = ROOK_TABLE[row][col]
+    elif piece.kind == PieceType.QUEEN:
+        positional_bias = QUEEN_TABLE[row][col]
+    elif piece.kind == PieceType.KING:
+        # Use king safety table (center control in middlegame)
+        positional_bias = KING_TABLE[row][col]
+
+    return material + positional_bias
+
+
+def get_legal_moves(board: Board) -> list[LegalMove]:
+    """Get all legal moves for the side to move.
+
+    Args:
+        board: The current board state
+
+    Returns:
+        List of (start_square, end_square, promotion_piece_type) tuples.
+    """
+    return board.get_legal_moves()
+
+
+def _make_copy_with_move(
+    board: Board, start: tuple[int, int], end: tuple[int, int], promotion: Optional[PieceType] = None,
+) -> Board:
+    """Create a new board state after making a move."""
+    simulated = board.clone()
+    success = simulated.make_move(start, end, promotion=promotion)
+    if not success:
+        raise RuntimeError("Simulated move failed legality check")
+    return simulated
+
+
+def minimax(
+    board: Board,
+    depth: int,
+    alpha: int,
+    beta: int,
+    is_maximizing: bool = True,
+    transposition_table: Optional[defaultdict[str, tuple[int, LegalMove]]] = None,
+) -> tuple[int, Optional[LegalMove]]:
+    """Standard minimax with alpha-beta pruning.
+
+    Args:
+        board: The current board state
+        depth: Search depth (plies, not moves)
+        alpha: Alpha value (current best move for maximizing player)
+        beta: Beta value (current best move for minimizing player)
+        is_maximizing: True if it's the maximizing player's turn (positive score = White)
+        transposition_table: Optional table to cache evaluated positions
+
+    Returns:
+        Tuple of (best_score, best_move). Best move may be None at leaf nodes.
+    """
+    # Check transposition table
+    if transposition_table is not None and depth < 20:
+        key = _fen_key(board)
+        cached = transposition_table.get(key)
+        if cached is not None:
+            return cached
+
+    # Base case: reached maximum depth or terminal state
+    if depth == 0:
+        score = evaluate(board)
+        return (score, None)
+
+    # Check for game-over states (no legal moves)
+    legal_moves = get_legal_moves(board)
+    if not legal_moves:
+        score = evaluate(board)
+        return (score, None)
+
+    # Sort moves for better pruning: captures first, then promotions
+    scored_moves = _order_moves(board, legal_moves)
+
+    if not scored_moves:
+        score = evaluate(board)
+        if transposition_table is not None:
+            transposition_table[key] = (score, None)  # type: ignore[assignment]
+        return (score, None)
+
+    # Initialize with infinity values - will be replaced on first move
+    best_score: int = (-100_000_000 if is_maximizing else 100_000_000)
+    best_move: LegalMove | None = None
+    move_count = 0
+
+    for move in scored_moves:
+        new_board = _make_copy_with_move(board, move.start, move.end)
+
+        if is_maximizing:
+            opponent_score = minimax(
+                new_board, depth - 1, alpha, beta, is_maximizing=False,
+                transposition_table=transposition_table,
+            )
+            if best_score < int(opponent_score[0]):
+                best_score = int(opponent_score[0])
+                best_move = (move.start, move.end, None)
+        else:
+            our_score = minimax(
+                new_board, depth - 1, alpha, beta, is_maximizing=True,
+                transposition_table=transposition_table,
+            )
+            if best_score > int(our_score[0]):
+                best_score = int(our_score[0])
+                best_move = (move.start, move.end, None)
+
+        # Alpha-beta pruning
+        if is_maximizing:
+            if best_score >= beta:
+                break  # Beta cutoff
+            if best_score > alpha:
+                alpha = best_score
+        else:
+            if best_score <= alpha:
+                break  # Alpha cutoff
+            if best_score < beta:
+                beta = best_score
+
+        move_count += 1
+
+    # Store in transposition table only if we found a move
+    if transposition_table is not None and best_move is not None:
+        transposition_table[key] = (best_score, best_move)
+
+    return (best_score, best_move)
+
+
+def _order_moves(
+    board: Board, legal_moves: list[LegalMove],
+) -> list[MoveOrderingKey]:
+    """Sort moves for better pruning order.
+
+    Move ordering strategy:
+    1. Captures (especially high-value piece captures)
+    2. Promotions
+    3. Pawn pushes to empty squares
+    4. Normal moves
+
+    Args:
+        board: The current board state
+        legal_moves: List of all legal moves to order
+
+    Returns:
+        Sorted list of (score, start_pos, end_pos) tuples.
+    """
+    scored_moves: list[MoveOrderingKey] = []
+
+    for start, end, promotion in legal_moves:
+        # Handle cases where moves might have None as end position (edge case)
+        if end is None:
+            continue
+
+        # Calculate capture gain if applicable
+        captured_piece = board.get_piece(*end)
+        capture_gain = (_captured_piece_value(captured_piece.kind)
+                       if captured_piece is not None else 0)
+
+        promoted_to = end[0] in (0, 7) and \
+                      board.get_piece(*start) is not None
+
+        if promoted_to:
+            start_piece = board.get_piece(*start)
+            promotion_value = 500 if start_piece and start_piece.kind == PieceType.PAWN else 0
+        else:
+            promotion_value = 0
+
+        promotion_value = 500 if promoted_to else 0
+
+        # Combine factors into ordering score
+        order_score = capture_gain + promotion_value
+
+        move_key = MoveOrderingKey(score=order_score, start=start, end=end)
+        scored_moves.append(move_key)
+
+    return sorted(scored_moves, key=lambda x: x.score, reverse=True)
+
+
+def _captured_piece_value(piece_type: PieceType) -> int:
+    """Get capture value for material count."""
+    values = {
+        PieceType.PAWN: 100,
+        PieceType.KNIGHT: 320,
+        PieceType.BISHOP: 320,
+        PieceType.ROOK: 500,
+        PieceType.QUEEN: 900,
+    }
+    return values.get(piece_type, 0)
+
+
+def _promotion_bonus(end_rank: int, captured_piece: Optional[Piece]) -> int:
+    """Bonus for pawn promotion (simplified)."""
+    if captured_piece is None:
+        return -100
+
+    # Promotion + capture is excellent
+    values = {
+        PieceType.PAWN: 100,
+        PieceType.KNIGHT: 320,
+        PieceType.BISHOP: 320,
+        PieceType.ROOK: 500,
+        PieceType.QUEEN: 900,
+    }
+    return values.get(captured_piece.kind if captured_piece else PieceType.PAWN, 100) - 100
+
+
+def get_best_move(board: Board, depth: int) -> Optional[LegalMove]:
+    """Get the best move for the current position at given search depth.
+
+    Args:
+        board: The current board state
+        depth: Search depth (in plies)
+
+    Returns:
+        Best legal move, or None if no moves exist.
+    """
+    alpha: int = -10_000_000
+    beta: int = 10_000_000
+    legal_moves = get_legal_moves(board)
+
+    if not legal_moves:
+        return None
+
+    # Run minimax with alpha-beta pruning
+    _, best_move = minimax(board, depth, alpha, beta, is_maximizing=board.turn == Color.WHITE)
+
+    return best_move
+
+
+def _fen_key(board: Board) -> str:
+    """Generate a lightweight FEN-like key for transposition table."""
+    # Simplified key - just enough to identify position equality
+    pieces = []
+    for row in board.board:
+        for piece in row:
+            if piece is None:
+                pieces.append(".")
+            else:
+                color_char = "w" if piece.color == Color.WHITE else "b"
+                kind_char = {
+                    PieceType.PAWN: "p",
+                    PieceType.KNIGHT: "n",
+                    PieceType.BISHOP: "b",
+                    PieceType.ROOK: "r",
+                    PieceType.QUEEN: "q",
+                    PieceType.KING: "k",
+                }[piece.kind]
+                pieces.append(f"{color_char}{kind_char}")
+    return "".join(pieces)
