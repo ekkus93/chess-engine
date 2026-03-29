@@ -12,9 +12,9 @@ Strengthen test coverage for chess engine edge cases. Focus on scenarios that ex
 **Expected**: Castling forbidden (rook no longer on h1).
 
 **Test cases**:
-- [ ] Black captures h1 rook, white cannot castle kingside
-- [ ] Verify rook removal clears castling right
-- [ ] Verify castling right persists if rook moves elsewhere then returns
+- [x] Black captures h1 rook, white cannot castle kingside
+- [x] Verify rook removal clears castling right
+- [x] Verify castling right clears if rook moves elsewhere
 
 ---
 
@@ -23,18 +23,18 @@ Strengthen test coverage for chess engine edge cases. Focus on scenarios that ex
 **Expected**: Castling blocked by piece in path.
 
 **Test cases**:
-- [ ] Path check includes opponent pieces
-- [ ] Castling blocked if enemy piece on destination square
+- [x] Path check includes opponent pieces
+- [x] Castling blocked if enemy piece on destination square
 
 ---
 
 ### T1.3 Castling when only one rook remains on back rank
 **Scenario**: One rook moved, other rook remains. Attempt castling with remaining rook.
-**Expected**: Castling allowed (original rook moved, but rights cleared anyway).
+**Expected**: Castling forbidden (castling rights cleared when any rook moves).
 
 **Test cases**:
-- [ ] Queenside: kingside rook moved, queenside rook remains
-- [ ] Kingside: queenside rook moved, kingside rook remains
+- [x] Queenside: kingside rook moved, queenside rook remains
+- [x] Kingside: queenside rook moved, kingside rook remains
 
 ---
 
@@ -43,8 +43,8 @@ Strengthen test coverage for chess engine edge cases. Focus on scenarios that ex
 **Expected**: Castling forbidden (original rook moved).
 
 **Test cases**:
-- [ ] Verify castling right clears when original rook leaves
-- [ ] Replacement rook doesn't restore castling right
+- [x] Verify castling right clears when original rook leaves
+- [x] Replacement rook doesn't restore castling right
 
 ---
 
