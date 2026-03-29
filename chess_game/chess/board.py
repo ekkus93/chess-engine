@@ -291,6 +291,19 @@ class Board:
                     and captured_piece.kind == PieceType.PAWN
                     and captured_piece.color != piece.color
                 )
+
+        if (
+            abs(col_diff) == 1
+            and row_diff == 2 * direction
+            and self.en_passant_target == end
+        ):
+            captured_row = end[0] + 1 if piece.color == Color.WHITE else end[0] - 1
+            captured_piece = self.get_piece(captured_row, end[1])
+            return (
+                captured_piece is not None
+                and captured_piece.kind == PieceType.PAWN
+                and captured_piece.color != piece.color
+            )
         return False
 
     def _is_valid_piece_move(self, start: Square, end: Square) -> bool:
