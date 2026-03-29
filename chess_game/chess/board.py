@@ -32,7 +32,9 @@ class Board:
         self.black_queenside = True
 
     def create_board(self) -> list[list[Optional[Piece]]]:
-        board: list[list[Optional[Piece]]] = [[None for _ in range(8)] for _ in range(8)]
+        board: list[list[Optional[Piece]]] = [
+            [None for _ in range(8)] for _ in range(8)
+        ]
         back_rank = [
             PieceType.ROOK,
             PieceType.KNIGHT,
@@ -96,12 +98,16 @@ class Board:
     def is_same_color(self, row1: int, col1: int, row2: int, col2: int) -> bool:
         piece1 = self.get_piece(row1, col1)
         piece2 = self.get_piece(row2, col2)
-        return piece1 is not None and piece2 is not None and piece1.color == piece2.color
+        return (
+            piece1 is not None and piece2 is not None and piece1.color == piece2.color
+        )
 
     def is_opponent(self, row1: int, col1: int, row2: int, col2: int) -> bool:
         piece1 = self.get_piece(row1, col1)
         piece2 = self.get_piece(row2, col2)
-        return piece1 is not None and piece2 is not None and piece1.color != piece2.color
+        return (
+            piece1 is not None and piece2 is not None and piece1.color != piece2.color
+        )
 
     def _destination_occupiable(self, mover: Piece, end: Square) -> bool:
         end_piece = self.get_piece(*end)
@@ -223,7 +229,11 @@ class Board:
             return False
 
         rook_piece = self.get_piece(*rook_square)
-        if rook_piece is None or rook_piece.kind != PieceType.ROOK or rook_piece.color != color:
+        if (
+            rook_piece is None
+            or rook_piece.kind != PieceType.ROOK
+            or rook_piece.color != color
+        ):
             return False
 
         if any(not self.is_empty(*square) for square in between):
@@ -292,11 +302,17 @@ class Board:
         for row in range(8):
             for col in range(8):
                 piece = self.get_piece(row, col)
-                if piece is not None and piece.color == color and piece.kind == PieceType.KING:
+                if (
+                    piece is not None
+                    and piece.color == color
+                    and piece.kind == PieceType.KING
+                ):
                     return (row, col)
         return None
 
-    def _piece_attacks_square(self, start: Square, piece: Piece, target: Square) -> bool:
+    def _piece_attacks_square(
+        self, start: Square, piece: Piece, target: Square
+    ) -> bool:
         row_diff = target[0] - start[0]
         col_diff = target[1] - start[1]
 
@@ -351,7 +367,9 @@ class Board:
         enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
         return self.is_square_attacked(king_square, enemy_color)
 
-    def _promotion_options_for_move(self, piece: Piece, end_pos: Square) -> list[Optional[PieceType]]:
+    def _promotion_options_for_move(
+        self, piece: Piece, end_pos: Square
+    ) -> list[Optional[PieceType]]:
         if piece.kind == PieceType.PAWN and end_pos[0] in {0, 7}:
             return [
                 PieceType.QUEEN,
@@ -397,7 +415,9 @@ class Board:
             return
 
         captured_piece = self.get_piece(*end_pos)
-        self._update_castling_rights_for_move(start_pos, end_pos, start_piece, captured_piece)
+        self._update_castling_rights_for_move(
+            start_pos, end_pos, start_piece, captured_piece
+        )
 
         is_en_passant_capture = (
             start_piece.kind == PieceType.PAWN
@@ -407,7 +427,9 @@ class Board:
         )
 
         if is_en_passant_capture:
-            captured_row = end_pos[0] + 1 if start_piece.color == Color.WHITE else end_pos[0] - 1
+            captured_row = (
+                end_pos[0] + 1 if start_piece.color == Color.WHITE else end_pos[0] - 1
+            )
             captured_piece = self.get_piece(captured_row, end_pos[1])
             self.clear_square(captured_row, end_pos[1])
             if (
@@ -420,7 +442,9 @@ class Board:
         self.set_piece(*end_pos, start_piece)
         self.clear_square(*start_pos)
 
-        if start_piece.kind == PieceType.KING and self._is_castling_move(start_pos, end_pos):
+        if start_piece.kind == PieceType.KING and self._is_castling_move(
+            start_pos, end_pos
+        ):
             home_row = start_pos[0]
             if end_pos[1] == 6:
                 rook_from = (home_row, 7)
@@ -440,7 +464,9 @@ class Board:
             self.en_passant_target = None
 
         if start_piece.kind == PieceType.PAWN and end_pos[0] in {0, 7}:
-            self.set_piece(end_pos[0], end_pos[1], create_piece(start_piece.color, PieceType.QUEEN))
+            self.set_piece(
+                end_pos[0], end_pos[1], create_piece(start_piece.color, PieceType.QUEEN)
+            )
 
     def _clear_castling_right_for_captured_rook(self, square: Square) -> None:
         if square == (7, 0):
@@ -508,7 +534,9 @@ class Board:
         end_pos: Square,
         promotion: Optional[PieceType] = None,
     ) -> bool:
-        if not self.is_valid_position(*start_pos) or not self.is_valid_position(*end_pos):
+        if not self.is_valid_position(*start_pos) or not self.is_valid_position(
+            *end_pos
+        ):
             return False
 
         start_piece = self.get_piece(*start_pos)
@@ -540,8 +568,14 @@ class Board:
 
         self._apply_move_unchecked(start_pos, end_pos)
 
-        if start_piece.kind == PieceType.PAWN and end_pos[0] in {0, 7} and promotion is not None:
-            self.set_piece(end_pos[0], end_pos[1], create_piece(start_piece.color, promotion))
+        if (
+            start_piece.kind == PieceType.PAWN
+            and end_pos[0] in {0, 7}
+            and promotion is not None
+        ):
+            self.set_piece(
+                end_pos[0], end_pos[1], create_piece(start_piece.color, promotion)
+            )
 
         self.turn = Color.BLACK if self.turn == Color.WHITE else Color.WHITE
         return True
