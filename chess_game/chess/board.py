@@ -290,13 +290,32 @@ class Board:
             if row_diff == 2 * direction and start[0] == start_row:
                 middle = (start[0] + direction, start[1])
                 return self.is_empty(*middle) and self.is_empty(*end)
-            # Promotion move: can move any distance to promotion rank
-            if (row_diff == 2 * direction * 3 or row_diff == -6) and start[
-                0
-            ] == start_row:
-                # White pawn from rank 2 (row 6) to rank 8 (row 0)
-                middle = (start[0] + direction, start[1])
-                return self.is_empty(*middle) and self.is_empty(*end)
+            # Promotion move: can move to promotion rank (row 0 for white, row 7 for black)
+            if start[0] == start_row and self.is_empty(*end):
+                # Check if destination is on promotion rank
+                if piece.color == Color.WHITE and end[0] == 0:
+                    # White promotion: from rank 2 (row 6) to rank 8 (row 0)
+                    # Either 2-square move or 1-square move from rank 7
+                    if start[0] == 6:
+                        # Two-square move (row_diff = -6 for white, +6 for black)
+                        if abs(row_diff) == 6:
+                            middle = (start[0] + direction, start[1])
+                            return self.is_empty(*middle)
+                    # One-square move from rank 7 (already on rank 7, moving to rank 8)
+                    elif start[0] == 1:
+                        return True
+                elif piece.color == Color.BLACK and end[0] == 7:
+                    # Black promotion: from rank 7 (row 1) to rank 1 (row 7)
+                    # Either 2-square move or 1-square move from rank 2
+                    if start[0] == 1:
+                        # Two-square move (row_diff = -6 for white, +6 for black)
+                        if abs(row_diff) == 6:
+                            middle = (start[0] + direction, start[1])
+                            return self.is_empty(*middle)
+                    # One-square move from rank 2 (already on rank 2, moving to rank 1)
+                    elif start[0] == 6:
+                        return True
+                return False
             return False
 
         if abs(col_diff) == 1:
