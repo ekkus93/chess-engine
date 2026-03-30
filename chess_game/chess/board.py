@@ -652,8 +652,7 @@ class Board:
             self.set_piece(*rook_to, rook_piece)
 
         if start_piece.kind == PieceType.PAWN and abs(end_pos[0] - start_pos[0]) == 2:
-            step = -1 if start_piece.color == Color.WHITE else 1
-            self.en_passant_target = (start_pos[0] + step, end_pos[1])
+            self.en_passant_target = ((start_pos[0] + end_pos[0]) // 2, end_pos[1])
         else:
             self.en_passant_target = None
 
