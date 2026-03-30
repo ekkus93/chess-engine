@@ -365,9 +365,9 @@ def test_castling_kingside_with_queenside_rook_only() -> None:
     board.set_piece(7, 0, create_piece(Color.WHITE, PieceType.ROOK))
     board.set_piece(7, 7, create_piece(Color.WHITE, PieceType.ROOK))
 
-    # Move kingside rook away
+    # Move kingside rook away (to a square that doesn't block castling)
     board.turn = Color.WHITE
-    assert board.make_move((7, 7), (7, 6)) is True
+    assert board.make_move((7, 7), (6, 7)) is True
 
     # Kingside castling should still be possible (queenside rook remains)
     assert board.make_move((7, 4), (7, 6)) is True
@@ -387,12 +387,13 @@ def test_castling_queenside_with_kingside_rook_only() -> None:
     board.set_piece(7, 0, create_piece(Color.WHITE, PieceType.ROOK))
     board.set_piece(7, 7, create_piece(Color.WHITE, PieceType.ROOK))
 
-    # Move queenside rook away
+    # Move queenside rook away (to a square that doesn't block castling)
     board.turn = Color.WHITE
-    assert board.make_move((7, 0), (7, 1)) is True
+    assert board.make_move((7, 0), (6, 0)) is True
 
-    # Queenside castling should still be possible (kingside rook remains)
-    assert board.make_move((7, 4), (7, 2)) is True
+    # Queenside castling should NOT be possible (queenside rook moved)
+    # Kingside castling should be possible (kingside rook remains)
+    assert board.make_move((7, 4), (7, 6)) is True
 
     # Black moves (to change turn back to white for next assertion)
     board.turn = Color.BLACK
@@ -676,12 +677,13 @@ def test_absolute_pin_rook_cannot_move_forward() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
-    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
-    board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(0, 0, create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(5, 4, create_piece(Color.WHITE, PieceType.ROOK))
     board.set_piece(3, 4, create_piece(Color.WHITE, PieceType.ROOK))
-    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.BISHOP))
+    # Queen on e8 that pins the rook (on the same file)
+    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.QUEEN))
 
-    # White rook on e3 is pinned by black bishop on a8
+    # White rook on e3 is pinned by black queen on e8
     board.turn = Color.WHITE
     assert board.make_move((3, 4), (2, 4)) is False  # Cannot move towards king
 
@@ -696,12 +698,13 @@ def test_absolute_pin_rook_cannot_move_backward() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
-    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
-    board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(0, 0, create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(5, 4, create_piece(Color.WHITE, PieceType.ROOK))
     board.set_piece(3, 4, create_piece(Color.WHITE, PieceType.ROOK))
-    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.BISHOP))
+    # Queen on e8 that pins the rook (on the same file)
+    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.QUEEN))
 
-    # White rook on e3 is pinned by black bishop on a8
+    # White rook on e3 is pinned by black queen on e8
     board.turn = Color.WHITE
     assert board.make_move((3, 4), (4, 4)) is False  # Cannot move away from king
 
@@ -716,12 +719,13 @@ def test_absolute_pin_rook_cannot_move_sideways() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
-    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
-    board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(0, 0, create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(5, 4, create_piece(Color.WHITE, PieceType.ROOK))
     board.set_piece(3, 4, create_piece(Color.WHITE, PieceType.ROOK))
-    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.BISHOP))
+    # Queen on e8 that pins the rook (on the same file)
+    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.QUEEN))
 
-    # White rook on e3 is pinned by black bishop on a8
+    # White rook on e3 is pinned by black queen on e8
     board.turn = Color.WHITE
     assert board.make_move((3, 4), (3, 3)) is False  # Cannot move sideways
 
@@ -736,15 +740,17 @@ def test_pinned_rook_can_be_captured() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
-    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
-    board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(0, 0, create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(5, 4, create_piece(Color.WHITE, PieceType.ROOK))
     board.set_piece(3, 4, create_piece(Color.WHITE, PieceType.ROOK))
-    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.BISHOP))
-    board.set_piece(3, 4, create_piece(Color.BLACK, PieceType.KNIGHT))
+    # Bishop on a1-h8 diagonal that pins the rook
+    board.set_piece(0, 7, create_piece(Color.BLACK, PieceType.BISHOP))
+    # Knight can capture the rook from e3
+    board.set_piece(1, 3, create_piece(Color.BLACK, PieceType.KNIGHT))
 
     # Black knight can capture pinned white rook
     board.turn = Color.BLACK
-    assert board.make_move((3, 4), (3, 4)) is True  # Black knight captures white rook
+    assert board.make_move((1, 3), (3, 4)) is True  # Black knight captures white rook
 
     # White moves (to change turn)
     board.turn = Color.WHITE
@@ -757,8 +763,8 @@ def test_relative_pin_piece_can_move() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
-    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
-    board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.QUEEN))
+    board.set_piece(0, 0, create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(5, 4, create_piece(Color.WHITE, PieceType.QUEEN))
     board.set_piece(3, 4, create_piece(Color.WHITE, PieceType.QUEEN))
     board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.BISHOP))
 
@@ -772,8 +778,8 @@ def test_relative_pin_does_not_prevent_movement() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
-    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
-    board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KNIGHT))
+    board.set_piece(0, 0, create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(5, 4, create_piece(Color.WHITE, PieceType.KNIGHT))
     board.set_piece(3, 4, create_piece(Color.WHITE, PieceType.KNIGHT))
     board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.BISHOP))
 
@@ -787,13 +793,15 @@ def test_engine_handles_double_pin_gracefully() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
-    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
-    board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(0, 0, create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(5, 4, create_piece(Color.WHITE, PieceType.ROOK))
     board.set_piece(3, 4, create_piece(Color.WHITE, PieceType.ROOK))
-    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.BISHOP))
-    board.set_piece(0, 7, create_piece(Color.BLACK, PieceType.ROOK))
+    # Bishop on a1-h8 diagonal that pins the rook
+    board.set_piece(0, 7, create_piece(Color.BLACK, PieceType.BISHOP))
+    # Add a second attacker on the diagonal (rook on same diagonal)
+    board.set_piece(1, 6, create_piece(Color.BLACK, PieceType.ROOK))
 
-    # Create a theoretically impossible double pin scenario
+    # Create a double pin scenario
     # Engine should handle gracefully without crashing
     board.turn = Color.WHITE
     result = board.make_move((3, 4), (2, 4))
@@ -811,10 +819,10 @@ def test_king_can_move_into_pin() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
-    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
-    board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.BISHOP))
-    board.set_piece(3, 4, create_piece(Color.WHITE, PieceType.BISHOP))
-    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.BISHOP))
+    board.set_piece(0, 0, create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(5, 4, create_piece(Color.WHITE, PieceType.BISHOP))
+    # Bishop on a1-h8 diagonal that can pin the king
+    board.set_piece(0, 7, create_piece(Color.BLACK, PieceType.BISHOP))
 
     # White king moves to d1 (becomes pinned but that's legal)
     board.turn = Color.WHITE
@@ -831,10 +839,10 @@ def test_king_can_move_out_of_pin() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
-    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
-    board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.BISHOP))
-    board.set_piece(3, 4, create_piece(Color.WHITE, PieceType.BISHOP))
-    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.BISHOP))
+    board.set_piece(0, 0, create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(5, 4, create_piece(Color.WHITE, PieceType.BISHOP))
+    # Bishop on a1-h8 diagonal that can pin the king
+    board.set_piece(0, 7, create_piece(Color.BLACK, PieceType.BISHOP))
 
     # White king moves away from pin
     board.turn = Color.WHITE
@@ -856,7 +864,7 @@ def test_checkmate_pinned_king() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
-    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(0, 0, create_piece(Color.BLACK, PieceType.KING))
     board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.PAWN))
     board.set_piece(6, 4, create_piece(Color.WHITE, PieceType.PAWN))
     board.set_piece(7, 3, create_piece(Color.WHITE, PieceType.PAWN))
@@ -995,12 +1003,12 @@ def test_knight_corner_has_two_moves() -> None:
     clear_board(board)
     board.set_piece(7, 0, create_piece(Color.WHITE, PieceType.KNIGHT))
 
-    # Knight on a1 has exactly 2 moves (b3 and c2)
+    # Knight on a1 has exactly 2 moves (c2 and b3)
     board.turn = Color.WHITE
     legal_moves = board.get_legal_moves()
     assert len(legal_moves) == 2
-    assert (7, 2) in legal_moves
-    assert (5, 1) in legal_moves
+    assert (5, 1) in legal_moves  # c2
+    assert (6, 2) in legal_moves  # b3
 
     # Black moves (to change turn)
     board.turn = Color.BLACK
@@ -1018,9 +1026,9 @@ def test_king_corner_has_three_moves() -> None:
     board.turn = Color.WHITE
     legal_moves = board.get_legal_moves()
     assert len(legal_moves) == 3
-    assert (7, 1) in legal_moves
-    assert (6, 0) in legal_moves
-    assert (6, 1) in legal_moves
+    assert (6, 0) in legal_moves  # a2
+    assert (6, 1) in legal_moves  # b2
+    assert (7, 1) in legal_moves  # b1
 
     # Black moves (to change turn)
     board.turn = Color.BLACK

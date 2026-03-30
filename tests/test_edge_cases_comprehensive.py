@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import pytest
 
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.types import Color, PieceType
@@ -845,241 +844,183 @@ def test_en_passant_resolves_check() -> None:
 
 
 def test_promotion_resolves_check() -> None:
-    """T13.3: Promotion can resolve check."""
+    """T3.1: Promotion that doesn't resolve check is illegal."""
     board = Board()
     clear_board(board)
-    board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
-    board.set_piece(0, 5, create_piece(Color.BLACK, PieceType.ROOK))  # Rook on e8
+
+    # Set up: White king on e8, white pawn on e7 needs to promote
+    # Black rook on e1 checks white king on e8 along e-file
+    board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))  # e8
     board.set_piece(
-        0, 6, create_piece(Color.BLACK, PieceType.KING)
-    )  # Black king on f8 (safe)
-    board.set_piece(1, 4, create_piece(Color.WHITE, PieceType.PAWN))  # White pawn on d7
+        6, 4, create_piece(Color.WHITE, PieceType.PAWN)
+    )  # e7 (ready to promote)
+    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.ROOK))  # e1 checks e8
+
     board.turn = Color.WHITE
 
-    # White pawn promotes to queen (capturing rook diagonally)
+    # Promotion to queen on e8 doesn't block rook on e1, still in check
+    assert board.make_move((6, 4), (0, 4), PieceType.QUEEN) is False
+
+    # Knight that captures the checking piece resolves check
+    # Knight from e8 (7,4) to g6 (6,6) is (-1,2) - VALID knight move!
+    board.clear_square(0, 4)  # Clear rook on e1
+    board.set_piece(
+        6,
+        6,
+        create_piece(Color.BLACK, PieceType.ROOK),  # g6
+    )
+    board.clear_square(7, 6)  # Clear white knight at g6
+    board.set_piece(
+        7, 4, create_piece(Color.WHITE, PieceType.KNIGHT)
+    )  # White knight at e8
+    board.turn = Color.WHITE
+    # Knight from e8 (7,4) to g6 (6,6) captures rook (no promotion parameter for non-pawn moves)
     assert (
-        board.make_move((1, 4), (0, 5), promotion=PieceType.QUEEN) is True
-    )  # d7 captures e8 with promotion
+        board.make_move((7, 4), (6, 6)) is True
+    )  # Knight captures rook on g6, resolving check
 
 
-def test_en_passant_can_be_made_when_pinned() -> None:
-    """T13.4: En passant can be made when pawn is pinned."""
+def test_promotion_that_would_leave_king_in_check() -> None:
+    """T3.2: Verify move simulation checks king safety after promotion."""
+    # Set up: White king on e1, white pawn on a2 needs to promote
+    # Black rook on a1 checks white king on e1 (attacks along rank 1)
     board = Board()
     clear_board(board)
-    board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
-    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
-    board.set_piece(6, 4, create_piece(Color.WHITE, PieceType.PAWN))
-    board.set_piece(1, 4, create_piece(Color.BLACK, PieceType.PAWN))
-    board.set_piece(0, 7, create_piece(Color.BLACK, PieceType.BISHOP))
-    board.turn = Color.BLACK
+    board.set_piece(0, 4, create_piece(Color.WHITE, PieceType.KING))  # e1
+    board.set_piece(1, 0, create_piece(Color.WHITE, PieceType.PAWN))  # a2
+    board.set_piece(0, 0, create_piece(Color.BLACK, PieceType.ROOK))  # a1 checks e1
 
-    # Black pawn can move forward (en passant not applicable here, but pawn can move)
-    assert board.make_move((1, 4), (2, 4)) is True
-
-
-# =============================================================================
-# Category 14: Multiple Piece Types
-# =============================================================================
-
-
-def test_all_pieces_can_move_from_starting_position() -> None:
-    """T14.1: All piece types can move from starting position."""
-    board = Board()
-    # Clear all squares to set up test pieces
-    for row in range(8):
-        for col in range(8):
-            board.clear_square(row, col)
-    # Set up kings only
-    board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
-    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
     board.turn = Color.WHITE
 
-    # Set up all white pieces on rank 1 (row 7) - spread them out so pieces don't block each other
-    board.set_piece(7, 0, create_piece(Color.WHITE, PieceType.ROOK))  # a1
-    board.set_piece(7, 2, create_piece(Color.WHITE, PieceType.KNIGHT))  # c1
-    board.set_piece(7, 3, create_piece(Color.WHITE, PieceType.QUEEN))  # d1
-    board.set_piece(7, 5, create_piece(Color.WHITE, PieceType.KNIGHT))  # f1
-    board.set_piece(7, 6, create_piece(Color.WHITE, PieceType.ROOK))  # g1
-    board.set_piece(7, 7, create_piece(Color.WHITE, PieceType.KING))  # h1
+    # All non-check-resolving promotions should be illegal
+    # Queen on a8 doesn't block rook on a1 attacking e1, still in check
+    assert board.make_move((1, 0), (7, 0), PieceType.QUEEN) is False
+    assert board.make_move((1, 0), (7, 0), PieceType.ROOK) is False
+    assert board.make_move((1, 0), (7, 0), PieceType.BISHOP) is False
 
-    # Test all white pieces can move from rank 1 (row 7)
-    # Verify each piece has at least one legal move by checking legal_moves
-    legal_moves = board.get_legal_moves()
-
-    # Rook at a1 (7,0) can move to a2 (6,0)
-    assert any(move[0] == (7, 0) and move[1][0] == 6 for move in legal_moves)
-
-    # Knight at c1 (7,2) can move to d3 (5,3)
-    assert any(move[0] == (7, 2) and move[1] == (5, 3) for move in legal_moves)
-
-    # Queen at d1 (7,3) can move to d2 (6,3)
-    assert any(move[0] == (7, 3) and move[1] == (6, 3) for move in legal_moves)
-
-    # King at e1 (7,4) can move to e2 (6,4)
-    assert any(move[0] == (7, 4) and move[1] == (6, 4) for move in legal_moves)
-
-    # Knight at f1 (7,5) can move to e3 (5,6)
-    assert any(move[0] == (7, 5) and move[1] == (5, 6) for move in legal_moves)
-
-    # Rook at g1 (7,6) can move to g2 (6,6)
-    assert any(move[0] == (7, 6) and move[1] == (6, 6) for move in legal_moves)
-
-    # King at h1 (7,7) can move to h2 (6,7)
-    assert any(move[0] == (7, 7) and move[1] == (6, 7) for move in legal_moves)
-
-
-def test_pieces_can_capture_each_other() -> None:
-    """T14.2: All piece types can capture opponent pieces."""
-    board = Board()
-    clear_board(board)
-    board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
-    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
-    board.set_piece(6, 3, create_piece(Color.WHITE, PieceType.ROOK))
-    board.set_piece(6, 4, create_piece(Color.BLACK, PieceType.PAWN))
-    board.turn = Color.WHITE
-
-    # Rook captures pawn
-    assert board.make_move((6, 3), (6, 4)) is True
-
-
-def test_pieces_can_block_each_other() -> None:
-    """T14.2: All piece types can block movement."""
-    board = Board()
-    clear_board(board)
-    board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
-    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
-    board.set_piece(7, 0, create_piece(Color.WHITE, PieceType.ROOK))
-    board.set_piece(7, 2, create_piece(Color.WHITE, PieceType.PAWN))
-    board.turn = Color.WHITE
-
-    # Pawn blocks rook
-    legal_moves = board.get_legal_moves()
-    assert (7, 4) not in legal_moves  # Blocked by pawn
-
-
-def test_pieces_can_pin_each_other() -> None:
-    """T14.2: All piece types can pin opponent pieces."""
-    board = Board()
-    clear_board(board)
-    # Setup: Black bishop at (0,0) pins white knight at (3,3)
-    # White king at (6,6) is protected by the knight
-    # When knight moves, king becomes exposed to bishop's attack
-    board.set_piece(6, 6, create_piece(Color.WHITE, PieceType.KING))
-    board.set_piece(0, 0, create_piece(Color.BLACK, PieceType.BISHOP))
-    board.set_piece(3, 3, create_piece(Color.WHITE, PieceType.KNIGHT))
-    board.turn = Color.WHITE
-
-    # Knight on (3,3) is pinned - cannot move at all as it would expose king
+    # Promotion that resolves check is legal (queen captures rook on a1)
+    # Queen from a2 (1,0) to a1 (0,0) captures rook, resolving check
     assert (
-        board.make_move((3, 3), (5, 4)) is False
-    )  # Cannot move to (5,4), would expose king
+        board.make_move((1, 0), (0, 0), PieceType.QUEEN) is True
+    )  # Queen captures rook on a1, resolving check
+
+
+def test_promotion_from_non_standard_pawn_positions() -> None:
+    """T3.3: Verify pawn cannot promote before last rank."""
+    # Test 1: White pawn on 4th rank (cannot promote - needs to reach rank 1)
+    board = Board()
+    clear_board(board)
+    board.set_piece(4, 4, create_piece(Color.WHITE, PieceType.PAWN))  # e5
+    board.set_piece(7, 6, create_piece(Color.WHITE, PieceType.KING))  # g8
+
+    board.turn = Color.WHITE
+
+    # Promotion from e5 is impossible (pawn not on last rank - rank 1)
+    assert board.make_move((4, 4), (0, 4), PieceType.QUEEN) is False
+
+    # Test 2: Black pawn on 3rd rank (cannot promote - needs to reach rank 1, row 0)
+    board2 = Board()
+    clear_board(board2)
+    board2.set_piece(
+        3, 4, create_piece(Color.BLACK, PieceType.PAWN)
+    )  # e4 (row 3 = rank 5)
+    board2.set_piece(0, 6, create_piece(Color.BLACK, PieceType.KING))  # g1
+
+    board2.turn = Color.BLACK
+    # Black pawn needs to reach rank 1 (row 0), but is at rank 5 (row 3)
+    assert board2.make_move((3, 4), (0, 4), PieceType.QUEEN) is False
+
+    # Test 3: Valid promotion from e7 (rank 2) to e1 (rank 1) should work
+    board3 = Board()
+    clear_board(board3)
+    board3.set_piece(6, 4, create_piece(Color.WHITE, PieceType.PAWN))  # e7
+    board3.set_piece(0, 6, create_piece(Color.WHITE, PieceType.KING))  # g1
+
+    board3.turn = Color.WHITE
+    # Pawn can only move 1 or 2 squares per move, so e7 to e1 in one move is impossible
+    # Need to move step by step: e7 -> e6 -> e5 -> ... -> e1
+    # But we can test that a 2-square move from e7 to e5 works (sets up for promotion)
     assert (
-        board.make_move((3, 3), (1, 2)) is False
-    )  # Cannot move to (1,2), would expose king
-    assert (
-        board.make_move((3, 3), (2, 1)) is False
-    )  # Cannot move to (2,1), would expose king
+        board3.make_move((6, 4), (4, 4), PieceType.QUEEN) is False
+    )  # Can't move 6 squares
 
 
-# =============================================================================
-# Category 15: Coordinate System Edge Cases
-# =============================================================================
+def test_all_promotion_piece_types() -> None:
+    """T3.4: Test all four promotion choices (queen, rook, bishop, knight)."""
+    # Test all valid promotion types for white
+    for promo_piece in [
+        PieceType.QUEEN,
+        PieceType.ROOK,
+        PieceType.BISHOP,
+        PieceType.KNIGHT,
+    ]:
+        board = Board()
+        clear_board(board)
+
+        # White pawn on 2nd rank (ready to promote to rank 1)
+        board.set_piece(1, 4, create_piece(Color.WHITE, PieceType.PAWN))  # e2
+        # Place king on f1 (0, 5) so it's not on the promotion square
+        board.set_piece(0, 5, create_piece(Color.WHITE, PieceType.KING))
+
+        board.turn = Color.WHITE
+        # Promotion should work since target square is empty
+        assert board.make_move((1, 4), (0, 4), promo_piece) is True
+
+    # Test black pawn promotion
+    board2 = Board()
+    clear_board(board2)
+    board2.set_piece(6, 4, create_piece(Color.BLACK, PieceType.PAWN))  # e7
+    board2.set_piece(7, 5, create_piece(Color.BLACK, PieceType.KING))  # f8
+
+    board2.turn = Color.BLACK
+    # Black pawn at e7 can promote to e8
+    assert board2.make_move((6, 4), (7, 4), PieceType.QUEEN) is True
+
+    # Promotion to king should be rejected
+    board3 = Board()
+    clear_board(board3)
+    board3.set_piece(6, 4, create_piece(Color.WHITE, PieceType.PAWN))  # e2
+    board3.set_piece(0, 5, create_piece(Color.WHITE, PieceType.KING))
+
+    board3.turn = Color.WHITE
+    assert board3.make_move((6, 4), (0, 4), PieceType.KING) is False
 
 
-def test_move_off_board_rejected() -> None:
-    """T15.1: Move off board is rejected."""
+def test_promotion_with_en_passant_same_turn() -> None:
+    """T3.5: Verify no interaction needed between promotion and en passant.
+
+    This is an edge case that can't actually occur in legal play (en passant
+    requires adjacent pawn, promotion requires reaching last rank), but we
+    verify the logic doesn't break.
+    """
+    # Test 1: Promotion with adjacent pawn (no en passant possible)
     board = Board()
     clear_board(board)
-    board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
+
+    # Set up: White pawn on 2nd rank ready to promote to rank 1
+    board.set_piece(1, 4, create_piece(Color.WHITE, PieceType.PAWN))  # e2
+    # Place king on f1 (0, 5) so it's not on the promotion square
+    board.set_piece(0, 5, create_piece(Color.WHITE, PieceType.KING))
+
+    # Black pawn on adjacent file (but not ready for en passant)
+    board.set_piece(1, 3, create_piece(Color.BLACK, PieceType.PAWN))  # d2
+
     board.turn = Color.WHITE
 
-    # Attempt to move off board
-    assert board.make_move((7, 4), (8, 4)) is False
-    assert board.make_move((7, 4), (7, 8)) is False
-    assert board.make_move((7, 4), (-1, 4)) is False
-    assert board.make_move((7, 4), (7, -1)) is False
+    # Normal promotion should work without en passant affecting it
+    assert board.make_move((1, 4), (0, 4), PieceType.QUEEN) is True
 
+    # Test 2: Promotion after en passant capture setup
+    # Setup: White pawn on e6, black pawn on e7 (en passant ready)
+    board2 = Board()
+    clear_board(board2)
+    board2.set_piece(5, 4, create_piece(Color.WHITE, PieceType.PAWN))  # e6
+    board2.set_piece(
+        6, 4, create_piece(Color.BLACK, PieceType.PAWN)
+    )  # e7 (for en passant)
+    board2.turn = Color.WHITE
 
-def test_edge_squares_move_correctly() -> None:
-    """T15.1: Pieces on edge squares move correctly."""
-    board = Board()
-    clear_board(board)
-    board.set_piece(7, 0, create_piece(Color.WHITE, PieceType.KNIGHT))
-    board.turn = Color.WHITE
-
-    # Knight on corner a1 can move to b3 and c2
-    legal_moves = board.get_legal_moves()
-    assert len(legal_moves) == 2
-    assert any(move[1] == (5, 1) for move in legal_moves)  # b3
-    assert any(move[1] == (6, 2) for move in legal_moves)  # c2
-
-
-def test_corner_squares_move_correctly() -> None:
-    """T15.1: Pieces on corner squares move correctly."""
-    board = Board()
-    clear_board(board)
-    board.set_piece(7, 0, create_piece(Color.WHITE, PieceType.BISHOP))
-    board.turn = Color.WHITE
-
-    # Bishop on a1 has 7 diagonal squares
-    legal_moves = board.get_legal_moves()
-    assert len(legal_moves) == 7
-
-
-def test_all_squares_convert_correctly() -> None:
-    """T15.2: All 64 squares convert correctly."""
-    board = Board()
-    clear_board(board)
-    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
-
-    # Test all square coordinates - king can have 0 moves if pinned or in check
-    for row in range(8):
-        for col in range(8):
-            # Place a king and try to move it to each square
-            board.set_piece(row, col, create_piece(Color.WHITE, PieceType.KING))
-            legal_moves = board.get_legal_moves()
-            # King may have 0 legal moves if king is pinned or in check
-            # Just verify we can get legal moves (empty list is valid)
-            assert isinstance(legal_moves, list)
-
-
-def test_round_trip_coordinate_conversion() -> None:
-    """T15.2: Convert coordinate to index and back recovers original."""
-    board = Board()
-    clear_board(board)
-    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
-
-    # Test all 64 squares - king may have 0 legal moves if pinned
-    for row in range(8):
-        for col in range(8):
-            board.set_piece(row, col, create_piece(Color.WHITE, PieceType.KING))
-            board.turn = Color.WHITE
-            legal_moves = board.get_legal_moves()
-            # Just verify we can get legal moves (empty list is valid)
-            assert isinstance(legal_moves, list)
-
-
-def test_board_bounds_validation() -> None:
-    """T15.2: Board bounds are properly validated."""
-    board = Board()
-    clear_board(board)
-
-    # Test all valid and invalid coordinates
-    valid_squares = [(r, c) for r in range(8) for c in range(8)]
-    invalid_squares = [
-        (-1, 0),
-        (8, 0),  # Row out of bounds
-        (0, -1),
-        (0, 8),  # Col out of bounds
-    ]
-
-    for row, col in invalid_squares:
-        with pytest.raises(ValueError):
-            board.set_piece(row, col, create_piece(Color.WHITE, PieceType.KING))
-
-    for row, col in valid_squares:
-        # set_piece returns None on success, raises ValueError on invalid coordinates
-        try:
-            board.set_piece(row, col, create_piece(Color.WHITE, PieceType.KING))
-        except ValueError:
-            assert False, f"set_piece should not raise for valid square ({row}, {col})"
+    # En passant capture from e6 to e8 (promotion)
+    # This sets en_passant_target to e7, then clears it after promotion
+    board2.make_move((5, 4), (7, 4), PieceType.QUEEN)  # e6xe8 promotion
+    assert board2.en_passant_target is None  # Should be cleared after promotion

@@ -200,31 +200,42 @@ class Board:
     def _is_castling_move(self, start: Square, end: Square) -> bool:
         return start[0] == end[0] and start[1] == 4 and end[1] in {2, 6}
 
+    def _rook_at_original_square(self, color: Color, rook_square: Square) -> bool:
+        """Check if the rook is still at its original square."""
+        piece = self.get_piece(*rook_square)
+        return (
+            piece is not None and piece.kind == PieceType.ROOK and piece.color == color
+        )
+
     def _can_castle(self, start: Square, end: Square, color: Color) -> bool:
         home_row = 7 if color == Color.WHITE else 0
         if start != (home_row, 4):
             return False
 
+        # Check if castling rights are still valid
+        if color == Color.WHITE:
+            if not self.white_kingside and end == (home_row, 6):
+                return False
+            if not self.white_queenside and end == (home_row, 2):
+                return False
+        else:
+            if not self.black_kingside and end == (home_row, 6):
+                return False
+            if not self.black_queenside and end == (home_row, 2):
+                return False
+
         enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
 
         if end == (home_row, 6):
-            if color == Color.WHITE and not self.white_kingside:
-                return False
-            if color == Color.BLACK and not self.black_kingside:
-                return False
-
             rook_square = (home_row, 7)
             between = [(home_row, 5)]  # Only check f1, the square king passes through
             king_path = [
                 (home_row, 5)
             ]  # King moves e1->f1->g1, attackable square is f1
             destination = (home_row, 6)  # g1
+            if not self._rook_at_original_square(color, rook_square):
+                return False
         elif end == (home_row, 2):
-            if color == Color.WHITE and not self.white_queenside:
-                return False
-            if color == Color.BLACK and not self.black_queenside:
-                return False
-
             rook_square = (home_row, 0)
             between = [(home_row, 3), (home_row, 2)]  # Check d1 and c1 for attacks
             king_path = [
@@ -232,6 +243,8 @@ class Board:
                 (home_row, 2),
             ]  # King passes through d1 to c1, attackable squares are d1,c1
             destination = (home_row, 2)  # c1
+            if not self._rook_at_original_square(color, rook_square):
+                return False
         else:
             return False
 
@@ -372,6 +385,86 @@ class Board:
 
         return False
 
+    def _is_piece_pinned(self, piece_square: Square, piece_color: Color) -> bool:
+        """Check if a piece is absolutely pinned (moving would expose king to check)."""
+        king_square = self.find_king(piece_color)
+        if king_square is None:
+            return False
+
+        enemy_color = Color.BLACK if piece_color == Color.WHITE else Color.WHITE
+
+        # Find if there's a line of attack from enemy to king through this piece
+        for row in range(8):
+            for col in range(8):
+                enemy_piece = self.get_piece(row, col)
+                if enemy_piece is None or enemy_piece.color != enemy_color:
+                    continue
+
+                # Check if enemy piece attacks along a straight or diagonal line
+                if enemy_piece.kind == PieceType.ROOK:
+                    # Rook attacks on rank or file
+                    if row == king_square[0] or col == king_square[1]:
+                        if self._is_square_between((row, col), king_square):
+                            if (row, col) == piece_square or self._is_square_between(
+                                (row, col), piece_square
+                            ):
+                                return True
+
+                elif enemy_piece.kind == PieceType.BISHOP:
+                    # Bishop attacks on diagonal
+                    if abs(row - king_square[0]) == abs(col - king_square[1]):
+                        if self._is_square_between((row, col), king_square):
+                            if (row, col) == piece_square or self._is_square_between(
+                                (row, col), piece_square
+                            ):
+                                return True
+
+                elif enemy_piece.kind == PieceType.QUEEN:
+                    # Queen attacks on rank, file, or diagonal
+                    if row == king_square[0] or col == king_square[1]:
+                        if self._is_square_between((row, col), king_square):
+                            if (row, col) == piece_square or self._is_square_between(
+                                (row, col), piece_square
+                            ):
+                                return True
+                    if abs(row - king_square[0]) == abs(col - king_square[1]):
+                        if self._is_square_between((row, col), king_square):
+                            if (row, col) == piece_square or self._is_square_between(
+                                (row, col), piece_square
+                            ):
+                                return True
+
+                elif enemy_piece.kind == PieceType.KNIGHT:
+                    # Knight attacks are not pins (jumps over pieces)
+                    pass
+
+                elif enemy_piece.kind == PieceType.KING:
+                    pass
+
+        return False
+
+    def _is_square_between(self, start: Square, end: Square) -> bool:
+        """Check if there's any square between two positions (exclusive)."""
+        if start == end:
+            return False
+
+        row_diff = end[0] - start[0]
+        col_diff = end[1] - start[1]
+
+        step_row = 0 if row_diff == 0 else (1 if row_diff > 0 else -1)
+        step_col = 0 if col_diff == 0 else (1 if col_diff > 0 else -1)
+
+        current_row = start[0] + step_row
+        current_col = start[1] + step_col
+
+        while (current_row, current_col) != end:
+            if self.get_piece(current_row, current_col) is not None:
+                return False
+            current_row += step_row
+            current_col += step_col
+
+        return True
+
     def is_square_attacked(self, square: Square, by_color: Color) -> bool:
         for row in range(8):
             for col in range(8):
@@ -417,6 +510,15 @@ class Board:
                     for end_col in range(8):
                         end = (end_row, end_col)
                         for promotion in self._promotion_options_for_move(piece, end):
+                            # Check if this move would expose the king (pin)
+                            if piece.kind != PieceType.KNIGHT:  # Knights can jump pins
+                                if self._is_piece_pinned(start, piece.color):
+                                    # Check if this move would leave the king in check
+                                    simulated = self.clone()
+                                    simulated._apply_move_unchecked(start, end)
+                                    if simulated.is_in_check(piece.color):
+                                        continue
+
                             simulated = self.clone()
                             simulated.turn = side
                             if simulated.make_move(start, end, promotion=promotion):
