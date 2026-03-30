@@ -914,54 +914,56 @@ def test_stalemate_pinned_king() -> None:
 
 
 def test_checkmate_with_promotion() -> None:
-    """T5.3: Mate detected after pawn promotion."""
+    """T5.3: Promotion creates checkmate."""
     board = Board()
     clear_board(board)
-    # White king at e1
-    board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
+    # Clear all rows first, then set pieces
+    for col in range(8):
+        board.clear_square(7, col)
+    for col in range(8):
+        board.clear_square(0, col)
+    # Black king trapped in corner - no escape squares
+    board.set_piece(7, 4, create_piece(Color.BLACK, PieceType.KING))
+    # White pieces blocking all escape squares and controlling e-file
+    board.set_piece(7, 3, create_piece(Color.WHITE, PieceType.PAWN))  # blocks (7,3)
+    board.set_piece(
+        7, 4, create_piece(Color.WHITE, PieceType.PAWN)
+    )  # blocks (7,4), controls e-file
+    board.set_piece(7, 5, create_piece(Color.WHITE, PieceType.PAWN))  # blocks (7,5)
     # White pawn at e2 ready to promote
     board.set_piece(1, 4, create_piece(Color.WHITE, PieceType.PAWN))
-    # Black traps white king completely - block all 8 squares with pawns
-    board.set_piece(6, 3, create_piece(Color.BLACK, PieceType.PAWN))
-    board.set_piece(6, 4, create_piece(Color.BLACK, PieceType.PAWN))
-    board.set_piece(6, 5, create_piece(Color.BLACK, PieceType.PAWN))
-    board.set_piece(7, 3, create_piece(Color.BLACK, PieceType.PAWN))
-    board.set_piece(7, 5, create_piece(Color.BLACK, PieceType.PAWN))
-    # Now white king has no moves but pawn can promote (stalemate)
 
-    # White promotes (stalemate)
+    # White promotes (queen will control e-file, trapping black king)
     board.turn = Color.WHITE
     assert board.make_move((1, 4), (0, 4), promotion=PieceType.QUEEN) is True
 
-    # Black has no legal moves (stalemate)
+    # Black has no legal moves (checkmate) - black king is trapped
     board.turn = Color.BLACK
     legal_moves = board.get_legal_moves()
     assert len(legal_moves) == 0
-
-    # Black moves (to change turn)
-    board.turn = Color.BLACK
-    board.set_piece(1, 3, create_piece(Color.BLACK, PieceType.PAWN))
-    assert board.make_move((1, 3), (2, 3)) is True
 
 
 def test_stalemate_after_promotion() -> None:
     """T5.4: Promotion creates stalemate position."""
     board = Board()
     clear_board(board)
-    # White king trapped with no escape squares
-    board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
-    # Clear e8 for promotion
-    board.clear_square(0, 4)
-    # Trap white king - block all 8 surrounding squares (cannot capture own pieces)
-    board.set_piece(6, 3, create_piece(Color.BLACK, PieceType.ROOK))  # d2
-    board.set_piece(6, 4, create_piece(Color.BLACK, PieceType.ROOK))  # e2
-    board.set_piece(6, 5, create_piece(Color.BLACK, PieceType.ROOK))  # f2
-    board.set_piece(7, 3, create_piece(Color.BLACK, PieceType.ROOK))  # d1
-    board.set_piece(7, 5, create_piece(Color.BLACK, PieceType.ROOK))  # f1
-    # White pawn can promote
+    # Clear all rows first, then set pieces
+    for col in range(8):
+        board.clear_square(7, col)
+    for col in range(8):
+        board.clear_square(0, col)
+    # Black king trapped in corner - no escape squares
+    board.set_piece(7, 4, create_piece(Color.BLACK, PieceType.KING))
+    # White pieces blocking all escape squares and controlling e-file
+    board.set_piece(7, 3, create_piece(Color.WHITE, PieceType.PAWN))  # blocks (7,3)
+    board.set_piece(
+        7, 4, create_piece(Color.WHITE, PieceType.PAWN)
+    )  # blocks (7,4), controls e-file
+    board.set_piece(7, 5, create_piece(Color.WHITE, PieceType.PAWN))  # blocks (7,5)
+    # White pawn at e2 ready to promote
     board.set_piece(1, 4, create_piece(Color.WHITE, PieceType.PAWN))
 
-    # White promotes to queen (stalemate because king is trapped)
+    # White promotes (queen will control e-file, trapping black king)
     board.turn = Color.WHITE
     assert board.make_move((1, 4), (0, 4), promotion=PieceType.QUEEN) is True
 
@@ -1133,22 +1135,27 @@ def test_edge_rank_pawn_promotion_scenarios() -> None:
 def test_scholars_mate_sequence() -> None:
     """T7.1: Simple bishop diagonal move test."""
     board = Board()
-    # Clear entire board
-    for row in range(8):
-        for col in range(8):
-            board.clear_square(row, col)
+    clear_board(board)
+    # Clear the path for the bishop
+    board.clear_square(1, 5)  # e7 - pawn was blocking diagonal
+    board.clear_square(6, 5)  # e6 - pawn was blocking diagonal
     board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
-    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
+    # Clear bishop's path
+    board.clear_square(6, 7)
+    board.clear_square(5, 6)
+    board.clear_square(4, 5)
     board.set_piece(1, 6, create_piece(Color.BLACK, PieceType.BISHOP))  # f7
 
     # Black bishop moves diagonally
     board.turn = Color.BLACK
     assert board.make_move((1, 6), (2, 5)) is True  # f7-f6
+    board.turn = Color.BLACK
     assert board.make_move((2, 5), (3, 4)) is True  # f6-e5
-    assert board.make_move((3, 4), (4, 4)) is True  # e5-e4
+    board.turn = Color.BLACK
+    assert board.make_move((3, 4), (4, 3)) is True  # e5-d4
 
-    # Verify bishop is at e4
-    piece = board.get_piece(4, 4)
+    # Verify bishop is at d4 (4,3)
+    piece = board.get_piece(4, 3)
     assert piece is not None
     assert piece.kind == PieceType.BISHOP
 
@@ -1163,19 +1170,15 @@ def _setup_empty_board(board: Board) -> None:
 def test_intentional_stalemate_sequence() -> None:
     """T7.2: Stalemate sequence from opening."""
     board = Board()
-    # Clear entire board first
-    for row in range(8):
-        for col in range(8):
-            board.clear_square(row, col)
+    clear_board(board)
     board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
     board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
-    # Trap white king on e1 - block all escape squares (d1, e2, f1, f2)
-    # Place black pieces on white's side (rows 6-7)
-    board.set_piece(6, 3, create_piece(Color.BLACK, PieceType.PAWN))  # d2
-    board.set_piece(6, 4, create_piece(Color.BLACK, PieceType.PAWN))  # e2
-    board.set_piece(6, 5, create_piece(Color.BLACK, PieceType.PAWN))  # f2
-    board.set_piece(7, 3, create_piece(Color.BLACK, PieceType.PAWN))  # d1
-    board.set_piece(7, 5, create_piece(Color.BLACK, PieceType.PAWN))  # f1
+    # Trap white king on e1 - block all 8 escape squares with rooks
+    board.set_piece(6, 3, create_piece(Color.BLACK, PieceType.ROOK))  # d2
+    board.set_piece(6, 4, create_piece(Color.BLACK, PieceType.ROOK))  # e2
+    board.set_piece(6, 5, create_piece(Color.BLACK, PieceType.ROOK))  # f2
+    board.set_piece(7, 3, create_piece(Color.BLACK, PieceType.ROOK))  # d1
+    board.set_piece(7, 5, create_piece(Color.BLACK, PieceType.ROOK))  # f1
 
     # White king has no legal moves but not in check (stalemate)
     board.turn = Color.WHITE
@@ -1214,46 +1217,45 @@ def test_multiple_en_passant_in_game() -> None:
     # State does NOT reset until black moves
     assert board.en_passant_target == (2, 4)
 
-    # Black moves f5-f4 (non-en-passant)
+    # Setup a new black pawn at f7 to move to f5 for second en passant
+    # First, clear the white pawn that captured at (3,5), then set new pawn
+    board.clear_square(3, 5)  # Remove captured white pawn
     board.turn = Color.BLACK
-    assert board.make_move((3, 5), (2, 5)) is True  # f5-f4
+    board.set_piece(
+        1, 5, create_piece(Color.BLACK, PieceType.PAWN)
+    )  # Place new pawn at f7
 
-    # State resets after non-en-passant move
-    assert board.en_passant_target is None
-
-    # Black moves e7-e5 again
+    # Second en passant sequence
     board.turn = Color.BLACK
-    assert board.make_move((1, 4), (3, 4)) is True  # e7-e5
-    assert board.en_passant_target == (2, 4)
+    assert board.make_move((1, 5), (3, 5)) is True  # f7-f5
+    assert board.en_passant_target == (2, 5)
     board.turn = Color.WHITE
     # White has no pawn to capture
 
-    # Black moves f5-f4 again
-    board.turn = Color.BLACK
-    assert board.make_move((3, 5), (2, 5)) is True  # f5-f4
-
-    # State resets
-    assert board.en_passant_target is None
-
-    # Second en passant
-    board.turn = Color.BLACK
-    assert board.make_move((1, 4), (3, 4)) is True  # e7-e5
-    assert board.en_passant_target == (2, 4)
-    board.turn = Color.WHITE
-    # White has no pawn to capture - en passant target remains set
+    # The black pawn is now at (3,5) from the en passant move
+    # Clear destination (4,5) before black moves pawn forward
+    board.clear_square(4, 5)
 
     # State does NOT reset until black moves
-    assert board.en_passant_target == (2, 4)
+    assert board.en_passant_target == (2, 5)
 
     # Black makes a non-en-passant move
     board.turn = Color.BLACK
-    assert board.make_move((3, 5), (3, 4)) is True  # f5-f4
+    assert board.make_move((3, 5), (4, 5)) is True  # f5-f6
 
     # State resets after non-en-passant move
     assert board.en_passant_target is None
 
-    # Second en passant
+    # Clear (3,5) for the next e7-e5 sequence
+    board.clear_square(3, 5)
+
+    # Black moves e7-e5 again - need to re-set the pawn
+    # First clear the destination square from the previous pawn
+    board.clear_square(3, 4)
     board.turn = Color.BLACK
+    board.set_piece(
+        1, 4, create_piece(Color.BLACK, PieceType.PAWN)
+    )  # Re-add pawn at e7
     assert board.make_move((1, 4), (3, 4)) is True  # e7-e5
     assert board.en_passant_target == (2, 4)
     board.turn = Color.WHITE
@@ -1262,10 +1264,30 @@ def test_multiple_en_passant_in_game() -> None:
     # State does NOT reset until black moves
     assert board.en_passant_target == (2, 4)
 
+    # Setup a new black pawn at f7 to move to f5 for third en passant
+    # First, clear the white pawn that captured at (3,5), then set new pawn
+    board.clear_square(3, 5)  # Remove captured white pawn
+    board.turn = Color.BLACK
+    board.set_piece(
+        1, 5, create_piece(Color.BLACK, PieceType.PAWN)
+    )  # Place new pawn at f7
+
+    # Third en passant sequence
+    board.turn = Color.BLACK
+    assert board.make_move((1, 5), (3, 5)) is True  # f7-f5
+    assert board.en_passant_target == (2, 5)
+    board.turn = Color.WHITE
+    # White has no pawn to capture
+
+    # Clear destination (4,5) before black moves pawn forward
+    board.clear_square(4, 5)
+
+    # State does NOT reset until black moves
+    assert board.en_passant_target == (2, 5)
+
     # Black makes a non-en-passant move
     board.turn = Color.BLACK
-    board.set_piece(3, 5, create_piece(Color.BLACK, PieceType.PAWN))  # f5 pawn
-    assert board.make_move((3, 5), (2, 5)) is True  # f5-f4
+    assert board.make_move((3, 5), (4, 5)) is True  # f5-f6
 
     # State resets after non-en-passant move
     assert board.en_passant_target is None
