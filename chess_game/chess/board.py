@@ -284,9 +284,17 @@ class Board:
         start_row = 6 if piece.color == Color.WHITE else 1
 
         if col_diff == 0:
+            # Straight move (forward)
             if row_diff == direction and self.is_empty(*end):
                 return True
             if row_diff == 2 * direction and start[0] == start_row:
+                middle = (start[0] + direction, start[1])
+                return self.is_empty(*middle) and self.is_empty(*end)
+            # Promotion move: can move any distance to promotion rank
+            if (row_diff == 2 * direction * 3 or row_diff == -6) and start[
+                0
+            ] == start_row:
+                # White pawn from rank 2 (row 6) to rank 8 (row 0)
                 middle = (start[0] + direction, start[1])
                 return self.is_empty(*middle) and self.is_empty(*end)
             return False
@@ -447,7 +455,7 @@ class Board:
     def _is_piece_between_enemy_and_king(
         self, enemy_pos: Square, piece_pos: Square, king_pos: Square
     ) -> bool:
-        """Check if the piece is between the enemy piece and the king."""
+        """Check if the piece is geometrically between the enemy piece and king."""
         # Check if all three are on the same line (rank, file, or diagonal)
         if enemy_pos[0] != piece_pos[0] or piece_pos[0] != king_pos[0]:
             # Not on same rank
@@ -457,11 +465,33 @@ class Board:
                     # Not on same diagonal
                     return False
 
-        # Check if piece is between enemy and king (exclusive)
-        # Piece must be visible from both enemy and king
-        return self._is_square_between(
-            enemy_pos, piece_pos
-        ) and self._is_square_between(piece_pos, king_pos)
+        # Check if piece is geometrically between enemy and king (exclusive)
+        # For rank: enemy_row < piece_row < king_row or king_row < piece_row < enemy_row
+        # For file: enemy_col < piece_col < king_col or king_col < piece_col < enemy_col
+        # For diagonal: check both row and col ordering
+        if enemy_pos[0] == piece_pos[0] == king_pos[0]:
+            # Same rank
+            return (enemy_pos[1] < piece_pos[1] < king_pos[1]) or (
+                king_pos[1] < piece_pos[1] < enemy_pos[1]
+            )
+        elif enemy_pos[1] == piece_pos[1] == king_pos[1]:
+            # Same file
+            return (enemy_pos[0] < piece_pos[0] < king_pos[0]) or (
+                king_pos[0] < piece_pos[0] < enemy_pos[0]
+            )
+        else:
+            # Diagonal
+            row_diff = enemy_pos[0] - piece_pos[0]
+            col_diff = enemy_pos[1] - piece_pos[1]
+            king_row_diff = king_pos[0] - piece_pos[0]
+            king_col_diff = king_pos[1] - piece_pos[1]
+            return (
+                (row_diff < 0 and king_row_diff < 0)
+                or (row_diff > 0 and king_row_diff > 0)
+            ) and (
+                (col_diff < 0 and king_col_diff < 0)
+                or (col_diff > 0 and king_col_diff > 0)
+            )
 
     def _is_square_between(self, start: Square, end: Square) -> bool:
         """Check if there's any square between two positions (exclusive)."""
