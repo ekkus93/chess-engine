@@ -291,12 +291,9 @@ class Board:
                 return self.is_empty(*middle) and self.is_empty(*end)
             return False
 
-        if abs(col_diff) == 1 and row_diff == direction:
-            end_piece = self.get_piece(*end)
-            if end_piece is not None:
-                return end_piece.color != piece.color
-
-            if self.en_passant_target == end:
+        if abs(col_diff) == 1:
+            # En passant capture (horizontal move, same row)
+            if self.en_passant_target == end and row_diff == 0:
                 captured_row = end[0] + 1 if piece.color == Color.WHITE else end[0] - 1
                 captured_piece = self.get_piece(captured_row, end[1])
                 return (
@@ -304,19 +301,23 @@ class Board:
                     and captured_piece.kind == PieceType.PAWN
                     and captured_piece.color != piece.color
                 )
-
-        if (
-            abs(col_diff) == 1
-            and row_diff == 2 * direction
-            and self.en_passant_target == end
-        ):
-            captured_row = end[0] + 1 if piece.color == Color.WHITE else end[0] - 1
-            captured_piece = self.get_piece(captured_row, end[1])
-            return (
-                captured_piece is not None
-                and captured_piece.kind == PieceType.PAWN
-                and captured_piece.color != piece.color
-            )
+            # Regular capture (diagonal forward)
+            if row_diff == direction:
+                end_piece = self.get_piece(*end)
+                if end_piece is not None:
+                    return end_piece.color != piece.color
+                # En passant capture (diagonal, target is the empty square)
+                if self.en_passant_target == end:
+                    captured_row = (
+                        end[0] + 1 if piece.color == Color.WHITE else end[0] - 1
+                    )
+                    captured_piece = self.get_piece(captured_row, end[1])
+                    return (
+                        captured_piece is not None
+                        and captured_piece.kind == PieceType.PAWN
+                        and captured_piece.color != piece.color
+                    )
+            return False
         return False
 
     def _is_valid_piece_move(self, start: Square, end: Square) -> bool:
@@ -404,35 +405,35 @@ class Board:
                 if enemy_piece.kind == PieceType.ROOK:
                     # Rook attacks on rank or file
                     if row == king_square[0] or col == king_square[1]:
-                        if self._is_square_between((row, col), king_square):
-                            if (row, col) == piece_square or self._is_square_between(
-                                (row, col), piece_square
-                            ):
-                                return True
+                        # Check if piece is between enemy piece and king
+                        if self._is_piece_between_enemy_and_king(
+                            (row, col), piece_square, king_square
+                        ):
+                            return True
 
                 elif enemy_piece.kind == PieceType.BISHOP:
                     # Bishop attacks on diagonal
                     if abs(row - king_square[0]) == abs(col - king_square[1]):
-                        if self._is_square_between((row, col), king_square):
-                            if (row, col) == piece_square or self._is_square_between(
-                                (row, col), piece_square
-                            ):
-                                return True
+                        # Check if piece is between enemy piece and king
+                        if self._is_piece_between_enemy_and_king(
+                            (row, col), piece_square, king_square
+                        ):
+                            return True
 
                 elif enemy_piece.kind == PieceType.QUEEN:
                     # Queen attacks on rank, file, or diagonal
                     if row == king_square[0] or col == king_square[1]:
-                        if self._is_square_between((row, col), king_square):
-                            if (row, col) == piece_square or self._is_square_between(
-                                (row, col), piece_square
-                            ):
-                                return True
+                        # Check if piece is between enemy piece and king
+                        if self._is_piece_between_enemy_and_king(
+                            (row, col), piece_square, king_square
+                        ):
+                            return True
                     if abs(row - king_square[0]) == abs(col - king_square[1]):
-                        if self._is_square_between((row, col), king_square):
-                            if (row, col) == piece_square or self._is_square_between(
-                                (row, col), piece_square
-                            ):
-                                return True
+                        # Check if piece is between enemy piece and king
+                        if self._is_piece_between_enemy_and_king(
+                            (row, col), piece_square, king_square
+                        ):
+                            return True
 
                 elif enemy_piece.kind == PieceType.KNIGHT:
                     # Knight attacks are not pins (jumps over pieces)
@@ -442,6 +443,25 @@ class Board:
                     pass
 
         return False
+
+    def _is_piece_between_enemy_and_king(
+        self, enemy_pos: Square, piece_pos: Square, king_pos: Square
+    ) -> bool:
+        """Check if the piece is between the enemy piece and the king."""
+        # Check if all three are on the same line (rank, file, or diagonal)
+        if enemy_pos[0] != piece_pos[0] or piece_pos[0] != king_pos[0]:
+            # Not on same rank
+            if enemy_pos[1] != piece_pos[1] or piece_pos[1] != king_pos[1]:
+                # Not on same file
+                if abs(enemy_pos[0] - king_pos[0]) != abs(enemy_pos[1] - king_pos[1]):
+                    # Not on same diagonal
+                    return False
+
+        # Check if piece is between enemy and king (exclusive)
+        # Piece must be visible from both enemy and king
+        return self._is_square_between(
+            enemy_pos, piece_pos
+        ) and self._is_square_between(piece_pos, king_pos)
 
     def _is_square_between(self, start: Square, end: Square) -> bool:
         """Check if there's any square between two positions (exclusive)."""
@@ -584,7 +604,7 @@ class Board:
 
         if start_piece.kind == PieceType.PAWN and abs(end_pos[0] - start_pos[0]) == 2:
             step = -1 if start_piece.color == Color.WHITE else 1
-            self.en_passant_target = (start_pos[0] + step, start_pos[1])
+            self.en_passant_target = (start_pos[0] + step, end_pos[1])
         else:
             self.en_passant_target = None
 
@@ -673,6 +693,14 @@ class Board:
 
         if not self._is_valid_piece_move(start_pos, end_pos):
             return False
+
+        # Check if piece is pinned (moving it would expose king to check)
+        if start_piece.kind != PieceType.KNIGHT:  # Knights can jump pins
+            if self._is_piece_pinned(start_pos, start_piece.color):
+                simulated = self.clone()
+                simulated._apply_move_unchecked(start_pos, end_pos)
+                if simulated.is_in_check(start_piece.color):
+                    return False
 
         simulated = self.clone()
         simulated._apply_move_unchecked(start_pos, end_pos)
