@@ -134,35 +134,40 @@ def test_white_en_passant_legal_example() -> None:
     board = Board()
     clear_board(board)
     _setup_kings(board)
-    board.set_piece(3, 4, create_piece(Color.WHITE, PieceType.PAWN))
-    board.set_piece(1, 3, create_piece(Color.BLACK, PieceType.PAWN))
+    board.set_piece(6, 4, create_piece(Color.WHITE, PieceType.PAWN))  # White pawn on e2
+    board.set_piece(1, 3, create_piece(Color.BLACK, PieceType.PAWN))  # Black pawn on d7
+    board.turn = Color.WHITE
+
+    # White moves pawn two squares (from rank 2 to rank 4)
+    assert board.make_move((6, 4), (4, 4)) is True
+    assert board.en_passant_target == (5, 4)
+
+    # Black captures en passant from d7 to e3
     board.turn = Color.BLACK
-
-    assert board.make_move((1, 3), (3, 3)) is True
-    assert board.en_passant_target == (2, 3)
-
-    assert board.make_move((3, 4), (2, 3)) is True
-    assert board.get_piece(3, 4) is None
+    assert board.make_move((1, 3), (5, 4)) is True
     assert board.get_piece(1, 3) is None
-    assert board.get_piece_type_at(2, 3) == PieceType.PAWN
-    assert board.get_color_at(2, 3) == Color.WHITE
+    assert board.get_piece_type_at(5, 4) == PieceType.PAWN
+    assert board.get_color_at(5, 4) == Color.BLACK
 
 
 def test_black_en_passant_legal_example() -> None:
     board = Board()
     clear_board(board)
     _setup_kings(board)
-    board.set_piece(2, 4, create_piece(Color.WHITE, PieceType.PAWN))
-    board.set_piece(1, 3, create_piece(Color.BLACK, PieceType.PAWN))
+    board.set_piece(6, 3, create_piece(Color.WHITE, PieceType.PAWN))  # White pawn on d2
+    board.set_piece(1, 4, create_piece(Color.BLACK, PieceType.PAWN))  # Black pawn on e7
     board.turn = Color.BLACK
 
-    assert board.make_move((1, 3), (3, 3)) is True
-    assert board.en_passant_target == (2, 3)
+    # Black moves pawn two squares (from rank 7 to rank 5)
+    assert board.make_move((1, 4), (3, 4)) is True
+    assert board.en_passant_target == (2, 4)
 
-    assert board.make_move((2, 4), (2, 3)) is True
-    assert board.get_piece(2, 4) is None
-    assert board.get_piece_type_at(2, 3) == PieceType.PAWN
-    assert board.get_color_at(2, 3) == Color.WHITE
+    # White captures en passant from d2 to e4
+    board.turn = Color.WHITE
+    assert board.make_move((6, 3), (2, 4)) is True
+    assert board.get_piece(6, 3) is None
+    assert board.get_piece_type_at(2, 4) == PieceType.PAWN
+    assert board.get_color_at(2, 4) == Color.WHITE
 
 
 def test_en_passant_expires_after_one_turn() -> None:
@@ -478,8 +483,8 @@ def test_en_passant_black_captures_white_pawn() -> None:
         6, 4, create_piece(Color.WHITE, PieceType.PAWN)
     )  # Row 6 = rank 2 (e2)
     board.set_piece(
-        5, 5, create_piece(Color.BLACK, PieceType.PAWN)
-    )  # Row 5 = rank 3 (f3)
+        1, 5, create_piece(Color.BLACK, PieceType.PAWN)
+    )  # Row 1 = rank 7 (f7)
 
     board.turn = Color.WHITE
 
@@ -488,9 +493,11 @@ def test_en_passant_black_captures_white_pawn() -> None:
     assert board.make_move((6, 4), (4, 4)) is True
     assert board.en_passant_target == (5, 4)
 
-    # Black captures en passant immediately (f3 captures e3)
+    # Black captures en passant immediately (f7 captures e3)
+    # Black pawn at f7 (row 1, f-file) captures white pawn en passant on e3 (row 5, e-file)
+    # This is a diagonal capture from f7 to e3
     board.turn = Color.BLACK
-    assert board.make_move((5, 5), (5, 4)) is True  # f3 captures en passant on e3
+    assert board.make_move((1, 5), (5, 4)) is True  # f7 captures en passant on e3
 
     # Verify: black pawn on e3 (row 5), white pawn removed from e4 (row 4)
     assert board.get_piece_type_at(5, 4) == PieceType.PAWN

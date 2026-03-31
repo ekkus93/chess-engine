@@ -188,7 +188,7 @@ def test_en_passant_capture_removes_pawn_from_original_square() -> None:
             board.clear_square(row, col)
     board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
     board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
-    board.set_piece(4, 4, create_piece(Color.WHITE, PieceType.PAWN))  # White pawn on e6
+    board.set_piece(6, 4, create_piece(Color.WHITE, PieceType.PAWN))  # White pawn on e2
     board.set_piece(1, 3, create_piece(Color.BLACK, PieceType.PAWN))  # Black pawn on d7
     board.turn = Color.BLACK
 
@@ -199,10 +199,10 @@ def test_en_passant_capture_removes_pawn_from_original_square() -> None:
     # Switch to white's turn
     board.turn = Color.WHITE
 
-    # White captures en passant (e6xd6)
-    # White pawn at e6 (4,4) captures black pawn at d5 (3,3) en passant
+    # White captures en passant (e2xd3)
+    # White pawn at e2 (6,4) captures black pawn at d5 (3,3) en passant
     # The captured pawn is removed from d5 and placed on d6 (2,3)
-    assert board.make_move((4, 4), (2, 3)) is True  # e6 captures d5 en passant
+    assert board.make_move((6, 4), (2, 3)) is True  # e2 captures d5 en passant
 
     # Verify black pawn was removed from d5
     assert board.get_piece(3, 3) is None  # d5 should be empty
@@ -307,7 +307,6 @@ def test_full_en_passant_sequence_from_starting_position() -> None:
     board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
     board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
     board.set_piece(6, 4, create_piece(Color.WHITE, PieceType.PAWN))  # White pawn on e2
-    board.set_piece(4, 4, create_piece(Color.WHITE, PieceType.PAWN))  # White pawn on e3
     board.set_piece(1, 3, create_piece(Color.BLACK, PieceType.PAWN))  # Black pawn on d7
     board.turn = Color.BLACK
 
@@ -318,10 +317,10 @@ def test_full_en_passant_sequence_from_starting_position() -> None:
     # Switch to white's turn
     board.turn = Color.WHITE
 
-    # White captures en passant: e3 captures d5 en passant
-    # White pawn at e3 (4,4) captures black pawn at d5 (3,3) en passant
+    # White captures en passant: e2 captures d5 en passant
+    # White pawn at e2 (6,4) captures black pawn at d5 (3,3) en passant
     # The black pawn is removed from d5 and placed on d6 (2,3)
-    assert board.make_move((4, 4), (2, 3)) is True
+    assert board.make_move((6, 4), (2, 3)) is True
 
     # Verify white pawn is now at d6 (2,3) after en passant capture
     white_pawn_at_d6 = board.get_piece(2, 3)
@@ -882,27 +881,34 @@ def test_promotion_resolves_check() -> None:
 
 def test_promotion_that_would_leave_king_in_check() -> None:
     """T3.2: Verify move simulation checks king safety after promotion."""
-    # Set up: White king on e1, white pawn on a2 needs to promote
-    # Black rook on a1 checks white king on e1 (attacks along rank 1)
+    # Set up: White king on e1, white pawn on c2 needs to promote
+    # Black rook on d1 checks white king on e1 (attacks along rank 1)
+    # Coordinate system: row 0 = rank 1, row 7 = rank 8
     board = Board()
     clear_board(board)
-    board.set_piece(0, 4, create_piece(Color.WHITE, PieceType.KING))  # e1
-    board.set_piece(1, 0, create_piece(Color.WHITE, PieceType.PAWN))  # a2
-    board.set_piece(0, 0, create_piece(Color.BLACK, PieceType.ROOK))  # a1 checks e1
+    board.set_piece(
+        0, 4, create_piece(Color.WHITE, PieceType.KING)
+    )  # e1 (rank 1, e-file)
+    board.set_piece(
+        1, 2, create_piece(Color.WHITE, PieceType.PAWN)
+    )  # c2 (rank 2, c-file)
+    board.set_piece(
+        0, 3, create_piece(Color.BLACK, PieceType.ROOK)
+    )  # d1 (rank 1, d-file) checks e1
 
     board.turn = Color.WHITE
 
     # All non-check-resolving promotions should be illegal
-    # Queen on a8 doesn't block rook on a1 attacking e1, still in check
-    assert board.make_move((1, 0), (7, 0), PieceType.QUEEN) is False
-    assert board.make_move((1, 0), (7, 0), PieceType.ROOK) is False
-    assert board.make_move((1, 0), (7, 0), PieceType.BISHOP) is False
+    # Queen on b8 doesn't block rook on d1 attacking e1, still in check
+    assert board.make_move((1, 2), (0, 2), PieceType.QUEEN) is False
+    assert board.make_move((1, 2), (0, 2), PieceType.ROOK) is False
+    assert board.make_move((1, 2), (0, 2), PieceType.BISHOP) is False
 
-    # Promotion that resolves check is legal (queen captures rook on a1)
-    # Queen from a2 (1,0) to a1 (0,0) captures rook, resolving check
+    # Promotion that resolves check is legal (queen captures rook on d1)
+    # Queen from c2 (1,2) to d1 (0,3) captures rook, resolving check
     assert (
-        board.make_move((1, 0), (0, 0), PieceType.QUEEN) is True
-    )  # Queen captures rook on a1, resolving check
+        board.make_move((1, 2), (0, 3), PieceType.QUEEN) is True
+    )  # Queen captures rook on d1, resolving check
 
 
 def test_promotion_from_non_standard_pawn_positions() -> None:
