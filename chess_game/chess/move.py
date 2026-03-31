@@ -2,13 +2,14 @@ from dataclasses import dataclass
 from typing import Optional
 
 from chess_game.chess.coords import algebraic_to_index
+from chess_game.chess.board import ConstantSquare
 from chess_game.chess.types import PieceType
 
 
 @dataclass(frozen=True)
 class Move:
-    start: tuple[int, int]  # (row, col)
-    end: tuple[int, int]  # (row, col)
+    start: ConstantSquare
+    end: ConstantSquare
     promotion: Optional[PieceType] = None
 
 
@@ -40,4 +41,4 @@ def parse_move_notation(move_str: str) -> Move:
             )
         promotion = promo_map[promo_char]
 
-    return Move(start=start, end=end, promotion=promotion)
+    return Move(start=ConstantSquare(row=start[0], col=start[1]), end=ConstantSquare(row=end[0], col=end[1]), promotion=promotion)

@@ -4,7 +4,8 @@ from collections.abc import Callable
 
 import pytest
 
-from chess_game.chess.board import Board, create_piece
+from chess_game.chess.board import Board, ConstantSquare, create_piece
+from chess_game.constants import COL_A, COL_B, COL_C, COL_D, COL_E, COL_F, COL_H, ROW_2, ROW_3, ROW_5, ROW_6, ROW_7, ROW_8
 from chess_game.chess.types import Color, PieceType
 
 
@@ -27,7 +28,7 @@ def clear_board(board: Board) -> None:
     """Clear all pieces from a board for focused rule tests."""
     for row in range(8):
         for col in range(8):
-            board.clear_square(row, col)
+            board.clear_square(ConstantSquare(row=row, col=col))
 
 
 @pytest.fixture
@@ -43,8 +44,12 @@ def board_with_kings() -> Board:
     """Provide an otherwise-empty board with both kings placed legally."""
     board = Board()
     clear_board(board)
-    board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
-    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(
+        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+    )
+    board.set_piece(
+        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+    )
     return board
 
 
@@ -55,11 +60,19 @@ def board_with_material() -> Board:
     # Clear and set up a simple position: White has queen vs Black knight
     clear_board(board)
     # Set up kings (required by board state but not used in evaluation)
-    board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
-    board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(
+        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+    )
+    board.set_piece(
+        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+    )
     # Add material: White queen at d1, Black knight at f6
-    board.set_piece(3, 3, create_piece(Color.WHITE, PieceType.QUEEN))  # d4 square (rank 5 = row 3)
-    board.set_piece(0, 5, create_piece(Color.BLACK, PieceType.KNIGHT))  # e1 rank (Black knight at back rank edge)
+    board.set_piece(
+        ConstantSquare(row=ROW_3, col=COL_D), create_piece(Color.WHITE, PieceType.QUEEN)
+    )  # d4 square (rank 5 = row 3)
+    board.set_piece(
+        ConstantSquare(row=ROW_8, col=COL_F), create_piece(Color.BLACK, PieceType.KNIGHT)
+    )  # e1 rank (Black knight at back rank edge)
     return board
 
 
@@ -68,14 +81,18 @@ def simple_opening_position() -> Board:
     """Provide a standard Italian game opening position for AI testing."""
     board = Board()
     # Make some standard opening moves to set up a position
-    board.make_move((7, 2), (5, 3))  # e4
-    board.make_move((0, 1), (2, 2))  # Nc6 (Black knight)
-    board.make_move((7, 4), (6, 5))  # Bc4 (White bishop to center)
-    board.make_move((0, 8), (2, 7))  # ...e6
+    board.make_move(ConstantSquare(row=ROW_7, col=COL_C), ConstantSquare(row=ROW_5, col=COL_D))  # e4
+    board.make_move(
+        ConstantSquare(row=ROW_8, col=COL_B), ConstantSquare(row=ROW_2, col=COL_C)
+    )  # Nc6 (Black knight)
+    board.make_move(
+        ConstantSquare(row=ROW_7, col=COL_E), ConstantSquare(row=ROW_6, col=COL_F)
+    )  # Bc4 (White bishop to center)
+    board.make_move(ConstantSquare(row=ROW_8, col=8), ConstantSquare(row=ROW_2, col=COL_H))  # ...e6
     return board
 
 
-def is_piece_in_position(piece_type: PieceType, row: int, col: int) -> bool:
+def is_piece_in_position(piece_type: PieceType, square: ConstantSquare) -> bool:
     """Check if a piece of given type exists at position."""
-    piece = Board().get_piece(row, col)
+    piece = Board().get_piece(square)
     return piece is not None and piece.kind == piece_type

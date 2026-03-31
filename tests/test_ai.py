@@ -1,4 +1,5 @@
 """Tests for AI/minimax evaluation module."""
+
 from __future__ import annotations
 
 import pytest
@@ -10,7 +11,8 @@ from chess_game.chess.ai import (
     get_best_move,
     get_legal_moves,
 )
-from chess_game.chess.board import Board, create_piece
+from chess_game.chess.board import Board, ConstantSquare, create_piece
+from chess_game.constants import COL_E, ROW_1, ROW_5, ROW_6, ROW_8
 from chess_game.chess.evaluation import (
     PAWN_TABLE,
     KNIGHT_TABLE,
@@ -41,9 +43,15 @@ class TestMaterialBalance:
         """Knight and bishop should have roughly equal material value."""
         clear_board(board_with_material)
         # Black knight at f6 (positionally good for knights)
-        board_with_material.set_piece(0, 5, create_piece(Color.BLACK, PieceType.KNIGHT))
+        board_with_material.set_piece(
+            ConstantSquare(row=ROW_8, col=5),
+            create_piece(Color.BLACK, PieceType.KNIGHT),
+        )
         # White bishop at b5 (positionally good for bishops)
-        board_with_material.set_piece(7, 1, create_piece(Color.WHITE, PieceType.BISHOP))
+        board_with_material.set_piece(
+            ConstantSquare(row=ROW_1, col=1),
+            create_piece(Color.WHITE, PieceType.BISHOP),
+        )
 
         score = evaluate(board_with_material)
         # Should be roughly zero (bishop and knight are equal material ~30 each)
@@ -140,18 +148,30 @@ class TestMoveOrdering:
         board = Board()
         # Set up position where white can capture black pawn with a queen
         clear_board(board)
-        board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
-        board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
+        board.set_piece(
+            ConstantSquare(row=ROW_8, col=COL_E),
+            create_piece(Color.WHITE, PieceType.KING),
+        )
+        board.set_piece(
+            ConstantSquare(row=ROW_1, col=COL_E),
+            create_piece(Color.BLACK, PieceType.KING),
+        )
 
         # White has queen at d5 that can capture Black pawn on e4 (diagonal)
-        board.set_piece(3, 3, create_piece(Color.WHITE, PieceType.QUEEN))
-        board.set_piece(2, 4, create_piece(Color.BLACK, PieceType.PAWN))
+        board.set_piece(
+            ConstantSquare(row=ROW_5, col=3), create_piece(Color.WHITE, PieceType.QUEEN)
+        )
+        board.set_piece(
+            ConstantSquare(row=ROW_6, col=4), create_piece(Color.BLACK, PieceType.PAWN)
+        )
 
         legal = get_legal_moves(board)
         scored = _order_moves(board, legal)
 
         # Check that capture moves have positive scores
-        captures = [(m.start, m.end) for m in scored if board.get_piece(*m.end) is not None]
+        captures = [
+            (m.start, m.end) for m in scored if board.get_piece(m.end) is not None
+        ]
 
         assert len(captures) > 0
 
@@ -164,8 +184,14 @@ class TestAlphaBetaPruning:
         # Create a position with forced line
         board = Board()
         clear_board(board)
-        board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
-        board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
+        board.set_piece(
+            ConstantSquare(row=ROW_8, col=COL_E),
+            create_piece(Color.WHITE, PieceType.KING),
+        )
+        board.set_piece(
+            ConstantSquare(row=ROW_1, col=COL_E),
+            create_piece(Color.BLACK, PieceType.KING),
+        )
 
         # White to move with only one reasonable option (center control)
         score = evaluate(board)
@@ -189,8 +215,14 @@ class TestGetBestMove:
         # Set up checkmate position (white king in center, surrounded)
         board = Board()
         clear_board(board)
-        board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
-        board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
+        board.set_piece(
+            ConstantSquare(row=ROW_8, col=COL_E),
+            create_piece(Color.WHITE, PieceType.KING),
+        )
+        board.set_piece(
+            ConstantSquare(row=ROW_1, col=COL_E),
+            create_piece(Color.BLACK, PieceType.KING),
+        )
 
         # This won't actually be checkmate since we can't properly set up a mate
         # But it tests that the function handles edge cases
@@ -215,7 +247,7 @@ def empty_board_for_tests() -> Board:
     def _clear():
         for row in range(8):
             for col in range(8):
-                board.clear_square(row, col)
+                board.clear_square(ConstantSquare(row=row, col=col))
 
     _clear()
     return board
@@ -225,7 +257,7 @@ def clear_board(board: Board) -> None:
     """Helper to clear a board."""
     for row in range(8):
         for col in range(8):
-            board.clear_square(row, col)
+            board.clear_square(ConstantSquare(row=row, col=col))
 
 
 class TestMoveOrderingKey:
@@ -256,8 +288,14 @@ class TestEndgameDetection:
         """King-only endgame should score roughly zero."""
         board = Board()
         clear_board(board)
-        board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
-        board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
+        board.set_piece(
+            ConstantSquare(row=ROW_8, col=COL_E),
+            create_piece(Color.WHITE, PieceType.KING),
+        )
+        board.set_piece(
+            ConstantSquare(row=ROW_1, col=COL_E),
+            create_piece(Color.BLACK, PieceType.KING),
+        )
 
         score = evaluate(board)
         # Should be very close to zero
@@ -267,12 +305,19 @@ class TestEndgameDetection:
         """Rook vs pawn should show material advantage."""
         board = Board()
         clear_board(board)
-        board.set_piece(7, 4, create_piece(Color.WHITE, PieceType.KING))
-        board.set_piece(0, 4, create_piece(Color.BLACK, PieceType.KING))
+        board.set_piece(
+            ConstantSquare(row=ROW_8, col=COL_E),
+            create_piece(Color.WHITE, PieceType.KING),
+        )
+        board.set_piece(
+            ConstantSquare(row=ROW_1, col=COL_E),
+            create_piece(Color.BLACK, PieceType.KING),
+        )
 
         # White has rook - huge material advantage (rook = ~50 points in our evaluation)
-        board.set_piece(3, 3, create_piece(Color.WHITE, PieceType.ROOK))
+        board.set_piece(
+            ConstantSquare(row=ROW_5, col=3), create_piece(Color.WHITE, PieceType.ROOK)
+        )
 
         score = evaluate(board)
         assert score > 40  # Rook is worth ~50
-

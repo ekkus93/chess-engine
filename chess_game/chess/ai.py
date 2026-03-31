@@ -1,11 +1,12 @@
 """AI/Minimax implementation for chess engine."""
+
 from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Optional
 
-from chess_game.chess.board import Board
+from chess_game.chess.board import Board, ConstantSquare
 from chess_game.chess.evaluation import (
     MATERIAL_VALUES,
     PAWN_TABLE,
@@ -50,7 +51,7 @@ def evaluate(board: Board) -> int:
     # Iterate over all squares to evaluate material + position
     for row in range(8):
         for col in range(8):
-            piece = board.get_piece(row, col)
+            piece = board.get_piece(ConstantSquare(row=row, col=col))
             if piece is None:
                 continue
 
@@ -101,7 +102,10 @@ def get_legal_moves(board: Board) -> list[LegalMove]:
 
 
 def _make_copy_with_move(
-    board: Board, start: tuple[int, int], end: tuple[int, int], promotion: Optional[PieceType] = None,
+    board: Board,
+    start: tuple[int, int],
+    end: tuple[int, int],
+    promotion: Optional[PieceType] = None,
 ) -> Board:
     """Create a new board state after making a move."""
     simulated = board.clone()
@@ -160,7 +164,7 @@ def minimax(
         return (score, None)
 
     # Initialize with infinity values - will be replaced on first move
-    best_score: int = (-100_000_000 if is_maximizing else 100_000_000)
+    best_score: int = -100_000_000 if is_maximizing else 100_000_000
     best_move: LegalMove | None = None
     move_count = 0
 
@@ -169,7 +173,11 @@ def minimax(
 
         if is_maximizing:
             opponent_score = minimax(
-                new_board, depth - 1, alpha, beta, is_maximizing=False,
+                new_board,
+                depth - 1,
+                alpha,
+                beta,
+                is_maximizing=False,
                 transposition_table=transposition_table,
             )
             if best_score < int(opponent_score[0]):
@@ -177,7 +185,11 @@ def minimax(
                 best_move = (move.start, move.end, None)
         else:
             our_score = minimax(
-                new_board, depth - 1, alpha, beta, is_maximizing=True,
+                new_board,
+                depth - 1,
+                alpha,
+                beta,
+                is_maximizing=True,
                 transposition_table=transposition_table,
             )
             if best_score > int(our_score[0]):
@@ -206,7 +218,8 @@ def minimax(
 
 
 def _order_moves(
-    board: Board, legal_moves: list[LegalMove],
+    board: Board,
+    legal_moves: list[LegalMove],
 ) -> list[MoveOrderingKey]:
     """Sort moves for better pruning order.
 
@@ -231,16 +244,20 @@ def _order_moves(
             continue
 
         # Calculate capture gain if applicable
-        captured_piece = board.get_piece(*end)
-        capture_gain = (_captured_piece_value(captured_piece.kind)
-                       if captured_piece is not None else 0)
+        captured_piece = board.get_piece(end)
+        capture_gain = (
+            _captured_piece_value(captured_piece.kind)
+            if captured_piece is not None
+            else 0
+        )
 
-        promoted_to = end[0] in (0, 7) and \
-                      board.get_piece(*start) is not None
+        promoted_to = end.row in (0, 7) and board.get_piece(start) is not None
 
         if promoted_to:
-            start_piece = board.get_piece(*start)
-            promotion_value = 500 if start_piece and start_piece.kind == PieceType.PAWN else 0
+            start_piece = board.get_piece(start)
+            promotion_value = (
+                500 if start_piece and start_piece.kind == PieceType.PAWN else 0
+            )
         else:
             promotion_value = 0
 
@@ -280,7 +297,9 @@ def _promotion_bonus(end_rank: int, captured_piece: Optional[Piece]) -> int:
         PieceType.ROOK: 500,
         PieceType.QUEEN: 900,
     }
-    return values.get(captured_piece.kind if captured_piece else PieceType.PAWN, 100) - 100
+    return (
+        values.get(captured_piece.kind if captured_piece else PieceType.PAWN, 100) - 100
+    )
 
 
 def get_best_move(board: Board, depth: int) -> Optional[LegalMove]:
@@ -301,7 +320,9 @@ def get_best_move(board: Board, depth: int) -> Optional[LegalMove]:
         return None
 
     # Run minimax with alpha-beta pruning
-    _, best_move = minimax(board, depth, alpha, beta, is_maximizing=board.turn == Color.WHITE)
+    _, best_move = minimax(
+        board, depth, alpha, beta, is_maximizing=board.turn == Color.WHITE
+    )
 
     return best_move
 
