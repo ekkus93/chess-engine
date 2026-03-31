@@ -1,39 +1,36 @@
 from __future__ import annotations
-
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.types import Color, PieceType
 from chess_game.constants import (
-    ROW_1,
-    ROW_2,
-    ROW_3,
-    ROW_4,
-    ROW_5,
-    ROW_6,
-    ROW_7,
-    ROW_8,
-    COL_A,
-    COL_B,
-    COL_C,
-    COL_D,
-    COL_E,
-    COL_F,
-    COL_G,
-    COL_H,
-    ConstantSquare,
+    
+        get_row_constant,
+        get_col_constant,
+        ROW_1,
+        ROW_2,
+        ROW_3,
+        ROW_4,
+        ROW_5,
+        ROW_6,
+        ROW_7,
+        ROW_8,
+        COL_A,
+        COL_B,
+        COL_C,
+        COL_D,
+        COL_E,
+        COL_F,
+        COL_G,
+        COL_H,
+        ConstantSquare,
+    
 )
-
-
 def clear_board(board: Board) -> None:
     for row in range(8):
         for col in range(8):
-            board.clear_square(ConstantSquare(row=row, col=col))
-
-
+            board.clear_square(ConstantSquare(row=get_row_constant(row), col=get_col_constant(col)))
 def test_start_position_has_expected_white_legal_moves() -> None:
     board = Board()
-
     legal_moves = board.get_legal_moves(Color.WHITE)
-
     assert len(legal_moves) == 20
     assert (
         ConstantSquare(row=ROW_2, col=COL_D),
@@ -46,11 +43,8 @@ def test_start_position_has_expected_white_legal_moves() -> None:
         ConstantSquare(row=ROW_6, col=COL_F),
         None,
     ) in legal_moves
-
-
 def test_fools_mate_is_checkmate_for_white() -> None:
     board = Board()
-
     assert (
         board.make_move(
             ConstantSquare(row=ROW_2, col=COL_D), ConstantSquare(row=ROW_4, col=COL_D)
@@ -75,12 +69,9 @@ def test_fools_mate_is_checkmate_for_white() -> None:
         )
         is True
     )  # Qd8h4#
-
     assert board.turn == Color.WHITE
     assert board.is_in_check(Color.WHITE) is True
     assert board.is_checkmate(Color.WHITE) is True
-
-
 def test_in_check_with_one_escape_is_not_checkmate() -> None:
     board = Board()
     clear_board(board)
@@ -95,11 +86,8 @@ def test_in_check_with_one_escape_is_not_checkmate() -> None:
         ConstantSquare(row=ROW_4, col=COL_D), create_piece(Color.BLACK, PieceType.QUEEN)
     )
     board.turn = Color.WHITE
-
     assert board.is_in_check(Color.WHITE) is True
     assert board.is_checkmate(Color.WHITE) is False
-
-
 def test_classic_stalemate_position() -> None:
     board = Board()
     clear_board(board)
@@ -113,11 +101,8 @@ def test_classic_stalemate_position() -> None:
         ConstantSquare(row=ROW_3, col=COL_G), create_piece(Color.BLACK, PieceType.QUEEN)
     )
     board.turn = Color.WHITE
-
     assert board.is_in_check(Color.WHITE) is False
     assert board.is_stalemate(Color.WHITE) is True
-
-
 def test_not_stalemate_when_one_legal_move_exists() -> None:
     board = Board()
     clear_board(board)
@@ -131,7 +116,6 @@ def test_not_stalemate_when_one_legal_move_exists() -> None:
         ConstantSquare(row=ROW_4, col=COL_G), create_piece(Color.BLACK, PieceType.QUEEN)
     )
     board.turn = Color.WHITE
-
     assert board.is_in_check(Color.WHITE) is False
     assert board.is_stalemate(Color.WHITE) is False
     assert len(board.get_legal_moves(Color.WHITE)) == 1

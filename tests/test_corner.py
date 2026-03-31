@@ -1,9 +1,10 @@
 """Tests for corner."""
 
 from __future__ import annotations
-
 from chess_game.chess.board import Board, create_piece
 from chess_game.constants import (
+    get_row_constant,
+    get_col_constant,
     ConstantSquare,
     ROW_1,
     ROW_8,
@@ -28,22 +29,23 @@ from chess_game.chess.types import Color, PieceType
 def clear_board(board: Board) -> None:
     for row in range(8):
         for col in range(8):
-            board.clear_square(ConstantSquare(row=row, col=col))
+            col = get_col_constant(col)
+            board.clear_square(
+                ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
+            )
 
 
 def _setup_kings(board: Board) -> None:
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=4), create_piece(Color.WHITE, PieceType.KING)
+        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=4), create_piece(Color.BLACK, PieceType.KING)
+        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
     )
 
 
 # Category 5: Checkmate & Stalemate Edge Cases
 # =============================================================================
-
-
 def test_checkmate_pinned_king() -> None:
     """T5.1: Checkmate even if king is pinned and cannot move."""
     board = Board()
@@ -69,13 +71,11 @@ def test_checkmate_pinned_king() -> None:
     board.set_piece(
         ConstantSquare(row=ROW_6, col=COL_H), create_piece(Color.BLACK, PieceType.PAWN)
     )
-
     # Basic checkmate detection works
     board.turn = Color.WHITE
     legal_moves = board.get_legal_moves()
     # At least verify the function works (this setup won't be actual checkmate)
     assert isinstance(legal_moves, list)
-
     # Black moves (to change turn)
     board.turn = Color.BLACK
     board.set_piece(
@@ -105,7 +105,6 @@ def test_stalemate_pinned_king() -> None:
     board.set_piece(
         ConstantSquare(row=ROW_1, col=COL_F), create_piece(Color.WHITE, PieceType.PAWN)
     )
-
     # White king on e1 with pawns on d1 and f1
     # King can still move forward, so this is not stalemate
     # Just verify basic stalemate detection works
@@ -113,7 +112,6 @@ def test_stalemate_pinned_king() -> None:
     legal_moves = board.get_legal_moves()
     # At least verify the function doesn't crash
     assert isinstance(legal_moves, list)
-
     # Black moves (to change turn)
     board.turn = Color.BLACK
     board.set_piece(
@@ -133,9 +131,11 @@ def test_checkmate_with_promotion() -> None:
     clear_board(board)
     # Clear all rows first, then set pieces
     for col in range(8):
-        board.clear_square(ConstantSquare(row=ROW_8, col=col))
+        col = get_col_constant(col)
+        board.clear_square(ConstantSquare(row=ROW_8, col=get_col_constant(col)))
     for col in range(8):
-        board.clear_square(ConstantSquare(row=ROW_1, col=col))
+        col = get_col_constant(col)
+        board.clear_square(ConstantSquare(row=ROW_1, col=get_col_constant(col)))
     # Black king trapped in corner - no escape squares
     board.set_piece(
         ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
@@ -154,7 +154,6 @@ def test_checkmate_with_promotion() -> None:
     board.set_piece(
         ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )
-
     # White promotes (queen will control e-file, trapping black king)
     board.turn = Color.WHITE
     assert (
@@ -165,7 +164,6 @@ def test_checkmate_with_promotion() -> None:
         )
         is True
     )
-
     # Black has no legal moves (checkmate) - black king is trapped
     board.turn = Color.BLACK
     legal_moves = board.get_legal_moves()
@@ -178,9 +176,11 @@ def test_stalemate_after_promotion() -> None:
     clear_board(board)
     # Clear all rows first, then set pieces
     for col in range(8):
-        board.clear_square(ConstantSquare(row=ROW_8, col=col))
+        col = get_col_constant(col)
+        board.clear_square(ConstantSquare(row=ROW_8, col=get_col_constant(col)))
     for col in range(8):
-        board.clear_square(ConstantSquare(row=ROW_1, col=col))
+        col = get_col_constant(col)
+        board.clear_square(ConstantSquare(row=ROW_1, col=get_col_constant(col)))
     # Black king trapped in corner - no escape squares
     board.set_piece(
         ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
@@ -199,7 +199,6 @@ def test_stalemate_after_promotion() -> None:
     board.set_piece(
         ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )
-
     # White promotes (queen will control e-file, trapping black king)
     board.turn = Color.WHITE
     assert (
@@ -210,12 +209,10 @@ def test_stalemate_after_promotion() -> None:
         )
         is True
     )
-
     # Black has no legal moves (stalemate)
     board.turn = Color.BLACK
     legal_moves = board.get_legal_moves()
     assert len(legal_moves) == 0
-
     # White moves (to change turn)
     board.turn = Color.WHITE
     board.set_piece(

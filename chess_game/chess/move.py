@@ -19,9 +19,7 @@ def parse_move_notation(move_str: str) -> Move:
     Accepted promotion suffix letters are: q, r, b, n.
     """
     if len(move_str) not in {4, 5}:
-        raise ValueError(
-            f"Invalid move format: {move_str}. Expected e2e4 or e7e8q"
-        )
+        raise ValueError(f"Invalid move format: {move_str}. Expected e2e4 or e7e8q")
 
     start = algebraic_to_index(move_str[0:2])
     end = algebraic_to_index(move_str[2:4])
@@ -41,4 +39,4 @@ def parse_move_notation(move_str: str) -> Move:
             )
         promotion = promo_map[promo_char]
 
-    return Move(start=ConstantSquare(row=start[0], col=start[1]), end=ConstantSquare(row=end[0], col=end[1]), promotion=promotion)
+    return Move(start=start, end=end, promotion=promotion)

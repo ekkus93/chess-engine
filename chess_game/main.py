@@ -24,7 +24,7 @@ def _game_loop(board: Board, use_ai: bool = False, ai_depth: int | None = None) 
     board.display()
 
     while True:
-        side = board.turn.value.capitalize()
+        side = board.turn.name.capitalize()
         move_str = input(f"{side} to move (e.g., e2e4, e7e8q — or 'quit'): ").strip()
         if move_str.lower() in ("quit", "exit", "q"):
             break
@@ -48,7 +48,7 @@ def _game_loop(board: Board, use_ai: bool = False, ai_depth: int | None = None) 
             break
 
         if board.is_in_check(board.turn):
-            next_side = board.turn.value.capitalize()
+            next_side = board.turn.name.capitalize()
             print(f"{next_side} is in check!")
 
 

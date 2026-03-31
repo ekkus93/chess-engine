@@ -17,6 +17,7 @@ from chess_game.chess.evaluation import (
     KING_TABLE,
 )
 from chess_game.chess.types import Color, Piece, PieceType, LegalMove
+from chess_game.constants import get_row_constant, get_col_constant
 
 
 @dataclass
@@ -51,7 +52,9 @@ def evaluate(board: Board) -> int:
     # Iterate over all squares to evaluate material + position
     for row in range(8):
         for col in range(8):
-            piece = board.get_piece(ConstantSquare(row=row, col=col))
+            piece = board.get_piece(
+                ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
+            )
             if piece is None:
                 continue
 

@@ -1,18 +1,31 @@
 from __future__ import annotations
-
 from collections.abc import Callable
-
 import pytest
-
 from chess_game.chess.board import Board, ConstantSquare, create_piece
-from chess_game.constants import COL_A, COL_B, COL_C, COL_D, COL_E, COL_F, COL_H, ROW_2, ROW_3, ROW_5, ROW_6, ROW_7, ROW_8
+from chess_game.constants import (
+    get_row_constant,
+    get_col_constant,
+    COL_A,
+    COL_B,
+    COL_C,
+    COL_D,
+    COL_E,
+    COL_F,
+    COL_H,
+    ROW_1,
+    ROW_2,
+    ROW_3,
+    ROW_5,
+    ROW_6,
+    ROW_7,
+    ROW_8,
+)
 from chess_game.chess.types import Color, PieceType
 
 
 @pytest.fixture
 def record_xml_attribute() -> Callable[[str, object], None]:
     """Provide a stable no-op xml attribute recorder for local test runs.
-
     Some globally installed plugins request the experimental pytest fixture of the
     same name. Defining this local fixture avoids the experimental API warning
     without suppressing warnings globally.
@@ -24,18 +37,41 @@ def record_xml_attribute() -> Callable[[str, object], None]:
     return _record
 
 
+@pytest.fixture
+def empty_board() -> Board:
+    """Provide an empty board (no pieces, no kings) for isolated tests."""
+    board = Board()
+    clear_board(board)
+    return board
+
+
 def clear_board(board: Board) -> None:
     """Clear all pieces from a board for focused rule tests."""
     for row in range(8):
         for col in range(8):
-            board.clear_square(ConstantSquare(row=row, col=col))
+            col = get_col_constant(col)
+            board.clear_square(
+                ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
+            )
 
 
 @pytest.fixture
-def empty_board() -> Board:
-    """Provide an empty board (no kings) for piece-pattern tests."""
+def simple_opening_position() -> Board:
+    """Provide a standard Italian game opening position for AI testing."""
     board = Board()
-    clear_board(board)
+    # Make some standard opening moves to set up a position
+    board.make_move(
+        ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_3, col=COL_D)
+    )  # e4
+    board.make_move(
+        ConstantSquare(row=ROW_8, col=COL_B), ConstantSquare(row=ROW_6, col=COL_C)
+    )  # Nc6 (Black knight)
+    board.make_move(
+        ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_3, col=COL_F)
+    )  # Bc4 (White bishop to center)
+    board.make_move(
+        ConstantSquare(row=ROW_7, col=COL_E), ConstantSquare(row=ROW_5, col=COL_H)
+    )  # ...e6
     return board
 
 
@@ -45,7 +81,7 @@ def board_with_kings() -> Board:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
         ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
@@ -61,18 +97,19 @@ def board_with_material() -> Board:
     clear_board(board)
     # Set up kings (required by board state but not used in evaluation)
     board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
         ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
     )
-    # Add material: White queen at d1, Black knight at f6
+    # Add material: White queen at d1, Black knight at f8 (worse position)
     board.set_piece(
-        ConstantSquare(row=ROW_3, col=COL_D), create_piece(Color.WHITE, PieceType.QUEEN)
-    )  # d4 square (rank 5 = row 3)
+        ConstantSquare(row=ROW_1, col=COL_D), create_piece(Color.WHITE, PieceType.QUEEN)
+    )  # d1 square
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_F), create_piece(Color.BLACK, PieceType.KNIGHT)
-    )  # e1 rank (Black knight at back rank edge)
+        ConstantSquare(row=ROW_8, col=COL_F),
+        create_piece(Color.BLACK, PieceType.KNIGHT),
+    )  # f8 square (rank 8 = row 0, worse position for knights)
     return board
 
 
@@ -81,14 +118,18 @@ def simple_opening_position() -> Board:
     """Provide a standard Italian game opening position for AI testing."""
     board = Board()
     # Make some standard opening moves to set up a position
-    board.make_move(ConstantSquare(row=ROW_7, col=COL_C), ConstantSquare(row=ROW_5, col=COL_D))  # e4
+    board.make_move(
+        ConstantSquare(row=ROW_7, col=COL_C), ConstantSquare(row=ROW_5, col=COL_D)
+    )  # e4
     board.make_move(
         ConstantSquare(row=ROW_8, col=COL_B), ConstantSquare(row=ROW_2, col=COL_C)
     )  # Nc6 (Black knight)
     board.make_move(
         ConstantSquare(row=ROW_7, col=COL_E), ConstantSquare(row=ROW_6, col=COL_F)
     )  # Bc4 (White bishop to center)
-    board.make_move(ConstantSquare(row=ROW_8, col=8), ConstantSquare(row=ROW_2, col=COL_H))  # ...e6
+    board.make_move(
+        ConstantSquare(row=ROW_8, col=8), ConstantSquare(row=ROW_2, col=COL_H)
+    )  # ...e6
     return board
 
 

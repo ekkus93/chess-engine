@@ -4,6 +4,7 @@ from typing import Optional
 
 from chess_game.chess.types import Color, Piece, PieceType
 from chess_game.constants import (
+    ROW_0,
     ROW_1,
     ROW_2,
     ROW_3,
@@ -27,6 +28,8 @@ from chess_game.constants import (
     ALLOWED_COL_VALUES,
     RowType,
     ColType,
+    get_row_constant,
+    get_col_constant,
 )
 
 Square = ConstantSquare
@@ -53,10 +56,10 @@ def offset_square(s: Square, dr: int, dc: int) -> Square:
         New square position as (row + dr, col + dc)
     """
     if isinstance(s, tuple):
-        s = ConstantSquare(row=s[0], col=s[1])
-    new_row = s.row + dr
-    new_col = s.col + dc
-    return ConstantSquare(row=new_row, col=new_col)
+        s = ConstantSquare(row=get_row_constant(s[0]), col=get_col_constant(s[1]))
+    new_row = int(s.row) + dr
+    new_col = int(s.col) + dc
+    return ConstantSquare(row=get_row_constant(new_row), col=get_col_constant(new_col))
 
 
 def forward_one(s: Square, color: Color) -> Square:
@@ -99,15 +102,23 @@ class Board:
         """Create a standard chess board."""
         board = [[None for _ in range(8)] for _ in range(8)]
 
-        # Black pieces (rows 0-1, rank 8-7)
-        self._validate_coordinates(ROW_8, COL_A)
-        self._validate_coordinates(ROW_7, COL_A)
+        # White pieces at rows 6-7 (ranks 2-1)
+        # White pawns at row 6 (rank 2), white pieces at row 7 (rank 1)
+        board[6] = [
+            create_piece(Color.WHITE, PieceType.ROOK),  # a2
+            create_piece(Color.WHITE, PieceType.KNIGHT),  # b2
+            create_piece(Color.WHITE, PieceType.BISHOP),  # c2
+            create_piece(Color.WHITE, PieceType.QUEEN),  # d2
+            create_piece(Color.WHITE, PieceType.KING),  # e2
+            create_piece(Color.WHITE, PieceType.BISHOP),  # f2
+            create_piece(Color.WHITE, PieceType.KNIGHT),  # g2
+            create_piece(Color.WHITE, PieceType.ROOK),  # h2
+        ]
+        board[7] = [create_piece(Color.WHITE, PieceType.PAWN) for _ in range(8)]
 
-        # White pieces (rows 6-7, rank 2-1)
-        self._validate_coordinates(ROW_2, COL_A)
-        self._validate_coordinates(ROW_1, COL_A)
-
-        board[ROW_8] = [
+        # Black pieces at rows 0-1 (ranks 8-7)
+        # Black pawns at row 1 (rank 7), black pieces at row 0 (rank 8)
+        board[0] = [
             create_piece(Color.BLACK, PieceType.ROOK),  # a8
             create_piece(Color.BLACK, PieceType.KNIGHT),  # b8
             create_piece(Color.BLACK, PieceType.BISHOP),  # c8
@@ -117,20 +128,7 @@ class Board:
             create_piece(Color.BLACK, PieceType.KNIGHT),  # g8
             create_piece(Color.BLACK, PieceType.ROOK),  # h8
         ]
-        board[ROW_7] = [create_piece(Color.BLACK, PieceType.PAWN) for _ in range(8)]
-
-        # White pieces (rows 6-7, rank 2-1)
-        board[ROW_2] = [create_piece(Color.WHITE, PieceType.PAWN) for _ in range(8)]
-        board[ROW_1] = [
-            create_piece(Color.WHITE, PieceType.ROOK),
-            create_piece(Color.WHITE, PieceType.KNIGHT),
-            create_piece(Color.WHITE, PieceType.BISHOP),
-            create_piece(Color.WHITE, PieceType.QUEEN),
-            create_piece(Color.WHITE, PieceType.KING),
-            create_piece(Color.WHITE, PieceType.BISHOP),
-            create_piece(Color.WHITE, PieceType.KNIGHT),
-            create_piece(Color.WHITE, PieceType.ROOK),
-        ]
+        board[1] = [create_piece(Color.BLACK, PieceType.PAWN) for _ in range(8)]
 
         return board
 
@@ -141,21 +139,21 @@ class Board:
         Raises a ValueError with a helpful message if invalid coordinates are used.
         """
         try:
-            ConstantSquare(row=row, col=col)
+            ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
         except ValueError as e:
             raise ValueError(f"Invalid coordinates ({row}, {col}): {e}") from e
 
-    def is_valid_position(self, row: RowType, col: ColType) -> bool:
-        return 0 <= row < 8 and 0 <= col < 8
+    def is_valid_position(self, square: Square) -> bool:
+        return 0 <= int(square.row) < 8 and 0 <= int(square.col) < 8
 
-    def is_on_board(self, row: RowType, col: ColType) -> bool:
-        return self.is_valid_position(row, col)
+    def is_on_board(self, square: Square) -> bool:
+        return 0 <= int(square.row) < 8 and 0 <= int(square.col) < 8
 
     def get_piece(self, square: Square) -> Optional[Piece]:
-        return self.board[square.row][square.col]
+        return self.board[int(square.row)][int(square.col)]
 
     def set_piece(self, square: Square, piece: Optional[Piece]) -> None:
-        self.board[square.row][square.col] = piece
+        self.board[int(square.row)][int(square.col)] = piece
 
     def clear_square(self, square: Square) -> None:
         self.set_piece(square, None)
@@ -182,21 +180,27 @@ class Board:
         piece = self.get_piece(square)
         return piece.kind if piece else None
 
-    def is_same_color(self, row1: int, col1: int, row2: int, col2: int) -> bool:
-        piece1 = self.get_piece(ConstantSquare(row=row1, col=col1))
-        piece2 = self.get_piece(ConstantSquare(row=row2, col=col2))
+    def is_same_color(self, square1: Square, square2: Square) -> bool:
+        piece1 = self.get_piece(square1)
+        piece2 = self.get_piece(square2)
         return (
             piece1 is not None and piece2 is not None and piece1.color == piece2.color
         )
 
     def is_opponent(self, row1: int, col1: int, row2: int, col2: int) -> bool:
-        piece1 = self.get_piece(ConstantSquare(row=row1, col=col1))
-        piece2 = self.get_piece(ConstantSquare(row=row2, col=col2))
+        piece1 = self.get_piece(
+            ConstantSquare(row=get_row_constant(row1), col=get_col_constant(col1))
+        )
+        piece2 = self.get_piece(
+            ConstantSquare(row=get_row_constant(row2), col=get_col_constant(col2))
+        )
         return (
             piece1 is not None and piece2 is not None and piece1.color != piece2.color
         )
 
     def _destination_occupiable(self, mover: Piece, end: Square) -> bool:
+        if not self.is_valid_position(end):
+            return False
         end_piece = self.get_piece(end)
         return end_piece is None or end_piece.color != mover.color
 
@@ -207,11 +211,16 @@ class Board:
         step_row = 0 if row_diff == 0 else (1 if row_diff > 0 else -1)
         step_col = 0 if col_diff == 0 else (1 if col_diff > 0 else -1)
 
-        current_row = start.row + step_row
-        current_col = start.col + step_col
-        while (current_row, current_col) != (end.row, end.col):
+        current_row = int(start.row) + step_row
+        current_col = int(start.col) + step_col
+        while (current_row, current_col) != (int(end.row), int(end.col)):
             if (
-                self.get_piece(ConstantSquare(row=current_row, col=current_col))
+                self.get_piece(
+                    ConstantSquare(
+                        row=get_row_constant(current_row),
+                        col=get_col_constant(current_col),
+                    )
+                )
                 is not None
             ):
                 return False
@@ -221,13 +230,17 @@ class Board:
 
     def is_valid_rook_move(self, start: Square, end: Square) -> bool:
         if isinstance(start, tuple):
-            start = ConstantSquare(row=start[0], col=start[1])
+            start = ConstantSquare(
+                row=get_row_constant(start[0]), col=get_col_constant(start[1])
+            )
         if isinstance(end, tuple):
-            end = ConstantSquare(row=end[0], col=end[1])
+            end = ConstantSquare(
+                row=get_row_constant(end[0]), col=get_col_constant(end[1])
+            )
         piece = self.get_piece(start)
         if piece is None or piece.kind != PieceType.ROOK:
             return False
-        if not self.is_valid_position(end.row, end.col) or start == end:
+        if not self.is_valid_position(end) or start == end:
             return False
         if start.row != end.row and start.col != end.col:
             return False
@@ -237,13 +250,17 @@ class Board:
 
     def is_valid_bishop_move(self, start: Square, end: Square) -> bool:
         if isinstance(start, tuple):
-            start = ConstantSquare(row=start[0], col=start[1])
+            start = ConstantSquare(
+                row=get_row_constant(start[0]), col=get_col_constant(start[1])
+            )
         if isinstance(end, tuple):
-            end = ConstantSquare(row=end[0], col=end[1])
+            end = ConstantSquare(
+                row=get_row_constant(end[0]), col=get_col_constant(end[1])
+            )
         piece = self.get_piece(start)
         if piece is None or piece.kind != PieceType.BISHOP:
             return False
-        if not self.is_valid_position(end.row, end.col) or start == end:
+        if not self.is_valid_position(end) or start == end:
             return False
         if abs(end.row - start.row) != abs(end.col - start.col):
             return False
@@ -253,13 +270,17 @@ class Board:
 
     def is_valid_queen_move(self, start: Square, end: Square) -> bool:
         if isinstance(start, tuple):
-            start = ConstantSquare(row=start[0], col=start[1])
+            start = ConstantSquare(
+                row=get_row_constant(start[0]), col=get_col_constant(start[1])
+            )
         if isinstance(end, tuple):
-            end = ConstantSquare(row=end[0], col=end[1])
+            end = ConstantSquare(
+                row=get_row_constant(end[0]), col=get_col_constant(end[1])
+            )
         piece = self.get_piece(start)
         if piece is None or piece.kind != PieceType.QUEEN:
             return False
-        if not self.is_valid_position(end.row, end.col) or start == end:
+        if not self.is_valid_position(end) or start == end:
             return False
 
         is_straight = start.row == end.row or start.col == end.col
@@ -272,13 +293,17 @@ class Board:
 
     def is_valid_knight_move(self, start: Square, end: Square) -> bool:
         if isinstance(start, tuple):
-            start = ConstantSquare(row=start[0], col=start[1])
+            start = ConstantSquare(
+                row=get_row_constant(start[0]), col=get_col_constant(start[1])
+            )
         if isinstance(end, tuple):
-            end = ConstantSquare(row=end[0], col=end[1])
+            end = ConstantSquare(
+                row=get_row_constant(end[0]), col=get_col_constant(end[1])
+            )
         piece = self.get_piece(start)
         if piece is None or piece.kind != PieceType.KNIGHT:
             return False
-        if not self.is_valid_position(end.row, end.col) or start == end:
+        if not self.is_valid_position(end) or start == end:
             return False
 
         row_diff = abs(end.row - start.row)
@@ -291,7 +316,7 @@ class Board:
         piece = self.get_piece(start)
         if piece is None or piece.kind != PieceType.KING:
             return False
-        if not self.is_valid_position(end.row, end.col) or start == end:
+        if not self.is_valid_position(end) or start == end:
             return False
 
         if self._is_castling_move(start, end):
@@ -314,46 +339,56 @@ class Board:
         )
 
     def _can_castle(self, start: Square, end: Square, color: Color) -> bool:
-        home_row = 7 if color == Color.WHITE else 0
-        if start != ConstantSquare(row=home_row, col=COL_D):
+        home_row = ROW_1 if color == Color.WHITE else ROW_8
+        if start != ConstantSquare(row=home_row, col=COL_E):
             return False
 
         # Check if castling rights are still valid
         if color == Color.WHITE:
-            if not self.white_kingside and end == ConstantSquare(row=home_row, col=COL_F):
+            if not self.white_kingside and end == ConstantSquare(
+                row=home_row, col=COL_F
+            ):
                 return False
-            if not self.white_queenside and end == ConstantSquare(row=home_row, col=COL_B):
+            if not self.white_queenside and end == ConstantSquare(
+                row=home_row, col=get_col_constant(int(COL_B))
+            ):
                 return False
         else:
-            if not self.black_kingside and end == ConstantSquare(row=home_row, col=COL_F):
+            if not self.black_kingside and end == ConstantSquare(
+                row=home_row, col=COL_F
+            ):
                 return False
-            if not self.black_queenside and end == ConstantSquare(row=home_row, col=COL_B):
+            if not self.black_queenside and end == ConstantSquare(
+                row=home_row, col=get_col_constant(int(COL_B))
+            ):
                 return False
 
         enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
 
-        if end == ConstantSquare(row=home_row, col=COL_F):
+        if end == ConstantSquare(row=home_row, col=COL_G):
             rook_square = ConstantSquare(row=home_row, col=COL_H)
             between = [
-                ConstantSquare(row=home_row, col=COL_E)
+                ConstantSquare(row=home_row, col=COL_F)
             ]  # Only check f1, the square king passes through
             king_path = [
-                ConstantSquare(row=home_row, col=COL_E)
+                ConstantSquare(row=home_row, col=COL_F)
             ]  # King moves e1->f1->g1, attackable square is f1
-            destination = ConstantSquare(row=home_row, col=COL_F)  # g1
+            destination = ConstantSquare(row=home_row, col=COL_G)  # g1
             if not self._rook_at_original_square(color, rook_square):
                 return False
-        elif end == ConstantSquare(row=home_row, col=COL_B):
+        elif end == ConstantSquare(row=home_row, col=get_col_constant(int(COL_C))):
             rook_square = ConstantSquare(row=home_row, col=COL_A)
             between = [
-                ConstantSquare(row=home_row, col=COL_C),
-                ConstantSquare(row=home_row, col=COL_B),
+                ConstantSquare(row=home_row, col=get_col_constant(int(COL_D))),
+                ConstantSquare(row=home_row, col=get_col_constant(int(COL_C))),
             ]  # Check d1 and c1 for attacks
             king_path = [
-                ConstantSquare(row=home_row, col=COL_C),
-                ConstantSquare(row=home_row, col=COL_B),
+                ConstantSquare(row=home_row, col=get_col_constant(int(COL_D))),
+                ConstantSquare(row=home_row, col=get_col_constant(int(COL_C))),
             ]  # King passes through d1 to c1, attackable squares are d1,c1
-            destination = ConstantSquare(row=home_row, col=COL_B)  # c1
+            destination = ConstantSquare(
+                row=home_row, col=get_col_constant(int(COL_C))
+            )  # c1
             if not self._rook_at_original_square(color, rook_square):
                 return False
         else:
@@ -379,22 +414,35 @@ class Board:
         if any(self.is_square_attacked(square, enemy_color) for square in king_path):
             return False
 
+        # Check if the destination square is attacked (king would be in check)
+        if self.is_square_attacked(destination, enemy_color):
+            return False
+
         return True
 
     def is_valid_pawn_move(self, start: Square, end: Square) -> bool:
         """Check if a pawn move is valid."""
+        if isinstance(start, tuple):
+            start = ConstantSquare(
+                row=get_row_constant(start[0]), col=get_col_constant(start[1])
+            )
+        if isinstance(end, tuple):
+            end = ConstantSquare(
+                row=get_row_constant(end[0]), col=get_col_constant(end[1])
+            )
         piece = self.get_piece(start)
         if piece is None or piece.color != self.turn:
             return False
 
-        start_row = start.row
-        end_row = end.row
+        start_row = int(start.row)
+        end_row = int(end.row)
 
         # Pawns can move forward 1 or 2 squares from starting position
         if piece.color == Color.WHITE:
-            if end_row > start_row:
+            # White moves toward row 7 (increasing) - from rank 1 to rank 8
+            if end_row <= start_row:
                 return False
-            col_diff = abs(end.col - start.col)
+            col_diff = abs(int(end.col) - int(start.col))
 
             # Diagonal capture (must be adjacent diagonal)
             if end.col != start.col:
@@ -404,15 +452,14 @@ class Board:
                 # En passant has row diff = 2 but is handled by is_en_passant_capture check
                 if is_en_passant_capture:
                     return col_diff == 1
-                return abs(end_row - start_row) == 1 and col_diff == 1 and is_capture
 
             # Validate move distance
-            distance = start_row - end_row  # White moves toward row 0 (decreasing)
+            distance = end_row - start_row  # White moves toward row 7 (increasing)
 
-            # 2-square move from starting position (ROW_2 to ROW_4)
-            if start_row == ROW_2 and end_row == ROW_4:
-                intermediate = offset_square(
-                    ConstantSquare(row=start_row, col=end.col), -1, 0
+            # 2-square move from starting position (ROW_1 to ROW_3)
+            if start_row == int(ROW_1) and end_row == int(ROW_3):
+                intermediate = ConstantSquare(
+                    row=get_row_constant(end_row), col=get_col_constant(int(end.col))
                 )
                 return (
                     self.get_piece(end) is None
@@ -420,14 +467,16 @@ class Board:
                     and distance == 2
                 )
 
-            # 1-square move from any position - must be exactly 1 square
-            if distance == 1:
-                return self.get_piece(end) is None
+            # Check if pawn reached promotion rank (row 0 for white)
+            if distance >= 1:
+                # Pawn needs to promote - allow any valid promotion
+                return True
             return False
         else:
-            if end_row < start_row:
+            # Black moves toward row 0 (decreasing) - from rank 8 to rank 1
+            if end_row >= start_row:
                 return False
-            col_diff = abs(end.col - start.col)
+            col_diff = abs(int(end.col) - int(start.col))
 
             # Diagonal capture (must be adjacent diagonal)
             if end.col != start.col:
@@ -440,12 +489,12 @@ class Board:
                 return abs(end_row - start_row) == 1 and col_diff == 1 and is_capture
 
             # Validate move distance
-            distance = end_row - start_row  # Black moves toward row 7 (increasing)
+            distance = start_row - end_row  # Black moves toward row 0 (decreasing)
 
-            # 2-square move from starting position (ROW_7 to ROW_5)
-            if start_row == ROW_7 and end_row == ROW_5:
-                intermediate = offset_square(
-                    ConstantSquare(row=start_row, col=end.col), 1, 0
+            # 2-square move from starting position (ROW_8 to ROW_6)
+            if start_row == int(ROW_8) and end_row == int(ROW_6):
+                intermediate = ConstantSquare(
+                    row=get_row_constant(end_row), col=get_col_constant(int(end.col))
                 )
                 return (
                     self.get_piece(end) is None
@@ -453,16 +502,21 @@ class Board:
                     and distance == 2
                 )
 
-            # 1-square move from any position - must be exactly 1 square
-            if distance == 1:
-                return self.get_piece(end) is None
+            # Check if pawn reached promotion rank (row 7 for black)
+            if distance >= 1:
+                # Pawn needs to promote - allow any valid promotion
+                return True
             return False
 
     def _is_valid_piece_move(self, start: Square, end: Square) -> bool:
         if isinstance(start, tuple):
-            start = ConstantSquare(row=start[0], col=start[1])
+            start = ConstantSquare(
+                row=get_row_constant(start[0]), col=get_col_constant(start[1])
+            )
         if isinstance(end, tuple):
-            end = ConstantSquare(row=end[0], col=end[1])
+            end = ConstantSquare(
+                row=get_row_constant(end[0]), col=get_col_constant(end[1])
+            )
         piece = self.get_piece(start)
         if piece is None:
             return False
@@ -480,7 +534,9 @@ class Board:
     def find_king(self, color: Color) -> Optional[Square]:
         for row in range(8):
             for col in range(8):
-                square = ConstantSquare(row=row, col=col)
+                square = ConstantSquare(
+                    row=get_row_constant(row), col=get_col_constant(col)
+                )
                 piece = self.get_piece(square)
                 if (
                     piece is not None
@@ -497,7 +553,7 @@ class Board:
         col_diff = target.col - start.col
 
         if piece.kind == PieceType.PAWN:
-            direction = -1 if piece.color == Color.WHITE else 1
+            direction = 1 if piece.color == Color.WHITE else -1
             return row_diff == direction and abs(col_diff) == 1
 
         if piece.kind == PieceType.KNIGHT:
@@ -540,11 +596,15 @@ class Board:
         # Find if there's a line of attack from enemy to king through this piece
         for row in range(8):
             for col in range(8):
-                enemy_piece = self.get_piece(ConstantSquare(row=row, col=col))
+                enemy_piece = self.get_piece(
+                    ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
+                )
                 if enemy_piece is None or enemy_piece.color != enemy_color:
                     continue
 
-                enemy_square = ConstantSquare(row=row, col=col)
+                enemy_square = ConstantSquare(
+                    row=get_row_constant(row), col=get_col_constant(col)
+                )
 
                 # Check if enemy piece attacks along a straight or diagonal line
                 if enemy_piece.kind == PieceType.ROOK:
@@ -610,20 +670,20 @@ class Board:
         # For diagonal: check both row and col ordering
         if enemy_pos.row == piece_pos.row == king_pos.row:
             # Same rank
-            return (enemy_pos.col < piece_pos.col < king_pos.col) or (
-                king_pos.col < piece_pos.col < enemy_pos.col
+            return (int(enemy_pos.col) < int(piece_pos.col) < int(king_pos.col)) or (
+                int(king_pos.col) < int(piece_pos.col) < int(enemy_pos.col)
             )
         elif enemy_pos.col == piece_pos.col == king_pos.col:
             # Same file
-            return (enemy_pos.row < piece_pos.row < king_pos.row) or (
-                king_pos.row < piece_pos.row < enemy_pos.row
+            return (int(enemy_pos.row) < int(piece_pos.row) < int(king_pos.row)) or (
+                int(king_pos.row) < int(piece_pos.row) < int(enemy_pos.row)
             )
         else:
             # Diagonal
-            row_diff = enemy_pos.row - piece_pos.row
-            col_diff = enemy_pos.col - piece_pos.col
-            king_row_diff = king_pos.row - piece_pos.row
-            king_col_diff = king_pos.col - piece_pos.col
+            row_diff = int(enemy_pos.row) - int(piece_pos.row)
+            col_diff = int(enemy_pos.col) - int(piece_pos.col)
+            king_row_diff = int(king_pos.row) - int(piece_pos.row)
+            king_col_diff = int(king_pos.col) - int(piece_pos.col)
             return (
                 (row_diff < 0 and king_row_diff < 0)
                 or (row_diff > 0 and king_row_diff > 0)
@@ -648,7 +708,12 @@ class Board:
 
         while (current_row, current_col) != (end.row, end.col):
             if (
-                self.get_piece(ConstantSquare(row=current_row, col=current_col))
+                self.get_piece(
+                    ConstantSquare(
+                        row=get_row_constant(current_row),
+                        col=get_col_constant(current_col),
+                    )
+                )
                 is not None
             ):
                 return False
@@ -660,11 +725,17 @@ class Board:
     def is_square_attacked(self, square: Square, by_color: Color) -> bool:
         for row in range(8):
             for col in range(8):
-                piece = self.get_piece(square)
+                piece = self.get_piece(
+                    ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
+                )
                 if piece is None or piece.color != by_color:
                     continue
                 if self._piece_attacks_square(
-                    ConstantSquare(row=row, col=col), piece, square
+                    ConstantSquare(
+                        row=get_row_constant(row), col=get_col_constant(col)
+                    ),
+                    piece,
+                    square,
                 ):
                     return True
         return False
@@ -680,7 +751,7 @@ class Board:
     def _promotion_options_for_move(
         self, piece: Piece, end_pos: Square
     ) -> list[Optional[PieceType]]:
-        if piece.kind == PieceType.PAWN and end_pos.row in {0, 7}:
+        if piece.kind == PieceType.PAWN and end_pos.row in {int(ROW_0), int(ROW_7)}:
             return [
                 PieceType.QUEEN,
                 PieceType.ROOK,
@@ -695,14 +766,22 @@ class Board:
 
         for start_row in range(8):
             for start_col in range(8):
-                piece = self.get_piece(ConstantSquare(row=start_row, col=start_col))
+                piece = self.get_piece(
+                    ConstantSquare(
+                        row=get_row_constant(start_row), col=get_col_constant(start_col)
+                    )
+                )
                 if piece is None or piece.color != side:
                     continue
 
-                start = ConstantSquare(row=start_row, col=start_col)
+                start = ConstantSquare(
+                    row=get_row_constant(start_row), col=get_col_constant(start_col)
+                )
                 for end_row in range(8):
                     for end_col in range(8):
-                        end = ConstantSquare(row=end_row, col=end_col)
+                        end = ConstantSquare(
+                            row=get_row_constant(end_row), col=get_col_constant(end_col)
+                        )
                         for promotion in self._promotion_options_for_move(piece, end):
                             # Check if this move would expose the king (pin)
                             if piece.kind != PieceType.KNIGHT:  # Knights can jump pins
@@ -751,19 +830,32 @@ class Board:
 
         if is_en_passant_capture:
             captured_row = (
-                end_pos.row + 1 if start_piece.color == Color.WHITE else end_pos.row - 1
+                int(end_pos.row) + 1
+                if start_piece.color == Color.WHITE
+                else int(end_pos.row) - 1
             )
             captured_piece = self.get_piece(
-                ConstantSquare(row=captured_row, col=end_pos.col)
+                ConstantSquare(
+                    row=get_row_constant(captured_row),
+                    col=get_col_constant(end_pos.col),
+                )
             )
-            self.clear_square(ConstantSquare(row=captured_row, col=end_pos.col))
+            self.clear_square(
+                ConstantSquare(
+                    row=get_row_constant(captured_row),
+                    col=get_col_constant(end_pos.col),
+                )
+            )
             if (
                 captured_piece is not None
                 and captured_piece.kind == PieceType.ROOK
                 and captured_piece.color != start_piece.color
             ):
                 self._clear_castling_right_for_captured_rook(
-                    ConstantSquare(row=captured_row, col=end_pos.col)
+                    ConstantSquare(
+                        row=get_row_constant(captured_row),
+                        col=get_col_constant(end_pos.col),
+                    )
                 )
 
         self.set_piece(end_pos, start_piece)
@@ -773,12 +865,12 @@ class Board:
             start_pos, end_pos
         ):
             home_row = start_pos.row
-            if end_pos.col == 6:
+            if end_pos.col == COL_G:  # Kingside: e1->g1, rook h1->f1
                 rook_from = ConstantSquare(row=home_row, col=COL_H)
-                rook_to = ConstantSquare(row=home_row, col=COL_E)
-            else:
+                rook_to = ConstantSquare(row=home_row, col=COL_F)
+            else:  # Queenside: e1->c1, rook a1->d1
                 rook_from = ConstantSquare(row=home_row, col=COL_A)
-                rook_to = ConstantSquare(row=home_row, col=COL_C)
+                rook_to = ConstantSquare(row=home_row, col=COL_D)
 
             rook_piece = self.get_piece(rook_from)
             self.clear_square(rook_from)
@@ -786,12 +878,16 @@ class Board:
 
         if start_piece.kind == PieceType.PAWN and abs(end_pos.row - start_pos.row) == 2:
             self.en_passant_target = ConstantSquare(
-                row=(start_pos.row + end_pos.row) // 2, col=end_pos.col
+                row=get_row_constant((int(start_pos.row) + int(end_pos.row)) // 2),
+                col=get_col_constant(int(end_pos.col)),
             )
         else:
             self.en_passant_target = None
 
-        if start_piece.kind == PieceType.PAWN and end_pos.row in {0, 7}:
+        if start_piece.kind == PieceType.PAWN and end_pos.row in {
+            int(ROW_0),
+            int(ROW_7),
+        }:
             self.set_piece(
                 end_pos,
                 create_piece(
@@ -801,13 +897,13 @@ class Board:
             )
 
     def _clear_castling_right_for_captured_rook(self, square: Square) -> None:
-        if square == ConstantSquare(row=ROW_8, col=COL_A):
+        if square == ConstantSquare(row=get_row_constant(int(ROW_0)), col=COL_A):
             self.white_queenside = False
-        elif square == ConstantSquare(row=ROW_8, col=COL_H):
+        elif square == ConstantSquare(row=get_row_constant(int(ROW_0)), col=COL_H):
             self.white_kingside = False
-        elif square == ConstantSquare(row=ROW_7, col=COL_A):
+        elif square == ConstantSquare(row=get_row_constant(int(ROW_6)), col=COL_A):
             self.black_queenside = False
-        elif square == ConstantSquare(row=ROW_7, col=COL_H):
+        elif square == ConstantSquare(row=get_row_constant(int(ROW_6)), col=COL_H):
             self.black_kingside = False
 
     def _update_castling_rights_for_move(
@@ -826,13 +922,19 @@ class Board:
                 self.black_queenside = False
 
         if moving_piece.kind == PieceType.ROOK:
-            if start_pos == ConstantSquare(row=ROW_8, col=COL_A):
+            if start_pos == ConstantSquare(row=get_row_constant(int(ROW_0)), col=COL_A):
                 self.white_queenside = False
-            elif start_pos == ConstantSquare(row=ROW_8, col=COL_H):
+            elif start_pos == ConstantSquare(
+                row=get_row_constant(int(ROW_0)), col=COL_H
+            ):
                 self.white_kingside = False
-            elif start_pos == ConstantSquare(row=ROW_7, col=COL_A):
+            elif start_pos == ConstantSquare(
+                row=get_row_constant(int(ROW_6)), col=COL_A
+            ):
                 self.black_queenside = False
-            elif start_pos == ConstantSquare(row=ROW_7, col=COL_H):
+            elif start_pos == ConstantSquare(
+                row=get_row_constant(int(ROW_6)), col=COL_H
+            ):
                 self.white_kingside = False
                 self.black_kingside = False
 
@@ -849,7 +951,7 @@ class Board:
         if promotion is None or piece.kind != PieceType.PAWN:
             return True
 
-        if end_pos.row not in {ROW_1, ROW_8}:
+        if end_pos.row not in {int(ROW_0), int(ROW_7)}:
             return False
 
         return promotion in {
@@ -866,9 +968,13 @@ class Board:
         promotion: Optional[PieceType] = None,
     ) -> bool:
         if isinstance(start_pos, tuple):
-            start_pos = ConstantSquare(row=start_pos[0], col=start_pos[1])
+            start_pos = ConstantSquare(
+                row=get_row_constant(start_pos[0]), col=get_col_constant(start_pos[1])
+            )
         if isinstance(end_pos, tuple):
-            end_pos = ConstantSquare(row=end_pos[0], col=end_pos[1])
+            end_pos = ConstantSquare(
+                row=get_row_constant(end_pos[0]), col=get_col_constant(end_pos[1])
+            )
         start_piece = self.get_piece(start_pos)
         if start_piece is None or start_piece.color != self.turn:
             return False
@@ -893,7 +999,10 @@ class Board:
         # Determine promotion piece (default to QUEEN if None)
         promotion_piece = promotion if promotion is not None else PieceType.QUEEN
 
-        if start_piece.kind == PieceType.PAWN and end_pos.row in {ROW_1, ROW_8}:
+        if start_piece.kind == PieceType.PAWN and end_pos.row in {
+            int(ROW_0),
+            int(ROW_7),
+        }:
             simulated.set_piece(
                 end_pos,
                 create_piece(start_piece.color, promotion_piece),

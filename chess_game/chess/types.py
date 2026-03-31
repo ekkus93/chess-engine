@@ -1,20 +1,20 @@
 from dataclasses import dataclass
-from enum import Enum
+from enum import IntEnum
 from typing import Optional
 
 
-class Color(Enum):
-    WHITE = "white"
-    BLACK = "black"
+class Color(IntEnum):
+    WHITE = 1
+    BLACK = 0
 
 
-class PieceType(Enum):
-    PAWN = "pawn"
-    KNIGHT = "knight"
-    BISHOP = "bishop"
-    ROOK = "rook"
-    QUEEN = "queen"
-    KING = "king"
+class PieceType(IntEnum):
+    PAWN = 1
+    KNIGHT = 2
+    BISHOP = 3
+    ROOK = 4
+    QUEEN = 5
+    KING = 6
 
 
 @dataclass(frozen=True)

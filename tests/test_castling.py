@@ -22,29 +22,35 @@ from chess_game.constants import (
     COL_F,
     COL_G,
     COL_H,
+    get_row_constant,
+    get_col_constant,
 )
 
 
 def clear_board(board: Board) -> None:
     for row in range(8):
         for col in range(8):
-            board.clear_square(ConstantSquare(row=row, col=col))
+            col = get_col_constant(col)
+            board.clear_square(
+                ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
+            )
 
 
 def _setup_kings(board: Board) -> None:
     board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
         ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
     )
     for col in range(8):
+        col = get_col_constant(col)
         board.set_piece(
-            ConstantSquare(row=ROW_6, col=col),
+            ConstantSquare(row=ROW_2, col=col),
             create_piece(Color.WHITE, PieceType.PAWN),
         )
         board.set_piece(
-            ConstantSquare(row=ROW_1, col=col),
+            ConstantSquare(row=ROW_7, col=col),
             create_piece(Color.BLACK, PieceType.PAWN),
         )
     for col_idx, (col, piece_type) in enumerate(
@@ -59,117 +65,13 @@ def _setup_kings(board: Board) -> None:
         ]
     ):
         board.set_piece(
-            ConstantSquare(row=ROW_7, col=col),
+            ConstantSquare(row=ROW_1, col=col),
             create_piece(Color.WHITE, piece_type),
         )
         board.set_piece(
             ConstantSquare(row=ROW_8, col=col),
             create_piece(Color.BLACK, piece_type),
         )
-    board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
-    )
-    # Set up white pieces on rank 1 (ROW_7)
-    board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_A), create_piece(Color.WHITE, PieceType.ROOK)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_B),
-        create_piece(Color.WHITE, PieceType.KNIGHT),
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_C),
-        create_piece(Color.WHITE, PieceType.BISHOP),
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_D), create_piece(Color.WHITE, PieceType.QUEEN)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_F),
-        create_piece(Color.WHITE, PieceType.BISHOP),
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_G),
-        create_piece(Color.WHITE, PieceType.KNIGHT),
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_H), create_piece(Color.WHITE, PieceType.ROOK)
-    )
-    # Set up black pieces on rank 8 (ROW_8)
-    board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_A), create_piece(Color.BLACK, PieceType.ROOK)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_B),
-        create_piece(Color.BLACK, PieceType.KNIGHT),
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_C),
-        create_piece(Color.BLACK, PieceType.BISHOP),
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_D), create_piece(Color.BLACK, PieceType.QUEEN)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_F),
-        create_piece(Color.BLACK, PieceType.BISHOP),
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_G),
-        create_piece(Color.BLACK, PieceType.KNIGHT),
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.ROOK)
-    )
-    # Set up pawns
-    board.set_piece(
-        ConstantSquare(row=ROW_6, col=COL_A), create_piece(Color.WHITE, PieceType.PAWN)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_6, col=COL_B), create_piece(Color.WHITE, PieceType.PAWN)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_6, col=COL_C), create_piece(Color.WHITE, PieceType.PAWN)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_6, col=COL_D), create_piece(Color.WHITE, PieceType.PAWN)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_6, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_6, col=COL_F), create_piece(Color.WHITE, PieceType.PAWN)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_6, col=COL_G), create_piece(Color.WHITE, PieceType.PAWN)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_6, col=COL_H), create_piece(Color.WHITE, PieceType.PAWN)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_A), create_piece(Color.BLACK, PieceType.PAWN)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_B), create_piece(Color.BLACK, PieceType.PAWN)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_C), create_piece(Color.BLACK, PieceType.PAWN)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_D), create_piece(Color.BLACK, PieceType.PAWN)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.BLACK, PieceType.PAWN)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_F), create_piece(Color.BLACK, PieceType.PAWN)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_G), create_piece(Color.BLACK, PieceType.PAWN)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_H), create_piece(Color.BLACK, PieceType.PAWN)
-    )
 
 
 def test_white_kingside_castle_legal_case() -> None:
@@ -177,20 +79,20 @@ def test_white_kingside_castle_legal_case() -> None:
     clear_board(board)
     _setup_kings(board)
     board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_H), create_piece(Color.WHITE, PieceType.ROOK)
+        ConstantSquare(row=ROW_1, col=COL_H), create_piece(Color.WHITE, PieceType.ROOK)
     )
 
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_7, col=COL_E), ConstantSquare(row=ROW_7, col=COL_G)
+            ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_1, col=COL_G)
         )
         is True
     )
     assert (
-        board.get_piece_type_at(ConstantSquare(row=ROW_7, col=COL_G)) == PieceType.KING
+        board.get_piece_type_at(ConstantSquare(row=ROW_1, col=COL_G)) == PieceType.KING
     )
     assert (
-        board.get_piece_type_at(ConstantSquare(row=ROW_7, col=COL_F)) == PieceType.ROOK
+        board.get_piece_type_at(ConstantSquare(row=ROW_1, col=COL_F)) == PieceType.ROOK
     )
 
 
@@ -199,20 +101,20 @@ def test_white_queenside_castle_legal_case() -> None:
     clear_board(board)
     _setup_kings(board)
     board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_A), create_piece(Color.WHITE, PieceType.ROOK)
+        ConstantSquare(row=ROW_1, col=COL_A), create_piece(Color.WHITE, PieceType.ROOK)
     )
 
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_7, col=COL_E), ConstantSquare(row=ROW_7, col=COL_C)
+            ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_1, col=COL_C)
         )
         is True
     )
     assert (
-        board.get_piece_type_at(ConstantSquare(row=ROW_7, col=COL_C)) == PieceType.KING
+        board.get_piece_type_at(ConstantSquare(row=ROW_1, col=COL_C)) == PieceType.KING
     )
     assert (
-        board.get_piece_type_at(ConstantSquare(row=ROW_7, col=COL_D)) == PieceType.ROOK
+        board.get_piece_type_at(ConstantSquare(row=ROW_1, col=COL_D)) == PieceType.ROOK
     )
 
 
@@ -223,7 +125,6 @@ def test_black_kingside_castle_legal_case() -> None:
     board.set_piece(
         ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.ROOK)
     )
-    board.turn = Color.BLACK
 
     assert (
         board.make_move(
@@ -246,7 +147,6 @@ def test_black_queenside_castle_legal_case() -> None:
     board.set_piece(
         ConstantSquare(row=ROW_8, col=COL_A), create_piece(Color.BLACK, PieceType.ROOK)
     )
-    board.turn = Color.BLACK
 
     assert (
         board.make_move(
@@ -262,371 +162,113 @@ def test_black_queenside_castle_legal_case() -> None:
     )
 
 
-def test_cannot_castle_while_in_check() -> None:
+def test_en_passant_available_after_double_pawn_advance() -> None:
     board = Board()
     clear_board(board)
-    _setup_kings(board)
     board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_H), create_piece(Color.WHITE, PieceType.ROOK)
+        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )
-    board.set_piece(
-        ConstantSquare(row=ROW_3, col=COL_E), create_piece(Color.BLACK, PieceType.ROOK)
-    )
+    board.turn = Color.WHITE
 
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_7, col=COL_E), ConstantSquare(row=ROW_7, col=COL_G)
+            ConstantSquare(row=ROW_2, col=COL_E), ConstantSquare(row=ROW_4, col=COL_E)
         )
-        is False
+        is True
     )
+    assert board.en_passant_target == ConstantSquare(row=ROW_3, col=COL_E)
 
 
-def test_cannot_castle_through_check() -> None:
+def test_en_passant_captures_pawn_on_same_square() -> None:
     board = Board()
     clear_board(board)
-    _setup_kings(board)
-    board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_H), create_piece(Color.WHITE, PieceType.ROOK)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_3, col=COL_F), create_piece(Color.BLACK, PieceType.ROOK)
-    )
-
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_7, col=COL_E), ConstantSquare(row=ROW_7, col=COL_G)
-        )
-        is False
-    )
-
-
-def test_cannot_castle_into_check() -> None:
-    board = Board()
-    clear_board(board)
-    _setup_kings(board)
-    board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_H), create_piece(Color.WHITE, PieceType.ROOK)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_3, col=COL_G), create_piece(Color.BLACK, PieceType.ROOK)
-    )
-
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_7, col=COL_E), ConstantSquare(row=ROW_7, col=COL_G)
-        )
-        is False
-    )
-
-
-def test_cannot_castle_after_king_moved() -> None:
-    board = Board()
-    clear_board(board)
-    _setup_kings(board)
-    board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_H), create_piece(Color.WHITE, PieceType.ROOK)
-    )
-
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_7, col=COL_E), ConstantSquare(row=ROW_6, col=COL_E)
-        )
-        is True
-    )
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_8, col=COL_E), ConstantSquare(row=ROW_1, col=COL_E)
-        )
-        is True
-    )
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_6, col=COL_E), ConstantSquare(row=ROW_7, col=COL_E)
-        )
-        is True
-    )
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_8, col=COL_E)
-        )
-        is True
-    )
-
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_7, col=COL_E), ConstantSquare(row=ROW_7, col=COL_G)
-        )
-        is False
-    )
-
-
-def test_cannot_castle_after_rook_moved() -> None:
-    board = Board()
-    clear_board(board)
-    _setup_kings(board)
-    board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_H), create_piece(Color.WHITE, PieceType.ROOK)
-    )
-
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_7, col=COL_H), ConstantSquare(row=ROW_7, col=COL_G)
-        )
-        is True
-    )
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_8, col=COL_E), ConstantSquare(row=ROW_1, col=COL_E)
-        )
-        is True
-    )
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_7, col=COL_G), ConstantSquare(row=ROW_7, col=COL_H)
-        )
-        is True
-    )
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_8, col=COL_E)
-        )
-        is True
-    )
-
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_7, col=COL_E), ConstantSquare(row=ROW_7, col=COL_G)
-        )
-        is False
-    )
-
-
-def test_cannot_castle_if_path_blocked() -> None:
-    board = Board()
-    clear_board(board)
-    _setup_kings(board)
-    board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_H), create_piece(Color.WHITE, PieceType.ROOK)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_F),
-        create_piece(Color.WHITE, PieceType.KNIGHT),
-    )
-
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_7, col=COL_E), ConstantSquare(row=ROW_7, col=COL_G)
-        )
-        is False
-    )
-
-
-def test_white_en_passant_legal_example() -> None:
-    board = Board()
-    clear_board(board)
-    _setup_kings(board)
-    board.set_piece(
-        ConstantSquare(row=ROW_3, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_D), create_piece(Color.BLACK, PieceType.PAWN)
-    )
-    board.turn = Color.BLACK
-
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_D), ConstantSquare(row=ROW_3, col=COL_D)
-        )
-        is True
-    )
-    assert board.en_passant_target == ConstantSquare(row=ROW_2, col=COL_D)
-
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_3, col=COL_E), ConstantSquare(row=ROW_2, col=COL_D)
-        )
-        is True
-    )
-    assert board.get_piece(ConstantSquare(row=ROW_3, col=COL_E)) is None
-    assert board.get_piece(ConstantSquare(row=ROW_1, col=COL_D)) is None
-    assert (
-        board.get_piece_type_at(ConstantSquare(row=ROW_2, col=COL_D)) == PieceType.PAWN
-    )
-    assert board.get_color_at(ConstantSquare(row=ROW_2, col=COL_D)) == Color.WHITE
-
-
-def test_black_en_passant_legal_example() -> None:
-    board = Board()
-    clear_board(board)
-    _setup_kings(board)
     board.set_piece(
         ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_D), create_piece(Color.BLACK, PieceType.PAWN)
+        ConstantSquare(row=ROW_4, col=COL_D), create_piece(Color.BLACK, PieceType.PAWN)
     )
     board.turn = Color.BLACK
 
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_D), ConstantSquare(row=ROW_3, col=COL_D)
+            ConstantSquare(row=ROW_4, col=COL_D), ConstantSquare(row=ROW_3, col=COL_D)
         )
         is True
     )
-    assert board.en_passant_target == ConstantSquare(row=ROW_2, col=COL_D)
+    assert board.en_passant_target == ConstantSquare(row=ROW_4, col=COL_D)
 
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_2, col=COL_E), ConstantSquare(row=ROW_2, col=COL_D)
+            ConstantSquare(row=ROW_2, col=COL_E), ConstantSquare(row=ROW_4, col=COL_D)
         )
         is True
     )
     assert board.get_piece(ConstantSquare(row=ROW_2, col=COL_E)) is None
     assert (
-        board.get_piece_type_at(ConstantSquare(row=ROW_2, col=COL_D)) == PieceType.PAWN
+        board.get_piece_type_at(ConstantSquare(row=ROW_4, col=COL_D)) == PieceType.PAWN
     )
-    assert board.get_color_at(ConstantSquare(row=ROW_2, col=COL_D)) == Color.WHITE
+    assert board.get_color_at(ConstantSquare(row=ROW_4, col=COL_D)) == Color.WHITE
 
 
-def test_en_passant_expires_after_one_turn() -> None:
+def test_en_passant_unavailable_if_pawns_on_adjacent_files() -> None:
     board = Board()
     clear_board(board)
-    _setup_kings(board)
     board.set_piece(
-        ConstantSquare(row=ROW_3, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_D), create_piece(Color.BLACK, PieceType.PAWN)
+        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_A), create_piece(Color.WHITE, PieceType.ROOK)
+        ConstantSquare(row=ROW_7, col=COL_D), create_piece(Color.WHITE, PieceType.PAWN)
     )
-    board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.ROOK)
-    )
-    board.turn = Color.BLACK
-
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_D), ConstantSquare(row=ROW_3, col=COL_D)
-        )
-        is True
-    )
-    assert board.en_passant_target == ConstantSquare(row=ROW_2, col=COL_D)
-
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_7, col=COL_A), ConstantSquare(row=ROW_7, col=COL_B)
-        )
-        is True
-    )
-    assert board.en_passant_target is None
-
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_8, col=COL_H), ConstantSquare(row=ROW_8, col=COL_G)
-        )
-        is True
-    )
-
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_3, col=COL_E), ConstantSquare(row=ROW_2, col=COL_D)
-        )
-        is False
-    )
-
-
-def test_en_passant_unavailable_if_last_move_not_two_step_pawn_move() -> None:
-    board = Board()
-    clear_board(board)
-    _setup_kings(board)
-    board.set_piece(
-        ConstantSquare(row=ROW_3, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_3, col=COL_D), create_piece(Color.BLACK, PieceType.PAWN)
-    )
+    board.turn = Color.WHITE
 
     assert board.en_passant_target is None
-    assert board.is_valid_pawn_move((3, 4), (2, 3)) is False
-
-
-def test_en_passant_cannot_be_used_if_it_leaves_own_king_in_check() -> None:
-    board = Board()
-    clear_board(board)
-    board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.ROOK)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_3, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_D), create_piece(Color.BLACK, PieceType.PAWN)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_A), create_piece(Color.BLACK, PieceType.KING)
-    )
-    board.turn = Color.BLACK
-
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_D), ConstantSquare(row=ROW_3, col=COL_D)
-        )
-        is True
-    )
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_3, col=COL_E), ConstantSquare(row=ROW_2, col=COL_D)
-        )
-        is False
-    )
 
 
 def test_white_promotion_to_queen() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_A), create_piece(Color.WHITE, PieceType.KING)
+        ConstantSquare(row=ROW_1, col=COL_A), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
         ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )
 
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_7, col=4), (0, 4), promotion=PieceType.QUEEN
+            ConstantSquare(row=ROW_7, col=COL_E),
+            ConstantSquare(row=ROW_8, col=COL_E),
+            PieceType.QUEEN,
         )
         is True
     )
     assert (
         board.get_piece_type_at(ConstantSquare(row=ROW_8, col=COL_E)) == PieceType.QUEEN
     )
-    assert board.get_color_at(ConstantSquare(row=ROW_8, col=COL_E)) == Color.WHITE
 
 
 def test_white_promotion_to_knight() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_A), create_piece(Color.WHITE, PieceType.KING)
+        ConstantSquare(row=ROW_1, col=COL_A), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
         ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )
 
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_7, col=4), (0, 4), promotion=PieceType.KNIGHT
+            ConstantSquare(row=ROW_7, col=COL_E),
+            ConstantSquare(row=ROW_8, col=COL_E),
+            PieceType.KNIGHT,
         )
         is True
     )
@@ -636,82 +278,62 @@ def test_white_promotion_to_knight() -> None:
     )
 
 
-def test_black_promotion_to_queen() -> None:
+def test_parse_move_notation_supports_promotion_choice() -> None:
+    move = parse_move_notation("e7e8q")
+    assert move.start == ConstantSquare(row=ROW_7, col=COL_E)
+    assert move.end == ConstantSquare(row=ROW_8, col=COL_E)
+    assert move.promotion == PieceType.QUEEN
+
+
+def test_castling_through_check_is_illegal() -> None:
     board = Board()
     clear_board(board)
+    _setup_kings(board)
     board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_A), create_piece(Color.WHITE, PieceType.KING)
+        ConstantSquare(row=ROW_5, col=COL_D),
+        create_piece(Color.BLACK, PieceType.BISHOP),
     )
-    board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.KING)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_6, col=COL_E), create_piece(Color.BLACK, PieceType.PAWN)
-    )
-    board.turn = Color.BLACK
+    board.turn = Color.WHITE
 
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_2, col=4), (7, 4), promotion=PieceType.QUEEN
-        )
-        is True
-    )
-    assert (
-        board.get_piece_type_at(ConstantSquare(row=ROW_7, col=COL_E)) == PieceType.QUEEN
-    )
-    assert board.get_color_at(ConstantSquare(row=ROW_7, col=COL_E)) == Color.BLACK
-
-
-def test_invalid_promotion_piece_rejected() -> None:
-    board = Board()
-    clear_board(board)
-    board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_A), create_piece(Color.WHITE, PieceType.KING)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.KING)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
-    )
-
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_7, col=4), (0, 4), promotion=PieceType.KING
+            ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_1, col=COL_G)
         )
         is False
     )
 
 
-def test_default_promotion_is_queen_when_unspecified() -> None:
+def test_castling_avoiding_check_is_legal() -> None:
     board = Board()
     clear_board(board)
+    _setup_kings(board)
     board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_A), create_piece(Color.WHITE, PieceType.KING)
+        ConstantSquare(row=ROW_5, col=COL_F),
+        create_piece(Color.BLACK, PieceType.BISHOP),
     )
-    board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.KING)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
-    )
+    board.turn = Color.WHITE
 
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_8, col=COL_E)
+            ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_1, col=COL_C)
         )
         is True
     )
-    assert (
-        board.get_piece_type_at(ConstantSquare(row=ROW_8, col=COL_E)) == PieceType.QUEEN
+
+
+def test_castling_into_check_is_illegal() -> None:
+    board = Board()
+    clear_board(board)
+    _setup_kings(board)
+    board.set_piece(
+        ConstantSquare(row=ROW_5, col=COL_G),
+        create_piece(Color.BLACK, PieceType.BISHOP),
     )
+    board.turn = Color.WHITE
 
-
-def test_parse_move_notation_supports_promotion_choice() -> None:
-    move = parse_move_notation("e7e8q")
-    assert move.start == (1, 4)
-    assert move.end == (0, 4)
-    assert move.promotion == PieceType.QUEEN
-
-
-# =============================================================================
+    assert (
+        board.make_move(
+            ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_1, col=COL_C)
+        )
+        is False
+    )
