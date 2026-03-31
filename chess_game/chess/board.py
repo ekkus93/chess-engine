@@ -319,8 +319,16 @@ class Board:
             return False
 
         if abs(col_diff) == 1:
-            # En passant capture (horizontal move, same row)
-            if self.en_passant_target == end and row_diff == 0:
+            # Regular capture (diagonal forward)
+            if row_diff == direction:
+                end_piece = self.get_piece(*end)
+                if end_piece is not None:
+                    return end_piece.color != piece.color
+
+            # En passant capture: diagonal move to en passant target square
+            if self.en_passant_target == end and abs(row_diff) == 4:
+                # Calculate where the captured pawn was located
+                # The captured pawn is on the opposite side of the target square
                 captured_row = end[0] + 1 if piece.color == Color.WHITE else end[0] - 1
                 captured_piece = self.get_piece(captured_row, end[1])
                 return (
@@ -328,22 +336,6 @@ class Board:
                     and captured_piece.kind == PieceType.PAWN
                     and captured_piece.color != piece.color
                 )
-            # Regular capture (diagonal forward)
-            if row_diff == direction:
-                end_piece = self.get_piece(*end)
-                if end_piece is not None:
-                    return end_piece.color != piece.color
-                # En passant capture (diagonal, target is the empty square)
-                if self.en_passant_target == end:
-                    captured_row = (
-                        end[0] + 1 if piece.color == Color.WHITE else end[0] - 1
-                    )
-                    captured_piece = self.get_piece(captured_row, end[1])
-                    return (
-                        captured_piece is not None
-                        and captured_piece.kind == PieceType.PAWN
-                        and captured_piece.color != piece.color
-                    )
             return False
         return False
 
