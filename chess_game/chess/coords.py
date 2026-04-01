@@ -13,7 +13,7 @@ from chess_game.constants import (
     ROW_7,
     ROW_8,
 )
-from chess_game.constants import COL_A, COL_B, COL_C, COL_D, COL_E, COL_F, COL_G, COL_H
+
 from chess_game.constants import get_col_constant
 
 # Canonical coordinate definitions from THE_PLAN.md

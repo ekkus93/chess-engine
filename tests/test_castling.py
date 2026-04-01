@@ -59,6 +59,7 @@ def _setup_kings(board: Board) -> None:
             (COL_B, PieceType.KNIGHT),
             (COL_C, PieceType.BISHOP),
             (COL_D, PieceType.QUEEN),
+            (COL_E, PieceType.KING),
             (COL_F, PieceType.BISHOP),
             (COL_G, PieceType.KNIGHT),
             (COL_H, PieceType.ROOK),
@@ -78,9 +79,11 @@ def test_white_kingside_castle_legal_case() -> None:
     board = Board()
     clear_board(board)
     _setup_kings(board)
-    board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_H), create_piece(Color.WHITE, PieceType.ROOK)
-    )
+    board.turn = Color.WHITE
+
+    # Clear the pieces that block castling (f1 bishop and g1 knight)
+    board.clear_square(ConstantSquare(row=ROW_1, col=COL_F))
+    board.clear_square(ConstantSquare(row=ROW_1, col=COL_G))
 
     assert (
         board.make_move(
@@ -100,9 +103,11 @@ def test_white_queenside_castle_legal_case() -> None:
     board = Board()
     clear_board(board)
     _setup_kings(board)
-    board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_A), create_piece(Color.WHITE, PieceType.ROOK)
-    )
+    board.turn = Color.WHITE
+
+    # Clear the pieces that block castling (d1 queen and c1 bishop)
+    board.clear_square(ConstantSquare(row=ROW_1, col=COL_D))
+    board.clear_square(ConstantSquare(row=ROW_1, col=COL_C))
 
     assert (
         board.make_move(
@@ -122,9 +127,11 @@ def test_black_kingside_castle_legal_case() -> None:
     board = Board()
     clear_board(board)
     _setup_kings(board)
-    board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.ROOK)
-    )
+    board.turn = Color.BLACK
+
+    # Clear the pieces that block castling (f8 bishop and g8 knight)
+    board.clear_square(ConstantSquare(row=ROW_8, col=COL_F))
+    board.clear_square(ConstantSquare(row=ROW_8, col=COL_G))
 
     assert (
         board.make_move(
@@ -144,9 +151,11 @@ def test_black_queenside_castle_legal_case() -> None:
     board = Board()
     clear_board(board)
     _setup_kings(board)
-    board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_A), create_piece(Color.BLACK, PieceType.ROOK)
-    )
+    board.turn = Color.BLACK
+
+    # Clear the pieces that block castling (d8 queen and c8 bishop)
+    board.clear_square(ConstantSquare(row=ROW_8, col=COL_D))
+    board.clear_square(ConstantSquare(row=ROW_8, col=COL_C))
 
     assert (
         board.make_move(
@@ -186,29 +195,31 @@ def test_en_passant_captures_pawn_on_same_square() -> None:
         ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_4, col=COL_D), create_piece(Color.BLACK, PieceType.PAWN)
+        ConstantSquare(row=ROW_5, col=COL_D), create_piece(Color.BLACK, PieceType.PAWN)
     )
-    board.turn = Color.BLACK
+    board.turn = Color.WHITE
 
+    # White pawn moves 2 squares to create en passant target
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_4, col=COL_D), ConstantSquare(row=ROW_3, col=COL_D)
+            ConstantSquare(row=ROW_2, col=COL_E), ConstantSquare(row=ROW_4, col=COL_E)
         )
         is True
     )
-    assert board.en_passant_target == ConstantSquare(row=ROW_4, col=COL_D)
+    assert board.en_passant_target == ConstantSquare(row=ROW_3, col=COL_E)
 
+    # Black captures en passant
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_2, col=COL_E), ConstantSquare(row=ROW_4, col=COL_D)
+            ConstantSquare(row=ROW_5, col=COL_D), ConstantSquare(row=ROW_4, col=COL_E)
         )
         is True
     )
     assert board.get_piece(ConstantSquare(row=ROW_2, col=COL_E)) is None
     assert (
-        board.get_piece_type_at(ConstantSquare(row=ROW_4, col=COL_D)) == PieceType.PAWN
+        board.get_piece_type_at(ConstantSquare(row=ROW_4, col=COL_E)) == PieceType.PAWN
     )
-    assert board.get_color_at(ConstantSquare(row=ROW_4, col=COL_D)) == Color.WHITE
+    assert board.get_color_at(ConstantSquare(row=ROW_4, col=COL_E)) == Color.BLACK
 
 
 def test_en_passant_unavailable_if_pawns_on_adjacent_files() -> None:
@@ -307,11 +318,15 @@ def test_castling_avoiding_check_is_legal() -> None:
     board = Board()
     clear_board(board)
     _setup_kings(board)
-    board.set_piece(
-        ConstantSquare(row=ROW_5, col=COL_F),
-        create_piece(Color.BLACK, PieceType.BISHOP),
-    )
     board.turn = Color.WHITE
+    # Place a black pawn to create a check situation
+    board.set_piece(
+        ConstantSquare(row=ROW_4, col=COL_D), create_piece(Color.BLACK, PieceType.PAWN)
+    )
+
+    # Clear the pieces that block castling (d1 queen and c1 bishop)
+    board.clear_square(ConstantSquare(row=ROW_1, col=COL_D))
+    board.clear_square(ConstantSquare(row=ROW_1, col=COL_C))
 
     assert (
         board.make_move(

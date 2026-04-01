@@ -1,26 +1,30 @@
 from dataclasses import dataclass
-from enum import IntEnum
 from typing import Optional
 
-
-class Color(IntEnum):
-    WHITE = 1
-    BLACK = 0
-
-
-class PieceType(IntEnum):
-    PAWN = 1
-    KNIGHT = 2
-    BISHOP = 3
-    ROOK = 4
-    QUEEN = 5
-    KING = 6
+from chess_game.constants import ConstantSquare, Color, PieceType
 
 
 @dataclass(frozen=True)
 class Piece:
     color: Color
     kind: PieceType
+    _square: ConstantSquare
+
+    @property
+    def row(self) -> ConstantSquare:
+        return self._square.row
+
+    @property
+    def col(self) -> ConstantSquare:
+        return self._square.col
+
+    @property
+    def square(self) -> ConstantSquare:
+        return self._square
 
 
-LegalMove = tuple[tuple[int, int], tuple[int, int], Optional[PieceType]]
+@dataclass
+class LegalMove:
+    start: ConstantSquare
+    end: ConstantSquare
+    promotion: Optional[PieceType] = None

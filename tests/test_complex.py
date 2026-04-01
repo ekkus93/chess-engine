@@ -11,6 +11,8 @@ from chess_game.constants import (
     ROW_2,
     ROW_7,
     ROW_6,
+    ROW_5,
+    ROW_4,
     ROW_3,
     COL_A,
     COL_B,
@@ -48,10 +50,10 @@ def test_rook_corner_moves_along_edge_only() -> None:
     board.set_piece(
         ConstantSquare(row=ROW_8, col=COL_A), create_piece(Color.WHITE, PieceType.ROOK)
     )
-    # Rook on a8 moves along edge (file a)
+    # Rook on a8 can move along both file a (7 squares) and rank 8 (7 squares)
     board.turn = Color.WHITE
     legal_moves = board.get_legal_moves()
-    assert len(legal_moves) == 8  # All squares on file a
+    assert len(legal_moves) == 14  # 7 down file + 7 across rank
 
 
 def test_bishop_corner_has_limited_range() -> None:
@@ -80,20 +82,18 @@ def test_knight_corner_has_two_moves() -> None:
     board.turn = Color.WHITE
     legal_moves = board.get_legal_moves()
     assert len(legal_moves) == 2
-    assert ConstantSquare(row=ROW_3, col=COL_C) in [
-        (m[1], m[1]) for m in legal_moves
-    ]  # c7
-    assert ConstantSquare(row=ROW_4, col=COL_B) in [
-        (m[1], m[1]) for m in legal_moves
-    ]  # b6
+    # c7 = (ROW_7, COL_C), b6 = (ROW_6, COL_B)
+    destinations = [m[1] for m in legal_moves]
+    assert ConstantSquare(row=ROW_7, col=COL_C) in destinations  # c7
+    assert ConstantSquare(row=ROW_6, col=COL_B) in destinations  # b6
     # Black moves (to change turn)
     board.turn = Color.BLACK
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_A), create_piece(Color.BLACK, PieceType.ROOK)
+        ConstantSquare(row=ROW_8, col=COL_A), create_piece(Color.BLACK, PieceType.ROOK)
     )
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_A), ConstantSquare(row=ROW_1, col=COL_B)
+            ConstantSquare(row=ROW_8, col=COL_A), ConstantSquare(row=ROW_8, col=COL_B)
         )
         is True
     )
@@ -170,17 +170,17 @@ def test_white_pawn_on_rank_1_cannot_move_forward() -> None:
 
 
 def test_black_pawn_on_rank_8_cannot_move_forward() -> None:
-    """T6.3: Black pawn on rank 1 (row 7) cannot move forward."""
+    """T6.3: Black pawn on rank 1 (ROW_1) cannot move forward (away from home)."""
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.PAWN)
+        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.BLACK, PieceType.PAWN)
     )
-    # Black pawn on rank 1 cannot move forward
+    # Black pawn on rank 1 cannot move forward (toward rank 2, away from home)
     board.turn = Color.BLACK
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_8, col=COL_E), ConstantSquare(row=ROW_7, col=COL_E)
+            ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_2, col=COL_E)
         )
         is False
     )
@@ -191,17 +191,14 @@ def test_edge_rank_pawn_promotion_scenarios() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )  # e2
-    board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
-    )  # e7
-    # White pawn on rank 2 (row 6) can only move 1 or 2 squares forward
+    # White pawn on rank 2 (ROW_2) can only move 1 or 2 squares forward
     board.turn = Color.WHITE
-    # Move to rank 4 (row 5) - one square move
+    # Move to rank 4 (ROW_4) - two square move
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_7, col=COL_E), ConstantSquare(row=ROW_5, col=COL_E)
+            ConstantSquare(row=ROW_2, col=COL_E), ConstantSquare(row=ROW_4, col=COL_E)
         )
         is True
     )  # e2-e4
@@ -210,7 +207,7 @@ def test_edge_rank_pawn_promotion_scenarios() -> None:
     board.set_piece(
         ConstantSquare(row=ROW_7, col=COL_A), create_piece(Color.BLACK, PieceType.PAWN)
     )  # a7
-    # Black pawn on rank 7 (row 1) can only move 1 or 2 squares forward
+    # Black pawn on rank 7 (ROW_7) can only move 1 or 2 squares forward
     assert (
         board.make_move(
             ConstantSquare(row=ROW_7, col=COL_A), ConstantSquare(row=ROW_6, col=COL_A)

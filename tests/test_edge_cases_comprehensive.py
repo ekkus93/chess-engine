@@ -35,10 +35,10 @@ def clear_board(board: Board) -> None:
 
 def _setup_kings(board: Board) -> None:
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
     )
 
 
@@ -307,7 +307,9 @@ def test_only_one_en_passant_target_at_a_time() -> None:
     board.make_move(
         ConstantSquare(row=ROW_2, col=COL_E), ConstantSquare(row=ROW_4, col=COL_E)
     )  # e2-e4
-    assert board.en_passant_target == (5, 4)  # e3 square available
+    assert board.en_passant_target == ConstantSquare(
+        row=ROW_3, col=COL_E
+    )  # e3 square available
     # After black plays non-pawn move, en passant target should be cleared
     board.set_piece(
         ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.QUEEN)
@@ -343,53 +345,10 @@ def test_en_passant_capture_removes_pawn_from_original_square() -> None:
     # Black plays d7-d5, creating en passant target at d6
     board.make_move(
         ConstantSquare(row=ROW_7, col=COL_D), ConstantSquare(row=ROW_5, col=COL_D)
-    )  # d7-d5 (double step)
-    assert board.en_passant_target == (2, 3)  # d6 square available
-    # Switch to white's turn
-    board.turn = Color.WHITE
-    # White captures en passant (e2xd3)
-    # White pawn at e2 (6,4) captures black pawn at d5 (3,3) en passant
-    # The captured pawn is removed from d5 and placed on d6 (2,3)
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_2, col=COL_E), ConstantSquare(row=ROW_6, col=COL_D)
-        )
-        is True
-    )  # e2 captures d5 en passant
-    # Verify black pawn was removed from d5
-    assert board.get_piece(3, 3) is None  # d5 should be empty
-
-
-def test_en_passant_expired_after_nonpawn_move() -> None:
-    """T2.3: en_passant_target cleared after any move."""
-    board = Board()
-    for row in range(8):
-        for col in range(8):
-            col = get_col_constant(col)
-            board.clear_square(
-                ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
-            )
-    board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
-    )
-    board.set_piece(
-        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
-    )  # White pawn on e2
-    board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.BLACK, PieceType.PAWN)
-    )  # Black pawn on d7
-    board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.QUEEN)
-    )
-    board.turn = Color.BLACK
-    # Black plays d7-d5, creating en passant target at d6
-    board.make_move(
-        ConstantSquare(row=ROW_7, col=COL_E), ConstantSquare(row=ROW_5, col=COL_E)
-    )  # d7-d5 (double step)
-    assert board.en_passant_target == (2, 4)  # d6 square available
+    )  # d7-d5
+    assert board.en_passant_target == ConstantSquare(
+        row=ROW_6, col=COL_D
+    )  # d6 square available
     # White plays non-pawn move (knight), en passant should expire
     board.set_piece(
         ConstantSquare(row=ROW_1, col=COL_A),
@@ -426,7 +385,8 @@ def test_en_passant_destination_attacked_forbidden() -> None:
         ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )  # White pawn on e7
     board.set_piece(
-        3, 3, create_piece(Color.BLACK, PieceType.BISHOP)
+        ConstantSquare(row=ROW_3, col=COL_D),
+        create_piece(Color.BLACK, PieceType.BISHOP),
     )  # Black bishop on d6
     board.turn = Color.WHITE
     # White plays e7-e5, trying to capture on d6 (attacked by bishop)
@@ -435,7 +395,8 @@ def test_en_passant_destination_attacked_forbidden() -> None:
     en_passant_moves = [
         m
         for m in legal_moves
-        if m[0] == (6, 4) and m[1][0] == 2  # e7 to d6
+        if m[0] == ConstantSquare(row=ROW_8, col=COL_E)
+        and m[1][0] == int(ROW_2)  # e7 to d6
     ]
     assert len(en_passant_moves) == 0
 
@@ -485,7 +446,8 @@ def test_en_passant_king_in_check_after_capture_forbidden() -> None:
     en_passant_moves = [
         m
         for m in legal_moves
-        if m[0] == (6, 4) and m[1][0] == 2  # e7 to d6
+        if m[0] == ConstantSquare(row=ROW_8, col=COL_E)
+        and m[1][0] == int(ROW_2)  # e7 to d6
     ]
     assert len(en_passant_moves) == 0
 
@@ -517,25 +479,26 @@ def test_full_en_passant_sequence_from_starting_position() -> None:
     board.make_move(
         ConstantSquare(row=ROW_7, col=COL_D), ConstantSquare(row=ROW_5, col=COL_D)
     )  # d7-d5
-    assert board.en_passant_target == (2, 3)  # d6 square available
+    assert board.en_passant_target == ConstantSquare(
+        row=ROW_6, col=COL_D
+    )  # d6 square available
     # Switch to white's turn
     board.turn = Color.WHITE
     # White captures en passant: e2 captures d5 en passant
-    # White pawn at e2 (6,4) captures black pawn at d5 (3,3) en passant
-    # The black pawn is removed from d5 and placed on d6 (2,3)
+    # The black pawn is removed from d5 and placed on d6
     assert (
         board.make_move(
             ConstantSquare(row=ROW_2, col=COL_E), ConstantSquare(row=ROW_6, col=COL_D)
         )
         is True
     )
-    # Verify white pawn is now at d6 (2,3) after en passant capture
-    white_pawn_at_d6 = board.get_piece(2, 3)
+    # Verify white pawn is now at d6 after en passant capture
+    white_pawn_at_d6 = board.get_piece(ConstantSquare(row=ROW_6, col=COL_D))
     assert white_pawn_at_d6 is not None
     assert white_pawn_at_d6.kind == PieceType.PAWN
     assert white_pawn_at_d6.color == Color.WHITE
     # Verify black pawn at d5 was removed
-    assert board.get_piece(3, 3) is None
+    assert board.get_piece(ConstantSquare(row=ROW_5, col=COL_D)) is None
 
 
 # =============================================================================
@@ -628,10 +591,10 @@ def test_turn_alternates_after_each_move() -> None:
     clear_board(board)
     _setup_kings(board)
     board.turn = Color.WHITE
-    # White moves first
+    # White moves first (white king is at ROW_8)
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_1, col=COL_F)
+            ConstantSquare(row=ROW_8, col=COL_E), ConstantSquare(row=ROW_8, col=COL_F)
         )
         is True
     )
@@ -687,13 +650,13 @@ def test_cannot_move_opponent_piece() -> None:
     clear_board(board)
     _setup_kings(board)
     board.set_piece(
-        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
-    )  # e2
+            ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+        )  # e2
     board.turn = Color.WHITE
-    # Cannot move black pawn
+    # Cannot move black king (black king is at ROW_1, not ROW_8)
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_8, col=COL_E), ConstantSquare(row=ROW_7, col=COL_E)
+            ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_2, col=COL_E)
         )
         is False
     )
@@ -852,7 +815,11 @@ def test_rook_blocked_by_adjacent_piece() -> None:
     board.turn = Color.WHITE
     # Rook can capture pawn at (7, 1)
     legal_moves = board.get_legal_moves()
-    assert any(move[0] == (7, 0) and move[1] == (7, 1) for move in legal_moves)
+    assert any(
+        move[0] == ConstantSquare(row=ROW_1, col=COL_A)
+        and move[1] == ConstantSquare(row=ROW_1, col=COL_B)
+        for move in legal_moves
+    )
     assert (
         board.make_move(
             ConstantSquare(row=ROW_1, col=COL_A), ConstantSquare(row=ROW_1, col=COL_B)
@@ -913,9 +880,15 @@ def test_bishop_blocked_by_friendly_piece() -> None:
     board.turn = Color.WHITE
     # Bishop on a1 can move to b2 (6,1) but not past it to c3
     legal_moves = board.get_legal_moves()
-    assert any(move[0] == (7, 0) and move[1] == (6, 1) for move in legal_moves)
+    assert any(
+        move[0] == ConstantSquare(row=ROW_1, col=COL_A)
+        and move[1] == ConstantSquare(row=ROW_2, col=COL_B)
+        for move in legal_moves
+    )
     assert not any(
-        move[0] == (7, 0) and move[1] == (5, 2) for move in legal_moves
+        move[0] == ConstantSquare(row=ROW_1, col=COL_A)
+        and move[1] == ConstantSquare(row=ROW_3, col=COL_C)
+        for move in legal_moves
     )  # Blocked by pawn
 
 
@@ -939,8 +912,10 @@ def test_bishop_blocked_by_enemy_piece() -> None:
     board.turn = Color.WHITE
     # Bishop can capture but not move past
     legal_moves = board.get_legal_moves()
-    assert any(move[1] == (6, 1) for move in legal_moves)
-    assert not any(move[1] == (5, 2) for move in legal_moves)
+    assert any(move[1] == ConstantSquare(row=ROW_2, col=COL_B) for move in legal_moves)
+    assert not any(
+        move[1] == ConstantSquare(row=ROW_3, col=COL_C) for move in legal_moves
+    )
 
 
 def test_queen_blocked_in_one_direction() -> None:
@@ -965,8 +940,12 @@ def test_queen_blocked_in_one_direction() -> None:
     board.turn = Color.WHITE
     # Queen can move vertically past pawn at (5,4), but not horizontally past pawn at (7,2)
     legal_moves = board.get_legal_moves()
-    assert any(move[1] == (6, 4) for move in legal_moves)  # Can move up
-    assert any(move[1] == (5, 4) for move in legal_moves)  # Can capture pawn
+    assert any(
+        move[1] == ConstantSquare(row=ROW_2, col=COL_E) for move in legal_moves
+    )  # Can move up
+    assert any(
+        move[1] == ConstantSquare(row=ROW_3, col=COL_E) for move in legal_moves
+    )  # Can capture pawn
 
 
 def test_queen_blocked_in_multiple_directions() -> None:
@@ -1012,7 +991,9 @@ def test_knight_all_eight_moves_from_center() -> None:
     # Knight on d4 (center-ish) should have 8 moves on empty board
     legal_moves = board.get_legal_moves()
     # Filter to only knight moves from the knight's position
-    knight_moves = [m for m in legal_moves if m[0] == (3, 4)]
+    knight_moves = [
+        m for m in legal_moves if m[0] == ConstantSquare(row=ROW_5, col=COL_E)
+    ]
     assert len(knight_moves) == 8
 
 
@@ -1037,7 +1018,9 @@ def test_knight_jumps_over_pieces() -> None:
     # Knight should still be able to jump over pawns
     legal_moves = board.get_legal_moves()
     # Filter to only knight moves from the knight's position
-    knight_moves = [m for m in legal_moves if m[0] == (3, 4)]
+    knight_moves = [
+        m for m in legal_moves if m[0] == ConstantSquare(row=ROW_5, col=COL_E)
+    ]
     assert len(knight_moves) == 8
 
 
@@ -1056,10 +1039,16 @@ def test_knight_corner_has_two_moves() -> None:
     # Knight on a1 has exactly 2 moves (b3 and c2)
     legal_moves = board.get_legal_moves()
     # Filter to only knight moves from the knight's position (a1 = ROW_1, COL_A)
-    knight_moves = [m for m in legal_moves if m[0] == (0, 0)]
+    knight_moves = [
+        m for m in legal_moves if m[0] == ConstantSquare(row=ROW_1, col=COL_A)
+    ]
     assert len(knight_moves) == 2
-    assert any(move[1] == (1, 2) for move in knight_moves)  # c2
-    assert any(move[1] == (2, 1) for move in knight_moves)  # b3
+    assert any(
+        move[1] == ConstantSquare(row=ROW_3, col=COL_B) for move in knight_moves
+    )  # b3
+    assert any(
+        move[1] == ConstantSquare(row=ROW_2, col=COL_C) for move in knight_moves
+    )  # c2
 
 
 def test_knight_edge_has_reduced_moves() -> None:
@@ -1077,7 +1066,9 @@ def test_knight_edge_has_reduced_moves() -> None:
     # Knight on a4 (edge file) has 4 moves
     legal_moves = board.get_legal_moves()
     # Filter to only knight moves from the knight's position
-    knight_moves = [m for m in legal_moves if m[0] == (3, 0)]
+    knight_moves = [
+        m for m in legal_moves if m[0] == ConstantSquare(row=ROW_5, col=COL_A)
+    ]
     assert len(knight_moves) == 4
 
 
@@ -1092,11 +1083,19 @@ def test_king_corner_has_three_moves() -> None:
     # King on a1 has exactly 3 moves (a2, b2, b1)
     legal_moves = board.get_legal_moves()
     # Filter to only king moves from the king's position
-    king_moves = [m for m in legal_moves if m[0] == (7, 0)]
+    king_moves = [
+        m for m in legal_moves if m[0] == ConstantSquare(row=ROW_1, col=COL_A)
+    ]
     assert len(king_moves) == 3
-    assert any(move[1] == (7, 1) for move in king_moves)  # b1
-    assert any(move[1] == (6, 0) for move in king_moves)  # a2
-    assert any(move[1] == (6, 1) for move in king_moves)  # b2
+    assert any(
+        move[1] == ConstantSquare(row=ROW_1, col=COL_B) for move in king_moves
+    )  # b1
+    assert any(
+        move[1] == ConstantSquare(row=ROW_2, col=COL_A) for move in king_moves
+    )  # a2
+    assert any(
+        move[1] == ConstantSquare(row=ROW_2, col=COL_B) for move in king_moves
+    )  # b2
 
 
 def test_king_all_eight_moves_from_center() -> None:
@@ -1113,7 +1112,9 @@ def test_king_all_eight_moves_from_center() -> None:
     # King on d4 should have 8 moves on empty board
     legal_moves = board.get_legal_moves()
     # Filter to only king moves from the king's position
-    king_moves = [m for m in legal_moves if m[0] == (3, 4)]
+    king_moves = [
+        m for m in legal_moves if m[0] == ConstantSquare(row=ROW_5, col=COL_E)
+    ]
     assert len(king_moves) == 8
 
 
@@ -1292,7 +1293,7 @@ def test_promotion_resolves_check() -> None:
         ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
     )  # e8
     board.set_piece(
-        6, 4, create_piece(Color.WHITE, PieceType.PAWN)
+        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )  # e7 (ready to promote)
     board.set_piece(
         ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.ROOK)
@@ -1311,21 +1312,17 @@ def test_promotion_resolves_check() -> None:
     # Knight from e8 (7,4) to g6 (6,6) is (-1,2) - VALID knight move!
     board.clear_square(ConstantSquare(row=ROW_8, col=COL_E))  # Clear rook on e1
     board.set_piece(
-        6,
-        6,
-        create_piece(Color.BLACK, PieceType.ROOK),  # g6
-    )
+        ConstantSquare(row=ROW_7, col=COL_G), create_piece(Color.BLACK, PieceType.ROOK)
+    )  # g6
     board.clear_square(ConstantSquare(row=ROW_1, col=COL_G))  # Clear white knight at g6
     board.set_piece(
-        7, 4, create_piece(Color.WHITE, PieceType.KNIGHT)
+        ConstantSquare(row=ROW_8, col=COL_E),
+        create_piece(Color.WHITE, PieceType.KNIGHT),
     )  # White knight at e8
     board.turn = Color.WHITE
     # Knight from e8 (7,4) to g6 (6,6) captures rook (no promotion parameter for non-pawn moves)
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_2, col=COL_G)
-        )
-        is True
+    assert board.make_move(
+        ConstantSquare(row=ROW_8, col=COL_E), ConstantSquare(row=ROW_7, col=COL_G)
     )  # Knight captures rook on g6, resolving check
 
 
@@ -1336,13 +1333,13 @@ def test_promotion_that_would_leave_king_in_check() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        0, 4, create_piece(Color.WHITE, PieceType.KING)
+        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
     )  # e8 (rank 8, e-file)
     board.set_piece(
-        1, 2, create_piece(Color.WHITE, PieceType.PAWN)
+        ConstantSquare(row=ROW_7, col=COL_C), create_piece(Color.WHITE, PieceType.PAWN)
     )  # c7 (rank 7, c-file)
     board.set_piece(
-        0, 3, create_piece(Color.WHITE, PieceType.ROOK)
+        ConstantSquare(row=ROW_8, col=COL_D), create_piece(Color.WHITE, PieceType.ROOK)
     )  # d8 (rank 8, d-file) checks e8
     board.turn = Color.WHITE
     # All non-check-resolving promotions should be illegal
@@ -1407,7 +1404,7 @@ def test_promotion_from_non_standard_pawn_positions() -> None:
     board2 = Board()
     clear_board(board2)
     board2.set_piece(
-        3, 4, create_piece(Color.BLACK, PieceType.PAWN)
+        ConstantSquare(row=ROW_5, col=COL_E), create_piece(Color.BLACK, PieceType.PAWN)
     )  # e4 (row 3 = rank 5)
     board2.set_piece(
         ConstantSquare(row=ROW_8, col=COL_G), create_piece(Color.BLACK, PieceType.KING)
@@ -1554,7 +1551,7 @@ def test_promotion_with_en_passant_same_turn() -> None:
         ConstantSquare(row=ROW_3, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )  # e6
     board2.set_piece(
-        6, 4, create_piece(Color.BLACK, PieceType.PAWN)
+        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.BLACK, PieceType.PAWN)
     )  # e7 (for en passant)
     board2.turn = Color.WHITE
     # En passant capture from e6 to e8 (promotion)

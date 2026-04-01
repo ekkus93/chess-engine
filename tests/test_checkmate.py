@@ -6,14 +6,19 @@ from chess_game.constants import (
     get_row_constant,
     get_col_constant,
     COL_A,
+    COL_B,
+    COL_C,
     COL_D,
     COL_E,
     COL_F,
+    COL_G,
     COL_H,
+    ROW_0,
     ROW_1,
     ROW_2,
     ROW_3,
     ROW_4,
+    ROW_5,
     ROW_6,
     ROW_7,
     ROW_8,
@@ -31,10 +36,10 @@ def clear_board(board: Board) -> None:
 
 def _setup_kings(board: Board) -> None:
     board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
     )
 
 
@@ -44,42 +49,43 @@ def test_absolute_pin_rook_cannot_move_forward() -> None:
     """T4.1: Absolutely pinned rook cannot move to expose king."""
     board = Board()
     clear_board(board)
+    # White king on f7 (doesn't check d8)
     board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        ConstantSquare(row=ROW_6, col=COL_F), create_piece(Color.WHITE, PieceType.KING)
     )
     # Black king on d8 (not e8 to avoid conflict with queen)
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_D), create_piece(Color.BLACK, PieceType.KING)
+        ConstantSquare(row=ROW_7, col=COL_D), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_4, col=COL_E), create_piece(Color.WHITE, PieceType.ROOK)
+        ConstantSquare(row=ROW_3, col=COL_E), create_piece(Color.WHITE, PieceType.ROOK)
     )
     # Queen on e8 that pins the rook (on the same file)
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.QUEEN)
+        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.BLACK, PieceType.QUEEN)
     )
     # White knight on f3 that can capture king
     board.set_piece(
-        ConstantSquare(row=ROW_2, col=COL_F),
+        ConstantSquare(row=ROW_1, col=COL_F),
         create_piece(Color.WHITE, PieceType.KNIGHT),
     )
-    # White rook on e4 is pinned by black queen on e8
+    # White rook on e3 is pinned by black queen on e7
     # Rook cannot move towards king (that would expose it to queen)
     board.turn = Color.WHITE
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_4, col=COL_E), ConstantSquare(row=ROW_4, col=COL_F)
+            ConstantSquare(row=ROW_3, col=COL_E), ConstantSquare(row=ROW_3, col=COL_F)
         )
         is False
     )  # Cannot move towards king (away from queen)
     # Black moves (to change turn)
     board.turn = Color.BLACK
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_A), create_piece(Color.BLACK, PieceType.ROOK)
+        ConstantSquare(row=ROW_7, col=COL_A), create_piece(Color.BLACK, PieceType.ROOK)
     )
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_8, col=COL_A), ConstantSquare(row=ROW_8, col=COL_B)
+            ConstantSquare(row=ROW_7, col=COL_A), ConstantSquare(row=ROW_7, col=COL_B)
         )
         is True
     )
@@ -89,36 +95,37 @@ def test_absolute_pin_rook_cannot_move_sideways() -> None:
     """T4.1: Absolutely pinned rook cannot move sideways."""
     board = Board()
     clear_board(board)
+    # White king on f7 (doesn't check d8)
     board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        ConstantSquare(row=ROW_6, col=COL_F), create_piece(Color.WHITE, PieceType.KING)
     )
     # Black king on d8 (not e8 to avoid conflict with queen)
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_D), create_piece(Color.BLACK, PieceType.KING)
+        ConstantSquare(row=ROW_7, col=COL_D), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_4, col=COL_E), create_piece(Color.WHITE, PieceType.ROOK)
+        ConstantSquare(row=ROW_3, col=COL_E), create_piece(Color.WHITE, PieceType.ROOK)
     )
-    # Queen on e8 that pins the rook (on the same file)
+    # Queen on e7 that pins the rook (on the same file)
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.QUEEN)
+        ConstantSquare(row=ROW_6, col=COL_E), create_piece(Color.BLACK, PieceType.QUEEN)
     )
-    # White rook on e4 is pinned by black queen on e8
+    # White rook on e3 is pinned by black queen on e7
     board.turn = Color.WHITE
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_4, col=COL_E), ConstantSquare(row=ROW_4, col=COL_D)
+            ConstantSquare(row=ROW_3, col=COL_E), ConstantSquare(row=ROW_3, col=COL_D)
         )
         is False
     )  # Cannot move sideways
     # Black moves (to change turn)
     board.turn = Color.BLACK
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_A), create_piece(Color.BLACK, PieceType.ROOK)
+        ConstantSquare(row=ROW_7, col=COL_A), create_piece(Color.BLACK, PieceType.ROOK)
     )
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_8, col=COL_A), ConstantSquare(row=ROW_8, col=COL_B)
+            ConstantSquare(row=ROW_7, col=COL_A), ConstantSquare(row=ROW_7, col=COL_B)
         )
         is True
     )
@@ -128,46 +135,47 @@ def test_pinned_rook_can_be_captured() -> None:
     """T4.1: Pinned piece can be captured (even if it exposes king)."""
     board = Board()
     clear_board(board)
+    # White king on f7 (doesn't check d8)
     board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        ConstantSquare(row=ROW_6, col=COL_F), create_piece(Color.WHITE, PieceType.KING)
     )
-    # Black king on a8 (not on e-file to avoid conflict)
+    # Black king on d8
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_A), create_piece(Color.BLACK, PieceType.KING)
+        ConstantSquare(row=ROW_7, col=COL_D), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_4, col=COL_E), create_piece(Color.WHITE, PieceType.ROOK)
+        ConstantSquare(row=ROW_3, col=COL_E), create_piece(Color.WHITE, PieceType.ROOK)
     )
-    # Bishop on a1-h8 diagonal that pins the rook
+    # Bishop on h8 that pins the white rook (same diagonal)
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_H),
+        ConstantSquare(row=ROW_7, col=COL_H),
         create_piece(Color.BLACK, PieceType.BISHOP),
     )
     # Knight can capture the rook from e3
     board.set_piece(
-        ConstantSquare(row=ROW_2, col=COL_D),
+        ConstantSquare(row=ROW_5, col=COL_D),
         create_piece(Color.BLACK, PieceType.KNIGHT),
     )
     # Black knight can capture pinned white rook
     board.turn = Color.BLACK
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_2, col=COL_D), ConstantSquare(row=ROW_4, col=COL_E)
+            ConstantSquare(row=ROW_5, col=COL_D), ConstantSquare(row=ROW_3, col=COL_E)
         )
         is True
-    )  # Black knight captures white rook
+    )  # Black knight captures white rook (even though pinned)
     # Black moves (to change turn)
     board.turn = Color.WHITE
     board.set_piece(
-        ConstantSquare(row=ROW_2, col=COL_D), create_piece(Color.BLACK, PieceType.PAWN)
+        ConstantSquare(row=ROW_6, col=COL_D), create_piece(Color.BLACK, PieceType.PAWN)
     )
     board.turn = Color.BLACK
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_7, col=COL_D), ConstantSquare(row=ROW_8, col=COL_D)
+            ConstantSquare(row=ROW_6, col=COL_D), ConstantSquare(row=ROW_5, col=COL_D)
         )
         is True
-    )
+    )  # Black pawn moves (unpinned piece can move)
 
 
 def test_relative_pin_piece_can_move() -> None:
@@ -190,14 +198,14 @@ def test_relative_pin_piece_can_move() -> None:
         ConstantSquare(row=ROW_8, col=COL_E),
         create_piece(Color.BLACK, PieceType.BISHOP),
     )
-    # White queen on d3 is pinned by black bishop but is not protecting king
+    # White queen on e4 is pinned by black bishop on e1 but can still move (queen is not protecting king)
     board.turn = Color.WHITE
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_3, col=COL_E), ConstantSquare(row=ROW_2, col=COL_E)
+            ConstantSquare(row=ROW_4, col=COL_E), ConstantSquare(row=ROW_6, col=COL_E)
         )
         is True
-    )  # Can move away from pin
+    )  # Queen can move away from pin
 
 
 def test_relative_pin_does_not_prevent_movement() -> None:
@@ -222,11 +230,11 @@ def test_relative_pin_does_not_prevent_movement() -> None:
         ConstantSquare(row=ROW_8, col=COL_E),
         create_piece(Color.BLACK, PieceType.BISHOP),
     )
-    # White knight on d3 is pinned but can still move
+    # White knight on e4 is pinned by bishop on e1 but can still move (knights jump pins)
     board.turn = Color.WHITE
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_3, col=COL_E), ConstantSquare(row=ROW_5, col=COL_F)
+            ConstantSquare(row=ROW_4, col=COL_E), ConstantSquare(row=ROW_6, col=COL_F)
         )
         is True
     )  # Knight can jump over pin
@@ -320,33 +328,30 @@ def test_king_can_move_out_of_pin() -> None:
     """T4.4: King can move out of a pinning position."""
     board = Board()
     clear_board(board)
+    # White king on d8 (not on the e-file)
     board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        ConstantSquare(row=ROW_8, col=COL_D), create_piece(Color.WHITE, PieceType.KING)
+    )
+    # Black rook on e1 that pins the white rook on e4
+    board.set_piece(
+        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.BLACK, PieceType.ROOK)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        ConstantSquare(row=ROW_4, col=COL_E),
+        create_piece(Color.WHITE, PieceType.ROOK),
     )
-    board.set_piece(
-        ConstantSquare(row=ROW_2, col=COL_E),
-        create_piece(Color.WHITE, PieceType.BISHOP),
-    )
-    # Bishop on a1-h8 diagonal that can pin the king
-    board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_H),
-        create_piece(Color.BLACK, PieceType.BISHOP),
-    )
-    # White king moves away from pin
+    # White rook on e4 is pinned but can move sideways to f4
     board.turn = Color.WHITE
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_7, col=COL_E), ConstantSquare(row=ROW_7, col=COL_D)
+            ConstantSquare(row=ROW_4, col=COL_E), ConstantSquare(row=ROW_4, col=COL_F)
         )
         is True
-    )  # King can move out of pin
+    )  # Rook can move away from pin
     # Black moves (to change turn)
     board.turn = Color.BLACK
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_A), create_piece(Color.BLACK, PieceType.ROOK)
+        ConstantSquare(row=ROW_1, col=COL_A), create_piece(Color.BLACK, PieceType.KING)
     )
     assert (
         board.make_move(

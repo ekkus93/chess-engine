@@ -1,47 +1,24 @@
 """Chess board coordinate constants with type-safe enums."""
 
+from dataclasses import dataclass
 from enum import IntEnum
-from typing import NamedTuple, List, Union, Any
-from pydantic import BaseModel, field_validator, model_validator
+from typing import NamedTuple, List, Optional, Union
+from pydantic import BaseModel, field_validator
 
 
-class Square(NamedTuple):
-    """A board square in array coordinates (row, col).
-
-    Note: This is the internal array coordinate system, not algebraic notation.
-    Row 0 = rank 1 (white back rank), Row 7 = rank 8 (black back rank)
-    Column 0 = file 'a', Column 7 = file 'h'
-    """
-
-    row: int
-    col: int
+# Board geometry constants
+BOARD_SIZE = 8
 
 
-class AlgebraicSquare(NamedTuple):
-    """A board square in algebraic notation coordinates.
-
-    This is the external coordinate system used for user-facing API.
-    Uses files a-h and ranks 1-8.
-
-    Examples:
-        'a1' = white's back rank, leftmost square
-        'h8' = black's back rank, rightmost square
-    """
-
-    file: str  # 'a' through 'h'
-    rank: int  # 1 through 8
-
-
+# Color enum
 class Color(IntEnum):
-    """Piece colors."""
-
     WHITE = 1
     BLACK = 0
 
 
+# PieceType enum
 class PieceType(IntEnum):
-    """Types of chess pieces."""
-
+    EMPTY = 0
     PAWN = 1
     KNIGHT = 2
     BISHOP = 3
@@ -50,8 +27,11 @@ class PieceType(IntEnum):
     KING = 6
 
 
-# Board geometry constants
-BOARD_SIZE = 8
+# AlgebraicSquare is a NamedTuple for algebraic notation
+AlgebraicSquare = NamedTuple("AlgebraicSquare", [("file", str), ("rank", int)])
+
+# Square is an alias for ConstantSquare for convenience
+Square = None  # Will be set after ConstantSquare is defined
 
 
 class RowConstant:
@@ -114,19 +94,7 @@ class RowConstant:
         other_value = int(other) if isinstance(other, RowConstant) else other
         return self._value <= other_value
 
-    def __ge__(self, other: Union["RowConstant", int]) -> bool:
-        """Compare greater than or equal to another RowConstant or int."""
-        other_value = int(other) if isinstance(other, RowConstant) else other
-        return self._value >= other_value
-
-    def __eq__(self, other: Union["RowConstant", int]) -> bool:
-        if isinstance(other, RowConstant):
-            return self._value == other._value
-        if isinstance(other, int):
-            return self._value == other
-        return False
-
-    def __ne__(self, other: Union["RowConstant", int]) -> bool:
+    def __ne__(self, other: object) -> bool:
         if isinstance(other, RowConstant):
             return self._value != other._value
         if isinstance(other, int):
@@ -145,7 +113,7 @@ class ColConstant:
     def __int__(self) -> int:
         return self._value
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, ColConstant):
             return self._value == other._value
         if isinstance(other, int):
@@ -198,14 +166,7 @@ class ColConstant:
         other_value = int(other) if isinstance(other, ColConstant) else other
         return self._value >= other_value
 
-    def __eq__(self, other: Union["ColConstant", int]) -> bool:
-        if isinstance(other, ColConstant):
-            return self._value == other._value
-        if isinstance(other, int):
-            return self._value == other
-        return False
-
-    def __ne__(self, other: Union["ColConstant", int]) -> bool:
+    def __ne__(self, other: object) -> bool:
         if isinstance(other, ColConstant):
             return self._value != other._value
         if isinstance(other, int):
@@ -214,9 +175,9 @@ class ColConstant:
 
 
 # Array coordinate constants (internal system)
-# ROW_N = array row (N-1)
-# ROW_1 (rank 1) = row 0, ROW_8 (rank 8) = row 7
-ROW_0 = RowConstant(7)  # array row 7 (rank 8)
+# ROW_N maps to array row such that ROW_1 (rank 1) is at the bottom, ROW_8 (rank 8) at the top
+# Row 0 = rank 1 (white back rank)
+# Row 7 = rank 8 (black back rank)
 ROW_1 = RowConstant(0)  # array row 0 (rank 1)
 ROW_2 = RowConstant(1)  # array row 1 (rank 2)
 ROW_3 = RowConstant(2)  # array row 2 (rank 3)
@@ -226,9 +187,8 @@ ROW_6 = RowConstant(5)  # array row 5 (rank 6)
 ROW_7 = RowConstant(6)  # array row 6 (rank 7)
 ROW_8 = RowConstant(7)  # array row 7 (rank 8)
 
-# Add ROW_0 as alias for ROW_8 for compatibility
-# Tests expect ROW_0 and ROW_8 to both represent rank 8 (row 7)
-ROW_0 = ROW_8  # array row 7 (alias for ROW_8)
+# Add ROW_0 as alias for ROW_1 for compatibility
+ROW_0 = ROW_1  # array row 0 (alias for ROW_1)
 
 COL_A = ColConstant(0)  # file a
 COL_B = ColConstant(1)  # file b
@@ -413,10 +373,20 @@ def get_square_constant(row: int, col: int) -> ConstantSquare:
     return ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
 
 
-def clear_board(board: List[PieceType]) -> None:
-    """Clear all pieces from the board."""
-    for i in range(len(board)):
-        board[i] = PieceType.EMPTY
+def clear_board(board_list) -> None:
+    """Clear all pieces from the board list."""
+    if hasattr(board_list, "board"):
+        # Handle Board object
+        for row in board_list.board:
+            for i, piece in enumerate(row):
+                if piece is not None:
+                    row[i] = None
+    else:
+        # Handle list of lists
+        for piece_list in board_list:
+            for i, piece in enumerate(piece_list):
+                if piece is not None:
+                    piece_list[i] = None
 
 
 # Type alias that enforces use of constant coordinate objects
@@ -424,3 +394,6 @@ def clear_board(board: List[PieceType]) -> None:
 # type safety with int values
 RowType = int
 ColType = int
+
+# Set Square alias after ConstantSquare is defined
+Square = ConstantSquare

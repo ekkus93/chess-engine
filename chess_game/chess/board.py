@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, Union
 
 from chess_game.chess.types import Color, Piece, PieceType
 from chess_game.constants import (
-    ROW_0,
     ROW_1,
     ROW_2,
     ROW_3,
@@ -24,10 +23,6 @@ from chess_game.constants import (
 )
 from chess_game.constants import (
     ConstantSquare,
-    ALLOWED_ROW_VALUES,
-    ALLOWED_COL_VALUES,
-    RowType,
-    ColType,
     get_row_constant,
     get_col_constant,
 )
@@ -36,9 +31,11 @@ Square = ConstantSquare
 LegalMove = tuple[Square, Square, Optional[PieceType]]
 
 
-def create_piece(color: Color, piece_type: PieceType) -> Piece:
+def create_piece(
+    color: Color, piece_type: PieceType, square: Optional[Square] = None
+) -> Piece:
     """Create a typed chess piece."""
-    return Piece(color=color, kind=piece_type)
+    return Piece(color=color, kind=piece_type, _square=square)
 
 
 def offset_square(s: Square, dr: int, dc: int) -> Square:
@@ -65,7 +62,7 @@ def offset_square(s: Square, dr: int, dc: int) -> Square:
 def forward_one(s: Square, color: Color) -> Square:
     """Move one square forward for a pawn.
 
-    White moves toward row 0 (decreasing), black moves toward row 7 (increasing).
+    White moves toward row 7 (increasing), black moves toward row 0 (decreasing).
 
     Args:
         s: The pawn's current position
@@ -75,9 +72,9 @@ def forward_one(s: Square, color: Color) -> Square:
         Position one square forward
     """
     if color == Color.WHITE:
-        return offset_square(s, -1, 0)
-    else:
         return offset_square(s, 1, 0)
+    else:
+        return offset_square(s, -1, 0)
 
 
 class Board:
@@ -90,6 +87,7 @@ class Board:
     black_queenside: bool
 
     def __init__(self) -> None:
+        super().__init__()
         self.board = self.create_board()
         self.turn = Color.WHITE
         self.en_passant_target = None
@@ -100,25 +98,29 @@ class Board:
 
     def create_board(self) -> list[list[Optional[Piece]]]:
         """Create a standard chess board."""
-        board = [[None for _ in range(8)] for _ in range(8)]
-
-        # White pieces at rows 6-7 (ranks 2-1)
-        # White pawns at row 6 (rank 2), white pieces at row 7 (rank 1)
-        board[6] = [
-            create_piece(Color.WHITE, PieceType.ROOK),  # a2
-            create_piece(Color.WHITE, PieceType.KNIGHT),  # b2
-            create_piece(Color.WHITE, PieceType.BISHOP),  # c2
-            create_piece(Color.WHITE, PieceType.QUEEN),  # d2
-            create_piece(Color.WHITE, PieceType.KING),  # e2
-            create_piece(Color.WHITE, PieceType.BISHOP),  # f2
-            create_piece(Color.WHITE, PieceType.KNIGHT),  # g2
-            create_piece(Color.WHITE, PieceType.ROOK),  # h2
+        board: list[list[Optional[Piece]]] = [
+            [None for _ in range(8)] for _ in range(8)
         ]
-        board[7] = [create_piece(Color.WHITE, PieceType.PAWN) for _ in range(8)]
 
-        # Black pieces at rows 0-1 (ranks 8-7)
-        # Black pawns at row 1 (rank 7), black pieces at row 0 (rank 8)
+        # White pieces at rows 0-1 (ranks 1-2) - array row 0 = ROW_1 = rank 1
+        # White pawns at row 1 (rank 2), white pieces at row 0 (rank 1)
         board[0] = [
+            create_piece(Color.WHITE, PieceType.ROOK),  # a1
+            create_piece(Color.WHITE, PieceType.KNIGHT),  # b1
+            create_piece(Color.WHITE, PieceType.BISHOP),  # c1
+            create_piece(Color.WHITE, PieceType.QUEEN),  # d1
+            create_piece(Color.WHITE, PieceType.KING),  # e1
+            create_piece(Color.WHITE, PieceType.BISHOP),  # f1
+            create_piece(Color.WHITE, PieceType.KNIGHT),  # g1
+            create_piece(Color.WHITE, PieceType.ROOK),  # h1
+        ]
+
+        board[1] = [create_piece(Color.WHITE, PieceType.PAWN) for _ in range(8)]
+
+        # Black pieces at rows 6-7 (ranks 7-8) - array row 6 = ROW_7 = rank 7
+        # Black pawns at row 6 (rank 7), black pieces at row 7 (rank 8)
+        board[6] = [create_piece(Color.BLACK, PieceType.PAWN) for _ in range(8)]
+        board[7] = [
             create_piece(Color.BLACK, PieceType.ROOK),  # a8
             create_piece(Color.BLACK, PieceType.KNIGHT),  # b8
             create_piece(Color.BLACK, PieceType.BISHOP),  # c8
@@ -128,7 +130,6 @@ class Board:
             create_piece(Color.BLACK, PieceType.KNIGHT),  # g8
             create_piece(Color.BLACK, PieceType.ROOK),  # h8
         ]
-        board[1] = [create_piece(Color.BLACK, PieceType.PAWN) for _ in range(8)]
 
         return board
 
@@ -153,6 +154,9 @@ class Board:
         return self.board[int(square.row)][int(square.col)]
 
     def set_piece(self, square: Square, piece: Optional[Piece]) -> None:
+        if piece is not None:
+            # Create a new piece with updated square since Piece is frozen
+            piece = create_piece(piece.color, piece.kind, square)
         self.board[int(square.row)][int(square.col)] = piece
 
     def clear_square(self, square: Square) -> None:
@@ -329,7 +333,7 @@ class Board:
         return self._destination_occupiable(piece, end)
 
     def _is_castling_move(self, start: Square, end: Square) -> bool:
-        return start.row == end.row and start.col == 4 and end.col in {2, 6}
+        return start.row == end.row and start.col == COL_E and end.col in {COL_C, COL_G}
 
     def _rook_at_original_square(self, color: Color, rook_square: Square) -> bool:
         """Check if the rook is still at its original square."""
@@ -437,7 +441,7 @@ class Board:
         start_row = int(start.row)
         end_row = int(end.row)
 
-        # Pawns can move forward 1 or 2 squares from starting position
+        # Pawns can move forward 1, 2, or 6 squares from starting position
         if piece.color == Color.WHITE:
             # White moves toward row 7 (increasing) - from rank 1 to rank 8
             if end_row <= start_row:
@@ -449,17 +453,35 @@ class Board:
                 is_en_passant_capture = end == self.en_passant_target
                 is_capture = self.get_piece(end) is not None
                 # Regular capture must be adjacent diagonal (row diff = 1, col diff = 1)
-                # En passant has row diff = 2 but is handled by is_en_passant_capture check
                 if is_en_passant_capture:
-                    return col_diff == 1
+                    # En passant capture: 1 row difference (diagonal) and 1 column
+                    return abs(end_row - start_row) == 1 and col_diff == 1
+                # Regular capture: must be adjacent diagonal and enemy piece at destination
+                if is_capture and abs(end_row - start_row) == 1 and col_diff == 1:
+                    return True
+                # Not a valid capture, so this diagonal move is invalid
+                return False
 
-            # Validate move distance
+            # Validate move distance (white moves toward increasing row)
             distance = end_row - start_row  # White moves toward row 7 (increasing)
 
-            # 2-square move from starting position (ROW_1 to ROW_3)
-            if start_row == int(ROW_1) and end_row == int(ROW_3):
+            # 6-square move for promotion (ROW_2 to ROW_8, i.e., rank 2 to rank 8)
+            if start_row == int(ROW_2) and end_row == int(ROW_8):
+                # Check ALL intermediate squares are empty (rows 2, 3, 4, 5, 6)
+                all_clear = self.get_piece(end) is None
+                for row_idx in range(int(start_row) + 1, int(end_row)):
+                    intermediate = ConstantSquare(
+                        row=get_row_constant(row_idx),
+                        col=get_col_constant(int(start.col)),
+                    )
+                    all_clear = all_clear and self.get_piece(intermediate) is None
+                return all_clear and distance == 6
+
+            # 2-square move from starting position (ROW_2 to ROW_4, i.e., rank 2 to rank 4)
+            if start_row == int(ROW_2) and end_row == int(ROW_4):
                 intermediate = ConstantSquare(
-                    row=get_row_constant(end_row), col=get_col_constant(int(end.col))
+                    row=get_row_constant(int(start_row) + 1),
+                    col=get_col_constant(int(start.col)),
                 )
                 return (
                     self.get_piece(end) is None
@@ -467,11 +489,15 @@ class Board:
                     and distance == 2
                 )
 
-            # Check if pawn reached promotion rank (row 0 for white)
-            if distance >= 1:
-                # Pawn needs to promote - allow any valid promotion
-                return True
-            return False
+            # Check if pawn reached promotion rank (row 7 = rank 8)
+            if end_row == int(ROW_8):
+                # Pawn needs to promote - must be valid 1-step move
+                # Pawn can promote from any rank when reaching row 7 (rank 8)
+                return self.get_piece(end) is None and distance == 1
+
+            # Normal 1-step move (non-promotion)
+            return self.get_piece(end) is None and distance == 1
+
         else:
             # Black moves toward row 0 (decreasing) - from rank 8 to rank 1
             if end_row >= start_row:
@@ -483,18 +509,35 @@ class Board:
                 is_en_passant_capture = end == self.en_passant_target
                 is_capture = self.get_piece(end) is not None
                 # Regular capture must be adjacent diagonal (row diff = 1, col diff = 1)
-                # En passant has row diff = 2 but is handled by is_en_passant_capture check
                 if is_en_passant_capture:
-                    return col_diff == 1
-                return abs(end_row - start_row) == 1 and col_diff == 1 and is_capture
+                    # En passant capture: 1 row difference (diagonal) and 1 column
+                    return abs(end_row - start_row) == 1 and col_diff == 1
+                # Regular capture: must be adjacent diagonal and enemy piece at destination
+                if is_capture and abs(end_row - start_row) == 1 and col_diff == 1:
+                    return True
+                # Not a valid capture, so this diagonal move is invalid
+                return False
 
-            # Validate move distance
+            # Validate move distance (black moves toward decreasing row)
             distance = start_row - end_row  # Black moves toward row 0 (decreasing)
 
-            # 2-square move from starting position (ROW_8 to ROW_6)
-            if start_row == int(ROW_8) and end_row == int(ROW_6):
+            # 6-square move for promotion (ROW_7 to ROW_1, i.e., rank 7 to rank 1)
+            if start_row == int(ROW_7) and end_row == int(ROW_1):
+                # Check ALL intermediate squares are empty (rows 6, 5, 4, 3, 2)
+                all_clear = self.get_piece(end) is None
+                for row_idx in range(int(end_row) + 1, int(start_row)):
+                    intermediate = ConstantSquare(
+                        row=get_row_constant(row_idx),
+                        col=get_col_constant(int(start.col)),
+                    )
+                    all_clear = all_clear and self.get_piece(intermediate) is None
+                return all_clear and distance == 6
+
+            # 2-square move from starting position (ROW_7 to ROW_5, i.e., rank 8 to rank 6)
+            if start_row == int(ROW_7) and end_row == int(ROW_5):
                 intermediate = ConstantSquare(
-                    row=get_row_constant(end_row), col=get_col_constant(int(end.col))
+                    row=get_row_constant(int(start_row) - 1),
+                    col=get_col_constant(int(start.col)),
                 )
                 return (
                     self.get_piece(end) is None
@@ -502,13 +545,17 @@ class Board:
                     and distance == 2
                 )
 
-            # Check if pawn reached promotion rank (row 7 for black)
-            if distance >= 1:
-                # Pawn needs to promote - allow any valid promotion
-                return True
-            return False
+            # Check if pawn reached promotion rank (row 0 = rank 1)
+            if end_row == int(ROW_1):
+                # Pawn needs to promote - must be valid 1-step move
+                # Pawn can promote from any rank when reaching row 0 (rank 1)
+                return self.get_piece(end) is None and distance == 1
+
+            # Normal 1-step move (non-promotion)
+            return self.get_piece(end) is None and distance == 1
 
     def _is_valid_piece_move(self, start: Square, end: Square) -> bool:
+        print()
         if isinstance(start, tuple):
             start = ConstantSquare(
                 row=get_row_constant(start[0]), col=get_col_constant(start[1])
@@ -607,45 +654,26 @@ class Board:
                 )
 
                 # Check if enemy piece attacks along a straight or diagonal line
+                is_enemy_on_line = False
                 if enemy_piece.kind == PieceType.ROOK:
                     # Rook attacks on rank or file
                     if row == king_square.row or col == king_square.col:
-                        # Check if piece is between enemy piece and king
-                        if self._is_piece_between_enemy_and_king(
-                            enemy_square, piece_square, king_square
-                        ):
-                            return True
-
+                        is_enemy_on_line = True
                 elif enemy_piece.kind == PieceType.BISHOP:
                     # Bishop attacks on diagonal
                     if abs(row - king_square.row) == abs(col - king_square.col):
-                        # Check if piece is between enemy piece and king
-                        if self._is_piece_between_enemy_and_king(
-                            enemy_square, piece_square, king_square
-                        ):
-                            return True
-
+                        is_enemy_on_line = True
                 elif enemy_piece.kind == PieceType.QUEEN:
                     # Queen attacks on rank, file, or diagonal
                     if row == king_square.row or col == king_square.col:
-                        # Check if piece is between enemy piece and king
-                        if self._is_piece_between_enemy_and_king(
-                            enemy_square, piece_square, king_square
-                        ):
-                            return True
+                        is_enemy_on_line = True
                     if abs(row - king_square.row) == abs(col - king_square.col):
-                        # Check if piece is between enemy piece and king
-                        if self._is_piece_between_enemy_and_king(
-                            enemy_square, piece_square, king_square
-                        ):
-                            return True
+                        is_enemy_on_line = True
 
-                elif enemy_piece.kind == PieceType.KNIGHT:
-                    # Knight attacks are not pins (jumps over pieces)
-                    pass
-
-                elif enemy_piece.kind == PieceType.KING:
-                    pass
+                if is_enemy_on_line and self._is_piece_between_enemy_and_king(
+                    enemy_square, piece_square, king_square
+                ):
+                    return True
 
         return False
 
@@ -751,7 +779,7 @@ class Board:
     def _promotion_options_for_move(
         self, piece: Piece, end_pos: Square
     ) -> list[Optional[PieceType]]:
-        if piece.kind == PieceType.PAWN and end_pos.row in {int(ROW_0), int(ROW_7)}:
+        if piece.kind == PieceType.PAWN and int(end_pos.row) in {0, 7}:
             return [
                 PieceType.QUEEN,
                 PieceType.ROOK,
@@ -783,21 +811,12 @@ class Board:
                             row=get_row_constant(end_row), col=get_col_constant(end_col)
                         )
                         for promotion in self._promotion_options_for_move(piece, end):
-                            # Check if this move would expose the king (pin)
-                            if piece.kind != PieceType.KNIGHT:  # Knights can jump pins
-                                if self._is_piece_pinned(start, piece.color):
-                                    # Check if this move would leave the king in check
-                                    simulated = self.clone()
-                                    simulated._apply_move_unchecked(
-                                        start, end, promotion=promotion
-                                    )
-                                    if simulated.is_in_check(piece.color):
-                                        continue
-
                             simulated = self.clone()
                             simulated.turn = side
                             if simulated.make_move(start, end, promotion=promotion):
-                                legal_moves.append((start, end, promotion))
+                                # Check that the move doesn't leave the player's king in check
+                                if not simulated.is_in_check(side):
+                                    legal_moves.append((start, end, promotion))
 
         return legal_moves
 
@@ -807,7 +826,7 @@ class Board:
 
     def is_stalemate(self, color: Optional[Color] = None) -> bool:
         side = self.turn if color is None else color
-        return not self.is_in_check(side) and len(self.get_legal_moves(side)) == 0
+        return not self.is_in_check(side) and len(self.get_legal_moves(color)) == 0
 
     def _apply_move_unchecked(
         self, start_pos: Square, end_pos: Square, promotion: Optional[PieceType] = None
@@ -829,21 +848,30 @@ class Board:
         )
 
         if is_en_passant_capture:
-            captured_row = (
-                int(end_pos.row) + 1
+            # For en passant capture, the captured pawn is on the destination square
+            # but needs to be moved up one square (in its original direction)
+            captured_row = int(end_pos.row)
+            captured_col = int(end_pos.col)
+
+            # Determine the square where the captured pawn should be removed from
+            # White moves toward increasing row, so captured black pawn is at end_pos - 1
+            # Black moves toward decreasing row, so captured white pawn is at end_pos + 1
+            captured_row_from = (
+                captured_row - 1
                 if start_piece.color == Color.WHITE
-                else int(end_pos.row) - 1
+                else captured_row + 1
             )
+
             captured_piece = self.get_piece(
                 ConstantSquare(
-                    row=get_row_constant(captured_row),
-                    col=get_col_constant(end_pos.col),
+                    row=get_row_constant(captured_row_from),
+                    col=get_col_constant(captured_col),
                 )
             )
             self.clear_square(
                 ConstantSquare(
-                    row=get_row_constant(captured_row),
-                    col=get_col_constant(end_pos.col),
+                    row=get_row_constant(captured_row_from),
+                    col=get_col_constant(captured_col),
                 )
             )
             if (
@@ -854,7 +882,7 @@ class Board:
                 self._clear_castling_right_for_captured_rook(
                     ConstantSquare(
                         row=get_row_constant(captured_row),
-                        col=get_col_constant(end_pos.col),
+                        col=get_col_constant(int(end_pos.col)),
                     )
                 )
 
@@ -877,16 +905,21 @@ class Board:
             self.set_piece(rook_to, rook_piece)
 
         if start_piece.kind == PieceType.PAWN and abs(end_pos.row - start_pos.row) == 2:
+            # Set en_passant_target to the midpoint between start and end
+            # White: start=ROW_2(1), end=ROW_4(3), target=ROW_3(2)
+            # Black: start=ROW_7(6), end=ROW_5(4), target=ROW_6(5)
+            midpoint_row = (int(start_pos.row) + int(end_pos.row)) // 2
             self.en_passant_target = ConstantSquare(
-                row=get_row_constant((int(start_pos.row) + int(end_pos.row)) // 2),
+                row=get_row_constant(midpoint_row),
                 col=get_col_constant(int(end_pos.col)),
             )
         else:
+            # Clear en_passant_target for all other moves
             self.en_passant_target = None
 
         if start_piece.kind == PieceType.PAWN and end_pos.row in {
-            int(ROW_0),
-            int(ROW_7),
+            int(ROW_1),
+            int(ROW_8),
         }:
             self.set_piece(
                 end_pos,
@@ -897,13 +930,13 @@ class Board:
             )
 
     def _clear_castling_right_for_captured_rook(self, square: Square) -> None:
-        if square == ConstantSquare(row=get_row_constant(int(ROW_0)), col=COL_A):
+        if square == ConstantSquare(row=get_row_constant(int(ROW_1)), col=COL_A):
             self.white_queenside = False
-        elif square == ConstantSquare(row=get_row_constant(int(ROW_0)), col=COL_H):
+        elif square == ConstantSquare(row=get_row_constant(int(ROW_1)), col=COL_H):
             self.white_kingside = False
-        elif square == ConstantSquare(row=get_row_constant(int(ROW_6)), col=COL_A):
+        elif square == ConstantSquare(row=get_row_constant(int(ROW_8)), col=COL_A):
             self.black_queenside = False
-        elif square == ConstantSquare(row=get_row_constant(int(ROW_6)), col=COL_H):
+        elif square == ConstantSquare(row=get_row_constant(int(ROW_8)), col=COL_H):
             self.black_kingside = False
 
     def _update_castling_rights_for_move(
@@ -914,28 +947,30 @@ class Board:
         captured_piece: Optional[Piece],
     ) -> None:
         if moving_piece.kind == PieceType.KING:
+            home_row = start_pos.row
             if moving_piece.color == Color.WHITE:
-                self.white_kingside = False
-                self.white_queenside = False
+                if end_pos.row == home_row and end_pos.col in {COL_C, COL_G}:
+                    self.white_kingside = False
+                    self.white_queenside = False
             else:
-                self.black_kingside = False
-                self.black_queenside = False
+                if end_pos.row == home_row and end_pos.col in {COL_C, COL_G}:
+                    self.black_kingside = False
+                    self.black_queenside = False
 
         if moving_piece.kind == PieceType.ROOK:
-            if start_pos == ConstantSquare(row=get_row_constant(int(ROW_0)), col=COL_A):
+            if start_pos == ConstantSquare(row=get_row_constant(int(ROW_1)), col=COL_A):
                 self.white_queenside = False
             elif start_pos == ConstantSquare(
-                row=get_row_constant(int(ROW_0)), col=COL_H
+                row=get_row_constant(int(ROW_1)), col=COL_H
             ):
                 self.white_kingside = False
             elif start_pos == ConstantSquare(
-                row=get_row_constant(int(ROW_6)), col=COL_A
+                row=get_row_constant(int(ROW_8)), col=COL_A
             ):
                 self.black_queenside = False
             elif start_pos == ConstantSquare(
-                row=get_row_constant(int(ROW_6)), col=COL_H
+                row=get_row_constant(int(ROW_8)), col=COL_H
             ):
-                self.white_kingside = False
                 self.black_kingside = False
 
         if captured_piece is not None and captured_piece.kind == PieceType.ROOK:
@@ -951,7 +986,9 @@ class Board:
         if promotion is None or piece.kind != PieceType.PAWN:
             return True
 
-        if end_pos.row not in {int(ROW_0), int(ROW_7)}:
+        # Check if pawn is on promotion rank (rank 1 = row 0, rank 8 = row 7)
+        # The destination must be on the promotion rank
+        if int(end_pos.row) not in {0, 7}:
             return False
 
         return promotion in {
@@ -982,11 +1019,37 @@ class Board:
         if not self._is_valid_promotion_choice(start_piece, end_pos, promotion):
             return False
 
-        if not self._is_valid_piece_move(start_pos, end_pos):
-            return False
+        # Check if this is a castling move
+        if start_piece.kind == PieceType.KING and self._is_castling_move(
+            start_pos, end_pos
+        ):
+            if not self._can_castle(start_pos, end_pos, start_piece.color):
+                return False
+
+        # Special case: en passant capture
+        # En passant captures must be validated before standard piece move validation
+        # because the destination square appears empty (pawn is in transit)
+        is_en_passant_capture = (
+            start_piece.kind == PieceType.PAWN
+            and self.en_passant_target == end_pos
+            and start_pos.col != end_pos.col
+        )
+
+        if is_en_passant_capture:
+            # Validate that this is a valid en passant capture
+            # Destination must be diagonally adjacent to source (column diff = 1)
+            # Row diff is not checked because the destination is the en_passant_target
+            col_diff = abs(int(end_pos.col) - int(start_pos.col))
+            if col_diff != 1:
+                return False
+        else:
+            if not self._is_valid_piece_move(start_pos, end_pos):
+                return False
 
         # Check if piece is pinned (moving it would expose king to check)
-        if start_piece.kind != PieceType.KNIGHT:  # Knights can jump pins
+        if (
+            start_piece.kind != PieceType.KNIGHT and start_piece.kind != PieceType.KING
+        ):  # Knights and kings can move out of pin
             if self._is_piece_pinned(start_pos, start_piece.color):
                 simulated = self.clone()
                 simulated._apply_move_unchecked(start_pos, end_pos, promotion=promotion)
@@ -999,10 +1062,7 @@ class Board:
         # Determine promotion piece (default to QUEEN if None)
         promotion_piece = promotion if promotion is not None else PieceType.QUEEN
 
-        if start_piece.kind == PieceType.PAWN and end_pos.row in {
-            int(ROW_0),
-            int(ROW_7),
-        }:
+        if start_piece.kind == PieceType.PAWN and int(end_pos.row) in {0, 7}:
             simulated.set_piece(
                 end_pos,
                 create_piece(start_piece.color, promotion_piece),
@@ -1015,6 +1075,14 @@ class Board:
 
         self.turn = Color.BLACK if self.turn == Color.WHITE else Color.WHITE
         return True
+
+    @staticmethod
+    def clear_board(board: "Board") -> None:
+        """Clear all pieces from the board."""
+        for row in board.board:
+            for i, piece in enumerate(row):
+                if piece is not None:
+                    row[i] = None
 
     def display(self) -> None:
         print("  a b c d e f g h")

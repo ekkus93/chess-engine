@@ -260,14 +260,14 @@ def test_get_square_constant_invalid() -> None:
 def test_create_piece_white() -> None:
     """Test create_piece for white pieces."""
     piece = create_piece(Color.WHITE, PieceType.PAWN)
-    assert piece == PieceType.PAWN
+    assert piece.kind == PieceType.PAWN
     assert piece.color == Color.WHITE
 
 
 def test_create_piece_black() -> None:
     """Test create_piece for black pieces."""
     piece = create_piece(Color.BLACK, PieceType.QUEEN)
-    assert piece == PieceType.QUEEN
+    assert piece.kind == PieceType.QUEEN
     assert piece.color == Color.BLACK
 
 
@@ -283,7 +283,18 @@ def test_board_set_piece() -> None:
         ConstantSquare(row=ROW_1, col=COL_A), create_piece(Color.WHITE, PieceType.PAWN)
     )
     piece = board.get_piece(ConstantSquare(row=ROW_1, col=COL_A))
-    assert piece == PieceType.PAWN
+    assert piece.kind == PieceType.PAWN
+    assert piece.color == Color.WHITE
+
+
+def test_board_get_piece() -> None:
+    """Test Board.get_piece helper."""
+    board = Board()
+    board.set_piece(
+        ConstantSquare(row=ROW_1, col=COL_A), create_piece(Color.WHITE, PieceType.PAWN)
+    )
+    piece = board.get_piece(ConstantSquare(row=ROW_1, col=COL_A))
+    assert piece.kind == PieceType.PAWN
     assert piece.color == Color.WHITE
 
 
@@ -295,17 +306,22 @@ def test_board_set_piece() -> None:
 def test_board_get_piece() -> None:
     """Test Board.get_piece helper."""
     board = Board()
+    # Clear a1 which has a rook
+    board.clear_square(ConstantSquare(row=ROW_1, col=COL_A))
     board.set_piece(
         ConstantSquare(row=ROW_1, col=COL_A), create_piece(Color.WHITE, PieceType.PAWN)
     )
     piece = board.get_piece(ConstantSquare(row=ROW_1, col=COL_A))
-    assert piece == PieceType.PAWN
+    assert piece == create_piece(
+        Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_1, col=COL_A)
+    )
 
 
 def test_board_get_piece_none() -> None:
     """Test Board.get_piece returns None for empty square."""
     board = Board()
-    piece = board.get_piece(ConstantSquare(row=ROW_1, col=COL_A))
+    # Check a square that is actually empty (row 3 is empty)
+    piece = board.get_piece(ConstantSquare(row=ROW_3, col=COL_A))
     assert piece is None
 
 
@@ -320,6 +336,10 @@ def test_full_coordinate_conversion() -> None:
     board = Board()
     board.turn = Color.WHITE
 
+    # Clear a1 which has a rook, clear e1 which has a king
+    board.clear_square(ConstantSquare(row=ROW_1, col=COL_A))
+    board.clear_square(ConstantSquare(row=ROW_1, col=COL_E))
+
     # Set up white pieces
     board.set_piece(
         ConstantSquare(row=ROW_1, col=COL_A), create_piece(Color.WHITE, PieceType.PAWN)
@@ -331,5 +351,9 @@ def test_full_coordinate_conversion() -> None:
     # Verify
     pawn = board.get_piece(ConstantSquare(row=ROW_1, col=COL_A))
     king = board.get_piece(ConstantSquare(row=ROW_1, col=COL_E))
-    assert pawn == PieceType.PAWN
-    assert king == PieceType.KING
+    assert pawn == create_piece(
+        Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_1, col=COL_A)
+    )
+    assert king == create_piece(
+        Color.WHITE, PieceType.KING, ConstantSquare(row=ROW_1, col=COL_E)
+    )

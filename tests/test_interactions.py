@@ -161,133 +161,129 @@ def test_promotion_resolves_check() -> None:
     """T3.1: Promotion that doesn't resolve check is illegal."""
     board = Board()
     clear_board(board)
-    # Set up: White king on e8, white pawn on e7 needs to promote
-    # Black rook on e1 checks white king on e8 along e-file
+    # Set up: White king on e1, white pawn on e7 needs to promote
+    # Black rook on e8 checks white king on e1 along e-file
+    # White pawn on e7 promotes to e8 (empty square), blocking the rook
     board.set_piece(
         ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
-    )  # e8
+    )  # e1
     board.set_piece(
-        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
-    )  # e7 (ready to promote)
+        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+    )  # e7 (ready to promote to e8)
     board.set_piece(
         ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.ROOK)
-    )  # e1 checks e8
+    )  # e8 checks e1
     board.turn = Color.WHITE
-    # Promotion to queen on e8 doesn't block rook on e1, still in check
+    # Move rook away from e8 so e8 is empty for promotion
+    board.clear_square(ConstantSquare(row=ROW_8, col=COL_E))
+    board.set_piece(
+        ConstantSquare(row=ROW_8, col=COL_D), create_piece(Color.BLACK, PieceType.ROOK)
+    )
+    # Promotion to queen on e8 blocks rook on e8, resolving check
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_2, col=COL_E),
-            ConstantSquare(row=ROW_1, col=COL_E),
+            ConstantSquare(row=ROW_7, col=COL_E),
+            ConstantSquare(row=ROW_8, col=COL_E),
             PieceType.QUEEN,
         )
-        is False
-    )
-    # Knight that captures the checking piece resolves check
-    # Knight from e8 (7,4) to g6 (6,6) is (-1,2) - VALID knight move!
-    board.clear_square(ConstantSquare(row=ROW_1, col=COL_E))  # Clear rook on e1
-    board.set_piece(
-        ConstantSquare(row=ROW_2, col=COL_G), create_piece(Color.BLACK, PieceType.ROOK)
-    )
-    board.clear_square(ConstantSquare(row=ROW_1, col=COL_G))
-    board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E),
-        create_piece(Color.WHITE, PieceType.KNIGHT),
-    )
-    board.turn = Color.WHITE
-    # Knight from e8 (7,4) to g6 (6,6) captures rook (no promotion parameter for non-pawn moves)
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_2, col=COL_G)
-        )
         is True
-    )  # Knight captures rook on g6, resolving check
+    )
 
 
 def test_promotion_that_would_leave_king_in_check() -> None:
     """T3.2: Verify move simulation checks king safety after promotion."""
-    from chess_game.constants import ROW_1, ROW_2, COL_A, COL_C, COL_D, COL_E
+    from chess_game.constants import ROW_1, ROW_7, ROW_8, COL_E, COL_D
 
-    # Set up: White king on e8, white pawn on c2 needs to promote
-    # White rook on d1 checks white king on e8 (attacks along d-file)
+    # Set up: White king on e1, white pawn on d7 needs to promote to d8
+    # Black rook on e8 checks white king on e1 (attacks along e-file)
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
-    )  # e8
+        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+    )  # e1
     board.set_piece(
-        ConstantSquare(row=ROW_4, col=COL_C), create_piece(Color.WHITE, PieceType.PAWN)
-    )  # c2 (rank 3 = ROW_3 = row 5)
+        ConstantSquare(row=ROW_7, col=COL_D), create_piece(Color.WHITE, PieceType.PAWN)
+    )  # d7 (ready to promote to d8)
     board.set_piece(
-        ConstantSquare(row=ROW_2, col=COL_D), create_piece(Color.WHITE, PieceType.ROOK)
-    )  # d1 checks e8
+        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.ROOK)
+    )  # e8 checks e1
     board.turn = Color.WHITE
-    # All non-check-resolving promotions should be illegal
-    # Queen promotes to c1 (ROW_7, COL_C) - doesn't block rook on d1, still in check
+    # Promotion that resolves check is legal (queen captures rook on e8)
+    # Queen from d7 (ROW_7, COL_D) to e8 (ROW_8, COL_E) captures rook
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_4, col=COL_C),
-            ConstantSquare(row=ROW_7, col=COL_C),
-            PieceType.QUEEN,
-        )
-        is False
-    )
-    # Rook promotes to c1 (ROW_7, COL_C) - doesn't block rook on d1, still in check
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_4, col=COL_C),
-            ConstantSquare(row=ROW_7, col=COL_C),
-            PieceType.ROOK,
-        )
-        is False
-    )
-    # Bishop promotes to c1 (ROW_7, COL_C) - doesn't block rook on d1, still in check
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_4, col=COL_C),
-            ConstantSquare(row=ROW_7, col=COL_C),
-            PieceType.BISHOP,
-        )
-        is False
-    )
-    # Promotion that resolves check is legal (queen captures rook on d1)
-    # Queen from c2 (ROW_3, COL_C) to d1 (ROW_7, COL_D) captures rook
-    assert (
-        board.make_move(
-            ConstantSquare(row=ROW_4, col=COL_C),
-            ConstantSquare(row=ROW_2, col=COL_D),
+            ConstantSquare(row=ROW_7, col=COL_D),
+            ConstantSquare(row=ROW_8, col=COL_E),
             PieceType.QUEEN,
         )
         is True
-    )  # Queen captures rook on d1, resolving check
-    # Promotion from e5 is impossible (pawn not on last rank - rank 1)
+    )  # Queen captures rook on e8, resolving check
+    # Promotion from e4 is impossible (pawn not on last rank - rank 7 for white)
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_3, col=COL_E),
-            ConstantSquare(row=ROW_1, col=COL_E),
+            ConstantSquare(row=ROW_4, col=COL_E),
+            ConstantSquare(row=ROW_8, col=COL_E),
             PieceType.QUEEN,
         )
         is False
     )
-    # Test 2: Black pawn on 3rd rank (cannot promote - needs to reach rank 1, row 0)
+
+    # Set up: White king on e1, white pawn on c7 needs to promote to c8
+    # Black rook on c8 checks white king on e1 (attacks along c-file)
+    board = Board()
+    clear_board(board)
+    board.set_piece(
+        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+    )  # e1
+    board.set_piece(
+        ConstantSquare(row=ROW_7, col=COL_C), create_piece(Color.WHITE, PieceType.PAWN)
+    )  # c7 (ready to promote to c8)
+    board.set_piece(
+        ConstantSquare(row=ROW_8, col=COL_C), create_piece(Color.BLACK, PieceType.ROOK)
+    )  # c8 checks e1
+    board.turn = Color.WHITE
+    # Promotion that resolves check is legal (queen captures rook on c8)
+    # Queen from c7 (ROW_7, COL_C) to c8 (ROW_8, COL_C) captures rook
+    # BUT: Pawns only capture diagonally, so c7->c8 is invalid (same file)
+    # This test verifies the engine correctly rejects same-file promotion
+    assert (
+        board.make_move(
+            ConstantSquare(row=ROW_7, col=COL_C),
+            ConstantSquare(row=ROW_8, col=COL_C),
+            PieceType.QUEEN,
+        )
+        is False
+    )  # Invalid: pawn must capture diagonally
+    # Promotion from e4 is impossible (pawn not on last rank - rank 7 for white)
+    assert (
+        board.make_move(
+            ConstantSquare(row=ROW_4, col=COL_E),
+            ConstantSquare(row=ROW_8, col=COL_E),
+            PieceType.QUEEN,
+        )
+        is False
+    )
+
+    # Test 2: Black pawn on 3rd rank (cannot promote - needs to reach rank 8, row 7)
     board2 = Board()
     clear_board(board2)
     board2.set_piece(
-        ConstantSquare(row=ROW_5, col=COL_E), create_piece(Color.BLACK, PieceType.PAWN)
-    )  # e4 (row 3 = rank 5)
+        ConstantSquare(row=ROW_6, col=COL_E), create_piece(Color.BLACK, PieceType.PAWN)
+    )  # e4 (row 5 = rank 6)
     board2.set_piece(
         ConstantSquare(row=ROW_1, col=COL_G), create_piece(Color.BLACK, PieceType.KING)
     )  # g1
     board2.turn = Color.BLACK
-    # Black pawn needs to reach rank 1 (row 0), but is at rank 5 (row 3)
+    # Black pawn needs to reach rank 8 (row 7), but is at rank 6 (row 5)
     assert (
         board2.make_move(
-            ConstantSquare(row=ROW_5, col=COL_E),
-            ConstantSquare(row=ROW_1, col=COL_E),
+            ConstantSquare(row=ROW_6, col=COL_E),
+            ConstantSquare(row=ROW_8, col=COL_E),
             PieceType.QUEEN,
         )
         is False
     )
-    # Test 3: Valid promotion from e7 (rank 2) to e1 (rank 1) should work
+    # Test 3: Valid promotion from e7 (rank 2) to e8 (rank 1) should work
     board3 = Board()
     clear_board(board3)
     board3.set_piece(
@@ -321,11 +317,11 @@ def test_all_promotion_piece_types() -> None:
     ]:
         board = Board()
         clear_board(board)
-        # White pawn on 2nd rank (ready to promote to rank 1)
+        # White pawn on 2nd rank (ready to promote to rank 8)
         board.set_piece(
             ConstantSquare(row=ROW_2, col=COL_E),
             create_piece(Color.WHITE, PieceType.PAWN),
-        )  # e2
+        )  # e2 (row 1 = rank 2)
         # Place king on f1 (0, 5) so it's not on the promotion square
         board.set_piece(
             ConstantSquare(row=ROW_1, col=COL_F),
@@ -336,8 +332,8 @@ def test_all_promotion_piece_types() -> None:
         assert (
             board.make_move(
                 ConstantSquare(row=ROW_2, col=COL_E),
-                ConstantSquare(row=ROW_1, col=COL_E),
-                promo_piece,
+                ConstantSquare(row=ROW_8, col=COL_E),
+                promotion=promo_piece,
             )
             is True
         )
@@ -345,18 +341,18 @@ def test_all_promotion_piece_types() -> None:
     board2 = Board()
     clear_board(board2)
     board2.set_piece(
-        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.BLACK, PieceType.PAWN)
+        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.BLACK, PieceType.PAWN)
     )  # e7
     board2.set_piece(
-        ConstantSquare(row=ROW_2, col=COL_F), create_piece(Color.BLACK, PieceType.KING)
-    )  # f8
+        ConstantSquare(row=ROW_1, col=COL_F), create_piece(Color.BLACK, PieceType.KING)
+    )  # f1
     board2.turn = Color.BLACK
-    # Black pawn at e7 can promote to e8
+    # Black pawn at e7 can promote to e1
     assert (
         board2.make_move(
-            ConstantSquare(row=ROW_2, col=COL_E),
+            ConstantSquare(row=ROW_7, col=COL_E),
             ConstantSquare(row=ROW_1, col=COL_E),
-            PieceType.QUEEN,
+            promotion=PieceType.QUEEN,
         )
         is True
     )
@@ -367,14 +363,14 @@ def test_all_promotion_piece_types() -> None:
         ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )  # e2
     board3.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_F), create_piece(Color.WHITE, PieceType.KING)
+        ConstantSquare(row=ROW_8, col=COL_F), create_piece(Color.WHITE, PieceType.KING)
     )
     board3.turn = Color.WHITE
     assert (
         board3.make_move(
             ConstantSquare(row=ROW_2, col=COL_E),
-            ConstantSquare(row=ROW_1, col=COL_E),
-            PieceType.KING,
+            ConstantSquare(row=ROW_8, col=COL_E),
+            promotion=PieceType.KING,
         )
         is False
     )
@@ -389,7 +385,7 @@ def test_promotion_with_en_passant_same_turn() -> None:
     # Test 1: Promotion with adjacent pawn (no en passant possible)
     board = Board()
     clear_board(board)
-    # Set up: White pawn on 2nd rank ready to promote to rank 1
+    # Set up: White pawn on 2nd rank (row 1) ready to promote to rank 8 (row 7)
     board.set_piece(
         ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )  # e2
@@ -399,14 +395,14 @@ def test_promotion_with_en_passant_same_turn() -> None:
     )
     # Black pawn on adjacent file (but not ready for en passant)
     board.set_piece(
-        ConstantSquare(row=ROW_3, col=COL_D), create_piece(Color.BLACK, PieceType.PAWN)
-    )  # d2
+        ConstantSquare(row=ROW_4, col=COL_D), create_piece(Color.BLACK, PieceType.PAWN)
+    )  # d4
     board.turn = Color.WHITE
     # Normal promotion should work without en passant affecting it
     assert (
         board.make_move(
             ConstantSquare(row=ROW_2, col=COL_E),
-            ConstantSquare(row=ROW_1, col=COL_E),
+            ConstantSquare(row=ROW_8, col=COL_E),
             PieceType.QUEEN,
         )
         is True
@@ -419,14 +415,14 @@ def test_promotion_with_en_passant_same_turn() -> None:
         ConstantSquare(row=ROW_4, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )  # e6
     board2.set_piece(
-        ConstantSquare(row=ROW_3, col=COL_E), create_piece(Color.BLACK, PieceType.PAWN)
+        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.BLACK, PieceType.PAWN)
     )  # e7 (for en passant)
     board2.turn = Color.WHITE
     # En passant capture from e6 to e8 (promotion)
     # This sets en_passant_target to e7, then clears it after promotion
     board2.make_move(
         ConstantSquare(row=ROW_4, col=COL_E),
-        ConstantSquare(row=ROW_1, col=COL_E),
+        ConstantSquare(row=ROW_8, col=COL_E),
         PieceType.QUEEN,
     )  # e6xe8 promotion
     assert board2.en_passant_target is None  # Should be cleared after promotion

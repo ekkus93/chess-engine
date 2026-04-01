@@ -4,6 +4,7 @@ from chess_game.chess.types import Color, PieceType
 from chess_game.constants import (
     get_row_constant,
     get_col_constant,
+    ROW_0,
     ROW_1,
     ROW_2,
     ROW_3,
@@ -18,6 +19,7 @@ from chess_game.constants import (
     COL_D,
     COL_E,
     COL_F,
+    COL_G,
     ConstantSquare,
 )
 
@@ -62,7 +64,7 @@ def test_only_one_en_passant_target_at_a_time() -> None:
         ConstantSquare(row=ROW_2, col=COL_E), ConstantSquare(row=ROW_4, col=COL_E)
     )  # e2-e4
     assert board.en_passant_target == ConstantSquare(
-        row=ROW_5, col=COL_C
+        row=ROW_3, col=COL_E
     )  # e3 square available
     # After black plays non-pawn move, en passant target should be cleared
     board.set_piece(
@@ -88,7 +90,7 @@ def test_en_passant_capture_removes_pawn_from_original_square() -> None:
         ConstantSquare(row=ROW_3, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )  # White pawn on e6 (fixed: was 4,4)
     board.set_piece(
-        ConstantSquare(row=ROW_2, col=COL_D), create_piece(Color.BLACK, PieceType.PAWN)
+        ConstantSquare(row=ROW_7, col=COL_D), create_piece(Color.BLACK, PieceType.PAWN)
     )  # Black pawn on d7
     board.turn = Color.BLACK
     # Black plays d7-d5, creating en passant target at d6
@@ -96,7 +98,7 @@ def test_en_passant_capture_removes_pawn_from_original_square() -> None:
         ConstantSquare(row=ROW_7, col=COL_D), ConstantSquare(row=ROW_5, col=COL_D)
     )  # d7-d5 (double step)
     assert board.en_passant_target == ConstantSquare(
-        row=ROW_4, col=COL_B
+        row=ROW_6, col=COL_D
     )  # d6 square available
     # Switch to white's turn
     board.turn = Color.WHITE
@@ -105,7 +107,7 @@ def test_en_passant_capture_removes_pawn_from_original_square() -> None:
     # The captured pawn is removed from d5 and placed on d6 (2,3)
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_5, col=COL_E), ConstantSquare(row=ROW_4, col=COL_D)
+            ConstantSquare(row=ROW_3, col=COL_E), ConstantSquare(row=ROW_6, col=COL_D)
         )
         is True
     )  # e6 captures d5 en passant
@@ -129,7 +131,7 @@ def test_en_passant_expired_after_nonpawn_move() -> None:
         ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )  # White pawn on e2
     board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.BLACK, PieceType.PAWN)
+        ConstantSquare(row=ROW_7, col=COL_D), create_piece(Color.BLACK, PieceType.PAWN)
     )  # Black pawn on d7
     board.set_piece(
         ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.QUEEN)
@@ -137,10 +139,10 @@ def test_en_passant_expired_after_nonpawn_move() -> None:
     board.turn = Color.BLACK
     # Black plays d7-d5, creating en passant target at d6
     board.make_move(
-        ConstantSquare(row=ROW_7, col=COL_E), ConstantSquare(row=ROW_5, col=COL_E)
+        ConstantSquare(row=ROW_7, col=COL_D), ConstantSquare(row=ROW_5, col=COL_D)
     )  # d7-d5 (double step)
     assert board.en_passant_target == ConstantSquare(
-        row=ROW_4, col=COL_E
+        row=ROW_6, col=COL_D
     )  # d6 square available
     # White plays non-pawn move (knight), en passant should expire
     board.set_piece(
@@ -148,8 +150,8 @@ def test_en_passant_expired_after_nonpawn_move() -> None:
         create_piece(Color.WHITE, PieceType.KNIGHT),
     )
     board.make_move(
-        ConstantSquare(row=ROW_1, col=COL_A), ConstantSquare(row=ROW_5, col=COL_B)
-    )  # Nb1-d2
+        ConstantSquare(row=ROW_1, col=COL_A), ConstantSquare(row=ROW_3, col=COL_B)
+    )  # Na1-b3 (valid knight move: 2 rows, 1 column)
     assert board.en_passant_target is None
     # Black cannot capture en passant now
     board.set_piece(
@@ -268,21 +270,21 @@ def test_full_en_passant_sequence_from_starting_position() -> None:
         ConstantSquare(row=ROW_7, col=COL_D), ConstantSquare(row=ROW_5, col=COL_D)
     )  # d7-d5
     assert board.en_passant_target == ConstantSquare(
-        row=ROW_4, col=COL_D
+        row=ROW_6, col=COL_D
     )  # d6 square available
     # Switch to white's turn
     board.turn = Color.WHITE
-    # White captures en passant: e4 captures d5 en passant
-    # White pawn at e4 (3,4) captures black pawn at d5 (3,3) en passant
-    # The black pawn is removed from d5 and placed on d6 (2,3)
+    # White captures en passant: e4 captures d6 en passant
+    # White pawn at e4 (ROW_4, COL_E) captures black pawn at d5 en passant
+    # The black pawn is removed from d5 and placed on d6 (ROW_6, COL_D)
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_5, col=COL_E), ConstantSquare(row=ROW_4, col=COL_D)
+            ConstantSquare(row=ROW_4, col=COL_E), ConstantSquare(row=ROW_6, col=COL_D)
         )
         is True
     )
-    # Verify white pawn is now at d6 (2,3) after en passant capture
-    white_pawn_at_d6 = board.get_piece(ConstantSquare(row=ROW_4, col=COL_D))
+    # Verify white pawn is now at d6 (5,3) after en passant capture
+    white_pawn_at_d6 = board.get_piece(ConstantSquare(row=ROW_6, col=COL_D))
     assert white_pawn_at_d6 is not None
     assert white_pawn_at_d6.kind == PieceType.PAWN
     assert white_pawn_at_d6.color == Color.WHITE

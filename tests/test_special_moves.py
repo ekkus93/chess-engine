@@ -353,6 +353,14 @@ def test_en_passant_expires_after_one_turn() -> None:
 
     assert (
         board.make_move(
+            ConstantSquare(row=ROW_2, col=COL_E), ConstantSquare(row=ROW_4, col=COL_E)
+        )
+        is True
+    )
+    assert board.en_passant_target == ConstantSquare(row=ROW_3, col=COL_E)
+
+    assert (
+        board.make_move(
             ConstantSquare(row=ROW_2, col=COL_A), ConstantSquare(row=ROW_2, col=COL_B)
         )
         is True
@@ -464,7 +472,7 @@ def test_white_promotion_to_queen() -> None:
         ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )
 
     assert (
@@ -491,7 +499,7 @@ def test_white_promotion_to_knight() -> None:
         ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )
 
     assert (
@@ -546,7 +554,7 @@ def test_invalid_promotion_piece_rejected() -> None:
         ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )
 
     assert (
@@ -569,7 +577,7 @@ def test_default_promotion_is_queen_when_unspecified() -> None:
         ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )
 
     assert (
@@ -909,36 +917,36 @@ def test_en_passant_white_captures_black_pawn() -> None:
         ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
-    )  # Row 2 = rank 2
+        ConstantSquare(row=ROW_4, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+    )  # Row 4 = rank 4 (e4)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.BLACK, PieceType.PAWN)
-    )
+        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.BLACK, PieceType.PAWN)
+    )  # Row 7 = rank 7 (e7)
     board.turn = Color.BLACK
 
     # Black moves pawn two squares (from rank 7 to rank 5)
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_3, col=COL_E)
+            ConstantSquare(row=ROW_7, col=COL_E), ConstantSquare(row=ROW_5, col=COL_E)
         )
         is True
     )
-    assert board.en_passant_target == ConstantSquare(row=ROW_2, col=COL_E)
+    assert board.en_passant_target == ConstantSquare(row=ROW_7, col=COL_E)
 
-    # White captures en passant (from rank 2 to rank 5)
+    # White captures en passant (from rank 3 to rank 6)
     board.turn = Color.WHITE
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_2, col=COL_E), ConstantSquare(row=ROW_5, col=COL_E)
+            ConstantSquare(row=ROW_3, col=COL_E), ConstantSquare(row=ROW_6, col=COL_E)
         )
         is True
     )  # e4 captures en passant on e5
 
-    # Verify: white pawn on d5 (row 5), black pawn removed from d7 (row 1)
+    # Verify: white pawn on e6 (row 6), black pawn removed from e7 (row 7)
     assert (
-        board.get_piece_type_at(ConstantSquare(row=ROW_5, col=COL_E)) == PieceType.PAWN
+        board.get_piece_type_at(ConstantSquare(row=ROW_6, col=COL_E)) == PieceType.PAWN
     )
-    assert board.get_piece_type_at(ConstantSquare(row=ROW_1, col=COL_E)) is None
+    assert board.get_piece_type_at(ConstantSquare(row=ROW_7, col=COL_E)) is None
 
     # Black moves (to change turn)
     board.turn = Color.BLACK
@@ -967,13 +975,13 @@ def test_en_passant_black_captures_white_pawn() -> None:
         ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )  # Row 2 = rank 2 (e2)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_F), create_piece(Color.BLACK, PieceType.PAWN)
-    )  # Row 1 = rank 7 (f7)
+        ConstantSquare(row=ROW_7, col=COL_F), create_piece(Color.BLACK, PieceType.PAWN)
+    )  # Row 7 = rank 7 (f7)
 
     board.turn = Color.WHITE
 
     # White moves pawn two squares first (from rank 2 to rank 4)
-    # Start at rank 2 (row 2), move to rank 4 (row 4), passing through rank 3 (row 5)
+    # Start at rank 2 (row 2), move to rank 4 (row 4), passing through rank 3 (row 3)
     assert (
         board.make_move(
             ConstantSquare(row=ROW_2, col=COL_E), ConstantSquare(row=ROW_4, col=COL_E)
@@ -983,12 +991,12 @@ def test_en_passant_black_captures_white_pawn() -> None:
     assert board.en_passant_target == ConstantSquare(row=ROW_3, col=COL_E)
 
     # Black captures en passant immediately (f7 captures e3)
-    # Black pawn at f7 (row 1, f-file) captures white pawn en passant on e3 (row 3, e-file)
+    # Black pawn at f7 (row 7, f-file) captures white pawn en passant on e3 (row 3, e-file)
     # This is a diagonal capture from f7 to e3
     board.turn = Color.BLACK
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_F), ConstantSquare(row=ROW_3, col=COL_E)
+            ConstantSquare(row=ROW_7, col=COL_F), ConstantSquare(row=ROW_3, col=COL_E)
         )
         is True
     )
@@ -1026,18 +1034,18 @@ def test_en_passant_expires_after_non_pawn_move() -> None:
         ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.BLACK, PieceType.PAWN)
+        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.BLACK, PieceType.PAWN)
     )
     board.turn = Color.BLACK
 
     # Black moves pawn two squares
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_3, col=COL_E)
+            ConstantSquare(row=ROW_7, col=COL_E), ConstantSquare(row=ROW_5, col=COL_E)
         )
         is True
     )
-    assert board.en_passant_target == ConstantSquare(row=ROW_2, col=COL_E)
+    assert board.en_passant_target == ConstantSquare(row=ROW_6, col=COL_E)
 
     # White moves knight (non-pawn move)
     board.turn = Color.WHITE
@@ -1189,12 +1197,12 @@ def test_promotion_to_queen_explicit() -> None:
         ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )
 
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_E),
+            ConstantSquare(row=ROW_2, col=COL_E),
             ConstantSquare(row=ROW_8, col=COL_E),
             promotion=PieceType.QUEEN,
         )
@@ -1217,7 +1225,7 @@ def test_promotion_to_rook() -> None:
         ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )
 
     assert (
@@ -1244,7 +1252,7 @@ def test_promotion_to_bishop() -> None:
         ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )
 
     assert (
@@ -1272,7 +1280,7 @@ def test_promotion_to_knight() -> None:
         ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )
 
     assert (
@@ -1300,7 +1308,7 @@ def test_promotion_to_king_rejected() -> None:
         ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )
 
     assert (
@@ -1353,7 +1361,7 @@ def test_promotion_from_rank_7_forced() -> None:
         ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )
 
     # White pawn on rank 2 can promote to rank 8 (row 7)
@@ -1848,14 +1856,14 @@ def test_checkmate_with_promotion() -> None:
         ConstantSquare(row=ROW_1, col=COL_D), create_piece(Color.WHITE, PieceType.PAWN)
     )  # blocks (7,3)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )  # blocks (7,4), controls e-file
     board.set_piece(
         ConstantSquare(row=ROW_1, col=COL_F), create_piece(Color.WHITE, PieceType.PAWN)
     )  # blocks (7,5)
     # White pawn at e2 ready to promote
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )
 
     # White promotes (queen will control e-file, trapping black king)
@@ -1900,19 +1908,17 @@ def test_stalemate_after_promotion() -> None:
     board.set_piece(
         ConstantSquare(row=ROW_7, col=COL_G), create_piece(Color.WHITE, PieceType.PAWN)
     )  # blocks g8 (7,6) on rank 8, controls e-file
-    # White pawn at e2 ready to promote
+    # White pawn at e7 ready to promote
     board.set_piece(
-        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
-    )  # ROW_2 = rank 2
+        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+    )  # ROW_7 = rank 7
 
     # White promotes (queen will control e-file, trapping black king)
     board.turn = Color.WHITE
-    # Clear the blocking pawn on e8 (the king's square)
-    board.clear_square(ConstantSquare(row=ROW_7, col=COL_E))
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_2, col=COL_E),
             ConstantSquare(row=ROW_7, col=COL_E),
+            ConstantSquare(row=ROW_8, col=COL_E),
             promotion=PieceType.QUEEN,
         )
         is True
@@ -1927,7 +1933,7 @@ def test_stalemate_after_promotion() -> None:
     board.turn = Color.WHITE
     board.clear_square(ConstantSquare(row=ROW_7, col=COL_E))
     board.set_piece(
-        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )
     # Re-add blocking pawns (they were captured or moved)
     board.set_piece(
@@ -1942,8 +1948,8 @@ def test_stalemate_after_promotion() -> None:
     # Try to promote again - should fail because the pawn is already promoted to queen
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_2, col=COL_E),
             ConstantSquare(row=ROW_7, col=COL_E),
+            ConstantSquare(row=ROW_8, col=COL_E),
             promotion=PieceType.QUEEN,
         )
         is False
@@ -1998,8 +2004,12 @@ def test_knight_corner_has_two_moves() -> None:
     board.turn = Color.WHITE
     legal_moves = board.get_legal_moves()
     assert len(legal_moves) == 2
-    assert (5, 1) in [(m[1].row, m[1].col) for m in legal_moves]  # b3 (row 5 = rank 3)
-    assert (6, 2) in [(m[1].row, m[1].col) for m in legal_moves]  # c2 (row 6 = rank 2)
+    assert (ROW_3, COL_B) in [
+        (m[1].row, m[1].col) for m in legal_moves
+    ]  # b3 (row 3 = rank 3)
+    assert (ROW_2, COL_C) in [
+        (m[1].row, m[1].col) for m in legal_moves
+    ]  # c2 (row 2 = rank 2)
 
     # Black moves (to change turn)
     board.turn = Color.BLACK
@@ -2026,9 +2036,9 @@ def test_king_corner_has_three_moves() -> None:
     board.turn = Color.WHITE
     legal_moves = board.get_legal_moves()
     assert len(legal_moves) == 3
-    assert (7, 1) in [(m[1].row, m[1].col) for m in legal_moves]  # a1 -> b1
-    assert (6, 0) in [(m[1].row, m[1].col) for m in legal_moves]  # a1 -> a2
-    assert (6, 1) in [(m[1].row, m[1].col) for m in legal_moves]  # a1 -> b2
+    assert (ROW_1, COL_B) in [(m[1].row, m[1].col) for m in legal_moves]  # a1 -> b1
+    assert (ROW_2, COL_A) in [(m[1].row, m[1].col) for m in legal_moves]  # a1 -> a2
+    assert (ROW_2, COL_B) in [(m[1].row, m[1].col) for m in legal_moves]  # a1 -> b2
 
     # Black moves (to change turn)
     board.turn = Color.BLACK
@@ -2144,7 +2154,7 @@ def test_edge_rank_pawn_promotion_scenarios() -> None:
         ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )  # e2
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )  # e7
 
     # White pawn on rank 2 (row 2) can only move 1 or 2 squares forward (toward ROW_8)

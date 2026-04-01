@@ -8,6 +8,14 @@ from chess_game.constants import (
     ROW_8,
     get_row_constant,
     get_col_constant,
+    COL_A,
+    COL_B,
+    COL_C,
+    COL_D,
+    COL_E,
+    COL_F,
+    COL_G,
+    COL_H,
 )
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.types import Color, PieceType
@@ -23,10 +31,10 @@ def clear_board(board: Board) -> None:
 
 def _setup_kings(board: Board) -> None:
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=4), create_piece(Color.WHITE, PieceType.KING)
+        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=4), create_piece(Color.BLACK, PieceType.KING)
+        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
     )
 
 
@@ -37,23 +45,23 @@ def test_cannot_castle_if_rook_captured_on_original_square() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=4), create_piece(Color.WHITE, PieceType.KING)
+        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=4), create_piece(Color.BLACK, PieceType.KING)
+        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=7), create_piece(Color.WHITE, PieceType.ROOK)
+        ConstantSquare(row=ROW_1, col=COL_H), create_piece(Color.WHITE, PieceType.ROOK)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=7), create_piece(Color.BLACK, PieceType.ROOK)
+        ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.ROOK)
     )
     # Black captures white's kingside rook
     board.turn = Color.BLACK
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_8, col=7),
-            ConstantSquare(row=get_row_constant(7), col=get_col_constant(7)),
+            ConstantSquare(row=ROW_8, col=COL_H),
+            ConstantSquare(row=ROW_1, col=COL_H),
         )
         is True
     )
@@ -61,8 +69,8 @@ def test_cannot_castle_if_rook_captured_on_original_square() -> None:
     board.turn = Color.WHITE
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=4),
-            ConstantSquare(row=get_row_constant(7), col=get_col_constant(6)),
+            ConstantSquare(row=ROW_1, col=COL_E),
+            ConstantSquare(row=ROW_8, col=COL_G),
         )
         is False
     )
@@ -73,31 +81,31 @@ def test_castling_right_persists_after_rook_moved_then_returns() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=4), create_piece(Color.WHITE, PieceType.KING)
+        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=4), create_piece(Color.BLACK, PieceType.KING)
+        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=7), create_piece(Color.WHITE, PieceType.ROOK)
+        ConstantSquare(row=ROW_1, col=COL_H), create_piece(Color.WHITE, PieceType.ROOK)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=7), create_piece(Color.BLACK, PieceType.ROOK)
+        ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.ROOK)
     )
     # Move rook away
     board.turn = Color.WHITE
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=7),
-            ConstantSquare(row=get_row_constant(7), col=get_col_constant(6)),
+            ConstantSquare(row=ROW_1, col=COL_H),
+            ConstantSquare(row=ROW_1, col=COL_G),
         )
         is True
     )
     # Castling should be disabled (rook moved)
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=4),
-            ConstantSquare(row=get_row_constant(7), col=get_col_constant(6)),
+            ConstantSquare(row=ROW_1, col=COL_E),
+            ConstantSquare(row=ROW_8, col=COL_G),
         )
         is False
     )
@@ -105,16 +113,16 @@ def test_castling_right_persists_after_rook_moved_then_returns() -> None:
     board.turn = Color.WHITE
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=6),
-            ConstantSquare(row=get_row_constant(7), col=get_col_constant(7)),
+            ConstantSquare(row=ROW_1, col=COL_G),
+            ConstantSquare(row=ROW_1, col=COL_H),
         )
         is True
     )
     # Castling should still be disabled (original rook left)
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=4),
-            ConstantSquare(row=get_row_constant(7), col=get_col_constant(6)),
+            ConstantSquare(row=ROW_1, col=COL_E),
+            ConstantSquare(row=ROW_8, col=COL_G),
         )
         is False
     )
@@ -125,28 +133,28 @@ def test_cannot_castle_if_path_blocked_by_enemy_piece() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=4), create_piece(Color.WHITE, PieceType.KING)
+        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=4), create_piece(Color.BLACK, PieceType.KING)
+        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=7), create_piece(Color.WHITE, PieceType.ROOK)
+        ConstantSquare(row=ROW_1, col=COL_H), create_piece(Color.WHITE, PieceType.ROOK)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=7), create_piece(Color.BLACK, PieceType.ROOK)
+        ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.ROOK)
     )
     # Black pawn blocks kingside castling path
     board.turn = Color.BLACK
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=6), create_piece(Color.BLACK, PieceType.PAWN)
+        ConstantSquare(row=ROW_1, col=COL_G), create_piece(Color.BLACK, PieceType.PAWN)
     )
     # White cannot castle (path blocked)
     board.turn = Color.WHITE
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=4),
-            ConstantSquare(row=get_row_constant(7), col=get_col_constant(6)),
+            ConstantSquare(row=ROW_1, col=COL_E),
+            ConstantSquare(row=ROW_8, col=COL_G),
         )
         is False
     )
@@ -157,28 +165,29 @@ def test_castling_with_opponent_piece_on_destination_square() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=4), create_piece(Color.WHITE, PieceType.KING)
+        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=4), create_piece(Color.BLACK, PieceType.KING)
+        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=7), create_piece(Color.WHITE, PieceType.ROOK)
+        ConstantSquare(row=ROW_1, col=COL_H), create_piece(Color.WHITE, PieceType.ROOK)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=7), create_piece(Color.BLACK, PieceType.ROOK)
+        ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.ROOK)
     )
     # Black knight on kingside destination
     board.turn = Color.BLACK
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=6), create_piece(Color.BLACK, PieceType.KNIGHT)
+        ConstantSquare(row=ROW_1, col=COL_G),
+        create_piece(Color.BLACK, PieceType.KNIGHT),
     )
     # White cannot castle (enemy piece on destination)
     board.turn = Color.WHITE
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=4),
-            ConstantSquare(row=get_row_constant(7), col=get_col_constant(6)),
+            ConstantSquare(row=ROW_1, col=COL_E),
+            ConstantSquare(row=ROW_8, col=COL_G),
         )
         is False
     )
@@ -195,23 +204,23 @@ def test_castling_kingside_with_queenside_rook_only() -> None:
                     ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
                 )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=4), create_piece(Color.BLACK, PieceType.KING)
+        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=4), create_piece(Color.WHITE, PieceType.KING)
+        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=0), create_piece(Color.WHITE, PieceType.ROOK)
+        ConstantSquare(row=ROW_1, col=COL_A), create_piece(Color.WHITE, PieceType.ROOK)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=7), create_piece(Color.WHITE, PieceType.ROOK)
+        ConstantSquare(row=ROW_1, col=COL_H), create_piece(Color.WHITE, PieceType.ROOK)
     )
     # Move queenside rook away (kingside rook remains)
     board.turn = Color.WHITE
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=0),
-            ConstantSquare(row=get_row_constant(7), col=get_col_constant(0)),
+            ConstantSquare(row=ROW_1, col=COL_A),
+            ConstantSquare(row=ROW_8, col=COL_A),
         )
         is True
     )
@@ -221,8 +230,8 @@ def test_castling_kingside_with_queenside_rook_only() -> None:
     # Kingside castling should be possible (kingside rook remains)
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=4),
-            ConstantSquare(row=get_row_constant(7), col=get_col_constant(6)),
+            ConstantSquare(row=ROW_1, col=COL_E),
+            ConstantSquare(row=ROW_1, col=COL_G),
         )
         is True
     )
@@ -230,8 +239,8 @@ def test_castling_kingside_with_queenside_rook_only() -> None:
     board.turn = Color.WHITE
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_2, col=0),
-            ConstantSquare(row=get_row_constant(7), col=get_col_constant(0)),
+            ConstantSquare(row=ROW_8, col=COL_A),
+            ConstantSquare(row=ROW_1, col=COL_A),
         )
         is True
     )  # Return rook
@@ -248,23 +257,23 @@ def test_castling_queenside_with_kingside_rook_only() -> None:
                     ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
                 )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=4), create_piece(Color.BLACK, PieceType.KING)
+        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=4), create_piece(Color.WHITE, PieceType.KING)
+        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=0), create_piece(Color.WHITE, PieceType.ROOK)
+        ConstantSquare(row=ROW_1, col=COL_A), create_piece(Color.WHITE, PieceType.ROOK)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=7), create_piece(Color.WHITE, PieceType.ROOK)
+        ConstantSquare(row=ROW_1, col=COL_H), create_piece(Color.WHITE, PieceType.ROOK)
     )
     # Move kingside rook away (queenside rook remains)
     board.turn = Color.WHITE
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=7),
-            ConstantSquare(row=get_row_constant(7), col=get_col_constant(7)),
+            ConstantSquare(row=ROW_1, col=COL_H),
+            ConstantSquare(row=ROW_8, col=COL_H),
         )
         is True
     )  # Move rook away
@@ -273,8 +282,8 @@ def test_castling_queenside_with_kingside_rook_only() -> None:
     # Queenside castling should still be possible (queenside rook remains)
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=4),
-            ConstantSquare(row=get_row_constant(7), col=get_col_constant(2)),
+            ConstantSquare(row=ROW_1, col=COL_E),
+            ConstantSquare(row=ROW_1, col=COL_C),
         )
         is True
     )
@@ -287,28 +296,29 @@ def test_cannot_castle_if_king_squre_attacked_during_castle() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=4), create_piece(Color.WHITE, PieceType.KING)
+        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=4), create_piece(Color.BLACK, PieceType.KING)
+        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=7), create_piece(Color.WHITE, PieceType.ROOK)
+        ConstantSquare(row=ROW_1, col=COL_H), create_piece(Color.WHITE, PieceType.ROOK)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=7), create_piece(Color.BLACK, PieceType.ROOK)
+        ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.ROOK)
     )
     # Place black bishop on diagonal to attack g1 (square behind king on kingside)
     board.turn = Color.BLACK
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=7), create_piece(Color.BLACK, PieceType.BISHOP)
+        ConstantSquare(row=ROW_1, col=COL_H),
+        create_piece(Color.BLACK, PieceType.BISHOP),
     )
     # White cannot castle kingside (path through attacked square)
     board.turn = Color.WHITE
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=4),
-            ConstantSquare(row=get_row_constant(7), col=get_col_constant(6)),
+            ConstantSquare(row=ROW_1, col=COL_E),
+            ConstantSquare(row=ROW_8, col=COL_G),
         )
         is False
     )
@@ -316,8 +326,8 @@ def test_cannot_castle_if_king_squre_attacked_during_castle() -> None:
     board.turn = Color.WHITE
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=4),
-            ConstantSquare(row=get_row_constant(7), col=get_col_constant(6)),
+            ConstantSquare(row=ROW_1, col=COL_E),
+            ConstantSquare(row=ROW_8, col=COL_G),
         )
         is False
     )

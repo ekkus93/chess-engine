@@ -17,7 +17,20 @@ from chess_game.chess.evaluation import (
     KING_TABLE,
 )
 from chess_game.chess.types import Color, Piece, PieceType, LegalMove
-from chess_game.constants import get_row_constant, get_col_constant
+from chess_game.constants import (
+    ROW_1,
+    ROW_8,
+    get_row_constant,
+    get_col_constant,
+    ConstantSquare,
+)
+
+
+@dataclass
+class Move:
+    start: ConstantSquare
+    end: ConstantSquare
+    promotion: Optional[PieceType] = None
 
 
 @dataclass
@@ -25,10 +38,10 @@ class MoveOrderingKey:
     """Score for move ordering (higher = prioritize first)."""
 
     score: int
-    start: tuple[int, int]
-    end: tuple[int, int]
+    start: ConstantSquare
+    end: ConstantSquare
 
-    def __init__(self, score: int, start: tuple[int, int], end: tuple[int, int]):
+    def __init__(self, score: int, start: ConstantSquare, end: ConstantSquare):
         self.score = score
         self.start = start
         self.end = end
@@ -92,22 +105,30 @@ def _evaluate_piece(piece: Piece, row: int, col: int) -> int:
     return material + positional_bias
 
 
-def get_legal_moves(board: Board) -> list[LegalMove]:
+def get_legal_moves(board: Board) -> list[Move]:
     """Get all legal moves for the side to move.
 
     Args:
         board: The current board state
 
     Returns:
-        List of (start_square, end_square, promotion_piece_type) tuples.
+        List of Move objects with start, end, and promotion attributes.
     """
-    return board.get_legal_moves()
+    legal_moves = board.get_legal_moves()
+    return [
+        Move(
+            start=move[0],
+            end=move[1],
+            promotion=move[2],
+        )
+        for move in legal_moves
+    ]
 
 
 def _make_copy_with_move(
     board: Board,
-    start: tuple[int, int],
-    end: tuple[int, int],
+    start: ConstantSquare,
+    end: ConstantSquare,
     promotion: Optional[PieceType] = None,
 ) -> Board:
     """Create a new board state after making a move."""
@@ -171,7 +192,12 @@ def minimax(
     best_move: LegalMove | None = None
     move_count = 0
 
-    for move in scored_moves:
+    for move_key in scored_moves:
+        move = next(
+            m
+            for m in legal_moves
+            if m.start == move_key.start and m.end == move_key.end
+        )
         new_board = _make_copy_with_move(board, move.start, move.end)
 
         if is_maximizing:
@@ -185,7 +211,7 @@ def minimax(
             )
             if best_score < int(opponent_score[0]):
                 best_score = int(opponent_score[0])
-                best_move = (move.start, move.end, None)
+                best_move = LegalMove(move.start, move.end, move.promotion)
         else:
             our_score = minimax(
                 new_board,
@@ -197,7 +223,7 @@ def minimax(
             )
             if best_score > int(our_score[0]):
                 best_score = int(our_score[0])
-                best_move = (move.start, move.end, None)
+                best_move = LegalMove(move.start, move.end, move.promotion)
 
         # Alpha-beta pruning
         if is_maximizing:
@@ -222,7 +248,7 @@ def minimax(
 
 def _order_moves(
     board: Board,
-    legal_moves: list[LegalMove],
+    legal_moves: list[Move],
 ) -> list[MoveOrderingKey]:
     """Sort moves for better pruning order.
 
@@ -237,14 +263,12 @@ def _order_moves(
         legal_moves: List of all legal moves to order
 
     Returns:
-        Sorted list of (score, start_pos, end_pos) tuples.
+        Sorted list of MoveOrderingKey objects with ConstantSquare start/end.
     """
     scored_moves: list[MoveOrderingKey] = []
 
-    for start, end, promotion in legal_moves:
-        # Handle cases where moves might have None as end position (edge case)
-        if end is None:
-            continue
+    for move in legal_moves:
+        start, end, promotion = move.start, move.end, move.promotion
 
         # Calculate capture gain if applicable
         captured_piece = board.get_piece(end)
@@ -254,7 +278,7 @@ def _order_moves(
             else 0
         )
 
-        promoted_to = end.row in (0, 7) and board.get_piece(start) is not None
+        promoted_to = end.row in (ROW_1, ROW_8) and board.get_piece(start) is not None
 
         if promoted_to:
             start_piece = board.get_piece(start)
@@ -263,8 +287,6 @@ def _order_moves(
             )
         else:
             promotion_value = 0
-
-        promotion_value = 500 if promoted_to else 0
 
         # Combine factors into ordering score
         order_score = capture_gain + promotion_value

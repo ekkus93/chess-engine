@@ -14,6 +14,7 @@ from chess_game.constants import (
     ROW_7,
     ROW_8,
 )
+from chess_game.constants import get_row_constant, get_col_constant
 
 
 def clear_board(board: Board) -> None:

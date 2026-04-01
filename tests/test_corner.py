@@ -54,36 +54,33 @@ def test_checkmate_pinned_king() -> None:
         ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_D), create_piece(Color.WHITE, PieceType.PAWN)
+        ConstantSquare(row=ROW_2, col=COL_D), create_piece(Color.WHITE, PieceType.PAWN)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_F), create_piece(Color.WHITE, PieceType.PAWN)
+        ConstantSquare(row=ROW_2, col=COL_F), create_piece(Color.WHITE, PieceType.PAWN)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_G), create_piece(Color.WHITE, PieceType.PAWN)
+        ConstantSquare(row=ROW_2, col=COL_G), create_piece(Color.WHITE, PieceType.PAWN)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_C), create_piece(Color.WHITE, PieceType.PAWN)
+        ConstantSquare(row=ROW_3, col=COL_C), create_piece(Color.WHITE, PieceType.PAWN)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_6, col=COL_H), create_piece(Color.BLACK, PieceType.PAWN)
+        ConstantSquare(row=ROW_2, col=COL_H), create_piece(Color.BLACK, PieceType.PAWN)
     )
     # Basic checkmate detection works
     board.turn = Color.WHITE
     legal_moves = board.get_legal_moves()
     # At least verify the function works (this setup won't be actual checkmate)
     assert isinstance(legal_moves, list)
-    # Black moves (to change turn)
+    # Black moves (to change turn) - simple pawn move
     board.turn = Color.BLACK
-    board.set_piece(
-        ConstantSquare(row=ROW_6, col=COL_H), create_piece(Color.BLACK, PieceType.ROOK)
-    )
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_7, col=COL_H), ConstantSquare(row=ROW_6, col=COL_D)
+            ConstantSquare(row=ROW_2, col=COL_H), ConstantSquare(row=ROW_1, col=COL_H)
         )
         is True
     )
@@ -97,29 +94,28 @@ def test_stalemate_pinned_king() -> None:
         ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_D), create_piece(Color.WHITE, PieceType.PAWN)
+        ConstantSquare(row=ROW_2, col=COL_D), create_piece(Color.WHITE, PieceType.PAWN)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_F), create_piece(Color.WHITE, PieceType.PAWN)
+        ConstantSquare(row=ROW_2, col=COL_F), create_piece(Color.WHITE, PieceType.PAWN)
     )
-    # White king on e1 with pawns on d1 and f1
-    # King can still move forward, so this is not stalemate
+    # White king on e2 with pawns on d2 and f2
     # Just verify basic stalemate detection works
     board.turn = Color.WHITE
     legal_moves = board.get_legal_moves()
     # At least verify the function doesn't crash
     assert isinstance(legal_moves, list)
-    # Black moves (to change turn)
+    # Black moves (to change turn) - simple pawn move
     board.turn = Color.BLACK
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_H), create_piece(Color.BLACK, PieceType.ROOK)
+        ConstantSquare(row=ROW_2, col=COL_H), create_piece(Color.BLACK, PieceType.PAWN)
     )
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_H), ConstantSquare(row=ROW_8, col=COL_G)
+            ConstantSquare(row=ROW_2, col=COL_H), ConstantSquare(row=ROW_1, col=COL_H)
         )
         is True
     )
@@ -159,7 +155,7 @@ def test_checkmate_with_promotion() -> None:
     assert (
         board.make_move(
             ConstantSquare(row=ROW_7, col=COL_E),
-            ConstantSquare(row=ROW_1, col=COL_E),
+            ConstantSquare(row=ROW_8, col=COL_E),
             promotion=PieceType.QUEEN,
         )
         is True
@@ -204,7 +200,7 @@ def test_stalemate_after_promotion() -> None:
     assert (
         board.make_move(
             ConstantSquare(row=ROW_7, col=COL_E),
-            ConstantSquare(row=ROW_1, col=COL_E),
+            ConstantSquare(row=ROW_8, col=COL_E),
             promotion=PieceType.QUEEN,
         )
         is True
@@ -221,7 +217,7 @@ def test_stalemate_after_promotion() -> None:
     assert (
         board.make_move(
             ConstantSquare(row=ROW_7, col=COL_E),
-            ConstantSquare(row=ROW_1, col=COL_E),
+            ConstantSquare(row=ROW_8, col=COL_E),
             promotion=PieceType.QUEEN,
         )
         is False

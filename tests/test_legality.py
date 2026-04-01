@@ -43,9 +43,9 @@ def test_rook_attack_on_open_file_and_rank() -> None:
         is True
     )  # Same rank as rook (ROW_5)
     assert (
-        board.is_square_attacked(ConstantSquare(row=ROW_2, col=COL_A), Color.WHITE)
+        board.is_square_attacked(ConstantSquare(row=ROW_5, col=COL_H), Color.WHITE)
         is True
-    )
+    )  # Same rank as rook (ROW_5)
 
 
 def test_bishop_attack_on_open_diagonal() -> None:
@@ -56,9 +56,9 @@ def test_bishop_attack_on_open_diagonal() -> None:
         create_piece(Color.WHITE, PieceType.BISHOP),
     )
     assert (
-        board.is_square_attacked(ConstantSquare(row=ROW_2, col=COL_A), Color.WHITE)
+        board.is_square_attacked(ConstantSquare(row=ROW_8, col=COL_H), Color.WHITE)
         is True
-    )
+    )  # Diagonal from E5: E5->F6->G7->H8
 
 
 def test_knight_attack() -> None:
@@ -69,9 +69,9 @@ def test_knight_attack() -> None:
         create_piece(Color.WHITE, PieceType.KNIGHT),
     )
     assert (
-        board.is_square_attacked(ConstantSquare(row=ROW_3, col=COL_A), Color.WHITE)
+        board.is_square_attacked(ConstantSquare(row=ROW_3, col=COL_D), Color.WHITE)
         is True
-    )
+    )  # Knight moves: (4,4) -> (2,3) = C5 or (3,2) = D3 or (5,2) = D7
 
 
 def test_pawn_attack_squares_for_white() -> None:
@@ -80,9 +80,18 @@ def test_pawn_attack_squares_for_white() -> None:
     board.set_piece(
         ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )
-    assert board.is_square_attacked((5, 3), Color.WHITE) is True
-    assert board.is_square_attacked((5, 5), Color.WHITE) is True
-    assert board.is_square_attacked((5, 4), Color.WHITE) is False
+    assert (
+        board.is_square_attacked(ConstantSquare(row=ROW_3, col=COL_D), Color.WHITE)
+        is True
+    )
+    assert (
+        board.is_square_attacked(ConstantSquare(row=ROW_3, col=COL_F), Color.WHITE)
+        is True
+    )
+    assert (
+        board.is_square_attacked(ConstantSquare(row=ROW_1, col=COL_E), Color.WHITE)
+        is False
+    )
 
 
 def test_pawn_attack_squares_for_black() -> None:
@@ -92,11 +101,11 @@ def test_pawn_attack_squares_for_black() -> None:
         ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.PAWN)
     )
     assert (
-        board.is_square_attacked(ConstantSquare(row=ROW_2, col=COL_D), Color.BLACK)
+        board.is_square_attacked(ConstantSquare(row=ROW_7, col=COL_D), Color.BLACK)
         is True
     )
     assert (
-        board.is_square_attacked(ConstantSquare(row=ROW_2, col=COL_F), Color.BLACK)
+        board.is_square_attacked(ConstantSquare(row=ROW_7, col=COL_F), Color.BLACK)
         is True
     )
     assert (
@@ -149,7 +158,7 @@ def test_simple_check_by_knight() -> None:
         ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_6, col=COL_F),
+        ConstantSquare(row=ROW_3, col=COL_F),
         create_piece(Color.BLACK, PieceType.KNIGHT),
     )
     assert board.is_in_check(Color.WHITE) is True
@@ -162,7 +171,7 @@ def test_simple_check_by_queen() -> None:
         ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=0), create_piece(Color.BLACK, PieceType.QUEEN)
+        ConstantSquare(row=ROW_1, col=COL_A), create_piece(Color.BLACK, PieceType.QUEEN)
     )
     assert board.is_in_check(Color.WHITE) is True
 
@@ -211,15 +220,14 @@ def test_blocking_a_check_is_allowed() -> None:
         ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_C),
-        create_piece(Color.WHITE, PieceType.BISHOP),
+        ConstantSquare(row=ROW_3, col=COL_E), create_piece(Color.BLACK, PieceType.ROOK)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.ROOK)
+        ConstantSquare(row=ROW_2, col=COL_D), create_piece(Color.WHITE, PieceType.PAWN)
     )
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_C), ConstantSquare(row=ROW_6, col=COL_E)
+            ConstantSquare(row=ROW_2, col=COL_D), ConstantSquare(row=ROW_3, col=COL_E)
         )
         is True
     )
@@ -232,11 +240,11 @@ def test_capturing_checking_piece_is_allowed_when_resolves_check() -> None:
         ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_3, col=COL_E), create_piece(Color.BLACK, PieceType.ROOK)
+        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.BLACK, PieceType.ROOK)
     )
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_7, col=COL_E)
+            ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_2, col=COL_E)
         )
         is True
     )
