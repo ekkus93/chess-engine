@@ -2,9 +2,11 @@ from __future__ import annotations
 from collections.abc import Callable
 import pytest
 from chess_game.chess.board import Board, ConstantSquare, create_piece
-from chess_game.constants import (
+from chess_game.chess.constants import (
     get_row_constant,
     get_col_constant,
+    get_square_constant,
+    clear_board,
     COL_A,
     COL_B,
     COL_C,
@@ -43,16 +45,6 @@ def empty_board() -> Board:
     board = Board()
     clear_board(board)
     return board
-
-
-def clear_board(board: Board) -> None:
-    """Clear all pieces from a board for focused rule tests."""
-    for row in range(8):
-        for col in range(8):
-            col = get_col_constant(col)
-            board.clear_square(
-                ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
-            )
 
 
 @pytest.fixture

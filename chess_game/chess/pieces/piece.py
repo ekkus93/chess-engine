@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Optional
 
 from chess_game.chess.color import Color
-from chess_game.constants import PieceType
+from chess_game.chess.constants import PieceType, ConstantSquare
 
 
 class Piece:
@@ -14,34 +14,25 @@ class Piece:
     __slots__ = ("color", "kind", "_square")
 
     def __init__(
-        self, color: Color, kind: PieceType, square: Optional["Square"] = None
+        self, color: Color, kind: PieceType, square: Optional[ConstantSquare] = None
     ) -> None:
         self.color = color
         self.kind = kind
         self._square = square
 
+    def __eq__(self, other):
+        if isinstance(other, Piece):
+            return (
+                self.color == other.color
+                and self.kind == other.kind
+                and self._square == other._square
+            )
+        return False
+
+    def __hash__(self):
+        return hash((self.color, self.kind, self._square))
+
     @property
-    def square(self) -> Optional["Square"]:
+    def square(self) -> Optional[ConstantSquare]:
         """Get the piece's square position."""
         return self._square
-
-
-class Square:
-    """Represents a square on the board."""
-
-    __slots__ = ("row", "col")
-
-    def __init__(self, row: int, col: int) -> None:
-        self.row = row
-        self.col = col
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Square):
-            return False
-        return self.row == other.row and self.col == other.col
-
-    def __hash__(self) -> int:
-        return hash((self.row, self.col))
-
-    def __repr__(self) -> str:
-        return f"Square(row={self.row}, col={self.col})"

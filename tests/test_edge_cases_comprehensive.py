@@ -1,5 +1,5 @@
 from __future__ import annotations
-from chess_game.constants import (
+from chess_game.chess.constants import (
     ConstantSquare,
     ROW_1,
     ROW_2,
@@ -19,6 +19,7 @@ from chess_game.constants import (
     COL_H,
     get_row_constant,
     get_col_constant,
+    get_square_constant,
 )
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.types import Color, PieceType
@@ -650,8 +651,8 @@ def test_cannot_move_opponent_piece() -> None:
     clear_board(board)
     _setup_kings(board)
     board.set_piece(
-            ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
-        )  # e2
+        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+    )  # e2
     board.turn = Color.WHITE
     # Cannot move black king (black king is at ROW_1, not ROW_8)
     assert (

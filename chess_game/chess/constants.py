@@ -30,9 +30,6 @@ class PieceType(IntEnum):
 # AlgebraicSquare is a NamedTuple for algebraic notation
 AlgebraicSquare = NamedTuple("AlgebraicSquare", [("file", str), ("rank", int)])
 
-# Square is an alias for ConstantSquare for convenience
-Square = None  # Will be set after ConstantSquare is defined
-
 
 class RowConstant:
     """Base class for row constant objects to enable type safety."""
@@ -199,6 +196,63 @@ COL_F = ColConstant(5)  # file f
 COL_G = ColConstant(6)  # file g
 COL_H = ColConstant(7)  # file h
 
+
+# ConstantSquare is a Pydantic model for type-safe square coordinates
+class ConstantSquare(BaseModel):
+    """Type-safe representation of a board square using constant coordinate objects."""
+
+    model_config = {"arbitrary_types_allowed": True}
+
+    row: RowConstant
+    col: ColConstant
+
+    def __hash__(self) -> int:
+        return hash((self.row, self.col))
+
+    def __eq__(self, other):
+        if isinstance(other, ConstantSquare):
+            return self.row == other.row and self.col == other.col
+        if isinstance(other, (list, tuple)):
+            return (
+                len(other) == 2
+                and int(self.row) == int(other[0])
+                and int(self.col) == int(other[1])
+            )
+        return False
+
+    def __int__(self) -> int:
+        """Convert to integer index: row * 8 + col."""
+        return int(self.row) * 8 + int(self.col)
+
+    def __repr__(self):
+        return f"ConstantSquare(row={self.row}, col={self.col})"
+
+    def __str__(self):
+        return f"{self.col}{self.row}"
+
+
+# Type alias that enforces use of constant coordinate objects
+# This allows runtime validation through ConstantSquare while maintaining
+# type safety with int values
+RowType = int
+ColType = int
+
+
+# Helper functions for creating ConstantSquare
+def get_row_constant(row: int) -> RowConstant:
+    """Convert integer row (0-7) to RowConstant."""
+    if not (0 <= row < 8):
+        raise ValueError(f"Row must be between 0 and 7, got {row}")
+    return RowConstant(row)
+
+
+def get_col_constant(col: int) -> ColConstant:
+    """Convert integer column (0-7) to ColConstant."""
+    if not (0 <= col < 8):
+        raise ValueError(f"Column must be between 0 and 7, got {col}")
+    return ColConstant(col)
+
+
 # Algebraic coordinate constants (external system)
 # These map directly to the array coordinates
 A1 = AlgebraicSquare("a", 1)
@@ -218,154 +272,6 @@ E2 = AlgebraicSquare("e", 2)
 F2 = AlgebraicSquare("f", 2)
 G2 = AlgebraicSquare("g", 2)
 H2 = AlgebraicSquare("h", 2)
-
-
-def algebraic_to_array(algebraic: AlgebraicSquare) -> Square:
-    """Convert algebraic notation to array coordinates.
-
-    Args:
-        algebraic: Square in algebraic notation (e.g., 'e2')
-
-    Returns:
-        Square in array coordinates (row, col)
-    """
-    files = "abcdefgh"
-    file_char = algebraic.file.lower()
-    if file_char not in files:
-        raise ValueError(f"Invalid file character: {file_char}")
-    file_idx = files.index(file_char)
-    return Square(algebraic.rank - 1, file_idx)
-
-
-def array_to_algebraic(square: Square) -> AlgebraicSquare:
-    """Convert array coordinates to algebraic notation.
-
-    Args:
-        square: Square in array coordinates (row, col)
-
-    Returns:
-        AlgebraicSquare in algebraic notation (e.g., 'e2')
-    """
-    files = "abcdefgh"
-    if not (0 <= square.row <= 7):
-        raise ValueError(f"Invalid row: {square.row}")
-    if not (0 <= square.col <= 7):
-        raise ValueError(f"Invalid column: {square.col}")
-    return AlgebraicSquare(files[square.col], 8 - square.row)
-
-
-class ConstantValueError(ValueError):
-    """Raised when a raw integer value is used instead of a constant."""
-
-    def __init__(self, msg: str) -> None:
-        super().__init__(msg)
-
-
-def _check_constant_usage(value: int, allowed_constants: list[int]) -> None:
-    """Enforce use of constants instead of raw values.
-
-    This function raises an error when raw values are used instead of
-    the defined constants (ROW_* and COL_*).
-
-    Args:
-        value: The integer value to check
-        allowed_constants: List of allowed constant values
-
-    Raises:
-        ConstantValueError: If value is not in allowed_constants
-    """
-    if value not in allowed_constants:
-        raise ConstantValueError(
-            f"Raw value {value} used instead of constant. "
-            "Use ROW_1 through ROW_8 for row coordinates, "
-            "or COL_A through COL_H for column coordinates."
-        )
-
-
-# Pre-compute allowed constants for validation
-ALLOWED_ROW_VALUES = {ROW_0, ROW_1, ROW_2, ROW_3, ROW_4, ROW_5, ROW_6, ROW_7, ROW_8}
-ALLOWED_COL_VALUES = {COL_A, COL_B, COL_C, COL_D, COL_E, COL_F, COL_G, COL_H}
-
-# Ensure sets contain only constant objects, not raw integers
-ALLOWED_ROW_VALUES = {row for row in ALLOWED_ROW_VALUES if isinstance(row, RowConstant)}
-ALLOWED_COL_VALUES = {col for col in ALLOWED_COL_VALUES if isinstance(col, ColConstant)}
-
-
-def get_row_constant(row: int) -> RowConstant:
-    """Convert integer row index to RowConstant."""
-    row_to_constant = {
-        0: ROW_1,  # array row 0 = ROW_1 (rank 1)
-        1: ROW_2,  # array row 1 = ROW_2 (rank 2)
-        2: ROW_3,  # array row 2 = ROW_3 (rank 3)
-        3: ROW_4,  # array row 3 = ROW_4 (rank 4)
-        4: ROW_5,  # array row 4 = ROW_5 (rank 5)
-        5: ROW_6,  # array row 5 = ROW_6 (rank 6)
-        6: ROW_7,  # array row 6 = ROW_7 (rank 7)
-        7: ROW_8,  # array row 7 = ROW_8 (rank 8)
-    }
-    try:
-        return row_to_constant[row]
-    except KeyError:
-        raise ValueError(
-            f"Invalid row index: {row}. Must be between 0 and 7."
-        ) from None
-
-
-def get_col_constant(col: int) -> ColConstant:
-    """Convert integer col index to ColConstant."""
-    col_to_constant = {
-        0: COL_A,
-        1: COL_B,
-        2: COL_C,
-        3: COL_D,
-        4: COL_E,
-        5: COL_F,
-        6: COL_G,
-        7: COL_H,
-    }
-    try:
-        return col_to_constant[col]
-    except KeyError:
-        raise ValueError(
-            f"Invalid column index: {col}. Must be between 0 and 7."
-        ) from None
-
-
-class ConstantSquare(BaseModel):
-    """A type-safe board square that enforces use of coordinate constants.
-
-    This model validates that row and column values are the constant objects
-    themselves (ROW_1, ROW_2, etc.), not raw integer values.
-
-    Example usage:
-        square = ConstantSquare(row=ROW_4, col=COL_E)  # Valid
-        square = ConstantSquare(row=4, col=5)           # Raises ValueError immediately
-    """
-
-    model_config = {"arbitrary_types_allowed": True}
-
-    row: Union[int, RowConstant]
-    col: Union[int, ColConstant]
-
-    @field_validator("row", "col")
-    @classmethod
-    def validate_coordinate_type(cls, v, info):
-        """Validate that coordinates are constant objects, not raw integers.
-
-        This check happens IMMEDIATELY upon construction to catch errors early.
-        """
-        field_name = info.field_name
-        # Check if it's a raw integer (not a constant object)
-        if isinstance(v, int) and not isinstance(
-            v, RowConstant if field_name == "row" else ColConstant
-        ):
-            raise ValueError(
-                f"{field_name.capitalize()} coordinate {v} is a raw integer. "
-                f"Use ROW_1 through ROW_8 (constant objects) for rows, "
-                f"or COL_A through COL_H (constant objects) for columns. "
-                f"Example: ConstantSquare(row=ROW_2, col=COL_E), not ConstantSquare(row=2, col=5)"
-            )
-        return v
 
 
 def get_square_constant(row: int, col: int) -> ConstantSquare:
@@ -394,6 +300,3 @@ def clear_board(board_list) -> None:
 # type safety with int values
 RowType = int
 ColType = int
-
-# Set Square alias after ConstantSquare is defined
-Square = ConstantSquare

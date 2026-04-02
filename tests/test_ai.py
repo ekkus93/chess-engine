@@ -10,7 +10,7 @@ from chess_game.chess.ai import (
     get_legal_moves,
 )
 from chess_game.chess.board import Board, ConstantSquare, create_piece
-from chess_game.constants import (
+from chess_game.chess.constants import (
     COL_E,
     ROW_1,
     ROW_5,
@@ -150,11 +150,11 @@ class TestMoveOrdering:
         # Set up position where white can capture black pawn with a queen
         clear_board(board)
         board.set_piece(
-            ConstantSquare(row=ROW_8, col=COL_E),
+            get_square_constant(7, 4),
             create_piece(Color.WHITE, PieceType.KING),
         )
         board.set_piece(
-            ConstantSquare(row=ROW_1, col=COL_E),
+            get_square_constant(0, 4),
             create_piece(Color.BLACK, PieceType.KING),
         )
         # White has queen at d5 that can capture Black pawn on e4 (diagonal)
@@ -184,11 +184,11 @@ class TestAlphaBetaPruning:
         board = Board()
         clear_board(board)
         board.set_piece(
-            ConstantSquare(row=ROW_8, col=COL_E),
+            get_square_constant(7, 4),
             create_piece(Color.WHITE, PieceType.KING),
         )
         board.set_piece(
-            ConstantSquare(row=ROW_1, col=COL_E),
+            get_square_constant(0, 4),
             create_piece(Color.BLACK, PieceType.KING),
         )
         # White to move with only one reasonable option (center control)
@@ -213,11 +213,11 @@ class TestGetBestMove:
         board = Board()
         clear_board(board)
         board.set_piece(
-            ConstantSquare(row=ROW_8, col=COL_E),
+            get_square_constant(7, 4),
             create_piece(Color.WHITE, PieceType.KING),
         )
         board.set_piece(
-            ConstantSquare(row=ROW_1, col=COL_E),
+            get_square_constant(0, 4),
             create_piece(Color.BLACK, PieceType.KING),
         )
         # This won't actually be checkmate since we can't properly set up a mate
@@ -245,7 +245,6 @@ def empty_board_for_tests() -> Board:
     def _clear():
         for row in range(8):
             for col in range(8):
-                col = get_col_constant(col)
                 board.clear_square(
                     ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
                 )
@@ -258,7 +257,6 @@ def clear_board(board: Board) -> None:
     """Helper to clear a board."""
     for row in range(8):
         for col in range(8):
-            col = get_col_constant(col)
             board.clear_square(
                 ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
             )
@@ -303,11 +301,11 @@ class TestEndgameDetection:
         board = Board()
         clear_board(board)
         board.set_piece(
-            ConstantSquare(row=ROW_8, col=COL_E),
+            get_square_constant(7, 4),
             create_piece(Color.WHITE, PieceType.KING),
         )
         board.set_piece(
-            ConstantSquare(row=ROW_1, col=COL_E),
+            get_square_constant(0, 4),
             create_piece(Color.BLACK, PieceType.KING),
         )
         score = evaluate(board)
@@ -319,11 +317,11 @@ class TestEndgameDetection:
         board = Board()
         clear_board(board)
         board.set_piece(
-            ConstantSquare(row=ROW_8, col=COL_E),
+            get_square_constant(7, 4),
             create_piece(Color.WHITE, PieceType.KING),
         )
         board.set_piece(
-            ConstantSquare(row=ROW_1, col=COL_E),
+            get_square_constant(0, 4),
             create_piece(Color.BLACK, PieceType.KING),
         )
         # White has rook - huge material advantage (rook = ~50 points in our evaluation)

@@ -1,7 +1,7 @@
 """Debug en passant."""
 from chess_game.chess.board import Board, create_piece
-from chess_game.constants import ROW_3, ROW_2, COL_D, COL_E, Color, PieceType
-from chess_game.constants import ConstantSquare
+from chess_game.chess.constants import ROW_3, ROW_2, COL_D, COL_E, Color, PieceType
+from chess_game.chess.constants import ConstantSquare
 
 board = Board()
 

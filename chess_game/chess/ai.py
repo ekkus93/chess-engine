@@ -17,20 +17,14 @@ from chess_game.chess.evaluation import (
     KING_TABLE,
 )
 from chess_game.chess.types import Color, Piece, PieceType, LegalMove
-from chess_game.constants import (
+from chess_game.chess.move import Move
+from chess_game.chess.constants import (
     ROW_1,
     ROW_8,
     get_row_constant,
     get_col_constant,
     ConstantSquare,
 )
-
-
-@dataclass
-class Move:
-    start: ConstantSquare
-    end: ConstantSquare
-    promotion: Optional[PieceType] = None
 
 
 @dataclass

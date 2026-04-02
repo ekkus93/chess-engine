@@ -2,7 +2,7 @@
 
 from typing import Tuple
 
-from chess_game.constants import (
+from chess_game.chess.constants import (
     ConstantSquare,
     ROW_1,
     ROW_2,
@@ -14,7 +14,7 @@ from chess_game.constants import (
     ROW_8,
 )
 
-from chess_game.constants import get_col_constant
+from chess_game.chess.constants import get_col_constant
 
 # Canonical coordinate definitions from THE_PLAN.md
 # Files: a b c d e f g h

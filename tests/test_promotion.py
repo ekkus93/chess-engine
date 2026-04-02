@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 from chess_game.chess.board import Board, ConstantSquare, create_piece
-from chess_game.constants import (
+from chess_game.chess.constants import (
     COL_A,
     COL_B,
     COL_C,
@@ -33,10 +33,10 @@ def clear_board(board: Board) -> None:
 
 def _setup_kings(board: Board) -> None:
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.BLACK, PieceType.KING)
     )
 
 
@@ -52,36 +52,36 @@ def test_en_passant_white_captures_black_pawn() -> None:
                 ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
             )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(1, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )  # Row 6 = rank 2
     board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.BLACK, PieceType.PAWN)
+        get_square_constant(6, 4), create_piece(Color.BLACK, PieceType.PAWN)
     )
     board.turn = Color.BLACK
     # Black moves pawn two squares (from rank 7 to rank 5)
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_7, col=COL_E), ConstantSquare(row=ROW_5, col=COL_E)
+            get_square_constant(6, 4), get_square_constant(4, 4)
         )
         is True
     )
-    assert board.en_passant_target == ConstantSquare(row=ROW_6, col=COL_E)
+    assert board.en_passant_target == get_square_constant(5, 4)
     # White moves knight (non-pawn move)
     board.turn = Color.WHITE
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_A),
+        get_square_constant(0, 0),
         create_piece(Color.WHITE, PieceType.KNIGHT),
     )
     # Knight from a1 to b3 (row diff 2, col diff 1)
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_A), ConstantSquare(row=ROW_3, col=COL_B)
+            get_square_constant(0, 0), get_square_constant(2, 1)
         )
         is True
     )
@@ -90,11 +90,11 @@ def test_en_passant_white_captures_black_pawn() -> None:
     # Black moves (to change turn)
     board.turn = Color.BLACK
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_A), create_piece(Color.BLACK, PieceType.ROOK)
+        get_square_constant(7, 0), create_piece(Color.BLACK, PieceType.ROOK)
     )
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_8, col=COL_A), ConstantSquare(row=ROW_8, col=COL_B)
+            get_square_constant(7, 0), get_square_constant(7, 1)
         )
         is True
     )
@@ -105,42 +105,42 @@ def test_en_passant_cannot_capture_own_pawn() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(1, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.BLACK, PieceType.PAWN)
+        get_square_constant(6, 4), create_piece(Color.BLACK, PieceType.PAWN)
     )
     board.turn = Color.BLACK
     # Black moves pawn two squares
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_7, col=COL_E), ConstantSquare(row=ROW_5, col=COL_E)
+            get_square_constant(6, 4), get_square_constant(4, 4)
         )
         is True
     )
-    assert board.en_passant_target == ConstantSquare(row=ROW_6, col=COL_E)
+    assert board.en_passant_target == get_square_constant(5, 4)
     # White tries to capture its own pawn en passant (should fail)
     board.turn = Color.WHITE
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_6, col=COL_E), ConstantSquare(row=ROW_5, col=COL_D)
+            get_square_constant(5, 4), get_square_constant(4, 3)
         )
         is False
     )
     # Black moves (to change turn)
     board.turn = Color.BLACK
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_A), create_piece(Color.BLACK, PieceType.ROOK)
+        get_square_constant(7, 0), create_piece(Color.BLACK, PieceType.ROOK)
     )
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_8, col=COL_A), ConstantSquare(row=ROW_8, col=COL_B)
+            get_square_constant(7, 0), get_square_constant(7, 1)
         )
         is True
     )
@@ -151,36 +151,36 @@ def test_en_passant_expires_after_white_move() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(1, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.BLACK, PieceType.PAWN)
+        get_square_constant(6, 4), create_piece(Color.BLACK, PieceType.PAWN)
     )
     board.turn = Color.BLACK
     # Black moves pawn two squares
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_7, col=COL_E), ConstantSquare(row=ROW_5, col=COL_E)
+            get_square_constant(6, 4), get_square_constant(4, 4)
         )
         is True
     )
-    assert board.en_passant_target == ConstantSquare(row=ROW_6, col=COL_E)
+    assert board.en_passant_target == get_square_constant(5, 4)
     # White makes any move
     board.turn = Color.WHITE
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_A),
+        get_square_constant(0, 0),
         create_piece(Color.WHITE, PieceType.KNIGHT),
     )
     # Knight from a1 to b3 (row diff 2, col diff 1)
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_A), ConstantSquare(row=ROW_3, col=COL_B)
+            get_square_constant(0, 0), get_square_constant(2, 1)
         )
         is True
     )
@@ -189,11 +189,11 @@ def test_en_passant_expires_after_white_move() -> None:
     # Black moves (to change turn)
     board.turn = Color.BLACK
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_A), create_piece(Color.BLACK, PieceType.ROOK)
+        get_square_constant(7, 0), create_piece(Color.BLACK, PieceType.ROOK)
     )
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_8, col=COL_A), ConstantSquare(row=ROW_8, col=COL_B)
+            get_square_constant(7, 0), get_square_constant(7, 1)
         )
         is True
     )

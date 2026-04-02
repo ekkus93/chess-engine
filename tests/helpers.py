@@ -2,7 +2,7 @@
 
 from chess_game.chess.board import Board, ConstantSquare, create_piece
 from chess_game.chess.types import Color, PieceType
-from chess_game.constants import (
+from chess_game.chess.constants import (
     COL_A,
     COL_B,
     COL_C,

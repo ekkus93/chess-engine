@@ -8,7 +8,7 @@ from chess_game.chess.coords import (
     index_to_algebraic,
     parse_algebraic_move,
 )
-from chess_game.constants import (
+from chess_game.chess.constants import (
     get_row_constant,
     get_col_constant,
     get_square_constant,

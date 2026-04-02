@@ -1,5 +1,5 @@
 from __future__ import annotations
-from chess_game.constants import (
+from chess_game.chess.constants import (
     
         get_row_constant,
         get_col_constant,
@@ -25,76 +25,76 @@ from chess_game.constants import (
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.types import Color, PieceType
 def clear_board(board: Board) -> None:
-    board.clear_square(ConstantSquare(row=ROW_8, col=COL_A))
-    board.clear_square(ConstantSquare(row=ROW_8, col=COL_B))
-    board.clear_square(ConstantSquare(row=ROW_8, col=COL_C))
-    board.clear_square(ConstantSquare(row=ROW_8, col=COL_D))
-    board.clear_square(ConstantSquare(row=ROW_8, col=COL_E))
-    board.clear_square(ConstantSquare(row=ROW_8, col=COL_F))
-    board.clear_square(ConstantSquare(row=ROW_8, col=COL_G))
-    board.clear_square(ConstantSquare(row=ROW_8, col=COL_H))
-    board.clear_square(ConstantSquare(row=ROW_7, col=COL_A))
-    board.clear_square(ConstantSquare(row=ROW_7, col=COL_B))
-    board.clear_square(ConstantSquare(row=ROW_7, col=COL_C))
-    board.clear_square(ConstantSquare(row=ROW_7, col=COL_D))
-    board.clear_square(ConstantSquare(row=ROW_7, col=COL_E))
-    board.clear_square(ConstantSquare(row=ROW_7, col=COL_F))
-    board.clear_square(ConstantSquare(row=ROW_7, col=COL_G))
-    board.clear_square(ConstantSquare(row=ROW_7, col=COL_H))
-    board.clear_square(ConstantSquare(row=ROW_6, col=COL_A))
-    board.clear_square(ConstantSquare(row=ROW_6, col=COL_B))
-    board.clear_square(ConstantSquare(row=ROW_6, col=COL_C))
-    board.clear_square(ConstantSquare(row=ROW_6, col=COL_D))
-    board.clear_square(ConstantSquare(row=ROW_6, col=COL_E))
-    board.clear_square(ConstantSquare(row=ROW_6, col=COL_F))
-    board.clear_square(ConstantSquare(row=ROW_6, col=COL_G))
-    board.clear_square(ConstantSquare(row=ROW_6, col=COL_H))
-    board.clear_square(ConstantSquare(row=ROW_5, col=COL_A))
-    board.clear_square(ConstantSquare(row=ROW_5, col=COL_B))
-    board.clear_square(ConstantSquare(row=ROW_5, col=COL_C))
-    board.clear_square(ConstantSquare(row=ROW_5, col=COL_D))
-    board.clear_square(ConstantSquare(row=ROW_5, col=COL_E))
-    board.clear_square(ConstantSquare(row=ROW_5, col=COL_F))
-    board.clear_square(ConstantSquare(row=ROW_5, col=COL_G))
-    board.clear_square(ConstantSquare(row=ROW_5, col=COL_H))
-    board.clear_square(ConstantSquare(row=ROW_4, col=COL_A))
-    board.clear_square(ConstantSquare(row=ROW_4, col=COL_B))
-    board.clear_square(ConstantSquare(row=ROW_4, col=COL_C))
-    board.clear_square(ConstantSquare(row=ROW_4, col=COL_D))
-    board.clear_square(ConstantSquare(row=ROW_4, col=COL_E))
-    board.clear_square(ConstantSquare(row=ROW_4, col=COL_F))
-    board.clear_square(ConstantSquare(row=ROW_4, col=COL_G))
-    board.clear_square(ConstantSquare(row=ROW_4, col=COL_H))
-    board.clear_square(ConstantSquare(row=ROW_3, col=COL_A))
-    board.clear_square(ConstantSquare(row=ROW_3, col=COL_B))
-    board.clear_square(ConstantSquare(row=ROW_3, col=COL_C))
-    board.clear_square(ConstantSquare(row=ROW_3, col=COL_D))
-    board.clear_square(ConstantSquare(row=ROW_3, col=COL_E))
-    board.clear_square(ConstantSquare(row=ROW_3, col=COL_F))
-    board.clear_square(ConstantSquare(row=ROW_3, col=COL_G))
-    board.clear_square(ConstantSquare(row=ROW_3, col=COL_H))
-    board.clear_square(ConstantSquare(row=ROW_2, col=COL_A))
-    board.clear_square(ConstantSquare(row=ROW_2, col=COL_B))
-    board.clear_square(ConstantSquare(row=ROW_2, col=COL_C))
-    board.clear_square(ConstantSquare(row=ROW_2, col=COL_D))
-    board.clear_square(ConstantSquare(row=ROW_2, col=COL_E))
-    board.clear_square(ConstantSquare(row=ROW_2, col=COL_F))
-    board.clear_square(ConstantSquare(row=ROW_2, col=COL_G))
-    board.clear_square(ConstantSquare(row=ROW_2, col=COL_H))
-    board.clear_square(ConstantSquare(row=ROW_1, col=COL_A))
-    board.clear_square(ConstantSquare(row=ROW_1, col=COL_B))
-    board.clear_square(ConstantSquare(row=ROW_1, col=COL_C))
-    board.clear_square(ConstantSquare(row=ROW_1, col=COL_D))
-    board.clear_square(ConstantSquare(row=ROW_1, col=COL_E))
-    board.clear_square(ConstantSquare(row=ROW_1, col=COL_F))
-    board.clear_square(ConstantSquare(row=ROW_1, col=COL_G))
-    board.clear_square(ConstantSquare(row=ROW_1, col=COL_H))
+    board.clear_square(get_square_constant(7, 0))
+    board.clear_square(get_square_constant(7, 1))
+    board.clear_square(get_square_constant(7, 2))
+    board.clear_square(get_square_constant(7, 3))
+    board.clear_square(get_square_constant(7, 4))
+    board.clear_square(get_square_constant(7, 5))
+    board.clear_square(get_square_constant(7, 6))
+    board.clear_square(get_square_constant(7, 7))
+    board.clear_square(get_square_constant(6, 0))
+    board.clear_square(get_square_constant(6, 1))
+    board.clear_square(get_square_constant(6, 2))
+    board.clear_square(get_square_constant(6, 3))
+    board.clear_square(get_square_constant(6, 4))
+    board.clear_square(get_square_constant(6, 5))
+    board.clear_square(get_square_constant(6, 6))
+    board.clear_square(get_square_constant(6, 7))
+    board.clear_square(get_square_constant(5, 0))
+    board.clear_square(get_square_constant(5, 1))
+    board.clear_square(get_square_constant(5, 2))
+    board.clear_square(get_square_constant(5, 3))
+    board.clear_square(get_square_constant(5, 4))
+    board.clear_square(get_square_constant(5, 5))
+    board.clear_square(get_square_constant(5, 6))
+    board.clear_square(get_square_constant(5, 7))
+    board.clear_square(get_square_constant(4, 0))
+    board.clear_square(get_square_constant(4, 1))
+    board.clear_square(get_square_constant(4, 2))
+    board.clear_square(get_square_constant(4, 3))
+    board.clear_square(get_square_constant(4, 4))
+    board.clear_square(get_square_constant(4, 5))
+    board.clear_square(get_square_constant(4, 6))
+    board.clear_square(get_square_constant(4, 7))
+    board.clear_square(get_square_constant(3, 0))
+    board.clear_square(get_square_constant(3, 1))
+    board.clear_square(get_square_constant(3, 2))
+    board.clear_square(get_square_constant(3, 3))
+    board.clear_square(get_square_constant(3, 4))
+    board.clear_square(get_square_constant(3, 5))
+    board.clear_square(get_square_constant(3, 6))
+    board.clear_square(get_square_constant(3, 7))
+    board.clear_square(get_square_constant(2, 0))
+    board.clear_square(get_square_constant(2, 1))
+    board.clear_square(get_square_constant(2, 2))
+    board.clear_square(get_square_constant(2, 3))
+    board.clear_square(get_square_constant(2, 4))
+    board.clear_square(get_square_constant(2, 5))
+    board.clear_square(get_square_constant(2, 6))
+    board.clear_square(get_square_constant(2, 7))
+    board.clear_square(get_square_constant(1, 0))
+    board.clear_square(get_square_constant(1, 1))
+    board.clear_square(get_square_constant(1, 2))
+    board.clear_square(get_square_constant(1, 3))
+    board.clear_square(get_square_constant(1, 4))
+    board.clear_square(get_square_constant(1, 5))
+    board.clear_square(get_square_constant(1, 6))
+    board.clear_square(get_square_constant(1, 7))
+    board.clear_square(get_square_constant(0, 0))
+    board.clear_square(get_square_constant(0, 1))
+    board.clear_square(get_square_constant(0, 2))
+    board.clear_square(get_square_constant(0, 3))
+    board.clear_square(get_square_constant(0, 4))
+    board.clear_square(get_square_constant(0, 5))
+    board.clear_square(get_square_constant(0, 6))
+    board.clear_square(get_square_constant(0, 7))
 def _setup_kings(board: Board) -> None:
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
     )
 # =============================================================================
 # Category 1: Castling Edge Cases
@@ -104,26 +104,26 @@ def test_castling_rook_captured_forbids_kingside() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_H), create_piece(Color.WHITE, PieceType.ROOK)
+        get_square_constant(0, 7), create_piece(Color.WHITE, PieceType.ROOK)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.ROOK)
+        get_square_constant(7, 7), create_piece(Color.BLACK, PieceType.ROOK)
     )
     board.turn = Color.BLACK
     # Black captures h1 rook
     board.make_move(
-        ConstantSquare(row=ROW_8, col=COL_H), ConstantSquare(row=ROW_1, col=COL_H)
+        get_square_constant(7, 7), get_square_constant(0, 7)
     )  # Black rook captures h1
     # White cannot castle kingside (rook no longer on h1)
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_1, col=COL_G)
+            get_square_constant(0, 4), get_square_constant(0, 6)
         )
         is False
     )
@@ -132,23 +132,23 @@ def test_castling_rook_moved_clears_castling_right() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_H), create_piece(Color.WHITE, PieceType.ROOK)
+        get_square_constant(0, 7), create_piece(Color.WHITE, PieceType.ROOK)
     )
     board.turn = Color.WHITE
     # White moves rook from h1
     board.make_move(
-        ConstantSquare(row=ROW_1, col=COL_H), ConstantSquare(row=ROW_1, col=COL_G)
+        get_square_constant(0, 7), get_square_constant(0, 6)
     )  # Rook moves to g1
     # White cannot castle kingside (original rook moved)
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_1, col=COL_G)
+            get_square_constant(0, 4), get_square_constant(0, 6)
         )
         is False
     )
@@ -157,26 +157,26 @@ def test_castling_replaced_rook_does_not_restore_right() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_H), create_piece(Color.WHITE, PieceType.ROOK)
+        get_square_constant(0, 7), create_piece(Color.WHITE, PieceType.ROOK)
     )
     board.turn = Color.WHITE
     # White moves rook from h1, black replaces it
     board.make_move(
-        ConstantSquare(row=ROW_1, col=COL_H), ConstantSquare(row=ROW_1, col=COL_G)
+        get_square_constant(0, 7), get_square_constant(0, 6)
     )  # Rook moves to g1
     board.make_move(
-        ConstantSquare(row=ROW_8, col=COL_H), ConstantSquare(row=ROW_1, col=COL_H)
+        get_square_constant(7, 7), get_square_constant(0, 7)
     )  # Black rook captures on h1
     # White cannot castle kingside (original rook moved, replacement doesn't help)
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_1, col=COL_G)
+            get_square_constant(0, 4), get_square_constant(0, 6)
         )
         is False
     )
@@ -185,25 +185,25 @@ def test_castling_opponent_piece_in_path_blocks() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_H), create_piece(Color.WHITE, PieceType.ROOK)
+        get_square_constant(0, 7), create_piece(Color.WHITE, PieceType.ROOK)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.ROOK)
+        get_square_constant(7, 7), create_piece(Color.BLACK, PieceType.ROOK)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_G), create_piece(Color.BLACK, PieceType.PAWN)
+        get_square_constant(0, 6), create_piece(Color.BLACK, PieceType.PAWN)
     )  # Black pawn on g1
     board.turn = Color.WHITE
     # Cannot castle kingside (path blocked by black pawn on g1)
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_1, col=COL_G)
+            get_square_constant(0, 4), get_square_constant(0, 6)
         )
         is False
     )
@@ -212,25 +212,25 @@ def test_castling_enemy_piece_on_destination_blocked() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_H), create_piece(Color.WHITE, PieceType.ROOK)
+        get_square_constant(0, 7), create_piece(Color.WHITE, PieceType.ROOK)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_H), create_piece(Color.BLACK, PieceType.ROOK)
+        get_square_constant(7, 7), create_piece(Color.BLACK, PieceType.ROOK)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_G), create_piece(Color.BLACK, PieceType.PAWN)
+        get_square_constant(0, 6), create_piece(Color.BLACK, PieceType.PAWN)
     )  # Black pawn on f1
     board.turn = Color.WHITE
     # Cannot castle kingside (destination square occupied by enemy)
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_1, col=COL_G)
+            get_square_constant(0, 4), get_square_constant(0, 6)
         )
         is False
     )
@@ -239,26 +239,26 @@ def test_castling_queenside_rook_moved_forbids() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_A), create_piece(Color.WHITE, PieceType.ROOK)
+        get_square_constant(0, 0), create_piece(Color.WHITE, PieceType.ROOK)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_H), create_piece(Color.WHITE, PieceType.ROOK)
+        get_square_constant(0, 7), create_piece(Color.WHITE, PieceType.ROOK)
     )
     board.turn = Color.WHITE
     # White moves kingside rook
     board.make_move(
-        ConstantSquare(row=ROW_1, col=COL_H), ConstantSquare(row=ROW_1, col=COL_G)
+        get_square_constant(0, 7), get_square_constant(0, 6)
     )  # Rook moves to g1
     # White cannot castle queenside (kingside rook moved, clearing rights)
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_1, col=COL_C)
+            get_square_constant(0, 4), get_square_constant(0, 2)
         )
         is False
     )
@@ -267,26 +267,26 @@ def test_castling_kingside_rook_moved_forbids() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_A), create_piece(Color.WHITE, PieceType.ROOK)
+        get_square_constant(0, 0), create_piece(Color.WHITE, PieceType.ROOK)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_H), create_piece(Color.WHITE, PieceType.ROOK)
+        get_square_constant(0, 7), create_piece(Color.WHITE, PieceType.ROOK)
     )
     board.turn = Color.WHITE
     # White moves queenside rook
     board.make_move(
-        ConstantSquare(row=ROW_1, col=COL_A), ConstantSquare(row=ROW_1, col=COL_B)
+        get_square_constant(0, 0), get_square_constant(0, 1)
     )  # Rook moves to b1
     # White cannot castle kingside (queenside rook moved, clearing rights)
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_1, col=COL_G)
+            get_square_constant(0, 4), get_square_constant(0, 6)
         )
         is False
     )
@@ -295,27 +295,27 @@ def test_castling_kingside_rook_replaced_forbids() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_H), create_piece(Color.WHITE, PieceType.ROOK)
+        get_square_constant(0, 7), create_piece(Color.WHITE, PieceType.ROOK)
     )
     board.turn = Color.WHITE
     # White moves rook from h1
     board.make_move(
-        ConstantSquare(row=ROW_1, col=COL_H), ConstantSquare(row=ROW_1, col=COL_G)
+        get_square_constant(0, 7), get_square_constant(0, 6)
     )  # Rook moves to g1
     # Black replaces rook on h1
     board.make_move(
-        ConstantSquare(row=ROW_8, col=COL_H), ConstantSquare(row=ROW_1, col=COL_H)
+        get_square_constant(7, 7), get_square_constant(0, 7)
     )  # Black rook captures on h1
     # White cannot castle kingside (original rook moved)
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_1, col=COL_G)
+            get_square_constant(0, 4), get_square_constant(0, 6)
         )
         is False
     )

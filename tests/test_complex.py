@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 from chess_game.chess.board import Board, create_piece
-from chess_game.constants import (
+from chess_game.chess.constants import (
     get_row_constant,
     get_col_constant,
     ConstantSquare,
@@ -34,10 +34,10 @@ def clear_board(board: Board) -> None:
 
 def _setup_kings(board: Board) -> None:
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
     )
 
 
@@ -48,7 +48,7 @@ def test_rook_corner_moves_along_edge_only() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_A), create_piece(Color.WHITE, PieceType.ROOK)
+        get_square_constant(7, 0), create_piece(Color.WHITE, PieceType.ROOK)
     )
     # Rook on a8 can move along both file a (7 squares) and rank 8 (7 squares)
     board.turn = Color.WHITE
@@ -61,7 +61,7 @@ def test_bishop_corner_has_limited_range() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_A),
+        get_square_constant(7, 0),
         create_piece(Color.WHITE, PieceType.BISHOP),
     )
     # Bishop on a8 has only 7 diagonal squares
@@ -75,7 +75,7 @@ def test_knight_corner_has_two_moves() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_A),
+        get_square_constant(7, 0),
         create_piece(Color.WHITE, PieceType.KNIGHT),
     )
     # Knight on a8 has exactly 2 moves (c7 and b6)
@@ -84,16 +84,16 @@ def test_knight_corner_has_two_moves() -> None:
     assert len(legal_moves) == 2
     # c7 = (ROW_7, COL_C), b6 = (ROW_6, COL_B)
     destinations = [m[1] for m in legal_moves]
-    assert ConstantSquare(row=ROW_7, col=COL_C) in destinations  # c7
-    assert ConstantSquare(row=ROW_6, col=COL_B) in destinations  # b6
+    assert get_square_constant(6, 2) in destinations  # c7
+    assert get_square_constant(5, 1) in destinations  # b6
     # Black moves (to change turn)
     board.turn = Color.BLACK
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_A), create_piece(Color.BLACK, PieceType.ROOK)
+        get_square_constant(7, 0), create_piece(Color.BLACK, PieceType.ROOK)
     )
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_8, col=COL_A), ConstantSquare(row=ROW_8, col=COL_B)
+            get_square_constant(7, 0), get_square_constant(7, 1)
         )
         is True
     )
@@ -104,7 +104,7 @@ def test_rook_edge_cannot_move_off_board() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_A), create_piece(Color.WHITE, PieceType.ROOK)
+        get_square_constant(0, 0), create_piece(Color.WHITE, PieceType.ROOK)
     )
     # Rook on a1 can only move along the edge (rank 8 and file a)
     board.turn = Color.WHITE
@@ -114,11 +114,11 @@ def test_rook_edge_cannot_move_off_board() -> None:
     # Black moves (to change turn)
     board.turn = Color.BLACK
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_A), create_piece(Color.BLACK, PieceType.ROOK)
+        get_square_constant(7, 0), create_piece(Color.BLACK, PieceType.ROOK)
     )
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_8, col=COL_A), ConstantSquare(row=ROW_8, col=COL_B)
+            get_square_constant(7, 0), get_square_constant(7, 1)
         )
         is True
     )
@@ -129,7 +129,7 @@ def test_bishop_edge_has_limited_range() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_A),
+        get_square_constant(7, 0),
         create_piece(Color.WHITE, PieceType.BISHOP),
     )
     # Bishop on a8 has limited diagonal range
@@ -143,7 +143,7 @@ def test_knight_edge_has_reduced_moves() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_A),
+        get_square_constant(0, 0),
         create_piece(Color.WHITE, PieceType.KNIGHT),
     )
     # Knight on a1 has 2 moves (fewer than 8 from center)
@@ -157,13 +157,13 @@ def test_white_pawn_on_rank_1_cannot_move_forward() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(7, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )
     # White pawn on rank 8 cannot move forward
     board.turn = Color.WHITE
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_8, col=COL_E), ConstantSquare(row=ROW_7, col=COL_E)
+            get_square_constant(7, 4), get_square_constant(6, 4)
         )
         is False
     )
@@ -174,13 +174,13 @@ def test_black_pawn_on_rank_8_cannot_move_forward() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.BLACK, PieceType.PAWN)
+        get_square_constant(0, 4), create_piece(Color.BLACK, PieceType.PAWN)
     )
     # Black pawn on rank 1 cannot move forward (toward rank 2, away from home)
     board.turn = Color.BLACK
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_2, col=COL_E)
+            get_square_constant(0, 4), get_square_constant(1, 4)
         )
         is False
     )
@@ -191,26 +191,26 @@ def test_edge_rank_pawn_promotion_scenarios() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(1, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )  # e2
     # White pawn on rank 2 (ROW_2) can only move 1 or 2 squares forward
     board.turn = Color.WHITE
     # Move to rank 4 (ROW_4) - two square move
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_2, col=COL_E), ConstantSquare(row=ROW_4, col=COL_E)
+            get_square_constant(1, 4), get_square_constant(3, 4)
         )
         is True
     )  # e2-e4
     # Black moves (to change turn)
     board.turn = Color.BLACK
     board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_A), create_piece(Color.BLACK, PieceType.PAWN)
+        get_square_constant(6, 0), create_piece(Color.BLACK, PieceType.PAWN)
     )  # a7
     # Black pawn on rank 7 (ROW_7) can only move 1 or 2 squares forward
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_7, col=COL_A), ConstantSquare(row=ROW_6, col=COL_A)
+            get_square_constant(6, 0), get_square_constant(5, 0)
         )
         is True
     )  # a7-a5

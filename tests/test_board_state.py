@@ -1,7 +1,7 @@
 from __future__ import annotations
 from chess_game.chess.board import Board, ConstantSquare, create_piece
 from chess_game.chess.types import Color, PieceType
-from chess_game.constants import (
+from chess_game.chess.constants import (
     COL_A,
     COL_B,
     COL_C,
@@ -14,7 +14,7 @@ from chess_game.constants import (
     ROW_7,
     ROW_8,
 )
-from chess_game.constants import get_row_constant, get_col_constant
+from chess_game.chess.constants import get_row_constant, get_col_constant, get_square_constant
 
 
 def clear_board(board: Board) -> None:
@@ -27,10 +27,10 @@ def clear_board(board: Board) -> None:
 
 def _setup_kings(board: Board) -> None:
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
     )
 
 
@@ -43,10 +43,10 @@ def test_board_handles_missing_white_king_gracefully() -> None:
     clear_board(board)
     # Only set black king, no white king
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.BLACK, PieceType.PAWN)
+        get_square_constant(6, 4), create_piece(Color.BLACK, PieceType.PAWN)
     )
     board.turn = Color.BLACK
     # Should not crash, just return no legal moves
@@ -60,13 +60,13 @@ def test_board_handles_extra_king_gracefully() -> None:
     clear_board(board)
     # Set both kings plus an extra white king
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_A), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(0, 0), create_piece(Color.WHITE, PieceType.KING)
     )
     board.turn = Color.WHITE
     # Should not crash
@@ -80,7 +80,7 @@ def test_board_handles_missing_opponent_king() -> None:
     clear_board(board)
     # Only white king present
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.turn = Color.WHITE
     # Should not crash
@@ -94,10 +94,10 @@ def test_board_handles_all_pieces_captured() -> None:
     clear_board(board)
     # Only kings remain
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     board.turn = Color.WHITE
     # Should work normally

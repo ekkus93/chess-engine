@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from chess_game.chess.board import Board, ConstantSquare, create_piece
-from chess_game.constants import (
+from chess_game.chess.constants import (
     ROW_1,
     ROW_2,
     ROW_3,
@@ -30,10 +30,10 @@ def clear_board(board: Board) -> None:
 
 def _setup_kings(board: Board) -> None:
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
     )
 
 
@@ -47,16 +47,16 @@ def test_rook_blocked_by_adjacent_piece() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_A), create_piece(Color.WHITE, PieceType.ROOK)
+        get_square_constant(0, 0), create_piece(Color.WHITE, PieceType.ROOK)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_B), create_piece(Color.BLACK, PieceType.PAWN)
+        get_square_constant(0, 1), create_piece(Color.BLACK, PieceType.PAWN)
     )
     board.turn = Color.WHITE
     # Rook can capture pawn at (7, 1)
@@ -70,7 +70,7 @@ def test_rook_blocked_by_adjacent_piece() -> None:
     )
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_1, col=COL_A), ConstantSquare(row=ROW_1, col=COL_B)
+            get_square_constant(0, 0), get_square_constant(0, 1)
         )
         is True
     )
@@ -81,19 +81,19 @@ def test_rook_blocked_by_piece_in_path() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_A), create_piece(Color.WHITE, PieceType.ROOK)
+        get_square_constant(0, 0), create_piece(Color.WHITE, PieceType.ROOK)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_2, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(1, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )  # e2
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_B), create_piece(Color.BLACK, PieceType.PAWN)
+        get_square_constant(0, 1), create_piece(Color.BLACK, PieceType.PAWN)
     )  # b1 - blocks rook from moving to b1
     board.turn = Color.WHITE
     # Rook cannot move past pawn on b1 to reach e1
@@ -113,27 +113,27 @@ def test_bishop_blocked_by_friendly_piece() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     # Clear the starting position pieces on rank 1
-    board.clear_square(ConstantSquare(row=ROW_1, col=COL_B))  # b1
-    board.clear_square(ConstantSquare(row=ROW_1, col=COL_C))  # c1
-    board.clear_square(ConstantSquare(row=ROW_1, col=COL_F))  # f1
-    board.clear_square(ConstantSquare(row=ROW_1, col=COL_G))  # g1
-    board.clear_square(ConstantSquare(row=ROW_2, col=COL_B))  # b2 (empty)
+    board.clear_square(get_square_constant(0, 1))  # b1
+    board.clear_square(get_square_constant(0, 2))  # c1
+    board.clear_square(get_square_constant(0, 5))  # f1
+    board.clear_square(get_square_constant(0, 6))  # g1
+    board.clear_square(get_square_constant(1, 1))  # b2 (empty)
     board.clear_square(
-        ConstantSquare(row=ROW_3, col=COL_C)
+        get_square_constant(2, 2)
     )  # c3 (where friendly pawn blocks path)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_A),
+        get_square_constant(0, 0),
         create_piece(Color.WHITE, PieceType.BISHOP),
     )
     # Place a friendly pawn on c3 to block the bishop's path
     board.set_piece(
-        ConstantSquare(row=ROW_3, col=COL_C), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(2, 2), create_piece(Color.WHITE, PieceType.PAWN)
     )
     board.turn = Color.WHITE
     # Bishop on a1 can move to b2 (6,1) but not past it to c3
@@ -159,17 +159,17 @@ def test_bishop_blocked_by_enemy_piece() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_A),
+        get_square_constant(0, 0),
         create_piece(Color.WHITE, PieceType.BISHOP),
     )
     board.set_piece(
-        ConstantSquare(row=ROW_2, col=COL_B), create_piece(Color.BLACK, PieceType.PAWN)
+        get_square_constant(1, 1), create_piece(Color.BLACK, PieceType.PAWN)
     )
     board.turn = Color.WHITE
     # Bishop can capture pawn on b2 but not move past to c3
@@ -185,19 +185,19 @@ def test_queen_blocked_in_one_direction() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.QUEEN)
+        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.QUEEN)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_2, col=COL_B), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(1, 1), create_piece(Color.WHITE, PieceType.PAWN)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_6, col=COL_E), create_piece(Color.BLACK, PieceType.PAWN)
+        get_square_constant(5, 4), create_piece(Color.BLACK, PieceType.PAWN)
     )
     board.turn = Color.WHITE
     # Queen can move vertically past pawn at (5,4), but not horizontally past pawn at (7,2)
@@ -215,19 +215,19 @@ def test_queen_blocked_in_multiple_directions() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.QUEEN)
+        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.QUEEN)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_2, col=COL_B), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(1, 1), create_piece(Color.WHITE, PieceType.PAWN)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_F), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(0, 5), create_piece(Color.WHITE, PieceType.PAWN)
     )
     board.turn = Color.WHITE
     # Queen blocked horizontally on both sides
@@ -240,17 +240,17 @@ def test_bishop_diagonal_blocked_at_distance() -> None:
     board = Board()
     clear_board(board)
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        ConstantSquare(row=ROW_1, col=COL_A),
+        get_square_constant(0, 0),
         create_piece(Color.WHITE, PieceType.BISHOP),
     )
     board.set_piece(
-        ConstantSquare(row=ROW_3, col=COL_C), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(2, 2), create_piece(Color.WHITE, PieceType.PAWN)
     )  # Pawn at c3 blocks
     board.turn = Color.WHITE
     # Bishop can move to b2 (6,1) but blocked by pawn at c3 (5,2)

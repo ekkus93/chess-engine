@@ -1,6 +1,6 @@
 from __future__ import annotations
 import pytest
-from chess_game.constants import (
+from chess_game.chess.constants import (
     ConstantSquare,
     ROW_1,
     ROW_2,

@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import List, Optional
 
 from chess_game.chess.color import Color
-from chess_game.chess.pieces.piece import Piece, PieceType, Square
+from chess_game.chess.pieces.piece import Piece, PieceType, ConstantSquare
 from chess_game.chess.board.board_state import BoardState
 
 
@@ -21,7 +21,7 @@ class PromotionValidator:
         return PieceType.QUEEN
 
     def is_promotion_required(
-        self, piece: Piece, from_square: Square, to_square: Square
+        self, piece: Piece, from_square : ConstantSquare, to_square : ConstantSquare
     ) -> bool:
         """Check if promotion is required for this pawn move."""
         if piece.kind != PieceType.PAWN:
@@ -34,7 +34,7 @@ class PromotionValidator:
         else:
             return int(to_square.row) == 0
 
-    def get_promotion_options(self, piece: Piece, to_square: Square) -> List[PieceType]:
+    def get_promotion_options(self, piece: Piece, to_square : ConstantSquare) -> List[PieceType]:
         """Get all valid promotion pieces for a pawn."""
         if piece.kind != PieceType.PAWN:
             return []
@@ -55,7 +55,26 @@ class PromotionValidator:
             PieceType.KNIGHT,
         ]
 
-    def is_promotion_rank(self, piece: Piece, to_square: Square) -> bool:
+    def is_valid_promotion_choice(
+        self, piece: Piece, end_pos : ConstantSquare, promotion: Optional[PieceType]
+    ) -> bool:
+        """Check if a promotion choice is valid."""
+        # Accept None (default promotion to queen) or explicit promotion type
+        if promotion is None or piece.kind != PieceType.PAWN:
+            return True
+
+        # Check if pawn is on promotion rank (rank 1 = row 0, rank 8 = row 7)
+        if int(end_pos.row) not in {0, 7}:
+            return False
+
+        return promotion in [
+            PieceType.QUEEN,
+            PieceType.ROOK,
+            PieceType.BISHOP,
+            PieceType.KNIGHT,
+        ]
+
+    def is_promotion_rank(self, piece: Piece, to_square : ConstantSquare) -> bool:
         """Check if the destination is a promotion rank."""
         if piece.kind != PieceType.PAWN:
             return False

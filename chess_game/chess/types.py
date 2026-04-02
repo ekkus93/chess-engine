@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from chess_game.constants import ConstantSquare, Color, PieceType
+from chess_game.chess.constants import ConstantSquare, Color, PieceType
 
 
 @dataclass(frozen=True)
