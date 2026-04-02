@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import List, Optional, Tuple
 
 from chess_game.chess.color import Color
-from chess_game.chess.pieces.piece import Piece, PieceType, ConstantSquare
+from chess_game.chess.types import Piece, PieceType, ConstantSquare
 from chess_game.chess.board.board_state import BoardState
 from chess_game.chess.board.castling import CastlingValidator
 from chess_game.chess.board.path_validator import PathValidator

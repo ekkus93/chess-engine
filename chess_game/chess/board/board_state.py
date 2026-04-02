@@ -5,8 +5,8 @@ from __future__ import annotations
 from typing import List, Optional, Union
 
 from chess_game.chess.color import Color
-from chess_game.chess.pieces.piece import Piece
-from chess_game.chess.pieces.piece import PieceType
+from chess_game.chess.types import Piece
+from chess_game.chess.types import PieceType
 from chess_game.chess.constants import (
     ConstantSquare,
     RowConstant,
@@ -62,7 +62,8 @@ class BoardState:
         if not (0 <= int(square.row) < 8 and 0 <= int(square.col) < 8):
             raise ValueError(f"Invalid square: {square}")
         if piece is not None:
-            piece = Piece(piece.color, piece.kind, square)
+            # Set the piece's square to the new position
+            piece._square = square
         self.board[int(square.row)][int(square.col)] = piece
 
     def clear_square(self, square: ConstantSquare) -> None:

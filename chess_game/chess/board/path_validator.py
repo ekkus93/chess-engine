@@ -6,7 +6,7 @@ from typing import List, Optional
 
 from chess_game.chess.color import Color
 from chess_game.chess.constants import BOARD_SIZE
-from chess_game.chess.pieces.piece import Piece, PieceType, ConstantSquare
+from chess_game.chess.types import Piece, PieceType, ConstantSquare
 from chess_game.chess.board.board_state import BoardState
 
 

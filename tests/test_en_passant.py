@@ -19,14 +19,7 @@ from chess_game.chess.constants import (
 )
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.types import Color, PieceType
-
-
-def clear_board(board: Board) -> None:
-    for row in range(8):
-        for col in range(8):
-            board.clear_square(
-                ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
-            )
+from tests.helpers import clear_board
 
 
 def _setup_kings(board: Board) -> None:

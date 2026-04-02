@@ -24,15 +24,7 @@ from chess_game.chess.constants import (
     COL_H,
 )
 from chess_game.chess.types import Color, PieceType
-
-
-def clear_board(board: Board) -> None:
-    for row in range(8):
-        for col in range(8):
-            col = get_col_constant(col)
-            board.clear_square(
-                ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
-            )
+from tests.helpers import clear_board
 
 
 def _setup_kings(board: Board) -> None:
@@ -78,12 +70,7 @@ def test_checkmate_pinned_king() -> None:
     assert isinstance(legal_moves, list)
     # Black moves (to change turn) - simple pawn move
     board.turn = Color.BLACK
-    assert (
-        board.make_move(
-            get_square_constant(1, 7), get_square_constant(0, 7)
-        )
-        is True
-    )
+    assert board.make_move(get_square_constant(1, 7), get_square_constant(0, 7)) is True
 
 
 def test_stalemate_pinned_king() -> None:
@@ -113,12 +100,7 @@ def test_stalemate_pinned_king() -> None:
     board.set_piece(
         get_square_constant(1, 7), create_piece(Color.BLACK, PieceType.PAWN)
     )
-    assert (
-        board.make_move(
-            get_square_constant(1, 7), get_square_constant(0, 7)
-        )
-        is True
-    )
+    assert board.make_move(get_square_constant(1, 7), get_square_constant(0, 7)) is True
 
 
 def test_checkmate_with_promotion() -> None:

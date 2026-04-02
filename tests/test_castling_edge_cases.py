@@ -1,94 +1,30 @@
 from __future__ import annotations
 from chess_game.chess.constants import (
-    
-        get_row_constant,
-        get_col_constant,
-        COL_A,
-        COL_B,
-        COL_C,
-        COL_D,
-        COL_E,
-        COL_F,
-        COL_G,
-        COL_H,
-        ConstantSquare,
-        ROW_1,
-        ROW_2,
-        ROW_3,
-        ROW_4,
-        ROW_5,
-        ROW_6,
-        ROW_7,
-        ROW_8,
-    
+    get_row_constant,
+    get_col_constant,
+    get_square_constant,
+    COL_A,
+    COL_B,
+    COL_C,
+    COL_D,
+    COL_E,
+    COL_F,
+    COL_G,
+    COL_H,
+    ConstantSquare,
+    ROW_1,
+    ROW_2,
+    ROW_3,
+    ROW_4,
+    ROW_5,
+    ROW_6,
+    ROW_7,
+    ROW_8,
 )
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.types import Color, PieceType
-def clear_board(board: Board) -> None:
-    board.clear_square(get_square_constant(7, 0))
-    board.clear_square(get_square_constant(7, 1))
-    board.clear_square(get_square_constant(7, 2))
-    board.clear_square(get_square_constant(7, 3))
-    board.clear_square(get_square_constant(7, 4))
-    board.clear_square(get_square_constant(7, 5))
-    board.clear_square(get_square_constant(7, 6))
-    board.clear_square(get_square_constant(7, 7))
-    board.clear_square(get_square_constant(6, 0))
-    board.clear_square(get_square_constant(6, 1))
-    board.clear_square(get_square_constant(6, 2))
-    board.clear_square(get_square_constant(6, 3))
-    board.clear_square(get_square_constant(6, 4))
-    board.clear_square(get_square_constant(6, 5))
-    board.clear_square(get_square_constant(6, 6))
-    board.clear_square(get_square_constant(6, 7))
-    board.clear_square(get_square_constant(5, 0))
-    board.clear_square(get_square_constant(5, 1))
-    board.clear_square(get_square_constant(5, 2))
-    board.clear_square(get_square_constant(5, 3))
-    board.clear_square(get_square_constant(5, 4))
-    board.clear_square(get_square_constant(5, 5))
-    board.clear_square(get_square_constant(5, 6))
-    board.clear_square(get_square_constant(5, 7))
-    board.clear_square(get_square_constant(4, 0))
-    board.clear_square(get_square_constant(4, 1))
-    board.clear_square(get_square_constant(4, 2))
-    board.clear_square(get_square_constant(4, 3))
-    board.clear_square(get_square_constant(4, 4))
-    board.clear_square(get_square_constant(4, 5))
-    board.clear_square(get_square_constant(4, 6))
-    board.clear_square(get_square_constant(4, 7))
-    board.clear_square(get_square_constant(3, 0))
-    board.clear_square(get_square_constant(3, 1))
-    board.clear_square(get_square_constant(3, 2))
-    board.clear_square(get_square_constant(3, 3))
-    board.clear_square(get_square_constant(3, 4))
-    board.clear_square(get_square_constant(3, 5))
-    board.clear_square(get_square_constant(3, 6))
-    board.clear_square(get_square_constant(3, 7))
-    board.clear_square(get_square_constant(2, 0))
-    board.clear_square(get_square_constant(2, 1))
-    board.clear_square(get_square_constant(2, 2))
-    board.clear_square(get_square_constant(2, 3))
-    board.clear_square(get_square_constant(2, 4))
-    board.clear_square(get_square_constant(2, 5))
-    board.clear_square(get_square_constant(2, 6))
-    board.clear_square(get_square_constant(2, 7))
-    board.clear_square(get_square_constant(1, 0))
-    board.clear_square(get_square_constant(1, 1))
-    board.clear_square(get_square_constant(1, 2))
-    board.clear_square(get_square_constant(1, 3))
-    board.clear_square(get_square_constant(1, 4))
-    board.clear_square(get_square_constant(1, 5))
-    board.clear_square(get_square_constant(1, 6))
-    board.clear_square(get_square_constant(1, 7))
-    board.clear_square(get_square_constant(0, 0))
-    board.clear_square(get_square_constant(0, 1))
-    board.clear_square(get_square_constant(0, 2))
-    board.clear_square(get_square_constant(0, 3))
-    board.clear_square(get_square_constant(0, 4))
-    board.clear_square(get_square_constant(0, 5))
-    board.clear_square(get_square_constant(0, 6))
-    board.clear_square(get_square_constant(0, 7))
+
+
 def _setup_kings(board: Board) -> None:
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
@@ -96,6 +32,8 @@ def _setup_kings(board: Board) -> None:
     board.set_piece(
         get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
     )
+
+
 # =============================================================================
 # Category 1: Castling Edge Cases
 # =============================================================================
@@ -122,11 +60,10 @@ def test_castling_rook_captured_forbids_kingside() -> None:
     )  # Black rook captures h1
     # White cannot castle kingside (rook no longer on h1)
     assert (
-        board.make_move(
-            get_square_constant(0, 4), get_square_constant(0, 6)
-        )
-        is False
+        board.make_move(get_square_constant(0, 4), get_square_constant(0, 6)) is False
     )
+
+
 def test_castling_rook_moved_clears_castling_right() -> None:
     """T1.1: Verify rook removal clears castling right."""
     board = Board()
@@ -147,11 +84,10 @@ def test_castling_rook_moved_clears_castling_right() -> None:
     )  # Rook moves to g1
     # White cannot castle kingside (original rook moved)
     assert (
-        board.make_move(
-            get_square_constant(0, 4), get_square_constant(0, 6)
-        )
-        is False
+        board.make_move(get_square_constant(0, 4), get_square_constant(0, 6)) is False
     )
+
+
 def test_castling_replaced_rook_does_not_restore_right() -> None:
     """T1.4: Replacement rook doesn't restore castling right."""
     board = Board()
@@ -175,11 +111,10 @@ def test_castling_replaced_rook_does_not_restore_right() -> None:
     )  # Black rook captures on h1
     # White cannot castle kingside (original rook moved, replacement doesn't help)
     assert (
-        board.make_move(
-            get_square_constant(0, 4), get_square_constant(0, 6)
-        )
-        is False
+        board.make_move(get_square_constant(0, 4), get_square_constant(0, 6)) is False
     )
+
+
 def test_castling_opponent_piece_in_path_blocks() -> None:
     """T1.2: Castling blocked by opponent piece in path."""
     board = Board()
@@ -202,11 +137,10 @@ def test_castling_opponent_piece_in_path_blocks() -> None:
     board.turn = Color.WHITE
     # Cannot castle kingside (path blocked by black pawn on g1)
     assert (
-        board.make_move(
-            get_square_constant(0, 4), get_square_constant(0, 6)
-        )
-        is False
+        board.make_move(get_square_constant(0, 4), get_square_constant(0, 6)) is False
     )
+
+
 def test_castling_enemy_piece_on_destination_blocked() -> None:
     """T1.2: Castling blocked if enemy piece on destination square."""
     board = Board()
@@ -229,11 +163,10 @@ def test_castling_enemy_piece_on_destination_blocked() -> None:
     board.turn = Color.WHITE
     # Cannot castle kingside (destination square occupied by enemy)
     assert (
-        board.make_move(
-            get_square_constant(0, 4), get_square_constant(0, 6)
-        )
-        is False
+        board.make_move(get_square_constant(0, 4), get_square_constant(0, 6)) is False
     )
+
+
 def test_castling_queenside_rook_moved_forbids() -> None:
     """T1.3: Queenside castling forbidden if kingside rook moved."""
     board = Board()
@@ -257,11 +190,10 @@ def test_castling_queenside_rook_moved_forbids() -> None:
     )  # Rook moves to g1
     # White cannot castle queenside (kingside rook moved, clearing rights)
     assert (
-        board.make_move(
-            get_square_constant(0, 4), get_square_constant(0, 2)
-        )
-        is False
+        board.make_move(get_square_constant(0, 4), get_square_constant(0, 2)) is False
     )
+
+
 def test_castling_kingside_rook_moved_forbids() -> None:
     """T1.3: Kingside castling forbidden if queenside rook moved."""
     board = Board()
@@ -285,11 +217,10 @@ def test_castling_kingside_rook_moved_forbids() -> None:
     )  # Rook moves to b1
     # White cannot castle kingside (queenside rook moved, clearing rights)
     assert (
-        board.make_move(
-            get_square_constant(0, 4), get_square_constant(0, 6)
-        )
-        is False
+        board.make_move(get_square_constant(0, 4), get_square_constant(0, 6)) is False
     )
+
+
 def test_castling_kingside_rook_replaced_forbids() -> None:
     """T1.4: Kingside castling forbidden when original rook replaced."""
     board = Board()
@@ -314,8 +245,5 @@ def test_castling_kingside_rook_replaced_forbids() -> None:
     )  # Black rook captures on h1
     # White cannot castle kingside (original rook moved)
     assert (
-        board.make_move(
-            get_square_constant(0, 4), get_square_constant(0, 6)
-        )
-        is False
+        board.make_move(get_square_constant(0, 4), get_square_constant(0, 6)) is False
     )

@@ -14,15 +14,11 @@ from chess_game.chess.constants import (
     ROW_7,
     ROW_8,
 )
-from chess_game.chess.constants import get_row_constant, get_col_constant, get_square_constant
-
-
-def clear_board(board: Board) -> None:
-    for row in range(ROW_1, ROW_8 + 1):
-        for col in range(COL_A, COL_H):
-            board.clear_square(
-                ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
-            )
+from chess_game.chess.constants import (
+    get_row_constant,
+    get_col_constant,
+    get_square_constant,
+)
 
 
 def _setup_kings(board: Board) -> None:
@@ -40,7 +36,7 @@ def _setup_kings(board: Board) -> None:
 def test_board_handles_missing_white_king_gracefully() -> None:
     """T9.1: Engine handles board state with missing king gracefully."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     # Only set black king, no white king
     board.set_piece(
         get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
@@ -57,7 +53,7 @@ def test_board_handles_missing_white_king_gracefully() -> None:
 def test_board_handles_extra_king_gracefully() -> None:
     """T9.1: Engine handles board state with extra king gracefully."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     # Set both kings plus an extra white king
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
@@ -77,7 +73,7 @@ def test_board_handles_extra_king_gracefully() -> None:
 def test_board_handles_missing_opponent_king() -> None:
     """T9.1: Engine handles board state with missing opponent king."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     # Only white king present
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
@@ -91,7 +87,7 @@ def test_board_handles_missing_opponent_king() -> None:
 def test_board_handles_all_pieces_captured() -> None:
     """T9.2: Engine handles board state with minimal pieces."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     # Only kings remain
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)

@@ -18,8 +18,8 @@ from chess_game.chess.constants import (
     get_row_constant,
     get_col_constant,
 )
-from chess_game.chess.pieces.piece import Piece
-from chess_game.chess.pieces.piece import PieceType
+from chess_game.chess.types import Piece
+from chess_game.chess.types import PieceType
 
 
 class CastlingValidator:

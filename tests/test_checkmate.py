@@ -26,14 +26,6 @@ from chess_game.chess.constants import (
 from chess_game.chess.types import Color, PieceType
 
 
-def clear_board(board: Board) -> None:
-    for row in range(8):
-        for col in range(8):
-            board.clear_square(
-                ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
-            )
-
-
 def _setup_kings(board: Board) -> None:
     board.set_piece(
         get_square_constant(7, 4), create_piece(Color.WHITE, PieceType.KING)
@@ -48,7 +40,7 @@ def _setup_kings(board: Board) -> None:
 def test_absolute_pin_rook_cannot_move_forward() -> None:
     """T4.1: Absolutely pinned rook cannot move to expose king."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     # White king on f7 (doesn't check d8)
     board.set_piece(
         get_square_constant(5, 5), create_piece(Color.WHITE, PieceType.KING)
@@ -73,28 +65,20 @@ def test_absolute_pin_rook_cannot_move_forward() -> None:
     # Rook cannot move towards king (that would expose it to queen)
     board.turn = Color.WHITE
     assert (
-        board.make_move(
-            get_square_constant(2, 4), get_square_constant(2, 5)
-        )
-        is False
+        board.make_move(get_square_constant(2, 4), get_square_constant(2, 5)) is False
     )  # Cannot move towards king (away from queen)
     # Black moves (to change turn)
     board.turn = Color.BLACK
     board.set_piece(
         get_square_constant(6, 0), create_piece(Color.BLACK, PieceType.ROOK)
     )
-    assert (
-        board.make_move(
-            get_square_constant(6, 0), get_square_constant(6, 1)
-        )
-        is True
-    )
+    assert board.make_move(get_square_constant(6, 0), get_square_constant(6, 1)) is True
 
 
 def test_absolute_pin_rook_cannot_move_sideways() -> None:
     """T4.1: Absolutely pinned rook cannot move sideways."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     # White king on f7 (doesn't check d8)
     board.set_piece(
         get_square_constant(5, 5), create_piece(Color.WHITE, PieceType.KING)
@@ -113,28 +97,20 @@ def test_absolute_pin_rook_cannot_move_sideways() -> None:
     # White rook on e3 is pinned by black queen on e7
     board.turn = Color.WHITE
     assert (
-        board.make_move(
-            get_square_constant(2, 4), get_square_constant(2, 3)
-        )
-        is False
+        board.make_move(get_square_constant(2, 4), get_square_constant(2, 3)) is False
     )  # Cannot move sideways
     # Black moves (to change turn)
     board.turn = Color.BLACK
     board.set_piece(
         get_square_constant(6, 0), create_piece(Color.BLACK, PieceType.ROOK)
     )
-    assert (
-        board.make_move(
-            get_square_constant(6, 0), get_square_constant(6, 1)
-        )
-        is True
-    )
+    assert board.make_move(get_square_constant(6, 0), get_square_constant(6, 1)) is True
 
 
 def test_pinned_rook_can_be_captured() -> None:
     """T4.1: Pinned piece can be captured (even if it exposes king)."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     # White king on f7 (doesn't check d8)
     board.set_piece(
         get_square_constant(5, 5), create_piece(Color.WHITE, PieceType.KING)
@@ -159,10 +135,7 @@ def test_pinned_rook_can_be_captured() -> None:
     # Black knight can capture pinned white rook
     board.turn = Color.BLACK
     assert (
-        board.make_move(
-            get_square_constant(4, 3), get_square_constant(2, 4)
-        )
-        is True
+        board.make_move(get_square_constant(4, 3), get_square_constant(2, 4)) is True
     )  # Black knight captures white rook (even though pinned)
     # Black moves (to change turn)
     board.turn = Color.WHITE
@@ -171,17 +144,14 @@ def test_pinned_rook_can_be_captured() -> None:
     )
     board.turn = Color.BLACK
     assert (
-        board.make_move(
-            get_square_constant(5, 3), get_square_constant(4, 3)
-        )
-        is True
+        board.make_move(get_square_constant(5, 3), get_square_constant(4, 3)) is True
     )  # Black pawn moves (unpinned piece can move)
 
 
 def test_relative_pin_piece_can_move() -> None:
     """T4.2: Relatively pinned piece (not protecting king) can move."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(6, 4), create_piece(Color.WHITE, PieceType.KING)
     )
@@ -201,17 +171,14 @@ def test_relative_pin_piece_can_move() -> None:
     # White queen on e4 is pinned by black bishop on e1 but can still move (queen is not protecting king)
     board.turn = Color.WHITE
     assert (
-        board.make_move(
-            get_square_constant(3, 4), get_square_constant(5, 4)
-        )
-        is True
+        board.make_move(get_square_constant(3, 4), get_square_constant(5, 4)) is True
     )  # Queen can move away from pin
 
 
 def test_relative_pin_does_not_prevent_movement() -> None:
     """T4.2: Relative pin doesn't prevent movement of non-king-protecting piece."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(6, 4), create_piece(Color.WHITE, PieceType.KING)
     )
@@ -233,17 +200,14 @@ def test_relative_pin_does_not_prevent_movement() -> None:
     # White knight on e4 is pinned by bishop on e1 but can still move (knights jump pins)
     board.turn = Color.WHITE
     assert (
-        board.make_move(
-            get_square_constant(3, 4), get_square_constant(5, 5)
-        )
-        is True
+        board.make_move(get_square_constant(3, 4), get_square_constant(5, 5)) is True
     )  # Knight can jump over pin
 
 
 def test_engine_handles_double_pin_gracefully() -> None:
     """T4.3: Engine doesn't crash on double pin situation."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(2, 3), create_piece(Color.WHITE, PieceType.KING)
     )  # On a1-h8 diagonal (3+4=7)
@@ -266,9 +230,7 @@ def test_engine_handles_double_pin_gracefully() -> None:
     # Engine should handle gracefully without crashing
     # Rook should be able to move sideways (not towards king)
     board.turn = Color.WHITE
-    result = board.make_move(
-        get_square_constant(4, 4), get_square_constant(4, 3)
-    )
+    result = board.make_move(get_square_constant(4, 4), get_square_constant(4, 3))
     # Should reject move that would expose king (towards king)
     assert result is False
     # Black moves (to change turn)
@@ -276,18 +238,13 @@ def test_engine_handles_double_pin_gracefully() -> None:
     board.set_piece(
         get_square_constant(0, 0), create_piece(Color.BLACK, PieceType.ROOK)
     )
-    assert (
-        board.make_move(
-            get_square_constant(0, 0), get_square_constant(0, 1)
-        )
-        is True
-    )
+    assert board.make_move(get_square_constant(0, 0), get_square_constant(0, 1)) is True
 
 
 def test_king_can_move_into_pin() -> None:
     """T4.4: King can move into a pinning position."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(6, 4), create_piece(Color.WHITE, PieceType.KING)
     )
@@ -306,28 +263,20 @@ def test_king_can_move_into_pin() -> None:
     # White king moves to d1 (becomes pinned but that's legal)
     board.turn = Color.WHITE
     assert (
-        board.make_move(
-            get_square_constant(6, 4), get_square_constant(5, 4)
-        )
-        is True
+        board.make_move(get_square_constant(6, 4), get_square_constant(5, 4)) is True
     )  # King can move
     # Black moves (to change turn)
     board.turn = Color.BLACK
     board.set_piece(
         get_square_constant(0, 0), create_piece(Color.BLACK, PieceType.ROOK)
     )
-    assert (
-        board.make_move(
-            get_square_constant(0, 0), get_square_constant(0, 1)
-        )
-        is True
-    )
+    assert board.make_move(get_square_constant(0, 0), get_square_constant(0, 1)) is True
 
 
 def test_king_can_move_out_of_pin() -> None:
     """T4.4: King can move out of a pinning position."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     # White king on d8 (not on the e-file)
     board.set_piece(
         get_square_constant(7, 3), create_piece(Color.WHITE, PieceType.KING)
@@ -343,22 +292,14 @@ def test_king_can_move_out_of_pin() -> None:
     # White rook on e4 is pinned but can move sideways to f4
     board.turn = Color.WHITE
     assert (
-        board.make_move(
-            get_square_constant(3, 4), get_square_constant(3, 5)
-        )
-        is True
+        board.make_move(get_square_constant(3, 4), get_square_constant(3, 5)) is True
     )  # Rook can move away from pin
     # Black moves (to change turn)
     board.turn = Color.BLACK
     board.set_piece(
         get_square_constant(0, 0), create_piece(Color.BLACK, PieceType.KING)
     )
-    assert (
-        board.make_move(
-            get_square_constant(0, 0), get_square_constant(0, 1)
-        )
-        is True
-    )
+    assert board.make_move(get_square_constant(0, 0), get_square_constant(0, 1)) is True
 
 
 # =============================================================================

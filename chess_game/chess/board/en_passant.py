@@ -12,7 +12,7 @@ from chess_game.chess.constants import (
     ConstantSquare,
 )
 from chess_game.chess.board.board_state import BoardState
-from chess_game.chess.pieces.piece import PieceType
+from chess_game.chess.types import PieceType
 
 
 class EnPassantValidator:

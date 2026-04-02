@@ -18,12 +18,6 @@ from chess_game.chess.constants import (
 )
 
 
-def clear_board(board: Board) -> None:
-    for row in range(8):
-        for col in range(8):
-            board.clear_square(get_square_constant(row, col))
-
-
 def _setup_kings(board: Board) -> None:
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
@@ -69,7 +63,7 @@ def _setup_kings(board: Board) -> None:
 
 def test_white_kingside_castle_legal_case() -> None:
     board = Board()
-    clear_board(board)
+    board.clear_board()
     _setup_kings(board)
     board.turn = Color.WHITE
 
@@ -84,7 +78,7 @@ def test_white_kingside_castle_legal_case() -> None:
 
 def test_white_queenside_castle_legal_case() -> None:
     board = Board()
-    clear_board(board)
+    board.clear_board()
     _setup_kings(board)
     board.turn = Color.WHITE
 
@@ -99,7 +93,7 @@ def test_white_queenside_castle_legal_case() -> None:
 
 def test_black_kingside_castle_legal_case() -> None:
     board = Board()
-    clear_board(board)
+    board.clear_board()
     _setup_kings(board)
     board.turn = Color.BLACK
 
@@ -114,7 +108,7 @@ def test_black_kingside_castle_legal_case() -> None:
 
 def test_black_queenside_castle_legal_case() -> None:
     board = Board()
-    clear_board(board)
+    board.clear_board()
     _setup_kings(board)
     board.turn = Color.BLACK
 
@@ -129,7 +123,7 @@ def test_black_queenside_castle_legal_case() -> None:
 
 def test_en_passant_available_after_double_pawn_advance() -> None:
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(1, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )
@@ -141,7 +135,7 @@ def test_en_passant_available_after_double_pawn_advance() -> None:
 
 def test_en_passant_captures_pawn_on_same_square() -> None:
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(1, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )
@@ -170,7 +164,7 @@ def test_en_passant_captures_pawn_on_same_square() -> None:
 
 def test_en_passant_unavailable_if_pawns_on_adjacent_files() -> None:
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         ConstantSquare(row=ROW_7, col=COL_E), create_piece(Color.WHITE, PieceType.PAWN)
     )
@@ -184,7 +178,7 @@ def test_en_passant_unavailable_if_pawns_on_adjacent_files() -> None:
 
 def test_white_promotion_to_queen() -> None:
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         ConstantSquare(row=ROW_1, col=COL_A), create_piece(Color.WHITE, PieceType.KING)
     )
@@ -208,7 +202,7 @@ def test_white_promotion_to_queen() -> None:
 
 def test_white_promotion_to_knight() -> None:
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(0, 0), create_piece(Color.WHITE, PieceType.KING)
     )
@@ -239,7 +233,7 @@ def test_parse_move_notation_supports_promotion_choice() -> None:
 
 def test_castling_through_check_is_illegal() -> None:
     board = Board()
-    clear_board(board)
+    board.clear_board()
     _setup_kings(board)
     board.set_piece(
         get_square_constant(4, 3), create_piece(Color.BLACK, PieceType.BISHOP)
@@ -253,7 +247,7 @@ def test_castling_through_check_is_illegal() -> None:
 
 def test_castling_avoiding_check_is_legal() -> None:
     board = Board()
-    clear_board(board)
+    board.clear_board()
     _setup_kings(board)
     board.turn = Color.WHITE
     # Place a black pawn to create a check situation
@@ -270,7 +264,7 @@ def test_castling_avoiding_check_is_legal() -> None:
 
 def test_castling_into_check_is_illegal() -> None:
     board = Board()
-    clear_board(board)
+    board.clear_board()
     _setup_kings(board)
     board.set_piece(
         ConstantSquare(row=ROW_5, col=COL_G),

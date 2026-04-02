@@ -22,15 +22,7 @@ from chess_game.chess.constants import (
     COL_G,
     ConstantSquare,
 )
-
-
-def clear_board(board: Board) -> None:
-    for row in range(8):
-        for col in range(8):
-            col = get_col_constant(col)
-            board.clear_square(
-                ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
-            )
+from tests.helpers import clear_board
 
 
 def _setup_kings(board: Board) -> None:
@@ -60,9 +52,7 @@ def test_only_one_en_passant_target_at_a_time() -> None:
     board.set_piece(
         get_square_constant(1, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )  # e2 pawn
-    board.make_move(
-        get_square_constant(1, 4), get_square_constant(3, 4)
-    )  # e2-e4
+    board.make_move(get_square_constant(1, 4), get_square_constant(3, 4))  # e2-e4
     assert board.en_passant_target == ConstantSquare(
         row=ROW_3, col=COL_E
     )  # e3 square available
@@ -106,15 +96,10 @@ def test_en_passant_capture_removes_pawn_from_original_square() -> None:
     # White pawn at e6 (2,4) captures black pawn at d5 (3,3) en passant
     # The captured pawn is removed from d5 and placed on d6 (2,3)
     assert (
-        board.make_move(
-            get_square_constant(2, 4), get_square_constant(5, 3)
-        )
-        is True
+        board.make_move(get_square_constant(2, 4), get_square_constant(5, 3)) is True
     )  # e6 captures d5 en passant
     # Verify black pawn was removed from d5
-    assert (
-        board.get_piece(get_square_constant(4, 2)) is None
-    )  # d5 should be empty
+    assert board.get_piece(get_square_constant(4, 2)) is None  # d5 should be empty
 
 
 def test_en_passant_expired_after_nonpawn_move() -> None:
@@ -159,10 +144,7 @@ def test_en_passant_expired_after_nonpawn_move() -> None:
     )  # White pawn on e2
     board.turn = Color.BLACK
     assert (
-        board.make_move(
-            get_square_constant(6, 4), get_square_constant(4, 4)
-        )
-        is False
+        board.make_move(get_square_constant(6, 4), get_square_constant(4, 4)) is False
     )  # Cannot capture en passant (expired)
 
 
@@ -266,9 +248,7 @@ def test_full_en_passant_sequence_from_starting_position() -> None:
     )  # Black pawn on d7
     board.turn = Color.BLACK
     # Black plays d7-d5 (double step)
-    board.make_move(
-        get_square_constant(6, 3), get_square_constant(4, 3)
-    )  # d7-d5
+    board.make_move(get_square_constant(6, 3), get_square_constant(4, 3))  # d7-d5
     assert board.en_passant_target == ConstantSquare(
         row=ROW_6, col=COL_D
     )  # d6 square available
@@ -277,12 +257,7 @@ def test_full_en_passant_sequence_from_starting_position() -> None:
     # White captures en passant: e4 captures d6 en passant
     # White pawn at e4 (ROW_4, COL_E) captures black pawn at d5 en passant
     # The black pawn is removed from d5 and placed on d6 (ROW_6, COL_D)
-    assert (
-        board.make_move(
-            get_square_constant(3, 4), get_square_constant(5, 3)
-        )
-        is True
-    )
+    assert board.make_move(get_square_constant(3, 4), get_square_constant(5, 3)) is True
     # Verify white pawn is now at d6 (5,3) after en passant capture
     white_pawn_at_d6 = board.get_piece(get_square_constant(5, 3))
     assert white_pawn_at_d6 is not None

@@ -279,22 +279,6 @@ def get_square_constant(row: int, col: int) -> ConstantSquare:
     return ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
 
 
-def clear_board(board_list) -> None:
-    """Clear all pieces from the board list."""
-    if hasattr(board_list, "board"):
-        # Handle Board object
-        for row in board_list.board:
-            for i, piece in enumerate(row):
-                if piece is not None:
-                    row[i] = None
-    else:
-        # Handle list of lists
-        for piece_list in board_list:
-            for i, piece in enumerate(piece_list):
-                if piece is not None:
-                    piece_list[i] = None
-
-
 # Type alias that enforces use of constant coordinate objects
 # This allows runtime validation through ConstantSquare while maintaining
 # type safety with int values

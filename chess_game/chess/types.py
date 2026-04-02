@@ -4,22 +4,22 @@ from typing import Optional
 from chess_game.chess.constants import ConstantSquare, Color, PieceType
 
 
-@dataclass(frozen=True)
+@dataclass
 class Piece:
     color: Color
     kind: PieceType
-    _square: ConstantSquare
+    _square: Optional[ConstantSquare] = None
 
     @property
-    def row(self) -> ConstantSquare:
-        return self._square.row
+    def row(self) -> Optional[ConstantSquare]:
+        return self._square.row if self._square else None
 
     @property
-    def col(self) -> ConstantSquare:
-        return self._square.col
+    def col(self) -> Optional[ConstantSquare]:
+        return self._square.col if self._square else None
 
     @property
-    def square(self) -> ConstantSquare:
+    def square(self) -> Optional[ConstantSquare]:
         return self._square
 
 

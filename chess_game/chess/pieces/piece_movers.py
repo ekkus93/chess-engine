@@ -5,8 +5,15 @@ from __future__ import annotations
 from typing import List, Optional
 
 from chess_game.chess.color import Color
-from chess_game.chess.constants import ROW_1, ROW_8, get_row_constant, get_col_constant
-from chess_game.chess.pieces.piece import Piece, PieceType, ConstantSquare
+from chess_game.chess.constants import (
+    ROW_1,
+    ROW_2,
+    ROW_7,
+    ROW_8,
+    get_row_constant,
+    get_col_constant,
+)
+from chess_game.chess.types import Piece, PieceType, ConstantSquare
 
 
 class PieceMovers:
@@ -47,7 +54,11 @@ class PieceMovers:
                 moves.append(target_square)
 
         # Forward 2 squares (only on first move)
-        if current_row == int(start_row):
+        # White starts at ROW_2 (array row 1), Black starts at ROW_7 (array row 6)
+        is_first_move = (piece.color == Color.WHITE and current_row == 1) or (
+            piece.color == Color.BLACK and current_row == 6
+        )
+        if is_first_move:
             target_row_2 = get_row_constant(current_row + 2 * direction)
             target_square_2 = ConstantSquare(row=target_row_2, col=current_col)
             if PieceMovers._is_valid_position(board, target_square_2):
@@ -82,15 +93,19 @@ class PieceMovers:
     def _get_knight_moves(piece: Piece, board) -> List[ConstantSquare]:
         """Get all valid knight moves (L-shaped)."""
         moves = []
-        row_offsets = [-2, -1, 1, 2]
-        col_offsets = [-2, -1, 1, 2]
+        # Valid knight moves: one offset 1, other offset 2 (L-shape)
+        valid_moves = [
+            (-2, -1),
+            (-2, 1),
+            (-1, -2),
+            (-1, 2),
+            (1, -2),
+            (1, 2),
+            (2, -1),
+            (2, 1),
+        ]
 
-        for row_offset, col_offset in [
-            (ro, co) for ro in row_offsets for co in col_offsets
-        ]:
-            if row_offset * col_offset == 0:  # Skip adjacent squares
-                continue
-
+        for row_offset, col_offset in valid_moves:
             target_row = int(piece.square.row) + row_offset
             target_col = int(piece.square.col) + col_offset
 
@@ -247,6 +262,20 @@ class PieceMovers:
             current_col += step_col
 
         return True
+
+    @staticmethod
+    def _get_piece_row(piece: Piece) -> Optional[int]:
+        """Get piece row, handling None square."""
+        if piece.square is None:
+            return None
+        return int(piece.square.row)
+
+    @staticmethod
+    def _get_piece_col(piece: Piece) -> Optional[int]:
+        """Get piece column, handling None square."""
+        if piece.square is None:
+            return None
+        return int(piece.square.col)
 
     @staticmethod
     def _get_queen_moves(piece: Piece, board) -> List[ConstantSquare]:

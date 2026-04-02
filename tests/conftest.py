@@ -6,7 +6,6 @@ from chess_game.chess.constants import (
     get_row_constant,
     get_col_constant,
     get_square_constant,
-    clear_board,
     COL_A,
     COL_B,
     COL_C,
@@ -43,7 +42,7 @@ def record_xml_attribute() -> Callable[[str, object], None]:
 def empty_board() -> Board:
     """Provide an empty board (no pieces, no kings) for isolated tests."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     return board
 
 
@@ -71,7 +70,7 @@ def simple_opening_position() -> Board:
 def board_with_kings() -> Board:
     """Provide an otherwise-empty board with both kings placed legally."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
     )
@@ -86,7 +85,7 @@ def board_with_material() -> Board:
     """Provide a board with material for evaluation testing."""
     board = Board()
     # Clear and set up a simple position: White has queen vs Black knight
-    clear_board(board)
+    board.clear_board()
     # Set up kings (required by board state but not used in evaluation)
     board.set_piece(
         ConstantSquare(row=ROW_1, col=COL_E), create_piece(Color.WHITE, PieceType.KING)
@@ -111,16 +110,16 @@ def simple_opening_position() -> Board:
     board = Board()
     # Make some standard opening moves to set up a position
     board.make_move(
-        ConstantSquare(row=ROW_7, col=COL_C), ConstantSquare(row=ROW_5, col=COL_D)
+        ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_3, col=COL_D)
     )  # e4
     board.make_move(
-        ConstantSquare(row=ROW_8, col=COL_B), ConstantSquare(row=ROW_2, col=COL_C)
+        ConstantSquare(row=ROW_8, col=COL_B), ConstantSquare(row=ROW_6, col=COL_C)
     )  # Nc6 (Black knight)
     board.make_move(
-        ConstantSquare(row=ROW_7, col=COL_E), ConstantSquare(row=ROW_6, col=COL_F)
+        ConstantSquare(row=ROW_1, col=COL_E), ConstantSquare(row=ROW_3, col=COL_F)
     )  # Bc4 (White bishop to center)
     board.make_move(
-        ConstantSquare(row=ROW_8, col=8), ConstantSquare(row=ROW_2, col=COL_H)
+        ConstantSquare(row=ROW_7, col=COL_E), ConstantSquare(row=ROW_5, col=COL_H)
     )  # ...e6
     return board
 

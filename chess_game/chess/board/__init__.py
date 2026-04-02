@@ -5,7 +5,6 @@ from chess_game.chess.board.board import (
     LegalMove,
     ConstantSquare,
     create_piece,
-    clear_board,
     offset_square,
     forward_one,
 )
@@ -16,7 +15,6 @@ __all__ = [
     "LegalMove",
     "ConstantSquare",
     "create_piece",
-    "clear_board",
     "offset_square",
     "forward_one",
 ]

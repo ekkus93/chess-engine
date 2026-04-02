@@ -1,7 +1,7 @@
 import pytest
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.color import Color
-from chess_game.chess.pieces.piece import PieceType
+from chess_game.chess.types import PieceType
 from chess_game.chess.types import ConstantSquare
 from chess_game.chess.constants import (
     ROW_1,
@@ -22,6 +22,7 @@ from chess_game.chess.constants import (
     COL_H,
     get_row_constant,
     get_col_constant,
+    get_square_constant,
 )
 
 

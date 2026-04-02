@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Optional
 
 from chess_game.chess.color import Color
-from chess_game.chess.pieces.piece import Piece, PieceType, ConstantSquare
+from chess_game.chess.types import Piece, PieceType, ConstantSquare
 from chess_game.chess.board.board_state import BoardState
 from chess_game.chess.board.castling import CastlingValidator
 from chess_game.chess.board.promotion import PromotionValidator
@@ -35,19 +35,19 @@ class MoveExecutor:
 
         # Handle promotion
         if piece.kind == PieceType.PAWN:
-            self._handle_promotion(piece, to_square, promotion_piece)
+            self._handle_promotion(piece, from_square, to_square, promotion_piece)
         else:
             # Handle castling
             if self._is_castling_move(piece, from_square, to_square):
                 self._execute_castling(piece, from_square, to_square)
             else:
                 # Regular move
-        return True
                 self._execute_regular_move(piece, from_square, to_square)
 
     def _handle_promotion(
         self,
         piece: Piece,
+        from_square: ConstantSquare,
         to_square: ConstantSquare,
         promotion_piece: Optional[PieceType],
     ) -> None:

@@ -37,6 +37,7 @@ from chess_game.chess.constants import (
     ConstantSquare,
     get_row_constant,
     get_col_constant,
+    get_square_constant,
 )
 
 LegalMove = tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]
@@ -50,18 +51,10 @@ def create_piece(
         square = ConstantSquare(
             row=get_row_constant(square[0]), col=get_col_constant(square[1])
         )
-    return Piece(color=color, kind=piece_type, _square=square)
-
-
-def clear_board(board: "Board") -> None:
-    """Clear all pieces from the board."""
-    # Clear the board array
-    for row in board.board:
-        for i in range(len(row)):
-            row[i] = None
-
-    # Clear the pieces in BoardState
-    board._board_state.board = [[None for _ in range(8)] for _ in range(8)]
+    piece = Piece(color=color, kind=piece_type)
+    if square is not None:
+        piece._square = square
+    return piece
 
 
 def offset_square(s: ConstantSquare, dr: int, dc: int) -> ConstantSquare:
@@ -218,6 +211,60 @@ class Board:
         """Validate square coordinates."""
         return 0 <= int(square.row) < 8 and 0 <= int(square.col) < 8
 
+    def is_valid_rook_move(
+        self, from_square: ConstantSquare, to_square: ConstantSquare
+    ) -> bool:
+        """Validate rook move (straight line)."""
+        piece = self._board_state.get_piece(from_square)
+        if piece is None or piece.kind != PieceType.ROOK:
+            return False
+        return self._move_validator.is_valid_move(from_square, to_square)
+
+    def is_valid_bishop_move(
+        self, from_square: ConstantSquare, to_square: ConstantSquare
+    ) -> bool:
+        """Validate bishop move (diagonal)."""
+        piece = self._board_state.get_piece(from_square)
+        if piece is None or piece.kind != PieceType.BISHOP:
+            return False
+        return self._move_validator.is_valid_move(from_square, to_square)
+
+    def is_valid_queen_move(
+        self, from_square: ConstantSquare, to_square: ConstantSquare
+    ) -> bool:
+        """Validate queen move (straight or diagonal)."""
+        piece = self._board_state.get_piece(from_square)
+        if piece is None or piece.kind != PieceType.QUEEN:
+            return False
+        return self._move_validator.is_valid_move(from_square, to_square)
+
+    def is_valid_knight_move(
+        self, from_square: ConstantSquare, to_square: ConstantSquare
+    ) -> bool:
+        """Validate knight move (L-shape)."""
+        piece = self._board_state.get_piece(from_square)
+        if piece is None or piece.kind != PieceType.KNIGHT:
+            return False
+        return self._move_validator.is_valid_move(from_square, to_square)
+
+    def is_valid_king_move(
+        self, from_square: ConstantSquare, to_square: ConstantSquare
+    ) -> bool:
+        """Validate king move (one square in any direction)."""
+        piece = self._board_state.get_piece(from_square)
+        if piece is None or piece.kind != PieceType.KING:
+            return False
+        return self._move_validator.is_valid_move(from_square, to_square)
+
+    def is_valid_pawn_move(
+        self, from_square: ConstantSquare, to_square: ConstantSquare
+    ) -> bool:
+        """Validate pawn move."""
+        piece = self._board_state.get_piece(from_square)
+        if piece is None or piece.kind != PieceType.PAWN:
+            return False
+        return self._move_validator.is_valid_move(from_square, to_square)
+
     def is_on_board(self, square: ConstantSquare) -> bool:
         """Check if square is on board."""
         return self.is_valid_position(square)
@@ -245,6 +292,12 @@ class Board:
         cloned.black_kingside = self.black_kingside
         cloned.black_queenside = self.black_queenside
         return cloned
+
+    def clear_board(self):
+        """Clear all pieces from the board."""
+        for row in range(8):
+            for col in range(8):
+                self.clear_square(get_square_constant(row, col))
 
     def get_legal_moves(
         self, square: Optional[ConstantSquare] = None
