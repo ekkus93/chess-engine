@@ -533,8 +533,8 @@ class Board:
                     all_clear = all_clear and self.get_piece(intermediate) is None
                 return all_clear and distance == 6
 
-            # 2-square move from starting position (ROW_7 to ROW_5, i.e., rank 8 to rank 6)
-            if start_row == int(ROW_7) and end_row == int(ROW_5):
+            # 2-square move from starting position (ROW_8 to ROW_6, i.e., rank 8 to rank 6)
+            if start_row == int(ROW_8) and end_row == int(ROW_6):
                 intermediate = ConstantSquare(
                     row=get_row_constant(int(start_row) - 1),
                     col=get_col_constant(int(start.col)),
