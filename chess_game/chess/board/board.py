@@ -124,50 +124,119 @@ class Board:
             object.__setattr__(self, "en_passant_target", value)
 
     def _create_board(self) -> List[List[Optional[Piece]]]:
-        """Create a standard chess board."""
+        """Create a standard chess board with starting position."""
         board: List[List[Optional[Piece]]] = [
             [None for _ in range(8)] for _ in range(8)
         ]
 
-        # Black pieces (rows 0-1, ranks 8-7)
-        for col in range(8):
-            piece_type = (
-                PieceType.ROOK
-                if col == 0 or col == 7
-                else PieceType.KNIGHT
-                if col == 1 or col == 6
-                else PieceType.BISHOP
-                if col == 2 or col == 5
-                else PieceType.QUEEN
-                if col == 3
-                else PieceType.KING
-                if col == 4
-                else None
-            )
-            board[0][col] = create_piece(Color.BLACK, piece_type, square=(0, col))
+        # Setup standard chess starting position
+        # Black pieces (rows 0-1 = ranks 8-7)
+        board[0] = [
+            create_piece(
+                Color.BLACK, PieceType.ROOK, ConstantSquare(row=ROW_1, col=COL_A)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.KNIGHT, ConstantSquare(row=ROW_1, col=COL_B)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.BISHOP, ConstantSquare(row=ROW_1, col=COL_C)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.QUEEN, ConstantSquare(row=ROW_1, col=COL_D)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.KING, ConstantSquare(row=ROW_1, col=COL_E)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.BISHOP, ConstantSquare(row=ROW_1, col=COL_F)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.KNIGHT, ConstantSquare(row=ROW_1, col=COL_G)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.ROOK, ConstantSquare(row=ROW_1, col=COL_H)
+            ),
+        ]
+        board[1] = [
+            create_piece(
+                Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_2, col=COL_A)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_2, col=COL_B)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_2, col=COL_C)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_2, col=COL_D)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_2, col=COL_E)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_2, col=COL_F)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_2, col=COL_G)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_2, col=COL_H)
+            ),
+        ]
 
-        for col in range(8):
-            board[1][col] = create_piece(Color.BLACK, PieceType.PAWN, square=(1, col))
-
-        # White pieces (rows 6-7, ranks 2-1)
-        for col in range(8):
-            board[6][col] = create_piece(Color.WHITE, PieceType.PAWN, square=(6, col))
-
-        for col in range(8):
-            piece_type = (
-                PieceType.ROOK
-                if col == 0 or col == 7
-                else PieceType.KNIGHT
-                if col == 1 or col == 6
-                else PieceType.BISHOP
-                if col == 2 or col == 5
-                else PieceType.QUEEN
-                if col == 3
-                else PieceType.KING
-                if col == 4
-                else None
-            )
-            board[7][col] = create_piece(Color.WHITE, piece_type, square=(7, col))
+        # White pieces (rows 6-7 = ranks 2-1)
+        board[6] = [
+            create_piece(
+                Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_7, col=COL_A)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_7, col=COL_B)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_7, col=COL_C)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_7, col=COL_D)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_7, col=COL_E)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_7, col=COL_F)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_7, col=COL_G)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_7, col=COL_H)
+            ),
+        ]
+        board[7] = [
+            create_piece(
+                Color.WHITE, PieceType.ROOK, ConstantSquare(row=ROW_8, col=COL_A)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.KNIGHT, ConstantSquare(row=ROW_8, col=COL_B)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.BISHOP, ConstantSquare(row=ROW_8, col=COL_C)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.QUEEN, ConstantSquare(row=ROW_8, col=COL_D)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.KING, ConstantSquare(row=ROW_8, col=COL_E)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.BISHOP, ConstantSquare(row=ROW_8, col=COL_F)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.KNIGHT, ConstantSquare(row=ROW_8, col=COL_G)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.ROOK, ConstantSquare(row=ROW_8, col=COL_H)
+            ),
+        ]
 
         return board
 
@@ -181,10 +250,20 @@ class Board:
 
     def get_piece(self, square: ConstantSquare) -> Optional[Piece]:
         """Get piece at square."""
+        # Convert tuple to ConstantSquare if needed
+        if isinstance(square, tuple):
+            square = ConstantSquare(
+                row=get_row_constant(square[0]), col=get_col_constant(square[1])
+            )
         return self._board_state.get_piece(square)
 
     def set_piece(self, square: ConstantSquare, piece: Optional[Piece]) -> None:
         """Set piece at square."""
+        # Convert tuple to ConstantSquare if needed
+        if isinstance(square, tuple):
+            square = ConstantSquare(
+                row=get_row_constant(square[0]), col=get_col_constant(square[1])
+            )
         self._board_state.set_piece(square, piece)
 
     def clear_square(self, square: ConstantSquare) -> None:
@@ -383,7 +462,11 @@ class Board:
             and self._castling_validator.is_castling_move(start_pos, end_pos)
         ):
             if not self._castling_validator.can_castle(
-                self._board_state, start_pos, end_pos, start_piece.color
+                self._board_state,
+                start_pos,
+                end_pos,
+                start_piece.color,
+                start_piece.color,
             ):
                 return False
 

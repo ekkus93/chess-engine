@@ -44,6 +44,7 @@ class CastlingValidator:
         start_pos: ConstantSquare,
         end_pos: ConstantSquare,
         color: Color,
+        _piece_color: Color,
     ) -> bool:
         """Check if castling is valid for the given move."""
         if not CastlingValidator.is_castling_move(start_pos, end_pos):
@@ -58,7 +59,7 @@ class CastlingValidator:
             rook_square = ConstantSquare(row=start_pos.row, col=COL_A)
 
         return CastlingValidator._can_complete_castle(
-            board, start_pos, rook_square, end_pos, color
+            board, start_pos, rook_square, end_pos, color, _piece_color
         )
 
     @staticmethod
@@ -73,7 +74,7 @@ class CastlingValidator:
         destination = ConstantSquare(row=get_row_constant(int(home_row)), col=COL_G)
 
         return CastlingValidator._can_complete_castle(
-            board, king_square, rook_square, destination, color
+            board, king_square, rook_square, destination, color, color
         )
 
     @staticmethod
@@ -88,7 +89,7 @@ class CastlingValidator:
         destination = ConstantSquare(row=get_row_constant(int(home_row)), col=COL_C)
 
         return CastlingValidator._can_complete_castle(
-            board, king_square, rook_square, destination, color
+            board, king_square, rook_square, destination, color, color
         )
 
     @staticmethod
@@ -98,6 +99,7 @@ class CastlingValidator:
         rook_square: ConstantSquare,
         destination: ConstantSquare,
         color: Color,
+        _piece_color: Color,
     ) -> bool:
         """Check if castling can be completed."""
         # Check rook is at original square
@@ -106,7 +108,7 @@ class CastlingValidator:
 
         # Check path is clear
         if not CastlingValidator._castling_path_is_clear(
-            king_square, destination, board
+            king_square, destination, board, _piece_color
         ):
             return False
 
@@ -155,16 +157,27 @@ class CastlingValidator:
         king_square: ConstantSquare,
         destination: ConstantSquare,
         board: BoardState,
+        _piece_color: Color,
     ) -> bool:
         """Check if castling path is clear."""
         if king_square.col == COL_E and destination.col == COL_G:
             # Kingside: check f-file
-            return not board.get_piece(ConstantSquare(row=king_square.row, col=COL_F))
+            piece = board.get_piece(ConstantSquare(row=king_square.row, col=COL_F))
+            if piece is not None:
+                # Path blocked by any piece (friend or foe)
+                return False
+            return True
         elif king_square.col == COL_E and destination.col == COL_C:
             # Queenside: check d and c files
-            return not board.get_piece(
-                ConstantSquare(row=king_square.row, col=COL_D)
-            ) and not board.get_piece(ConstantSquare(row=king_square.row, col=COL_C))
+            piece_d = board.get_piece(ConstantSquare(row=king_square.row, col=COL_D))
+            piece_c = board.get_piece(ConstantSquare(row=king_square.row, col=COL_C))
+            if piece_d is not None:
+                # Path blocked by any piece (friend or foe)
+                return False
+            if piece_c is not None:
+                # Path blocked by any piece (friend or foe)
+                return False
+            return True
         return True
 
     @staticmethod

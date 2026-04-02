@@ -51,15 +51,24 @@ class MoveValidator:
 
         # Check for special moves
         if self._is_castling_move(piece, from_square, to_square):
-            return self._validate_castling(piece, from_square, to_square)
+            result = self._validate_castling(piece, from_square, to_square)
+            # Castling destination must be empty (cannot castle on occupied square)
+            if self.board.get_piece(to_square) is not None:
+                return False
+            return result
 
         if self._is_en_passant_move(piece, from_square, to_square):
+            print(f"DEBUG validate: en passant move detected")
             return self._validate_en_passant(piece, from_square, to_square)
 
         # Regular move: check if destination is valid (not own piece)
         if self.board.get_piece(to_square) is not None:
             if self.board.get_piece(to_square).color == piece.color:
                 return False
+
+        # Check that the move doesn't leave the king in check (pin detection)
+        if self._would_expose_king_to_check(piece, from_square, to_square):
+            return False
 
         return True
 
@@ -264,6 +273,74 @@ class MoveValidator:
             return PieceType.QUEEN
 
         return None
+
+    def _would_expose_king_to_check(
+        self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
+    ) -> bool:
+        """Check if making the move would expose the piece's king to check.
+
+        A piece is pinned if moving it would expose its king to attack by an enemy piece.
+        """
+        piece_color = piece.color
+        enemy_color = Color.BLACK if piece_color == Color.WHITE else Color.WHITE
+
+        # Create a temporary board state to simulate the move
+        # Make a DEEP COPY of the board to avoid modifying the original
+        import copy
+
+        temp_board_board = [row[:] for row in self.board.board]
+        temp_board = BoardState(
+            board=temp_board_board,
+            turn=self.board.turn,
+            en_passant_target=self.board.en_passant_target,
+            white_kingside=self.board.white_kingside,
+            white_queenside=self.board.white_queenside,
+            black_kingside=self.board.black_kingside,
+            black_queenside=self.board.black_queenside,
+        )
+
+        # Copy all pieces from the current board (don't modify piece._square)
+        for row in range(8):
+            for col in range(8):
+                square = ConstantSquare(
+                    row=get_row_constant(row), col=get_col_constant(col)
+                )
+                original_piece = self.board.get_piece(square)
+                if original_piece is not None:
+                    # Create a copy of the piece to avoid modifying original
+                    temp_piece = Piece(
+                        color=original_piece.color,
+                        kind=original_piece.kind,
+                        _square=square,
+                    )
+                    temp_board.board[int(square.row)][int(square.col)] = temp_piece
+
+        # Make the simulated move - use original piece with updated square
+        temp_piece = Piece(
+            color=piece.color,
+            kind=piece.kind,
+            _square=to_square,
+        )
+        temp_board.board[int(to_square.row)][int(to_square.col)] = temp_piece
+        temp_board.board[int(from_square.row)][int(from_square.col)] = None
+
+        # Find the king of this color
+        king_square = temp_board.find_king(piece_color)
+        if king_square is None:
+            return False
+
+        # Check if any enemy piece can attack the king
+        for row in range(8):
+            for col in range(8):
+                sq = ConstantSquare(
+                    row=get_row_constant(row), col=get_col_constant(col)
+                )
+                attacker = temp_board.get_piece(sq)
+                if attacker is not None and attacker.color == enemy_color:
+                    if self._can_piece_attack(attacker, sq, king_square, piece_color):
+                        return True
+
+        return False
 
     def is_piece_pinned(self, square: ConstantSquare, piece_color: Color) -> bool:
         """Check if a piece is pinned to its king.

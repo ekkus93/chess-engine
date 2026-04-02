@@ -35,7 +35,15 @@ class MoveExecutor:
 
         # Handle promotion
         if piece.kind == PieceType.PAWN:
-            self._handle_promotion(piece, from_square, to_square, promotion_piece)
+            # Only handle promotion if it's actually required or explicitly requested
+            promotion_required = self.promotion_validator.is_promotion_required(
+                piece, from_square, to_square
+            )
+            if promotion_required or promotion_piece is not None:
+                self._handle_promotion(piece, from_square, to_square, promotion_piece)
+            else:
+                # Regular pawn move, no promotion
+                self._execute_regular_move(piece, from_square, to_square)
         else:
             # Handle castling
             if self._is_castling_move(piece, from_square, to_square):

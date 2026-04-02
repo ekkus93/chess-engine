@@ -40,11 +40,11 @@ class PieceMovers:
     def _get_pawn_moves(piece: Piece, board) -> List[ConstantSquare]:
         """Get all valid pawn moves (forward, capture, 2-step)."""
         moves = []
+        # WHITE moves from lower to higher rows (direction +1), BLACK moves from higher to lower (direction -1)
         direction = 1 if piece.color == Color.WHITE else -1
-        start_row = ROW_1 if piece.color == Color.WHITE else ROW_8
 
-        current_row = int(piece.square.row)
-        current_col = get_col_constant(int(piece.square.col))
+        current_row = int(piece._square.row)
+        current_col = get_col_constant(int(piece._square.col))
 
         # Forward 1 square
         next_row = get_row_constant(current_row + direction)
@@ -54,17 +54,27 @@ class PieceMovers:
                 moves.append(target_square)
 
         # Forward 2 squares (only on first move)
-        # White starts at ROW_2 (array row 1), Black starts at ROW_7 (array row 6)
-        is_first_move = (piece.color == Color.WHITE and current_row == 1) or (
-            piece.color == Color.BLACK and current_row == 6
+        # WHITE starts at array row 1 (rank 2), BLACK starts at array row 7 (rank 8)
+        # Detect if pawn has moved by checking if it's not on starting row
+        is_first_move = (
+            current_row == 1 if piece.color == Color.WHITE else current_row == 7
+        )
+
+        print(
+            f"DEBUG: current_row={current_row}, is_first_move={is_first_move}, direction={direction}"
         )
         if is_first_move:
             target_row_2 = get_row_constant(current_row + 2 * direction)
             target_square_2 = ConstantSquare(row=target_row_2, col=current_col)
+            print(f"DEBUG: target_square_2={target_square_2}")
             if PieceMovers._is_valid_position(board, target_square_2):
                 square_between = ConstantSquare(row=next_row, col=current_col)
+                print(
+                    f"DEBUG: square_between={square_between}, is_empty={board.is_empty(square_between)}, target_empty={board.is_empty(target_square_2)}"
+                )
                 if board.is_empty(square_between) and board.is_empty(target_square_2):
                     moves.append(target_square_2)
+                    print(f"DEBUG: Added 2-step move to {target_square_2}")
 
         # Captures
         for col_offset in [-1, 1]:
@@ -106,8 +116,8 @@ class PieceMovers:
         ]
 
         for row_offset, col_offset in valid_moves:
-            target_row = int(piece.square.row) + row_offset
-            target_col = int(piece.square.col) + col_offset
+            target_row = int(piece._square.row) + row_offset
+            target_col = int(piece._square.col) + col_offset
 
             # Check bounds before converting to ConstantSquare
             if not (0 <= target_row < 8 and 0 <= target_col < 8):
@@ -138,8 +148,8 @@ class PieceMovers:
         ]
 
         for row_offset, col_offset in diagonals:
-            target_row = int(piece.square.row) + row_offset
-            target_col = int(piece.square.col) + col_offset
+            target_row = int(piece._square.row) + row_offset
+            target_col = int(piece._square.col) + col_offset
 
             while 0 <= target_row < 8 and 0 <= target_col < 8:
                 target_row_const = get_row_constant(target_row)
@@ -174,8 +184,8 @@ class PieceMovers:
         ]
 
         for row_offset, col_offset in directions:
-            target_row = int(piece.square.row) + row_offset
-            target_col = int(piece.square.col) + col_offset
+            target_row = int(piece._square.row) + row_offset
+            target_col = int(piece._square.col) + col_offset
 
             while 0 <= target_row < 8 and 0 <= target_col < 8:
                 target_row_const = get_row_constant(target_row)
@@ -275,14 +285,14 @@ class PieceMovers:
         """Get piece row, handling None square."""
         if piece.square is None:
             return None
-        return int(piece.square.row)
+        return int(piece._square.row)
 
     @staticmethod
     def _get_piece_col(piece: Piece) -> Optional[int]:
         """Get piece column, handling None square."""
         if piece.square is None:
             return None
-        return int(piece.square.col)
+        return int(piece._square.col)
 
     @staticmethod
     def _get_queen_moves(piece: Piece, board) -> List[ConstantSquare]:
@@ -304,8 +314,8 @@ class PieceMovers:
             if row_offset == 0 and col_offset == 0:
                 continue
 
-            target_row = int(piece.square.row) + row_offset
-            target_col = int(piece.square.col) + col_offset
+            target_row = int(piece._square.row) + row_offset
+            target_col = int(piece._square.col) + col_offset
 
             # Check bounds before converting to ConstantSquare
             if not (0 <= target_row < 8 and 0 <= target_col < 8):
@@ -325,7 +335,7 @@ class PieceMovers:
         # Add castling moves
         if piece.kind == PieceType.KING:
             color = piece.color
-            king_row = int(piece.square.row)
+            king_row = int(piece._square.row)
 
             # Kingside castling (e1 -> g1 for white, e8 -> g8 for black)
             if (color == Color.WHITE and board.white_kingside) or (

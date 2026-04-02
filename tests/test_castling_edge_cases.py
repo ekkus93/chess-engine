@@ -123,8 +123,8 @@ def test_castling_opponent_piece_in_path_blocks() -> None:
         get_square_constant(7, 7), create_piece(Color.BLACK, PieceType.ROOK)
     )
     board.set_piece(
-        get_square_constant(0, 6), create_piece(Color.BLACK, PieceType.PAWN)
-    )  # Black pawn on g1
+        get_square_constant(0, 5), create_piece(Color.BLACK, PieceType.PAWN)
+    )  # Black pawn on f1
     board.turn = Color.WHITE
     # Cannot castle kingside (path blocked by black pawn on g1)
     assert (
