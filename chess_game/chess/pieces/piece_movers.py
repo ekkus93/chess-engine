@@ -38,7 +38,7 @@ class PieceMovers:
 
     @staticmethod
     def _get_pawn_moves(piece: Piece, board) -> List[ConstantSquare]:
-        """Get all valid pawn moves (forward, capture, 2-step)."""
+        """Get all valid pawn moves (forward, capture, 2-step, promotion)."""
         moves = []
         # WHITE moves from lower to higher rows (direction +1), BLACK moves from higher to lower (direction -1)
         direction = 1 if piece.color == Color.WHITE else -1
@@ -54,27 +54,19 @@ class PieceMovers:
                 moves.append(target_square)
 
         # Forward 2 squares (only on first move)
-        # WHITE starts at array row 1 (rank 2), BLACK starts at array row 7 (rank 8)
+        # WHITE starts at array row 1 (rank 2), BLACK starts at array row 6 (rank 7)
         # Detect if pawn has moved by checking if it's not on starting row
         is_first_move = (
-            current_row == 1 if piece.color == Color.WHITE else current_row == 7
+            current_row == 1 if piece.color == Color.WHITE else current_row == 6
         )
 
-        print(
-            f"DEBUG: current_row={current_row}, is_first_move={is_first_move}, direction={direction}"
-        )
         if is_first_move:
             target_row_2 = get_row_constant(current_row + 2 * direction)
             target_square_2 = ConstantSquare(row=target_row_2, col=current_col)
-            print(f"DEBUG: target_square_2={target_square_2}")
             if PieceMovers._is_valid_position(board, target_square_2):
                 square_between = ConstantSquare(row=next_row, col=current_col)
-                print(
-                    f"DEBUG: square_between={square_between}, is_empty={board.is_empty(square_between)}, target_empty={board.is_empty(target_square_2)}"
-                )
                 if board.is_empty(square_between) and board.is_empty(target_square_2):
                     moves.append(target_square_2)
-                    print(f"DEBUG: Added 2-step move to {target_square_2}")
 
         # Captures
         for col_offset in [-1, 1]:
@@ -91,6 +83,41 @@ class PieceMovers:
                 target_piece = board.get_piece(target_square)
                 if target_piece is not None and target_piece.color != piece.color:
                     moves.append(target_square)
+
+        # Promotion moves: add the promotion square if forward move results in promotion
+        # White promotes at row 7, Black promotes at row 0
+        if piece.color == Color.WHITE:
+            # White moves up (direction +1), promotes at row 7
+            if current_row == 6 and int(next_row) == 7:
+                if board.is_empty(target_square):
+                    moves.append(target_square)
+            # Also add capture promotions
+            for col_offset in [-1, 1]:
+                target_col_idx = int(current_col) + col_offset
+                if not (0 <= target_col_idx < 8):
+                    continue
+                target_col = get_col_constant(target_col_idx)
+                target_square = ConstantSquare(row=next_row, col=target_col)
+                if PieceMovers._is_valid_position(board, target_square):
+                    target_piece = board.get_piece(target_square)
+                    if target_piece is not None and target_piece.color != piece.color:
+                        moves.append(target_square)
+        else:
+            # Black moves down (direction -1), promotes at row 0
+            if current_row == 1 and int(next_row) == 0:
+                if board.is_empty(target_square):
+                    moves.append(target_square)
+            # Also add capture promotions
+            for col_offset in [-1, 1]:
+                target_col_idx = int(current_col) + col_offset
+                if not (0 <= target_col_idx < 8):
+                    continue
+                target_col = get_col_constant(target_col_idx)
+                target_square = ConstantSquare(row=next_row, col=target_col)
+                if PieceMovers._is_valid_position(board, target_square):
+                    target_piece = board.get_piece(target_square)
+                    if target_piece is not None and target_piece.color != piece.color:
+                        moves.append(target_square)
 
         return moves
 

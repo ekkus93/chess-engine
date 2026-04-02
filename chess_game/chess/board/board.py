@@ -264,6 +264,9 @@ class Board:
             square = ConstantSquare(
                 row=get_row_constant(square[0]), col=get_col_constant(square[1])
             )
+        print(
+            f"DEBUG set_piece: square={square}, piece={piece}, piece._square={piece._square if piece else None}"
+        )
         self._board_state.set_piece(square, piece)
 
     def clear_square(self, square: ConstantSquare) -> None:

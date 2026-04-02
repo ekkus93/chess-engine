@@ -30,34 +30,35 @@ def test_black_en_passant_legal_example() -> None:
     board = Board()
     board.clear_board()
     board.set_piece(
-        ConstantSquare(row=ROW_2, col=COL_D),
-        create_piece(Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_2, col=COL_D)),
-    )  # White pawn on d2 (array row 1 = rank 2)
+        ConstantSquare(row=ROW_4, col=COL_D),
+        create_piece(Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_4, col=COL_D)),
+    )  # White pawn on d4 (array row 3 = rank 4)
     board.set_piece(
-        ConstantSquare(row=ROW_8, col=COL_E),
-        create_piece(Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_8, col=COL_E)),
-    )  # Black pawn on e8 (array row 7 = rank 8)
+        ConstantSquare(row=ROW_7, col=COL_E),
+        create_piece(Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_7, col=COL_E)),
+    )  # Black pawn on e7 (array row 6 = rank 7)
     board.turn = Color.BLACK
 
-    # Black moves pawn two squares (from rank 8 to rank 6, array rows 7 to 5)
+    # Black moves pawn two squares (from rank 7 to rank 5, array rows 6 to 4)
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_8, col=COL_E), ConstantSquare(row=ROW_6, col=COL_E)
+            ConstantSquare(row=ROW_7, col=COL_E), ConstantSquare(row=ROW_5, col=COL_E)
         )
         is True
     )
-    assert board.en_passant_target == ConstantSquare(row=ROW_7, col=COL_E)
+    # En passant target is where the white pawn will land (e6, rank 6)
+    assert board.en_passant_target == ConstantSquare(row=ROW_6, col=COL_E)
 
-    # White captures en passant from d2 to e3 (the en passant target)
+    # White captures en passant from d4 to e6 (the en passant target)
     board.turn = Color.WHITE
     assert (
         board.make_move(
-            ConstantSquare(row=ROW_2, col=COL_D), ConstantSquare(row=ROW_3, col=COL_E)
+            ConstantSquare(row=ROW_4, col=COL_D), ConstantSquare(row=ROW_6, col=COL_E)
         )
         is True
     )
-    assert board.get_piece(ConstantSquare(row=ROW_2, col=COL_D)) is None
+    assert board.get_piece(ConstantSquare(row=ROW_4, col=COL_D)) is None
     assert (
-        board.get_piece_type_at(ConstantSquare(row=ROW_3, col=COL_E)) == PieceType.PAWN
+        board.get_piece_type_at(ConstantSquare(row=ROW_6, col=COL_E)) == PieceType.PAWN
     )
-    assert board.get_color_at(ConstantSquare(row=ROW_3, col=COL_E)) == Color.WHITE
+    assert board.get_color_at(ConstantSquare(row=ROW_6, col=COL_E)) == Color.WHITE

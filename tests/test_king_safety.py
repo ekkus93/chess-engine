@@ -191,12 +191,12 @@ def test_promotion_from_rank_7_forced() -> None:
         get_square_constant(0, 7), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(1, 4), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(6, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )
-    # White pawn on rank 2 can promote to rank 8 (row 7)
+    # White pawn on rank 7 can promote to rank 8 (row 7)
     assert (
         board.make_move(
-            get_square_constant(1, 4),
+            get_square_constant(6, 4),
             get_square_constant(7, 4),
             promotion=PieceType.QUEEN,
         )

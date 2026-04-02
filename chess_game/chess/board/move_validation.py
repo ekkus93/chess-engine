@@ -45,11 +45,10 @@ class MoveValidator:
         if piece is None:
             return False
 
-        # Check if piece can move to destination
-        if to_square not in self.piece_movers.get_valid_moves(piece, self.board):
-            return False
+        # Check for special moves first (before checking valid moves list)
+        if self._is_en_passant_move(piece, from_square, to_square):
+            return self._validate_en_passant(piece, from_square, to_square)
 
-        # Check for special moves
         if self._is_castling_move(piece, from_square, to_square):
             result = self._validate_castling(piece, from_square, to_square)
             # Castling destination must be empty (cannot castle on occupied square)
@@ -79,20 +78,18 @@ class MoveValidator:
         if piece.kind != PieceType.KING:
             return False
 
+        from_row = int(piece._square.row)
+
         # Kingside castling
         if from_square == ConstantSquare(
-            row=get_row_constant(int(piece.square.row)), col=COL_E
-        ) and to_square == ConstantSquare(
-            row=get_row_constant(int(piece.square.row)), col=COL_G
-        ):
+            row=get_row_constant(from_row), col=COL_E
+        ) and to_square == ConstantSquare(row=get_row_constant(from_row), col=COL_G):
             return True
 
         # Queenside castling
         if from_square == ConstantSquare(
-            row=get_row_constant(int(piece.square.row)), col=COL_E
-        ) and to_square == ConstantSquare(
-            row=get_row_constant(int(piece.square.row)), col=COL_C
-        ):
+            row=get_row_constant(from_row), col=COL_E
+        ) and to_square == ConstantSquare(row=get_row_constant(from_row), col=COL_C):
             return True
 
         return False
@@ -104,18 +101,29 @@ class MoveValidator:
         if piece.kind != PieceType.PAWN:
             return False
 
-        # En passant captures diagonal
+        # En passant captures diagonal - one file over, two ranks (jump move)
         col_diff = abs(int(to_square.col) - int(from_square.col))
         row_diff = abs(int(to_square.row) - int(from_square.row))
 
-        if col_diff != 1 or row_diff != 1:
+        if col_diff != 1 or row_diff != 2:
             return False
 
-        # Check if en passant target is set to destination
+        # Check if en passant target is set
         if self.board.en_passant_target is None:
             return False
 
-        return self.board.en_passant_target == to_square
+        # En passant target is the square the capturing pawn will land on
+        # The capturing pawn moves diagonally to this square
+        ep_target_row = int(self.board.en_passant_target.row)
+        ep_target_col = int(self.board.en_passant_target.col)
+        to_row = int(to_square.row)
+        to_col = int(to_square.col)
+
+        # Check that the target matches the destination square
+        if ep_target_row != to_row or ep_target_col != to_col:
+            return False
+
+        return True
 
     def _validate_castling(
         self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
