@@ -110,10 +110,18 @@ class EnPassantValidator:
             from_square: Moving pawn's square
             to_square: Target square
         """
+        color = piece.color
         # Only set en passant target for two-square pawn advances
         direction = 1 if piece.color == Color.WHITE else -1
         start_row = (
             get_row_constant(1) if piece.color == Color.WHITE else get_row_constant(7)
+        )
+
+        print(
+            f"DEBUG update: color={color}, from_row={int(from_square.row)}, to_row={int(to_square.row)}, start_row={int(start_row)}, direction={direction}"
+        )
+        print(
+            f"DEBUG update: int(from_square.row) == int(start_row): {int(from_square.row) == int(start_row)}"
         )
 
         if (

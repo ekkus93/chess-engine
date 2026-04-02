@@ -219,19 +219,19 @@ class PieceMovers:
             # Check path is clear
             if from_square.row == to_square.row or from_square.col == to_square.col:
                 return False
-            return PieceMovers._path_is_clear(from_square, to_square, piece)
+            return PieceMovers._path_is_clear(from_square, to_square, piece, board)
 
         if piece.kind == PieceType.ROOK:
             if from_square.row != to_square.row and from_square.col != to_square.col:
                 return False
-            return PieceMovers._path_is_clear(from_square, to_square, piece)
+            return PieceMovers._path_is_clear(from_square, to_square, piece, board)
 
         if piece.kind == PieceType.QUEEN:
             if from_square.row != to_square.row and from_square.col != to_square.col:
                 return False
             if abs(row_diff) != abs(col_diff):
                 return False
-            return PieceMovers._path_is_clear(from_square, to_square, piece)
+            return PieceMovers._path_is_clear(from_square, to_square, piece, board)
 
         if piece.kind == PieceType.KING:
             return from_square != to_square and max(abs(row_diff), abs(col_diff)) == 1
@@ -240,7 +240,7 @@ class PieceMovers:
 
     @staticmethod
     def _path_is_clear(
-        from_square: ConstantSquare, to_square: ConstantSquare, piece
+        from_square: ConstantSquare, to_square: ConstantSquare, piece, board
     ) -> bool:
         """Check if path between two squares is clear."""
         if from_square == to_square:
@@ -256,10 +256,7 @@ class PieceMovers:
         current_col = int(from_square.col) + step_col
 
         while (current_row, current_col) != (int(to_square.row), int(to_square.col)):
-            if (
-                piece.board.get_piece(ConstantSquare(current_row, current_col))
-                is not None
-            ):
+            if board.get_piece(ConstantSquare(current_row, current_col)) is not None:
                 return False
             current_row += step_row
             current_col += step_col

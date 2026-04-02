@@ -14,6 +14,10 @@ from chess_game.chess.constants import (
     COL_F,
     COL_G,
     COL_H,
+    ROW_1,
+    ROW_3,
+    ROW_5,
+    ROW_7,
     get_square_constant,
 )
 

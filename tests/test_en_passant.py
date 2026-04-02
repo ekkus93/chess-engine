@@ -192,13 +192,44 @@ def test_castling_kingside_with_queenside_rook_only() -> None:
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(0, 0), create_piece(Color.WHITE, PieceType.ROOK)
+        get_square_constant(7, 0), create_piece(Color.BLACK, PieceType.ROOK)
     )
     board.set_piece(
-        get_square_constant(0, 7), create_piece(Color.WHITE, PieceType.ROOK)
+        get_square_constant(7, 7), create_piece(Color.BLACK, PieceType.ROOK)
     )
+
     # Move queenside rook away (kingside rook remains)
-    board.turn = Color.WHITE
+    board.turn = Color.BLACK
+    assert (
+        board.make_move(
+            get_square_constant(7, 0),
+            get_square_constant(6, 0),
+        )
+        is True
+    )
+
+    # Switch turn back to black for castling
+    board.turn = Color.BLACK
+
+    # Queenside castling should NOT be possible (queenside rook moved)
+    # Kingside castling should be possible (kingside rook remains)
+    assert (
+        board.make_move(
+            get_square_constant(7, 4),
+            get_square_constant(7, 6),
+        )
+        is True
+    )
+
+    # Switch turn back to black for rook return
+    board.turn = Color.BLACK
+    assert (
+        board.make_move(
+            get_square_constant(6, 0),
+            get_square_constant(7, 0),
+        )
+        is True
+    )  # Return rook
     assert (
         board.make_move(
             get_square_constant(0, 0),
@@ -206,8 +237,8 @@ def test_castling_kingside_with_queenside_rook_only() -> None:
         )
         is True
     )
-    # Switch turn back to white for castling
-    board.turn = Color.WHITE
+    # Switch turn back to black for castling
+    board.turn = Color.BLACK
     # Queenside castling should NOT be possible (queenside rook moved)
     # Kingside castling should be possible (kingside rook remains)
     assert (
@@ -217,8 +248,8 @@ def test_castling_kingside_with_queenside_rook_only() -> None:
         )
         is True
     )
-    # Switch turn back to white for rook return
-    board.turn = Color.WHITE
+    # Switch turn back to black for rook return
+    board.turn = Color.BLACK
     assert (
         board.make_move(
             get_square_constant(7, 0),
@@ -243,32 +274,44 @@ def test_castling_queenside_with_kingside_rook_only() -> None:
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(0, 0), create_piece(Color.WHITE, PieceType.ROOK)
+        get_square_constant(7, 0), create_piece(Color.BLACK, PieceType.ROOK)
     )
     board.set_piece(
-        get_square_constant(0, 7), create_piece(Color.WHITE, PieceType.ROOK)
+        get_square_constant(7, 7), create_piece(Color.BLACK, PieceType.ROOK)
     )
+
     # Move kingside rook away (queenside rook remains)
-    board.turn = Color.WHITE
+    board.turn = Color.BLACK
     assert (
         board.make_move(
-            get_square_constant(0, 7),
+            get_square_constant(7, 7),
+            get_square_constant(6, 7),
+        )
+        is True
+    )
+
+    # Switch turn back to black for castling
+    board.turn = Color.BLACK
+
+    # Queenside castling should be possible (queenside rook remains)
+    # Kingside castling should NOT be possible (kingside rook moved)
+    assert (
+        board.make_move(
+            get_square_constant(7, 4),
+            get_square_constant(7, 2),
+        )
+        is True
+    )
+
+    # Switch turn back to black for rook return
+    board.turn = Color.BLACK
+    assert (
+        board.make_move(
+            get_square_constant(6, 7),
             get_square_constant(7, 7),
         )
         is True
-    )  # Move rook away
-    # Switch turn back to white for queenside castling
-    board.turn = Color.WHITE
-    # Queenside castling should still be possible (queenside rook remains)
-    assert (
-        board.make_move(
-            get_square_constant(0, 4),
-            get_square_constant(0, 2),
-        )
-        is True
-    )
-    # Switch turn back to white for next assertion
-    board.turn = Color.WHITE
+    )  # Return rook
 
 
 def test_cannot_castle_if_king_squre_attacked_during_castle() -> None:

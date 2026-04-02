@@ -181,13 +181,18 @@ class CastlingValidator:
                 if piece is None or piece.color != by_color:
                     continue
 
-                if CastlingValidator._piece_attacks_square(piece, piece_square, square):
+                if CastlingValidator._piece_attacks_square(
+                    piece, piece_square, square, board
+                ):
                     return True
         return False
 
     @staticmethod
     def _piece_attacks_square(
-        piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
+        piece: Piece,
+        from_square: ConstantSquare,
+        to_square: ConstantSquare,
+        board: BoardState,
     ) -> bool:
         """Check if a piece attacks a square."""
         row_diff = to_square.row - from_square.row
@@ -240,7 +245,15 @@ class CastlingValidator:
         current_col = int(from_square.col) + step_col
 
         while (current_row, current_col) != (int(to_square.row), int(to_square.col)):
-            if board.get_piece(ConstantSquare(current_row, current_col)) is not None:
+            if (
+                board.get_piece(
+                    ConstantSquare(
+                        row=get_row_constant(current_row),
+                        col=get_col_constant(current_col),
+                    )
+                )
+                is not None
+            ):
                 return False
             current_row += step_row
             current_col += step_col
