@@ -44,6 +44,8 @@ class MoveExecutor:
                 # Regular move
                 self._execute_regular_move(piece, from_square, to_square)
 
+        return True
+
     def _handle_promotion(
         self,
         piece: Piece,

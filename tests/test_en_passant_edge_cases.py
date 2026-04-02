@@ -4,6 +4,7 @@ from chess_game.chess.types import Color, PieceType
 from chess_game.chess.constants import (
     get_row_constant,
     get_col_constant,
+    get_square_constant,
     ROW_0,
     ROW_1,
     ROW_2,

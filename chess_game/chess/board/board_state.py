@@ -138,3 +138,7 @@ class BoardState:
             black_kingside=self.black_kingside,
             black_queenside=self.black_queenside,
         )
+
+    def set_en_passant_target(self, square: Optional[ConstantSquare]) -> None:
+        """Set the en passant target square."""
+        self.en_passant_target = square

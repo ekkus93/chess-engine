@@ -240,7 +240,7 @@ class PieceMovers:
 
     @staticmethod
     def _path_is_clear(
-        from_square: ConstantSquare, to_square: ConstantSquare, board
+        from_square: ConstantSquare, to_square: ConstantSquare, piece
     ) -> bool:
         """Check if path between two squares is clear."""
         if from_square == to_square:
@@ -256,7 +256,10 @@ class PieceMovers:
         current_col = int(from_square.col) + step_col
 
         while (current_row, current_col) != (int(to_square.row), int(to_square.col)):
-            if board.get_piece(ConstantSquare(current_row, current_col)) is not None:
+            if (
+                piece.board.get_piece(ConstantSquare(current_row, current_col))
+                is not None
+            ):
                 return False
             current_row += step_row
             current_col += step_col

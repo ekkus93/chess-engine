@@ -19,6 +19,7 @@ from chess_game.chess.constants import (
 )
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.types import Color, PieceType
+from chess_game.chess.constants import get_square_constant
 
 
 # Category 1: Castling Edge Cases
@@ -183,9 +184,7 @@ def test_castling_kingside_with_queenside_rook_only() -> None:
     for row in range(8):
         for col in range(8):
             if not ((row == 0 and col == 4) or (row == 7 and col in {0, 4, 7})):
-                board.clear_square(
-                    ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
-                )
+                board.clear_square(get_square_constant(row, col))
     board.set_piece(
         get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
     )
@@ -236,9 +235,7 @@ def test_castling_queenside_with_kingside_rook_only() -> None:
     for row in range(8):
         for col in range(8):
             if not ((row == 0 and col == 4) or (row == 7 and col in {0, 4, 7})):
-                board.clear_square(
-                    ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
-                )
+                board.clear_square(get_square_constant(row, col))
     board.set_piece(
         get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
     )

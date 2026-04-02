@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import List, Optional
 
 from chess_game.chess.color import Color
-from chess_game.chess.constants import BOARD_SIZE
+from chess_game.chess.constants import BOARD_SIZE, get_row_constant, get_col_constant
 from chess_game.chess.types import Piece, PieceType, ConstantSquare
 from chess_game.chess.board.board_state import BoardState
 
@@ -15,7 +15,10 @@ class PathValidator:
 
     @staticmethod
     def is_path_clear(
-        board: BoardState, from_square : ConstantSquare, to_square : ConstantSquare
+        board: BoardState,
+        from_square: ConstantSquare,
+        to_square: ConstantSquare,
+        ignore_color: Optional[Color] = None,
     ) -> bool:
         """Check if the path between two squares is clear (no pieces blocking)."""
         if from_square == to_square:
@@ -31,7 +34,15 @@ class PathValidator:
         current_col = int(from_square.col) + step_col
 
         while (current_row, current_col) != (int(to_square.row), int(to_square.col)):
-            if board.get_piece(ConstantSquare(current_row, current_col)) is not None:
+            if (
+                board.get_piece(
+                    ConstantSquare(
+                        row=get_row_constant(current_row),
+                        col=get_col_constant(current_col),
+                    )
+                )
+                is not None
+            ):
                 return False
             current_row += step_row
             current_col += step_col
@@ -40,7 +51,7 @@ class PathValidator:
 
     @staticmethod
     def is_piece_between(
-        board: BoardState, from_square : ConstantSquare, to_square : ConstantSquare
+        board: BoardState, from_square: ConstantSquare, to_square: ConstantSquare
     ) -> Optional[Piece]:
         """Get the piece between two squares if any."""
         if from_square == to_square:
@@ -56,7 +67,12 @@ class PathValidator:
         current_col = int(from_square.col) + step_col
 
         while (current_row, current_col) != (int(to_square.row), int(to_square.col)):
-            piece = board.get_piece(ConstantSquare(current_row, current_col))
+            piece = board.get_piece(
+                ConstantSquare(
+                    row=get_row_constant(current_row),
+                    col=get_col_constant(current_col),
+                )
+            )
             if piece is not None:
                 return piece
             current_row += step_row

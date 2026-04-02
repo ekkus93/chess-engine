@@ -21,7 +21,7 @@ class PromotionValidator:
         return PieceType.QUEEN
 
     def is_promotion_required(
-        self, piece: Piece, from_square : ConstantSquare, to_square : ConstantSquare
+        self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
         """Check if promotion is required for this pawn move."""
         if piece.kind != PieceType.PAWN:
@@ -34,7 +34,9 @@ class PromotionValidator:
         else:
             return int(to_square.row) == 0
 
-    def get_promotion_options(self, piece: Piece, to_square : ConstantSquare) -> List[PieceType]:
+    def get_promotion_options(
+        self, piece: Piece, to_square: ConstantSquare
+    ) -> List[PieceType]:
         """Get all valid promotion pieces for a pawn."""
         if piece.kind != PieceType.PAWN:
             return []
@@ -56,7 +58,7 @@ class PromotionValidator:
         ]
 
     def is_valid_promotion_choice(
-        self, piece: Piece, end_pos : ConstantSquare, promotion: Optional[PieceType]
+        self, piece: Piece, end_pos: ConstantSquare, promotion: Optional[PieceType]
     ) -> bool:
         """Check if a promotion choice is valid."""
         # Accept None (default promotion to queen) or explicit promotion type
@@ -74,7 +76,7 @@ class PromotionValidator:
             PieceType.KNIGHT,
         ]
 
-    def is_promotion_rank(self, piece: Piece, to_square : ConstantSquare) -> bool:
+    def is_promotion_rank(self, piece: Piece, to_square: ConstantSquare) -> bool:
         """Check if the destination is a promotion rank."""
         if piece.kind != PieceType.PAWN:
             return False
@@ -87,6 +89,6 @@ class PromotionValidator:
     def get_promotion_rank_for_color(self, color: Color) -> int:
         """Get the row number for promotion rank."""
         if color == Color.WHITE:
-            return ROW_8
+            return 7
         else:
-            return ROW_1
+            return 0

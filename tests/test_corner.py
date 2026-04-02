@@ -24,6 +24,7 @@ from chess_game.chess.constants import (
     COL_H,
 )
 from chess_game.chess.types import Color, PieceType
+from chess_game.chess.constants import get_square_constant
 
 
 # Category 5: Checkmate & Stalemate Edge Cases
@@ -99,10 +100,8 @@ def test_checkmate_with_promotion() -> None:
     board.clear_board()
     # Clear all rows first, then set pieces
     for col in range(8):
-        col = get_col_constant(col)
         board.clear_square(ConstantSquare(row=ROW_8, col=get_col_constant(col)))
     for col in range(8):
-        col = get_col_constant(col)
         board.clear_square(ConstantSquare(row=ROW_1, col=get_col_constant(col)))
     # Black king trapped in corner - no escape squares
     board.set_piece(
@@ -144,10 +143,8 @@ def test_stalemate_after_promotion() -> None:
     board.clear_board()
     # Clear all rows first, then set pieces
     for col in range(8):
-        col = get_col_constant(col)
         board.clear_square(ConstantSquare(row=ROW_8, col=get_col_constant(col)))
     for col in range(8):
-        col = get_col_constant(col)
         board.clear_square(ConstantSquare(row=ROW_1, col=get_col_constant(col)))
     # Black king trapped in corner - no escape squares
     board.set_piece(

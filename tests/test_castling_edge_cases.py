@@ -31,7 +31,7 @@ from chess_game.chess.types import Color, PieceType
 def test_castling_rook_captured_forbids_kingside() -> None:
     """T1.1: Castling forbidden when rook was captured on original square."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
@@ -58,7 +58,7 @@ def test_castling_rook_captured_forbids_kingside() -> None:
 def test_castling_rook_moved_clears_castling_right() -> None:
     """T1.1: Verify rook removal clears castling right."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
@@ -82,7 +82,7 @@ def test_castling_rook_moved_clears_castling_right() -> None:
 def test_castling_replaced_rook_does_not_restore_right() -> None:
     """T1.4: Replacement rook doesn't restore castling right."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
@@ -109,7 +109,7 @@ def test_castling_replaced_rook_does_not_restore_right() -> None:
 def test_castling_opponent_piece_in_path_blocks() -> None:
     """T1.2: Castling blocked by opponent piece in path."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
@@ -135,7 +135,7 @@ def test_castling_opponent_piece_in_path_blocks() -> None:
 def test_castling_enemy_piece_on_destination_blocked() -> None:
     """T1.2: Castling blocked if enemy piece on destination square."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
@@ -161,7 +161,7 @@ def test_castling_enemy_piece_on_destination_blocked() -> None:
 def test_castling_queenside_rook_moved_forbids() -> None:
     """T1.3: Queenside castling forbidden if kingside rook moved."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
@@ -188,7 +188,7 @@ def test_castling_queenside_rook_moved_forbids() -> None:
 def test_castling_kingside_rook_moved_forbids() -> None:
     """T1.3: Kingside castling forbidden if queenside rook moved."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
@@ -215,7 +215,7 @@ def test_castling_kingside_rook_moved_forbids() -> None:
 def test_castling_kingside_rook_replaced_forbids() -> None:
     """T1.4: Kingside castling forbidden when original rook replaced."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )

@@ -89,7 +89,6 @@ class Board:
         """Initialize the board with all components."""
         self.board: List[List[Optional[Piece]]] = self._create_board()
         self.turn = Color.WHITE
-        self.en_passant_target: Optional[ConstantSquare] = None
         self.white_kingside = True
         self.white_queenside = True
         self.black_kingside = True
@@ -99,7 +98,7 @@ class Board:
         self._board_state = BoardState(
             board=self.board,
             turn=self.turn,
-            en_passant_target=self.en_passant_target,
+            en_passant_target=None,
             white_kingside=self.white_kingside,
             white_queenside=self.white_queenside,
             black_kingside=self.black_kingside,
@@ -111,13 +110,26 @@ class Board:
         self._promotion_validator = PromotionValidator(self._board_state)
         self._en_passant_validator = EnPassantValidator(self._board_state)
 
+    @property
+    def en_passant_target(self) -> Optional[ConstantSquare]:
+        """Get the en passant target square."""
+        return self._board_state.en_passant_target
+
+    @en_passant_target.setter
+    def en_passant_target(self, value: Optional[ConstantSquare]) -> None:
+        """Set the en passant target square."""
+        if hasattr(self, "_board_state"):
+            self._board_state.en_passant_target = value
+        else:
+            object.__setattr__(self, "en_passant_target", value)
+
     def _create_board(self) -> List[List[Optional[Piece]]]:
         """Create a standard chess board."""
         board: List[List[Optional[Piece]]] = [
             [None for _ in range(8)] for _ in range(8)
         ]
 
-        # White pieces (rows 0-1, ranks 8-1)
+        # Black pieces (rows 0-1, ranks 8-7)
         for col in range(8):
             piece_type = (
                 PieceType.ROOK
@@ -132,14 +144,14 @@ class Board:
                 if col == 4
                 else None
             )
-            board[0][col] = create_piece(Color.WHITE, piece_type, square=(0, col))
+            board[0][col] = create_piece(Color.BLACK, piece_type, square=(0, col))
 
         for col in range(8):
-            board[1][col] = create_piece(Color.WHITE, PieceType.PAWN, square=(1, col))
+            board[1][col] = create_piece(Color.BLACK, PieceType.PAWN, square=(1, col))
 
-        # Black pieces (rows 6-7)
+        # White pieces (rows 6-7, ranks 2-1)
         for col in range(8):
-            board[6][col] = create_piece(Color.BLACK, PieceType.PAWN, square=(6, col))
+            board[6][col] = create_piece(Color.WHITE, PieceType.PAWN, square=(6, col))
 
         for col in range(8):
             piece_type = (
@@ -155,7 +167,7 @@ class Board:
                 if col == 4
                 else None
             )
-            board[7][col] = create_piece(Color.BLACK, piece_type, square=(7, col))
+            board[7][col] = create_piece(Color.WHITE, piece_type, square=(7, col))
 
         return board
 
@@ -178,6 +190,12 @@ class Board:
     def clear_square(self, square: ConstantSquare) -> None:
         """Clear square."""
         self.set_piece(square, None)
+
+    def clear_board(self) -> None:
+        """Clear all pieces from the board."""
+        for row in range(8):
+            for col in range(8):
+                self.clear_square(ConstantSquare(row=row, col=col))
 
     def is_empty(self, square: ConstantSquare) -> bool:
         """Check if square is empty."""
@@ -286,7 +304,7 @@ class Board:
         cloned = Board()
         cloned.board = [row.copy() for row in self.board]
         cloned.turn = self.turn
-        cloned.en_passant_target = self.en_passant_target
+        cloned._board_state.en_passant_target = self._board_state.en_passant_target
         cloned.white_kingside = self.white_kingside
         cloned.white_queenside = self.white_queenside
         cloned.black_kingside = self.black_kingside
@@ -372,7 +390,7 @@ class Board:
         # Check for en passant capture
         is_en_passant = (
             start_piece.kind == PieceType.PAWN
-            and self.en_passant_target == end_pos
+            and self._board_state.en_passant_target == end_pos
             and start_pos.col != end_pos.col
         )
 

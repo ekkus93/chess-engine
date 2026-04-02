@@ -18,6 +18,7 @@ from chess_game.chess.constants import (
     ROW_2,
     ROW_3,
     ROW_4,
+    get_square_constant,
     ROW_5,
     ROW_6,
     ROW_7,
