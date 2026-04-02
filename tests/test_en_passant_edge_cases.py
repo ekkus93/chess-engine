@@ -22,16 +22,6 @@ from chess_game.chess.constants import (
     COL_G,
     ConstantSquare,
 )
-from tests.helpers import clear_board
-
-
-def _setup_kings(board: Board) -> None:
-    board.set_piece(
-        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
-    )
-    board.set_piece(
-        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
-    )
 
 
 # =============================================================================
@@ -40,7 +30,7 @@ def _setup_kings(board: Board) -> None:
 def test_only_one_en_passant_target_at_a_time() -> None:
     """T2.1: Verify only one en_passant_target can exist at a time."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
@@ -69,7 +59,7 @@ def test_only_one_en_passant_target_at_a_time() -> None:
 def test_en_passant_capture_removes_pawn_from_original_square() -> None:
     """T2.2: Verify capture removes pawn from original square."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
@@ -105,7 +95,7 @@ def test_en_passant_capture_removes_pawn_from_original_square() -> None:
 def test_en_passant_expired_after_nonpawn_move() -> None:
     """T2.3: en_passant_target cleared after any move."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
@@ -151,7 +141,7 @@ def test_en_passant_expired_after_nonpawn_move() -> None:
 def test_en_passant_destination_attacked_forbidden() -> None:
     """T2.4: En passant blocked if destination square attacked."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
@@ -181,7 +171,7 @@ def test_en_passant_destination_attacked_forbidden() -> None:
 def test_en_passant_path_attacked_forbidden() -> None:
     """T2.4: En passant blocked if path through attacked square."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
@@ -203,7 +193,7 @@ def test_en_passant_path_attacked_forbidden() -> None:
 def test_en_passant_king_in_check_after_capture_forbidden() -> None:
     """T2.4: En passant blocked if after capture, king in check."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
@@ -233,7 +223,7 @@ def test_full_en_passant_sequence_from_starting_position() -> None:
     """T2.5: Full game scenario: e2e4 d5e4 (en passant capture)."""
     board = Board()
     # Clear starting position and set up for en passant test
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )

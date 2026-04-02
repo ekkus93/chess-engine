@@ -24,18 +24,9 @@ from chess_game.chess.constants import (
 )
 
 
-def clear_board(board: Board) -> None:
-    """Clear all pieces from the board."""
-    for row in range(8):
-        for col in range(8):
-            board.clear_square(
-                ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
-            )
-
-
-def _setup_kings(board: Board) -> None:
+def setup_king_safety_position(board: Board) -> None:
     """Set up kings in the center to test king safety scenarios."""
-    clear_board(board)
+    board.clear_board()
     white_king = create_piece(Color.WHITE, PieceType.KING)
     black_king = create_piece(Color.BLACK, PieceType.KING)
     board.set_piece(ConstantSquare(row=ROW_7, col=COL_E), white_king)

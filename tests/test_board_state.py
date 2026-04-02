@@ -21,15 +21,6 @@ from chess_game.chess.constants import (
 )
 
 
-def _setup_kings(board: Board) -> None:
-    board.set_piece(
-        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
-    )
-    board.set_piece(
-        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
-    )
-
-
 # =============================================================================
 # Category 9: Board State Edge Cases
 # =============================================================================

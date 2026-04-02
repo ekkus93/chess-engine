@@ -26,7 +26,7 @@ from chess_game.chess.constants import (
 from chess_game.chess.types import Color, PieceType
 
 
-def _setup_kings(board: Board) -> None:
+def setup_checkmate_position(board: Board) -> None:
     board.set_piece(
         get_square_constant(7, 4), create_piece(Color.WHITE, PieceType.KING)
     )

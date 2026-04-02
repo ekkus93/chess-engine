@@ -18,7 +18,7 @@ from chess_game.chess.constants import (
 )
 
 
-def _setup_kings(board: Board) -> None:
+def setup_castling_position(board: Board) -> None:
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
@@ -64,7 +64,7 @@ def _setup_kings(board: Board) -> None:
 def test_white_kingside_castle_legal_case() -> None:
     board = Board()
     board.clear_board()
-    _setup_kings(board)
+    setup_castling_position(board)
     board.turn = Color.WHITE
 
     # Clear the pieces that block castling (f1 bishop and g1 knight)
@@ -79,7 +79,7 @@ def test_white_kingside_castle_legal_case() -> None:
 def test_white_queenside_castle_legal_case() -> None:
     board = Board()
     board.clear_board()
-    _setup_kings(board)
+    setup_castling_position(board)
     board.turn = Color.WHITE
 
     # Clear the pieces that block castling (d1 queen and c1 bishop)
@@ -94,7 +94,7 @@ def test_white_queenside_castle_legal_case() -> None:
 def test_black_kingside_castle_legal_case() -> None:
     board = Board()
     board.clear_board()
-    _setup_kings(board)
+    setup_castling_position(board)
     board.turn = Color.BLACK
 
     # Clear the pieces that block castling (f8 bishop and g8 knight)
@@ -109,7 +109,7 @@ def test_black_kingside_castle_legal_case() -> None:
 def test_black_queenside_castle_legal_case() -> None:
     board = Board()
     board.clear_board()
-    _setup_kings(board)
+    setup_castling_position(board)
     board.turn = Color.BLACK
 
     # Clear the pieces that block castling (d8 queen and c8 bishop)
@@ -234,7 +234,7 @@ def test_parse_move_notation_supports_promotion_choice() -> None:
 def test_castling_through_check_is_illegal() -> None:
     board = Board()
     board.clear_board()
-    _setup_kings(board)
+    setup_castling_position(board)
     board.set_piece(
         get_square_constant(4, 3), create_piece(Color.BLACK, PieceType.BISHOP)
     )
@@ -248,7 +248,7 @@ def test_castling_through_check_is_illegal() -> None:
 def test_castling_avoiding_check_is_legal() -> None:
     board = Board()
     board.clear_board()
-    _setup_kings(board)
+    setup_castling_position(board)
     board.turn = Color.WHITE
     # Place a black pawn to create a check situation
     board.set_piece(
@@ -265,7 +265,7 @@ def test_castling_avoiding_check_is_legal() -> None:
 def test_castling_into_check_is_illegal() -> None:
     board = Board()
     board.clear_board()
-    _setup_kings(board)
+    setup_castling_position(board)
     board.set_piece(
         ConstantSquare(row=ROW_5, col=COL_G),
         create_piece(Color.BLACK, PieceType.BISHOP),

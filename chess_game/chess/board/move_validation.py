@@ -13,7 +13,9 @@ from chess_game.chess.pieces.piece_movers import PieceMovers
 from chess_game.chess.constants import (
     get_row_constant,
     get_col_constant,
+    COL_A,
     COL_C,
+    COL_D,
     COL_E,
     COL_F,
     COL_G,
@@ -97,7 +99,14 @@ class MoveValidator:
         col_diff = abs(int(to_square.col) - int(from_square.col))
         row_diff = abs(int(to_square.row) - int(from_square.row))
 
-        return col_diff == 1 and row_diff == 1
+        if col_diff != 1 or row_diff != 1:
+            return False
+
+        # Check if en passant target is set to destination
+        if self.board.en_passant_target is None:
+            return False
+
+        return self.board.en_passant_target == to_square
 
     def _validate_castling(
         self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare

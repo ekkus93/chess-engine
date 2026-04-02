@@ -24,16 +24,6 @@ from chess_game.chess.constants import (
     COL_H,
 )
 from chess_game.chess.types import Color, PieceType
-from tests.helpers import clear_board
-
-
-def _setup_kings(board: Board) -> None:
-    board.set_piece(
-        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
-    )
-    board.set_piece(
-        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
-    )
 
 
 # Category 5: Checkmate & Stalemate Edge Cases
@@ -41,7 +31,7 @@ def _setup_kings(board: Board) -> None:
 def test_checkmate_pinned_king() -> None:
     """T5.1: Checkmate even if king is pinned and cannot move."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
@@ -76,7 +66,7 @@ def test_checkmate_pinned_king() -> None:
 def test_stalemate_pinned_king() -> None:
     """T5.2: Stalemate when not in check but all moves expose king."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
@@ -106,7 +96,7 @@ def test_stalemate_pinned_king() -> None:
 def test_checkmate_with_promotion() -> None:
     """T5.3: Promotion creates checkmate."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     # Clear all rows first, then set pieces
     for col in range(8):
         col = get_col_constant(col)
@@ -151,7 +141,7 @@ def test_checkmate_with_promotion() -> None:
 def test_stalemate_after_promotion() -> None:
     """T5.4: Promotion creates stalemate position."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     # Clear all rows first, then set pieces
     for col in range(8):
         col = get_col_constant(col)

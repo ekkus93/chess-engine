@@ -25,15 +25,6 @@ from chess_game.chess.board import Board, create_piece
 from chess_game.chess.types import Color, PieceType
 
 
-def _setup_kings(board: Board) -> None:
-    board.set_piece(
-        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
-    )
-    board.set_piece(
-        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
-    )
-
-
 # =============================================================================
 # Category 1: Castling Edge Cases
 # =============================================================================

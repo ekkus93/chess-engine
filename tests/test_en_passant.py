@@ -19,16 +19,6 @@ from chess_game.chess.constants import (
 )
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.types import Color, PieceType
-from tests.helpers import clear_board
-
-
-def _setup_kings(board: Board) -> None:
-    board.set_piece(
-        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
-    )
-    board.set_piece(
-        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
-    )
 
 
 # Category 1: Castling Edge Cases
@@ -36,7 +26,7 @@ def _setup_kings(board: Board) -> None:
 def test_cannot_castle_if_rook_captured_on_original_square() -> None:
     """T1.1: Castling forbidden when rook is captured on original square."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
@@ -72,7 +62,7 @@ def test_cannot_castle_if_rook_captured_on_original_square() -> None:
 def test_castling_right_persists_after_rook_moved_then_returns() -> None:
     """T1.3: Castling right persists if rook moves and returns to original square."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
@@ -124,7 +114,7 @@ def test_castling_right_persists_after_rook_moved_then_returns() -> None:
 def test_cannot_castle_if_path_blocked_by_enemy_piece() -> None:
     """T1.2: Castling blocked if enemy piece occupies path or destination."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
@@ -156,7 +146,7 @@ def test_cannot_castle_if_path_blocked_by_enemy_piece() -> None:
 def test_castling_with_opponent_piece_on_destination_square() -> None:
     """T1.2: Castling blocked if enemy piece on destination square."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
@@ -287,7 +277,7 @@ def test_castling_queenside_with_kingside_rook_only() -> None:
 def test_cannot_castle_if_king_squre_attacked_during_castle() -> None:
     """T8.1: Cannot castle if square behind king is attacked."""
     board = Board()
-    clear_board(board)
+    board.clear_board()
     board.set_piece(
         get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
     )
