@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 from typing import List, Optional, Union
 
 from chess_game.chess.color import Color
@@ -108,7 +109,7 @@ class BoardState:
         """Check if square is on board."""
         return self.is_valid_position(square)
 
-    def find_king(self, color: Color) -> Optional[Square]:
+    def find_king(self, color: Color) -> Optional[ConstantSquare]:
         """Find king of given color."""
         for row in range(8):
             for col in range(8):
@@ -125,10 +126,21 @@ class BoardState:
         return None
 
     def clone(self) -> BoardState:
-        """Create a deep copy of the board state."""
-        import copy
+        """Create a deep copy of the board state.
 
-        board_copy = [row[:] for row in self.board]
+        Creates new Piece objects so cloned pieces are independent of originals.
+        Each cloned piece's _square is updated to reference the cloned board.
+        """
+        board_copy: List[List[Optional[Piece]]] = []
+        for row in self.board:
+            cloned_row: List[Optional[Piece]] = []
+            for piece in row:
+                if piece is None:
+                    cloned_row.append(None)
+                else:
+                    cloned_piece = copy.deepcopy(piece)
+                    cloned_row.append(cloned_piece)
+            board_copy.append(cloned_row)
         return BoardState(
             board=board_copy,
             turn=self.turn,
