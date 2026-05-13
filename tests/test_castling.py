@@ -285,3 +285,55 @@ def test_castling_into_check_is_illegal() -> None:
         )
         is False
     )
+
+
+def test_castling_rejected_while_in_check() -> None:
+    """Castling rejected when king is currently in check."""
+    board = Board()
+    board.clear_board()
+    setup_castling_position(board)
+    board.turn = Color.WHITE
+    # Black bishop on d2 checks white king on e1 via diagonal (d2-e1)
+    board.set_piece(
+        get_square_constant(6, 3), create_piece(Color.BLACK, PieceType.BISHOP)
+    )
+    board.clear_square(get_square_constant(7, 5))
+    board.clear_square(get_square_constant(7, 6))
+    assert board.make_move(get_square_constant(7, 4), get_square_constant(7, 6)) is False
+
+
+def test_castling_rejected_after_king_moved_away_and_back() -> None:
+    """Castling rejected after king moved away from starting square."""
+    board = Board()
+    board.clear_board()
+    setup_castling_position(board)
+    board.turn = Color.WHITE
+    board.clear_square(get_square_constant(7, 5))
+    board.clear_square(get_square_constant(7, 6))
+    # King moves to f1
+    assert board.make_move(get_square_constant(7, 4), get_square_constant(7, 5)) is True
+    # Black makes a dummy move (pawn a7 to a6)
+    assert board.make_move(get_square_constant(1, 0), get_square_constant(2, 0)) is True
+    # King moves back to e1
+    assert board.make_move(get_square_constant(7, 5), get_square_constant(7, 4)) is True
+    # White cannot castle (king already moved, rights cleared)
+    assert board.make_move(get_square_constant(7, 4), get_square_constant(7, 6)) is False
+
+
+def test_castling_rejected_after_rook_moved_away_and_back() -> None:
+    """Castling rejected after rook moved away from starting square."""
+    board = Board()
+    board.clear_board()
+    setup_castling_position(board)
+    board.turn = Color.WHITE
+    board.clear_square(get_square_constant(7, 5))
+    board.clear_square(get_square_constant(7, 6))
+    board.clear_square(get_square_constant(6, 7))  # Clear h2 pawn blocking rook path
+    # Rook moves from h1 to h3
+    assert board.make_move(get_square_constant(7, 7), get_square_constant(5, 7)) is True
+    # Black makes a dummy move
+    assert board.make_move(get_square_constant(1, 0), get_square_constant(2, 0)) is True
+    # Rook moves back to h1
+    assert board.make_move(get_square_constant(5, 7), get_square_constant(7, 7)) is True
+    # White cannot castle kingside (rook already moved, right cleared)
+    assert board.make_move(get_square_constant(7, 4), get_square_constant(7, 6)) is False

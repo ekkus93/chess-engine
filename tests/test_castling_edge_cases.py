@@ -158,8 +158,8 @@ def test_castling_enemy_piece_on_destination_blocked() -> None:
     )
 
 
-def test_castling_queenside_rook_moved_forbids() -> None:
-    """T1.3: Queenside castling forbidden if kingside rook moved."""
+def test_castling_kingside_rook_moved_forbids_kingside() -> None:
+    """Kingside castling forbidden when kingside rook moved."""
     board = Board()
     board.clear_board()
     board.set_piece(
@@ -179,14 +179,14 @@ def test_castling_queenside_rook_moved_forbids() -> None:
     board.make_move(
         get_square_constant(7, 7), get_square_constant(7, 6)
     )  # Rook moves to g1
-    # White cannot castle queenside (kingside rook moved, clearing rights)
+    # White cannot castle kingside (kingside rook moved)
     assert (
-        board.make_move(get_square_constant(7, 4), get_square_constant(7, 2)) is False
+        board.make_move(get_square_constant(7, 4), get_square_constant(7, 6)) is False
     )
 
 
-def test_castling_kingside_rook_moved_forbids() -> None:
-    """T1.3: Kingside castling forbidden if queenside rook moved."""
+def test_castling_queenside_rook_moved_forbids_queenside() -> None:
+    """Queenside castling forbidden when queenside rook moved."""
     board = Board()
     board.clear_board()
     board.set_piece(
@@ -206,9 +206,9 @@ def test_castling_kingside_rook_moved_forbids() -> None:
     board.make_move(
         get_square_constant(7, 0), get_square_constant(7, 1)
     )  # Rook moves to b1
-    # White cannot castle kingside (queenside rook moved, clearing rights)
+    # White cannot castle queenside (queenside rook moved)
     assert (
-        board.make_move(get_square_constant(7, 4), get_square_constant(7, 6)) is False
+        board.make_move(get_square_constant(7, 4), get_square_constant(7, 2)) is False
     )
 
 

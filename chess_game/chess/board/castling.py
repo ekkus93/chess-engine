@@ -96,6 +96,30 @@ class CastlingValidator:
         color: Color,
         _piece_color: Color,
     ) -> bool:
+        # Check castling rights
+        if int(destination.col) > int(king_square.col):
+            right = board.white_kingside if color == Color.WHITE else board.black_kingside
+        else:
+            right = board.white_queenside if color == Color.WHITE else board.black_queenside
+        if not right:
+            return False
+
+        # Verify king is on its starting square
+        expected_king_sq = ConstantSquare(
+            row=get_row_constant(int(king_square.row)), col=COL_E
+        )
+        king_piece = board.get_piece(expected_king_sq)
+        if (
+            king_piece is None
+            or king_piece.kind != PieceType.KING
+            or king_piece.color != color
+        ):
+            return False
+
+        # Destination square must be empty
+        if board.get_piece(destination) is not None:
+            return False
+
         if not CastlingValidator._rook_at_original_square(board, color, rook_square):
             return False
 
@@ -120,9 +144,17 @@ class CastlingValidator:
     ) -> bool:
         enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
 
+        # Determine intermediate square based on castling direction
+        if int(destination.col) > int(king_square.col):
+            # Kingside: king passes through f-file
+            intermediate = ConstantSquare(row=king_square.row, col=COL_F)
+        else:
+            # Queenside: king passes through d-file
+            intermediate = ConstantSquare(row=king_square.row, col=COL_D)
+
         king_path = [
             king_square,
-            ConstantSquare(row=king_square.row, col=COL_F),
+            intermediate,
             destination,
         ]
 

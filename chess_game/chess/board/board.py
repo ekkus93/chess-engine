@@ -459,7 +459,7 @@ class Board:
                 self.black_kingside = False
                 self.black_queenside = False
 
-        # Rook moves -> lose corresponding castling right
+        # Rook moves from starting square -> lose side-specific castling right
         # White home row = row 7 (rank 1), Black home row = row 0 (rank 8)
         if start_piece.kind == PieceType.ROOK:
             row = int(start_pos.row)
