@@ -1,5 +1,7 @@
 # REFACTOR_PROGRESS.md
 
+> **OBSOLETE** — Refactoring was never completed. The current codebase retains its original structure. Coordinate references have been corrected to match the canonical convention (row 0 = rank 8). Do not use as implementation guidance.
+
 ## Status Overview
 
 - **Phase 1**: Extract Data Structures - ✅ COMPLETED
@@ -151,7 +153,7 @@
 
 ### Known Bugs to Fix
 1. [ ] Line 537: `start_row == int(ROW_7)` should be `start_row == int(ROW_8)` for black 2-step
-2. [ ] Coordinate confusion: ROW_7 = rank 7 = array row 6, ROW_8 = rank 8 = array row 7
+2. [ ] Coordinate confusion (resolved): ROW_7 = rank 7 = array row 1, ROW_8 = rank 8 = array row 0
 3. [ ] Promotion rank detection edge cases
 4. [ ] En passant target setting coordinate bugs
 5. [ ] Any other coordinate bugs found

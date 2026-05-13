@@ -4,7 +4,16 @@
 
 A correct, test-driven chess rules engine with a text-based CLI.
 
-**Correctness comes before features.** There is no AI and no GUI yet — those come after all rules are verifiably green.
+**Correctness comes before features.** AI and GUI are not yet implemented and are not part of the current scope — they come after all rules are verifiably green.
+
+### Coordinate Convention
+
+The engine uses a canonical coordinate system:
+- **row 0 = rank 8** (black's back rank)
+- **row 7 = rank 1** (white's back rank)
+- **col 0 = file a**, **col 7 = file h**
+- White pawns move toward smaller row numbers, black pawns toward larger row numbers
+- See `docs/coordinate_system.md` for the complete reference
 
 ## Current capabilities
 
@@ -38,13 +47,13 @@ Invalid or illegal moves print an error and prompt again. The board is displayed
 ## Running the tests
 
 ```bash
-python -m pytest tests/ -v
+python -m pytest tests/ -q
 ```
 
-Quick summary only:
+Verbose output:
 
 ```bash
-python -m pytest tests/ -q
+python -m pytest tests/ -v
 ```
 
 With coverage:
@@ -55,63 +64,19 @@ python -m pytest tests/ --cov=chess_game
 
 > **Note:** `tests/conftest.py` defines a local `record_xml_attribute` fixture intentionally.
 > This silences a `PytestExperimentalApiWarning` from auto-loaded third-party plugins at the source.
-> Do not remove it unless plugin-loading behaviour is explicitly changed.
+> Do not remove it unless plugins are updated.
 
 ## Project structure
 
 ```
-chess_game/
+chess_game/          # Source code
   chess/
-    board.py     # Board state, all move validation, game-status helpers
-    coords.py    # Algebraic notation ↔ (row, col) conversion
-    move.py      # Move dataclass + coordinate notation parser
-    types.py     # Color, PieceType, Piece
-  main.py        # CLI entry point
-tests/
-  conftest.py         # Shared fixtures (empty_board, board_with_kings)
-  test_coords.py      # Coordinate conversion and parsing
-  test_setup.py       # Starting position, board helpers
-  test_piece_moves.py # Pseudo-legal movement rules per piece
-  test_legality.py    # Attack detection, check, self-check rejection
-  test_special_moves.py # Castling, en passant, promotion
-  test_game_status.py # Legal move generation, checkmate, stalemate
-  test_cli_parsing.py # Move notation parser
+    board.py         # Board class and move logic
+    piece.py         # Piece model
+    coords.py        # Coordinate constants and helpers
+    types.py         # Enums (Color, PieceType)
+    move.py          # Move parsing
+  main.py            # CLI entry point
+tests/               # Test suite
+docs/                # Documentation
 ```
-
-## Developer notes
-
-### Coordinate convention
-
-The board is a row-major 8×8 array. Indexing maps chess notation as follows:
-
-| Internal | Algebraic |
-|----------|-----------|
-| `(0, 0)` | a8 |
-| `(0, 7)` | h8 |
-| `(7, 0)` | a1 |
-| `(7, 7)` | h1 |
-| `(6, 4)` | e2 |
-
-- `row 0` = rank 8 (black back rank), `row 7` = rank 1 (white back rank)
-- `col 0` = file a, `col 7` = file h
-- White pawns move toward **smaller** row numbers (up the array)
-
-### Pseudo-legal vs. legal moves
-
-`Board` exposes per-piece pseudo-legal validators (`is_valid_rook_move`, etc.) that check only shape and path — they do **not** verify whether the mover's king is left in check.
-
-`make_move` and `get_legal_moves` are the only public entry points for executed moves. They simulate each candidate on a clone of the board and reject moves that leave the mover's king in check, making them fully legal.
-
-### Castling rights
-
-Four boolean fields on `Board` track the rights: `white_kingside`, `white_queenside`, `black_kingside`, `black_queenside`. All start `True`. They become permanently `False` when:
-
-- The relevant king moves (both rights for that colour are cleared), or
-- The relevant rook moves from its origin square, or
-- The relevant rook is captured on its origin square.
-
-Rights never recover once lost.
-
-### En passant state
-
-`Board.en_passant_target` holds the square a capturing pawn would land on (the "ghost" square behind the double-pushed pawn), or `None`. It is set after any legal two-square pawn advance and cleared unconditionally after the next move by either side.

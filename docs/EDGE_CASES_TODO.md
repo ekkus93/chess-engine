@@ -131,7 +131,7 @@ Strengthen test coverage for chess engine edge cases. Focus on scenarios that ex
 
 **Test cases**:
 - [ ] Verify pawn cannot promote before last rank
-- [ ] Promotion only on rank 1 (white) or rank 8 (black)
+- [ ] Promotion only on rank 8 (white) or rank 1 (black)
 
 ---
 

@@ -1,5 +1,7 @@
 # REFACTOR_BOARD_TODO.md
 
+> **OBSOLETE** — This refactoring plan was never executed. The current codebase does not follow the proposed modular architecture. Coordinate references have been corrected to match the canonical convention (row 0 = rank 8). Do not use as implementation guidance.
+
 ## Executive Summary
 
 `chess_game/chess/board.py` (1109 lines, 44 methods) is a monolithic "god class" that violates the Single Responsibility Principle. This has led to:
@@ -303,8 +305,8 @@ chess_game/
 **Goal**: Systematically fix all 18 failing tests
 
 **Known Bugs:**
-1. **Line 537**: `start_row == int(ROW_7)` should be `start_row == int(ROW_8)` for black 2-step
-2. **Coordinate confusion**: ROW_7 = rank 7 = array row 6, ROW_8 = rank 8 = array row 7
+1. **Line 537**: Black pawn 2-step starts on rank 7 (`ROW_7`, array row 1) — the check `start_row == int(ROW_7)` is actually correct under canonical coords
+2. **Coordinate confusion**: ROW_7 = rank 7 = array row 1, ROW_8 = rank 8 = array row 0
 3. **Promotion rank detection**: May not handle all edge cases
 4. **En passant validation**: May use incorrect coordinates
 
