@@ -250,9 +250,12 @@ class MoveValidator:
     def get_legal_moves(
         self,
         from_square: Optional[ConstantSquare] = None,
-        piece_type: Optional[PieceType] = None,
     ) -> List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]]:
-        """Get all legal moves (with check validation)."""
+        """Get all legal moves (with check validation).
+
+        When from_square is None, iterates only pieces of side-to-move.
+        When from_square is provided, returns legal moves for that piece.
+        """
         all_moves = []
 
         if from_square is not None:

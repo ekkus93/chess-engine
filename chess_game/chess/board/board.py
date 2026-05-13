@@ -346,13 +346,20 @@ class Board:
     def get_legal_moves(
         self, square: Optional[ConstantSquare] = None
     ) -> List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]]:
-        """Get all legal moves from the specified square, or all side-to-move legal moves."""
+        """Get all legal moves from the specified square, or all side-to-move legal moves.
+
+        When square is None, iterates only pieces of side-to-move.
+        When square is provided and empty, returns [].
+        When square is provided and contains an opponent's piece, returns [].
+        """
         if square is None:
             return self._move_validator.get_legal_moves()
         piece = self.get_piece(square)
         if piece is None:
             return []
-        return self._move_validator.get_legal_moves(square, piece.kind)
+        if piece.color != self.turn:
+            return []
+        return self._move_validator.get_legal_moves(square)
 
     def get_legal_moves_for_color(
         self, color: Color
