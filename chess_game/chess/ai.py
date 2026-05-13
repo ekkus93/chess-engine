@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from chess_game.chess.board import Board, ConstantSquare
+from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.evaluation import (
     MATERIAL_VALUES,
     PAWN_TABLE,
@@ -23,7 +24,6 @@ from chess_game.chess.constants import (
     ROW_8,
     get_row_constant,
     get_col_constant,
-    ConstantSquare,
 )
 
 
@@ -154,9 +154,11 @@ def minimax(
     Returns:
         Tuple of (best_score, best_move). Best move may be None at leaf nodes.
     """
+    # Compute position key for transposition table
+    key = _fen_key(board) if transposition_table is not None else None
+
     # Check transposition table
     if transposition_table is not None and depth < 20:
-        key = _fen_key(board)
         cached = transposition_table.get(key)
         if cached is not None:
             return cached
@@ -177,7 +179,7 @@ def minimax(
 
     if not scored_moves:
         score = evaluate(board)
-        if transposition_table is not None:
+        if transposition_table is not None and key is not None:
             transposition_table[key] = (score, None)  # type: ignore[assignment]
         return (score, None)
 
@@ -192,7 +194,9 @@ def minimax(
             for m in legal_moves
             if m.start == move_key.start and m.end == move_key.end
         )
-        new_board = _make_copy_with_move(board, move.start, move.end)
+        new_board = _make_copy_with_move(
+            board, move.start, move.end, move.promotion
+        )
 
         if is_maximizing:
             opponent_score = minimax(
@@ -234,7 +238,7 @@ def minimax(
         move_count += 1
 
     # Store in transposition table only if we found a move
-    if transposition_table is not None and best_move is not None:
+    if transposition_table is not None and best_move is not None and key is not None:
         transposition_table[key] = (best_score, best_move)
 
     return (best_score, best_move)
@@ -262,7 +266,7 @@ def _order_moves(
     scored_moves: list[MoveOrderingKey] = []
 
     for move in legal_moves:
-        start, end, promotion = move.start, move.end, move.promotion
+        start, end, _promotion = move.start, move.end, move.promotion
 
         # Calculate capture gain if applicable
         captured_piece = board.get_piece(end)
@@ -303,7 +307,7 @@ def _captured_piece_value(piece_type: PieceType) -> int:
     return values.get(piece_type, 0)
 
 
-def _promotion_bonus(end_rank: int, captured_piece: Optional[Piece]) -> int:
+def _promotion_bonus(_end_rank: int, captured_piece: Optional[Piece]) -> int:
     """Bonus for pawn promotion (simplified)."""
     if captured_piece is None:
         return -100
@@ -347,8 +351,11 @@ def get_best_move(board: Board, depth: int) -> Optional[LegalMove]:
 
 
 def _fen_key(board: Board) -> str:
-    """Generate a lightweight FEN-like key for transposition table."""
-    # Simplified key - just enough to identify position equality
+    """Generate a lightweight FEN-like key for transposition table.
+
+    Includes board placement, side to move, castling rights, and en passant target
+    to ensure distinct positions produce distinct keys.
+    """
     pieces = []
     for row in board.board:
         for piece in row:
@@ -365,4 +372,24 @@ def _fen_key(board: Board) -> str:
                     PieceType.KING: "k",
                 }[piece.kind]
                 pieces.append(f"{color_char}{kind_char}")
-    return "".join(pieces)
+
+    turn_char = "w" if board.turn == Color.WHITE else "b"
+
+    castling = ""
+    if board.white_kingside:
+        castling += "K"
+    if board.white_queenside:
+        castling += "Q"
+    if board.black_kingside:
+        castling += "k"
+    if board.black_queenside:
+        castling += "q"
+    if not castling:
+        castling = "-"
+
+    if board.en_passant_target is not None:
+        ep = index_to_algebraic(board.en_passant_target)
+    else:
+        ep = "-"
+
+    return "".join(pieces) + "|" + turn_char + "|" + castling + "|" + ep
