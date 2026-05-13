@@ -304,17 +304,19 @@ class Board:
         enemy = Color.BLACK if color == Color.WHITE else Color.WHITE
         return CastlingValidator._is_square_attacked(self, king_sq, enemy)
 
-    def is_checkmate(self) -> bool:
-        """Check if current side-to-move is in checkmate."""
-        if not self.is_in_check(self.turn):
+    def is_checkmate(self, color: Optional[Color] = None) -> bool:
+        """Check if the given color (or side-to-move) is in checkmate."""
+        c = color if color is not None else self.turn
+        if not self.is_in_check(c):
             return False
-        return len(self.get_legal_moves()) == 0
+        return len(self.get_legal_moves_for_color(c)) == 0
 
-    def is_stalemate(self) -> bool:
-        """Check if current side-to-move is in stalemate."""
-        if self.is_in_check(self.turn):
+    def is_stalemate(self, color: Optional[Color] = None) -> bool:
+        """Check if the given color (or side-to-move) is in stalemate."""
+        c = color if color is not None else self.turn
+        if self.is_in_check(c):
             return False
-        return len(self.get_legal_moves()) == 0
+        return len(self.get_legal_moves_for_color(c)) == 0
 
     # ---- clone ----
 
@@ -351,6 +353,16 @@ class Board:
         if piece is None:
             return []
         return self._move_validator.get_legal_moves(square, piece.kind)
+
+    def get_legal_moves_for_color(
+        self, color: Color
+    ) -> List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]]:
+        """Get all legal moves for a specific color regardless of turn."""
+        saved_turn = self.turn
+        self.turn = color
+        moves = self._move_validator.get_legal_moves()
+        self.turn = saved_turn
+        return moves
 
     # ---- make_move ----
 
@@ -412,6 +424,9 @@ class Board:
         if not success:
             return False
 
+        # Update castling rights
+        self._update_castling_rights(start_pos, end_pos, start_piece)
+
         # Update en passant target
         self._en_passant_validator.clear_en_passant_target_if_needed(
             start_pos, end_pos, start_piece
@@ -424,6 +439,51 @@ class Board:
         self.turn = Color.BLACK if self.turn == Color.WHITE else Color.WHITE
 
         return True
+
+    def _update_castling_rights(
+        self,
+        start_pos: ConstantSquare,
+        end_pos: ConstantSquare,
+        start_piece: Piece,
+    ) -> None:
+        """Update castling rights after a move."""
+        piece_color = start_piece.color
+        is_white = piece_color == Color.WHITE
+
+        # King moves -> lose both castling rights for that color
+        if start_piece.kind == PieceType.KING:
+            if is_white:
+                self.white_kingside = False
+                self.white_queenside = False
+            else:
+                self.black_kingside = False
+                self.black_queenside = False
+
+        # Rook moves -> lose corresponding castling right
+        # White home row = row 7 (rank 1), Black home row = row 0 (rank 8)
+        if start_piece.kind == PieceType.ROOK:
+            row = int(start_pos.row)
+            col = int(start_pos.col)
+            if is_white and row == 7:
+                if col == 7:  # h1 - white kingside rook
+                    self.white_kingside = False
+                elif col == 0:  # a1 - white queenside rook
+                    self.white_queenside = False
+            elif not is_white and row == 0:
+                if col == 7:  # h8 - black kingside rook
+                    self.black_kingside = False
+                elif col == 0:  # a8 - black queenside rook
+                    self.black_queenside = False
+
+        # Rook captured on its starting square
+        if int(end_pos.row) == 0 and int(end_pos.col) == 7:
+            self.black_kingside = False
+        elif int(end_pos.row) == 0 and int(end_pos.col) == 0:
+            self.black_queenside = False
+        elif int(end_pos.row) == 7 and int(end_pos.col) == 7:
+            self.white_kingside = False
+        elif int(end_pos.row) == 7 and int(end_pos.col) == 0:
+            self.white_queenside = False
 
     # ---- display ----
 

@@ -233,14 +233,18 @@ class MoveValidator:
 
         # Check king doesn't pass through attacked squares
         enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
-        king_path = [
-            from_square,
-            ConstantSquare(
-                row=get_row_constant(int(from_square.row)),
-                col=get_col_constant(int(from_square.col) + 1),
-            ),
-            to_square,
-        ]
+        # Determine intermediate square based on castling direction
+        if int(to_square.col) > int(from_square.col):
+            # Kingside: king passes through f-file
+            intermediate = ConstantSquare(
+                row=get_row_constant(int(from_square.row)), col=COL_F
+            )
+        else:
+            # Queenside: king passes through d-file
+            intermediate = ConstantSquare(
+                row=get_row_constant(int(from_square.row)), col=COL_D
+            )
+        king_path = [from_square, intermediate, to_square]
 
         for square in king_path:
             if CastlingValidator._is_square_attacked(self.board, square, enemy_color):
@@ -296,6 +300,12 @@ class MoveValidator:
             return False
 
         if to_square != target_square:
+            return False
+
+        # Check that en passant capture doesn't expose king to check
+        if self._would_expose_king_to_check_en_passant(
+            piece, from_square, to_square
+        ):
             return False
 
         return True
@@ -393,6 +403,47 @@ class MoveValidator:
 
         return False
 
+    def _would_expose_king_to_check_en_passant(
+        self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
+    ) -> bool:
+        """Check if en passant capture would expose king to check."""
+        piece_color = piece.color
+        enemy_color = Color.BLACK if piece_color == Color.WHITE else Color.WHITE
+
+        temp_board = self.board.clone()
+
+        # Move the pawn
+        temp_piece = Piece(
+            color=piece.color,
+            kind=piece.kind,
+            _square=to_square,
+        )
+        temp_board.set_piece(to_square, temp_piece)
+        temp_board.clear_square(from_square)
+
+        # Remove captured pawn (on same rank as capturing pawn, at destination file)
+        captured_square = ConstantSquare(
+            row=get_row_constant(int(from_square.row)),
+            col=get_col_constant(int(to_square.col)),
+        )
+        temp_board.clear_square(captured_square)
+
+        king_square = temp_board.find_king(piece_color)
+        if king_square is None:
+            return False
+
+        for row in range(8):
+            for col in range(8):
+                sq = ConstantSquare(
+                    row=get_row_constant(row), col=get_col_constant(col)
+                )
+                attacker = temp_board.get_piece(sq)
+                if attacker is not None and attacker.color == enemy_color:
+                    if self._can_piece_attack(attacker, sq, king_square, temp_board):
+                        return True
+
+        return False
+
     def is_piece_pinned(self, square: ConstantSquare, piece_color: Color) -> bool:
         """Check if a piece is pinned to its king."""
         king_square = self.board.find_king(piece_color)
@@ -422,7 +473,9 @@ class MoveValidator:
         board: "Board",
     ) -> bool:
         """Check if attacker can attack target."""
-        if attacker.kind == PieceType.ROOK:
+        if attacker.kind == PieceType.PAWN:
+            return self._is_pawn_attack(attacker, attacker_square, target_square)
+        elif attacker.kind == PieceType.ROOK:
             return self._is_rook_attack(attacker_square, target_square, board)
         elif attacker.kind == PieceType.BISHOP:
             return self._is_bishop_attack(attacker_square, target_square, board)
@@ -478,6 +531,15 @@ class MoveValidator:
             abs(int(from_sq.row) - int(to_sq.row)) <= 1
             and abs(int(from_sq.col) - int(to_sq.col)) <= 1
         )
+
+    def _is_pawn_attack(
+        self, pawn: Piece, from_sq: ConstantSquare, to_sq: ConstantSquare
+    ) -> bool:
+        """Check if pawn can attack from from_sq to to_sq."""
+        direction = -1 if pawn.color == Color.WHITE else 1
+        row_diff = int(to_sq.row) - int(from_sq.row)
+        col_diff = int(to_sq.col) - int(from_sq.col)
+        return row_diff == direction and abs(col_diff) == 1
 
     def _attack_line_goes_through(
         self,
