@@ -132,35 +132,50 @@ def test_checkmate_with_promotion() -> None:
 
 
 def test_stalemate_after_promotion() -> None:
-    """T5.4: Promotion creates stalemate position."""
+    """T5.4: Promotion creates stalemate position.
+
+    White pawn on b7 promotes to bishop on b8. Black king on a8 has no
+    legal moves and is not in check.
+      - a7 blocked by white pawn (protected by white king on b6)
+      - b7 empty but attacked by white king on b6
+      - b8 occupied by white bishop (protected by white rook on c8)
+    """
     board = Board()
     for row in range(8):
         for col in range(8):
             board.clear_square(
                 ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
             )
+    # Black king at a8 (row 0, col 0)
     board.set_piece(
-        get_square_constant(7, 0), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(0, 0), create_piece(Color.BLACK, PieceType.KING)
     )
+    # White king at b6 (row 2, col 1) - protects a7 and b7
     board.set_piece(
-        get_square_constant(4, 3), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(2, 1), create_piece(Color.WHITE, PieceType.KING)
     )
+    # White pawn at a7 (row 1, col 0)
     board.set_piece(
-        get_square_constant(4, 1), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(1, 0), create_piece(Color.WHITE, PieceType.PAWN)
     )
+    # White pawn at b7 (row 1, col 1) - will promote
     board.set_piece(
-        get_square_constant(5, 2), create_piece(Color.BLACK, PieceType.PAWN)
+        get_square_constant(1, 1), create_piece(Color.WHITE, PieceType.PAWN)
     )
-    board.turn = Color.BLACK
+    # White rook at c8 (row 0, col 2) - protects b8 after promotion
+    board.set_piece(
+        get_square_constant(0, 2), create_piece(Color.WHITE, PieceType.ROOK)
+    )
+    board.turn = Color.WHITE
     assert (
         board.make_move(
-            get_square_constant(5, 2),
-            get_square_constant(7, 2),
-            promotion=PieceType.KNIGHT,
+            get_square_constant(1, 1),
+            get_square_constant(0, 1),
+            promotion=PieceType.BISHOP,
         )
         is True
     )
-    board.turn = Color.BLACK
+    # After white's move, it's black's turn. Black has no legal moves.
     legal_moves = board.get_legal_moves()
     assert len(legal_moves) == 0
 
