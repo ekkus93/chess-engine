@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from chess_game.chess.color import Color
 from chess_game.chess.constants import (
@@ -29,16 +29,18 @@ class EnPassantValidator:
         # En passant: one file over, one rank (diagonal move)
         if abs(int(from_square.col) - int(to_square.col)) != 1:
             return False
-        if abs(int(from_square.row) - int(to_square.row)) != 1:
-            return False
 
         if self.board.en_passant_target is None:
             return False
 
-        # The captured piece is on the same row as the capturing pawn,
-        # on the column of the destination square
+        if to_square != self.board.en_passant_target:
+            return False
+
+        # The captured piece is one rank beyond EP target in capturing pawn's direction
+        direction = -1 if piece.color == Color.WHITE else 1
+        captured_row = int(self.board.en_passant_target.row) - direction
         captured_square = ConstantSquare(
-            row=get_row_constant(int(from_square.row)),
+            row=get_row_constant(captured_row),
             col=get_col_constant(int(to_square.col)),
         )
         captured_piece = self.board.get_piece(captured_square)
@@ -50,14 +52,23 @@ class EnPassantValidator:
         if captured_piece.color == piece.color:
             return False
 
+        # Check that en passant capture doesn't expose king to check
+        temp_board = self.board.clone()
+        temp_piece = Piece(color=piece.color, kind=piece.kind, _square=to_square)
+        temp_board.set_piece(to_square, temp_piece)
+        temp_board.clear_square(from_square)
+        temp_board.clear_square(captured_square)
+
+        if temp_board.is_in_check(piece.color):
+            return False
+
         return True
 
     def clear_en_passant_target_if_needed(
-        self, from_square: ConstantSquare, to_square: ConstantSquare, piece: Piece
+        self, _from_square: ConstantSquare, _to_square: ConstantSquare, _piece: Piece
     ) -> None:
-        """Clear en passant target if not a two-square pawn advance."""
-        if piece.kind != PieceType.PAWN:
-            self.board.en_passant_target = None
+        """Clear en passant target after any non-two-square-pawn-advance move."""
+        self.board.en_passant_target = None
 
     def set_en_passant_target_if_valid(
         self,

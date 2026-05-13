@@ -1,15 +1,13 @@
 """Piece-specific move validation logic."""
 
+# pylint: disable=protected-access
+
 from __future__ import annotations
 
 from typing import List, Optional
 
 from chess_game.chess.color import Color
 from chess_game.chess.constants import (
-    ROW_1,
-    ROW_2,
-    ROW_7,
-    ROW_8,
     get_row_constant,
     get_col_constant,
 )
@@ -24,15 +22,15 @@ class PieceMovers:
         """Get all valid moves for a piece."""
         if piece.kind == PieceType.PAWN:
             return PieceMovers._get_pawn_moves(piece, board)
-        elif piece.kind == PieceType.KNIGHT:
+        if piece.kind == PieceType.KNIGHT:
             return PieceMovers._get_knight_moves(piece, board)
-        elif piece.kind == PieceType.BISHOP:
+        if piece.kind == PieceType.BISHOP:
             return PieceMovers._get_bishop_moves(piece, board)
-        elif piece.kind == PieceType.ROOK:
+        if piece.kind == PieceType.ROOK:
             return PieceMovers._get_rook_moves(piece, board)
-        elif piece.kind == PieceType.QUEEN:
+        if piece.kind == PieceType.QUEEN:
             return PieceMovers._get_queen_moves(piece, board)
-        elif piece.kind == PieceType.KING:
+        if piece.kind == PieceType.KING:
             return PieceMovers._get_king_moves(piece, board)
         return []
 
@@ -67,12 +65,12 @@ class PieceMovers:
                 if board.is_empty(square_between) and board.is_empty(target_square_2):
                     moves.append(target_square_2)
 
-        # Captures
+        # Captures (regular diagonal capture)
         for col_offset in [-1, 1]:
             target_col_idx = int(current_col) + col_offset
 
             # Check bounds before creating ConstantSquare
-            if not (0 <= target_col_idx < 8):
+            if target_col_idx < 0 or target_col_idx >= 8:
                 continue
 
             target_col = get_col_constant(target_col_idx)
@@ -83,10 +81,21 @@ class PieceMovers:
                 if target_piece is not None and target_piece.color != piece.color:
                     moves.append(target_square)
 
+        # En passant capture
+        if hasattr(board, "en_passant_target") and board.en_passant_target is not None:
+            ep_target = board.en_passant_target
+            ep_row = int(ep_target.row)
+            ep_col = int(ep_target.col)
+            if ep_row == int(next_row) and abs(ep_col - int(current_col)) == 1:
+                if PieceMovers._is_valid_position(
+                    board, ConstantSquare(row=next_row, col=get_col_constant(ep_col))
+                ):
+                    moves.append(ep_target)
+
         return moves
 
     @staticmethod
-    def _is_valid_position(board, square: ConstantSquare) -> bool:
+    def _is_valid_position(_board, square: ConstantSquare) -> bool:
         """Check if a square is on the board."""
         return 0 <= int(square.row) < 8 and 0 <= int(square.col) < 8
 
@@ -231,11 +240,11 @@ class PieceMovers:
             return PieceMovers._path_is_clear(from_square, to_square, piece, board)
 
         if piece.kind == PieceType.QUEEN:
-            if from_square.row != to_square.row and from_square.col != to_square.col:
-                return False
-            if abs(row_diff) != abs(col_diff):
-                return False
-            return PieceMovers._path_is_clear(from_square, to_square, piece, board)
+            if from_square.row == to_square.row or from_square.col == to_square.col:
+                return PieceMovers._path_is_clear(from_square, to_square, piece, board)
+            if abs(row_diff) == abs(col_diff):
+                return PieceMovers._path_is_clear(from_square, to_square, piece, board)
+            return False
 
         if piece.kind == PieceType.KING:
             return from_square != to_square and max(abs(row_diff), abs(col_diff)) == 1
@@ -244,7 +253,7 @@ class PieceMovers:
 
     @staticmethod
     def _path_is_clear(
-        from_square: ConstantSquare, to_square: ConstantSquare, piece, board
+        from_square: ConstantSquare, to_square: ConstantSquare, _piece, board
     ) -> bool:
         """Check if path between two squares is clear."""
         if from_square == to_square:

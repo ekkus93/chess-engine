@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Optional
 
 from chess_game.chess.types import Piece, PieceType, ConstantSquare
+from chess_game.chess.color import Color
 from chess_game.chess.board.castling import CastlingValidator
 from chess_game.chess.board.promotion import PromotionValidator
 from chess_game.chess.constants import get_row_constant, get_col_constant
@@ -116,7 +117,7 @@ class MoveExecutor:
         self._move_piece(piece, from_square, to_square)
 
         if self._is_en_passant_capture(piece, from_square, to_square):
-            self._execute_en_passant_capture(from_square, to_square)
+            self._execute_en_passant_capture(piece, from_square, to_square)
 
         self.board.clear_square(from_square)
 
@@ -129,9 +130,11 @@ class MoveExecutor:
         )
 
     def _execute_en_passant_capture(
-        self, from_square: ConstantSquare, to_square: ConstantSquare
+        self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
     ) -> None:
-        capture_row = int(from_square.row)
+        direction = -1 if piece.color == Color.WHITE else 1
+        ep_target = self.board.en_passant_target
+        capture_row = int(ep_target.row) - direction
         capture_col = int(to_square.col)
         captured_square = ConstantSquare(
             row=get_row_constant(capture_row), col=get_col_constant(capture_col)

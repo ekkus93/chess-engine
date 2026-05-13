@@ -188,10 +188,9 @@ class MoveValidator:
             return False
 
         col_diff = abs(int(to_square.col) - int(from_square.col))
-        row_diff = abs(int(to_square.row) - int(from_square.row))
 
-        # En passant: one file over, one rank forward (diagonal move)
-        if col_diff != 1 or row_diff != 1:
+        # En passant: one file over (diagonal move), lands on EP target
+        if col_diff != 1:
             return False
 
         if self.board.en_passant_target is None:
@@ -421,9 +420,11 @@ class MoveValidator:
         temp_board.set_piece(to_square, temp_piece)
         temp_board.clear_square(from_square)
 
-        # Remove captured pawn (on same rank as capturing pawn, at destination file)
+        # Remove captured pawn (one rank beyond EP target in capturing pawn's direction)
+        direction = -1 if piece.color == Color.WHITE else 1
+        captured_row = int(self.board.en_passant_target.row) - direction
         captured_square = ConstantSquare(
-            row=get_row_constant(int(from_square.row)),
+            row=get_row_constant(captured_row),
             col=get_col_constant(int(to_square.col)),
         )
         temp_board.clear_square(captured_square)
