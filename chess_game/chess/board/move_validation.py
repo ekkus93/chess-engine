@@ -42,116 +42,54 @@ class MoveValidator:
     def is_valid_move(
         self, from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
-        """Check if a move is valid."""
+        """Check if a move is valid.
+
+        Validation flow:
+        1. Source square must contain a piece.
+        2. Destination must be on board.
+        3. Destination must not contain a friendly piece.
+        4. Castling must be detected and delegated to castling validation.
+        5. En passant must be detected and delegated to en passant validation.
+        6. For normal moves, destination must be in
+           PieceMovers.get_valid_moves(piece, board_state).
+        7. Simulate the move on a cloned state.
+        8. Reject if it leaves the moving side's king in check.
+        9. Otherwise return True.
+        """
+        # 1. Source square must contain a piece
         piece = self.board.get_piece(from_square)
         if piece is None:
             return False
 
-        # Check for castling move
+        # 2. Destination must be on board
+        if not self.board.is_on_board(to_square):
+            return False
+
+        # 3. Destination must not contain a friendly piece
+        dest_piece = self.board.get_piece(to_square)
+        if dest_piece is not None and dest_piece.color == piece.color:
+            return False
+
+        # 4. Castling delegation
         if self._is_castling_move(piece, from_square, to_square):
             result = self._validate_castling(piece, from_square, to_square)
-            if self.board.get_piece(to_square) is not None:
-                return False
             return result
 
-        # Check for en passant move
+        # 5. En passant delegation
         if self._is_en_passant_move(piece, from_square, to_square):
             return self._validate_en_passant(piece, from_square, to_square)
 
-        # Regular move: check piece geometry first
-        if not self._piece_geometry_valid(piece, from_square, to_square):
+        # 6. Pseudo-legal geometry via PieceMovers
+        valid_moves = self.piece_movers.get_valid_moves(piece, self.board)
+        if to_square not in valid_moves:
             return False
 
-        # Pawn-specific obstacle checks
-        if piece.kind == PieceType.PAWN:
-            if not self._validate_pawn_obstacles(piece, from_square, to_square):
-                return False
-
-        # Check destination is not occupied by own piece
-        if self.board.get_piece(to_square) is not None:
-            if self.board.get_piece(to_square).color == piece.color:
-                return False
-
-        # Check that the move doesn't leave the king in check
+        # 7-8. Simulate and reject if it leaves king in check
         if self._would_expose_king_to_check(piece, from_square, to_square):
             return False
 
+        # 9. Otherwise return True
         return True
-
-    def _piece_geometry_valid(
-        self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
-    ) -> bool:
-        """Check if the move geometry is valid for this piece type."""
-        row_diff = to_square.row - from_square.row
-        col_diff = to_square.col - from_square.col
-
-        if piece.kind == PieceType.PAWN:
-            direction = -1 if piece.color == Color.WHITE else 1
-            if col_diff == 0:
-                if row_diff == direction:
-                    return True
-                if row_diff == 2 * direction:
-                    return True
-            elif abs(col_diff) == 1 and row_diff == direction:
-                return True
-            return False
-
-        if piece.kind == PieceType.KNIGHT:
-            return (abs(row_diff), abs(col_diff)) in {(2, 1), (1, 2)}
-
-        if piece.kind == PieceType.BISHOP:
-            if abs(row_diff) != abs(col_diff):
-                return False
-            return self.path_validator.is_path_clear(
-                self.board, from_square, to_square
-            )
-
-        if piece.kind == PieceType.ROOK:
-            if from_square.row != to_square.row and from_square.col != to_square.col:
-                return False
-            return self.path_validator.is_path_clear(
-                self.board, from_square, to_square
-            )
-
-        if piece.kind == PieceType.QUEEN:
-            if from_square.row != to_square.row and from_square.col != to_square.col:
-                if abs(row_diff) != abs(col_diff):
-                    return False
-            return self.path_validator.is_path_clear(
-                self.board, from_square, to_square
-            )
-
-        if piece.kind == PieceType.KING:
-            return from_square != to_square and max(
-                abs(row_diff), abs(col_diff)
-            ) == 1
-
-        return False
-
-    def _validate_pawn_obstacles(
-        self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
-    ) -> bool:
-        """Validate pawn-specific board state (obstacles, captures)."""
-        direction = -1 if piece.color == Color.WHITE else 1
-        row_diff = int(to_square.row) - int(from_square.row)
-        col_diff = int(to_square.col) - int(from_square.col)
-
-        if col_diff == 0 and row_diff == direction:
-            # Forward one-step: destination must be empty
-            return self.board.is_empty(to_square)
-        elif col_diff == 0 and row_diff == 2 * direction:
-            # Forward two-step: both destination and intermediate must be empty
-            intermediate_row = int(from_square.row) + direction
-            intermediate = ConstantSquare(
-                row=get_row_constant(intermediate_row),
-                col=get_col_constant(int(from_square.col)),
-            )
-            return self.board.is_empty(intermediate) and self.board.is_empty(to_square)
-        elif abs(col_diff) == 1 and row_diff == direction:
-            # Capture: destination must have enemy piece
-            target = self.board.get_piece(to_square)
-            return target is not None and target.color != piece.color
-        return False
 
     def _is_castling_move(
         self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare

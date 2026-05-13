@@ -474,3 +474,61 @@ def test_black_pawn_cannot_move_backward() -> None:
         board.is_valid_pawn_move(get_square_constant(2, 4), get_square_constant(1, 4))
         is False
     )
+
+
+def test_white_pawn_diagonal_non_capture_rejected() -> None:
+    board = Board()
+    board.turn = Color.WHITE
+    board.clear_board()
+    board.set_piece(
+        get_square_constant(6, 4), create_piece(Color.WHITE, PieceType.PAWN)
+    )
+    assert (
+        board.is_valid_pawn_move(get_square_constant(6, 4), get_square_constant(5, 5))
+        is False
+    )
+
+
+def test_queen_blocked_on_rank() -> None:
+    board = Board()
+    board.clear_board()
+    board.set_piece(
+        get_square_constant(3, 4), create_piece(Color.WHITE, PieceType.QUEEN)
+    )
+    board.set_piece(
+        get_square_constant(3, 2), create_piece(Color.WHITE, PieceType.PAWN)
+    )
+    assert (
+        board.is_valid_queen_move(get_square_constant(3, 4), get_square_constant(3, 0))
+        is False
+    )
+
+
+def test_queen_blocked_on_file() -> None:
+    board = Board()
+    board.clear_board()
+    board.set_piece(
+        get_square_constant(3, 4), create_piece(Color.WHITE, PieceType.QUEEN)
+    )
+    board.set_piece(
+        get_square_constant(5, 4), create_piece(Color.BLACK, PieceType.PAWN)
+    )
+    assert (
+        board.is_valid_queen_move(get_square_constant(3, 4), get_square_constant(7, 4))
+        is False
+    )
+
+
+def test_bishop_blocked_by_friendly_piece_in_path() -> None:
+    board = Board()
+    board.clear_board()
+    board.set_piece(
+        get_square_constant(3, 4), create_piece(Color.WHITE, PieceType.BISHOP)
+    )
+    board.set_piece(
+        get_square_constant(4, 3), create_piece(Color.WHITE, PieceType.PAWN)
+    )
+    assert (
+        board.is_valid_bishop_move(get_square_constant(3, 4), get_square_constant(6, 1))
+        is False
+    )
