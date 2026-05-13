@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from chess_game.chess.color import Color
+from chess_game.chess.constants import Color
 from chess_game.chess.constants import (
     ROW_1,
     ROW_8,

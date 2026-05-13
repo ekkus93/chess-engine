@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 from typing import List, Optional, Union
 
-from chess_game.chess.color import Color
+from chess_game.chess.constants import Color
 from chess_game.chess.types import Piece
 from chess_game.chess.types import PieceType
 from chess_game.chess.constants import (
@@ -104,10 +104,6 @@ class BoardState:
     def is_valid_position(self, square: ConstantSquare) -> bool:
         """Check if square is on board."""
         return 0 <= int(square.row) < 8 and 0 <= int(square.col) < 8
-
-    def is_on_board(self, square: ConstantSquare) -> bool:
-        """Check if square is on board."""
-        return self.is_valid_position(square)
 
     def find_king(self, color: Color) -> Optional[ConstantSquare]:
         """Find king of given color."""

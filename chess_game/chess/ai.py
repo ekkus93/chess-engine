@@ -6,7 +6,8 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Optional
 
-from chess_game.chess.board import Board, ConstantSquare
+from chess_game.chess.board import Board
+from chess_game.chess.constants import ConstantSquare
 from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.evaluation import (
     MATERIAL_VALUES,

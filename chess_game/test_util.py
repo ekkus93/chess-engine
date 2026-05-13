@@ -1,22 +1,20 @@
 """Test utilities for chess engine tests."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Optional
+
 from chess_game.chess.board import Board, create_piece
-from chess_game.chess.color import Color
-from chess_game.chess.types import ConstantSquare
+from chess_game.chess.constants import Color
+from chess_game.chess.constants import ConstantSquare
 from chess_game.chess.types import PieceType
-from typing import Optional
+
+if TYPE_CHECKING:
+    pass
 
 
-def _setup_kings(
-    board: Board, white_square: tuple = (0, 4), black_square: tuple = (7, 4)
-) -> None:
-    """Setup kings on the board for testing.
-
-    Args:
-        board: The board instance
-        white_square: (row, col) position for white king
-        black_square: (row, col) position for black king
-    """
+def _setup_kings(board: Board) -> None:
+    """Setup kings on the board for testing."""
     board.set_piece(
         ConstantSquare(row=0, col=4),
         create_piece(Color.WHITE, PieceType.KING),

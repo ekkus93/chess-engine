@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
-from chess_game.chess.color import Color
-from chess_game.chess.types import Piece, PieceType, ConstantSquare
+from chess_game.chess.constants import Color, ConstantSquare
+from chess_game.chess.types import Piece, PieceType
 from chess_game.chess.board.castling import CastlingValidator
 from chess_game.chess.board.path_validator import PathValidator
 from chess_game.chess.pieces.piece_movers import PieceMovers
@@ -62,7 +62,7 @@ class MoveValidator:
             return False
 
         # 2. Destination must be on board
-        if not self.board.is_on_board(to_square):
+        if not self.board.is_valid_position(to_square):
             return False
 
         # 3. Destination must not contain a friendly piece

@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
-from chess_game.chess.color import Color
-from chess_game.chess.constants import BOARD_SIZE, get_row_constant, get_col_constant
-from chess_game.chess.types import Piece, PieceType, ConstantSquare
+from chess_game.chess.constants import get_row_constant, get_col_constant
+from chess_game.chess.types import Piece
+from chess_game.chess.constants import ConstantSquare
 
 if TYPE_CHECKING:
     from chess_game.chess.board.board import Board
@@ -20,7 +20,7 @@ class PathValidator:
         board: "Board",
         from_square: ConstantSquare,
         to_square: ConstantSquare,
-        ignore_color: Optional[Color] = None,
+        _ignore_color: Optional[int] = None,
     ) -> bool:
         """Check if the path between two squares is clear (no pieces blocking)."""
         if from_square == to_square:

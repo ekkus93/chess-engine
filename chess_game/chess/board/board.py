@@ -9,7 +9,7 @@ from __future__ import annotations
 import copy
 from typing import List, Optional, Tuple
 
-from chess_game.chess.color import Color
+from chess_game.chess.constants import Color
 from chess_game.chess.types import PieceType, Piece
 from chess_game.chess.board.move_validation import MoveValidator
 from chess_game.chess.board.move_execution import MoveExecutor
@@ -154,10 +154,6 @@ class Board:
     def is_valid_position(self, square: ConstantSquare) -> bool:
         """Validate square coordinates."""
         return 0 <= int(square.row) < 8 and 0 <= int(square.col) < 8
-
-    def is_on_board(self, square: ConstantSquare) -> bool:
-        """Check if square is on board."""
-        return self.is_valid_position(square)
 
     def is_same_color(self, square1: ConstantSquare, square2: ConstantSquare) -> bool:
         """Check if pieces at both squares have same color."""

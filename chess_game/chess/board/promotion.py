@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, List, Optional
 
-from chess_game.chess.color import Color
-from chess_game.chess.types import Piece, PieceType, ConstantSquare
+from chess_game.chess.constants import Color
+from chess_game.chess.types import Piece, PieceType
+from chess_game.chess.constants import ConstantSquare
 
 if TYPE_CHECKING:
     from chess_game.chess.board.board import Board
@@ -17,11 +18,11 @@ class PromotionValidator:
     def __init__(self, board: Board):
         self.board = board
 
-    def get_default_promotion_piece(self, color: Color) -> PieceType:
+    def get_default_promotion_piece(self, _color: Color) -> PieceType:
         return PieceType.QUEEN
 
     def is_promotion_required(
-        self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
+        self, piece: Piece, _from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
         if piece.kind != PieceType.PAWN:
             return False
@@ -33,7 +34,7 @@ class PromotionValidator:
             return int(to_square.row) == 7
 
     def get_promotion_options(
-        self, piece: Piece, to_square: ConstantSquare
+        self, piece: Piece, _to_square: ConstantSquare
     ) -> List[PieceType]:
         if piece.kind != PieceType.PAWN:
             return []

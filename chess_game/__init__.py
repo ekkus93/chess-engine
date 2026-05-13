@@ -1,4 +1,6 @@
-from chess_game.chess.board import Board, LegalMove, ConstantSquare, create_piece
+from chess_game.chess.board import Board, create_piece
+from chess_game.chess.constants import ConstantSquare
+from chess_game.chess.types import LegalMove
 from chess_game.chess.coords import (
     algebraic_to_index,
     index_to_algebraic,

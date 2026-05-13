@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from chess_game.chess.coords import algebraic_to_index
-from chess_game.chess.board import ConstantSquare
+from chess_game.chess.constants import ConstantSquare
 from chess_game.chess.types import PieceType
 
 

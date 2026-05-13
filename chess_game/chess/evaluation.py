@@ -25,8 +25,8 @@ MATERIAL_VALUES: dict[PieceType, int] = {
 PAWN_TABLE: list[list[int]] = [
     [-100, -100, -100, -100, -100, -100, -100, -100],  # rank 8 (row 0) - white starting
     [-20, -20, -20, -20, -20, -20, -20, -20],           # rank 7 (row 1)
-    [20, 30, 10, 5, 40, 50, 10, 30],                     # rank 6 (row 2) - encourage advance, penalize edges
-    [30, 50, 20, 0, 30, 30, 0, 30],                      # rank 5 (row 3) - central bias, penalize edges
+    [20, 30, 10, 5, 40, 50, 10, 30],  # rank 6 (row 2)
+    [30, 50, 20, 0, 30, 30, 0, 30],  # rank 5 (row 3)
     [30, 50, 20, 30, 50, 20, 30, 40],                    # rank 4 (row 4) - central bias
     [10, 20, 30, 20, 30, 20, 10, 0],                     # rank 3 (row 5)
     [-20, 0, 0, 0, 0, 0, 0, -20],                        # rank 2 (row 6)
@@ -90,7 +90,7 @@ QUEEN_TABLE: list[list[int]] = [
 KING_TABLE: list[list[int]] = [
     [-85,-70,-60,-45,-25,0,10,30],                        # rank 8 (row 0)
     [-75,-65,-45,-20,-10,10,20,35],                      # rank 7 (row 1)
-    [-75,-50,0,25,50,50,25,50],                           # rank 6 (row 2) - encourage centralization
+    [-75,-50,0,25,50,50,25,50],  # rank 6 (row 2)
     [20,25,30,40,45,40,25,20],                           # rank 5 (row 3)
     [25,30,35,50,60,50,35,25],                            # rank 4 (row 4)
     [-40,-30,-10,0,0,0,-10,-30],                          # rank 3 (row 5)

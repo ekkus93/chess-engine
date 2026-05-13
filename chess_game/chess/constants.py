@@ -1,9 +1,8 @@
 """Chess board coordinate constants with type-safe enums."""
 
-from dataclasses import dataclass
 from enum import IntEnum
-from typing import NamedTuple, List, Optional, Union
-from pydantic import BaseModel, field_validator
+from typing import NamedTuple, Union
+from pydantic import BaseModel
 
 
 # Board geometry constants
@@ -241,14 +240,14 @@ ColType = int
 # Helper functions for creating ConstantSquare
 def get_row_constant(row: int) -> RowConstant:
     """Convert integer row (0-7) to RowConstant."""
-    if not (0 <= row < 8):
+    if row < 0 or row >= 8:
         raise ValueError(f"Row must be between 0 and 7, got {row}")
     return RowConstant(row)
 
 
 def get_col_constant(col: int) -> ColConstant:
     """Convert integer column (0-7) to ColConstant."""
-    if not (0 <= col < 8):
+    if col < 0 or col >= 8:
         raise ValueError(f"Column must be between 0 and 7, got {col}")
     return ColConstant(col)
 

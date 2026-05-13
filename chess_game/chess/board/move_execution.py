@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional
 
-from chess_game.chess.types import Piece, PieceType, ConstantSquare
-from chess_game.chess.color import Color
+from chess_game.chess.types import Piece, PieceType
+from chess_game.chess.constants import ConstantSquare
+from chess_game.chess.constants import Color
 from chess_game.chess.board.castling import CastlingValidator
 from chess_game.chess.board.promotion import PromotionValidator
 from chess_game.chess.constants import get_row_constant, get_col_constant
