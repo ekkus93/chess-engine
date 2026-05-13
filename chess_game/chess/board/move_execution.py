@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional
 
-from chess_game.chess.color import Color
 from chess_game.chess.types import Piece, PieceType, ConstantSquare
 from chess_game.chess.board.castling import CastlingValidator
 from chess_game.chess.board.promotion import PromotionValidator
@@ -27,7 +26,7 @@ class MoveExecutor:
         from_square: ConstantSquare,
         to_square: ConstantSquare,
         promotion_piece: Optional[PieceType] = None,
-        start_piece: Optional[Piece] = None,
+        _start_piece: Optional[Piece] = None,
     ) -> bool:
         piece = self.board.get_piece(from_square)
         if piece is None:
@@ -61,14 +60,12 @@ class MoveExecutor:
                 piece.color
             )
 
-        self._move_piece(piece, from_square, to_square)
-
         new_piece = Piece(piece.color, promotion_piece, to_square)
         self.board.set_piece(to_square, new_piece)
         self.board.clear_square(from_square)
 
     def _is_castling_move(
-        self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
+        self, _piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
         return self.castling_validator.is_castling_move(from_square, to_square)
 
@@ -111,6 +108,7 @@ class MoveExecutor:
                 )
 
         self._move_piece(piece, from_square, to_square)
+        self.board.clear_square(from_square)
 
     def _execute_regular_move(
         self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
@@ -145,6 +143,3 @@ class MoveExecutor:
     ) -> None:
         self.board.set_piece(to_square, piece)
         piece._square = to_square
-
-    def update_turn(self) -> None:
-        self.board.turn = Color.BLACK if self.board.turn == Color.WHITE else Color.WHITE
