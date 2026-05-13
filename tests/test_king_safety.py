@@ -25,10 +25,10 @@ from chess_game.chess.types import Color, PieceType
 
 def setup_king_safety_position(board: Board) -> None:
     board.set_piece(
-        get_square_constant(6, 4), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(1, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.BLACK, PieceType.KING)
     )
 
 
@@ -39,24 +39,24 @@ def test_promotion_to_queen_explicit() -> None:
     board = Board()
     board.clear_board()
     board.set_piece(
-        get_square_constant(6, 0), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(1, 0), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(7, 7), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(0, 7), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(6, 4), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(1, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )
     assert (
         board.make_move(
-            get_square_constant(6, 4),
-            get_square_constant(7, 4),
+            get_square_constant(1, 4),
+            get_square_constant(0, 4),
             promotion=PieceType.QUEEN,
         )
         is True
     )
-    assert board.get_piece_type_at(get_square_constant(7, 4)) == PieceType.QUEEN
-    assert board.get_color_at(get_square_constant(7, 4)) == Color.WHITE
+    assert board.get_piece_type_at(get_square_constant(0, 4)) == PieceType.QUEEN
+    assert board.get_color_at(get_square_constant(0, 4)) == Color.WHITE
 
 
 def test_promotion_to_rook() -> None:
@@ -64,23 +64,23 @@ def test_promotion_to_rook() -> None:
     board = Board()
     board.clear_board()
     board.set_piece(
-        get_square_constant(6, 0), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(1, 0), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(7, 7), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(0, 7), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(6, 4), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(1, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )
     assert (
         board.make_move(
-            get_square_constant(6, 4),
-            get_square_constant(7, 4),
+            get_square_constant(1, 4),
+            get_square_constant(0, 4),
             promotion=PieceType.ROOK,
         )
         is True
     )
-    assert board.get_piece_type_at(get_square_constant(7, 4)) == PieceType.ROOK
+    assert board.get_piece_type_at(get_square_constant(0, 4)) == PieceType.ROOK
 
 
 def test_promotion_to_bishop() -> None:
@@ -88,23 +88,23 @@ def test_promotion_to_bishop() -> None:
     board = Board()
     board.clear_board()
     board.set_piece(
-        get_square_constant(6, 0), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(1, 0), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(7, 7), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(0, 7), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(6, 4), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(1, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )
     assert (
         board.make_move(
-            get_square_constant(6, 4),
-            get_square_constant(7, 4),
+            get_square_constant(1, 4),
+            get_square_constant(0, 4),
             promotion=PieceType.BISHOP,
         )
         is True
     )
-    assert board.get_piece_type_at(get_square_constant(7, 4)) == PieceType.BISHOP
+    assert board.get_piece_type_at(get_square_constant(0, 4)) == PieceType.BISHOP
 
 
 def test_promotion_to_knight() -> None:
@@ -112,23 +112,23 @@ def test_promotion_to_knight() -> None:
     board = Board()
     board.clear_board()
     board.set_piece(
-        get_square_constant(6, 0), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(1, 0), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(7, 7), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(0, 7), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(6, 4), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(1, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )
     assert (
         board.make_move(
-            get_square_constant(6, 4),
-            get_square_constant(7, 4),
+            get_square_constant(1, 4),
+            get_square_constant(0, 4),
             promotion=PieceType.KNIGHT,
         )
         is True
     )
-    assert board.get_piece_type_at(get_square_constant(7, 4)) == PieceType.KNIGHT
+    assert board.get_piece_type_at(get_square_constant(0, 4)) == PieceType.KNIGHT
 
 
 def test_promotion_to_king_rejected() -> None:
@@ -136,18 +136,18 @@ def test_promotion_to_king_rejected() -> None:
     board = Board()
     board.clear_board()
     board.set_piece(
-        get_square_constant(6, 0), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(1, 0), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(7, 7), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(0, 7), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(6, 4), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(1, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )
     assert (
         board.make_move(
-            get_square_constant(6, 4),
-            get_square_constant(7, 4),
+            get_square_constant(1, 4),
+            get_square_constant(0, 4),
             promotion=PieceType.KING,
         )
         is False
@@ -159,25 +159,25 @@ def test_black_promotion_to_rook() -> None:
     board = Board()
     board.clear_board()
     board.set_piece(
-        get_square_constant(6, 0), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(1, 0), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(7, 7), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(0, 7), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(1, 4), create_piece(Color.BLACK, PieceType.PAWN)
+        get_square_constant(6, 4), create_piece(Color.BLACK, PieceType.PAWN)
     )
     board.turn = Color.BLACK
     assert (
         board.make_move(
-            get_square_constant(1, 4),
-            get_square_constant(0, 4),
+            get_square_constant(6, 4),
+            get_square_constant(7, 4),
             promotion=PieceType.ROOK,
         )
         is True
     )
-    assert board.get_piece_type_at(get_square_constant(0, 4)) == PieceType.ROOK
-    assert board.get_color_at(get_square_constant(0, 4)) == Color.BLACK
+    assert board.get_piece_type_at(get_square_constant(7, 4)) == PieceType.ROOK
+    assert board.get_color_at(get_square_constant(7, 4)) == Color.BLACK
 
 
 def test_promotion_from_rank_7_forced() -> None:
@@ -185,19 +185,19 @@ def test_promotion_from_rank_7_forced() -> None:
     board = Board()
     board.clear_board()
     board.set_piece(
-        get_square_constant(7, 0), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(0, 0), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(0, 7), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(7, 7), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(6, 4), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(1, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )
     # White pawn on rank 7 can promote to rank 8 (row 7)
     assert (
         board.make_move(
-            get_square_constant(6, 4),
-            get_square_constant(7, 4),
+            get_square_constant(1, 4),
+            get_square_constant(0, 4),
             promotion=PieceType.QUEEN,
         )
         is True
@@ -209,21 +209,21 @@ def test_promotion_from_rank_6_blocked() -> None:
     board = Board()
     board.clear_board()
     board.set_piece(
-        get_square_constant(6, 0), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(1, 0), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(7, 7), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(0, 7), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(4, 4), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(3, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )  # e4 (rank 4)
     # Place a piece blocking the e-file
     board.set_piece(
-        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.ROOK)
+        get_square_constant(0, 4), create_piece(Color.BLACK, PieceType.ROOK)
     )
     # White pawn on rank 4 cannot promote from rank 4
     assert (
-        board.make_move(get_square_constant(4, 4), get_square_constant(7, 4)) is False
+        board.make_move(get_square_constant(3, 4), get_square_constant(0, 4)) is False
     )
 
 

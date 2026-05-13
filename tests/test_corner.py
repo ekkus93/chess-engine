@@ -34,25 +34,25 @@ def test_checkmate_pinned_king() -> None:
     board = Board()
     board.clear_board()
     board.set_piece(
-        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(1, 3), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(6, 3), create_piece(Color.WHITE, PieceType.PAWN)
     )
     board.set_piece(
-        get_square_constant(1, 5), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(6, 5), create_piece(Color.WHITE, PieceType.PAWN)
     )
     board.set_piece(
-        get_square_constant(1, 6), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(6, 6), create_piece(Color.WHITE, PieceType.PAWN)
     )
     board.set_piece(
-        get_square_constant(2, 2), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(5, 2), create_piece(Color.WHITE, PieceType.PAWN)
     )
     board.set_piece(
-        get_square_constant(1, 7), create_piece(Color.BLACK, PieceType.PAWN)
+        get_square_constant(6, 7), create_piece(Color.BLACK, PieceType.PAWN)
     )
     # Basic checkmate detection works
     board.turn = Color.WHITE
@@ -61,7 +61,7 @@ def test_checkmate_pinned_king() -> None:
     assert isinstance(legal_moves, list)
     # Black moves (to change turn) - simple pawn move
     board.turn = Color.BLACK
-    assert board.make_move(get_square_constant(1, 7), get_square_constant(0, 7)) is True
+    assert board.make_move(get_square_constant(6, 7), get_square_constant(7, 7)) is True
 
 
 def test_stalemate_pinned_king() -> None:
@@ -69,16 +69,16 @@ def test_stalemate_pinned_king() -> None:
     board = Board()
     board.clear_board()
     board.set_piece(
-        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(1, 3), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(6, 3), create_piece(Color.WHITE, PieceType.PAWN)
     )
     board.set_piece(
-        get_square_constant(1, 5), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(6, 5), create_piece(Color.WHITE, PieceType.PAWN)
     )
     # White king on e2 with pawns on d2 and f2
     # Just verify basic stalemate detection works
@@ -89,9 +89,9 @@ def test_stalemate_pinned_king() -> None:
     # Black moves (to change turn) - simple pawn move
     board.turn = Color.BLACK
     board.set_piece(
-        get_square_constant(1, 7), create_piece(Color.BLACK, PieceType.PAWN)
+        get_square_constant(6, 7), create_piece(Color.BLACK, PieceType.PAWN)
     )
-    assert board.make_move(get_square_constant(1, 7), get_square_constant(0, 7)) is True
+    assert board.make_move(get_square_constant(6, 7), get_square_constant(7, 7)) is True
 
 
 def test_checkmate_with_promotion() -> None:
@@ -105,28 +105,28 @@ def test_checkmate_with_promotion() -> None:
             )
     # Black king at e8
     board.set_piece(
-        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     # White pieces blocking escape squares and controlling e-file
     board.set_piece(
-        get_square_constant(6, 3), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(1, 3), create_piece(Color.WHITE, PieceType.PAWN)
     )  # blocks d8, controls e8
     board.set_piece(
-        get_square_constant(6, 5), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(1, 5), create_piece(Color.WHITE, PieceType.PAWN)
     )  # blocks f8
     board.set_piece(
-        get_square_constant(4, 4), create_piece(Color.WHITE, PieceType.ROOK)
+        get_square_constant(3, 4), create_piece(Color.WHITE, PieceType.ROOK)
     )  # controls e-file
     # White pawn at e7 ready to promote
     board.set_piece(
-        get_square_constant(6, 4), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(1, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )
     # White promotes to queen
     board.turn = Color.WHITE
     assert (
         board.make_move(
-            get_square_constant(6, 4),
-            get_square_constant(7, 4),
+            get_square_constant(1, 4),
+            get_square_constant(0, 4),
             promotion=PieceType.QUEEN,
         )
         is True
@@ -148,25 +148,25 @@ def test_stalemate_after_promotion() -> None:
             )
     # Black king trapped - can only move to f8
     board.set_piece(
-        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     # White pieces blocking escape squares
     board.set_piece(
-        get_square_constant(6, 3), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(1, 3), create_piece(Color.WHITE, PieceType.PAWN)
     )  # blocks d8
     board.set_piece(
-        get_square_constant(6, 5), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(1, 5), create_piece(Color.WHITE, PieceType.PAWN)
     )  # blocks f8
     # White pawn at e7 ready to promote
     board.set_piece(
-        get_square_constant(6, 4), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(1, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )
     # White promotes to queen
     board.turn = Color.WHITE
     assert (
         board.make_move(
-            get_square_constant(6, 4),
-            get_square_constant(7, 4),
+            get_square_constant(1, 4),
+            get_square_constant(0, 4),
             promotion=PieceType.QUEEN,
         )
         is True
@@ -175,8 +175,8 @@ def test_stalemate_after_promotion() -> None:
     board.turn = Color.WHITE
     assert (
         board.make_move(
-            get_square_constant(6, 4),
-            get_square_constant(7, 4),
+            get_square_constant(1, 4),
+            get_square_constant(0, 4),
             promotion=PieceType.QUEEN,
         )
         is True
@@ -188,41 +188,41 @@ def test_stalemate_after_promotion() -> None:
     # White moves (to change turn)
     board.turn = Color.WHITE
     board.set_piece(
-        get_square_constant(7, 4), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )
-    board.set_piece(get_square_constant(6, 4), None)
+    board.set_piece(get_square_constant(1, 4), None)
     assert (
         board.make_move(
-            get_square_constant(7, 4),
-            get_square_constant(8, 4),
+            get_square_constant(0, 4),
+            get_square_constant(-1, 4),
             promotion=PieceType.QUEEN,
         )
         is False
     )
     # Black king trapped in corner - no escape squares
     board.set_piece(
-        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     # White pieces blocking all escape squares and controlling e-file
     board.set_piece(
-        get_square_constant(6, 3), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(1, 3), create_piece(Color.WHITE, PieceType.PAWN)
     )  # blocks (6,3)
     board.set_piece(
-        get_square_constant(6, 4), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(1, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )  # blocks (6,4), controls e-file
     board.set_piece(
-        get_square_constant(6, 5), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(1, 5), create_piece(Color.WHITE, PieceType.PAWN)
     )  # blocks (6,5)
     # White pawn at e2 ready to promote
     board.set_piece(
-        get_square_constant(1, 4), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(6, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )
     # White promotes (queen will control e-file, trapping black king)
     board.turn = Color.WHITE
     assert (
         board.make_move(
-            get_square_constant(1, 4),
-            get_square_constant(2, 4),
+            get_square_constant(6, 4),
+            get_square_constant(5, 4),
             promotion=PieceType.QUEEN,
         )
         is True
@@ -234,12 +234,12 @@ def test_stalemate_after_promotion() -> None:
     # White moves (to change turn)
     board.turn = Color.WHITE
     board.set_piece(
-        get_square_constant(2, 4), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(5, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )
     assert (
         board.make_move(
-            get_square_constant(2, 4),
-            get_square_constant(3, 4),
+            get_square_constant(5, 4),
+            get_square_constant(4, 4),
             promotion=PieceType.QUEEN,
         )
         is False

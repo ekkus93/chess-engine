@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from chess_game.chess.color import Color
 from chess_game.chess.constants import BOARD_SIZE, get_row_constant, get_col_constant
 from chess_game.chess.types import Piece, PieceType, ConstantSquare
-from chess_game.chess.board.board_state import BoardState
+
+if TYPE_CHECKING:
+    from chess_game.chess.board.board import Board
 
 
 class PathValidator:
@@ -15,7 +17,7 @@ class PathValidator:
 
     @staticmethod
     def is_path_clear(
-        board: BoardState,
+        board: "Board",
         from_square: ConstantSquare,
         to_square: ConstantSquare,
         ignore_color: Optional[Color] = None,
@@ -51,7 +53,7 @@ class PathValidator:
 
     @staticmethod
     def is_piece_between(
-        board: BoardState, from_square: ConstantSquare, to_square: ConstantSquare
+        board: "Board", from_square: ConstantSquare, to_square: ConstantSquare
     ) -> Optional[Piece]:
         """Get the piece between two squares if any."""
         if from_square == to_square:

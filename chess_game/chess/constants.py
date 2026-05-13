@@ -53,9 +53,8 @@ class RowConstant:
         return hash(self._value)
 
     def __repr__(self):
-        # Return the rank (1-8) instead of array row (0-7)
-        # ROW_1 (rank 1) has value 0, ROW_8 (rank 8) has value 7
-        return f"ROW_{self._value + 1}"
+        # Return the rank name: row 0 = rank 8, row 7 = rank 1
+        return f"ROW_{8 - self._value}"
 
     def __index__(self) -> int:
         """Enable use in range(), indexing, etc."""
@@ -172,20 +171,21 @@ class ColConstant:
 
 
 # Array coordinate constants (internal system)
-# ROW_N maps to array row such that ROW_1 (rank 1) is at the bottom, ROW_8 (rank 8) at the top
-# Row 0 = rank 1 (white back rank)
-# Row 7 = rank 8 (black back rank)
-ROW_1 = RowConstant(0)  # array row 0 (rank 1)
-ROW_2 = RowConstant(1)  # array row 1 (rank 2)
-ROW_3 = RowConstant(2)  # array row 2 (rank 3)
-ROW_4 = RowConstant(3)  # array row 3 (rank 4)
-ROW_5 = RowConstant(4)  # array row 4 (rank 5)
-ROW_6 = RowConstant(5)  # array row 5 (rank 6)
-ROW_7 = RowConstant(6)  # array row 6 (rank 7)
-ROW_8 = RowConstant(7)  # array row 7 (rank 8)
+# Canonical: row 0 = rank 8 (black back rank), row 7 = rank 1 (white back rank)
+ROW_8 = RowConstant(0)  # array row 0 (rank 8)
+ROW_7 = RowConstant(1)  # array row 1 (rank 7)
+ROW_6 = RowConstant(2)  # array row 2 (rank 6)
+ROW_5 = RowConstant(3)  # array row 3 (rank 5)
+ROW_4 = RowConstant(4)  # array row 4 (rank 4)
+ROW_3 = RowConstant(5)  # array row 5 (rank 3)
+ROW_2 = RowConstant(6)  # array row 6 (rank 2)
+ROW_1 = RowConstant(7)  # array row 7 (rank 1)
 
-# Add ROW_0 as alias for ROW_1 for compatibility
-ROW_0 = ROW_1  # array row 0 (alias for ROW_1)
+# ROW_0 as alias for ROW_8 (row 0)
+ROW_0 = ROW_8  # array row 0 (alias for ROW_8)
+
+# Mapping from array index to row constant
+ROWS_BY_INDEX = [ROW_8, ROW_7, ROW_6, ROW_5, ROW_4, ROW_3, ROW_2, ROW_1]
 
 COL_A = ColConstant(0)  # file a
 COL_B = ColConstant(1)  # file b

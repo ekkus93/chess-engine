@@ -27,10 +27,10 @@ from chess_game.chess.constants import (
 
 def setup_castling_position(board: Board) -> None:
     board.set_piece(
-        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     for col in range(8):
         board.set_piece(
@@ -75,12 +75,12 @@ def test_white_kingside_castle_legal_case() -> None:
     board.turn = Color.WHITE
 
     # Clear the pieces that block castling (f1 bishop and g1 knight)
-    board.clear_square(get_square_constant(0, 5))
-    board.clear_square(get_square_constant(0, 6))
+    board.clear_square(get_square_constant(7, 5))
+    board.clear_square(get_square_constant(7, 6))
 
-    assert board.make_move(get_square_constant(0, 4), get_square_constant(0, 6)) is True
-    assert board.get_piece_type_at(get_square_constant(0, 6)) == PieceType.KING
-    assert board.get_piece_type_at(get_square_constant(0, 5)) == PieceType.ROOK
+    assert board.make_move(get_square_constant(7, 4), get_square_constant(7, 6)) is True
+    assert board.get_piece_type_at(get_square_constant(7, 6)) == PieceType.KING
+    assert board.get_piece_type_at(get_square_constant(7, 5)) == PieceType.ROOK
 
 
 def test_white_queenside_castle_legal_case() -> None:
@@ -90,12 +90,12 @@ def test_white_queenside_castle_legal_case() -> None:
     board.turn = Color.WHITE
 
     # Clear the pieces that block castling (d1 queen and c1 bishop)
-    board.clear_square(get_square_constant(0, 3))
-    board.clear_square(get_square_constant(0, 2))
+    board.clear_square(get_square_constant(7, 3))
+    board.clear_square(get_square_constant(7, 2))
 
-    assert board.make_move(get_square_constant(0, 4), get_square_constant(0, 2)) is True
-    assert board.get_piece_type_at(get_square_constant(0, 2)) == PieceType.KING
-    assert board.get_piece_type_at(get_square_constant(0, 3)) == PieceType.ROOK
+    assert board.make_move(get_square_constant(7, 4), get_square_constant(7, 2)) is True
+    assert board.get_piece_type_at(get_square_constant(7, 2)) == PieceType.KING
+    assert board.get_piece_type_at(get_square_constant(7, 3)) == PieceType.ROOK
 
 
 def test_black_kingside_castle_legal_case() -> None:
@@ -105,12 +105,12 @@ def test_black_kingside_castle_legal_case() -> None:
     board.turn = Color.BLACK
 
     # Clear the pieces that block castling (f8 bishop and g8 knight)
-    board.clear_square(get_square_constant(7, 5))
-    board.clear_square(get_square_constant(7, 6))
+    board.clear_square(get_square_constant(0, 5))
+    board.clear_square(get_square_constant(0, 6))
 
-    assert board.make_move(get_square_constant(7, 4), get_square_constant(7, 6)) is True
-    assert board.get_piece_type_at(get_square_constant(7, 6)) == PieceType.KING
-    assert board.get_piece_type_at(get_square_constant(7, 5)) == PieceType.ROOK
+    assert board.make_move(get_square_constant(0, 4), get_square_constant(0, 6)) is True
+    assert board.get_piece_type_at(get_square_constant(0, 6)) == PieceType.KING
+    assert board.get_piece_type_at(get_square_constant(0, 5)) == PieceType.ROOK
 
 
 def test_black_queenside_castle_legal_case() -> None:
@@ -120,39 +120,39 @@ def test_black_queenside_castle_legal_case() -> None:
     board.turn = Color.BLACK
 
     # Clear the pieces that block castling (d8 queen and c8 bishop)
-    board.clear_square(get_square_constant(7, 3))
-    board.clear_square(get_square_constant(7, 2))
+    board.clear_square(get_square_constant(0, 3))
+    board.clear_square(get_square_constant(0, 2))
 
-    assert board.make_move(get_square_constant(7, 4), get_square_constant(7, 2)) is True
-    assert board.get_piece_type_at(get_square_constant(7, 2)) == PieceType.KING
-    assert board.get_piece_type_at(get_square_constant(7, 3)) == PieceType.ROOK
+    assert board.make_move(get_square_constant(0, 4), get_square_constant(0, 2)) is True
+    assert board.get_piece_type_at(get_square_constant(0, 2)) == PieceType.KING
+    assert board.get_piece_type_at(get_square_constant(0, 3)) == PieceType.ROOK
 
 
 def test_en_passant_available_after_double_pawn_advance() -> None:
     board = Board()
     board.clear_board()
     board.set_piece(
-        get_square_constant(1, 4), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(6, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )
     board.turn = Color.WHITE
 
-    assert board.make_move(get_square_constant(1, 4), get_square_constant(3, 4)) is True
-    assert board.en_passant_target == get_square_constant(2, 4)
+    assert board.make_move(get_square_constant(6, 4), get_square_constant(4, 4)) is True
+    assert board.en_passant_target == get_square_constant(5, 4)
 
 
 def test_en_passant_captures_pawn_on_same_square() -> None:
     board = Board()
     board.clear_board()
     board.set_piece(
-        get_square_constant(1, 4), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(6, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )
     board.set_piece(
-        get_square_constant(4, 3), create_piece(Color.BLACK, PieceType.PAWN)
+        get_square_constant(3, 3), create_piece(Color.BLACK, PieceType.PAWN)
     )
     board.turn = Color.WHITE
 
     # White pawn moves 2 squares to create en passant target
-    assert board.make_move(get_square_constant(1, 4), get_square_constant(3, 4)) is True
+    assert board.make_move(get_square_constant(6, 4), get_square_constant(4, 4)) is True
     assert board.en_passant_target == ConstantSquare(row=ROW_3, col=COL_E)
 
     # Black captures en passant
@@ -190,51 +190,51 @@ def test_white_promotion_to_queen() -> None:
         ConstantSquare(row=ROW_1, col=COL_A), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(7, 7), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(0, 7), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(6, 4), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(1, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )
 
     assert (
         board.make_move(
-            get_square_constant(6, 4),
-            get_square_constant(7, 4),
+            get_square_constant(1, 4),
+            get_square_constant(0, 4),
             PieceType.QUEEN,
         )
         is True
     )
-    assert board.get_piece_type_at(get_square_constant(7, 4)) == PieceType.QUEEN
+    assert board.get_piece_type_at(get_square_constant(0, 4)) == PieceType.QUEEN
 
 
 def test_white_promotion_to_knight() -> None:
     board = Board()
     board.clear_board()
     board.set_piece(
-        get_square_constant(0, 0), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(7, 0), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(7, 7), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(0, 7), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(6, 4), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(1, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )
 
     assert (
         board.make_move(
-            get_square_constant(6, 4),
-            get_square_constant(7, 4),
+            get_square_constant(1, 4),
+            get_square_constant(0, 4),
             PieceType.KNIGHT,
         )
         is True
     )
-    assert board.get_piece_type_at(get_square_constant(7, 4)) == PieceType.KNIGHT
+    assert board.get_piece_type_at(get_square_constant(0, 4)) == PieceType.KNIGHT
 
 
 def test_parse_move_notation_supports_promotion_choice() -> None:
     move = parse_move_notation("e7e8q")
-    assert move.start == get_square_constant(6, 4)
-    assert move.end == get_square_constant(7, 4)
+    assert move.start == get_square_constant(1, 4)
+    assert move.end == get_square_constant(0, 4)
     assert move.promotion == PieceType.QUEEN
 
 
@@ -243,12 +243,12 @@ def test_castling_through_check_is_illegal() -> None:
     board.clear_board()
     setup_castling_position(board)
     board.set_piece(
-        get_square_constant(4, 3), create_piece(Color.BLACK, PieceType.BISHOP)
+        get_square_constant(3, 3), create_piece(Color.BLACK, PieceType.BISHOP)
     )
     board.turn = Color.WHITE
 
     assert (
-        board.make_move(get_square_constant(0, 4), get_square_constant(0, 6)) is False
+        board.make_move(get_square_constant(7, 4), get_square_constant(7, 6)) is False
     )
 
 
@@ -259,14 +259,14 @@ def test_castling_avoiding_check_is_legal() -> None:
     board.turn = Color.WHITE
     # Place a black pawn to create a check situation
     board.set_piece(
-        get_square_constant(3, 3), create_piece(Color.BLACK, PieceType.PAWN)
+        get_square_constant(4, 3), create_piece(Color.BLACK, PieceType.PAWN)
     )
 
     # Clear the pieces that block castling (d1 queen and c1 bishop)
-    board.clear_square(get_square_constant(0, 3))
-    board.clear_square(get_square_constant(0, 2))
+    board.clear_square(get_square_constant(7, 3))
+    board.clear_square(get_square_constant(7, 2))
 
-    assert board.make_move(get_square_constant(0, 4), get_square_constant(0, 2)) is True
+    assert board.make_move(get_square_constant(7, 4), get_square_constant(7, 2)) is True
 
 
 def test_castling_into_check_is_illegal() -> None:

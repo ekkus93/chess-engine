@@ -40,8 +40,8 @@ class PieceMovers:
     def _get_pawn_moves(piece: Piece, board) -> List[ConstantSquare]:
         """Get all valid pawn moves (forward, capture, 2-step, promotion)."""
         moves = []
-        # WHITE moves from lower to higher rows (direction +1), BLACK moves from higher to lower (direction -1)
-        direction = 1 if piece.color == Color.WHITE else -1
+        # WHITE moves toward row 0/rank 8 (direction -1), BLACK toward row 7/rank 1 (direction +1)
+        direction = -1 if piece.color == Color.WHITE else 1
 
         current_row = int(piece._square.row)
         current_col = get_col_constant(int(piece._square.col))
@@ -54,10 +54,9 @@ class PieceMovers:
                 moves.append(target_square)
 
         # Forward 2 squares (only on first move)
-        # WHITE starts at array row 1 (rank 2), BLACK starts at array row 6 (rank 7)
-        # Detect if pawn has moved by checking if it's not on starting row
+        # WHITE starts at array row 6 (rank 2), BLACK starts at row 1 (rank 7)
         is_first_move = (
-            current_row == 1 if piece.color == Color.WHITE else current_row == 6
+            current_row == 6 if piece.color == Color.WHITE else current_row == 1
         )
 
         if is_first_move:
@@ -83,41 +82,6 @@ class PieceMovers:
                 target_piece = board.get_piece(target_square)
                 if target_piece is not None and target_piece.color != piece.color:
                     moves.append(target_square)
-
-        # Promotion moves: add the promotion square if forward move results in promotion
-        # White promotes at row 7, Black promotes at row 0
-        if piece.color == Color.WHITE:
-            # White moves up (direction +1), promotes at row 7
-            if current_row == 6 and int(next_row) == 7:
-                if board.is_empty(target_square):
-                    moves.append(target_square)
-            # Also add capture promotions
-            for col_offset in [-1, 1]:
-                target_col_idx = int(current_col) + col_offset
-                if not (0 <= target_col_idx < 8):
-                    continue
-                target_col = get_col_constant(target_col_idx)
-                target_square = ConstantSquare(row=next_row, col=target_col)
-                if PieceMovers._is_valid_position(board, target_square):
-                    target_piece = board.get_piece(target_square)
-                    if target_piece is not None and target_piece.color != piece.color:
-                        moves.append(target_square)
-        else:
-            # Black moves down (direction -1), promotes at row 0
-            if current_row == 1 and int(next_row) == 0:
-                if board.is_empty(target_square):
-                    moves.append(target_square)
-            # Also add capture promotions
-            for col_offset in [-1, 1]:
-                target_col_idx = int(current_col) + col_offset
-                if not (0 <= target_col_idx < 8):
-                    continue
-                target_col = get_col_constant(target_col_idx)
-                target_square = ConstantSquare(row=next_row, col=target_col)
-                if PieceMovers._is_valid_position(board, target_square):
-                    target_piece = board.get_piece(target_square)
-                    if target_piece is not None and target_piece.color != piece.color:
-                        moves.append(target_square)
 
         return moves
 
@@ -247,7 +211,7 @@ class PieceMovers:
         col_diff = to_square.col - from_square.col
 
         if piece.kind == PieceType.PAWN:
-            direction = 1 if piece.color == Color.WHITE else -1
+            direction = -1 if piece.color == Color.WHITE else 1
             return row_diff == direction and abs(col_diff) == 1
 
         if piece.kind == PieceType.KNIGHT:

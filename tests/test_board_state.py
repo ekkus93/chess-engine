@@ -30,10 +30,10 @@ def test_board_handles_missing_white_king_gracefully() -> None:
     board.clear_board()
     # Only set black king, no white king
     board.set_piece(
-        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(6, 4), create_piece(Color.BLACK, PieceType.PAWN)
+        get_square_constant(1, 4), create_piece(Color.BLACK, PieceType.PAWN)
     )
     board.turn = Color.BLACK
     # Should not crash, just return no legal moves
@@ -47,13 +47,13 @@ def test_board_handles_extra_king_gracefully() -> None:
     board.clear_board()
     # Set both kings plus an extra white king
     board.set_piece(
-        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(0, 0), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(7, 0), create_piece(Color.WHITE, PieceType.KING)
     )
     board.turn = Color.WHITE
     # Should not crash
@@ -67,7 +67,7 @@ def test_board_handles_missing_opponent_king() -> None:
     board.clear_board()
     # Only white king present
     board.set_piece(
-        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.turn = Color.WHITE
     # Should not crash
@@ -81,10 +81,10 @@ def test_board_handles_all_pieces_captured() -> None:
     board.clear_board()
     # Only kings remain
     board.set_piece(
-        get_square_constant(0, 4), create_piece(Color.WHITE, PieceType.KING)
+        get_square_constant(7, 4), create_piece(Color.WHITE, PieceType.KING)
     )
     board.set_piece(
-        get_square_constant(7, 4), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(0, 4), create_piece(Color.BLACK, PieceType.KING)
     )
     board.turn = Color.WHITE
     # Should work normally

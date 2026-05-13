@@ -16,12 +16,12 @@ from chess_game.chess.constants import (
 
 from chess_game.chess.constants import get_col_constant
 
-# Canonical coordinate definitions from THE_PLAN.md
+# Canonical coordinate definitions
 # Files: a b c d e f g h
-# Ranks: 1 2 3 4 5 6 7 8
+# Ranks: 8 7 6 5 4 3 2 1 (top to bottom in array)
 # Internal board indexing:
-# - row 0 = rank 1
-# - row 7 = rank 8
+# - row 0 = rank 8 (black back rank)
+# - row 7 = rank 1 (white back rank)
 # - col 0 = file a
 # - col 7 = file h
 
@@ -29,11 +29,14 @@ from chess_game.chess.constants import get_col_constant
 def algebraic_to_index(algebraic: str) -> ConstantSquare:
     """Convert algebraic notation (e.g., 'e2') to board indices (row, col).
 
+    Canonical coordinate system: row 0 = rank 8, row 7 = rank 1.
+    Col 0 = file a, col 7 = file h.
+
     Args:
         algebraic: Algebraic notation like 'e2'
 
     Returns:
-        ConstantSquare of (row, col) where row=0 is rank 1, col=0 is file a
+        ConstantSquare of (row, col)
 
     Raises:
         ValueError: If algebraic notation is invalid
@@ -52,7 +55,7 @@ def algebraic_to_index(algebraic: str) -> ConstantSquare:
     # Convert file (a-h) to column constant - col 0 = file a
     col = get_col_constant(ord(file_char) - ord("a"))
 
-    # Convert rank (1-8) to row constant - row 0 = rank 1
+    # Convert rank (1-8) to row constant - row 0 = rank 8, row 7 = rank 1
     row_map = {
         "1": ROW_1,
         "2": ROW_2,
@@ -71,6 +74,8 @@ def algebraic_to_index(algebraic: str) -> ConstantSquare:
 def index_to_algebraic(square: ConstantSquare) -> str:
     """Convert board indices (row, col) to algebraic notation.
 
+    Canonical coordinate system: row 0 = rank 8, row 7 = rank 1.
+
     Args:
         square: ConstantSquare with row and col properties
 
@@ -86,8 +91,8 @@ def index_to_algebraic(square: ConstantSquare) -> str:
     if not (0 <= row <= 7 and 0 <= col <= 7):
         raise ValueError(f"Invalid board indices: ({row}, {col})")
 
-    # Convert row (0-7) to rank (1-8) - row 0 = rank 1
-    rank = row + 1
+    # Convert row (0-7) to rank (8-1) - row 0 = rank 8, row 7 = rank 1
+    rank = 8 - row
 
     # Convert col (0-7) to file (a-h)
     file_char = chr(ord("a") + col)
