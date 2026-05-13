@@ -77,7 +77,7 @@ class EnPassantValidator:
             return
 
         # Verify correct direction
-        direction = 1 if piece.color == Color.WHITE else -1
+        direction = -1 if piece.color == Color.WHITE else 1
         expected_to_row = from_row + 2 * direction
         if to_row != expected_to_row:
             self.board.en_passant_target = None

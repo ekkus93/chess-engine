@@ -62,6 +62,11 @@ class MoveValidator:
         if not self._piece_geometry_valid(piece, from_square, to_square):
             return False
 
+        # Pawn-specific obstacle checks
+        if piece.kind == PieceType.PAWN:
+            if not self._validate_pawn_obstacles(piece, from_square, to_square):
+                return False
+
         # Check destination is not occupied by own piece
         if self.board.get_piece(to_square) is not None:
             if self.board.get_piece(to_square).color == piece.color:
@@ -121,6 +126,31 @@ class MoveValidator:
                 abs(row_diff), abs(col_diff)
             ) == 1
 
+        return False
+
+    def _validate_pawn_obstacles(
+        self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
+    ) -> bool:
+        """Validate pawn-specific board state (obstacles, captures)."""
+        direction = -1 if piece.color == Color.WHITE else 1
+        row_diff = int(to_square.row) - int(from_square.row)
+        col_diff = int(to_square.col) - int(from_square.col)
+
+        if col_diff == 0 and row_diff == direction:
+            # Forward one-step: destination must be empty
+            return self.board.is_empty(to_square)
+        elif col_diff == 0 and row_diff == 2 * direction:
+            # Forward two-step: both destination and intermediate must be empty
+            intermediate_row = int(from_square.row) + direction
+            intermediate = ConstantSquare(
+                row=get_row_constant(intermediate_row),
+                col=get_col_constant(int(from_square.col)),
+            )
+            return self.board.is_empty(intermediate) and self.board.is_empty(to_square)
+        elif abs(col_diff) == 1 and row_diff == direction:
+            # Capture: destination must have enemy piece
+            target = self.board.get_piece(to_square)
+            return target is not None and target.color != piece.color
         return False
 
     def _is_castling_move(

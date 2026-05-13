@@ -35,11 +35,11 @@ def setup_castling_position(board: Board) -> None:
     for col in range(8):
         board.set_piece(
             get_square_constant(1, col),
-            create_piece(Color.WHITE, PieceType.PAWN),
+            create_piece(Color.BLACK, PieceType.PAWN),
         )
         board.set_piece(
             get_square_constant(6, col),
-            create_piece(Color.BLACK, PieceType.PAWN),
+            create_piece(Color.WHITE, PieceType.PAWN),
         )
     for col_idx in range(8):
         col = col_idx
@@ -60,11 +60,11 @@ def setup_castling_position(board: Board) -> None:
             continue
         board.set_piece(
             get_square_constant(0, col),
-            create_piece(Color.WHITE, piece_type),
+            create_piece(Color.BLACK, piece_type),
         )
         board.set_piece(
             get_square_constant(7, col),
-            create_piece(Color.BLACK, piece_type),
+            create_piece(Color.WHITE, piece_type),
         )
 
 

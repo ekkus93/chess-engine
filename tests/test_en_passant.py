@@ -178,9 +178,8 @@ def test_castling_with_opponent_piece_on_destination_square() -> None:
 
 
 def test_castling_kingside_with_queenside_rook_only() -> None:
-    """T1.3: Queenside castling allowed if queenside rook moved but kingside rook remains."""
+    """Kingside castling allowed if queenside rook moved but kingside rook remains."""
     board = Board()
-    # Clear everything except the pieces we need
     for row in range(8):
         for col in range(8):
             if not ((row == 0 and col == 4) or (row == 7 and col in {0, 4, 7})):
@@ -208,11 +207,8 @@ def test_castling_kingside_with_queenside_rook_only() -> None:
         is True
     )
 
-    # Switch turn back to black for castling
-    board.turn = Color.BLACK
-
-    # Queenside castling should NOT be possible (queenside rook moved)
     # Kingside castling should be possible (kingside rook remains)
+    board.turn = Color.BLACK
     assert (
         board.make_move(
             get_square_constant(0, 4),
@@ -221,7 +217,7 @@ def test_castling_kingside_with_queenside_rook_only() -> None:
         is True
     )
 
-    # Switch turn back to black for rook return
+    # Return rook
     board.turn = Color.BLACK
     assert (
         board.make_move(
@@ -229,34 +225,7 @@ def test_castling_kingside_with_queenside_rook_only() -> None:
             get_square_constant(0, 0),
         )
         is True
-    )  # Return rook
-    assert (
-        board.make_move(
-            get_square_constant(7, 0),
-            get_square_constant(0, 0),
-        )
-        is True
     )
-    # Switch turn back to black for castling
-    board.turn = Color.BLACK
-    # Queenside castling should NOT be possible (queenside rook moved)
-    # Kingside castling should be possible (kingside rook remains)
-    assert (
-        board.make_move(
-            get_square_constant(7, 4),
-            get_square_constant(7, 6),
-        )
-        is True
-    )
-    # Switch turn back to black for rook return
-    board.turn = Color.BLACK
-    assert (
-        board.make_move(
-            get_square_constant(0, 0),
-            get_square_constant(7, 0),
-        )
-        is True
-    )  # Return rook
 
 
 def test_castling_queenside_with_kingside_rook_only() -> None:
