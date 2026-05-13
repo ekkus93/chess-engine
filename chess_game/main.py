@@ -2,8 +2,6 @@
 # Entry point for the chess program
 from __future__ import annotations
 
-import argparse
-
 from chess_game.chess.board import Board
 from chess_game.chess.move import parse_move_notation
 from chess_game.chess.types import Color
@@ -19,8 +17,8 @@ def _game_over_message(board: Board) -> str | None:
     return None
 
 
-def _game_loop(board: Board, use_ai: bool = False, ai_depth: int | None = None) -> None:
-    """Main game loop with optional AI integration."""
+def _game_loop(board: Board) -> None:
+    """Main game loop."""
     board.display()
 
     while True:
@@ -53,26 +51,9 @@ def _game_loop(board: Board, use_ai: bool = False, ai_depth: int | None = None) 
 
 
 def main() -> None:
-    """Entry point with CLI argument parsing."""
-    parser = argparse.ArgumentParser(
-        description="Chess engine with AI and interactive play.",
-    )
-    parser.add_argument("--ai", action="store_true", help="Use AI to make moves")
-    parser.add_argument(
-        "--ai-depth",
-        type=int,
-        default=None,
-        dest="depth",
-        help="AI search depth (plies); use -1 for random move selection",
-    )
-    args = parser.parse_args()
-
-    if args.ai:
-        board = Board()
-        _game_loop(board, use_ai=True, ai_depth=args.depth)
-    else:
-        board = Board()
-        _game_loop(board, use_ai=False, ai_depth=None)
+    """Entry point for interactive chess play."""
+    board = Board()
+    _game_loop(board)
 
 
 if __name__ == "__main__":
