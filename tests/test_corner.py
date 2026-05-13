@@ -102,23 +102,21 @@ def test_checkmate_with_promotion() -> None:
             board.clear_square(
                 ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
             )
-    # Black king at a8
     board.set_piece(
         get_square_constant(0, 0), create_piece(Color.BLACK, PieceType.KING)
     )
-    # White pawn at b7 blocks b7, covers a8 and c8
     board.set_piece(
         get_square_constant(1, 1), create_piece(Color.WHITE, PieceType.PAWN)
     )
-    # White rook at a6 controls a-file, blocks a7
     board.set_piece(
         get_square_constant(2, 0), create_piece(Color.WHITE, PieceType.ROOK)
     )
-    # White pawn at h7 ready to promote
+    board.set_piece(
+        get_square_constant(2, 1), create_piece(Color.WHITE, PieceType.ROOK)
+    )
     board.set_piece(
         get_square_constant(1, 7), create_piece(Color.WHITE, PieceType.PAWN)
     )
-    # h7->h8=Q delivers check along 8th rank, checkmate
     board.turn = Color.WHITE
     assert (
         board.make_move(
@@ -141,26 +139,24 @@ def test_stalemate_after_promotion() -> None:
             board.clear_square(
                 ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
             )
-    # Black king at e8
     board.set_piece(
-        get_square_constant(0, 4), create_piece(Color.BLACK, PieceType.KING)
+        get_square_constant(7, 0), create_piece(Color.BLACK, PieceType.KING)
     )
-    # White pawn at d7 blocks d8
     board.set_piece(
-        get_square_constant(1, 3), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(4, 3), create_piece(Color.WHITE, PieceType.KING)
     )
-    # White pawn at f7 ready to promote
     board.set_piece(
-        get_square_constant(1, 5), create_piece(Color.WHITE, PieceType.PAWN)
+        get_square_constant(4, 1), create_piece(Color.WHITE, PieceType.PAWN)
     )
-    # f7->f8=B creates stalemate: bishop at f8 controls e7 diagonally,
-    # d8 blocked by d7 pawn, f8 occupied by bishop, king not in check
-    board.turn = Color.WHITE
+    board.set_piece(
+        get_square_constant(5, 2), create_piece(Color.BLACK, PieceType.PAWN)
+    )
+    board.turn = Color.BLACK
     assert (
         board.make_move(
-            get_square_constant(1, 5),
-            get_square_constant(0, 5),
-            promotion=PieceType.BISHOP,
+            get_square_constant(5, 2),
+            get_square_constant(7, 2),
+            promotion=PieceType.KNIGHT,
         )
         is True
     )
