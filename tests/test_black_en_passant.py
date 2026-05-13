@@ -1,29 +1,7 @@
-import pytest
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.color import Color
-from chess_game.chess.types import PieceType
-from chess_game.chess.types import ConstantSquare
-from chess_game.chess.constants import (
-    ROW_1,
-    ROW_2,
-    ROW_3,
-    ROW_4,
-    ROW_5,
-    ROW_6,
-    ROW_7,
-    ROW_8,
-    COL_A,
-    COL_B,
-    COL_C,
-    COL_D,
-    COL_E,
-    COL_F,
-    COL_G,
-    COL_H,
-    get_row_constant,
-    get_col_constant,
-    get_square_constant,
-)
+from chess_game.chess.constants import ROW_5, ROW_6, ROW_7, COL_D, COL_E
+from chess_game.chess.types import ConstantSquare, PieceType
 
 
 def test_black_en_passant_legal_example() -> None:

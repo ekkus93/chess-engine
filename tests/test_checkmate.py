@@ -1,29 +1,8 @@
 """Tests for checkmate."""
 
 from __future__ import annotations
-from chess_game.chess.board import Board, ConstantSquare, create_piece
-from chess_game.chess.constants import (
-    get_row_constant,
-    get_col_constant,
-    COL_A,
-    COL_B,
-    COL_C,
-    COL_D,
-    COL_E,
-    COL_F,
-    COL_G,
-    COL_H,
-    ROW_0,
-    ROW_1,
-    ROW_2,
-    ROW_3,
-    ROW_4,
-    get_square_constant,
-    ROW_5,
-    ROW_6,
-    ROW_7,
-    ROW_8,
-)
+from chess_game.chess.board import Board, create_piece
+from chess_game.chess.constants import get_square_constant
 from chess_game.chess.types import Color, PieceType
 
 

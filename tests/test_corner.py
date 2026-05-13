@@ -6,22 +6,6 @@ from chess_game.chess.constants import (
     get_row_constant,
     get_col_constant,
     ConstantSquare,
-    ROW_1,
-    ROW_8,
-    ROW_7,
-    ROW_6,
-    ROW_5,
-    ROW_2,
-    ROW_3,
-    ROW_4,
-    COL_A,
-    COL_B,
-    COL_C,
-    COL_D,
-    COL_E,
-    COL_F,
-    COL_G,
-    COL_H,
 )
 from chess_game.chess.types import Color, PieceType
 from chess_game.chess.constants import get_square_constant

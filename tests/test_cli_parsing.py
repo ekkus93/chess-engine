@@ -2,16 +2,11 @@ from __future__ import annotations
 import pytest
 from chess_game.chess.constants import (
     ConstantSquare,
-    ROW_1,
     ROW_2,
     ROW_4,
     ROW_7,
     ROW_8,
     COL_E,
-    COL_H,
-    get_row_constant,
-    get_col_constant,
-    get_square_constant,
 )
 from chess_game.chess.move import parse_move_notation
 from chess_game.chess.types import PieceType

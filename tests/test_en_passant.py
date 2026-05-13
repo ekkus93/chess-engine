@@ -1,25 +1,9 @@
 """Tests for en passant."""
 
 from __future__ import annotations
-from chess_game.chess.constants import (
-    ConstantSquare,
-    ROW_1,
-    ROW_2,
-    ROW_8,
-    get_row_constant,
-    get_col_constant,
-    COL_A,
-    COL_B,
-    COL_C,
-    COL_D,
-    COL_E,
-    COL_F,
-    COL_G,
-    COL_H,
-)
 from chess_game.chess.board import Board, create_piece
-from chess_game.chess.types import Color, PieceType
 from chess_game.chess.constants import get_square_constant
+from chess_game.chess.types import Color, PieceType
 
 
 # Category 1: Castling Edge Cases

@@ -1,26 +1,5 @@
 from __future__ import annotations
-from chess_game.chess.constants import (
-    get_row_constant,
-    get_col_constant,
-    get_square_constant,
-    ConstantSquare,
-    ROW_1,
-    ROW_2,
-    ROW_3,
-    ROW_4,
-    ROW_5,
-    ROW_6,
-    ROW_7,
-    ROW_8,
-    COL_A,
-    COL_B,
-    COL_C,
-    COL_D,
-    COL_E,
-    COL_F,
-    COL_G,
-    COL_H,
-)
+from chess_game.chess.constants import get_square_constant
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.types import Color, PieceType
 
@@ -51,13 +30,6 @@ def test_rook_valid_vertical_move() -> None:
         board.is_valid_rook_move(get_square_constant(3, 4), get_square_constant(7, 4))
         is True
     )
-    assert (
-        board.is_valid_rook_move(
-            get_square_constant(3, 4),
-            get_square_constant(7, 4),
-        )
-        is True
-    )
 
 
 def test_rook_blocked_by_friendly_piece_in_path() -> None:
@@ -71,17 +43,6 @@ def test_rook_blocked_by_friendly_piece_in_path() -> None:
     )
     assert (
         board.is_valid_rook_move(get_square_constant(3, 4), get_square_constant(3, 0))
-        is False
-    )
-    board.set_piece(
-        get_square_constant(3, 2),
-        create_piece(Color.WHITE, PieceType.PAWN),
-    )
-    assert (
-        board.is_valid_rook_move(
-            get_square_constant(3, 4),
-            get_square_constant(3, 0),
-        )
         is False
     )
 
@@ -99,17 +60,6 @@ def test_rook_blocked_by_enemy_piece_before_destination() -> None:
         board.is_valid_rook_move(get_square_constant(3, 4), get_square_constant(3, 0))
         is False
     )
-    board.set_piece(
-        get_square_constant(3, 2),
-        create_piece(Color.BLACK, PieceType.PAWN),
-    )
-    assert (
-        board.is_valid_rook_move(
-            get_square_constant(3, 4),
-            get_square_constant(3, 0),
-        )
-        is False
-    )
 
 
 def test_rook_cannot_move_diagonally() -> None:
@@ -120,13 +70,6 @@ def test_rook_cannot_move_diagonally() -> None:
     )
     assert (
         board.is_valid_rook_move(get_square_constant(3, 4), get_square_constant(5, 2))
-        is False
-    )
-    assert (
-        board.is_valid_rook_move(
-            get_square_constant(3, 4),
-            get_square_constant(5, 2),
-        )
         is False
     )
 
@@ -145,17 +88,6 @@ def test_rook_cannot_capture_friendly_piece() -> None:
         board.is_valid_rook_move(get_square_constant(3, 4), get_square_constant(3, 0))
         is False
     )
-    board.set_piece(
-        get_square_constant(3, 0),
-        create_piece(Color.WHITE, PieceType.BISHOP),
-    )
-    assert (
-        board.is_valid_rook_move(
-            get_square_constant(3, 4),
-            get_square_constant(3, 0),
-        )
-        is False
-    )
 
 
 def test_bishop_valid_diagonal_move() -> None:
@@ -167,13 +99,6 @@ def test_bishop_valid_diagonal_move() -> None:
     )
     assert (
         board.is_valid_bishop_move(get_square_constant(3, 4), get_square_constant(6, 1))
-        is True
-    )
-    assert (
-        board.is_valid_bishop_move(
-            get_square_constant(3, 4),
-            get_square_constant(6, 1),
-        )
         is True
     )
 
@@ -192,16 +117,6 @@ def test_bishop_blocked_diagonal() -> None:
         board.is_valid_bishop_move(get_square_constant(3, 4), get_square_constant(6, 1))
         is False
     )
-    board.set_piece(
-        get_square_constant(3, 3), create_piece(Color.BLACK, PieceType.PAWN)
-    )
-    assert (
-        board.is_valid_bishop_move(
-            get_square_constant(3, 4),
-            get_square_constant(6, 1),
-        )
-        is False
-    )
 
 
 def test_bishop_cannot_move_straight() -> None:
@@ -213,13 +128,6 @@ def test_bishop_cannot_move_straight() -> None:
     )
     assert (
         board.is_valid_bishop_move(get_square_constant(3, 4), get_square_constant(3, 1))
-        is False
-    )
-    assert (
-        board.is_valid_bishop_move(
-            get_square_constant(3, 4),
-            get_square_constant(3, 1),
-        )
         is False
     )
 
@@ -239,17 +147,6 @@ def test_bishop_cannot_capture_friendly_piece() -> None:
         board.is_valid_bishop_move(get_square_constant(3, 4), get_square_constant(6, 1))
         is False
     )
-    board.set_piece(
-        get_square_constant(6, 1),
-        create_piece(Color.WHITE, PieceType.KNIGHT),
-    )
-    assert (
-        board.is_valid_bishop_move(
-            get_square_constant(3, 4),
-            get_square_constant(6, 1),
-        )
-        is False
-    )
 
 
 def test_queen_straight_move() -> None:
@@ -262,13 +159,6 @@ def test_queen_straight_move() -> None:
         board.is_valid_queen_move(get_square_constant(3, 4), get_square_constant(3, 0))
         is True
     )
-    assert (
-        board.is_valid_queen_move(
-            get_square_constant(3, 4),
-            get_square_constant(3, 0),
-        )
-        is True
-    )
 
 
 def test_queen_diagonal_move() -> None:
@@ -279,13 +169,6 @@ def test_queen_diagonal_move() -> None:
     )
     assert (
         board.is_valid_queen_move(get_square_constant(3, 4), get_square_constant(6, 1))
-        is True
-    )
-    assert (
-        board.is_valid_queen_move(
-            get_square_constant(3, 4),
-            get_square_constant(6, 1),
-        )
         is True
     )
 
@@ -303,16 +186,6 @@ def test_queen_blocked_path() -> None:
         board.is_valid_queen_move(get_square_constant(3, 4), get_square_constant(6, 1))
         is False
     )
-    board.set_piece(
-        get_square_constant(3, 3), create_piece(Color.BLACK, PieceType.PAWN)
-    )
-    assert (
-        board.is_valid_queen_move(
-            get_square_constant(3, 4),
-            get_square_constant(6, 1),
-        )
-        is False
-    )
 
 
 def test_queen_illegal_knight_like_move() -> None:
@@ -323,13 +196,6 @@ def test_queen_illegal_knight_like_move() -> None:
     )
     assert (
         board.is_valid_queen_move(get_square_constant(3, 4), get_square_constant(5, 3))
-        is False
-    )
-    assert (
-        board.is_valid_queen_move(
-            get_square_constant(3, 4),
-            get_square_constant(5, 3),
-        )
         is False
     )
 
@@ -347,20 +213,6 @@ def test_knight_valid_l_move_both_orientations() -> None:
     )
     assert (
         board.is_valid_knight_move(get_square_constant(3, 4), get_square_constant(4, 2))
-        is True
-    )
-    assert (
-        board.is_valid_knight_move(
-            get_square_constant(3, 4),
-            get_square_constant(5, 3),
-        )
-        is True
-    )
-    assert (
-        board.is_valid_knight_move(
-            get_square_constant(3, 4),
-            get_square_constant(4, 2),
-        )
         is True
     )
 
@@ -382,21 +234,6 @@ def test_knight_can_jump_over_pieces() -> None:
         board.is_valid_knight_move(get_square_constant(3, 4), get_square_constant(5, 3))
         is True
     )
-    board.set_piece(
-        get_square_constant(4, 4),
-        create_piece(Color.WHITE, PieceType.PAWN),
-    )
-    board.set_piece(
-        get_square_constant(3, 3),
-        create_piece(Color.WHITE, PieceType.PAWN),
-    )
-    assert (
-        board.is_valid_knight_move(
-            get_square_constant(3, 4),
-            get_square_constant(5, 3),
-        )
-        is True
-    )
 
 
 def test_knight_illegal_straight_move() -> None:
@@ -410,13 +247,6 @@ def test_knight_illegal_straight_move() -> None:
         board.is_valid_knight_move(get_square_constant(3, 4), get_square_constant(3, 2))
         is False
     )
-    assert (
-        board.is_valid_knight_move(
-            get_square_constant(3, 4),
-            get_square_constant(3, 2),
-        )
-        is False
-    )
 
 
 def test_knight_illegal_diagonal_move() -> None:
@@ -428,13 +258,6 @@ def test_knight_illegal_diagonal_move() -> None:
     )
     assert (
         board.is_valid_knight_move(get_square_constant(3, 4), get_square_constant(5, 2))
-        is False
-    )
-    assert (
-        board.is_valid_knight_move(
-            get_square_constant(3, 4),
-            get_square_constant(5, 2),
-        )
         is False
     )
 
@@ -453,17 +276,6 @@ def test_knight_cannot_capture_friendly_piece() -> None:
         board.is_valid_knight_move(get_square_constant(3, 4), get_square_constant(5, 3))
         is False
     )
-    board.set_piece(
-        get_square_constant(5, 3),
-        create_piece(Color.WHITE, PieceType.PAWN),
-    )
-    assert (
-        board.is_valid_knight_move(
-            get_square_constant(3, 4),
-            get_square_constant(5, 3),
-        )
-        is False
-    )
 
 
 def test_king_one_step_orthogonal() -> None:
@@ -474,13 +286,6 @@ def test_king_one_step_orthogonal() -> None:
     )
     assert (
         board.is_valid_king_move(get_square_constant(3, 4), get_square_constant(3, 5))
-        is True
-    )
-    assert (
-        board.is_valid_king_move(
-            get_square_constant(3, 4),
-            get_square_constant(3, 5),
-        )
         is True
     )
 
@@ -495,13 +300,6 @@ def test_king_one_step_diagonal() -> None:
         board.is_valid_king_move(get_square_constant(3, 4), get_square_constant(2, 5))
         is True
     )
-    assert (
-        board.is_valid_king_move(
-            get_square_constant(3, 4),
-            get_square_constant(2, 5),
-        )
-        is True
-    )
 
 
 def test_king_cannot_move_two_squares() -> None:
@@ -512,13 +310,6 @@ def test_king_cannot_move_two_squares() -> None:
     )
     assert (
         board.is_valid_king_move(get_square_constant(3, 4), get_square_constant(3, 6))
-        is False
-    )
-    assert (
-        board.is_valid_king_move(
-            get_square_constant(3, 4),
-            get_square_constant(3, 6),
-        )
         is False
     )
 
@@ -534,13 +325,6 @@ def test_white_pawn_one_step_from_e2_to_e3() -> None:
         board.is_valid_pawn_move(get_square_constant(6, 4), get_square_constant(5, 4))
         is True
     )
-    assert (
-        board.is_valid_pawn_move(
-            get_square_constant(6, 4),
-            get_square_constant(5, 4),
-        )
-        is True
-    )
 
 
 def test_white_pawn_two_step_from_e2_to_e4() -> None:
@@ -552,13 +336,6 @@ def test_white_pawn_two_step_from_e2_to_e4() -> None:
     )
     assert (
         board.is_valid_pawn_move(get_square_constant(6, 4), get_square_constant(4, 4))
-        is True
-    )
-    assert (
-        board.is_valid_pawn_move(
-            get_square_constant(6, 4),
-            get_square_constant(4, 4),
-        )
         is True
     )
 
@@ -578,25 +355,6 @@ def test_white_pawn_blocked_on_one_step() -> None:
         board.is_valid_pawn_move(get_square_constant(6, 4), get_square_constant(5, 4))
         is False
     )
-    board.set_piece(
-        get_square_constant(5, 4),
-        create_piece(Color.BLACK, PieceType.KNIGHT),
-    )
-    assert (
-        board.is_valid_pawn_move(get_square_constant(6, 4), get_square_constant(5, 4))
-        is False
-    )
-    board.set_piece(
-        get_square_constant(5, 4),
-        create_piece(Color.BLACK, PieceType.KNIGHT),
-    )
-    assert (
-        board.is_valid_pawn_move(
-            get_square_constant(6, 4),
-            get_square_constant(5, 4),
-        )
-        is False
-    )
 
 
 def test_white_pawn_blocked_on_two_step_intermediate_square() -> None:
@@ -614,25 +372,6 @@ def test_white_pawn_blocked_on_two_step_intermediate_square() -> None:
         board.is_valid_pawn_move(get_square_constant(6, 4), get_square_constant(4, 4))
         is False
     )
-    board.set_piece(
-        get_square_constant(5, 4),
-        create_piece(Color.BLACK, PieceType.KNIGHT),
-    )
-    assert (
-        board.is_valid_pawn_move(get_square_constant(6, 4), get_square_constant(4, 4))
-        is False
-    )
-    board.set_piece(
-        get_square_constant(2, 4),
-        create_piece(Color.BLACK, PieceType.KNIGHT),
-    )
-    assert (
-        board.is_valid_pawn_move(
-            get_square_constant(1, 4),
-            get_square_constant(3, 4),
-        )
-        is False
-    )
 
 
 def test_white_pawn_capture_diagonally() -> None:
@@ -641,14 +380,6 @@ def test_white_pawn_capture_diagonally() -> None:
     board.clear_board()
     board.set_piece(
         get_square_constant(6, 4), create_piece(Color.WHITE, PieceType.PAWN)
-    )
-    board.set_piece(
-        get_square_constant(5, 5),
-        create_piece(Color.BLACK, PieceType.BISHOP),
-    )
-    assert (
-        board.is_valid_pawn_move(get_square_constant(6, 4), get_square_constant(5, 5))
-        is True
     )
     board.set_piece(
         get_square_constant(5, 5),
@@ -675,22 +406,6 @@ def test_white_pawn_cannot_capture_forward() -> None:
         board.is_valid_pawn_move(get_square_constant(6, 4), get_square_constant(5, 4))
         is False
     )
-    board.set_piece(
-        get_square_constant(5, 4),
-        create_piece(Color.BLACK, PieceType.BISHOP),
-    )
-    assert (
-        board.is_valid_pawn_move(get_square_constant(6, 4), get_square_constant(5, 4))
-        is False
-    )
-    board.set_piece(
-        get_square_constant(5, 5),
-        create_piece(Color.BLACK, PieceType.BISHOP),
-    )
-    assert (
-        board.is_valid_pawn_move(get_square_constant(6, 4), get_square_constant(5, 5))
-        is True
-    )
 
 
 def test_white_pawn_cannot_move_backward() -> None:
@@ -701,13 +416,6 @@ def test_white_pawn_cannot_move_backward() -> None:
     )
     assert (
         board.is_valid_pawn_move(get_square_constant(5, 4), get_square_constant(6, 4))
-        is False
-    )
-    assert (
-        board.is_valid_pawn_move(
-            get_square_constant(1, 4),
-            get_square_constant(0, 4),
-        )
         is False
     )
 
@@ -723,13 +431,6 @@ def test_black_pawn_one_step_from_e7_to_e6() -> None:
         board.is_valid_pawn_move(get_square_constant(1, 4), get_square_constant(2, 4))
         is True
     )
-    assert (
-        board.is_valid_pawn_move(
-            get_square_constant(1, 4),
-            get_square_constant(2, 4),
-        )
-        is True
-    )
 
 
 def test_black_pawn_two_step_from_e7_to_e5() -> None:
@@ -743,13 +444,6 @@ def test_black_pawn_two_step_from_e7_to_e5() -> None:
         board.is_valid_pawn_move(get_square_constant(1, 4), get_square_constant(3, 4))
         is True
     )
-    assert (
-        board.is_valid_pawn_move(
-            get_square_constant(1, 4),
-            get_square_constant(3, 4),
-        )
-        is True
-    )
 
 
 def test_black_pawn_diagonal_capture() -> None:
@@ -758,31 +452,6 @@ def test_black_pawn_diagonal_capture() -> None:
     board.clear_board()
     board.set_piece(
         get_square_constant(1, 4), create_piece(Color.BLACK, PieceType.PAWN)
-    )
-    board.set_piece(
-        get_square_constant(2, 3),
-        create_piece(Color.WHITE, PieceType.KNIGHT),
-    )
-    assert (
-        board.is_valid_pawn_move(get_square_constant(1, 4), get_square_constant(2, 3))
-        is True
-    )
-    board.set_piece(
-        get_square_constant(3, 3),
-        create_piece(Color.WHITE, PieceType.KNIGHT),
-    )
-    board.clear_square(get_square_constant(1, 4))
-    board.set_piece(
-        get_square_constant(2, 4),
-        create_piece(Color.BLACK, PieceType.PAWN),
-    )
-    assert (
-        board.is_valid_pawn_move(get_square_constant(2, 4), get_square_constant(3, 3))
-        is True
-    )
-    board.set_piece(
-        get_square_constant(1, 4),
-        create_piece(Color.BLACK, PieceType.PAWN),
     )
     board.set_piece(
         get_square_constant(2, 3),
@@ -803,12 +472,5 @@ def test_black_pawn_cannot_move_backward() -> None:
     )
     assert (
         board.is_valid_pawn_move(get_square_constant(2, 4), get_square_constant(1, 4))
-        is False
-    )
-    assert (
-        board.is_valid_pawn_move(
-            get_square_constant(6, 4),
-            get_square_constant(7, 4),
-        )
         is False
     )

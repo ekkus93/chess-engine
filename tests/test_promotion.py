@@ -11,11 +11,7 @@ Covers:
 
 from chess_game.chess.board.board import Board, create_piece
 from chess_game.chess.color import Color
-from chess_game.chess.constants import (
-    get_row_constant,
-    get_col_constant,
-    get_square_constant,
-)
+from chess_game.chess.constants import get_square_constant
 from chess_game.chess.types import PieceType
 
 
