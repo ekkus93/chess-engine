@@ -430,16 +430,24 @@ class PieceMovers:
                     and rook_at_a1.color == color
                 )
 
-                # Check path is clear (d and c files)
-                d1_square = ConstantSquare(
+                # Check path is clear (b, c, and d files)
+                b1_square = ConstantSquare(
                     row=get_row_constant(king_row),
-                    col=get_col_constant(3),  # d file
+                    col=get_col_constant(1),  # b file
                 )
                 c1_square = ConstantSquare(
                     row=get_row_constant(king_row),
                     col=get_col_constant(2),  # c file
                 )
-                path_clear = board.is_empty(d1_square) and board.is_empty(c1_square)
+                d1_square = ConstantSquare(
+                    row=get_row_constant(king_row),
+                    col=get_col_constant(3),  # d file
+                )
+                path_clear = (
+                    board.is_empty(b1_square)
+                    and board.is_empty(c1_square)
+                    and board.is_empty(d1_square)
+                )
 
                 # Check king safety
                 king_path_safe = True

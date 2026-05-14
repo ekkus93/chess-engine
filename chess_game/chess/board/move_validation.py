@@ -13,6 +13,7 @@ from chess_game.chess.constants import (
     get_row_constant,
     get_col_constant,
     COL_A,
+    COL_B,
     COL_C,
     COL_D,
     COL_E,
@@ -131,6 +132,15 @@ class MoveValidator:
         if col_diff != 1:
             return False
 
+        # En passant: capturing pawn must be on the correct rank
+        from_row = int(from_square.row)
+        if self.board.en_passant_target:
+            ep_row = int(self.board.en_passant_target.row)
+            if piece.color == Color.WHITE and from_row != ep_row + 1:
+                return False
+            if piece.color == Color.BLACK and from_row != ep_row - 1:
+                return False
+
         if self.board.en_passant_target is None:
             return False
 
@@ -203,14 +213,14 @@ class MoveValidator:
                 ConstantSquare(row=get_row_constant(int(from_square.row)), col=COL_F),
             )
 
-        # Queenside: check d and c files
+        # Queenside: check b, c, and d files
         if to_col == 2:
             return (
                 self.path_validator.is_path_clear(
                     self.board,
                     from_square,
                     ConstantSquare(
-                        row=get_row_constant(int(from_square.row)), col=COL_D
+                        row=get_row_constant(int(from_square.row)), col=COL_B
                     ),
                 )
                 and self.path_validator.is_path_clear(
@@ -218,6 +228,13 @@ class MoveValidator:
                     from_square,
                     ConstantSquare(
                         row=get_row_constant(int(from_square.row)), col=COL_C
+                    ),
+                )
+                and self.path_validator.is_path_clear(
+                    self.board,
+                    from_square,
+                    ConstantSquare(
+                        row=get_row_constant(int(from_square.row)), col=COL_D
                     ),
                 )
             )

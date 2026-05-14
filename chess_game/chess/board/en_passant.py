@@ -36,6 +36,14 @@ class EnPassantValidator:
         if to_square != self.board.en_passant_target:
             return False
 
+        # En passant: capturing pawn must be on the correct rank
+        from_row = int(from_square.row)
+        ep_row = int(self.board.en_passant_target.row)
+        if piece.color == Color.WHITE and from_row != ep_row + 1:
+            return False
+        if piece.color == Color.BLACK and from_row != ep_row - 1:
+            return False
+
         # The captured piece is one rank beyond EP target in capturing pawn's direction
         direction = -1 if piece.color == Color.WHITE else 1
         captured_row = int(self.board.en_passant_target.row) - direction
