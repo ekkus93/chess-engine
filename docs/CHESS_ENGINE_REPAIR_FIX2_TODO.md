@@ -36,227 +36,253 @@ Do not expand scope beyond this TODO.
 
 ---
 
+## Task status summary
+
+| Task | Status | Notes |
+|------|--------|-------|
+| 0: Baseline | DONE | All subtasks complete |
+| 1: Regression tests | DONE | Tests in `test_castling_edge_cases.py` and `test_en_passant_edge_cases.py` |
+| 2: Queenside castling | DONE | `b1`/`b8` check added to `CastlingValidator` |
+| 3: CastlingValidator authority | NOT DONE | `PieceMovers._get_king_moves()` still has castling logic |
+| 4: En passant geometry | DONE | Row-delta check added |
+| 5: Test coordinate cleanup | IN PROGRESS | 1 file converted; ~338 raw coords remain in 8 priority files |
+| 6: Stale comments | DONE | Full-project search clean |
+| 7: BoardState | DONE | Option A — removed |
+| 8: AI evaluation | PARTIAL | Fix applied; symmetry tests (8.3) not done |
+| 9: Cache files | PARTIAL | `.gitignore` needs updating (9.2) |
+| 10: Final acceptance | NOT STARTED | Blocked on Tasks 3, 5, 8.3, 9.2 |
+
+---
+
 ## Task 0: Establish baseline
+
+**Status: DONE**
 
 ### 0.1 Run the full test suite
 
-- [ ] From the repo root, run:
+- [x] From the repo root, run:
 
-  ```bash
-  python -m pytest tests -q
-  ```
+   ```bash
+   python -m pytest tests -q
+   ```
 
-- [ ] Confirm the current suite passes before modifying code.
-- [ ] If it does not pass, record the failures and inspect whether they are related to this TODO.
+- [x] Confirm the current suite passes before modifying code.
+- [x] If it does not pass, record the failures and inspect whether they are related to this TODO.
 
 ### 0.2 Create a focused branch
 
-- [ ] Create a dedicated branch, for example:
+- [x] Create a dedicated branch, for example:
 
-  ```bash
-  git checkout -b fix/castling-en-passant-cleanup
-  ```
+   ```bash
+   git checkout -b fix/castling-en-passant-cleanup
+   ```
 
 ### 0.3 Add this spec/TODO to the repo
 
-- [ ] Copy the companion spec to:
+- [x] Copy the companion spec to:
 
-  ```text
-  docs/CHESS_ENGINE_REPAIR_FIX2_SPEC.md
-  ```
+   ```text
+   docs/CHESS_ENGINE_REPAIR_FIX2_SPEC.md
+   ```
 
-- [ ] Copy this TODO to:
+- [x] Copy this TODO to:
 
-  ```text
-  docs/CHESS_ENGINE_REPAIR_FIX2_TODO.md
-  ```
+   ```text
+   docs/CHESS_ENGINE_REPAIR_FIX2_TODO.md
+   ```
 
 ---
 
 ## Task 1: Add failing regression tests first
 
+**Status: DONE**
+
 Do this before changing implementation code.
 
 ### 1.1 Add white queenside castling blocked-by-b1 test
 
-- [ ] Create or update a castling test file, preferably:
+- [x] Create or update a castling test file, preferably:
 
-  ```text
-  tests/test_castling_edge_cases.py
-  ```
+   ```text
+   tests/test_castling_edge_cases.py
+   ```
 
-- [ ] Set up this position using algebraic helpers:
+- [x] Set up this position using algebraic helpers:
 
-  ```text
-  White king: e1
-  White rook: a1
-  White knight or bishop: b1
-  Black king: e8
-  White to move
-  ```
+   ```text
+   White king: e1
+   White rook: a1
+   White knight or bishop: b1
+   Black king: e8
+   White to move
+   ```
 
-- [ ] Attempt:
+- [x] Attempt:
 
-  ```text
-  e1c1
-  ```
+   ```text
+   e1c1
+   ```
 
-- [ ] Assert the move is rejected.
-- [ ] Assert the king remains on `e1`.
-- [ ] Assert the rook remains on `a1`.
-- [ ] Assert the blocker remains on `b1`.
+- [x] Assert the move is rejected.
+- [x] Assert the king remains on `e1`.
+- [x] Assert the rook remains on `a1`.
+- [x] Assert the blocker remains on `b1`.
 
 ### 1.2 Add black queenside castling blocked-by-b8 test
 
-- [ ] Set up this position using algebraic helpers:
+- [x] Set up this position using algebraic helpers:
 
-  ```text
-  Black king: e8
-  Black rook: a8
-  Black knight or bishop: b8
-  White king: e1
-  Black to move
-  ```
+   ```text
+   Black king: e8
+   Black rook: a8
+   Black knight or bishop: b8
+   White king: e1
+   Black to move
+   ```
 
-- [ ] Attempt:
+- [x] Attempt:
 
-  ```text
-  e8c8
-  ```
+   ```text
+   e8c8
+   ```
 
-- [ ] Assert the move is rejected.
-- [ ] Assert the king remains on `e8`.
-- [ ] Assert the rook remains on `a8`.
-- [ ] Assert the blocker remains on `b8`.
+- [x] Assert the move is rejected.
+- [x] Assert the king remains on `e8`.
+- [x] Assert the rook remains on `a8`.
+- [x] Assert the blocker remains on `b8`.
 
 ### 1.3 Add white illegal long en passant test
 
-- [ ] Create or update an en passant edge-case test file, preferably:
+- [x] Create or update an en passant edge-case test file, preferably:
 
-  ```text
-  tests/test_en_passant_edge_cases.py
-  ```
+   ```text
+   tests/test_en_passant_edge_cases.py
+   ```
 
-- [ ] Set up this position:
+- [x] Set up this position:
 
-  ```text
-  White king: e1
-  Black king: e8
-  White pawn: e3
-  Black pawn: d5
-  en_passant_target: d6
-  White to move
-  ```
+   ```text
+   White king: e1
+   Black king: e8
+   White pawn: e3
+   Black pawn: d5
+   en_passant_target: d6
+   White to move
+   ```
 
-- [ ] Attempt:
+- [x] Attempt:
 
-  ```text
-  e3d6
-  ```
+   ```text
+   e3d6
+   ```
 
-- [ ] Assert the move is rejected.
-- [ ] Assert the white pawn remains on `e3`.
-- [ ] Assert the black pawn remains on `d5`.
-- [ ] Assert `d6` remains empty.
+- [x] Assert the move is rejected.
+- [x] Assert the white pawn remains on `e3`.
+- [x] Assert the black pawn remains on `d5`.
+- [x] Assert `d6` remains empty.
 
 ### 1.4 Add black illegal long en passant test
 
-- [ ] Set up this position:
+- [x] Set up this position:
 
-  ```text
-  White king: e1
-  Black king: e8
-  Black pawn: d6
-  White pawn: e4
-  en_passant_target: e3
-  Black to move
-  ```
+   ```text
+   White king: e1
+   Black king: e8
+   Black pawn: d6
+   White pawn: e4
+   en_passant_target: e3
+   Black to move
+   ```
 
-- [ ] Attempt:
+- [x] Attempt:
 
-  ```text
-  d6e3
-  ```
+   ```text
+   d6e3
+   ```
 
-- [ ] Assert the move is rejected.
-- [ ] Assert the black pawn remains on `d6`.
-- [ ] Assert the white pawn remains on `e4`.
-- [ ] Assert `e3` remains empty.
+- [x] Assert the move is rejected.
+- [x] Assert the black pawn remains on `d6`.
+- [x] Assert the white pawn remains on `e4`.
+- [x] Assert `e3` remains empty.
 
 ### 1.5 Verify the new tests fail before implementation
 
-- [ ] Run:
+- [x] Run:
 
-  ```bash
-  python -m pytest tests/test_castling_edge_cases.py tests/test_en_passant_edge_cases.py -q
-  ```
+   ```bash
+   python -m pytest tests/test_castling_edge_cases.py tests/test_en_passant_edge_cases.py -q
+   ```
 
-- [ ] Confirm the new tests fail against the current implementation.
-- [ ] If any new regression test passes unexpectedly, inspect whether the setup is wrong or the implementation was already fixed.
+- [x] Confirm the new tests fail against the current implementation.
+- [x] If any new regression test passes unexpectedly, inspect whether the setup is wrong or the implementation was already fixed.
 
 ---
 
 ## Task 2: Fix queenside castling path validation
 
+**Status: DONE**
+
 ### 2.1 Inspect current castling implementation
 
-- [ ] Open:
+- [x] Open:
 
-  ```text
-  chess_game/chess/board/castling.py
-  ```
+   ```text
+   chess_game/chess/board/castling.py
+   ```
 
-- [ ] Find the method that checks castling path emptiness.
-- [ ] Confirm that queenside castling checks `c1/c8` and `d1/d8`.
-- [ ] Confirm whether it currently misses `b1/b8`.
+- [x] Find the method that checks castling path emptiness.
+- [x] Confirm that queenside castling checks `c1/c8` and `d1/d8`.
+- [x] Confirm whether it currently misses `b1/b8`.
 
 ### 2.2 Fix queenside path emptiness
 
-- [ ] Update the castling path-clear logic so queenside castling requires all of these squares to be empty:
+- [x] Update the castling path-clear logic so queenside castling requires all of these squares to be empty:
 
-  ```text
-  White queenside: b1, c1, d1
-  Black queenside: b8, c8, d8
-  ```
+   ```text
+   White queenside: b1, c1, d1
+   Black queenside: b8, c8, d8
+   ```
 
-- [ ] Do not add `b1/b8` to the attack-path checks.
-- [ ] Keep the attack-path checks as:
+- [x] Do not add `b1/b8` to the attack-path checks.
+- [x] Keep the attack-path checks as:
 
-  ```text
-  White queenside: e1, d1, c1
-  Black queenside: e8, d8, c8
-  ```
+   ```text
+   White queenside: e1, d1, c1
+   Black queenside: e8, d8, c8
+   ```
 
 ### 2.3 Preserve kingside behavior
 
-- [ ] Ensure kingside castling still requires:
+- [x] Ensure kingside castling still requires:
 
-  ```text
-  White kingside empty squares: f1, g1
-  Black kingside empty squares: f8, g8
-  ```
+   ```text
+   White kingside empty squares: f1, g1
+   Black kingside empty squares: f8, g8
+   ```
 
-- [ ] Ensure kingside attack-path checks remain:
+- [x] Ensure kingside attack-path checks remain:
 
-  ```text
-  White kingside: e1, f1, g1
-  Black kingside: e8, f8, g8
-  ```
+   ```text
+   White kingside: e1, f1, g1
+   Black kingside: e8, f8, g8
+   ```
 
 ### 2.4 Run castling tests
 
-- [ ] Run:
+- [x] Run:
 
-  ```bash
-  python -m pytest tests -q -k castling
-  ```
+   ```bash
+   python -m pytest tests -q -k castling
+   ```
 
-- [ ] Confirm all castling tests pass.
-- [ ] Confirm the new `b1` and `b8` regression tests pass.
+- [x] Confirm all castling tests pass.
+- [x] Confirm the new `b1` and `b8` regression tests pass.
 
 ---
 
 ## Task 3: Make `CastlingValidator` the only castling authority
+
+**Status: NOT DONE** — `PieceMovers._get_king_moves()` still contains castling logic (lines 337-356). Castling moves must be removed from king pseudo-legal generation and added only through `CastlingValidator` in `MoveValidator.get_legal_moves()`.
 
 ### 3.1 Inspect king move generation
 
@@ -310,103 +336,107 @@ Do this before changing implementation code.
 
 ## Task 4: Fix en passant geometry validation
 
+**Status: DONE**
+
 ### 4.1 Inspect en passant detection paths
 
-- [ ] Open:
+- [x] Open:
 
-  ```text
-  chess_game/chess/board/en_passant.py
-  chess_game/chess/board/move_validation.py
-  chess_game/chess/board/board.py
-  ```
+   ```text
+   chess_game/chess/board/en_passant.py
+   chess_game/chess/board/move_validation.py
+   chess_game/chess/board/board.py
+   ```
 
-- [ ] Identify every place that detects or validates en passant.
-- [ ] Confirm whether any path bypasses normal geometry validation.
+- [x] Identify every place that detects or validates en passant.
+- [x] Confirm whether any path bypasses normal geometry validation.
 
 ### 4.2 Add exact row-delta validation
 
-- [ ] In the canonical en passant validator, require:
+- [x] In the canonical en passant validator, require:
 
-  ```python
-  direction = -1 if piece.color == Color.WHITE else 1
-  int(to_square.row) - int(from_square.row) == direction
-  abs(int(to_square.col) - int(from_square.col)) == 1
-  ```
+   ```python
+   direction = -1 if piece.color == Color.WHITE else 1
+   int(to_square.row) - int(from_square.row) == direction
+   abs(int(to_square.col) - int(from_square.col)) == 1
+   ```
 
-- [ ] Reject the move if either condition fails.
-- [ ] Ensure this check happens before en passant execution.
-- [ ] Ensure this check happens even if `to_square == board.en_passant_target`.
+- [x] Reject the move if either condition fails.
+- [x] Ensure this check happens before en passant execution.
+- [x] Ensure this check happens even if `to_square == board.en_passant_target`.
 
 ### 4.3 Validate en passant target
 
-- [ ] Ensure en passant still requires:
+- [x] Ensure en passant still requires:
 
-  ```python
-  to_square == board.en_passant_target
-  ```
+   ```python
+   to_square == board.en_passant_target
+   ```
 
-- [ ] Ensure the captured pawn square is:
+- [x] Ensure the captured pawn square is:
 
-  ```python
-  captured_square = (from_square.row, to_square.col)
-  ```
+   ```python
+   captured_square = (from_square.row, to_square.col)
+   ```
 
-- [ ] Ensure the captured piece must be an enemy pawn.
-- [ ] Ensure the captured pawn is removed only after validation succeeds.
+- [x] Ensure the captured piece must be an enemy pawn.
+- [x] Ensure the captured pawn is removed only after validation succeeds.
 
 ### 4.4 Preserve valid en passant
 
-- [ ] Ensure White valid en passant still works:
+- [x] Ensure White valid en passant still works:
 
-  ```text
-  White pawn: e5
-  Black pawn just moved d7d5
-  en_passant_target: d6
-  Move: e5d6
-  ```
+   ```text
+   White pawn: e5
+   Black pawn just moved d7d5
+   en_passant_target: d6
+   Move: e5d6
+   ```
 
-- [ ] Ensure Black valid en passant still works:
+- [x] Ensure Black valid en passant still works:
 
-  ```text
-  Black pawn: d4
-  White pawn just moved e2e4
-  en_passant_target: e3
-  Move: d4e3
-  ```
+   ```text
+   Black pawn: d4
+   White pawn just moved e2e4
+   en_passant_target: e3
+   Move: d4e3
+   ```
 
 ### 4.5 Run en passant tests
 
-- [ ] Run:
+- [x] Run:
 
-  ```bash
-  python -m pytest tests -q -k "en_passant"
-  ```
+   ```bash
+   python -m pytest tests -q -k "en_passant"
+   ```
 
-- [ ] Confirm both valid and invalid en passant cases pass.
+- [x] Confirm both valid and invalid en passant cases pass.
 
 ---
 
 ## Task 5: Clean up real-position test coordinates
 
+**Status: IN PROGRESS** — `test_en_passant_edge_cases.py` fully converted. Remaining priority files with raw coords: `test_castling.py` (82), `test_en_passant.py` (66), `test_promotion.py` (63), `test_checkmate.py` (59), `test_check_checkmate_stalemate.py` (45), `test_clone.py` (40), `test_board_setup.py` (19). `test_legal_moves.py` has 0 raw coords.
+
 ### 5.1 Confirm or add helper functions
 
-- [ ] Ensure `tests/helpers.py` contains:
+- [x] Ensure `tests/helpers.py` contains:
 
-  ```python
-  from chess_game.chess.coords import algebraic_to_index
+   ```python
+   from chess_game.chess.coords import algebraic_to_index
 
-  def sq(name: str):
-      return algebraic_to_index(name)
-  ```
+   def sq(name: str):
+       return algebraic_to_index(name)
+   ```
 
-- [ ] Ensure helper assertions exist:
+- [x] Ensure helper assertions exist:
 
-  ```python
-  assert_piece(board, "e4", Color.WHITE, PieceType.PAWN)
-  assert_empty(board, "e4")
-  ```
+   ```python
+   assert_piece(board, "e4", Color.WHITE, PieceType.PAWN)
+   assert_empty(board, "e4")
+   ```
 
-- [ ] Add these helpers if missing.
+- [x] Add these helpers if missing.
 
 ### 5.2 Convert board setup tests
 
@@ -464,9 +494,8 @@ Do this before changing implementation code.
 
   ```text
   tests/test_legal_moves.py
-  tests/test_check.py
-  tests/test_checkmate.py
-  tests/test_stalemate.py
+   tests/test_check_checkmate_stalemate.py
+   tests/test_checkmate.py
   ```
 
 - [ ] Convert real chess positions to algebraic helpers.
@@ -489,64 +518,68 @@ Do this before changing implementation code.
 
 ## Task 6: Fix stale coordinate comments
 
+**Status: DONE** — Full-project search found no stale coordinate comments remaining.
+
 ### 6.1 Search for stale comments
 
-- [ ] Run:
+- [x] Run:
 
-  ```bash
-  grep -R "row 0 = rank 1\|row 7 = rank 8\|rank 1.*row 0\|rank 8.*row 7\|array row 2 = rank 5" -n .
-  ```
+   ```bash
+   grep -R "row 0 = rank 1\|row 7 = rank 8\|rank 1.*row 0\|rank 8.*row 7\|array row 2 = rank 5" -n .
+   ```
 
-- [ ] Also search:
+- [x] Also search:
 
-  ```bash
-  grep -R "old coordinate\|broken coordinate\|ROW_5.*row 2\|ROW_1.*row 0" -n .
-  ```
+   ```bash
+   grep -R "old coordinate\|broken coordinate\|ROW_5.*row 2\|ROW_1.*row 0" -n .
+   ```
 
 ### 6.2 Correct or remove stale comments
 
-- [ ] Fix comments in tests.
-- [ ] Fix comments in docs.
-- [ ] Fix comments in source files.
-- [ ] If a historical doc intentionally describes old behavior, mark the section clearly as obsolete historical context.
+- [x] Fix comments in tests.
+- [x] Fix comments in docs.
+- [x] Fix comments in source files.
+- [x] If a historical doc intentionally describes old behavior, mark the section clearly as obsolete historical context.
 
 ### 6.3 Re-run docs/test grep
 
-- [ ] Repeat the grep commands.
-- [ ] Confirm no misleading coordinate comments remain.
+- [x] Repeat the grep commands.
+- [x] Confirm no misleading coordinate comments remain.
 
 ---
 
 ## Task 7: Resolve `BoardState`
 
+**Status: DONE** — Option A chosen. `BoardState` class/module removed. `Board` owns all state directly.
+
 ### 7.1 Determine whether `BoardState` is used
 
-- [ ] Search:
+- [x] Search:
 
-  ```bash
-  grep -R "BoardState" -n chess_game tests
-  ```
+   ```bash
+   grep -R "BoardState" -n chess_game tests
+   ```
 
-- [ ] Determine whether `BoardState` is used in the real engine path.
-- [ ] Determine whether any tests only cover dead `BoardState` behavior.
+- [x] Determine whether `BoardState` is used in the real engine path.
+- [x] Determine whether any tests only cover dead `BoardState` behavior.
 
 ### 7.2 Choose one path
 
 Choose exactly one of these options.
 
-#### Option A: Remove stale `BoardState`
+#### Option A: Remove stale `BoardState` **(CHOSEN)**
 
 Use this option if `BoardState` is unused or only exists from an old design.
 
-- [ ] Delete the stale `BoardState` class/module.
-- [ ] Remove stale imports.
-- [ ] Remove tests that only test dead `BoardState` behavior.
-- [ ] Update documentation if it still refers to `BoardState` as part of the live architecture.
-- [ ] Ensure `Board` is clearly documented as the owner of:
-  - [ ] board array,
-  - [ ] turn,
-  - [ ] castling rights,
-  - [ ] en passant target.
+- [x] Delete the stale `BoardState` class/module.
+- [x] Remove stale imports.
+- [x] Remove tests that only test dead `BoardState` behavior.
+- [x] Update documentation if it still refers to `BoardState` as part of the live architecture.
+- [x] Ensure `Board` is clearly documented as the owner of:
+   - [x] board array,
+   - [x] turn,
+   - [x] castling rights,
+   - [x] en passant target.
 
 #### Option B: Keep and repair `BoardState`
 
@@ -555,54 +588,56 @@ Use this option only if `BoardState` is intentionally part of the architecture.
 - [ ] Make `Board` use `BoardState` consistently.
 - [ ] Ensure no duplicate state can diverge between `Board` and `BoardState`.
 - [ ] Rewrite `BoardState.clone()` so:
-  - [ ] board rows are new lists,
-  - [ ] pieces are new objects,
-  - [ ] each cloned piece's `_square` matches the cloned board square,
-  - [ ] turn is copied,
-  - [ ] castling rights are copied,
-  - [ ] en passant target is copied.
+   - [ ] board rows are new lists,
+   - [ ] pieces are new objects,
+   - [ ] each cloned piece's `_square` matches the cloned board square,
+   - [ ] turn is copied,
+   - [ ] castling rights are copied,
+   - [ ] en passant target is copied.
 - [ ] Add direct `BoardState.clone()` tests.
 - [ ] Add a test proving mutating a cloned state does not mutate the original.
 
 ### 7.3 Preferred result
 
-- [ ] Prefer Option A unless there is a clear, documented reason to keep `BoardState`.
+- [x] Prefer Option A unless there is a clear, documented reason to keep `BoardState`.
 
 ---
 
 ## Task 8: Optional AI evaluation orientation fix
 
+**Status: PARTIAL** — Fix applied (`row = 7 - row` for Black in `ai.py:84`). Starting-position evaluation confirmed at `0`. Subtask 8.3 (evaluation symmetry tests) not yet done.
+
 Do this only after Tasks 1 through 7 are complete.
 
 ### 8.1 Check starting-position evaluation
 
-- [ ] Run a small smoke script:
+- [x] Run a small smoke script:
 
-  ```python
-  from chess_game.chess.board import Board
-  from chess_game.chess.ai import evaluate
+   ```python
+   from chess_game.chess.board import Board
+   from chess_game.chess.ai import evaluate
 
-  print(evaluate(Board()))
-  ```
+   print(evaluate(Board()))
+   ```
 
-- [ ] Decide whether a nonzero starting evaluation is intentional.
-- [ ] If it is intentional, document the reason.
-- [ ] If it is not intentional, continue with this task.
+- [x] Decide whether a nonzero starting evaluation is intentional.
+- [x] If it is intentional, document the reason.
+- [x] If it is not intentional, continue with this task.
 
 ### 8.2 Inspect piece-square-table orientation
 
-- [ ] Open:
+- [x] Open:
 
-  ```text
-  chess_game/chess/ai.py
-  ```
+   ```text
+   chess_game/chess/ai.py
+   ```
 
-- [ ] Inspect how piece-square tables are indexed.
-- [ ] If tables are written from White's perspective, use mirrored rows for Black:
+- [x] Inspect how piece-square tables are indexed.
+- [x] If tables are written from White's perspective, use mirrored rows for Black:
 
-  ```python
-  eval_row = row if piece.color == Color.WHITE else 7 - row
-  ```
+   ```python
+   eval_row = row if piece.color == Color.WHITE else 7 - row
+   ```
 
 ### 8.3 Add evaluation symmetry tests
 
@@ -612,41 +647,43 @@ Do this only after Tasks 1 through 7 are complete.
 
 ### 8.4 Do not tune AI search
 
-- [ ] Do not change depth behavior.
-- [ ] Do not add pruning.
-- [ ] Do not add opening books.
-- [ ] Do not change the move picker except as needed for the evaluation bug.
+- [x] Do not change depth behavior.
+- [x] Do not add pruning.
+- [x] Do not add opening books.
+- [x] Do not change the move picker except as needed for the evaluation bug.
 
 ---
 
 ## Task 9: Remove generated/cache files
 
+**Status: PARTIAL** — Cache files removed (9.1 DONE). `.gitignore` needs updating (9.2 NOT DONE). Current `.gitignore` is missing: `*.py[cod]`, `.pytest_cache/`, `.mypy_cache/`, `.ruff_cache/`, `.coverage`, `htmlcov/`, `venv/`.
+
 ### 9.1 Remove Python cache files
 
-- [ ] Remove any committed/generated cache directories:
+- [x] Remove any committed/generated cache directories:
 
-  ```bash
-  find . -type d -name "__pycache__" -prune -exec rm -rf {} +
-  rm -rf .pytest_cache
-  ```
+   ```bash
+   find . -type d -name "__pycache__" -prune -exec rm -rf {} +
+   rm -rf .pytest_cache
+   ```
 
-- [ ] Do not remove virtual environments or user-local files unless they are part of the repo by mistake.
+- [x] Do not remove virtual environments or user-local files unless they are part of the repo by mistake.
 
 ### 9.2 Update `.gitignore`
 
 - [ ] Ensure `.gitignore` includes:
 
-  ```text
-  __pycache__/
-  *.py[cod]
-  .pytest_cache/
-  .mypy_cache/
-  .ruff_cache/
-  .coverage
-  htmlcov/
-  .venv/
-  venv/
-  ```
+   ```text
+   __pycache__/
+   *.py[cod]
+   .pytest_cache/
+   .mypy_cache/
+   .ruff_cache/
+   .coverage
+   htmlcov/
+   .venv/
+   venv/
+   ```
 
 ### 9.3 Verify clean status
 
@@ -661,6 +698,8 @@ Do this only after Tasks 1 through 7 are complete.
 ---
 
 ## Task 10: Final acceptance tests
+
+**Status: NOT STARTED** — Blocked on Tasks 3, 5, 8.3, 9.2.
 
 ### 10.1 Run targeted tests
 

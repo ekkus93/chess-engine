@@ -240,9 +240,8 @@ tests/test_en_passant.py
 tests/test_en_passant_edge_cases.py
 tests/test_promotion.py
 tests/test_legal_moves.py
-tests/test_check.py
+tests/test_check_checkmate_stalemate.py
 tests/test_checkmate.py
-tests/test_stalemate.py
 ```
 
 It is acceptable to leave raw coordinate tests in files that directly test coordinate conversion internals.

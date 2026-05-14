@@ -10,7 +10,7 @@ def test_black_en_passant_legal_example() -> None:
     board.set_piece(
         ConstantSquare(row=ROW_5, col=COL_D),
         create_piece(Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_5, col=COL_D)),
-    )  # White pawn on d5 (array row 2 = rank 5)
+    )  # White pawn on d5
     board.set_piece(
         ConstantSquare(row=ROW_7, col=COL_E),
         create_piece(Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_7, col=COL_E)),

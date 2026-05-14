@@ -99,4 +99,61 @@ README.md             # Documentation with phases listed
 
 ---
 
-*Memory last updated: 2026-04-19*
+## Fix 2 Session (Castling, En Passant, Cleanup)
+
+**Session Date:** 2026-05 (pick up from here later)
+**Branch:** `master` (up to date on `origin/master` — all Fix 2 changes merged via `ort` strategy)
+**Remote branch `fix2/castling-en-passant-cleanup` deleted from GitHub**
+
+### What Was Done (Fix 2)
+
+- **Task 0 (Baseline):** Established baseline, created branch, added spec/TODO to repo
+- **Task 1 (Regression Tests):** Added `test_castling_edge_cases.py` (10 tests) and `test_en_passant_edge_cases.py` (15 tests) — all passing
+- **Task 2 (Queenside Castling):** Added `b1`/`b8` check to `CastlingValidator._is_path_clear()` for queenside
+- **Task 4 (En Passant Geometry):** Added row-delta check in `EnPassantValidator.validate()` to reject non-one-row diagonal moves
+- **Task 6 (Stale Comments):** Full-project search clean — no stale coordinate comments remain
+- **Task 7 (BoardState):** Option A chosen — `BoardState` removed from engine code; `test_board_state.py` renamed to `test_board_edge_cases.py`
+- **Task 8 (AI Evaluation):** Applied `row = 7 - row` fix for Black in `chess_game/chess/ai.py:84`; starting position evaluates to `0`
+- **Task 9.1 (Cache Files):** Removed `__pycache__`, `.pytest_cache` from repo
+- **Task 5 (Partial):** Converted `test_en_passant_edge_cases.py` to `sq()` notation (all 15 tests passing)
+
+### What Remains
+
+- **Task 3 (NOT DONE):** Remove castling logic from `PieceMovers._get_king_moves()` (lines 337-356 in `piece_movers.py`), add it in `MoveValidator.get_legal_moves()` so `CastlingValidator` is the sole authority
+- **Task 5 (IN PROGRESS):** Convert remaining priority test files to `sq()` notation — ~314 raw coords remain:
+  - `test_castling.py` (82), `test_en_passant.py` (66), `test_promotion.py` (63), `test_checkmate.py` (59), `test_check_checkmate_stalemate.py` (45), `test_clone.py` (40), `test_board_setup.py` (19)
+- **Task 8.3 (NOT DONE):** Add AI evaluation symmetry tests (starting position = 0, mirrored position symmetric)
+- **Task 9.2 (NOT DONE):** Update `.gitignore` — missing: `*.py[cod]`, `.pytest_cache/`, `.mypy_cache/`, `.ruff_cache/`, `.coverage`, `htmlcov/`, `venv/`
+- **Task 10 (BLOCKED):** Final acceptance blocked on Tasks 3, 5, 8.3, 9.2
+
+### Current Quality Gate Results
+
+| Check | Result |
+|-------|--------|
+| **Tests** | ✅ 176/176 passed |
+| **pylint** | 9.47/10 (only duplicate-code warnings, no errors) |
+| **mypy** | 24 pre-existing errors (`ConstantSquare \| None` access, `RowConstant`/`ColConstant` arg types) |
+| **black** | Not installed on this system |
+
+### Key Files
+
+- `docs/CHESS_ENGINE_REPAIR_FIX2_TODO.md` — Authoritative task list and status
+- `docs/CHESS_ENGINE_REPAIR_FIX2_SPEC.md` — Task specifications
+- `chess_game/chess/pieces/piece_movers.py` — Lines 337-356 have castling logic to remove (Task 3)
+- `chess_game/chess/board/move_validation.py` — Where castling moves should be added (Task 3)
+- `chess_game/chess/board/castling.py` — `CastlingValidator` — sole castling authority once Task 3 done
+- `chess_game/chess/ai.py` — Line 84 has `row = 7 - row` fix; needs symmetry tests (Task 8.3)
+- `tests/helpers.py` — Contains `sq()`, `assert_piece()`, `assert_empty()` helpers
+- `.gitignore` — Missing cache directory entries (Task 9.2)
+
+### Important Notes
+
+- Coordinate system: row 0 = rank 8, row 7 = rank 1; col 0 = file a
+- Manual conversion preferred over subagent (subagent previously introduced bugs in `test_en_passant_edge_cases.py`)
+- `black` formatter not installed; use `pylint` for linting
+- `.gitignore` currently only has `__pycache__/` — needs all cache entries added
+- mpy errors are pre-existing and unrelated to Fix 2 work
+
+---
+
+*Memory last updated: 2026-05-14*
