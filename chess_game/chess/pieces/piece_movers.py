@@ -13,6 +13,7 @@ from chess_game.chess.constants import (
 )
 from chess_game.chess.types import Piece, PieceType
 from chess_game.chess.constants import ConstantSquare
+from chess_game.chess.board.castling import CastlingValidator
 
 
 class PieceMovers:
@@ -338,166 +339,20 @@ class PieceMovers:
             color = piece.color
             king_row = int(piece._square.row)
 
-            # Kingside castling (e1 -> g1 for white, e8 -> g8 for black)
-            if (color == Color.WHITE and board.white_kingside) or (
-                color == Color.BLACK and board.black_kingside
-            ):
-                # Check if rook is at original position
-                rook_at_h1 = board.get_piece(
+            if CastlingValidator.can_castle_kingside(board, color):
+                moves.append(
                     ConstantSquare(
                         row=get_row_constant(king_row),
-                        col=get_col_constant(7),  # h file
+                        col=get_col_constant(6),
                     )
                 )
-                rook_ok = (
-                    rook_at_h1 is not None
-                    and rook_at_h1.kind == PieceType.ROOK
-                    and rook_at_h1.color == color
-                )
 
-                # Check path is clear (f file)
-                f1_square = ConstantSquare(
-                    row=get_row_constant(king_row),
-                    col=get_col_constant(5),  # f file
-                )
-                path_clear = board.is_empty(f1_square)
-
-                # Check king safety
-                king_path_safe = True
-                enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
-                for sq in [
+            if CastlingValidator.can_castle_queenside(board, color):
+                moves.append(
                     ConstantSquare(
                         row=get_row_constant(king_row),
-                        col=get_col_constant(4),  # e file
-                    ),
-                    ConstantSquare(
-                        row=get_row_constant(king_row),
-                        col=get_col_constant(5),  # f file
-                    ),
-                    ConstantSquare(
-                        row=get_row_constant(king_row),
-                        col=get_col_constant(6),  # g file
-                    ),
-                ]:
-                    # Check if attacked by enemy
-                    for row in range(8):
-                        for col in range(8):
-                            attacker = board.get_piece(
-                                ConstantSquare(
-                                    row=get_row_constant(row), col=get_col_constant(col)
-                                )
-                            )
-                            if (
-                                attacker
-                                and attacker.color == enemy_color
-                                and PieceMovers._piece_attacks_square(
-                                    attacker,
-                                    ConstantSquare(
-                                        row=get_row_constant(row),
-                                        col=get_col_constant(col),
-                                    ),
-                                    sq,
-                                    board,
-                                )
-                            ):
-                                king_path_safe = False
-                                break
-                        if not king_path_safe:
-                            break
-
-                if rook_ok and path_clear and king_path_safe:
-                    moves.append(
-                        ConstantSquare(
-                            row=get_row_constant(king_row),
-                            col=get_col_constant(6),  # g file
-                        )
-                    )
-
-            # Queenside castling (e1 -> c1 for white, e8 -> c8 for black)
-            if (color == Color.WHITE and board.white_queenside) or (
-                color == Color.BLACK and board.black_queenside
-            ):
-                # Check if rook is at original position
-                rook_at_a1 = board.get_piece(
-                    ConstantSquare(
-                        row=get_row_constant(king_row),
-                        col=get_col_constant(0),  # a file
+                        col=get_col_constant(2),
                     )
                 )
-                rook_ok = (
-                    rook_at_a1 is not None
-                    and rook_at_a1.kind == PieceType.ROOK
-                    and rook_at_a1.color == color
-                )
-
-                # Check path is clear (b, c, and d files)
-                b1_square = ConstantSquare(
-                    row=get_row_constant(king_row),
-                    col=get_col_constant(1),  # b file
-                )
-                c1_square = ConstantSquare(
-                    row=get_row_constant(king_row),
-                    col=get_col_constant(2),  # c file
-                )
-                d1_square = ConstantSquare(
-                    row=get_row_constant(king_row),
-                    col=get_col_constant(3),  # d file
-                )
-                path_clear = (
-                    board.is_empty(b1_square)
-                    and board.is_empty(c1_square)
-                    and board.is_empty(d1_square)
-                )
-
-                # Check king safety
-                king_path_safe = True
-                enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
-                for sq in [
-                    ConstantSquare(
-                        row=get_row_constant(king_row),
-                        col=get_col_constant(4),  # e file
-                    ),
-                    ConstantSquare(
-                        row=get_row_constant(king_row),
-                        col=get_col_constant(3),  # d file
-                    ),
-                    ConstantSquare(
-                        row=get_row_constant(king_row),
-                        col=get_col_constant(2),  # c file
-                    ),
-                ]:
-                    # Check if attacked by enemy
-                    for row in range(8):
-                        for col in range(8):
-                            attacker = board.get_piece(
-                                ConstantSquare(
-                                    row=get_row_constant(row), col=get_col_constant(col)
-                                )
-                            )
-                            if (
-                                attacker
-                                and attacker.color == enemy_color
-                                and PieceMovers._piece_attacks_square(
-                                    attacker,
-                                    ConstantSquare(
-                                        row=get_row_constant(row),
-                                        col=get_col_constant(col),
-                                    ),
-                                    sq,
-                                    board,
-                                )
-                            ):
-                                king_path_safe = False
-                                break
-                        if not king_path_safe:
-                            break
-
-                if rook_ok and path_clear and king_path_safe:
-                    moves.append(
-                        ConstantSquare(
-                            row=get_row_constant(king_row),
-                            col=get_col_constant(2),  # c file
-                        )
-                    )
 
         return moves

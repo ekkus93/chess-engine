@@ -12,13 +12,7 @@ from chess_game.chess.pieces.piece_movers import PieceMovers
 from chess_game.chess.constants import (
     get_row_constant,
     get_col_constant,
-    COL_A,
-    COL_B,
-    COL_C,
-    COL_D,
     COL_E,
-    COL_F,
-    COL_G,
 )
 
 if TYPE_CHECKING:
@@ -98,26 +92,7 @@ class MoveValidator:
         """Check if this is a castling move."""
         if piece.kind != PieceType.KING:
             return False
-
-        from_row = int(piece._square.row)
-
-        # Castling only happens on back rank (row 0 or 7)
-        if from_row not in (0, 7):
-            return False
-
-        # Kingside castling
-        if from_square == ConstantSquare(
-            row=get_row_constant(from_row), col=COL_E
-        ) and to_square == ConstantSquare(row=get_row_constant(from_row), col=COL_G):
-            return True
-
-        # Queenside castling
-        if from_square == ConstantSquare(
-            row=get_row_constant(from_row), col=COL_E
-        ) and to_square == ConstantSquare(row=get_row_constant(from_row), col=COL_C):
-            return True
-
-        return False
+        return CastlingValidator.is_castling_move(from_square, to_square)
 
     def _is_en_passant_move(
         self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
@@ -157,89 +132,10 @@ class MoveValidator:
     def _validate_castling(
         self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
-        """Validate castling move."""
-        color = piece.color
-
-        if from_square.row != to_square.row:
-            return False
-
-        # Check castling rights
-        if color == Color.WHITE:
-            kingside = self.board.white_kingside
-            queenside = self.board.white_queenside
-        else:
-            kingside = self.board.black_kingside
-            queenside = self.board.black_queenside
-
-        if not kingside and not queenside:
-            return False
-
-        # Check path is clear
-        if not self._is_castling_path_clear(from_square, to_square):
-            return False
-
-        # Check king doesn't pass through attacked squares
-        enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
-        # Determine intermediate square based on castling direction
-        if int(to_square.col) > int(from_square.col):
-            # Kingside: king passes through f-file
-            intermediate = ConstantSquare(
-                row=get_row_constant(int(from_square.row)), col=COL_F
-            )
-        else:
-            # Queenside: king passes through d-file
-            intermediate = ConstantSquare(
-                row=get_row_constant(int(from_square.row)), col=COL_D
-            )
-        king_path = [from_square, intermediate, to_square]
-
-        for square in king_path:
-            if CastlingValidator._is_square_attacked(self.board, square, enemy_color):
-                return False
-
-        return True
-
-    def _is_castling_path_clear(
-        self, from_square: ConstantSquare, to_square: ConstantSquare
-    ) -> bool:
-        """Check if castling path is clear."""
-        to_col = int(to_square.col)
-
-        # Kingside: check f-file
-        if to_col == 6:
-            return self.path_validator.is_path_clear(
-                self.board,
-                from_square,
-                ConstantSquare(row=get_row_constant(int(from_square.row)), col=COL_F),
-            )
-
-        # Queenside: check b, c, and d files
-        if to_col == 2:
-            return (
-                self.path_validator.is_path_clear(
-                    self.board,
-                    from_square,
-                    ConstantSquare(
-                        row=get_row_constant(int(from_square.row)), col=COL_B
-                    ),
-                )
-                and self.path_validator.is_path_clear(
-                    self.board,
-                    from_square,
-                    ConstantSquare(
-                        row=get_row_constant(int(from_square.row)), col=COL_C
-                    ),
-                )
-                and self.path_validator.is_path_clear(
-                    self.board,
-                    from_square,
-                    ConstantSquare(
-                        row=get_row_constant(int(from_square.row)), col=COL_D
-                    ),
-                )
-            )
-
-        return True
+        """Validate castling move by delegating to CastlingValidator."""
+        return CastlingValidator.can_castle(
+            self.board, from_square, to_square, piece.color, piece.color
+        )
 
     def _validate_en_passant(
         self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
