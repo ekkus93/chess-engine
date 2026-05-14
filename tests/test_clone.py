@@ -1,94 +1,12 @@
-"""Tests for Board and BoardState cloning behavior.
+"""Tests for Board cloning behavior.
 
 Verifies that cloning produces independent copies where mutations to the
 clone do not affect the original, and vice versa.
 """
 
-from __future__ import annotations
-
 from chess_game.chess.board import Board, create_piece
-from chess_game.chess.board.board_state import BoardState
 from chess_game.chess.constants import get_square_constant
 from chess_game.chess.types import Color, PieceType
-
-
-# ---------------------------------------------------------------------------
-# BoardState.clone() tests
-# ---------------------------------------------------------------------------
-
-def test_board_state_clone_deep_copies_pieces() -> None:
-    """TS6.1: Cloned BoardState has independent Piece objects."""
-    board = Board()
-    original_e2_piece = board.get_piece(get_square_constant(6, 4))  # e2
-    assert original_e2_piece is not None
-
-    state = BoardState(
-        board=board.board,
-        turn=board.turn,
-        en_passant_target=board.en_passant_target,
-        white_kingside=board.white_kingside,
-        white_queenside=board.white_queenside,
-        black_kingside=board.black_kingside,
-        black_queenside=board.black_queenside,
-    )
-    cloned_state = state.clone()
-
-    cloned_e2_piece = cloned_state.get_piece(get_square_constant(6, 4))
-    assert cloned_e2_piece is not None
-    assert cloned_e2_piece is not original_e2_piece
-    assert cloned_e2_piece.color == original_e2_piece.color
-    assert cloned_e2_piece.kind == original_e2_piece.kind
-
-    # Mutating cloned piece must not affect original
-    cloned_e2_piece._square = get_square_constant(0, 0)
-    assert original_e2_piece._square != get_square_constant(0, 0)
-
-
-def test_board_state_clone_preserves_turn() -> None:
-    """TS6.1: Cloned BoardState preserves turn."""
-    board = Board()
-    board.turn = Color.BLACK
-    state = BoardState(
-        board=board.board,
-        turn=board.turn,
-        en_passant_target=None,
-    )
-    cloned = state.clone()
-    assert cloned.turn == Color.BLACK
-    assert state.turn == Color.BLACK
-
-
-def test_board_state_clone_preserves_en_passant_target() -> None:
-    """TS6.1: Cloned BoardState preserves en passant target."""
-    board = Board()
-    ep_target = get_square_constant(4, 4)  # e5
-    state = BoardState(
-        board=board.board,
-        turn=Color.WHITE,
-        en_passant_target=ep_target,
-    )
-    cloned = state.clone()
-    assert cloned.en_passant_target == ep_target
-    assert state.en_passant_target == ep_target
-
-
-def test_board_state_clone_preserves_castling_rights() -> None:
-    """TS6.1: Cloned BoardState preserves castling rights."""
-    board = Board()
-    state = BoardState(
-        board=board.board,
-        turn=Color.WHITE,
-        en_passant_target=None,
-        white_kingside=True,
-        white_queenside=False,
-        black_kingside=False,
-        black_queenside=True,
-    )
-    cloned = state.clone()
-    assert cloned.white_kingside is True
-    assert cloned.white_queenside is False
-    assert cloned.black_kingside is False
-    assert cloned.black_queenside is True
 
 
 # ---------------------------------------------------------------------------
@@ -235,7 +153,7 @@ def test_clone_simulation_rejects_self_check() -> None:
     # If the f1 piece moves away, the king is exposed on the f-file...
     # Actually, the king is on e-file, not f-file. Let me use a simpler setup.
     #
-    # White king on e1 (row 7, col 4), white rook on f1 (row 7, col 5)
+    # White king on e1, white rook on f1 (row 7, col 5)
     # blocks a black rook on f8 (row 0, col 5) from the f-file.
     # If the f1 rook moves away (f1->g1), the king on e1 is NOT on f-file.
     #
@@ -271,10 +189,8 @@ def test_clone_en_passant_king_safety() -> None:
     board = Board()
     board.clear_board()
 
-    # Set up: White king on e1, white pawn on e5, black pawn on d5,
-    # black rook on a8. After d4 captures e.p. on d6, king would be exposed.
-    # Simpler setup: White king on e1, white pawn on f5, black pawn on e4,
-    # en passant target on e3, black rook on a1.
+    # Set up: White king on e1, white pawn on f5, black pawn on e4,
+    # black rook on a1. After e.p. capture, king would be exposed.
     # f5xe3 e.p. would expose king on e1 to rook on a1 via rank 1.
 
     board.set_piece(

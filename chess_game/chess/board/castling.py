@@ -12,6 +12,7 @@ from chess_game.chess.constants import (
     COL_F,
     COL_G,
     COL_C,
+    COL_B,
     COL_A,
     COL_D,
     COL_H,
@@ -186,8 +187,11 @@ class CastlingValidator:
                 return False
             return True
         elif king_square.col == COL_E and destination.col == COL_C:
+            piece_b = board.get_piece(ConstantSquare(row=king_square.row, col=COL_B))
             piece_d = board.get_piece(ConstantSquare(row=king_square.row, col=COL_D))
             piece_c = board.get_piece(ConstantSquare(row=king_square.row, col=COL_C))
+            if piece_b is not None:
+                return False
             if piece_d is not None:
                 return False
             if piece_c is not None:

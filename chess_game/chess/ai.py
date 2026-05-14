@@ -79,9 +79,10 @@ def _evaluate_piece(piece: Piece, row: int, col: int) -> int:
     # Material value (baseline)
     material = MATERIAL_VALUES[piece.kind]
 
-    # Positional bonus using piece-square tables
-    # Table indices are reversed from standard notation
-    # row 0 = rank 8, row 7 = rank 1; col 0 = file a, col 7 = file h
+    # Mirror row for Black so White-centric tables apply correctly
+    if piece.color == Color.BLACK:
+        row = 7 - row
+
     positional_bias = 0
     if piece.kind == PieceType.PAWN:
         positional_bias = PAWN_TABLE[row][col]
@@ -94,7 +95,6 @@ def _evaluate_piece(piece: Piece, row: int, col: int) -> int:
     elif piece.kind == PieceType.QUEEN:
         positional_bias = QUEEN_TABLE[row][col]
     elif piece.kind == PieceType.KING:
-        # Use king safety table (center control in middlegame)
         positional_bias = KING_TABLE[row][col]
 
     return material + positional_bias

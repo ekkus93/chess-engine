@@ -12,6 +12,69 @@ from chess_game.chess.constants import (
 
 
 # =============================================================================
+# Regression tests for Fix 2
+# =============================================================================
+def test_en_passant_rejected_when_pawn_not_on_adjacent_row() -> None:
+    """En passant rejected when capturing pawn is not on the correct rank."""
+    board = Board()
+    board.clear_board()
+    board.set_piece(
+        get_square_constant(7, 4), create_piece(Color.WHITE, PieceType.KING)
+    )
+    board.set_piece(
+        get_square_constant(0, 4), create_piece(Color.BLACK, PieceType.KING)
+    )
+    # White pawn on e4 (row 4, rank 4) - too far forward for EP
+    board.set_piece(
+        get_square_constant(4, 4), create_piece(Color.WHITE, PieceType.PAWN)
+    )
+    # Black pawn on d7
+    board.set_piece(
+        get_square_constant(1, 3), create_piece(Color.BLACK, PieceType.PAWN)
+    )
+    board.turn = Color.BLACK
+    # Black plays d7-d5, creating EP target at d6 (row 2)
+    board.make_move(get_square_constant(1, 3), get_square_constant(3, 3))
+    assert board.en_passant_target == ConstantSquare(row=ROW_6, col=COL_D)
+    board.turn = Color.WHITE
+    # White pawn on e4 (row 4) should NOT be able to capture EP at d6 (row 2)
+    # Row delta is 2, not 1 - should be illegal
+    assert (
+        board.make_move(get_square_constant(4, 4), get_square_constant(2, 3)) is False
+    )
+
+
+def test_en_passant_rejected_when_black_pawn_not_on_adjacent_row() -> None:
+    """Black en passant rejected when capturing pawn is not on rank 4."""
+    board = Board()
+    board.clear_board()
+    board.set_piece(
+        get_square_constant(7, 4), create_piece(Color.WHITE, PieceType.KING)
+    )
+    board.set_piece(
+        get_square_constant(0, 4), create_piece(Color.BLACK, PieceType.KING)
+    )
+    # Black pawn on d4 (row 3, rank 5) - too far forward for EP
+    board.set_piece(
+        get_square_constant(3, 3), create_piece(Color.BLACK, PieceType.PAWN)
+    )
+    # White pawn on e2
+    board.set_piece(
+        get_square_constant(6, 4), create_piece(Color.WHITE, PieceType.PAWN)
+    )
+    board.turn = Color.WHITE
+    # White plays e2-e4, creating EP target at e3 (row 5)
+    board.make_move(get_square_constant(6, 4), get_square_constant(4, 4))
+    assert board.en_passant_target == ConstantSquare(row=ROW_3, col=COL_E)
+    board.turn = Color.BLACK
+    # Black pawn on d4 (row 3) should NOT be able to capture EP at e3 (row 5)
+    # Row delta is 2, not 1 - should be illegal
+    assert (
+        board.make_move(get_square_constant(3, 3), get_square_constant(5, 4)) is False
+    )
+
+
+# =============================================================================
 # Category 2: En Passant Edge Cases
 # =============================================================================
 def test_only_one_en_passant_target_at_a_time() -> None:
@@ -379,7 +442,7 @@ def test_en_passant_rejected_when_no_target() -> None:
 
 
 def test_black_en_passant_full_sequence() -> None:
-    """Black en passant capture: White plays e2e4, Black d5 captures e4 EP."""
+    """Black en passant capture: White plays e2e4, Black d4 captures e4 EP."""
     board = Board()
     board.clear_board()
     board.set_piece(
@@ -392,8 +455,8 @@ def test_black_en_passant_full_sequence() -> None:
         get_square_constant(6, 4), create_piece(Color.WHITE, PieceType.PAWN)
     )  # White pawn on e2 (row 6)
     board.set_piece(
-        get_square_constant(3, 3), create_piece(Color.BLACK, PieceType.PAWN)
-    )  # Black pawn on d5 (row 3)
+        get_square_constant(4, 3), create_piece(Color.BLACK, PieceType.PAWN)
+    )  # Black pawn on d4 (row 4)
     board.turn = Color.WHITE
     # White plays e2-e4
     assert (
@@ -404,11 +467,11 @@ def test_black_en_passant_full_sequence() -> None:
     )
     # EP target is e3 (row 5, col 4)
     assert board.en_passant_target == ConstantSquare(row=ROW_3, col=COL_E)
-    # Black captures en passant: d5 captures e3
+    # Black captures en passant: d4 captures e3
     board.turn = Color.BLACK
     assert (
         board.make_move(
-            get_square_constant(3, 3), get_square_constant(5, 4)
+            get_square_constant(4, 3), get_square_constant(5, 4)
         )
         is True
     )

@@ -85,7 +85,8 @@ def test_white_queenside_castle_legal_case() -> None:
     setup_castling_position(board)
     board.turn = Color.WHITE
 
-    # Clear the pieces that block castling (d1 queen and c1 bishop)
+    # Clear the pieces that block castling (b1 knight, d1 queen, c1 bishop)
+    board.clear_square(get_square_constant(7, 1))
     board.clear_square(get_square_constant(7, 3))
     board.clear_square(get_square_constant(7, 2))
 
@@ -115,7 +116,8 @@ def test_black_queenside_castle_legal_case() -> None:
     setup_castling_position(board)
     board.turn = Color.BLACK
 
-    # Clear the pieces that block castling (d8 queen and c8 bishop)
+    # Clear the pieces that block castling (b8 knight, d8 queen, c8 bishop)
+    board.clear_square(get_square_constant(0, 1))
     board.clear_square(get_square_constant(0, 3))
     board.clear_square(get_square_constant(0, 2))
 
@@ -258,7 +260,8 @@ def test_castling_avoiding_check_is_legal() -> None:
         get_square_constant(4, 3), create_piece(Color.BLACK, PieceType.PAWN)
     )
 
-    # Clear the pieces that block castling (d1 queen and c1 bishop)
+    # Clear the pieces that block castling (b1 knight, d1 queen, c1 bishop)
+    board.clear_square(get_square_constant(7, 1))
     board.clear_square(get_square_constant(7, 3))
     board.clear_square(get_square_constant(7, 2))
 

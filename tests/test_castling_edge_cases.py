@@ -5,6 +5,53 @@ from chess_game.chess.types import Color, PieceType
 
 
 # =============================================================================
+# Regression tests for Fix 2
+# =============================================================================
+def test_queenside_castling_blocked_by_piece_on_b1() -> None:
+    """Queenside castling forbidden when b1 is occupied."""
+    board = Board()
+    board.clear_board()
+    board.set_piece(
+        get_square_constant(7, 4), create_piece(Color.WHITE, PieceType.KING)
+    )
+    board.set_piece(
+        get_square_constant(0, 4), create_piece(Color.BLACK, PieceType.KING)
+    )
+    board.set_piece(
+        get_square_constant(7, 0), create_piece(Color.WHITE, PieceType.ROOK)
+    )
+    board.set_piece(
+        get_square_constant(7, 1), create_piece(Color.WHITE, PieceType.KNIGHT)
+    )  # White knight on b1 blocks queenside castling
+    board.turn = Color.WHITE
+    assert (
+        board.make_move(get_square_constant(7, 4), get_square_constant(7, 2)) is False
+    )
+
+
+def test_queenside_castling_blocked_by_piece_on_b8() -> None:
+    """Black queenside castling forbidden when b8 is occupied by own piece."""
+    board = Board()
+    board.clear_board()
+    board.set_piece(
+        get_square_constant(7, 4), create_piece(Color.WHITE, PieceType.KING)
+    )
+    board.set_piece(
+        get_square_constant(0, 4), create_piece(Color.BLACK, PieceType.KING)
+    )
+    board.set_piece(
+        get_square_constant(0, 0), create_piece(Color.BLACK, PieceType.ROOK)
+    )
+    board.set_piece(
+        get_square_constant(0, 1), create_piece(Color.BLACK, PieceType.KNIGHT)
+    )  # Black knight on b8 blocks queenside castling
+    board.turn = Color.BLACK
+    assert (
+        board.make_move(get_square_constant(0, 4), get_square_constant(0, 2)) is False
+    )
+
+
+# =============================================================================
 # Category 1: Castling Edge Cases
 # =============================================================================
 def test_castling_rook_captured_forbids_kingside() -> None:
