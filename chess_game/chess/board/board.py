@@ -10,7 +10,7 @@ import copy
 from typing import List, Optional, Tuple
 
 from chess_game.chess.constants import Color
-from chess_game.chess.types import PieceType, Piece
+from chess_game.chess.types import PieceType, Piece, CastlingRights
 from chess_game.chess.board.move_validation import MoveValidator
 from chess_game.chess.board.move_execution import MoveExecutor
 from chess_game.chess.board.castling import CastlingValidator
@@ -75,17 +75,14 @@ class Board:
         board: 8x8 list of Piece or None
         turn: Color whose turn it is
         en_passant_target: Optional en passant square
-        white_kingside / white_queenside / black_kingside / black_queenside: castling rights
+        castling_rights: CastlingRights tracking castling availability
     """
 
     def __init__(self) -> None:
         self.board: List[List[Optional[Piece]]] = self._create_board()
         self.turn = Color.WHITE
         self.en_passant_target: Optional[ConstantSquare] = None
-        self.white_kingside = True
-        self.white_queenside = True
-        self.black_kingside = True
-        self.black_queenside = True
+        self.castling_rights = CastlingRights()
 
         self.init_validators()
 
@@ -394,10 +391,12 @@ class Board:
         ]
         cloned.turn = self.turn
         cloned.en_passant_target = self.en_passant_target
-        cloned.white_kingside = self.white_kingside
-        cloned.white_queenside = self.white_queenside
-        cloned.black_kingside = self.black_kingside
-        cloned.black_queenside = self.black_queenside
+        cloned.castling_rights = CastlingRights(
+            white_kingside=self.castling_rights.white_kingside,
+            white_queenside=self.castling_rights.white_queenside,
+            black_kingside=self.castling_rights.black_kingside,
+            black_queenside=self.castling_rights.black_queenside,
+        )
         cloned.init_validators()
         return cloned
 
@@ -519,11 +518,11 @@ class Board:
         # King moves -> lose both castling rights for that color
         if start_piece.kind == PieceType.KING:
             if is_white:
-                self.white_kingside = False
-                self.white_queenside = False
+                self.castling_rights.white_kingside = False
+                self.castling_rights.white_queenside = False
             else:
-                self.black_kingside = False
-                self.black_queenside = False
+                self.castling_rights.black_kingside = False
+                self.castling_rights.black_queenside = False
 
         # Rook moves from starting square -> lose side-specific castling right
         # White home row = row 7 (rank 1), Black home row = row 0 (rank 8)
@@ -532,24 +531,24 @@ class Board:
             col = int(start_pos.col)
             if is_white and row == 7:
                 if col == 7:  # h1 - white kingside rook
-                    self.white_kingside = False
+                    self.castling_rights.white_kingside = False
                 elif col == 0:  # a1 - white queenside rook
-                    self.white_queenside = False
+                    self.castling_rights.white_queenside = False
             elif not is_white and row == 0:
                 if col == 7:  # h8 - black kingside rook
-                    self.black_kingside = False
+                    self.castling_rights.black_kingside = False
                 elif col == 0:  # a8 - black queenside rook
-                    self.black_queenside = False
+                    self.castling_rights.black_queenside = False
 
         # Rook captured on its starting square
         if int(end_pos.row) == 0 and int(end_pos.col) == 7:
-            self.black_kingside = False
+            self.castling_rights.black_kingside = False
         elif int(end_pos.row) == 0 and int(end_pos.col) == 0:
-            self.black_queenside = False
+            self.castling_rights.black_queenside = False
         elif int(end_pos.row) == 7 and int(end_pos.col) == 7:
-            self.white_kingside = False
+            self.castling_rights.white_kingside = False
         elif int(end_pos.row) == 7 and int(end_pos.col) == 0:
-            self.white_queenside = False
+            self.castling_rights.white_queenside = False
 
     # ---- display ----
 

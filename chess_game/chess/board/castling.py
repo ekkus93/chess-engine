@@ -106,11 +106,15 @@ class CastlingValidator:
         # Check castling rights
         if int(destination.col) > int(king_square.col):
             right = (
-                board.white_kingside if color == Color.WHITE else board.black_kingside
+                board.castling_rights.white_kingside
+                if color == Color.WHITE
+                else board.castling_rights.black_kingside
             )
         else:
             right = (
-                board.white_queenside if color == Color.WHITE else board.black_queenside
+                board.castling_rights.white_queenside
+                if color == Color.WHITE
+                else board.castling_rights.black_queenside
             )
         if not right:
             return False

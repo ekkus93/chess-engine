@@ -373,13 +373,13 @@ def _fen_key(board: Board) -> str:
     turn_char = "w" if board.turn == Color.WHITE else "b"
 
     castling = ""
-    if board.white_kingside:
+    if board.castling_rights.white_kingside:
         castling += "K"
-    if board.white_queenside:
+    if board.castling_rights.white_queenside:
         castling += "Q"
-    if board.black_kingside:
+    if board.castling_rights.black_kingside:
         castling += "k"
-    if board.black_queenside:
+    if board.castling_rights.black_queenside:
         castling += "q"
     if not castling:
         castling = "-"

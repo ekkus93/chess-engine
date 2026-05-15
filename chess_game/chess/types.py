@@ -42,6 +42,16 @@ class Piece:
 
 
 @dataclass
+class CastlingRights:
+    """Tracks castling availability for both colors."""
+
+    white_kingside: bool = True
+    white_queenside: bool = True
+    black_kingside: bool = True
+    black_queenside: bool = True
+
+
+@dataclass
 class LegalMove:
     """A legal move from one square to another, optionally with promotion."""
 

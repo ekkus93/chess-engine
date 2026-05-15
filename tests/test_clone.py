@@ -66,19 +66,19 @@ def test_board_clone_preserves_all_state() -> None:
     original = Board()
     original.turn = Color.BLACK
     original.en_passant_target = sq("d5")  # d5
-    original.white_kingside = False
-    original.black_queenside = False
-    original.white_queenside = True
-    original.black_kingside = True
+    original.castling_rights.white_kingside = False
+    original.castling_rights.black_queenside = False
+    original.castling_rights.white_queenside = True
+    original.castling_rights.black_kingside = True
 
     cloned = original.clone()
 
     assert cloned.turn == Color.BLACK
     assert cloned.en_passant_target == sq("d5")
-    assert cloned.white_kingside is False
-    assert cloned.white_queenside is True
-    assert cloned.black_kingside is True
-    assert cloned.black_queenside is False
+    assert cloned.castling_rights.white_kingside is False
+    assert cloned.castling_rights.white_queenside is True
+    assert cloned.castling_rights.black_kingside is True
+    assert cloned.castling_rights.black_queenside is False
 
 
 def test_board_clone_moves_on_clone_independent() -> None:

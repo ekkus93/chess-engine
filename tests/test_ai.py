@@ -110,10 +110,10 @@ class TestEvaluationSymmetry:
                     assert orig_piece.color == curr_piece.color
                     assert orig_piece.kind == curr_piece.kind
         assert board.turn == original.turn
-        assert board.white_kingside == original.white_kingside
-        assert board.white_queenside == original.white_queenside
-        assert board.black_kingside == original.black_kingside
-        assert board.black_queenside == original.black_queenside
+        assert board.castling_rights.white_kingside == original.castling_rights.white_kingside
+        assert board.castling_rights.white_queenside == original.castling_rights.white_queenside
+        assert board.castling_rights.black_kingside == original.castling_rights.black_kingside
+        assert board.castling_rights.black_queenside == original.castling_rights.black_queenside
         assert board.en_passant_target == original.en_passant_target
 
 
