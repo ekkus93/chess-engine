@@ -1,3 +1,5 @@
+"""Move data structure and algebraic notation parser."""
+
 from dataclasses import dataclass
 from typing import Optional
 

@@ -19,23 +19,25 @@ class PromotionValidator:
         self.board = board
 
     def get_default_promotion_piece(self, _color: Color) -> PieceType:
+        """Return the default promotion piece type."""
         return PieceType.QUEEN
 
     def is_promotion_required(
         self, piece: Piece, _from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
+        """Return True if moving the piece to to_square triggers promotion."""
         if piece.kind != PieceType.PAWN:
             return False
 
         # White promotes at row 0 (rank 8), Black at row 7 (rank 1)
         if piece.color == Color.WHITE:
             return int(to_square.row) == 0
-        else:
-            return int(to_square.row) == 7
+        return int(to_square.row) == 7
 
     def get_promotion_options(
         self, piece: Piece, _to_square: ConstantSquare
     ) -> List[PieceType]:
+        """Return all valid promotion piece types for a pawn."""
         if piece.kind != PieceType.PAWN:
             return []
 
@@ -47,6 +49,7 @@ class PromotionValidator:
         ]
 
     def is_valid_promotion_piece(self, piece_type: PieceType) -> bool:
+        """Return True if piece_type is a valid promotion target."""
         return piece_type in [
             PieceType.QUEEN,
             PieceType.ROOK,
@@ -57,6 +60,7 @@ class PromotionValidator:
     def is_valid_promotion_choice(
         self, piece: Piece, end_pos: ConstantSquare, promotion: Optional[PieceType]
     ) -> bool:
+        """Return True if the promotion choice is valid for this move."""
         if promotion is None or piece.kind != PieceType.PAWN:
             return True
 
@@ -71,16 +75,16 @@ class PromotionValidator:
         ]
 
     def is_promotion_rank(self, piece: Piece, to_square: ConstantSquare) -> bool:
+        """Return True if to_square is on the promotion rank for piece's color."""
         if piece.kind != PieceType.PAWN:
             return False
 
         if piece.color == Color.WHITE:
             return int(to_square.row) == 0
-        else:
-            return int(to_square.row) == 7
+        return int(to_square.row) == 7
 
     def get_promotion_rank_for_color(self, color: Color) -> int:
+        """Return the promotion row index for the given color."""
         if color == Color.WHITE:
             return 0
-        else:
-            return 7
+        return 7
