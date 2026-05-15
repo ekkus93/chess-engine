@@ -18,18 +18,74 @@ def _pawn_direction(color: Color) -> int:
     return -1 if color == Color.WHITE else 1
 
 
+def _get_en_passant_moves(
+    board,
+    next_row,
+    current_col,
+    moves,
+) -> None:
+    """Append en-passant capture moves if applicable."""
+    if hasattr(board, "en_passant_target") and board.en_passant_target is not None:
+        ep_target = board.en_passant_target
+        ep_row = int(ep_target.row)
+        ep_col = int(ep_target.col)
+        if ep_row == int(next_row) and abs(ep_col - int(current_col)) == 1:
+            ep_square = ConstantSquare(
+                row=next_row, col=get_col_constant(ep_col)
+            )
+            if PieceMovers.is_valid_position(ep_square):
+                moves.append(ep_target)
+
+
+def _get_pawn_captures(
+    piece: Piece,
+    board,
+    next_row,
+    current_col,
+    moves,
+) -> None:
+    """Append regular diagonal capture moves for a pawn."""
+    for col_offset in [-1, 1]:
+        target_col_idx = int(current_col) + col_offset
+        if target_col_idx < 0 or target_col_idx >= 8:
+            continue
+
+        target_col = get_col_constant(target_col_idx)
+        cap_square = ConstantSquare(row=next_row, col=target_col)
+
+        if PieceMovers.is_valid_position(cap_square):
+            target_piece = board.get_piece(cap_square)
+            if target_piece is not None and target_piece.color != piece.color:
+                moves.append(cap_square)
+
+
 class PieceMovers:
     """Contains move validation logic for each piece type."""
+
+    _MOVEMENT_GETTERS = {
+        PieceType.PAWN: "_get_pawn_moves",
+        PieceType.KNIGHT: "_get_knight_moves",
+        PieceType.BISHOP: "_get_bishop_moves",
+        PieceType.ROOK: "_get_rook_moves",
+        PieceType.QUEEN: "_get_queen_moves",
+        PieceType.KING: "_get_king_moves",
+    }
 
     @staticmethod
     def get_valid_moves(piece: Piece, board) -> List[ConstantSquare]:
         """Get all valid moves for a piece."""
         if piece.square is None:
             return []
-        getter = _MOVEMENT_GETTERS.get(piece.kind)
-        if getter is None:
+        getter_name = PieceMovers._MOVEMENT_GETTERS.get(piece.kind)
+        if getter_name is None:
             return []
+        getter = getattr(PieceMovers, getter_name)
         return getter(piece, board)
+
+    @staticmethod
+    def is_valid_position(square: ConstantSquare) -> bool:
+        """Check if a square is on the board."""
+        return 0 <= int(square.row) < 8 and 0 <= int(square.col) < 8
 
     @staticmethod
     def _get_pawn_moves(piece: Piece, board) -> List[ConstantSquare]:
@@ -43,12 +99,11 @@ class PieceMovers:
         # Forward 1 square
         next_row = get_row_constant(current_row + direction)
         target_square = ConstantSquare(row=next_row, col=current_col)
-        if PieceMovers._is_valid_position(board, target_square):
+        if PieceMovers.is_valid_position(target_square):
             if board.is_empty(target_square):
                 moves.append(target_square)
 
         # Forward 2 squares (only on first move)
-        # WHITE starts at array row 6 (rank 2), BLACK starts at row 1 (rank 7)
         is_first_move = (
             current_row == 6 if piece.color == Color.WHITE else current_row == 1
         )
@@ -56,44 +111,18 @@ class PieceMovers:
         if is_first_move:
             target_row_2 = get_row_constant(current_row + 2 * direction)
             target_square_2 = ConstantSquare(row=target_row_2, col=current_col)
-            if PieceMovers._is_valid_position(board, target_square_2):
+            if PieceMovers.is_valid_position(target_square_2):
                 square_between = ConstantSquare(row=next_row, col=current_col)
                 if board.is_empty(square_between) and board.is_empty(target_square_2):
                     moves.append(target_square_2)
 
         # Captures (regular diagonal capture)
-        for col_offset in [-1, 1]:
-            target_col_idx = int(current_col) + col_offset
-
-            # Check bounds before creating ConstantSquare
-            if target_col_idx < 0 or target_col_idx >= 8:
-                continue
-
-            target_col = get_col_constant(target_col_idx)
-            target_square = ConstantSquare(row=next_row, col=target_col)
-
-            if PieceMovers._is_valid_position(board, target_square):
-                target_piece = board.get_piece(target_square)
-                if target_piece is not None and target_piece.color != piece.color:
-                    moves.append(target_square)
+        _get_pawn_captures(piece, board, next_row, current_col, moves)
 
         # En passant capture
-        if hasattr(board, "en_passant_target") and board.en_passant_target is not None:
-            ep_target = board.en_passant_target
-            ep_row = int(ep_target.row)
-            ep_col = int(ep_target.col)
-            if ep_row == int(next_row) and abs(ep_col - int(current_col)) == 1:
-                if PieceMovers._is_valid_position(
-                    board, ConstantSquare(row=next_row, col=get_col_constant(ep_col))
-                ):
-                    moves.append(ep_target)
+        _get_en_passant_moves(board, next_row, current_col, moves)
 
         return moves
-
-    @staticmethod
-    def _is_valid_position(_board, square: ConstantSquare) -> bool:
-        """Check if a square is on the board."""
-        return 0 <= int(square.row) < 8 and 0 <= int(square.col) < 8
 
     @staticmethod
     def _get_knight_moves(piece: Piece, board) -> List[ConstantSquare]:
@@ -115,7 +144,6 @@ class PieceMovers:
             target_row = int(piece.square.row) + row_offset
             target_col = int(piece.square.col) + col_offset
 
-            # Check bounds before converting to ConstantSquare
             if not (0 <= target_row < 8 and 0 <= target_col < 8):
                 continue
 
@@ -244,7 +272,6 @@ class PieceMovers:
             target_row = int(piece.square.row) + row_offset
             target_col = int(piece.square.col) + col_offset
 
-            # Check bounds before converting to ConstantSquare
             if not (0 <= target_row < 8 and 0 <= target_col < 8):
                 continue
 
@@ -260,12 +287,3 @@ class PieceMovers:
                 moves.append(target_square)
 
         return moves
-
-_MOVEMENT_GETTERS = {
-    PieceType.PAWN: PieceMovers._get_pawn_moves,
-    PieceType.KNIGHT: PieceMovers._get_knight_moves,
-    PieceType.BISHOP: PieceMovers._get_bishop_moves,
-    PieceType.ROOK: PieceMovers._get_rook_moves,
-    PieceType.QUEEN: PieceMovers._get_queen_moves,
-    PieceType.KING: PieceMovers._get_king_moves,
-}

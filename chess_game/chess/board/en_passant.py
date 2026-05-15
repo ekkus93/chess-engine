@@ -63,7 +63,11 @@ class EnPassantValidator:
         )
         captured_piece = self.board.get_piece(captured_square)
 
-        if captured_piece is None or captured_piece.kind != PieceType.PAWN or captured_piece.color == piece.color:
+        if (
+            captured_piece is None
+            or captured_piece.kind != PieceType.PAWN
+            or captured_piece.color == piece.color
+        ):
             return False
 
         # Check that en passant capture doesn't expose king to check

@@ -51,24 +51,13 @@ class MoveValidator:
         8. Reject if it leaves the moving side's king in check.
         9. Otherwise return True.
         """
-        # 1. Source square must contain a piece
-        piece = self.board.get_piece(from_square)
+        piece = self._get_source_piece(from_square, to_square)
         if piece is None:
-            return False
-
-        # 2. Destination must be on board
-        if not self.board.is_valid_position(to_square):
-            return False
-
-        # 3. Destination must not contain a friendly piece
-        dest_piece = self.board.get_piece(to_square)
-        if dest_piece is not None and dest_piece.color == piece.color:
             return False
 
         # 4. Castling delegation
         if self._is_castling_move(piece, from_square, to_square):
-            result = self._validate_castling(piece, from_square, to_square)
-            return result
+            return self._validate_castling(piece, from_square, to_square)
 
         # 5. En passant delegation
         if self._is_en_passant_move(piece, from_square, to_square):
@@ -85,6 +74,20 @@ class MoveValidator:
 
         # 9. Otherwise return True
         return True
+
+    def _get_source_piece(
+        self, from_square: ConstantSquare, to_square: ConstantSquare
+    ) -> Optional[Piece]:
+        """Get the piece at from_square, validating basic move constraints."""
+        piece = self.board.get_piece(from_square)
+        if piece is None:
+            return None
+        if not self.board.is_valid_position(to_square):
+            return None
+        dest_piece = self.board.get_piece(to_square)
+        if dest_piece is not None and dest_piece.color == piece.color:
+            return None
+        return piece
 
     def _is_castling_move(
         self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
@@ -249,13 +252,7 @@ class MoveValidator:
         self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
         """Check if making the move would expose the piece's king to check."""
-        piece_color = piece.color
-        enemy_color = Color.BLACK if piece_color == Color.WHITE else Color.WHITE
-
-        # Clone board and simulate the move
         temp_board = self.board.clone()
-
-        # Simulate move
         temp_piece = Piece(
             color=piece.color,
             kind=piece.kind,
@@ -264,34 +261,36 @@ class MoveValidator:
         temp_board.set_piece(to_square, temp_piece)
         temp_board.clear_square(from_square)
 
-        # Find the king
-        king_square = temp_board.find_king(piece_color)
+        king_square = temp_board.find_king(piece.color)
         if king_square is None:
             return False
 
-        # Check if any enemy piece can attack the king
-        for row in range(8):
-            for col in range(8):
-                sq = ConstantSquare(
-                    row=get_row_constant(row), col=get_col_constant(col)
-                )
-                attacker = temp_board.get_piece(sq)
-                if attacker is not None and attacker.color == enemy_color:
-                    if self._can_piece_attack(attacker, sq, king_square, temp_board):
-                        return True
-
-        return False
+        enemy_color = Color.BLACK if piece.color == Color.WHITE else Color.WHITE
+        return self._is_square_attacked_by_color(
+            temp_board, king_square, enemy_color
+        )
 
     def _would_expose_king_to_check_en_passant(
         self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
         """Check if en passant capture would expose king to check."""
-        piece_color = piece.color
-        enemy_color = Color.BLACK if piece_color == Color.WHITE else Color.WHITE
+        temp_board = self._simulate_en_passant(
+            piece, from_square, to_square
+        )
+        king_square = temp_board.find_king(piece.color)
+        if king_square is None:
+            return False
 
+        enemy_color = Color.BLACK if piece.color == Color.WHITE else Color.WHITE
+        return self._is_square_attacked_by_color(
+            temp_board, king_square, enemy_color
+        )
+
+    def _simulate_en_passant(
+        self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
+    ) -> "Board":
+        """Simulate en passant capture on a cloned board."""
         temp_board = self.board.clone()
-
-        # Move the pawn
         temp_piece = Piece(
             color=piece.color,
             kind=piece.kind,
@@ -300,7 +299,6 @@ class MoveValidator:
         temp_board.set_piece(to_square, temp_piece)
         temp_board.clear_square(from_square)
 
-        # Remove captured pawn (one rank beyond EP target in capturing pawn's direction)
         direction = -1 if piece.color == Color.WHITE else 1
         assert self.board.en_passant_target is not None
         captured_row = int(self.board.en_passant_target.row) - direction
@@ -309,21 +307,21 @@ class MoveValidator:
             col=get_col_constant(int(to_square.col)),
         )
         temp_board.clear_square(captured_square)
+        return temp_board
 
-        king_square = temp_board.find_king(piece_color)
-        if king_square is None:
-            return False
-
+    def _is_square_attacked_by_color(
+        self, board: "Board", square: ConstantSquare, color: Color
+    ) -> bool:
+        """Check if square is attacked by any piece of the given color."""
         for row in range(8):
             for col in range(8):
                 sq = ConstantSquare(
                     row=get_row_constant(row), col=get_col_constant(col)
                 )
-                attacker = temp_board.get_piece(sq)
-                if attacker is not None and attacker.color == enemy_color:
-                    if self._can_piece_attack(attacker, sq, king_square, temp_board):
+                attacker = board.get_piece(sq)
+                if attacker is not None and attacker.color == color:
+                    if self._can_piece_attack(attacker, sq, square, board):
                         return True
-
         return False
 
     def is_piece_pinned(self, square: ConstantSquare, piece_color: Color) -> bool:
@@ -358,19 +356,20 @@ class MoveValidator:
         if attacker.kind == PieceType.PAWN:
             return self._is_pawn_attack(attacker, attacker_square, target_square)
         if attacker.kind == PieceType.ROOK:
-            return self._is_rook_attack(attacker_square, target_square, board)
+            return self._is_rook_attack(
+                attacker, attacker_square, target_square, board
+            )
         if attacker.kind == PieceType.BISHOP:
             return self._is_bishop_attack(attacker_square, target_square, board)
         if attacker.kind == PieceType.QUEEN:
             return self._is_queen_attack(attacker_square, target_square, board)
         if attacker.kind == PieceType.KNIGHT:
             return self._is_knight_attack(attacker_square, target_square)
-        if attacker.kind == PieceType.KING:
-            return self._is_king_attack(attacker_square, target_square)
-        return False
+        return self._is_king_attack(attacker_square, target_square)
 
     def _is_rook_attack(
         self,
+        _attacker: Piece,
         from_sq: ConstantSquare,
         to_sq: ConstantSquare,
         board: "Board",
@@ -378,7 +377,6 @@ class MoveValidator:
         """Check if rook can attack from from_sq to to_sq."""
         if int(from_sq.row) != int(to_sq.row) and int(from_sq.col) != int(to_sq.col):
             return False
-
         return self.path_validator.is_path_clear(board, from_sq, to_sq)
 
     def _is_bishop_attack(

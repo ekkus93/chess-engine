@@ -21,13 +21,13 @@ def _is_pawn_attack_wrapper(
     attacker: Piece,
     attacker_square: ConstantSquare,
     target_square: ConstantSquare,
-    board: Board,
+    _board: Board,
 ) -> bool:
     return _is_pawn_attack(attacker, attacker_square, target_square)
 
 
 def _is_rook_attack_wrapper(
-    attacker: Piece,
+    _attacker: Piece,
     attacker_square: ConstantSquare,
     target_square: ConstantSquare,
     board: Board,
@@ -36,7 +36,7 @@ def _is_rook_attack_wrapper(
 
 
 def _is_bishop_attack_wrapper(
-    attacker: Piece,
+    _attacker: Piece,
     attacker_square: ConstantSquare,
     target_square: ConstantSquare,
     board: Board,
@@ -45,7 +45,7 @@ def _is_bishop_attack_wrapper(
 
 
 def _is_queen_attack_wrapper(
-    attacker: Piece,
+    _attacker: Piece,
     attacker_square: ConstantSquare,
     target_square: ConstantSquare,
     board: Board,
@@ -54,19 +54,19 @@ def _is_queen_attack_wrapper(
 
 
 def _is_knight_attack_wrapper(
-    attacker: Piece,
+    _attacker: Piece,
     attacker_square: ConstantSquare,
     target_square: ConstantSquare,
-    board: Board,
+    _board: Board,
 ) -> bool:
     return _is_knight_attack(attacker_square, target_square)
 
 
 def _is_king_attack_wrapper(
-    attacker: Piece,
+    _attacker: Piece,
     attacker_square: ConstantSquare,
     target_square: ConstantSquare,
-    board: Board,
+    _board: Board,
 ) -> bool:
     return _is_king_attack(attacker_square, target_square)
 

@@ -94,6 +94,7 @@ class Board:
         self.turn = Color.WHITE
         self.en_passant_target: Optional[ConstantSquare] = None
         self.castling_rights = CastlingRights()
+        self._validators: BoardValidators  # type: ignore[assignment]
 
         self.init_validators()
 
@@ -513,7 +514,6 @@ class Board:
     ) -> None:
         """Update castling rights after a move."""
         piece_color = start_piece.color
-        is_white = piece_color == Color.WHITE
 
         # King moves -> lose both castling rights for that color
         if start_piece.kind == PieceType.KING:

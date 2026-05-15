@@ -32,7 +32,7 @@ All 189 tests pass, mypy is clean. Remaining issues are structural pylint warnin
 
 ---
 
-## Task 3: `chess_game/chess/board/board.py` — too-many-return-statements (7/6) on `make_move`
+## Task 3: `chess_game/chess/board/board.py` — too-many-return-statements (7/6) on `make_move` ✅ DONE
 
 ### Subtask 3.1: Extract validation checks into a single `_is_move_valid` method
 - Move all the pre-execution validation (piece check, promotion, castling, en passant, move legality) into `_is_move_valid`
@@ -43,7 +43,7 @@ All 189 tests pass, mypy is clean. Remaining issues are structural pylint warnin
 
 ---
 
-## Task 4: `chess_game/chess/board/board.py` — too-many-branches (14/12) on `_update_castling_rights`
+## Task 4: `chess_game/chess/board/board.py` — too-many-branches (14/12) on `_update_castling_rights` ✅ DONE
 
 ### Subtask 4.1: Extract king-move castling loss
 - Move the "king moves → lose both rights" logic into `_clear_castling_for_color(color)`
@@ -56,7 +56,7 @@ All 189 tests pass, mypy is clean. Remaining issues are structural pylint warnin
 
 ---
 
-## Task 5: `chess_game/chess/ai.py` — minimax function refactoring
+## Task 5: `chess_game/chess/ai.py` — minimax function refactoring ✅ DONE
 
 ### Subtask 5.1: too-many-arguments (6/5) & too-many-positional-arguments (6/5)
 - Create a `MinimaxParams` dataclass: `board`, `depth`, `alpha`, `beta`, `maximizing_player`, `depth_limit`
@@ -88,7 +88,7 @@ All 189 tests pass, mypy is clean. Remaining issues are structural pylint warnin
 
 ---
 
-## Task 7: `chess_game/chess/board/attack_utils.py` — too-many-return-statements (7/6)
+## Task 7: `chess_game/chess/board/attack_utils.py` — too-many-return-statements (7/6) ✅ DONE
 
 ### Subtask 7.1: `is_square_attacked` consolidation
 - Extract per-attacker-type checks into helpers: `_check_pawn_attacks`, `_check_knight_attacks`, `_check_sliding_attacks`, `_check_king_attacks`
@@ -96,7 +96,7 @@ All 189 tests pass, mypy is clean. Remaining issues are structural pylint warnin
 
 ---
 
-## Task 8: `chess_game/chess/board/en_passant.py` — too-many-return-statements (9/6)
+## Task 8: `chess_game/chess/board/en_passant.py` — too-many-return-statements (9/6) ✅ DONE
 
 ### Subtask 8.1: `validate_en_passant_capture` consolidation
 - Extract individual guard checks into `_validate_en_passant_pawn`, `_validate_en_passant_target`, `_validate_en_passant_geometry`
@@ -104,7 +104,7 @@ All 189 tests pass, mypy is clean. Remaining issues are structural pylint warnin
 
 ---
 
-## Task 9: `chess_game/chess/pieces/piece_movers.py` — too-many-return-statements, too-many-locals, too-few-public-methods
+## Task 9: `chess_game/chess/pieces/piece_movers.py` — too-many-return-statements, too-many-locals, too-few-public-methods ✅ DONE
 
 ### Subtask 9.1: `PieceMovers` — too-few-public-methods (1/2)
 - Either add a second public method or convert to a module with standalone functions
