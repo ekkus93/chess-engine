@@ -1,4 +1,5 @@
 """Interactive chess game entry point."""
+
 from __future__ import annotations
 
 from chess_game.chess.board import Board

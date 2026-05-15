@@ -48,7 +48,7 @@ Do not expand scope beyond this TODO.
 | 5: Test coordinate cleanup | IN PROGRESS | 1 file converted; ~338 raw coords remain in 8 priority files |
 | 6: Stale comments | DONE | Full-project search clean |
 | 7: BoardState | DONE | Option A — removed |
-| 8: AI evaluation | PARTIAL | Fix applied; symmetry tests (8.3) not done |
+| 8: AI evaluation | DONE | Fix applied; symmetry tests (8.3) complete |
 | 9: Cache files | PARTIAL | `.gitignore` needs updating (9.2) |
 | 10: Final acceptance | NOT STARTED | Blocked on Tasks 3, 5, 8.3, 9.2 |
 
@@ -605,7 +605,7 @@ Use this option only if `BoardState` is intentionally part of the architecture.
 
 ## Task 8: Optional AI evaluation orientation fix
 
-**Status: PARTIAL** — Fix applied (`row = 7 - row` for Black in `ai.py:84`). Starting-position evaluation confirmed at `0`. Subtask 8.3 (evaluation symmetry tests) not yet done.
+**Status: DONE** — Fix applied (`row = 7 - row` for Black in `ai.py:84`). Starting-position evaluation confirmed at `0`. Symmetry tests (8.3) complete with 8 tests in `tests/test_ai.py`.
 
 Do this only after Tasks 1 through 7 are complete.
 
@@ -641,9 +641,9 @@ Do this only after Tasks 1 through 7 are complete.
 
 ### 8.3 Add evaluation symmetry tests
 
-- [ ] Add a test asserting the starting position evaluates to `0`, unless a documented tempo bonus exists.
-- [ ] Add a mirrored-position test to confirm White/Black piece-square scoring is symmetric.
-- [ ] Ensure AI simulations still do not mutate the original board.
+- [x] Add a test asserting the starting position evaluates to `0`, unless a documented tempo bonus exists.
+- [x] Add a mirrored-position test to confirm White/Black piece-square scoring is symmetric.
+- [x] Ensure AI simulations still do not mutate the original board.
 
 ### 8.4 Do not tune AI search
 

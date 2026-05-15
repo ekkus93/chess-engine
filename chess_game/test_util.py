@@ -6,7 +6,11 @@ from typing import TYPE_CHECKING, Optional
 
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.constants import Color
-from chess_game.chess.constants import ConstantSquare, get_col_constant, get_row_constant
+from chess_game.chess.constants import (
+    ConstantSquare,
+    get_col_constant,
+    get_row_constant,
+)
 from chess_game.chess.types import PieceType
 
 if TYPE_CHECKING:
@@ -32,4 +36,6 @@ def setup_kings(board: Board) -> None:
 
 def get_piece(board: Board, square: tuple) -> Optional[object]:
     """Get a piece from the board."""
-    return board.get_piece(ConstantSquare(row=get_row_constant(square[0]), col=get_col_constant(square[1])))
+    return board.get_piece(
+        ConstantSquare(row=get_row_constant(square[0]), col=get_col_constant(square[1]))
+    )

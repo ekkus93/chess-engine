@@ -92,6 +92,30 @@ class TestEvaluationSymmetry:
         mirrored = _mirror_board(board)
         assert evaluate(board) == -evaluate(mirrored)
 
+    def test_simulations_do_not_mutate_original_board(self) -> None:
+        """AI minimax must not mutate the original board."""
+        from chess_game.chess.ai import get_best_move
+
+        board = Board()
+        original = board.clone()
+
+        get_best_move(board, depth=1)
+
+        for row in range(8):
+            for col in range(8):
+                orig_piece = original.board[row][col]
+                curr_piece = board.board[row][col]
+                assert (orig_piece is None) == (curr_piece is None)
+                if orig_piece is not None and curr_piece is not None:
+                    assert orig_piece.color == curr_piece.color
+                    assert orig_piece.kind == curr_piece.kind
+        assert board.turn == original.turn
+        assert board.white_kingside == original.white_kingside
+        assert board.white_queenside == original.white_queenside
+        assert board.black_kingside == original.black_kingside
+        assert board.black_queenside == original.black_queenside
+        assert board.en_passant_target == original.en_passant_target
+
 
 def _mirror_board(board: Board) -> Board:
     """Create a mirrored board: swap colors, flip rows (row -> 7-row)."""
