@@ -48,7 +48,7 @@ def create_piece(
         )
     piece = Piece(color=color, kind=piece_type)
     if square is not None:
-        piece._square = square
+        piece.square = square
     return piece
 
 
@@ -65,8 +65,7 @@ def forward_one(s: ConstantSquare, color: Color) -> ConstantSquare:
     """Move one square forward for a pawn."""
     if color == Color.WHITE:
         return offset_square(s, -1, 0)  # White moves toward rank 8 (row 0)
-    else:
-        return offset_square(s, 1, 0)  # Black moves toward rank 1 (row 7)
+    return offset_square(s, 1, 0)  # Black moves toward rank 1 (row 7)
 
 
 class Board:
@@ -88,6 +87,10 @@ class Board:
         self.black_kingside = True
         self.black_queenside = True
 
+        self.init_validators()
+
+    def init_validators(self) -> None:
+        """Initialize internal validator instances."""
         self._move_validator = MoveValidator(self)
         self._move_executor = MoveExecutor(self)
         self._promotion_validator = PromotionValidator(self)
@@ -114,7 +117,7 @@ class Board:
         if not (0 <= int(square.row) < 8 and 0 <= int(square.col) < 8):
             raise ValueError(f"Invalid square: {square}")
         if piece is not None:
-            piece._square = square
+            piece.square = square
         self.board[int(square.row)][int(square.col)] = piece
 
     def clear_square(self, square: ConstantSquare) -> None:
@@ -362,7 +365,7 @@ class Board:
         if king_sq is None:
             return False
         enemy = Color.BLACK if color == Color.WHITE else Color.WHITE
-        return CastlingValidator._is_square_attacked(self, king_sq, enemy)
+        return CastlingValidator.is_square_attacked(self, king_sq, enemy)
 
     def is_checkmate(self, color: Optional[Color] = None) -> bool:
         """Check if the given color (or side-to-move) is in checkmate."""
@@ -395,10 +398,7 @@ class Board:
         cloned.white_queenside = self.white_queenside
         cloned.black_kingside = self.black_kingside
         cloned.black_queenside = self.black_queenside
-        cloned._move_validator = MoveValidator(cloned)
-        cloned._move_executor = MoveExecutor(cloned)
-        cloned._promotion_validator = PromotionValidator(cloned)
-        cloned._en_passant_validator = EnPassantValidator(cloned)
+        cloned.init_validators()
         return cloned
 
     # ---- legal moves ----

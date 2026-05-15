@@ -170,7 +170,7 @@ class CastlingValidator:
         ]
 
         for square in king_path:
-            if CastlingValidator._is_square_attacked(board, square, enemy_color):
+            if CastlingValidator.is_square_attacked(board, square, enemy_color):
                 return False
 
         return True
@@ -212,9 +212,10 @@ class CastlingValidator:
         return True
 
     @staticmethod
-    def _is_square_attacked(
+    def is_square_attacked(
         board: Board, square: ConstantSquare, by_color: Color
     ) -> bool:
+        """Check if a square is attacked by pieces of the given color."""
         for row in range(8):
             for col in range(8):
                 piece_square = ConstantSquare(

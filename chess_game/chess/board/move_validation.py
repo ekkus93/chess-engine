@@ -11,10 +11,9 @@ from chess_game.chess.board.en_passant import EnPassantValidator
 from chess_game.chess.board.path_validator import PathValidator
 from chess_game.chess.pieces.piece_movers import PieceMovers
 from chess_game.chess.constants import (
-    get_row_constant,
-    get_col_constant,
-    COL_E,
-)
+        get_row_constant,
+        get_col_constant,
+    )
 
 if TYPE_CHECKING:
     from chess_game.chess.board.board import Board
@@ -142,10 +141,10 @@ class MoveValidator:
         """Get castling destination squares if the piece is a king."""
         if piece.kind != PieceType.KING:
             return []
-        assert piece._square is not None
+        assert piece.square is not None
 
         moves: List[ConstantSquare] = []
-        king_row = int(piece._square.row)
+        king_row = int(piece.square.row)
 
         if CastlingValidator.can_castle_kingside(self.board, piece.color):
             moves.append(
@@ -365,15 +364,15 @@ class MoveValidator:
         """Check if attacker can attack target."""
         if attacker.kind == PieceType.PAWN:
             return self._is_pawn_attack(attacker, attacker_square, target_square)
-        elif attacker.kind == PieceType.ROOK:
+        if attacker.kind == PieceType.ROOK:
             return self._is_rook_attack(attacker_square, target_square, board)
-        elif attacker.kind == PieceType.BISHOP:
+        if attacker.kind == PieceType.BISHOP:
             return self._is_bishop_attack(attacker_square, target_square, board)
-        elif attacker.kind == PieceType.QUEEN:
+        if attacker.kind == PieceType.QUEEN:
             return self._is_queen_attack(attacker_square, target_square, board)
-        elif attacker.kind == PieceType.KNIGHT:
+        if attacker.kind == PieceType.KNIGHT:
             return self._is_knight_attack(attacker_square, target_square)
-        elif attacker.kind == PieceType.KING:
+        if attacker.kind == PieceType.KING:
             return self._is_king_attack(attacker_square, target_square)
         return False
 

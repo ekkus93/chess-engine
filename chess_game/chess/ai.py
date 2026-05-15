@@ -226,13 +226,11 @@ def minimax(
         if is_maximizing:
             if best_score >= beta:
                 break  # Beta cutoff
-            if best_score > alpha:
-                alpha = best_score
+            alpha = max(alpha, best_score)
         else:
             if best_score <= alpha:
                 break  # Alpha cutoff
-            if best_score < beta:
-                beta = best_score
+            beta = min(beta, best_score)
 
         move_count += 1
 

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from chess_game.chess.types import Piece, PieceType
 
 from chess_game.chess.constants import (
+    Color,
     ConstantSquare,
     get_row_constant,
     get_col_constant,
@@ -29,15 +30,15 @@ def piece_attacks_square(
     """
     if attacker.kind == PieceType.PAWN:
         return _is_pawn_attack(attacker, attacker_square, target_square)
-    elif attacker.kind == PieceType.ROOK:
+    if attacker.kind == PieceType.ROOK:
         return _is_rook_attack(attacker_square, target_square, board)
-    elif attacker.kind == PieceType.BISHOP:
+    if attacker.kind == PieceType.BISHOP:
         return _is_bishop_attack(attacker_square, target_square, board)
-    elif attacker.kind == PieceType.QUEEN:
+    if attacker.kind == PieceType.QUEEN:
         return _is_queen_attack(attacker_square, target_square, board)
-    elif attacker.kind == PieceType.KNIGHT:
+    if attacker.kind == PieceType.KNIGHT:
         return _is_knight_attack(attacker_square, target_square)
-    elif attacker.kind == PieceType.KING:
+    if attacker.kind == PieceType.KING:
         return _is_king_attack(attacker_square, target_square)
     return False
 
@@ -48,8 +49,6 @@ def _is_pawn_attack(
     to_sq: ConstantSquare,
 ) -> bool:
     """Check if pawn can attack from from_sq to to_sq."""
-    from chess_game.chess.constants import Color
-
     direction = -1 if pawn.color == Color.WHITE else 1
     row_diff = int(to_sq.row) - int(from_sq.row)
     col_diff = int(to_sq.col) - int(from_sq.col)

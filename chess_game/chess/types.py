@@ -35,6 +35,11 @@ class Piece:
         """The ConstantSquare of the piece's current position, or None if unplaced."""
         return self._square
 
+    @square.setter
+    def square(self, value: Optional[ConstantSquare]) -> None:
+        """Set the piece's current square."""
+        self._square = value
+
 
 @dataclass
 class LegalMove:

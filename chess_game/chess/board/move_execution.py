@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from chess_game.chess.board.board import Board
 
 
-class MoveExecutor:
+class MoveExecutor:  # pylint: disable=too-few-public-methods
     """Executes moves on the board."""
 
     def __init__(self, board: Board):
@@ -30,6 +30,7 @@ class MoveExecutor:
         promotion_piece: Optional[PieceType] = None,
         _start_piece: Optional[Piece] = None,
     ) -> bool:
+        """Execute a validated move on the board."""
         piece = self.board.get_piece(from_square)
         if piece is None:
             raise ValueError(f"No piece at {from_square}")
@@ -123,7 +124,7 @@ class MoveExecutor:
         self.board.clear_square(from_square)
 
     def _is_en_passant_capture(
-        self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
+        self, _piece: Piece, _from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
         return (
             self.board.en_passant_target is not None
@@ -131,7 +132,7 @@ class MoveExecutor:
         )
 
     def _execute_en_passant_capture(
-        self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
+        self, piece: Piece, _from_square: ConstantSquare, to_square: ConstantSquare
     ) -> None:
         direction = -1 if piece.color == Color.WHITE else 1
         ep_target = self.board.en_passant_target
@@ -144,7 +145,7 @@ class MoveExecutor:
         self.board.clear_square(captured_square)
 
     def _move_piece(
-        self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
+        self, piece: Piece, _from_square: ConstantSquare, to_square: ConstantSquare
     ) -> None:
         self.board.set_piece(to_square, piece)
-        piece._square = to_square
+        piece.square = to_square
