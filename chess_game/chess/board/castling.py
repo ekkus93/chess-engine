@@ -20,7 +20,6 @@ from chess_game.chess.constants import (
     get_row_constant,
     get_col_constant,
 )
-from chess_game.chess.types import Piece
 from chess_game.chess.types import PieceType
 from chess_game.chess.board.attack_utils import piece_attacks_square
 
@@ -33,11 +32,12 @@ class CastlingValidator:
 
     @staticmethod
     def is_castling_move(start_pos: ConstantSquare, end_pos: ConstantSquare) -> bool:
+        """Return True if the move matches a kingside or queenside castling pattern."""
         if start_pos.col == COL_E and end_pos.col == COL_G:
-            return start_pos.row == ROW_1 or start_pos.row == ROW_8
+            return start_pos.row in (ROW_1, ROW_8)
 
         if start_pos.col == COL_E and end_pos.col == COL_C:
-            return start_pos.row == ROW_1 or start_pos.row == ROW_8
+            return start_pos.row in (ROW_1, ROW_8)
 
         return False
 
@@ -49,6 +49,7 @@ class CastlingValidator:
         color: Color,
         _piece_color: Color,
     ) -> bool:
+        """Return True if the king can castle from start_pos to end_pos."""
         if not CastlingValidator.is_castling_move(start_pos, end_pos):
             return False
 
@@ -66,6 +67,7 @@ class CastlingValidator:
         board: Board,
         color: Color,
     ) -> bool:
+        """Return True if the given color can castle kingside."""
         home_row = ROW_1 if color == Color.WHITE else ROW_8
         king_square = ConstantSquare(row=get_row_constant(int(home_row)), col=COL_E)
         rook_square = ConstantSquare(row=get_row_constant(int(home_row)), col=COL_H)
@@ -80,6 +82,7 @@ class CastlingValidator:
         board: Board,
         color: Color,
     ) -> bool:
+        """Return True if the given color can castle queenside."""
         home_row = ROW_1 if color == Color.WHITE else ROW_8
         king_square = ConstantSquare(row=get_row_constant(int(home_row)), col=COL_E)
         rook_square = ConstantSquare(row=get_row_constant(int(home_row)), col=COL_A)
@@ -89,6 +92,7 @@ class CastlingValidator:
             board, king_square, rook_square, destination, color, color
         )
 
+   # pylint: disable=too-many-return-statements
     @staticmethod
     def _can_complete_castle(
         board: Board,
@@ -98,6 +102,7 @@ class CastlingValidator:
         color: Color,
         _piece_color: Color,
     ) -> bool:
+        """Return True if all castling preconditions are met."""
         # Check castling rights
         if int(destination.col) > int(king_square.col):
             right = (
@@ -179,6 +184,7 @@ class CastlingValidator:
             piece is not None and piece.kind == PieceType.ROOK and piece.color == color
         )
 
+   # pylint: disable=too-many-return-statements
     @staticmethod
     def _castling_path_is_clear(
         king_square: ConstantSquare,
@@ -186,12 +192,13 @@ class CastlingValidator:
         board: Board,
         _piece_color: Color,
     ) -> bool:
+        """Return True if all squares between king and destination are empty."""
         if king_square.col == COL_E and destination.col == COL_G:
             piece = board.get_piece(ConstantSquare(row=king_square.row, col=COL_F))
             if piece is not None:
                 return False
             return True
-        elif king_square.col == COL_E and destination.col == COL_C:
+        if king_square.col == COL_E and destination.col == COL_C:
             piece_b = board.get_piece(ConstantSquare(row=king_square.row, col=COL_B))
             piece_d = board.get_piece(ConstantSquare(row=king_square.row, col=COL_D))
             piece_c = board.get_piece(ConstantSquare(row=king_square.row, col=COL_C))

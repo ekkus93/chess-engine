@@ -64,11 +64,11 @@ Warnings fall into two categories:
 **Warnings:** 10
 
 ### Subtasks
-- [ ] 5.1 Add docstrings to 4 methods (lines 35, 45, 65, 79) (C0116)
-- [ ] 5.2 Remove unused `Piece` import from `chess_game.chess.types` (W0611)
-- [ ] 5.3 Replace `start_pos.row == ROW_1 or start_pos.row == ROW_8` with `start_pos.row in (ROW_1, ROW_8)` at lines 37, 40 (R1714)
-- [ ] 5.4 Remove unnecessary `elif` after `return` at line 189 (R1705)
-- [ ] 5.5 Add `# pylint: disable=too-many-return-statements` to methods at lines 93 and 183 (R0911)
+- [x] 5.1 Add docstrings to 4 methods (lines 35, 45, 65, 79) (C0116)
+- [x] 5.2 Remove unused `Piece` import from `chess_game.chess.types` (W0611)
+- [x] 5.3 Replace `start_pos.row == ROW_1 or start_pos.row == ROW_8` with `start_pos.row in (ROW_1, ROW_8)` at lines 37, 40 (R1714)
+- [x] 5.4 Remove unnecessary `elif` after `return` at line 189 (R1705)
+- [x] 5.5 Add `# pylint: disable=too-many-return-statements` to methods at lines 93 and 183 (R0911)
 
 ---
 
