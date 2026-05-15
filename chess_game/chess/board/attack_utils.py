@@ -145,12 +145,15 @@ def _path_is_clear(
     for _ in range(1, steps):
         current_row += step_row
         current_col += step_col
-        if board.get_piece(
-            ConstantSquare(
-                row=get_row_constant(current_row),
-                col=get_col_constant(current_col),
+        if (
+            board.get_piece(
+                ConstantSquare(
+                    row=get_row_constant(current_row),
+                    col=get_col_constant(current_col),
+                )
             )
-        ) is not None:
+            is not None
+        ):
             return False
 
     return True

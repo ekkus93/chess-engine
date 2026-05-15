@@ -23,9 +23,7 @@ class EnPassantValidator:
         self.board = board
 
     @staticmethod
-    def is_valid_ep_rank(
-        piece_color: Color, from_row: int, ep_target_row: int
-    ) -> bool:
+    def is_valid_ep_rank(piece_color: Color, from_row: int, ep_target_row: int) -> bool:
         """Check if the capturing pawn is on the correct rank for en passant."""
         if piece_color == Color.WHITE and from_row != ep_target_row + 1:
             return False

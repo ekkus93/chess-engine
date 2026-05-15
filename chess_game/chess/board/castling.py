@@ -217,10 +217,6 @@ class CastlingValidator:
                 if piece is None or piece.color != by_color:
                     continue
 
-                if piece_attacks_square(
-                    piece, piece_square, square, board
-                ):
+                if piece_attacks_square(piece, piece_square, square, board):
                     return True
         return False
-
- 
