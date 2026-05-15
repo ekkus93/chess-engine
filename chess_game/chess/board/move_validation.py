@@ -194,48 +194,41 @@ class MoveValidator:
         When from_square is None, iterates only pieces of side-to-move.
         When from_square is provided, returns legal moves for that piece.
         """
-        all_moves = []
-
         if from_square is not None:
             piece = self.board.get_piece(from_square)
             if piece is None:
                 return []
+            return self._get_legal_moves_for_piece(piece, from_square)
 
-            valid_moves = self.piece_movers.get_valid_moves(piece, self.board)
-            if piece.kind == PieceType.KING:
-                valid_moves.extend(self._get_castling_moves(piece))
-
-            for to_square in valid_moves:
-                if self.is_valid_move(from_square, to_square):
-                    promotion = None
-                    if piece.kind == PieceType.PAWN:
-                        promotion = self._get_promotion_piece(piece, to_square)
-                    all_moves.append((from_square, to_square, promotion))
-        else:
-            # Get all legal moves for the side-to-move only
-            for row in range(8):
-                for col in range(8):
-                    sq = ConstantSquare(
-                        row=get_row_constant(row), col=get_col_constant(col)
-                    )
-                    piece = self.board.get_piece(sq)
-                    if piece is not None and piece.color == self.board.turn:
-                        valid_moves = self.piece_movers.get_valid_moves(
-                            piece, self.board
-                        )
-                        if piece.kind == PieceType.KING:
-                            valid_moves.extend(self._get_castling_moves(piece))
-
-                        for to_square in valid_moves:
-                            if self.is_valid_move(sq, to_square):
-                                promotion = None
-                                if piece.kind == PieceType.PAWN:
-                                    promotion = self._get_promotion_piece(
-                                        piece, to_square
-                                    )
-                                all_moves.append((sq, to_square, promotion))
-
+        all_moves: List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]] = []
+        for row in range(8):
+            for col in range(8):
+                sq = ConstantSquare(
+                    row=get_row_constant(row), col=get_col_constant(col)
+                )
+                piece = self.board.get_piece(sq)
+                if piece is not None and piece.color == self.board.turn:
+                    all_moves.extend(self._get_legal_moves_for_piece(piece, sq))
         return all_moves
+
+    def _get_legal_moves_for_piece(
+        self,
+        piece: Piece,
+        from_square: ConstantSquare,
+    ) -> List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]]:
+        """Get all legal moves for a given piece from a given square."""
+        valid_moves = self.piece_movers.get_valid_moves(piece, self.board)
+        if piece.kind == PieceType.KING:
+            valid_moves.extend(self._get_castling_moves(piece))
+
+        moves: List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]] = []
+        for to_square in valid_moves:
+            if self.is_valid_move(from_square, to_square):
+                promotion = None
+                if piece.kind == PieceType.PAWN:
+                    promotion = self._get_promotion_piece(piece, to_square)
+                moves.append((from_square, to_square, promotion))
+        return moves
 
     def _get_promotion_piece(
         self, piece: Piece, to_square: ConstantSquare
