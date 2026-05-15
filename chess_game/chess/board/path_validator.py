@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Optional
 from chess_game.chess.constants import get_row_constant, get_col_constant
 from chess_game.chess.types import Piece
 from chess_game.chess.constants import ConstantSquare
+from chess_game.chess.board.attack_utils import _path_is_clear
 
 if TYPE_CHECKING:
     from chess_game.chess.board.board import Board
@@ -25,31 +26,7 @@ class PathValidator:
         """Check if the path between two squares is clear (no pieces blocking)."""
         if from_square == to_square:
             return True
-
-        row_diff = to_square.row - from_square.row
-        col_diff = to_square.col - from_square.col
-
-        step_row = 0 if row_diff == 0 else (1 if row_diff > 0 else -1)
-        step_col = 0 if col_diff == 0 else (1 if col_diff > 0 else -1)
-
-        current_row = int(from_square.row) + step_row
-        current_col = int(from_square.col) + step_col
-
-        while (current_row, current_col) != (int(to_square.row), int(to_square.col)):
-            if (
-                board.get_piece(
-                    ConstantSquare(
-                        row=get_row_constant(current_row),
-                        col=get_col_constant(current_col),
-                    )
-                )
-                is not None
-            ):
-                return False
-            current_row += step_row
-            current_col += step_col
-
-        return True
+        return _path_is_clear(board, from_square, to_square)
 
     @staticmethod
     def is_piece_between(

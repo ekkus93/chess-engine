@@ -22,6 +22,7 @@ from chess_game.chess.constants import (
 )
 from chess_game.chess.types import Piece
 from chess_game.chess.types import PieceType
+from chess_game.chess.board.attack_utils import piece_attacks_square
 
 if TYPE_CHECKING:
     from chess_game.chess.board.board import Board
@@ -216,79 +217,10 @@ class CastlingValidator:
                 if piece is None or piece.color != by_color:
                     continue
 
-                if CastlingValidator._piece_attacks_square(
+                if piece_attacks_square(
                     piece, piece_square, square, board
                 ):
                     return True
         return False
 
-    @staticmethod
-    def _piece_attacks_square(
-        piece: Piece,
-        from_square: ConstantSquare,
-        to_square: ConstantSquare,
-        board: Board,
-    ) -> bool:
-        row_diff = to_square.row - from_square.row
-        col_diff = to_square.col - from_square.col
-
-        if piece.kind == PieceType.PAWN:
-            # White moves toward row 0 (direction -1), Black toward row 7 (direction +1)
-            direction = -1 if piece.color == Color.WHITE else 1
-            return row_diff == direction and abs(col_diff) == 1
-
-        if piece.kind == PieceType.KNIGHT:
-            return (abs(row_diff), abs(col_diff)) in {(2, 1), (1, 2)}
-
-        if piece.kind == PieceType.BISHOP:
-            if abs(row_diff) != abs(col_diff):
-                return False
-            return CastlingValidator._path_is_clear(from_square, to_square, board)
-
-        if piece.kind == PieceType.ROOK:
-            if from_square.row != to_square.row and from_square.col != to_square.col:
-                return False
-            return CastlingValidator._path_is_clear(from_square, to_square, board)
-
-        if piece.kind == PieceType.QUEEN:
-            if from_square.row != to_square.row and from_square.col != to_square.col:
-                if abs(row_diff) != abs(col_diff):
-                    return False
-            return CastlingValidator._path_is_clear(from_square, to_square, board)
-
-        if piece.kind == PieceType.KING:
-            return from_square != to_square and max(abs(row_diff), abs(col_diff)) == 1
-
-        return False
-
-    @staticmethod
-    def _path_is_clear(
-        from_square: ConstantSquare, to_square: ConstantSquare, board: Board
-    ) -> bool:
-        if from_square == to_square:
-            return True
-
-        row_diff = to_square.row - from_square.row
-        col_diff = to_square.col - from_square.col
-
-        step_row = 0 if row_diff == 0 else (1 if row_diff > 0 else -1)
-        step_col = 0 if col_diff == 0 else (1 if col_diff > 0 else -1)
-
-        current_row = int(from_square.row) + step_row
-        current_col = int(from_square.col) + step_col
-
-        while (current_row, current_col) != (int(to_square.row), int(to_square.col)):
-            if (
-                board.get_piece(
-                    ConstantSquare(
-                        row=get_row_constant(current_row),
-                        col=get_col_constant(current_col),
-                    )
-                )
-                is not None
-            ):
-                return False
-            current_row += step_row
-            current_col += step_col
-
-        return True
+ 

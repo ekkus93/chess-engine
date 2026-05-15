@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, List, Optional, Tuple
 from chess_game.chess.constants import Color, ConstantSquare
 from chess_game.chess.types import Piece, PieceType
 from chess_game.chess.board.castling import CastlingValidator
+from chess_game.chess.board.en_passant import EnPassantValidator
 from chess_game.chess.board.path_validator import PathValidator
 from chess_game.chess.pieces.piece_movers import PieceMovers
 from chess_game.chess.constants import (
@@ -108,12 +109,12 @@ class MoveValidator:
             return False
 
         # En passant: capturing pawn must be on the correct rank
-        from_row = int(from_square.row)
         if self.board.en_passant_target:
-            ep_row = int(self.board.en_passant_target.row)
-            if piece.color == Color.WHITE and from_row != ep_row + 1:
-                return False
-            if piece.color == Color.BLACK and from_row != ep_row - 1:
+            if not EnPassantValidator.is_valid_ep_rank(
+                piece.color,
+                int(from_square.row),
+                int(self.board.en_passant_target.row),
+            ):
                 return False
 
         if self.board.en_passant_target is None:

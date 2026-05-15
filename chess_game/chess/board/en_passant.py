@@ -22,6 +22,17 @@ class EnPassantValidator:
     def __init__(self, board: Board):
         self.board = board
 
+    @staticmethod
+    def is_valid_ep_rank(
+        piece_color: Color, from_row: int, ep_target_row: int
+    ) -> bool:
+        """Check if the capturing pawn is on the correct rank for en passant."""
+        if piece_color == Color.WHITE and from_row != ep_target_row + 1:
+            return False
+        if piece_color == Color.BLACK and from_row != ep_target_row - 1:
+            return False
+        return True
+
     def validate_en_passant_capture(
         self, from_square: ConstantSquare, to_square: ConstantSquare, piece: Piece
     ) -> bool:
@@ -37,11 +48,11 @@ class EnPassantValidator:
             return False
 
         # En passant: capturing pawn must be on the correct rank
-        from_row = int(from_square.row)
-        ep_row = int(self.board.en_passant_target.row)
-        if piece.color == Color.WHITE and from_row != ep_row + 1:
-            return False
-        if piece.color == Color.BLACK and from_row != ep_row - 1:
+        if not EnPassantValidator.is_valid_ep_rank(
+            piece.color,
+            int(from_square.row),
+            int(self.board.en_passant_target.row),
+        ):
             return False
 
         # The captured piece is one rank beyond EP target in capturing pawn's direction
