@@ -13,7 +13,6 @@ from chess_game.chess.constants import (
 )
 from chess_game.chess.types import Piece, PieceType
 from chess_game.chess.constants import ConstantSquare
-from chess_game.chess.board.castling import CastlingValidator
 
 
 class PieceMovers:
@@ -22,6 +21,8 @@ class PieceMovers:
     @staticmethod
     def get_valid_moves(piece: Piece, board) -> List[ConstantSquare]:
         """Get all valid moves for a piece."""
+        if piece._square is None:
+            return []
         if piece.kind == PieceType.PAWN:
             return PieceMovers._get_pawn_moves(piece, board)
         if piece.kind == PieceType.KNIGHT:
@@ -39,6 +40,7 @@ class PieceMovers:
     @staticmethod
     def _get_pawn_moves(piece: Piece, board) -> List[ConstantSquare]:
         """Get all valid pawn moves (forward, capture, 2-step, promotion)."""
+        assert piece._square is not None
         moves = []
         # WHITE moves toward row 0/rank 8 (direction -1), BLACK toward row 7/rank 1 (direction +1)
         direction = -1 if piece.color == Color.WHITE else 1
@@ -104,6 +106,7 @@ class PieceMovers:
     @staticmethod
     def _get_knight_moves(piece: Piece, board) -> List[ConstantSquare]:
         """Get all valid knight moves (L-shaped)."""
+        assert piece._square is not None
         moves = []
         # Valid knight moves: one offset 1, other offset 2 (L-shape)
         valid_moves = [
@@ -141,6 +144,7 @@ class PieceMovers:
     @staticmethod
     def _get_bishop_moves(piece: Piece, board) -> List[ConstantSquare]:
         """Get all valid bishop moves (diagonal)."""
+        assert piece._square is not None
         moves = []
         diagonals = [
             (1, 1),
@@ -177,6 +181,7 @@ class PieceMovers:
     @staticmethod
     def _get_rook_moves(piece: Piece, board) -> List[ConstantSquare]:
         """Get all valid rook moves (straight lines)."""
+        assert piece._square is not None
         moves = []
         directions = [
             (1, 0),
@@ -285,14 +290,14 @@ class PieceMovers:
     @staticmethod
     def _get_piece_row(piece: Piece) -> Optional[int]:
         """Get piece row, handling None square."""
-        if piece.square is None:
+        if piece._square is None:
             return None
         return int(piece._square.row)
 
     @staticmethod
     def _get_piece_col(piece: Piece) -> Optional[int]:
         """Get piece column, handling None square."""
-        if piece.square is None:
+        if piece._square is None:
             return None
         return int(piece._square.col)
 
@@ -306,6 +311,7 @@ class PieceMovers:
     @staticmethod
     def _get_king_moves(piece: Piece, board) -> List[ConstantSquare]:
         """Get all valid king moves (one square in any direction plus castling)."""
+        assert piece._square is not None
         moves = []
         row_offsets = [-1, 0, 1]
         col_offsets = [-1, 0, 1]
@@ -333,26 +339,5 @@ class PieceMovers:
                 and board.get_piece(target_square).color != piece.color
             ):
                 moves.append(target_square)
-
-        # Add castling moves
-        if piece.kind == PieceType.KING:
-            color = piece.color
-            king_row = int(piece._square.row)
-
-            if CastlingValidator.can_castle_kingside(board, color):
-                moves.append(
-                    ConstantSquare(
-                        row=get_row_constant(king_row),
-                        col=get_col_constant(6),
-                    )
-                )
-
-            if CastlingValidator.can_castle_queenside(board, color):
-                moves.append(
-                    ConstantSquare(
-                        row=get_row_constant(king_row),
-                        col=get_col_constant(2),
-                    )
-                )
 
         return moves

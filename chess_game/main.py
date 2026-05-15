@@ -1,5 +1,4 @@
-# chess_game/main.py
-# Entry point for the chess program
+"""Interactive chess game entry point."""
 from __future__ import annotations
 
 from chess_game.chess.board import Board

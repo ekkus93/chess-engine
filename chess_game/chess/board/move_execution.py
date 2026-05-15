@@ -135,6 +135,7 @@ class MoveExecutor:
     ) -> None:
         direction = -1 if piece.color == Color.WHITE else 1
         ep_target = self.board.en_passant_target
+        assert ep_target is not None
         capture_row = int(ep_target.row) - direction
         capture_col = int(to_square.col)
         captured_square = ConstantSquare(

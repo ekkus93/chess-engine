@@ -8,6 +8,8 @@ from chess_game.chess.types import PieceType
 
 @dataclass(frozen=True)
 class Move:
+    """An immutable move from one square to another, optionally with promotion."""
+
     start: ConstantSquare
     end: ConstantSquare
     promotion: Optional[PieceType] = None

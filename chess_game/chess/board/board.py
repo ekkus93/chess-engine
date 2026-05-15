@@ -184,46 +184,110 @@ class Board:
 
         # Black pieces (rows 0-1 = ranks 8-7)
         board[0] = [
-            create_piece(Color.BLACK, PieceType.ROOK, ConstantSquare(row=ROW_8, col=COL_A)),
-            create_piece(Color.BLACK, PieceType.KNIGHT, ConstantSquare(row=ROW_8, col=COL_B)),
-            create_piece(Color.BLACK, PieceType.BISHOP, ConstantSquare(row=ROW_8, col=COL_C)),
-            create_piece(Color.BLACK, PieceType.QUEEN, ConstantSquare(row=ROW_8, col=COL_D)),
-            create_piece(Color.BLACK, PieceType.KING, ConstantSquare(row=ROW_8, col=COL_E)),
-            create_piece(Color.BLACK, PieceType.BISHOP, ConstantSquare(row=ROW_8, col=COL_F)),
-            create_piece(Color.BLACK, PieceType.KNIGHT, ConstantSquare(row=ROW_8, col=COL_G)),
-            create_piece(Color.BLACK, PieceType.ROOK, ConstantSquare(row=ROW_8, col=COL_H)),
+            create_piece(
+                Color.BLACK, PieceType.ROOK, ConstantSquare(row=ROW_8, col=COL_A)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.KNIGHT, ConstantSquare(row=ROW_8, col=COL_B)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.BISHOP, ConstantSquare(row=ROW_8, col=COL_C)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.QUEEN, ConstantSquare(row=ROW_8, col=COL_D)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.KING, ConstantSquare(row=ROW_8, col=COL_E)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.BISHOP, ConstantSquare(row=ROW_8, col=COL_F)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.KNIGHT, ConstantSquare(row=ROW_8, col=COL_G)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.ROOK, ConstantSquare(row=ROW_8, col=COL_H)
+            ),
         ]
         board[1] = [
-            create_piece(Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_7, col=COL_A)),
-            create_piece(Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_7, col=COL_B)),
-            create_piece(Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_7, col=COL_C)),
-            create_piece(Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_7, col=COL_D)),
-            create_piece(Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_7, col=COL_E)),
-            create_piece(Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_7, col=COL_F)),
-            create_piece(Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_7, col=COL_G)),
-            create_piece(Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_7, col=COL_H)),
+            create_piece(
+                Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_7, col=COL_A)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_7, col=COL_B)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_7, col=COL_C)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_7, col=COL_D)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_7, col=COL_E)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_7, col=COL_F)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_7, col=COL_G)
+            ),
+            create_piece(
+                Color.BLACK, PieceType.PAWN, ConstantSquare(row=ROW_7, col=COL_H)
+            ),
         ]
 
         # White pieces (rows 6-7 = ranks 2-1)
         board[6] = [
-            create_piece(Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_2, col=COL_A)),
-            create_piece(Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_2, col=COL_B)),
-            create_piece(Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_2, col=COL_C)),
-            create_piece(Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_2, col=COL_D)),
-            create_piece(Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_2, col=COL_E)),
-            create_piece(Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_2, col=COL_F)),
-            create_piece(Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_2, col=COL_G)),
-            create_piece(Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_2, col=COL_H)),
+            create_piece(
+                Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_2, col=COL_A)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_2, col=COL_B)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_2, col=COL_C)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_2, col=COL_D)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_2, col=COL_E)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_2, col=COL_F)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_2, col=COL_G)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.PAWN, ConstantSquare(row=ROW_2, col=COL_H)
+            ),
         ]
         board[7] = [
-            create_piece(Color.WHITE, PieceType.ROOK, ConstantSquare(row=ROW_1, col=COL_A)),
-            create_piece(Color.WHITE, PieceType.KNIGHT, ConstantSquare(row=ROW_1, col=COL_B)),
-            create_piece(Color.WHITE, PieceType.BISHOP, ConstantSquare(row=ROW_1, col=COL_C)),
-            create_piece(Color.WHITE, PieceType.QUEEN, ConstantSquare(row=ROW_1, col=COL_D)),
-            create_piece(Color.WHITE, PieceType.KING, ConstantSquare(row=ROW_1, col=COL_E)),
-            create_piece(Color.WHITE, PieceType.BISHOP, ConstantSquare(row=ROW_1, col=COL_F)),
-            create_piece(Color.WHITE, PieceType.KNIGHT, ConstantSquare(row=ROW_1, col=COL_G)),
-            create_piece(Color.WHITE, PieceType.ROOK, ConstantSquare(row=ROW_1, col=COL_H)),
+            create_piece(
+                Color.WHITE, PieceType.ROOK, ConstantSquare(row=ROW_1, col=COL_A)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.KNIGHT, ConstantSquare(row=ROW_1, col=COL_B)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.BISHOP, ConstantSquare(row=ROW_1, col=COL_C)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.QUEEN, ConstantSquare(row=ROW_1, col=COL_D)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.KING, ConstantSquare(row=ROW_1, col=COL_E)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.BISHOP, ConstantSquare(row=ROW_1, col=COL_F)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.KNIGHT, ConstantSquare(row=ROW_1, col=COL_G)
+            ),
+            create_piece(
+                Color.WHITE, PieceType.ROOK, ConstantSquare(row=ROW_1, col=COL_H)
+            ),
         ]
 
         return board
@@ -395,9 +459,8 @@ class Board:
             return False
 
         # Castling
-        if (
-            start_piece.kind == PieceType.KING
-            and CastlingValidator.is_castling_move(start_pos, end_pos)
+        if start_piece.kind == PieceType.KING and CastlingValidator.is_castling_move(
+            start_pos, end_pos
         ):
             if not CastlingValidator.can_castle(
                 self, start_pos, end_pos, start_piece.color, start_piece.color

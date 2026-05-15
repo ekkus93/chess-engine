@@ -2,13 +2,6 @@ from __future__ import annotations
 
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.types import Color, PieceType
-from chess_game.chess.constants import (
-    ConstantSquare,
-    ROW_3,
-    ROW_6,
-    COL_D,
-    COL_E,
-)
 from tests.helpers import sq
 
 
@@ -28,7 +21,7 @@ def test_en_passant_rejected_when_pawn_not_on_adjacent_row() -> None:
     board.turn = Color.BLACK
     # Black plays d7-d5, creating EP target at d6
     board.make_move(sq("d7"), sq("d5"))
-    assert board.en_passant_target == ConstantSquare(row=ROW_6, col=COL_D)
+    assert board.en_passant_target == sq("d6")
     board.turn = Color.WHITE
     # White pawn on e4 should NOT be able to capture EP at d6
     # Row delta is 2, not 1 - should be illegal
@@ -48,7 +41,7 @@ def test_en_passant_rejected_when_black_pawn_not_on_adjacent_row() -> None:
     board.turn = Color.WHITE
     # White plays e2-e4, creating EP target at e3
     board.make_move(sq("e2"), sq("e4"))
-    assert board.en_passant_target == ConstantSquare(row=ROW_3, col=COL_E)
+    assert board.en_passant_target == sq("e3")
     board.turn = Color.BLACK
     # Black pawn on d5 should NOT be able to capture EP at e3
     # Row delta is 2, not 1 - should be illegal
@@ -68,7 +61,7 @@ def test_only_one_en_passant_target_at_a_time() -> None:
     # White plays e2-e4 (creates en passant target at e3)
     board.set_piece(sq("e2"), create_piece(Color.WHITE, PieceType.PAWN))
     board.make_move(sq("e2"), sq("e4"))
-    assert board.en_passant_target == ConstantSquare(row=ROW_3, col=COL_E)
+    assert board.en_passant_target == sq("e3")
     # After black plays non-pawn move, en passant target should be cleared
     board.set_piece(sq("d8"), create_piece(Color.BLACK, PieceType.QUEEN))
     board.make_move(sq("d8"), sq("d5"))
@@ -86,7 +79,7 @@ def test_en_passant_capture_removes_pawn_from_original_square() -> None:
     board.turn = Color.BLACK
     # Black plays d7-d5, creating en passant target at d6
     board.make_move(sq("d7"), sq("d5"))
-    assert board.en_passant_target == ConstantSquare(row=ROW_6, col=COL_D)
+    assert board.en_passant_target == sq("d6")
     # Switch to white's turn
     board.turn = Color.WHITE
     # White captures en passant (e5xd6)
@@ -107,7 +100,7 @@ def test_en_passant_expired_after_nonpawn_move() -> None:
     board.turn = Color.BLACK
     # Black plays d7-d5, creating en passant target at d6
     board.make_move(sq("d7"), sq("d5"))
-    assert board.en_passant_target == ConstantSquare(row=ROW_6, col=COL_D)
+    assert board.en_passant_target == sq("d6")
     # White plays non-pawn move (knight), en passant should expire
     board.set_piece(sq("a1"), create_piece(Color.WHITE, PieceType.KNIGHT))
     board.make_move(sq("a1"), sq("b3"))
@@ -186,7 +179,7 @@ def test_full_en_passant_sequence_from_starting_position() -> None:
     board.turn = Color.BLACK
     # Black plays d7-d5 (double step)
     board.make_move(sq("d7"), sq("d5"))
-    assert board.en_passant_target == ConstantSquare(row=ROW_6, col=COL_D)
+    assert board.en_passant_target == sq("d6")
     # Switch to white's turn
     board.turn = Color.WHITE
     # White captures en passant: e5 captures d6 en passant
@@ -209,7 +202,7 @@ def test_en_passant_target_set_after_white_two_square_advance() -> None:
     board.set_piece(sq("e2"), create_piece(Color.WHITE, PieceType.PAWN))
     board.turn = Color.WHITE
     assert board.make_move(sq("e2"), sq("e4")) is True
-    assert board.en_passant_target == ConstantSquare(row=ROW_3, col=COL_E)
+    assert board.en_passant_target == sq("e3")
 
 
 def test_en_passant_target_set_after_black_two_square_advance() -> None:
@@ -221,7 +214,7 @@ def test_en_passant_target_set_after_black_two_square_advance() -> None:
     board.set_piece(sq("d7"), create_piece(Color.BLACK, PieceType.PAWN))
     board.turn = Color.BLACK
     assert board.make_move(sq("d7"), sq("d5")) is True
-    assert board.en_passant_target == ConstantSquare(row=ROW_6, col=COL_D)
+    assert board.en_passant_target == sq("d6")
 
 
 def test_en_passant_target_cleared_after_one_square_pawn_advance() -> None:
@@ -286,7 +279,7 @@ def test_black_en_passant_full_sequence() -> None:
     # White plays e2-e4
     assert board.make_move(sq("e2"), sq("e4")) is True
     # EP target is e3
-    assert board.en_passant_target == ConstantSquare(row=ROW_3, col=COL_E)
+    assert board.en_passant_target == sq("e3")
     # Black captures en passant: d4 captures e3
     board.turn = Color.BLACK
     assert board.make_move(sq("d4"), sq("e3")) is True

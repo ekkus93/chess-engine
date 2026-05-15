@@ -1,7 +1,7 @@
 from __future__ import annotations
 from chess_game.chess.board import Board, create_piece
-from chess_game.chess.constants import get_square_constant
 from chess_game.chess.types import Color, PieceType
+from tests.helpers import sq
 
 
 # =============================================================================
@@ -12,12 +12,8 @@ def test_board_handles_missing_white_king_gracefully() -> None:
     board = Board()
     board.clear_board()
     # Only set black king, no white king
-    board.set_piece(
-        get_square_constant(0, 4), create_piece(Color.BLACK, PieceType.KING)
-    )
-    board.set_piece(
-        get_square_constant(1, 4), create_piece(Color.BLACK, PieceType.PAWN)
-    )
+    board.set_piece(sq("e8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("e7"), create_piece(Color.BLACK, PieceType.PAWN))
     board.turn = Color.BLACK
     # Should not crash, just return no legal moves
     legal_moves = board.get_legal_moves()
@@ -29,15 +25,9 @@ def test_board_handles_extra_king_gracefully() -> None:
     board = Board()
     board.clear_board()
     # Set both kings plus an extra white king
-    board.set_piece(
-        get_square_constant(7, 4), create_piece(Color.WHITE, PieceType.KING)
-    )
-    board.set_piece(
-        get_square_constant(0, 4), create_piece(Color.BLACK, PieceType.KING)
-    )
-    board.set_piece(
-        get_square_constant(7, 0), create_piece(Color.WHITE, PieceType.KING)
-    )
+    board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("e8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("a1"), create_piece(Color.WHITE, PieceType.KING))
     board.turn = Color.WHITE
     # Should not crash
     legal_moves = board.get_legal_moves()
@@ -49,9 +39,7 @@ def test_board_handles_missing_opponent_king() -> None:
     board = Board()
     board.clear_board()
     # Only white king present
-    board.set_piece(
-        get_square_constant(7, 4), create_piece(Color.WHITE, PieceType.KING)
-    )
+    board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
     board.turn = Color.WHITE
     # Should not crash
     legal_moves = board.get_legal_moves()
@@ -63,12 +51,8 @@ def test_board_handles_all_pieces_captured() -> None:
     board = Board()
     board.clear_board()
     # Only kings remain
-    board.set_piece(
-        get_square_constant(7, 4), create_piece(Color.WHITE, PieceType.KING)
-    )
-    board.set_piece(
-        get_square_constant(0, 4), create_piece(Color.BLACK, PieceType.KING)
-    )
+    board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("e8"), create_piece(Color.BLACK, PieceType.KING))
     board.turn = Color.WHITE
     # Should work normally
     legal_moves = board.get_legal_moves()

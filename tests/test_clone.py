@@ -5,8 +5,8 @@ clone do not affect the original, and vice versa.
 """
 
 from chess_game.chess.board import Board, create_piece
-from chess_game.chess.constants import get_square_constant
 from chess_game.chess.types import Color, PieceType
+from tests.helpers import sq
 
 
 # ---------------------------------------------------------------------------
@@ -16,22 +16,22 @@ from chess_game.chess.types import Color, PieceType
 def test_board_clone_produces_independent_board() -> None:
     """TS6.2: Mutating clone does not affect original."""
     original = Board()
-    original_e2 = original.get_piece(get_square_constant(6, 4))  # e2
+    original_e2 = original.get_piece(sq("e2"))  # e2
     assert original_e2 is not None
 
     cloned = original.clone()
 
     # Move the e2 pawn on the clone
-    cloned.clear_square(get_square_constant(6, 4))
+    cloned.clear_square(sq("e2"))
     cloned_e2_piece = original_e2.__class__(
         color=original_e2.color, kind=original_e2.kind
     )
-    cloned_e2_piece._square = get_square_constant(4, 4)  # e4
-    cloned.set_piece(get_square_constant(4, 4), cloned_e2_piece)
+    cloned_e2_piece._square = sq("e4")  # e4
+    cloned.set_piece(sq("e4"), cloned_e2_piece)
 
     # Original should be unchanged
-    assert original.get_piece(get_square_constant(6, 4)) is not None
-    assert original.get_piece(get_square_constant(4, 4)) is None
+    assert original.get_piece(sq("e2")) is not None
+    assert original.get_piece(sq("e4")) is None
 
 
 def test_board_clone_validators_point_at_cloned_board() -> None:
@@ -54,8 +54,8 @@ def test_board_clone_pieces_are_independent() -> None:
     original = Board()
     cloned = original.clone()
 
-    original_e2 = original.get_piece(get_square_constant(6, 4))
-    cloned_e2 = cloned.get_piece(get_square_constant(6, 4))
+    original_e2 = original.get_piece(sq("e2"))
+    cloned_e2 = cloned.get_piece(sq("e2"))
     assert original_e2 is not None
     assert cloned_e2 is not None
     assert original_e2 is not cloned_e2
@@ -65,7 +65,7 @@ def test_board_clone_preserves_all_state() -> None:
     """TS6.2: Clone preserves turn, en_passant_target, and castling rights."""
     original = Board()
     original.turn = Color.BLACK
-    original.en_passant_target = get_square_constant(4, 3)  # d5
+    original.en_passant_target = sq("d5")  # d5
     original.white_kingside = False
     original.black_queenside = False
     original.white_queenside = True
@@ -74,7 +74,7 @@ def test_board_clone_preserves_all_state() -> None:
     cloned = original.clone()
 
     assert cloned.turn == Color.BLACK
-    assert cloned.en_passant_target == get_square_constant(4, 3)
+    assert cloned.en_passant_target == sq("d5")
     assert cloned.white_kingside is False
     assert cloned.white_queenside is True
     assert cloned.black_kingside is True
@@ -86,23 +86,23 @@ def test_board_clone_moves_on_clone_independent() -> None:
     original = Board()
     # e2e4 on original
     assert original.make_move(
-        get_square_constant(6, 4), get_square_constant(4, 4)
+        sq("e2"), sq("e4")
     )  # e2->e4
-    assert original.get_piece(get_square_constant(6, 4)) is None
-    assert original.get_piece(get_square_constant(4, 4)) is not None
+    assert original.get_piece(sq("e2")) is None
+    assert original.get_piece(sq("e4")) is not None
 
     cloned = original.clone()
 
     # Now play e7e5 on clone (Black's turn)
     assert cloned.make_move(
-        get_square_constant(1, 4), get_square_constant(3, 4)
+        sq("e7"), sq("e5")
     )  # e7->e5
-    assert cloned.get_piece(get_square_constant(1, 4)) is None
-    assert cloned.get_piece(get_square_constant(3, 4)) is not None
+    assert cloned.get_piece(sq("e7")) is None
+    assert cloned.get_piece(sq("e5")) is not None
 
     # Original should be unchanged (still has black pawn on e7)
-    assert original.get_piece(get_square_constant(1, 4)) is not None
-    assert original.get_piece(get_square_constant(3, 4)) is None
+    assert original.get_piece(sq("e7")) is not None
+    assert original.get_piece(sq("e5")) is None
 
 
 # ---------------------------------------------------------------------------
@@ -113,19 +113,19 @@ def test_clone_used_in_king_safety_simulation() -> None:
     """TS6.4: King-safety simulation uses clone, doesn't mutate original."""
     board = Board()
     # Set up a position where e2e4 is legal
-    e2_piece = board.get_piece(get_square_constant(6, 4))
+    e2_piece = board.get_piece(sq("e2"))
     assert e2_piece is not None
     original_square = e2_piece._square
 
     # Make the move (internally uses clone for king-safety check)
     result = board.make_move(
-        get_square_constant(6, 4), get_square_constant(4, 4)
+        sq("e2"), sq("e4")
     )
     assert result is True
 
     # The original e2 pawn should now be on e4
-    assert board.get_piece(get_square_constant(6, 4)) is None
-    assert board.get_piece(get_square_constant(4, 4)) is not None
+    assert board.get_piece(sq("e2")) is None
+    assert board.get_piece(sq("e4")) is not None
 
 
 def test_clone_simulation_rejects_self_check() -> None:
@@ -137,13 +137,13 @@ def test_clone_simulation_rejects_self_check() -> None:
     # Moving d2->d4 removes the d-file blocker; king on e1 is exposed along
     # the e-file by the rook on e8 (no intervening pieces on e-file).
     board.set_piece(
-        get_square_constant(7, 4), create_piece(Color.WHITE, PieceType.KING)
+        sq("e1"), create_piece(Color.WHITE, PieceType.KING)
     )  # e1
     board.set_piece(
-        get_square_constant(6, 3), create_piece(Color.WHITE, PieceType.PAWN)
+        sq("d2"), create_piece(Color.WHITE, PieceType.PAWN)
     )  # d2
     board.set_piece(
-        get_square_constant(0, 4), create_piece(Color.BLACK, PieceType.ROOK)
+        sq("e8"), create_piece(Color.BLACK, PieceType.ROOK)
     )  # e8
     board.turn = Color.WHITE
 
@@ -164,24 +164,24 @@ def test_clone_simulation_rejects_self_check() -> None:
     # Move knight away (e2->g1) exposes king to rook on e8.
     board.clear_board()
     board.set_piece(
-        get_square_constant(7, 4), create_piece(Color.WHITE, PieceType.KING)
+        sq("e1"), create_piece(Color.WHITE, PieceType.KING)
     )  # e1
     board.set_piece(
-        get_square_constant(6, 4), create_piece(Color.WHITE, PieceType.KNIGHT)
+        sq("e2"), create_piece(Color.WHITE, PieceType.KNIGHT)
     )  # e2
     board.set_piece(
-        get_square_constant(0, 4), create_piece(Color.BLACK, PieceType.ROOK)
+        sq("e8"), create_piece(Color.BLACK, PieceType.ROOK)
     )  # e8
     board.turn = Color.WHITE
 
     # Knight e2->g1 exposes king to rook on e8
     assert not board.make_move(
-        get_square_constant(6, 4), get_square_constant(7, 6)
+        sq("e2"), sq("g1")
     )  # e2->g1 should be rejected
 
     # King and knight still in original positions
-    assert board.get_piece(get_square_constant(7, 4)) is not None
-    assert board.get_piece(get_square_constant(6, 4)) is not None
+    assert board.get_piece(sq("e1")) is not None
+    assert board.get_piece(sq("e2")) is not None
 
 
 def test_clone_en_passant_king_safety() -> None:
@@ -189,32 +189,32 @@ def test_clone_en_passant_king_safety() -> None:
     board = Board()
     board.clear_board()
 
-    # Set up: White king on e1, white pawn on f5, black pawn on e4,
+    # Set up: White king on e1, white pawn on f6, black pawn on e5,
     # black rook on a1. After e.p. capture, king would be exposed.
-    # f5xe3 e.p. would expose king on e1 to rook on a1 via rank 1.
+    # f6xe4 e.p. would expose king on e1 to rook on a1 via rank 1.
 
     board.set_piece(
-        get_square_constant(7, 4), create_piece(Color.WHITE, PieceType.KING)
+        sq("e1"), create_piece(Color.WHITE, PieceType.KING)
     )  # e1
     board.set_piece(
-        get_square_constant(2, 5), create_piece(Color.WHITE, PieceType.PAWN)
-    )  # f5
+        sq("f6"), create_piece(Color.WHITE, PieceType.PAWN)
+    )  # f6
     board.set_piece(
-        get_square_constant(3, 4), create_piece(Color.BLACK, PieceType.PAWN)
-    )  # e4
+        sq("e5"), create_piece(Color.BLACK, PieceType.PAWN)
+    )  # e5
     board.set_piece(
-        get_square_constant(7, 0), create_piece(Color.BLACK, PieceType.ROOK)
+        sq("a1"), create_piece(Color.BLACK, PieceType.ROOK)
     )  # a1
-    board.en_passant_target = get_square_constant(5, 4)  # e3
+    board.en_passant_target = sq("e3")  # e3
     board.turn = Color.WHITE
 
-    # f5xe3 e.p. would put white pawn on e3, but rook on a1 attacks e1
+    # f6xe4 e.p. would put white pawn on e3, but rook on a1 attacks e1
     # (the king square) along rank 1.  Since the pawn move doesn't block
     # that attack, the king is still exposed.
     assert not board.make_move(
-        get_square_constant(2, 5), get_square_constant(5, 4)
-    )  # f5->e3 en passant
+        sq("f6"), sq("e3")
+    )  # f6->e3 en passant
 
     # Original position unchanged
-    assert board.get_piece(get_square_constant(2, 5)) is not None
-    assert board.get_piece(get_square_constant(7, 4)) is not None
+    assert board.get_piece(sq("f6")) is not None
+    assert board.get_piece(sq("e1")) is not None

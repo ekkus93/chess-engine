@@ -1,7 +1,23 @@
 # Python project ignores
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 .venv/
+venv/
 .ipynb_checkpoints/
+
+# Test & lint caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Coverage reports
+.coverage
+htmlcov/
+
+# Build artifacts
+dist/
+*.egg-info/
 
 run_opencode.sh

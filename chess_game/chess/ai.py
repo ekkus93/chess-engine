@@ -159,7 +159,7 @@ def minimax(
     key = _fen_key(board) if transposition_table is not None else None
 
     # Check transposition table
-    if transposition_table is not None and depth < 20:
+    if transposition_table is not None and depth < 20 and key is not None:
         cached = transposition_table.get(key)
         if cached is not None:
             return cached
@@ -195,9 +195,7 @@ def minimax(
             for m in legal_moves
             if m.start == move_key.start and m.end == move_key.end
         )
-        new_board = _make_copy_with_move(
-            board, move.start, move.end, move.promotion
-        )
+        new_board = _make_copy_with_move(board, move.start, move.end, move.promotion)
 
         if is_maximizing:
             opponent_score = minimax(

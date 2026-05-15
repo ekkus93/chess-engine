@@ -137,6 +137,33 @@ class MoveValidator:
             self.board, from_square, to_square, piece.color, piece.color
         )
 
+    def _get_castling_moves(self, piece: Piece) -> List[ConstantSquare]:
+        """Get castling destination squares if the piece is a king."""
+        if piece.kind != PieceType.KING:
+            return []
+        assert piece._square is not None
+
+        moves: List[ConstantSquare] = []
+        king_row = int(piece._square.row)
+
+        if CastlingValidator.can_castle_kingside(self.board, piece.color):
+            moves.append(
+                ConstantSquare(
+                    row=get_row_constant(king_row),
+                    col=get_col_constant(6),
+                )
+            )
+
+        if CastlingValidator.can_castle_queenside(self.board, piece.color):
+            moves.append(
+                ConstantSquare(
+                    row=get_row_constant(king_row),
+                    col=get_col_constant(2),
+                )
+            )
+
+        return moves
+
     def _validate_en_passant(
         self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
@@ -153,9 +180,7 @@ class MoveValidator:
             return False
 
         # Check that en passant capture doesn't expose king to check
-        if self._would_expose_king_to_check_en_passant(
-            piece, from_square, to_square
-        ):
+        if self._would_expose_king_to_check_en_passant(piece, from_square, to_square):
             return False
 
         return True
@@ -176,7 +201,11 @@ class MoveValidator:
             if piece is None:
                 return []
 
-            for to_square in self.piece_movers.get_valid_moves(piece, self.board):
+            valid_moves = self.piece_movers.get_valid_moves(piece, self.board)
+            if piece.kind == PieceType.KING:
+                valid_moves.extend(self._get_castling_moves(piece))
+
+            for to_square in valid_moves:
                 if self.is_valid_move(from_square, to_square):
                     promotion = None
                     if piece.kind == PieceType.PAWN:
@@ -191,9 +220,13 @@ class MoveValidator:
                     )
                     piece = self.board.get_piece(sq)
                     if piece is not None and piece.color == self.board.turn:
-                        for to_square in self.piece_movers.get_valid_moves(
+                        valid_moves = self.piece_movers.get_valid_moves(
                             piece, self.board
-                        ):
+                        )
+                        if piece.kind == PieceType.KING:
+                            valid_moves.extend(self._get_castling_moves(piece))
+
+                        for to_square in valid_moves:
                             if self.is_valid_move(sq, to_square):
                                 promotion = None
                                 if piece.kind == PieceType.PAWN:
@@ -211,7 +244,7 @@ class MoveValidator:
         if piece.kind != PieceType.PAWN:
             return None
 
-       # White promotes at row 0 (rank 8), Black at row 7 (rank 1)
+        # White promotes at row 0 (rank 8), Black at row 7 (rank 1)
         if piece.color == Color.WHITE and int(to_square.row) == 0:
             return PieceType.QUEEN
         if piece.color == Color.BLACK and int(to_square.row) == 7:
@@ -276,6 +309,7 @@ class MoveValidator:
 
         # Remove captured pawn (one rank beyond EP target in capturing pawn's direction)
         direction = -1 if piece.color == Color.WHITE else 1
+        assert self.board.en_passant_target is not None
         captured_row = int(self.board.en_passant_target.row) - direction
         captured_square = ConstantSquare(
             row=get_row_constant(captured_row),

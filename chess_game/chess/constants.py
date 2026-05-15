@@ -1,9 +1,8 @@
 """Chess board coordinate constants with type-safe enums."""
 
 from enum import IntEnum
-from typing import NamedTuple, Union
+from typing import NamedTuple, TypeAlias, Union
 from pydantic import BaseModel
-
 
 # Board geometry constants
 BOARD_SIZE = 8
@@ -11,12 +10,16 @@ BOARD_SIZE = 8
 
 # Color enum
 class Color(IntEnum):
+    """Player colors: WHITE (1) moves first, BLACK (0) moves second."""
+
     WHITE = 1
     BLACK = 0
 
 
 # PieceType enum
 class PieceType(IntEnum):
+    """Chess piece types, with EMPTY (0) representing no piece."""
+
     EMPTY = 0
     PAWN = 1
     KNIGHT = 2
@@ -27,7 +30,10 @@ class PieceType(IntEnum):
 
 
 # AlgebraicSquare is a NamedTuple for algebraic notation
-AlgebraicSquare = NamedTuple("AlgebraicSquare", [("file", str), ("rank", int)])
+AlgebraicSquare = NamedTuple(
+    "AlgebraicSquare",
+    [("file", str), ("rank", int)],
+)
 
 
 class RowConstant:
@@ -41,7 +47,7 @@ class RowConstant:
     def __int__(self) -> int:
         return self._value
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, RowConstant):
             return self._value == other._value
         if isinstance(other, int):
@@ -233,8 +239,8 @@ class ConstantSquare(BaseModel):
 # Type alias that enforces use of constant coordinate objects
 # This allows runtime validation through ConstantSquare while maintaining
 # type safety with int values
-RowType = int
-ColType = int
+RowType: TypeAlias = int
+ColType: TypeAlias = int
 
 
 # Helper functions for creating ConstantSquare
@@ -276,10 +282,3 @@ H2 = AlgebraicSquare("h", 2)
 def get_square_constant(row: int, col: int) -> ConstantSquare:
     """Convert integer coordinates to ConstantSquare."""
     return ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
-
-
-# Type alias that enforces use of constant coordinate objects
-# This allows runtime validation through ConstantSquare while maintaining
-# type safety with int values
-RowType = int
-ColType = int

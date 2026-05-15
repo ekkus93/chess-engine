@@ -11,8 +11,8 @@ Covers:
 
 from chess_game.chess.board.board import Board, create_piece
 from chess_game.chess.color import Color
-from chess_game.chess.constants import get_square_constant
 from chess_game.chess.types import PieceType
+from tests.helpers import sq
 
 
 def _setup_promotion_board(
@@ -29,22 +29,22 @@ def _setup_promotion_board(
     board = Board()
     board.clear_board()
     board.set_piece(
-        get_square_constant(white_king_row, white_king_col),
+        sq(f"{chr(ord('a') + white_king_col)}{8 - white_king_row}"),
         create_piece(Color.WHITE, PieceType.KING),
     )
     board.set_piece(
-        get_square_constant(black_king_row, black_king_col),
+        sq(f"{chr(ord('a') + black_king_col)}{8 - black_king_row}"),
         create_piece(Color.BLACK, PieceType.KING),
     )
     board.set_piece(
-        get_square_constant(pawn_row, pawn_col),
+        sq(f"{chr(ord('a') + pawn_col)}{8 - pawn_row}"),
         create_piece(pawn_color, PieceType.PAWN),
     )
     board.turn = pawn_color
     if extra_pieces:
         for (pr, pc, color, kind) in extra_pieces:
             board.set_piece(
-                get_square_constant(pr, pc),
+                sq(f"{chr(ord('a') + pc)}{8 - pr}"),
                 create_piece(color, kind),
             )
     return board
@@ -65,15 +65,15 @@ def test_white_promote_to_queen() -> None:
     )
     assert (
         board.make_move(
-            get_square_constant(1, 4),
-            get_square_constant(0, 4),
+            sq("e7"),
+            sq("e8"),
             promotion=PieceType.QUEEN,
         )
         is True
     )
-    assert board.get_piece_type_at(get_square_constant(0, 4)) == PieceType.QUEEN
-    assert board.get_color_at(get_square_constant(0, 4)) == Color.WHITE
-    assert board.get_piece(get_square_constant(1, 4)) is None
+    assert board.get_piece_type_at(sq("e8")) == PieceType.QUEEN
+    assert board.get_color_at(sq("e8")) == Color.WHITE
+    assert board.get_piece(sq("e7")) is None
 
 
 def test_white_promote_to_rook() -> None:
@@ -82,14 +82,14 @@ def test_white_promote_to_rook() -> None:
     )
     assert (
         board.make_move(
-            get_square_constant(1, 4),
-            get_square_constant(0, 4),
+            sq("e7"),
+            sq("e8"),
             promotion=PieceType.ROOK,
         )
         is True
     )
-    assert board.get_piece_type_at(get_square_constant(0, 4)) == PieceType.ROOK
-    assert board.get_color_at(get_square_constant(0, 4)) == Color.WHITE
+    assert board.get_piece_type_at(sq("e8")) == PieceType.ROOK
+    assert board.get_color_at(sq("e8")) == Color.WHITE
 
 
 def test_white_promote_to_bishop() -> None:
@@ -98,14 +98,14 @@ def test_white_promote_to_bishop() -> None:
     )
     assert (
         board.make_move(
-            get_square_constant(1, 4),
-            get_square_constant(0, 4),
+            sq("e7"),
+            sq("e8"),
             promotion=PieceType.BISHOP,
         )
         is True
     )
-    assert board.get_piece_type_at(get_square_constant(0, 4)) == PieceType.BISHOP
-    assert board.get_color_at(get_square_constant(0, 4)) == Color.WHITE
+    assert board.get_piece_type_at(sq("e8")) == PieceType.BISHOP
+    assert board.get_color_at(sq("e8")) == Color.WHITE
 
 
 def test_white_promote_to_knight() -> None:
@@ -114,14 +114,14 @@ def test_white_promote_to_knight() -> None:
     )
     assert (
         board.make_move(
-            get_square_constant(1, 4),
-            get_square_constant(0, 4),
+            sq("e7"),
+            sq("e8"),
             promotion=PieceType.KNIGHT,
         )
         is True
     )
-    assert board.get_piece_type_at(get_square_constant(0, 4)) == PieceType.KNIGHT
-    assert board.get_color_at(get_square_constant(0, 4)) == Color.WHITE
+    assert board.get_piece_type_at(sq("e8")) == PieceType.KNIGHT
+    assert board.get_color_at(sq("e8")) == Color.WHITE
 
 
 # ── Black promotion to each piece type ──────────────────────────────────────
@@ -139,15 +139,15 @@ def test_black_promote_to_queen() -> None:
     )
     assert (
         board.make_move(
-            get_square_constant(6, 4),
-            get_square_constant(7, 4),
+            sq("e2"),
+            sq("e1"),
             promotion=PieceType.QUEEN,
         )
         is True
     )
-    assert board.get_piece_type_at(get_square_constant(7, 4)) == PieceType.QUEEN
-    assert board.get_color_at(get_square_constant(7, 4)) == Color.BLACK
-    assert board.get_piece(get_square_constant(6, 4)) is None
+    assert board.get_piece_type_at(sq("e1")) == PieceType.QUEEN
+    assert board.get_color_at(sq("e1")) == Color.BLACK
+    assert board.get_piece(sq("e2")) is None
 
 
 def test_black_promote_to_rook() -> None:
@@ -156,14 +156,14 @@ def test_black_promote_to_rook() -> None:
     )
     assert (
         board.make_move(
-            get_square_constant(6, 4),
-            get_square_constant(7, 4),
+            sq("e2"),
+            sq("e1"),
             promotion=PieceType.ROOK,
         )
         is True
     )
-    assert board.get_piece_type_at(get_square_constant(7, 4)) == PieceType.ROOK
-    assert board.get_color_at(get_square_constant(7, 4)) == Color.BLACK
+    assert board.get_piece_type_at(sq("e1")) == PieceType.ROOK
+    assert board.get_color_at(sq("e1")) == Color.BLACK
 
 
 def test_black_promote_to_bishop() -> None:
@@ -172,14 +172,14 @@ def test_black_promote_to_bishop() -> None:
     )
     assert (
         board.make_move(
-            get_square_constant(6, 4),
-            get_square_constant(7, 4),
+            sq("e2"),
+            sq("e1"),
             promotion=PieceType.BISHOP,
         )
         is True
     )
-    assert board.get_piece_type_at(get_square_constant(7, 4)) == PieceType.BISHOP
-    assert board.get_color_at(get_square_constant(7, 4)) == Color.BLACK
+    assert board.get_piece_type_at(sq("e1")) == PieceType.BISHOP
+    assert board.get_color_at(sq("e1")) == Color.BLACK
 
 
 def test_black_promote_to_knight() -> None:
@@ -188,14 +188,14 @@ def test_black_promote_to_knight() -> None:
     )
     assert (
         board.make_move(
-            get_square_constant(6, 4),
-            get_square_constant(7, 4),
+            sq("e2"),
+            sq("e1"),
             promotion=PieceType.KNIGHT,
         )
         is True
     )
-    assert board.get_piece_type_at(get_square_constant(7, 4)) == PieceType.KNIGHT
-    assert board.get_color_at(get_square_constant(7, 4)) == Color.BLACK
+    assert board.get_piece_type_at(sq("e1")) == PieceType.KNIGHT
+    assert board.get_color_at(sq("e1")) == Color.BLACK
 
 
 # ── Illegal promotion pieces ────────────────────────────────────────────────
@@ -206,8 +206,8 @@ def test_promotion_to_king_rejected() -> None:
     )
     assert (
         board.make_move(
-            get_square_constant(1, 4),
-            get_square_constant(0, 4),
+            sq("e7"),
+            sq("e8"),
             promotion=PieceType.KING,
         )
         is False
@@ -220,8 +220,8 @@ def test_promotion_to_pawn_rejected() -> None:
     )
     assert (
         board.make_move(
-            get_square_constant(1, 4),
-            get_square_constant(0, 4),
+            sq("e7"),
+            sq("e8"),
             promotion=PieceType.PAWN,
         )
         is False
@@ -237,13 +237,13 @@ def test_default_queen_promotion_white() -> None:
     )
     assert (
         board.make_move(
-            get_square_constant(1, 4),
-            get_square_constant(0, 4),
+            sq("e7"),
+            sq("e8"),
             promotion=None,
         )
         is True
     )
-    assert board.get_piece_type_at(get_square_constant(0, 4)) == PieceType.QUEEN
+    assert board.get_piece_type_at(sq("e8")) == PieceType.QUEEN
 
 
 def test_default_queen_promotion_black() -> None:
@@ -253,13 +253,13 @@ def test_default_queen_promotion_black() -> None:
     )
     assert (
         board.make_move(
-            get_square_constant(6, 4),
-            get_square_constant(7, 4),
+            sq("e2"),
+            sq("e1"),
             promotion=None,
         )
         is True
     )
-    assert board.get_piece_type_at(get_square_constant(7, 4)) == PieceType.QUEEN
+    assert board.get_piece_type_at(sq("e1")) == PieceType.QUEEN
 
 
 # ── Pawn cannot promote from wrong rank ─────────────────────────────────────
@@ -271,8 +271,8 @@ def test_pawn_cannot_promote_from_middle_rank() -> None:
     )
     assert (
         board.make_move(
-            get_square_constant(3, 4),
-            get_square_constant(0, 4),
+            sq("e5"),
+            sq("e8"),
             promotion=PieceType.QUEEN,
         )
         is False
@@ -286,8 +286,8 @@ def test_black_pawn_cannot_promote_from_middle_rank() -> None:
     )
     assert (
         board.make_move(
-            get_square_constant(4, 4),
-            get_square_constant(7, 4),
+            sq("e4"),
+            sq("e1"),
             promotion=PieceType.QUEEN,
         )
         is False
@@ -305,15 +305,15 @@ def test_white_promotion_via_capture() -> None:
     )
     assert (
         board.make_move(
-            get_square_constant(1, 3),
-            get_square_constant(0, 4),
+            sq("d7"),
+            sq("e8"),
             promotion=PieceType.QUEEN,
         )
         is True
     )
-    assert board.get_piece_type_at(get_square_constant(0, 4)) == PieceType.QUEEN
-    assert board.get_color_at(get_square_constant(0, 4)) == Color.WHITE
-    assert board.get_piece(get_square_constant(1, 3)) is None
+    assert board.get_piece_type_at(sq("e8")) == PieceType.QUEEN
+    assert board.get_color_at(sq("e8")) == Color.WHITE
+    assert board.get_piece(sq("d7")) is None
 
 
 def test_black_promotion_via_capture() -> None:
@@ -325,12 +325,12 @@ def test_black_promotion_via_capture() -> None:
     )
     assert (
         board.make_move(
-            get_square_constant(6, 3),
-            get_square_constant(7, 4),
+            sq("d2"),
+            sq("e1"),
             promotion=PieceType.QUEEN,
         )
         is True
     )
-    assert board.get_piece_type_at(get_square_constant(7, 4)) == PieceType.QUEEN
-    assert board.get_color_at(get_square_constant(7, 4)) == Color.BLACK
-    assert board.get_piece(get_square_constant(6, 3)) is None
+    assert board.get_piece_type_at(sq("e1")) == PieceType.QUEEN
+    assert board.get_color_at(sq("e1")) == Color.BLACK
+    assert board.get_piece(sq("d2")) is None

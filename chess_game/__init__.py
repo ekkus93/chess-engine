@@ -1,3 +1,5 @@
+"""Chess engine package — public API re-exports."""
+
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.constants import ConstantSquare
 from chess_game.chess.types import LegalMove

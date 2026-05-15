@@ -32,11 +32,11 @@ class CastlingValidator:
 
     @staticmethod
     def is_castling_move(start_pos: ConstantSquare, end_pos: ConstantSquare) -> bool:
-        if start_pos.col == 4 and end_pos.col == 6:
-            return start_pos.row == 0 or start_pos.row == 7
+        if start_pos.col == COL_E and end_pos.col == COL_G:
+            return start_pos.row == ROW_1 or start_pos.row == ROW_8
 
-        if start_pos.col == 4 and end_pos.col == 2:
-            return start_pos.row == 0 or start_pos.row == 7
+        if start_pos.col == COL_E and end_pos.col == COL_C:
+            return start_pos.row == ROW_1 or start_pos.row == ROW_8
 
         return False
 
@@ -99,9 +99,13 @@ class CastlingValidator:
     ) -> bool:
         # Check castling rights
         if int(destination.col) > int(king_square.col):
-            right = board.white_kingside if color == Color.WHITE else board.black_kingside
+            right = (
+                board.white_kingside if color == Color.WHITE else board.black_kingside
+            )
         else:
-            right = board.white_queenside if color == Color.WHITE else board.black_queenside
+            right = (
+                board.white_queenside if color == Color.WHITE else board.black_queenside
+            )
         if not right:
             return False
 
