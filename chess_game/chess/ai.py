@@ -45,6 +45,17 @@ class MoveOrderingKey:
         return self.score < other.score
 
 
+@dataclass
+class MinimaxParams:
+    """Configuration for a minimax search."""
+
+    depth: int
+    alpha: int
+    beta: int
+    is_maximizing: bool
+    transposition_table: Optional[defaultdict[str, tuple[int, LegalMove]]] = None
+
+
 def evaluate(board: Board) -> int:
     """Evaluate the board position from White's perspective.
 
@@ -134,60 +145,41 @@ def _make_copy_with_move(
     return simulated
 
 
-def minimax(
+def _check_tt_cache(
     board: Board,
-    depth: int,
-    alpha: int,
-    beta: int,
-    is_maximizing: bool = True,
-    transposition_table: Optional[defaultdict[str, tuple[int, LegalMove]]] = None,
+    params: MinimaxParams,
+) -> Optional[tuple[int, LegalMove]]:
+    """Check transposition table for a cached result."""
+    if params.transposition_table is None or params.depth >= 20:
+        return None
+    key = _fen_key(board)
+    cached = params.transposition_table.get(key)
+    return cached if cached is not None else None
+
+
+def _store_tt_cache(
+    board: Board,
+    params: MinimaxParams,
+    score: int,
+    move: LegalMove,
+) -> None:
+    """Store a result in the transposition table."""
+    if params.transposition_table is None:
+        return
+    key = _fen_key(board)
+    params.transposition_table[key] = (score, move)
+
+
+def _search_move_loop(
+    board: Board,
+    legal_moves: list[Move],
+    scored_moves: list[MoveOrderingKey],
+    params: MinimaxParams,
 ) -> tuple[int, Optional[LegalMove]]:
-    """Standard minimax with alpha-beta pruning.
-
-    Args:
-        board: The current board state
-        depth: Search depth (plies, not moves)
-        alpha: Alpha value (current best move for maximizing player)
-        beta: Beta value (current best move for minimizing player)
-        is_maximizing: True if it's the maximizing player's turn (positive score = White)
-        transposition_table: Optional table to cache evaluated positions
-
-    Returns:
-        Tuple of (best_score, best_move). Best move may be None at leaf nodes.
-    """
-    # Compute position key for transposition table
-    key = _fen_key(board) if transposition_table is not None else None
-
-    # Check transposition table
-    if transposition_table is not None and depth < 20 and key is not None:
-        cached = transposition_table.get(key)
-        if cached is not None:
-            return cached
-
-    # Base case: reached maximum depth or terminal state
-    if depth == 0:
-        score = evaluate(board)
-        return (score, None)
-
-    # Check for game-over states (no legal moves)
-    legal_moves = get_legal_moves(board)
-    if not legal_moves:
-        score = evaluate(board)
-        return (score, None)
-
-    # Sort moves for better pruning: captures first, then promotions
-    scored_moves = _order_moves(board, legal_moves)
-
-    if not scored_moves:
-        score = evaluate(board)
-        if transposition_table is not None and key is not None:
-            transposition_table[key] = (score, None)  # type: ignore[assignment]
-        return (score, None)
-
-    # Initialize with infinity values - will be replaced on first move
-    best_score: int = -100_000_000 if is_maximizing else 100_000_000
+    """Execute the main minimax search loop with alpha-beta pruning."""
+    best_score: int = -100_000_000 if params.is_maximizing else 100_000_000
     best_move: LegalMove | None = None
-    move_count = 0
+    alpha, beta = params.alpha, params.beta
 
     for move_key in scored_moves:
         move = next(
@@ -197,46 +189,79 @@ def minimax(
         )
         new_board = _make_copy_with_move(board, move.start, move.end, move.promotion)
 
-        if is_maximizing:
-            opponent_score = minimax(
-                new_board,
-                depth - 1,
-                alpha,
-                beta,
-                is_maximizing=False,
-                transposition_table=transposition_table,
-            )
-            if best_score < int(opponent_score[0]):
-                best_score = int(opponent_score[0])
+        child_params = MinimaxParams(
+            depth=params.depth - 1,
+            alpha=alpha,
+            beta=beta,
+            is_maximizing=not params.is_maximizing,
+            transposition_table=params.transposition_table,
+        )
+        child_result = minimax(new_board, child_params)
+        child_score = int(child_result[0])
+
+        if params.is_maximizing:
+            if best_score < child_score:
+                best_score = child_score
                 best_move = LegalMove(move.start, move.end, move.promotion)
         else:
-            our_score = minimax(
-                new_board,
-                depth - 1,
-                alpha,
-                beta,
-                is_maximizing=True,
-                transposition_table=transposition_table,
-            )
-            if best_score > int(our_score[0]):
-                best_score = int(our_score[0])
+            if best_score > child_score:
+                best_score = child_score
                 best_move = LegalMove(move.start, move.end, move.promotion)
 
-        # Alpha-beta pruning
-        if is_maximizing:
+        if params.is_maximizing:
             if best_score >= beta:
-                break  # Beta cutoff
+                break
             alpha = max(alpha, best_score)
         else:
             if best_score <= alpha:
-                break  # Alpha cutoff
+                break
             beta = min(beta, best_score)
 
-        move_count += 1
+    return (best_score, best_move)
+
+
+def minimax(
+    board: Board,
+    params: MinimaxParams,
+) -> tuple[int, Optional[LegalMove]]:
+    """Standard minimax with alpha-beta pruning.
+
+    Args:
+        board: The current board state
+        params: Search configuration containing depth, alpha/beta bounds,
+                maximizing flag, and optional transposition table.
+
+    Returns:
+        Tuple of (best_score, best_move). Best move may be None at leaf nodes.
+    """
+    # Check transposition table
+    cached = _check_tt_cache(board, params)
+    if cached is not None:
+        return cached
+
+    # Base case: reached maximum depth
+    if params.depth == 0:
+        return (evaluate(board), None)
+
+    # Check for game-over states (no legal moves)
+    legal_moves = get_legal_moves(board)
+    if not legal_moves:
+        return (evaluate(board), None)
+
+    # Sort moves for better pruning: captures first, then promotions
+    scored_moves = _order_moves(board, legal_moves)
+
+    if not scored_moves:
+        score = evaluate(board)
+        if params.transposition_table is not None:
+            _store_tt_cache(board, params, score, None)  # type: ignore[arg-type]
+        return (score, None)
+
+    best_score, best_move = _search_move_loop(board, legal_moves, scored_moves, params)
 
     # Store in transposition table only if we found a move
-    if transposition_table is not None and best_move is not None and key is not None:
-        transposition_table[key] = (best_score, best_move)
+    if best_move is not None:
+        _store_tt_cache(board, params, best_score, best_move)
 
     return (best_score, best_move)
 
@@ -332,17 +357,19 @@ def get_best_move(board: Board, depth: int) -> Optional[LegalMove]:
     Returns:
         Best legal move, or None if no moves exist.
     """
-    alpha: int = -10_000_000
-    beta: int = 10_000_000
+    params = MinimaxParams(
+        depth=depth,
+        alpha=-10_000_000,
+        beta=10_000_000,
+        is_maximizing=board.turn == Color.WHITE,
+    )
     legal_moves = get_legal_moves(board)
 
     if not legal_moves:
         return None
 
     # Run minimax with alpha-beta pruning
-    _, best_move = minimax(
-        board, depth, alpha, beta, is_maximizing=board.turn == Color.WHITE
-    )
+    _, best_move = minimax(board, params)
 
     return best_move
 
