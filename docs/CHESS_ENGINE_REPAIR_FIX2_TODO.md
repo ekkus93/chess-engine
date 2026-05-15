@@ -49,7 +49,7 @@ Do not expand scope beyond this TODO.
 | 6: Stale comments | DONE | Full-project search clean |
 | 7: BoardState | DONE | Option A — removed |
 | 8: AI evaluation | DONE | Fix applied; symmetry tests (8.3) complete |
-| 9: Cache files | PARTIAL | `.gitignore` needs updating (9.2) |
+| 9: Cache files | DONE | Cache files removed, `.gitignore` complete |
 | 10: Final acceptance | NOT STARTED | Blocked on Tasks 3, 5, 8.3, 9.2 |
 
 ---
@@ -656,7 +656,7 @@ Do this only after Tasks 1 through 7 are complete.
 
 ## Task 9: Remove generated/cache files
 
-**Status: PARTIAL** — Cache files removed (9.1 DONE). `.gitignore` needs updating (9.2 NOT DONE). Current `.gitignore` is missing: `*.py[cod]`, `.pytest_cache/`, `.mypy_cache/`, `.ruff_cache/`, `.coverage`, `htmlcov/`, `venv/`.
+**Status: DONE** — Cache files removed (9.1 DONE). `.gitignore` contains all required entries (9.2 DONE). No cache files in git status (9.3 DONE).
 
 ### 9.1 Remove Python cache files
 
@@ -671,7 +671,7 @@ Do this only after Tasks 1 through 7 are complete.
 
 ### 9.2 Update `.gitignore`
 
-- [ ] Ensure `.gitignore` includes:
+- [x] Ensure `.gitignore` includes:
 
    ```text
    __pycache__/
@@ -687,19 +687,19 @@ Do this only after Tasks 1 through 7 are complete.
 
 ### 9.3 Verify clean status
 
-- [ ] Run:
+- [x] Run:
 
-  ```bash
-  git status --short
-  ```
+   ```bash
+   git status --short
+   ```
 
-- [ ] Confirm no cache files are staged.
+- [x] Confirm no cache files are staged.
 
 ---
 
 ## Task 10: Final acceptance tests
 
-**Status: NOT STARTED** — Blocked on Tasks 3, 5, 8.3, 9.2.
+**Status: NOT STARTED** — Blocked on Tasks 3, 5. (8.3 and 9.2 are done.)
 
 ### 10.1 Run targeted tests
 
