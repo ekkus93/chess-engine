@@ -3,6 +3,11 @@
 from __future__ import annotations
 
 from chess_game.chess.board import Board, create_piece
+from chess_game.chess.board.game_state import (
+    is_checkmate,
+    is_in_check,
+    is_stalemate,
+)
 from chess_game.chess.types import Color, PieceType
 from tests.helpers import sq
 
@@ -13,7 +18,7 @@ def test_rook_checks_king_on_same_file() -> None:
     board.clear_board()
     board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
     board.set_piece(sq("e8"), create_piece(Color.BLACK, PieceType.ROOK))
-    assert board.is_in_check(Color.WHITE) is True
+    assert is_in_check(board,Color.WHITE) is True
 
 
 def test_bishop_checks_king_on_diagonal() -> None:
@@ -22,7 +27,7 @@ def test_bishop_checks_king_on_diagonal() -> None:
     board.clear_board()
     board.set_piece(sq("e4"), create_piece(Color.WHITE, PieceType.KING))
     board.set_piece(sq("a8"), create_piece(Color.BLACK, PieceType.BISHOP))
-    assert board.is_in_check(Color.WHITE) is True
+    assert is_in_check(board,Color.WHITE) is True
 
 
 def test_knight_checks_king() -> None:
@@ -31,7 +36,7 @@ def test_knight_checks_king() -> None:
     board.clear_board()
     board.set_piece(sq("e4"), create_piece(Color.WHITE, PieceType.KING))
     board.set_piece(sq("f6"), create_piece(Color.BLACK, PieceType.KNIGHT))
-    assert board.is_in_check(Color.WHITE) is True
+    assert is_in_check(board,Color.WHITE) is True
 
 
 def test_pawn_checks_king() -> None:
@@ -40,7 +45,7 @@ def test_pawn_checks_king() -> None:
     board.clear_board()
     board.set_piece(sq("e6"), create_piece(Color.WHITE, PieceType.KING))
     board.set_piece(sq("d7"), create_piece(Color.BLACK, PieceType.PAWN))
-    assert board.is_in_check(Color.WHITE) is True
+    assert is_in_check(board,Color.WHITE) is True
 
 
 def test_blocked_sliding_attack_is_not_check() -> None:
@@ -50,7 +55,7 @@ def test_blocked_sliding_attack_is_not_check() -> None:
     board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
     board.set_piece(sq("e8"), create_piece(Color.BLACK, PieceType.ROOK))
     board.set_piece(sq("e5"), create_piece(Color.WHITE, PieceType.PAWN))
-    assert board.is_in_check(Color.WHITE) is False
+    assert is_in_check(board,Color.WHITE) is False
 
 
 def test_king_not_in_check_when_no_attackers() -> None:
@@ -59,7 +64,7 @@ def test_king_not_in_check_when_no_attackers() -> None:
     board.clear_board()
     board.set_piece(sq("e4"), create_piece(Color.WHITE, PieceType.KING))
     board.set_piece(sq("a8"), create_piece(Color.BLACK, PieceType.PAWN))
-    assert board.is_in_check(Color.WHITE) is False
+    assert is_in_check(board,Color.WHITE) is False
 
 
 def test_back_rank_mate() -> None:
@@ -72,8 +77,8 @@ def test_back_rank_mate() -> None:
     board.set_piece(sq("f7"), create_piece(Color.BLACK, PieceType.PAWN))
     board.set_piece(sq("a8"), create_piece(Color.WHITE, PieceType.ROOK))
     board.turn = Color.BLACK
-    assert board.is_checkmate() is True
-    assert board.is_checkmate(Color.BLACK) is True
+    assert is_checkmate(board,) is True
+    assert is_checkmate(board,Color.BLACK) is True
 
 
 def test_not_checkmate_when_escape_exists() -> None:
@@ -87,7 +92,7 @@ def test_not_checkmate_when_escape_exists() -> None:
     board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.ROOK))
     board.set_piece(sq("f8"), create_piece(Color.BLACK, PieceType.PAWN))
     board.turn = Color.BLACK
-    assert board.is_checkmate() is False
+    assert is_checkmate(board,) is False
 
 
 def test_not_checkmate_when_can_capturer_attacker() -> None:
@@ -97,7 +102,7 @@ def test_not_checkmate_when_can_capturer_attacker() -> None:
     board.set_piece(sq("e4"), create_piece(Color.BLACK, PieceType.KING))
     board.set_piece(sq("f6"), create_piece(Color.WHITE, PieceType.KNIGHT))
     board.turn = Color.BLACK
-    assert board.is_checkmate() is False
+    assert is_checkmate(board,) is False
 
 
 def test_stalemate_known_position() -> None:
@@ -108,8 +113,8 @@ def test_stalemate_known_position() -> None:
     board.set_piece(sq("c2"), create_piece(Color.WHITE, PieceType.QUEEN))
     board.set_piece(sq("c1"), create_piece(Color.WHITE, PieceType.KING))
     board.turn = Color.BLACK
-    assert board.is_stalemate() is True
-    assert board.is_stalemate(Color.BLACK) is True
+    assert is_stalemate(board,) is True
+    assert is_stalemate(board,Color.BLACK) is True
 
 
 def test_not_stalemate_when_in_check() -> None:
@@ -122,8 +127,8 @@ def test_not_stalemate_when_in_check() -> None:
     board.set_piece(sq("f7"), create_piece(Color.BLACK, PieceType.PAWN))
     board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.ROOK))
     board.turn = Color.BLACK
-    assert board.is_stalemate() is False
-    assert board.is_stalemate(Color.BLACK) is False
+    assert is_stalemate(board,) is False
+    assert is_stalemate(board,Color.BLACK) is False
 
 
 def test_not_stalemate_when_moves_exist() -> None:
@@ -133,7 +138,7 @@ def test_not_stalemate_when_moves_exist() -> None:
     board.set_piece(sq("e8"), create_piece(Color.BLACK, PieceType.KING))
     board.set_piece(sq("e5"), create_piece(Color.WHITE, PieceType.KING))
     board.turn = Color.BLACK
-    assert board.is_stalemate() is False
+    assert is_stalemate(board,) is False
 
 
 def test_is_checkmate_with_explicit_color() -> None:
@@ -146,8 +151,8 @@ def test_is_checkmate_with_explicit_color() -> None:
     board.set_piece(sq("f7"), create_piece(Color.BLACK, PieceType.PAWN))
     board.set_piece(sq("a8"), create_piece(Color.WHITE, PieceType.ROOK))
     board.turn = Color.WHITE
-    assert board.is_checkmate(Color.BLACK) is True
-    assert board.is_checkmate(Color.WHITE) is False
+    assert is_checkmate(board,Color.BLACK) is True
+    assert is_checkmate(board,Color.WHITE) is False
 
 
 def test_is_stalemate_with_explicit_color() -> None:
@@ -158,5 +163,5 @@ def test_is_stalemate_with_explicit_color() -> None:
     board.set_piece(sq("c2"), create_piece(Color.WHITE, PieceType.QUEEN))
     board.set_piece(sq("c1"), create_piece(Color.WHITE, PieceType.KING))
     board.turn = Color.WHITE
-    assert board.is_stalemate(Color.BLACK) is True
-    assert board.is_stalemate(Color.WHITE) is False
+    assert is_stalemate(board,Color.BLACK) is True
+    assert is_stalemate(board,Color.WHITE) is False

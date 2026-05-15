@@ -12,7 +12,7 @@ def test_rook_valid_horizontal_move() -> None:
         create_piece(Color.WHITE, PieceType.ROOK),
     )
     assert (
-        board.is_valid_rook_move(
+        board.piece_move_checker.is_valid_rook_move(
             sq("e5"),
             sq("a5"),
         )
@@ -27,7 +27,7 @@ def test_rook_valid_vertical_move() -> None:
         sq("e5"), create_piece(Color.WHITE, PieceType.ROOK)
     )
     assert (
-        board.is_valid_rook_move(sq("e5"), sq("e1"))
+        board.piece_move_checker.is_valid_rook_move(sq("e5"), sq("e1"))
         is True
     )
 
@@ -42,7 +42,7 @@ def test_rook_blocked_by_friendly_piece_in_path() -> None:
         sq("c5"), create_piece(Color.WHITE, PieceType.PAWN)
     )
     assert (
-        board.is_valid_rook_move(sq("e5"), sq("a5"))
+        board.piece_move_checker.is_valid_rook_move(sq("e5"), sq("a5"))
         is False
     )
 
@@ -57,7 +57,7 @@ def test_rook_blocked_by_enemy_piece_before_destination() -> None:
         sq("c5"), create_piece(Color.BLACK, PieceType.PAWN)
     )
     assert (
-        board.is_valid_rook_move(sq("e5"), sq("a5"))
+        board.piece_move_checker.is_valid_rook_move(sq("e5"), sq("a5"))
         is False
     )
 
@@ -69,7 +69,7 @@ def test_rook_cannot_move_diagonally() -> None:
         sq("e5"), create_piece(Color.WHITE, PieceType.ROOK)
     )
     assert (
-        board.is_valid_rook_move(sq("e5"), sq("c3"))
+        board.piece_move_checker.is_valid_rook_move(sq("e5"), sq("c3"))
         is False
     )
 
@@ -85,7 +85,7 @@ def test_rook_cannot_capture_friendly_piece() -> None:
         create_piece(Color.WHITE, PieceType.BISHOP),
     )
     assert (
-        board.is_valid_rook_move(sq("e5"), sq("a5"))
+        board.piece_move_checker.is_valid_rook_move(sq("e5"), sq("a5"))
         is False
     )
 
@@ -98,7 +98,7 @@ def test_bishop_valid_diagonal_move() -> None:
         create_piece(Color.WHITE, PieceType.BISHOP),
     )
     assert (
-        board.is_valid_bishop_move(sq("e5"), sq("b2"))
+        board.piece_move_checker.is_valid_bishop_move(sq("e5"), sq("b2"))
         is True
     )
 
@@ -114,7 +114,7 @@ def test_bishop_blocked_diagonal() -> None:
         sq("d4"), create_piece(Color.BLACK, PieceType.PAWN)
     )
     assert (
-        board.is_valid_bishop_move(sq("e5"), sq("b2"))
+        board.piece_move_checker.is_valid_bishop_move(sq("e5"), sq("b2"))
         is False
     )
 
@@ -127,7 +127,7 @@ def test_bishop_cannot_move_straight() -> None:
         create_piece(Color.WHITE, PieceType.BISHOP),
     )
     assert (
-        board.is_valid_bishop_move(sq("e5"), sq("b5"))
+        board.piece_move_checker.is_valid_bishop_move(sq("e5"), sq("b5"))
         is False
     )
 
@@ -144,7 +144,7 @@ def test_bishop_cannot_capture_friendly_piece() -> None:
         create_piece(Color.WHITE, PieceType.KNIGHT),
     )
     assert (
-        board.is_valid_bishop_move(sq("e5"), sq("b2"))
+        board.piece_move_checker.is_valid_bishop_move(sq("e5"), sq("b2"))
         is False
     )
 
@@ -156,7 +156,7 @@ def test_queen_straight_move() -> None:
         sq("e5"), create_piece(Color.WHITE, PieceType.QUEEN)
     )
     assert (
-        board.is_valid_queen_move(sq("e5"), sq("a5"))
+        board.piece_move_checker.is_valid_queen_move(sq("e5"), sq("a5"))
         is True
     )
 
@@ -168,7 +168,7 @@ def test_queen_diagonal_move() -> None:
         sq("e5"), create_piece(Color.WHITE, PieceType.QUEEN)
     )
     assert (
-        board.is_valid_queen_move(sq("e5"), sq("b2"))
+        board.piece_move_checker.is_valid_queen_move(sq("e5"), sq("b2"))
         is True
     )
 
@@ -183,7 +183,7 @@ def test_queen_blocked_path() -> None:
         sq("d4"), create_piece(Color.BLACK, PieceType.PAWN)
     )
     assert (
-        board.is_valid_queen_move(sq("e5"), sq("b2"))
+        board.piece_move_checker.is_valid_queen_move(sq("e5"), sq("b2"))
         is False
     )
 
@@ -195,7 +195,7 @@ def test_queen_illegal_knight_like_move() -> None:
         sq("e5"), create_piece(Color.WHITE, PieceType.QUEEN)
     )
     assert (
-        board.is_valid_queen_move(sq("e5"), sq("d3"))
+        board.piece_move_checker.is_valid_queen_move(sq("e5"), sq("d3"))
         is False
     )
 
@@ -208,11 +208,11 @@ def test_knight_valid_l_move_both_orientations() -> None:
         create_piece(Color.WHITE, PieceType.KNIGHT),
     )
     assert (
-        board.is_valid_knight_move(sq("e5"), sq("d3"))
+        board.piece_move_checker.is_valid_knight_move(sq("e5"), sq("d3"))
         is True
     )
     assert (
-        board.is_valid_knight_move(sq("e5"), sq("c4"))
+        board.piece_move_checker.is_valid_knight_move(sq("e5"), sq("c4"))
         is True
     )
 
@@ -231,7 +231,7 @@ def test_knight_can_jump_over_pieces() -> None:
         sq("d5"), create_piece(Color.WHITE, PieceType.PAWN)
     )
     assert (
-        board.is_valid_knight_move(sq("e5"), sq("d3"))
+        board.piece_move_checker.is_valid_knight_move(sq("e5"), sq("d3"))
         is True
     )
 
@@ -244,7 +244,7 @@ def test_knight_illegal_straight_move() -> None:
         create_piece(Color.WHITE, PieceType.KNIGHT),
     )
     assert (
-        board.is_valid_knight_move(sq("e5"), sq("c5"))
+        board.piece_move_checker.is_valid_knight_move(sq("e5"), sq("c5"))
         is False
     )
 
@@ -257,7 +257,7 @@ def test_knight_illegal_diagonal_move() -> None:
         create_piece(Color.WHITE, PieceType.KNIGHT),
     )
     assert (
-        board.is_valid_knight_move(sq("e5"), sq("c3"))
+        board.piece_move_checker.is_valid_knight_move(sq("e5"), sq("c3"))
         is False
     )
 
@@ -273,7 +273,7 @@ def test_knight_cannot_capture_friendly_piece() -> None:
         sq("d3"), create_piece(Color.WHITE, PieceType.PAWN)
     )
     assert (
-        board.is_valid_knight_move(sq("e5"), sq("d3"))
+        board.piece_move_checker.is_valid_knight_move(sq("e5"), sq("d3"))
         is False
     )
 
@@ -285,7 +285,7 @@ def test_king_one_step_orthogonal() -> None:
         sq("e5"), create_piece(Color.WHITE, PieceType.KING)
     )
     assert (
-        board.is_valid_king_move(sq("e5"), sq("f5"))
+        board.piece_move_checker.is_valid_king_move(sq("e5"), sq("f5"))
         is True
     )
 
@@ -297,7 +297,7 @@ def test_king_one_step_diagonal() -> None:
         sq("e5"), create_piece(Color.WHITE, PieceType.KING)
     )
     assert (
-        board.is_valid_king_move(sq("e5"), sq("f6"))
+        board.piece_move_checker.is_valid_king_move(sq("e5"), sq("f6"))
         is True
     )
 
@@ -309,7 +309,7 @@ def test_king_cannot_move_two_squares() -> None:
         sq("e5"), create_piece(Color.WHITE, PieceType.KING)
     )
     assert (
-        board.is_valid_king_move(sq("e5"), sq("g5"))
+        board.piece_move_checker.is_valid_king_move(sq("e5"), sq("g5"))
         is False
     )
 
@@ -322,7 +322,7 @@ def test_white_pawn_one_step_from_e2_to_e3() -> None:
         sq("e2"), create_piece(Color.WHITE, PieceType.PAWN)
     )
     assert (
-        board.is_valid_pawn_move(sq("e2"), sq("e3"))
+        board.piece_move_checker.is_valid_pawn_move(sq("e2"), sq("e3"))
         is True
     )
 
@@ -335,7 +335,7 @@ def test_white_pawn_two_step_from_e2_to_e4() -> None:
         sq("e2"), create_piece(Color.WHITE, PieceType.PAWN)
     )
     assert (
-        board.is_valid_pawn_move(sq("e2"), sq("e4"))
+        board.piece_move_checker.is_valid_pawn_move(sq("e2"), sq("e4"))
         is True
     )
 
@@ -352,7 +352,7 @@ def test_white_pawn_blocked_on_one_step() -> None:
         create_piece(Color.BLACK, PieceType.KNIGHT),
     )
     assert (
-        board.is_valid_pawn_move(sq("e2"), sq("e3"))
+        board.piece_move_checker.is_valid_pawn_move(sq("e2"), sq("e3"))
         is False
     )
 
@@ -369,7 +369,7 @@ def test_white_pawn_blocked_on_two_step_intermediate_square() -> None:
         create_piece(Color.BLACK, PieceType.KNIGHT),
     )
     assert (
-        board.is_valid_pawn_move(sq("e2"), sq("e4"))
+        board.piece_move_checker.is_valid_pawn_move(sq("e2"), sq("e4"))
         is False
     )
 
@@ -386,7 +386,7 @@ def test_white_pawn_capture_diagonally() -> None:
         create_piece(Color.BLACK, PieceType.BISHOP),
     )
     assert (
-        board.is_valid_pawn_move(sq("e2"), sq("f3"))
+        board.piece_move_checker.is_valid_pawn_move(sq("e2"), sq("f3"))
         is True
     )
 
@@ -403,7 +403,7 @@ def test_white_pawn_cannot_capture_forward() -> None:
         create_piece(Color.BLACK, PieceType.BISHOP),
     )
     assert (
-        board.is_valid_pawn_move(sq("e2"), sq("e3"))
+        board.piece_move_checker.is_valid_pawn_move(sq("e2"), sq("e3"))
         is False
     )
 
@@ -415,7 +415,7 @@ def test_white_pawn_cannot_move_backward() -> None:
         sq("e3"), create_piece(Color.WHITE, PieceType.PAWN)
     )
     assert (
-        board.is_valid_pawn_move(sq("e3"), sq("e2"))
+        board.piece_move_checker.is_valid_pawn_move(sq("e3"), sq("e2"))
         is False
     )
 
@@ -428,7 +428,7 @@ def test_black_pawn_one_step_from_e7_to_e6() -> None:
         sq("e7"), create_piece(Color.BLACK, PieceType.PAWN)
     )
     assert (
-        board.is_valid_pawn_move(sq("e7"), sq("e6"))
+        board.piece_move_checker.is_valid_pawn_move(sq("e7"), sq("e6"))
         is True
     )
 
@@ -441,7 +441,7 @@ def test_black_pawn_two_step_from_e7_to_e5() -> None:
         sq("e7"), create_piece(Color.BLACK, PieceType.PAWN)
     )
     assert (
-        board.is_valid_pawn_move(sq("e7"), sq("e5"))
+        board.piece_move_checker.is_valid_pawn_move(sq("e7"), sq("e5"))
         is True
     )
 
@@ -458,7 +458,7 @@ def test_black_pawn_diagonal_capture() -> None:
         create_piece(Color.WHITE, PieceType.KNIGHT),
     )
     assert (
-        board.is_valid_pawn_move(sq("e7"), sq("d6"))
+        board.piece_move_checker.is_valid_pawn_move(sq("e7"), sq("d6"))
         is True
     )
 
@@ -471,7 +471,7 @@ def test_black_pawn_cannot_move_backward() -> None:
         sq("e6"), create_piece(Color.BLACK, PieceType.PAWN)
     )
     assert (
-        board.is_valid_pawn_move(sq("e6"), sq("e7"))
+        board.piece_move_checker.is_valid_pawn_move(sq("e6"), sq("e7"))
         is False
     )
 
@@ -484,7 +484,7 @@ def test_white_pawn_diagonal_non_capture_rejected() -> None:
         sq("e2"), create_piece(Color.WHITE, PieceType.PAWN)
     )
     assert (
-        board.is_valid_pawn_move(sq("e2"), sq("f3"))
+        board.piece_move_checker.is_valid_pawn_move(sq("e2"), sq("f3"))
         is False
     )
 
@@ -499,7 +499,7 @@ def test_queen_blocked_on_rank() -> None:
         sq("c5"), create_piece(Color.WHITE, PieceType.PAWN)
     )
     assert (
-        board.is_valid_queen_move(sq("e5"), sq("a5"))
+        board.piece_move_checker.is_valid_queen_move(sq("e5"), sq("a5"))
         is False
     )
 
@@ -514,7 +514,7 @@ def test_queen_blocked_on_file() -> None:
         sq("e3"), create_piece(Color.BLACK, PieceType.PAWN)
     )
     assert (
-        board.is_valid_queen_move(sq("e5"), sq("e1"))
+        board.piece_move_checker.is_valid_queen_move(sq("e5"), sq("e1"))
         is False
     )
 
@@ -529,6 +529,6 @@ def test_bishop_blocked_by_friendly_piece_in_path() -> None:
         sq("d4"), create_piece(Color.WHITE, PieceType.PAWN)
     )
     assert (
-        board.is_valid_bishop_move(sq("e5"), sq("b2"))
+        board.piece_move_checker.is_valid_bishop_move(sq("e5"), sq("b2"))
         is False
     )

@@ -3,16 +3,17 @@
 from __future__ import annotations
 
 from chess_game.chess.board import Board
+from chess_game.chess.board.game_state import is_checkmate, is_in_check, is_stalemate
 from chess_game.chess.move import parse_move_notation
 from chess_game.chess.types import Color
 
 
 def _game_over_message(board: Board) -> str | None:
     """Return a end-of-game message if the game is over, else None."""
-    if board.is_checkmate():
+    if is_checkmate(board):
         winner = "Black" if board.turn == Color.WHITE else "White"
         return f"Checkmate! {winner} wins."
-    if board.is_stalemate():
+    if is_stalemate(board):
         return "Stalemate! The game is a draw."
     return None
 
@@ -45,7 +46,7 @@ def _game_loop(board: Board) -> None:
             print(status)
             break
 
-        if board.is_in_check(board.turn):
+        if is_in_check(board, board.turn):
             next_side = board.turn.name.capitalize()
             print(f"{next_side} is in check!")
 

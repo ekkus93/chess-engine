@@ -4,30 +4,31 @@ All 189 tests pass, mypy is clean. Remaining issues are structural pylint warnin
 
 ---
 
-## Task 1: `chess_game/chess/board/board.py` — too-many-instance-attributes (11/7)
+## Task 1: `chess_game/chess/board/board.py` — too-many-instance-attributes (11/7) ✅ DONE
 
-### Subtask 1.1: Consolidate castling rights into a dataclass
+### Subtask 1.1: Consolidate castling rights into a dataclass ✅ DONE
 - Create a `CastlingRights` dataclass with `white_kingside`, `white_queenside`, `black_kingside`, `black_queenside`
 - Replace the 4 individual attributes on Board with a single `castling_rights: CastlingRights`
 - Update all references in board.py, castling.py, en_passant.py, and any test files
 
-### Subtask 1.2: Consolidate validator instances
+### Subtask 1.2: Consolidate validator instances ✅ DONE
 - Evaluate whether `_move_validator`, `_move_executor`, `_promotion_validator`, `_en_passant_validator` can be lazily instantiated or stored as a single `_validators` container
 - Or alternatively, add `# pylint: disable=too-many-instance-attributes` with a docstring justification
 
 ---
 
-## Task 2: `chess_game/chess/board/board.py` — too-many-public-methods (26/20)
+## Task 2: `chess_game/chess/board/board.py` — too-many-public-methods (26/20) ✅ DONE
 
-### Subtask 2.1: Group piece-specific validators into a mixin or delegate class
+### Subtask 2.1: Group piece-specific validators into a mixin or delegate class ✅ DONE
 - Move `is_valid_rook_move`, `is_valid_bishop_move`, `is_valid_queen_move`, `is_valid_knight_move`, `is_valid_king_move`, `is_valid_pawn_move` into a `PieceMoveValidator` class that holds a Board reference
 - Board delegates to this class, or these become module-level functions
 
-### Subtask 2.2: Group check/checkmate/stalemate methods
+### Subtask 2.2: Group check/checkmate/stalemate methods ✅ DONE
 - Move `is_in_check`, `is_checkmate`, `is_stalemate` into a `GameStateException` class or module-level functions
 
-### Subtask 2.3: Alternative — add pragma with justification
-- If refactoring is deemed too risky, add `# pylint: disable=too-many-public-methods` to the class docstring
+### Subtask 2.3: Privatize methods and update callers ✅ DONE
+- Prefix delegated methods with underscore to reduce public method count
+- Update main.py, tests, and other callers to use module-level functions from game_state
 
 ---
 

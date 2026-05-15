@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from chess_game.chess.board.game_state import is_in_check
 from chess_game.chess.constants import Color
 from chess_game.chess.constants import (
     get_row_constant,
@@ -76,7 +77,7 @@ class EnPassantValidator:
         temp_board.clear_square(from_square)
         temp_board.clear_square(captured_square)
 
-        if temp_board.is_in_check(piece.color):
+        if is_in_check(temp_board, piece.color):
             return False
 
         return True

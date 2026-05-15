@@ -16,6 +16,12 @@ from chess_game.chess.board.move_execution import MoveExecutor
 from chess_game.chess.board.castling import CastlingValidator
 from chess_game.chess.board.promotion import PromotionValidator
 from chess_game.chess.board.en_passant import EnPassantValidator
+from chess_game.chess.board.piece_validation import PieceMoveChecker
+from chess_game.chess.board.game_state import (
+    is_in_check as _gs_is_in_check,
+    is_checkmate as _gs_is_checkmate,
+    is_stalemate as _gs_is_stalemate,
+)
 from chess_game.chess.constants import (
     ROW_1,
     ROW_2,
@@ -92,6 +98,12 @@ class Board:
         self._move_executor = MoveExecutor(self)
         self._promotion_validator = PromotionValidator(self)
         self._en_passant_validator = EnPassantValidator(self)
+        self._piece_move_checker = PieceMoveChecker(self)
+
+    @property
+    def piece_move_checker(self) -> PieceMoveChecker:
+        """Access to piece-specific move validation."""
+        return self._piece_move_checker
 
     # ---- board accessors ----
 
@@ -298,85 +310,60 @@ class Board:
             for col in range(8):
                 self.clear_square(get_square_constant(row, col))
 
-    # ---- piece-specific move validation (delegates to MoveValidator) ----
+    # ---- piece move validation (delegates to PieceMoveChecker) ----
 
-    def is_valid_rook_move(
+    def _is_valid_rook_move(
         self, from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
-        """Validate rook move (straight line)."""
-        piece = self.get_piece(from_square)
-        if piece is None or piece.kind != PieceType.ROOK:
-            return False
-        return self._move_validator.is_valid_move(from_square, to_square)
+        return self._piece_move_checker.is_valid_rook_move(
+            from_square, to_square
+        )
 
-    def is_valid_bishop_move(
+    def _is_valid_bishop_move(
         self, from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
-        """Validate bishop move (diagonal)."""
-        piece = self.get_piece(from_square)
-        if piece is None or piece.kind != PieceType.BISHOP:
-            return False
-        return self._move_validator.is_valid_move(from_square, to_square)
+        return self._piece_move_checker.is_valid_bishop_move(
+            from_square, to_square
+        )
 
-    def is_valid_queen_move(
+    def _is_valid_queen_move(
         self, from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
-        """Validate queen move (straight or diagonal)."""
-        piece = self.get_piece(from_square)
-        if piece is None or piece.kind != PieceType.QUEEN:
-            return False
-        return self._move_validator.is_valid_move(from_square, to_square)
+        return self._piece_move_checker.is_valid_queen_move(
+            from_square, to_square
+        )
 
-    def is_valid_knight_move(
+    def _is_valid_knight_move(
         self, from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
-        """Validate knight move (L-shape)."""
-        piece = self.get_piece(from_square)
-        if piece is None or piece.kind != PieceType.KNIGHT:
-            return False
-        return self._move_validator.is_valid_move(from_square, to_square)
+        return self._piece_move_checker.is_valid_knight_move(
+            from_square, to_square
+        )
 
-    def is_valid_king_move(
+    def _is_valid_king_move(
         self, from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
-        """Validate king move (one square in any direction)."""
-        piece = self.get_piece(from_square)
-        if piece is None or piece.kind != PieceType.KING:
-            return False
-        return self._move_validator.is_valid_move(from_square, to_square)
+        return self._piece_move_checker.is_valid_king_move(
+            from_square, to_square
+        )
 
-    def is_valid_pawn_move(
+    def _is_valid_pawn_move(
         self, from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
-        """Validate pawn move."""
-        piece = self.get_piece(from_square)
-        if piece is None or piece.kind != PieceType.PAWN:
-            return False
-        return self._move_validator.is_valid_move(from_square, to_square)
+        return self._piece_move_checker.is_valid_pawn_move(
+            from_square, to_square
+        )
 
-    # ---- check / checkmate / stalemate ----
+    # ---- game state (delegates to game_state module) ----
 
-    def is_in_check(self, color: Color) -> bool:
-        """Check if specified color's king is in check."""
-        king_sq = self.find_king(color)
-        if king_sq is None:
-            return False
-        enemy = Color.BLACK if color == Color.WHITE else Color.WHITE
-        return CastlingValidator.is_square_attacked(self, king_sq, enemy)
+    def _is_in_check(self, color: Color) -> bool:
+        return _gs_is_in_check(self, color)
 
-    def is_checkmate(self, color: Optional[Color] = None) -> bool:
-        """Check if the given color (or side-to-move) is in checkmate."""
-        c = color if color is not None else self.turn
-        if not self.is_in_check(c):
-            return False
-        return len(self.get_legal_moves_for_color(c)) == 0
+    def _is_checkmate(self, color: Optional[Color] = None) -> bool:
+        return _gs_is_checkmate(self, color)
 
-    def is_stalemate(self, color: Optional[Color] = None) -> bool:
-        """Check if the given color (or side-to-move) is in stalemate."""
-        c = color if color is not None else self.turn
-        if self.is_in_check(c):
-            return False
-        return len(self.get_legal_moves_for_color(c)) == 0
+    def _is_stalemate(self, color: Optional[Color] = None) -> bool:
+        return _gs_is_stalemate(self, color)
 
     # ---- clone ----
 
