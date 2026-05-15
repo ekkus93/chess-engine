@@ -20,11 +20,55 @@ from chess_game.chess.constants import (
     get_row_constant,
     get_col_constant,
 )
-from chess_game.chess.types import PieceType
+from chess_game.chess.types import PieceType, CastlingRights
 from chess_game.chess.board.attack_utils import piece_attacks_square
 
 if TYPE_CHECKING:
     from chess_game.chess.board.board import Board
+
+
+def _clear_castling_for_color(rights: CastlingRights, color: Color) -> None:
+    """Clear both castling rights for a given color."""
+    if color == Color.WHITE:
+        rights.white_kingside = False
+        rights.white_queenside = False
+    else:
+        rights.black_kingside = False
+        rights.black_queenside = False
+
+
+def _clear_rook_castling_right(
+    rights: CastlingRights, start_pos: ConstantSquare, color: Color
+) -> None:
+    """Clear side-specific castling right when a rook leaves its home square."""
+    row = int(start_pos.row)
+    col = int(start_pos.col)
+    if color == Color.WHITE and row == 7:
+        if col == 7:
+            rights.white_kingside = False
+        elif col == 0:
+            rights.white_queenside = False
+    elif color != Color.WHITE and row == 0:
+        if col == 7:
+            rights.black_kingside = False
+        elif col == 0:
+            rights.black_queenside = False
+
+
+def _clear_captured_rook_castling_right(
+    rights: CastlingRights, end_pos: ConstantSquare
+) -> None:
+    """Clear castling right if a rook is captured on its home square."""
+    row = int(end_pos.row)
+    col = int(end_pos.col)
+    if row == 0 and col == 7:
+        rights.black_kingside = False
+    elif row == 0 and col == 0:
+        rights.black_queenside = False
+    elif row == 7 and col == 7:
+        rights.white_kingside = False
+    elif row == 7 and col == 0:
+        rights.white_queenside = False
 
 
 class CastlingValidator:

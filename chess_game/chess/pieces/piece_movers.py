@@ -1,7 +1,5 @@
 """Piece-specific move validation logic."""
 
-# pylint: disable=protected-access
-
 from __future__ import annotations
 
 from typing import List, Optional
@@ -15,38 +13,32 @@ from chess_game.chess.types import Piece, PieceType
 from chess_game.chess.constants import ConstantSquare
 
 
+def _pawn_direction(color: Color) -> int:
+    """Return the forward direction for a pawn: -1 for WHITE, +1 for BLACK."""
+    return -1 if color == Color.WHITE else 1
+
+
 class PieceMovers:
     """Contains move validation logic for each piece type."""
 
     @staticmethod
     def get_valid_moves(piece: Piece, board) -> List[ConstantSquare]:
         """Get all valid moves for a piece."""
-        if piece._square is None:
+        if piece.square is None:
             return []
-        if piece.kind == PieceType.PAWN:
-            return PieceMovers._get_pawn_moves(piece, board)
-        if piece.kind == PieceType.KNIGHT:
-            return PieceMovers._get_knight_moves(piece, board)
-        if piece.kind == PieceType.BISHOP:
-            return PieceMovers._get_bishop_moves(piece, board)
-        if piece.kind == PieceType.ROOK:
-            return PieceMovers._get_rook_moves(piece, board)
-        if piece.kind == PieceType.QUEEN:
-            return PieceMovers._get_queen_moves(piece, board)
-        if piece.kind == PieceType.KING:
-            return PieceMovers._get_king_moves(piece, board)
-        return []
+        getter = _MOVEMENT_GETTERS.get(piece.kind)
+        if getter is None:
+            return []
+        return getter(piece, board)
 
     @staticmethod
     def _get_pawn_moves(piece: Piece, board) -> List[ConstantSquare]:
         """Get all valid pawn moves (forward, capture, 2-step, promotion)."""
-        assert piece._square is not None
+        assert piece.square is not None
         moves = []
-        # WHITE moves toward row 0/rank 8 (direction -1), BLACK toward row 7/rank 1 (direction +1)
-        direction = -1 if piece.color == Color.WHITE else 1
-
-        current_row = int(piece._square.row)
-        current_col = get_col_constant(int(piece._square.col))
+        direction = _pawn_direction(piece.color)
+        current_row = int(piece.square.row)
+        current_col = get_col_constant(int(piece.square.col))
 
         # Forward 1 square
         next_row = get_row_constant(current_row + direction)
@@ -106,9 +98,8 @@ class PieceMovers:
     @staticmethod
     def _get_knight_moves(piece: Piece, board) -> List[ConstantSquare]:
         """Get all valid knight moves (L-shaped)."""
-        assert piece._square is not None
+        assert piece.square is not None
         moves = []
-        # Valid knight moves: one offset 1, other offset 2 (L-shape)
         valid_moves = [
             (-2, -1),
             (-2, 1),
@@ -121,8 +112,8 @@ class PieceMovers:
         ]
 
         for row_offset, col_offset in valid_moves:
-            target_row = int(piece._square.row) + row_offset
-            target_col = int(piece._square.col) + col_offset
+            target_row = int(piece.square.row) + row_offset
+            target_col = int(piece.square.col) + col_offset
 
             # Check bounds before converting to ConstantSquare
             if not (0 <= target_row < 8 and 0 <= target_col < 8):
@@ -144,7 +135,7 @@ class PieceMovers:
     @staticmethod
     def _get_bishop_moves(piece: Piece, board) -> List[ConstantSquare]:
         """Get all valid bishop moves (diagonal)."""
-        assert piece._square is not None
+        assert piece.square is not None
         moves = []
         diagonals = [
             (1, 1),
@@ -154,8 +145,8 @@ class PieceMovers:
         ]
 
         for row_offset, col_offset in diagonals:
-            target_row = int(piece._square.row) + row_offset
-            target_col = int(piece._square.col) + col_offset
+            target_row = int(piece.square.row) + row_offset
+            target_col = int(piece.square.col) + col_offset
 
             while 0 <= target_row < 8 and 0 <= target_col < 8:
                 target_row_const = get_row_constant(target_row)
@@ -181,7 +172,7 @@ class PieceMovers:
     @staticmethod
     def _get_rook_moves(piece: Piece, board) -> List[ConstantSquare]:
         """Get all valid rook moves (straight lines)."""
-        assert piece._square is not None
+        assert piece.square is not None
         moves = []
         directions = [
             (1, 0),
@@ -191,8 +182,8 @@ class PieceMovers:
         ]
 
         for row_offset, col_offset in directions:
-            target_row = int(piece._square.row) + row_offset
-            target_col = int(piece._square.col) + col_offset
+            target_row = int(piece.square.row) + row_offset
+            target_col = int(piece.square.col) + col_offset
 
             while 0 <= target_row < 8 and 0 <= target_col < 8:
                 target_row_const = get_row_constant(target_row)
@@ -218,16 +209,16 @@ class PieceMovers:
     @staticmethod
     def _get_piece_row(piece: Piece) -> Optional[int]:
         """Get piece row, handling None square."""
-        if piece._square is None:
+        if piece.square is None:
             return None
-        return int(piece._square.row)
+        return int(piece.square.row)
 
     @staticmethod
     def _get_piece_col(piece: Piece) -> Optional[int]:
         """Get piece column, handling None square."""
-        if piece._square is None:
+        if piece.square is None:
             return None
-        return int(piece._square.col)
+        return int(piece.square.col)
 
     @staticmethod
     def _get_queen_moves(piece: Piece, board) -> List[ConstantSquare]:
@@ -239,7 +230,7 @@ class PieceMovers:
     @staticmethod
     def _get_king_moves(piece: Piece, board) -> List[ConstantSquare]:
         """Get all valid king moves (one square in any direction plus castling)."""
-        assert piece._square is not None
+        assert piece.square is not None
         moves = []
         row_offsets = [-1, 0, 1]
         col_offsets = [-1, 0, 1]
@@ -250,8 +241,8 @@ class PieceMovers:
             if row_offset == 0 and col_offset == 0:
                 continue
 
-            target_row = int(piece._square.row) + row_offset
-            target_col = int(piece._square.col) + col_offset
+            target_row = int(piece.square.row) + row_offset
+            target_col = int(piece.square.col) + col_offset
 
             # Check bounds before converting to ConstantSquare
             if not (0 <= target_row < 8 and 0 <= target_col < 8):
@@ -269,3 +260,12 @@ class PieceMovers:
                 moves.append(target_square)
 
         return moves
+
+_MOVEMENT_GETTERS = {
+    PieceType.PAWN: PieceMovers._get_pawn_moves,
+    PieceType.KNIGHT: PieceMovers._get_knight_moves,
+    PieceType.BISHOP: PieceMovers._get_bishop_moves,
+    PieceType.ROOK: PieceMovers._get_rook_moves,
+    PieceType.QUEEN: PieceMovers._get_queen_moves,
+    PieceType.KING: PieceMovers._get_king_moves,
+}

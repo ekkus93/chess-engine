@@ -63,11 +63,7 @@ class EnPassantValidator:
         )
         captured_piece = self.board.get_piece(captured_square)
 
-        if captured_piece is None:
-            return False
-        if captured_piece.kind != PieceType.PAWN:
-            return False
-        if captured_piece.color == piece.color:
+        if captured_piece is None or captured_piece.kind != PieceType.PAWN or captured_piece.color == piece.color:
             return False
 
         # Check that en passant capture doesn't expose king to check
@@ -77,10 +73,7 @@ class EnPassantValidator:
         temp_board.clear_square(from_square)
         temp_board.clear_square(captured_square)
 
-        if is_in_check(temp_board, piece.color):
-            return False
-
-        return True
+        return not is_in_check(temp_board, piece.color)
 
     def clear_en_passant_target_if_needed(
         self, _from_square: ConstantSquare, _to_square: ConstantSquare, _piece: Piece

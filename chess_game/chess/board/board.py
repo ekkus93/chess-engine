@@ -10,10 +10,15 @@ import copy
 from typing import List, Optional, Tuple
 
 from chess_game.chess.constants import Color
-from chess_game.chess.types import PieceType, Piece, CastlingRights
+from chess_game.chess.types import PieceType, Piece, CastlingRights, BoardValidators
 from chess_game.chess.board.move_validation import MoveValidator
 from chess_game.chess.board.move_execution import MoveExecutor
-from chess_game.chess.board.castling import CastlingValidator
+from chess_game.chess.board.castling import (
+    CastlingValidator,
+    _clear_castling_for_color,
+    _clear_captured_rook_castling_right,
+    _clear_rook_castling_right,
+)
 from chess_game.chess.board.promotion import PromotionValidator
 from chess_game.chess.board.en_passant import EnPassantValidator
 from chess_game.chess.board.piece_validation import PieceMoveChecker
@@ -94,16 +99,18 @@ class Board:
 
     def init_validators(self) -> None:
         """Initialize internal validator instances."""
-        self._move_validator = MoveValidator(self)
-        self._move_executor = MoveExecutor(self)
-        self._promotion_validator = PromotionValidator(self)
-        self._en_passant_validator = EnPassantValidator(self)
-        self._piece_move_checker = PieceMoveChecker(self)
+        self._validators = BoardValidators(
+            move_validator=MoveValidator(self),
+            move_executor=MoveExecutor(self),
+            promotion_validator=PromotionValidator(self),
+            en_passant_validator=EnPassantValidator(self),
+            piece_move_checker=PieceMoveChecker(self),
+        )
 
     @property
     def piece_move_checker(self) -> PieceMoveChecker:
         """Access to piece-specific move validation."""
-        return self._piece_move_checker
+        return self._validators.piece_move_checker
 
     # ---- board accessors ----
 
@@ -312,45 +319,51 @@ class Board:
 
     # ---- piece move validation (delegates to PieceMoveChecker) ----
 
+    def is_valid_move(
+        self, from_square: ConstantSquare, to_square: ConstantSquare
+    ) -> bool:
+        """Validate a move for the piece on from_square."""
+        return self._validators.move_validator.is_valid_move(from_square, to_square)
+
     def _is_valid_rook_move(
         self, from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
-        return self._piece_move_checker.is_valid_rook_move(
+        return self._validators.piece_move_checker.is_valid_rook_move(
             from_square, to_square
         )
 
     def _is_valid_bishop_move(
         self, from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
-        return self._piece_move_checker.is_valid_bishop_move(
+        return self._validators.piece_move_checker.is_valid_bishop_move(
             from_square, to_square
         )
 
     def _is_valid_queen_move(
         self, from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
-        return self._piece_move_checker.is_valid_queen_move(
+        return self._validators.piece_move_checker.is_valid_queen_move(
             from_square, to_square
         )
 
     def _is_valid_knight_move(
         self, from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
-        return self._piece_move_checker.is_valid_knight_move(
+        return self._validators.piece_move_checker.is_valid_knight_move(
             from_square, to_square
         )
 
     def _is_valid_king_move(
         self, from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
-        return self._piece_move_checker.is_valid_king_move(
+        return self._validators.piece_move_checker.is_valid_king_move(
             from_square, to_square
         )
 
     def _is_valid_pawn_move(
         self, from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
-        return self._piece_move_checker.is_valid_pawn_move(
+        return self._validators.piece_move_checker.is_valid_pawn_move(
             from_square, to_square
         )
 
@@ -399,13 +412,13 @@ class Board:
         When square is provided and contains an opponent's piece, returns [].
         """
         if square is None:
-            return self._move_validator.get_legal_moves()
+            return self._validators.move_validator.get_legal_moves()
         piece = self.get_piece(square)
         if piece is None:
             return []
         if piece.color != self.turn:
             return []
-        return self._move_validator.get_legal_moves(square)
+        return self._validators.move_validator.get_legal_moves(square)
 
     def get_legal_moves_for_color(
         self, color: Color
@@ -413,7 +426,7 @@ class Board:
         """Get all legal moves for a specific color regardless of turn."""
         saved_turn = self.turn
         self.turn = color
-        moves = self._move_validator.get_legal_moves()
+        moves = self._validators.move_validator.get_legal_moves()
         self.turn = saved_turn
         return moves
 
@@ -439,7 +452,7 @@ class Board:
         if start_piece is None or start_piece.color != self.turn:
             return False
 
-        if not self._promotion_validator.is_valid_promotion_choice(
+        if not self._validators.promotion_validator.is_valid_promotion_choice(
             start_piece, end_pos, promotion
         ):
             return False
@@ -461,16 +474,16 @@ class Board:
         )
 
         if is_en_passant:
-            move_valid = self._en_passant_validator.validate_en_passant_capture(
+            move_valid = self._validators.en_passant_validator.validate_en_passant_capture(
                 start_pos, end_pos, start_piece
             )
         else:
-            move_valid = self._move_validator.is_move_legal(start_pos, end_pos)
+            move_valid = self._validators.move_validator.is_move_legal(start_pos, end_pos)
         if not move_valid:
             return False
 
         # Execute
-        success = self._move_executor.execute_move(
+        success = self._validators.move_executor.execute_move(
             start_pos, end_pos, promotion, start_piece
         )
         if not success:
@@ -480,10 +493,10 @@ class Board:
         self._update_castling_rights(start_pos, end_pos, start_piece)
 
         # Update en passant target
-        self._en_passant_validator.clear_en_passant_target_if_needed(
+        self._validators.en_passant_validator.clear_en_passant_target_if_needed(
             start_pos, end_pos, start_piece
         )
-        self._en_passant_validator.set_en_passant_target_if_valid(
+        self._validators.en_passant_validator.set_en_passant_target_if_valid(
             start_pos, end_pos, start_piece
         )
 
@@ -504,38 +517,16 @@ class Board:
 
         # King moves -> lose both castling rights for that color
         if start_piece.kind == PieceType.KING:
-            if is_white:
-                self.castling_rights.white_kingside = False
-                self.castling_rights.white_queenside = False
-            else:
-                self.castling_rights.black_kingside = False
-                self.castling_rights.black_queenside = False
+            _clear_castling_for_color(self.castling_rights, piece_color)
 
         # Rook moves from starting square -> lose side-specific castling right
-        # White home row = row 7 (rank 1), Black home row = row 0 (rank 8)
         if start_piece.kind == PieceType.ROOK:
-            row = int(start_pos.row)
-            col = int(start_pos.col)
-            if is_white and row == 7:
-                if col == 7:  # h1 - white kingside rook
-                    self.castling_rights.white_kingside = False
-                elif col == 0:  # a1 - white queenside rook
-                    self.castling_rights.white_queenside = False
-            elif not is_white and row == 0:
-                if col == 7:  # h8 - black kingside rook
-                    self.castling_rights.black_kingside = False
-                elif col == 0:  # a8 - black queenside rook
-                    self.castling_rights.black_queenside = False
+            _clear_rook_castling_right(
+                self.castling_rights, start_pos, piece_color
+            )
 
         # Rook captured on its starting square
-        if int(end_pos.row) == 0 and int(end_pos.col) == 7:
-            self.castling_rights.black_kingside = False
-        elif int(end_pos.row) == 0 and int(end_pos.col) == 0:
-            self.castling_rights.black_queenside = False
-        elif int(end_pos.row) == 7 and int(end_pos.col) == 7:
-            self.castling_rights.white_kingside = False
-        elif int(end_pos.row) == 7 and int(end_pos.col) == 0:
-            self.castling_rights.white_queenside = False
+        _clear_captured_rook_castling_right(self.castling_rights, end_pos)
 
     # ---- display ----
 

@@ -17,6 +17,60 @@ if TYPE_CHECKING:
     from chess_game.chess.board.board import Board
 
 
+def _is_pawn_attack_wrapper(
+    attacker: Piece,
+    attacker_square: ConstantSquare,
+    target_square: ConstantSquare,
+    board: Board,
+) -> bool:
+    return _is_pawn_attack(attacker, attacker_square, target_square)
+
+
+def _is_rook_attack_wrapper(
+    attacker: Piece,
+    attacker_square: ConstantSquare,
+    target_square: ConstantSquare,
+    board: Board,
+) -> bool:
+    return _is_rook_attack(attacker_square, target_square, board)
+
+
+def _is_bishop_attack_wrapper(
+    attacker: Piece,
+    attacker_square: ConstantSquare,
+    target_square: ConstantSquare,
+    board: Board,
+) -> bool:
+    return _is_bishop_attack(attacker_square, target_square, board)
+
+
+def _is_queen_attack_wrapper(
+    attacker: Piece,
+    attacker_square: ConstantSquare,
+    target_square: ConstantSquare,
+    board: Board,
+) -> bool:
+    return _is_queen_attack(attacker_square, target_square, board)
+
+
+def _is_knight_attack_wrapper(
+    attacker: Piece,
+    attacker_square: ConstantSquare,
+    target_square: ConstantSquare,
+    board: Board,
+) -> bool:
+    return _is_knight_attack(attacker_square, target_square)
+
+
+def _is_king_attack_wrapper(
+    attacker: Piece,
+    attacker_square: ConstantSquare,
+    target_square: ConstantSquare,
+    board: Board,
+) -> bool:
+    return _is_king_attack(attacker_square, target_square)
+
+
 def piece_attacks_square(
     attacker: Piece,
     attacker_square: ConstantSquare,
@@ -28,19 +82,22 @@ def piece_attacks_square(
     Delegates to the appropriate geometry check based on piece kind,
     including path-clear verification for sliding pieces.
     """
-    if attacker.kind == PieceType.PAWN:
-        return _is_pawn_attack(attacker, attacker_square, target_square)
-    if attacker.kind == PieceType.ROOK:
-        return _is_rook_attack(attacker_square, target_square, board)
-    if attacker.kind == PieceType.BISHOP:
-        return _is_bishop_attack(attacker_square, target_square, board)
-    if attacker.kind == PieceType.QUEEN:
-        return _is_queen_attack(attacker_square, target_square, board)
-    if attacker.kind == PieceType.KNIGHT:
-        return _is_knight_attack(attacker_square, target_square)
-    if attacker.kind == PieceType.KING:
-        return _is_king_attack(attacker_square, target_square)
-    return False
+    checker = _ATTACK_CHECKERS.get(attacker.kind)
+    if checker is None:
+        return False
+    return checker(
+        attacker, attacker_square, target_square, board
+    )
+
+
+_ATTACK_CHECKERS: dict[PieceType, callable] = {
+    PieceType.PAWN: _is_pawn_attack_wrapper,
+    PieceType.ROOK: _is_rook_attack_wrapper,
+    PieceType.BISHOP: _is_bishop_attack_wrapper,
+    PieceType.QUEEN: _is_queen_attack_wrapper,
+    PieceType.KNIGHT: _is_knight_attack_wrapper,
+    PieceType.KING: _is_king_attack_wrapper,
+}
 
 
 def _is_pawn_attack(

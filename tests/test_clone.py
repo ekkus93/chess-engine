@@ -39,14 +39,14 @@ def test_board_clone_validators_point_at_cloned_board() -> None:
     original = Board()
     cloned = original.clone()
 
-    assert cloned._move_validator.board is cloned
-    assert cloned._move_executor.board is cloned
-    assert cloned._promotion_validator.board is cloned
-    assert cloned._en_passant_validator.board is cloned
+    assert cloned._validators.move_validator.board is cloned
+    assert cloned._validators.move_executor.board is cloned
+    assert cloned._validators.promotion_validator.board is cloned
+    assert cloned._validators.en_passant_validator.board is cloned
 
     # They must NOT reference the original
-    assert cloned._move_validator.board is not original
-    assert cloned._move_executor.board is not original
+    assert cloned._validators.move_validator.board is not original
+    assert cloned._validators.move_executor.board is not original
 
 
 def test_board_clone_pieces_are_independent() -> None:

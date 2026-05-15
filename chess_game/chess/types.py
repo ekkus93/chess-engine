@@ -52,6 +52,17 @@ class CastlingRights:
 
 
 @dataclass
+class BoardValidators:
+    """Holds the validator components for a Board instance."""
+
+    move_validator: object = None  # type: ignore[assignment] # noqa: F821
+    promotion_validator: object = None  # type: ignore[assignment] # noqa: F821
+    en_passant_validator: object = None  # type: ignore[assignment] # noqa: F821
+    piece_move_checker: object = None  # type: ignore[assignment] # noqa: F821
+    move_executor: object = None  # type: ignore[assignment] # noqa: F821
+
+
+@dataclass
 class LegalMove:
     """A legal move from one square to another, optionally with promotion."""
 
