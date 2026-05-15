@@ -461,13 +461,13 @@ class Board:
         )
 
         if is_en_passant:
-            if not self._en_passant_validator.validate_en_passant_capture(
+            move_valid = self._en_passant_validator.validate_en_passant_capture(
                 start_pos, end_pos, start_piece
-            ):
-                return False
+            )
         else:
-            if not self._move_validator.is_move_legal(start_pos, end_pos):
-                return False
+            move_valid = self._move_validator.is_move_legal(start_pos, end_pos)
+        if not move_valid:
+            return False
 
         # Execute
         success = self._move_executor.execute_move(
