@@ -166,3 +166,38 @@ class TestFindKing:
         cloned = board.clone()
         assert cloned.find_king(Color.WHITE) == sq("f1")
         assert cloned.find_king(Color.BLACK) == sq("e8")
+
+
+class TestGetLegalMovesForColor:
+    """Task 7: API tests for Board.get_legal_moves_for_color."""
+
+    def test_default_white_has_20_legal_moves(self):
+        board = Board()
+        moves = board.get_legal_moves_for_color(Color.WHITE)
+        assert len(moves) == 20
+
+    def test_default_black_has_20_legal_moves(self):
+        board = Board()
+        moves = board.get_legal_moves_for_color(Color.BLACK)
+        assert len(moves) == 20
+
+    def test_get_legal_moves_for_color_preserves_turn(self):
+        board = Board()
+        assert board.turn == Color.WHITE
+        moves = board.get_legal_moves_for_color(Color.BLACK)
+        assert board.turn == Color.WHITE
+        assert len(moves) > 0
+
+    def test_get_legal_moves_respects_color_after_move(self):
+        board = Board()
+        assert board.make_move(sq("e2"), sq("e4")) is True
+        assert board.turn == Color.BLACK
+        white_moves = board.get_legal_moves_for_color(Color.WHITE)
+        black_moves = board.get_legal_moves_for_color(Color.BLACK)
+        assert any(
+            m[0] == sq("g1") and m[1] == sq("f3") for m in white_moves
+        ), "White Nf1-g1-f3 should appear"
+        assert any(
+            m[0] == sq("e7") and m[1] == sq("e5") for m in black_moves
+        ), "Black e7-e5 should appear"
+        assert board.turn == Color.BLACK

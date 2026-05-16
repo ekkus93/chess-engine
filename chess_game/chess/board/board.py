@@ -426,10 +426,11 @@ class Board:
     ) -> List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]]:
         """Get all legal moves for a specific color regardless of turn."""
         saved_turn = self.turn
-        self.turn = color
-        moves = self._validators.move_validator.get_legal_moves()
-        self.turn = saved_turn
-        return moves
+        try:
+            self.turn = color
+            return self._validators.move_validator.get_legal_moves()
+        finally:
+            self.turn = saved_turn
 
     # ---- make_move ----
 
