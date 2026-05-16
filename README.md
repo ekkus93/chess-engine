@@ -22,7 +22,7 @@ The engine uses a canonical coordinate system:
 - Legal move validation: moves that leave the mover's king in check are rejected
 - Castling (all four variants) with rights tracking
 - En passant with expiry after one turn
-- Pawn promotion with default-to-queen when no choice is supplied
+- Pawn promotion with all four choices (queen, rook, bishop, knight); defaults to queen when no suffix is supplied
 - Game status: `is_in_check`, `is_checkmate`, `is_stalemate`, `get_legal_moves`
 - Interactive CLI (`main.py`) that runs a full game loop
 
@@ -40,7 +40,11 @@ Move input format:
 | `g1f3` | Knight from g1 to f3 |
 | `e7e8q` | Pawn to e8, promote to queen |
 | `e7e8r` | Pawn to e8, promote to rook |
+| `e7e8b` | Pawn to e8, promote to bishop |
+| `e7e8n` | Pawn to e8, promote to knight |
 | `quit` | Exit the game |
+
+Promotion suffixes (`q`, `r`, `b`, `n`) are only valid for pawn moves that end on the promotion rank (rank 8 for White, rank 1 for Black).
 
 Invalid or illegal moves print an error and prompt again. The board is displayed after every legal move. Check, checkmate, and stalemate are announced automatically.
 

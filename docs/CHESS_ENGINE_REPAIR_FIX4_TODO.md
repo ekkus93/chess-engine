@@ -615,20 +615,26 @@ two promotion destinations = 8 legal moves
 
 ---
 
-## Task 8: Documentation updates (SKIPPED)
-
-> Skipped — low priority. Promotion behavior is self-documenting via tests and code.
+## Task 8: Documentation updates
 
 ### 8.1 Update docs if promotion behavior is documented
 
-- [~] Search for promotion docs: (skipped)
+- [x] Search for promotion docs:
 
-- [~] Update relevant docs to state: (skipped)
+  ```bash
+  grep -R "promotion\|promote\|underpromotion" -n README.md docs tests chess_game
+  ```
+
+- [x] Update relevant docs to state:
+  - Legal promotion choices are queen, rook, bishop, knight.
+  - Default promotion is queen when direct API call omits promotion on a legal promotion move.
+  - CLI suffixes are `q`, `r`, `b`, `n`.
+  - Promotion suffixes are valid only for pawn moves ending on the promotion rank.
 
 ### 8.2 Do not over-document internals
 
-- [~] Keep docs concise. (skipped)
-- [~] Do not document private AI implementation details unless an existing architecture doc requires it. (skipped)
+- [x] Keep docs concise.
+- [x] Do not document private AI implementation details unless an existing architecture doc requires it.
 
 ---
 
