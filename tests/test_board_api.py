@@ -317,3 +317,47 @@ class TestCastlingInLegalMoves:
         assert any(
             m[0] == sq("e8") and m[1] == sq("c8") for m in moves
         ), "Black queenside castling e8-c8 should be legal"
+
+
+class TestEnPassantInLegalMoves:
+    """Task 10: En passant moves appear in get_legal_moves_for_color."""
+
+    def test_white_en_passant_after_black_double_push(self):
+        """
+        Black plays b7-b5; white pawn on a5 can capture en passant on b6.
+        """
+        board = Board()
+        board.clear_board()
+        board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
+        board.set_piece(sq("e8"), create_piece(Color.BLACK, PieceType.KING))
+        board.set_piece(sq("a5"), create_piece(Color.WHITE, PieceType.PAWN))
+        board.set_piece(sq("b7"), create_piece(Color.BLACK, PieceType.PAWN))
+        board.turn = Color.BLACK
+
+        assert board.make_move(sq("b7"), sq("b5")) is True
+        assert board.en_passant_target == sq("b6")
+
+        white_moves = board.get_legal_moves_for_color(Color.WHITE)
+        assert any(
+            m[0] == sq("a5") and m[1] == sq("b6") for m in white_moves
+        ), "White en passant a5xb6 should appear"
+
+    def test_black_en_passant_after_white_double_push(self):
+        """
+        White plays b2-b4; black pawn on a4 can capture en passant on b3.
+        """
+        board = Board()
+        board.clear_board()
+        board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
+        board.set_piece(sq("e8"), create_piece(Color.BLACK, PieceType.KING))
+        board.set_piece(sq("b2"), create_piece(Color.WHITE, PieceType.PAWN))
+        board.set_piece(sq("a4"), create_piece(Color.BLACK, PieceType.PAWN))
+        board.turn = Color.WHITE
+
+        assert board.make_move(sq("b2"), sq("b4")) is True
+        assert board.en_passant_target == sq("b3")
+
+        black_moves = board.get_legal_moves_for_color(Color.BLACK)
+        assert any(
+            m[0] == sq("a4") and m[1] == sq("b3") for m in black_moves
+        ), "Black en passant a4xb3 should appear"
