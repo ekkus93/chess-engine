@@ -482,7 +482,7 @@ Current implementation temporarily changes `self.turn`, calls the normal legal-m
 
 ## Required code hardening
 
-- [ ] In `Board.get_legal_moves_for_color`, replace this pattern:
+- [x] In `Board.get_legal_moves_for_color`, replace this pattern:
 
   ```python
   saved_turn = self.turn
@@ -503,14 +503,14 @@ Current implementation temporarily changes `self.turn`, calls the normal legal-m
       self.turn = saved_turn
   ```
 
-- [ ] Add a test that `board.turn` is unchanged after calling `get_legal_moves_for_color`.
+- [x] Add a test that `board.turn` is unchanged after calling `get_legal_moves_for_color`.
 
 ## General API subtasks
 
-- [ ] Test default board white has 20 legal moves.
-- [ ] Test default board black has 20 legal moves.
-- [ ] Test calling `get_legal_moves_for_color(Color.BLACK)` while `board.turn == Color.WHITE` returns Black moves and does not change `board.turn`.
-- [ ] Test after a move, requested color is respected regardless of current turn.
+- [x] Test default board white has 20 legal moves.
+- [x] Test default board black has 20 legal moves.
+- [x] Test calling `get_legal_moves_for_color(Color.BLACK)` while `board.turn == Color.WHITE` returns Black moves and does not change `board.turn`.
+- [x] Test after a move, requested color is respected regardless of current turn.
 
   Example:
 
