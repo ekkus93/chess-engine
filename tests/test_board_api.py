@@ -361,3 +361,41 @@ class TestEnPassantInLegalMoves:
         assert any(
             m[0] == sq("a4") and m[1] == sq("b3") for m in black_moves
         ), "Black en passant a4xb3 should appear"
+
+
+class TestCheckmateAndStalemate:
+    """Task 12: Checkmate and stalemate tests for get_legal_moves_for_color."""
+
+    def test_checkmate_position_no_legal_moves(self):
+        """
+        Black king h8, White king f6, White queen g7, Black to move.
+        Black is in checkmate: in check, no legal moves.
+        """
+        board = Board()
+        board.clear_board()
+        board.set_piece(sq("h8"), create_piece(Color.BLACK, PieceType.KING))
+        board.set_piece(sq("f6"), create_piece(Color.WHITE, PieceType.KING))
+        board.set_piece(sq("g7"), create_piece(Color.WHITE, PieceType.QUEEN))
+        board.turn = Color.BLACK
+
+        assert board._is_in_check(Color.BLACK) is True
+        black_moves = board.get_legal_moves_for_color(Color.BLACK)
+        assert black_moves == []
+        assert board._is_checkmate(Color.BLACK) is True
+
+    def test_stalemate_position_no_legal_moves(self):
+        """
+        Black king h8, White king f7, White queen g6, Black to move.
+        Black is not in check but has no legal moves: stalemate.
+        """
+        board = Board()
+        board.clear_board()
+        board.set_piece(sq("h8"), create_piece(Color.BLACK, PieceType.KING))
+        board.set_piece(sq("f7"), create_piece(Color.WHITE, PieceType.KING))
+        board.set_piece(sq("g6"), create_piece(Color.WHITE, PieceType.QUEEN))
+        board.turn = Color.BLACK
+
+        assert board._is_in_check(Color.BLACK) is False
+        black_moves = board.get_legal_moves_for_color(Color.BLACK)
+        assert black_moves == []
+        assert board._is_stalemate(Color.BLACK) is True
