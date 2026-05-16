@@ -61,8 +61,13 @@ class PromotionValidator:
         self, piece: Piece, end_pos: ConstantSquare, promotion: Optional[PieceType]
     ) -> bool:
         """Return True if the promotion choice is valid for this move."""
-        if promotion is None or piece.kind != PieceType.PAWN:
+        if promotion is None:
             return True
+        if piece.kind != PieceType.PAWN:
+            return False
+
+        if not isinstance(promotion, PieceType):
+            return False
 
         if int(end_pos.row) not in {0, 7}:
             return False

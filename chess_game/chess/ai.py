@@ -35,11 +35,19 @@ class MoveOrderingKey:
     score: int
     start: ConstantSquare
     end: ConstantSquare
+    promotion: Optional[PieceType] = None
 
-    def __init__(self, score: int, start: ConstantSquare, end: ConstantSquare):
+    def __init__(
+        self,
+        score: int,
+        start: ConstantSquare,
+        end: ConstantSquare,
+        promotion: Optional[PieceType] = None,
+    ):
         self.score = score
         self.start = start
         self.end = end
+        self.promotion = promotion
 
     def __lt__(self, other: MoveOrderingKey) -> bool:
         return self.score < other.score
@@ -185,7 +193,11 @@ def _search_move_loop(
         move = next(
             m
             for m in legal_moves
-            if m.start == move_key.start and m.end == move_key.end
+            if (
+                m.start == move_key.start
+                and m.end == move_key.end
+                and m.promotion == move_key.promotion
+            )
         )
         new_board = _make_copy_with_move(board, move.start, move.end, move.promotion)
 
@@ -288,7 +300,7 @@ def _order_moves(
     scored_moves: list[MoveOrderingKey] = []
 
     for move in legal_moves:
-        start, end, _promotion = move.start, move.end, move.promotion
+        start, end, promotion = move.start, move.end, move.promotion
 
         # Calculate capture gain if applicable
         captured_piece = board.get_piece(end)
@@ -311,7 +323,9 @@ def _order_moves(
         # Combine factors into ordering score
         order_score = capture_gain + promotion_value
 
-        move_key = MoveOrderingKey(score=order_score, start=start, end=end)
+        move_key = MoveOrderingKey(
+            score=order_score, start=start, end=end, promotion=promotion
+        )
         scored_moves.append(move_key)
 
     return sorted(scored_moves, key=lambda x: x.score, reverse=True)

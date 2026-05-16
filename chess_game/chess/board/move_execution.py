@@ -41,8 +41,10 @@ class MoveExecutor:  # pylint: disable=too-few-public-methods
             promotion_required = self.promotion_validator.is_promotion_required(
                 piece, from_square, to_square
             )
-            if promotion_required or promotion_piece is not None:
+            if promotion_required:
                 self._handle_promotion(piece, from_square, to_square, promotion_piece)
+            elif promotion_piece is not None:
+                return False
             else:
                 self._execute_regular_move(piece, from_square, to_square)
         else:
