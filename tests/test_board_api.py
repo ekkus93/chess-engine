@@ -399,3 +399,43 @@ class TestCheckmateAndStalemate:
         black_moves = board.get_legal_moves_for_color(Color.BLACK)
         assert black_moves == []
         assert board._is_stalemate(Color.BLACK) is True
+
+
+class TestBoardApiMutationSafety:
+    """Task 13: Ensure read-only / invalid operations do not mutate board."""
+
+    def test_get_legal_moves_for_color_does_not_change_turn(self):
+        board = Board()
+        assert board.turn == Color.WHITE
+        _ = board.get_legal_moves_for_color(Color.BLACK)
+        assert board.turn == Color.WHITE
+
+    def test_invalid_promotion_no_mutation(self):
+        """
+        Invalid promotion call must not mutate:
+        - source piece
+        - destination square
+        - turn
+        - en_passant_target
+        - castling rights
+        """
+        board = Board()
+        initial_turn = board.turn
+        initial_ep = board.en_passant_target
+
+        # Try invalid promotion on non-pawn move
+        before_knight = board.get_piece(sq("g1"))
+
+        ok = board.make_move(
+            sq("g1"),
+            sq("f3"),
+            promotion=PieceType.QUEEN
+        )
+        assert ok is False
+
+        # No mutation: knight still on g1
+        assert board.get_piece(sq("g1")) is not None
+        # Turn unchanged
+        assert board.turn == initial_turn
+        # En passant target unchanged
+        assert board.en_passant_target == initial_ep
