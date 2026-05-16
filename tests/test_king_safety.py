@@ -149,4 +149,28 @@ def test_promotion_from_rank_6_blocked() -> None:
     assert board.make_move(sq("e5"), sq("e8")) is False
 
 
+def test_validation_rejects_king_capture() -> None:
+    """Validation must reject any move that targets the opponent king."""
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("a1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("e1"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("b1"), create_piece(Color.WHITE, PieceType.QUEEN))
+    board.turn = Color.WHITE
+
+    assert board.make_move(sq("b1"), sq("e1")) is False
+
+
+def test_validation_rejects_king_capture_by_knight() -> None:
+    """Validation must reject knight moves that target the opponent king."""
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("a1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("e1"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("c2"), create_piece(Color.WHITE, PieceType.KNIGHT))
+    board.turn = Color.WHITE
+
+    assert board.make_move(sq("c2"), sq("e1")) is False
+
+
 # =============================================================================

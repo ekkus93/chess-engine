@@ -68,8 +68,10 @@ class MoveExecutor:  # pylint: disable=too-few-public-methods
         self.board.clear_square(from_square)
 
     def _is_castling_move(
-        self, _piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
+        self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
+        if piece.kind != PieceType.KING:
+            return False
         return self.castling_validator.is_castling_move(from_square, to_square)
 
     def _execute_castling(
@@ -124,10 +126,11 @@ class MoveExecutor:  # pylint: disable=too-few-public-methods
         self.board.clear_square(from_square)
 
     def _is_en_passant_capture(
-        self, _piece: Piece, _from_square: ConstantSquare, to_square: ConstantSquare
+        self, piece: Piece, _from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
         return (
-            self.board.en_passant_target is not None
+            piece.kind == PieceType.PAWN
+            and self.board.en_passant_target is not None
             and to_square == self.board.en_passant_target
         )
 

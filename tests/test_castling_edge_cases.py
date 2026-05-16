@@ -1,7 +1,7 @@
 from __future__ import annotations
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.types import Color, PieceType
-from tests.helpers import sq
+from tests.helpers import sq, assert_empty
 
 
 # =============================================================================
@@ -264,3 +264,48 @@ def test_castling_kingside_rook_replaced_forbids() -> None:
     assert (
         board.make_move(sq("e1"), sq("g1")) is False
     )
+
+
+# =============================================================================
+# Regression tests for Bug 3: castling execution for non-kings
+# =============================================================================
+def test_non_king_on_e1_does_not_execute_kingside_castling() -> None:
+    """A non-king piece on e1 moving to g1 must NOT trigger castling execution."""
+    board = Board()
+    board.clear_board()
+    board.set_piece(
+        sq("e1"), create_piece(Color.WHITE, PieceType.QUEEN)
+    )
+    board.set_piece(
+        sq("e8"), create_piece(Color.BLACK, PieceType.KING)
+    )
+    board.set_piece(
+        sq("h1"), create_piece(Color.WHITE, PieceType.ROOK)
+    )
+    board.turn = Color.WHITE
+    board.make_move(sq("e1"), sq("g1"))
+    assert board.get_piece_type_at(sq("g1")) == PieceType.QUEEN
+    assert board.get_piece_type_at(sq("h1")) == PieceType.ROOK
+    assert_empty(board, "e1")
+    assert_empty(board, "d1")
+
+
+def test_non_king_on_e1_does_not_execute_queenside_castling() -> None:
+    """A non-king piece on e1 moving to c1 must NOT trigger queenside castling."""
+    board = Board()
+    board.clear_board()
+    board.set_piece(
+        sq("e1"), create_piece(Color.WHITE, PieceType.QUEEN)
+    )
+    board.set_piece(
+        sq("e8"), create_piece(Color.BLACK, PieceType.KING)
+    )
+    board.set_piece(
+        sq("a1"), create_piece(Color.WHITE, PieceType.ROOK)
+    )
+    board.turn = Color.WHITE
+    board.make_move(sq("e1"), sq("c1"))
+    assert board.get_piece_type_at(sq("c1")) == PieceType.QUEEN
+    assert board.get_piece_type_at(sq("a1")) == PieceType.ROOK
+    assert_empty(board, "e1")
+    assert_empty(board, "d1")

@@ -87,6 +87,8 @@ class MoveValidator:
         dest_piece = self.board.get_piece(to_square)
         if dest_piece is not None and dest_piece.color == piece.color:
             return None
+        if dest_piece is not None and dest_piece.kind == PieceType.KING:
+            return None
         return piece
 
     def _is_castling_move(

@@ -8,6 +8,50 @@ from tests.helpers import sq
 # =============================================================================
 # Regression tests for Fix 2
 # =============================================================================
+def test_non_pawn_cannot_execute_en_passant() -> None:
+    """A non-pawn moving to the EP target must NOT trigger en-passant capture."""
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("e8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("d4"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.set_piece(sq("f1"), create_piece(Color.WHITE, PieceType.KNIGHT))
+    board.turn = Color.WHITE
+    # Manually set EP target at e3 to test execution layer in isolation
+    board.en_passant_target = sq("e3")
+    # Knight on f1 moves to e3 (f1->e3 is 1 col, 2 rows = valid knight)
+    # This should NOT trigger en-passant capture; it's just a regular knight move
+    board.make_move(sq("f1"), sq("e3"))
+    # Knight should be on e3
+    assert board.get_piece_type_at(sq("e3")) == PieceType.KNIGHT
+    assert board.get_color_at(sq("e3")) == Color.WHITE
+    # d4 pawn should NOT have been removed by a bogus EP capture
+    assert board.get_piece(sq("d4")) is not None
+
+
+def test_non_pawn_cannot_execute_en_passant_by_rook() -> None:
+    """A rook moving to the EP target must NOT trigger en-passant capture."""
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("e8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("d4"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.set_piece(sq("a3"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.turn = Color.WHITE
+    # Manually set EP target at e3 to test execution layer in isolation
+    board.en_passant_target = sq("e3")
+    # Rook on a3 moves to e3 (same rank, valid rook move, e3 is EP target)
+    board.make_move(sq("a3"), sq("e3"))
+    # Rook should be on e3
+    assert board.get_piece_type_at(sq("e3")) == PieceType.ROOK
+    assert board.get_color_at(sq("e3")) == Color.WHITE
+    # d4 pawn should NOT have been removed
+    assert board.get_piece(sq("d4")) is not None
+
+
+# =============================================================================
+# Regression tests for Fix 2
+# =============================================================================
 def test_en_passant_rejected_when_pawn_not_on_adjacent_row() -> None:
     """En passant rejected when capturing pawn is not on the correct rank."""
     board = Board()
