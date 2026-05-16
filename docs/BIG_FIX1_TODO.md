@@ -73,23 +73,23 @@ Important current-code facts:
 
 ## 0.1 Run the current test suite
 
-- [ ] From the repo root, run:
+- [x] From the repo root, run:
 
   ```bash
   python -m pytest tests -q
   ```
 
-- [ ] Expected current baseline from the latest reviewed zip:
+- [x] Expected current baseline from the latest reviewed zip:
 
   ```text
   195 passed
   ```
 
-- [ ] If there are failures before starting this work, stop and inspect those failures first. Do not mix existing failures with BIG_FIX1 changes.
+- [x] If there are failures before starting this work, stop and inspect those failures first. Do not mix existing failures with BIG_FIX1 changes.
 
 ## 0.2 Create a focused branch
 
-- [ ] Create a dedicated branch, for example:
+- [x] Create a dedicated branch, for example:
 
   ```bash
   git checkout -b fix/board-api-tests-and-remaining-rule-regressions
@@ -97,7 +97,7 @@ Important current-code facts:
 
 ## 0.3 Add this TODO to the repo
 
-- [ ] Copy this file into:
+- [x] Copy this file into:
 
   ```text
   docs/BIG_FIX1_TODO.md
@@ -109,20 +109,20 @@ Important current-code facts:
 
 ## 1.1 Create the test file
 
-- [ ] Add:
+- [x] Add:
 
   ```text
   tests/test_board_api.py
   ```
 
-- [ ] Use pytest functional tests unless surrounding repo style changes.
-- [ ] Import existing helpers:
+- [x] Use pytest functional tests unless surrounding repo style changes.
+- [x] Import existing helpers:
 
   ```python
   from tests.helpers import sq, assert_piece, assert_empty
   ```
 
-- [ ] Import core engine types as needed:
+- [x] Import core engine types as needed:
 
   ```python
   from chess_game.chess.board import Board, create_piece
@@ -132,7 +132,7 @@ Important current-code facts:
 
 ## 1.2 Add small local helpers only if useful
 
-- [ ] Add a local move string helper if needed:
+- [x] Add a local move string helper if needed:
 
   ```python
   from chess_game.chess.coords import index_to_algebraic
@@ -143,7 +143,7 @@ Important current-code facts:
       return index_to_algebraic(start) + index_to_algebraic(end) + suffix
   ```
 
-- [ ] Add a local helper for extracting promotions if needed:
+- [x] Add a local helper for extracting promotions if needed:
 
   ```python
   def promotions_for(board: Board, start: str, end: str) -> set[PieceType | None]:
@@ -154,7 +154,7 @@ Important current-code facts:
       }
   ```
 
-- [ ] Adjust helper signatures to match actual test needs. Do not duplicate helpers that already exist globally.
+- [x] Adjust helper signatures to match actual test needs. Do not duplicate helpers that already exist globally.
 
 ---
 
@@ -170,11 +170,11 @@ The tricky part: `get_row_constant(-1)` and `get_col_constant(-1)` intentionally
 
 ## Subtasks
 
-- [ ] Test valid corner squares return `True`:
-  - [ ] `a1`
-  - [ ] `a8`
-  - [ ] `h1`
-  - [ ] `h8`
+- [x] Test valid corner squares return `True`:
+  - [x] `a1`
+  - [x] `a8`
+  - [x] `h1`
+  - [x] `h8`
 
   Example:
 
@@ -185,13 +185,13 @@ The tricky part: `get_row_constant(-1)` and `get_col_constant(-1)` intentionally
           assert board.is_valid_position(sq(name)) is True
   ```
 
-- [ ] Test valid center squares return `True`:
-  - [ ] `e4`
-  - [ ] `d5`
+- [x] Test valid center squares return `True`:
+  - [x] `e4`
+  - [x] `d5`
 
-- [ ] Test out-of-bounds column index returns `False`:
-  - [ ] column `< 0`
-  - [ ] column `>= 8`
+- [x] Test out-of-bounds column index returns `False`:
+  - [x] column `< 0`
+  - [x] column `>= 8`
 
   Example:
 
@@ -202,11 +202,11 @@ The tricky part: `get_row_constant(-1)` and `get_col_constant(-1)` intentionally
   assert board.is_valid_position(bad_right) is False
   ```
 
-- [ ] Test out-of-bounds row index returns `False`:
-  - [ ] row `< 0`
-  - [ ] row `>= 8`
+- [x] Test out-of-bounds row index returns `False`:
+  - [x] row `< 0`
+  - [x] row `>= 8`
 
-- [ ] Test negative row and column together return `False`:
+- [x] Test negative row and column together return `False`:
 
   ```python
   bad = ConstantSquare(row=RowConstant(-1), col=ColConstant(-1))
@@ -215,7 +215,7 @@ The tricky part: `get_row_constant(-1)` and `get_col_constant(-1)` intentionally
 
 ## Expected code change
 
-- [ ] Usually no engine change should be required. Current implementation already checks integer bounds.
+- [x] Usually no engine change should be required. Current implementation already checks integer bounds.
 
 ---
 

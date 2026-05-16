@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from chess_game.chess.constants import Color, ConstantSquare
 from chess_game.chess.types import Piece, PieceType
+from chess_game.chess.board.attack_utils import piece_attacks_square
 from chess_game.chess.board.castling import CastlingValidator
 from chess_game.chess.board.en_passant import EnPassantValidator
 from chess_game.chess.board.path_validator import PathValidator
@@ -102,37 +103,18 @@ class MoveValidator:
     def _is_en_passant_move(
         self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
-        """Check if this is an en passant capture."""
+        """Check if this is an en passant capture, delegating to EnPassantValidator."""
         if piece.kind != PieceType.PAWN:
             return False
-
-        col_diff = abs(int(to_square.col) - int(from_square.col))
-
-        # En passant: one file over (diagonal move), lands on EP target
-        if col_diff != 1:
-            return False
-
-        # En passant: capturing pawn must be on the correct rank
-        if self.board.en_passant_target:
-            if not EnPassantValidator.is_valid_ep_rank(
-                piece.color,
-                int(from_square.row),
-                int(self.board.en_passant_target.row),
-            ):
-                return False
 
         if self.board.en_passant_target is None:
             return False
 
-        ep_target_row = int(self.board.en_passant_target.row)
-        ep_target_col = int(self.board.en_passant_target.col)
-        to_row = int(to_square.row)
-        to_col = int(to_square.col)
-
-        if ep_target_row != to_row or ep_target_col != to_col:
-            return False
-
-        return True
+        # Use EnPassantValidator to avoid duplicating its logic
+        validator = EnPassantValidator(self.board)
+        return validator.validate_en_passant_capture(
+            from_square, to_square, piece
+        )
 
     def _validate_castling(
         self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
@@ -367,72 +349,13 @@ class MoveValidator:
         target_square: ConstantSquare,
         board: "Board",
     ) -> bool:
-        """Check if attacker can attack target."""
-        if attacker.kind == PieceType.PAWN:
-            return self._is_pawn_attack(attacker, attacker_square, target_square)
-        if attacker.kind == PieceType.ROOK:
-            return self._is_rook_attack(attacker, attacker_square, target_square, board)
-        if attacker.kind == PieceType.BISHOP:
-            return self._is_bishop_attack(attacker_square, target_square, board)
-        if attacker.kind == PieceType.QUEEN:
-            return self._is_queen_attack(attacker_square, target_square, board)
-        if attacker.kind == PieceType.KNIGHT:
-            return self._is_knight_attack(attacker_square, target_square)
-        return self._is_king_attack(attacker_square, target_square)
-
-    def _is_rook_attack(
-        self,
-        _attacker: Piece,
-        from_sq: ConstantSquare,
-        to_sq: ConstantSquare,
-        board: "Board",
-    ) -> bool:
-        """Check if rook can attack from from_sq to to_sq."""
-        if int(from_sq.row) != int(to_sq.row) and int(from_sq.col) != int(to_sq.col):
-            return False
-        return self.path_validator.is_path_clear(board, from_sq, to_sq)
-
-    def _is_bishop_attack(
-        self, from_sq: ConstantSquare, to_sq: ConstantSquare, board: "Board"
-    ) -> bool:
-        """Check if bishop can attack from from_sq to to_sq."""
-        row_diff = abs(int(from_sq.row) - int(to_sq.row))
-        col_diff = abs(int(from_sq.col) - int(to_sq.col))
-
-        if row_diff != col_diff:
-            return False
-
-        return self.path_validator.is_path_clear(board, from_sq, to_sq)
-
-    def _is_queen_attack(
-        self, from_sq: ConstantSquare, to_sq: ConstantSquare, board: "Board"
-    ) -> bool:
-        """Check if queen can attack from from_sq to to_sq."""
-        if int(from_sq.row) == int(to_sq.row) or int(from_sq.col) == int(to_sq.col):
-            return self.path_validator.is_path_clear(board, from_sq, to_sq)
-        return self._is_bishop_attack(from_sq, to_sq, board)
-
-    def _is_knight_attack(self, from_sq: ConstantSquare, to_sq: ConstantSquare) -> bool:
-        """Check if knight can attack from from_sq to to_sq."""
-        row_diff = abs(int(from_sq.row) - int(to_sq.row))
-        col_diff = abs(int(from_sq.col) - int(to_sq.col))
-        return (row_diff == 2 and col_diff == 1) or (row_diff == 1 and col_diff == 2)
-
-    def _is_king_attack(self, from_sq: ConstantSquare, to_sq: ConstantSquare) -> bool:
-        """Check if king can attack from from_sq to to_sq."""
-        return (
-            abs(int(from_sq.row) - int(to_sq.row)) <= 1
-            and abs(int(from_sq.col) - int(to_sq.col)) <= 1
+        """Check if attacker can attack target via shared attack_utils."""
+        return piece_attacks_square(
+            attacker,
+            attacker_square,
+            target_square,
+            board,
         )
-
-    def _is_pawn_attack(
-        self, pawn: Piece, from_sq: ConstantSquare, to_sq: ConstantSquare
-    ) -> bool:
-        """Check if pawn can attack from from_sq to to_sq."""
-        direction = -1 if pawn.color == Color.WHITE else 1
-        row_diff = int(to_sq.row) - int(from_sq.row)
-        col_diff = int(to_sq.col) - int(from_sq.col)
-        return row_diff == direction and abs(col_diff) == 1
 
     def _attack_line_goes_through(
         self,
