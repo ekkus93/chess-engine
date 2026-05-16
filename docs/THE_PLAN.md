@@ -52,13 +52,14 @@ This document defines the target architecture and the implementation order.
 ### Explicitly out of scope for the first correct version
 These items should not be worked on until the rules engine is stable and well-tested:
 
-- Strong AI / minimax / alpha-beta
 - GUI
 - Networking / multiplayer
 - PGN import/export beyond maybe a future phase
 - Opening books
 - Move clocks for FIDE draw rules unless explicitly added later
 - Threefold repetition unless explicitly added later
+
+**Note:** A minimax AI with alpha-beta pruning has been implemented (see `ai.py`). It is functional but not a "strong" engine.
 
 The project should become **boring and correct** before it becomes ambitious.
 
@@ -296,77 +297,91 @@ Stalemate means:
 
 ---
 
-## Proposed architecture
+## Architecture (actual)
 
-The current `Board` class mixes too many responsibilities. The project should move toward a small rules engine with explicit state.
+The project evolved from the proposed flat structure into a modular design with specialized subdirectories. The `board/` subdirectory encapsulates move logic, while `pieces/` handles piece-specific movement rules.
 
-### Recommended modules
+### Actual structure
 
 ```text
 chess_game/
   chess/
-    __init__.py
-    types.py           # enums, dataclasses, shared types
-    coords.py          # algebraic <-> index conversion
-    piece.py           # Piece representation
-    move.py            # Move dataclass / parsing support
-    board.py           # board storage and low-level square access
-    rules.py           # pseudo-legal movement rules per piece
-    game.py            # turn, castling rights, en passant, status, apply_move
-    status.py          # check/checkmate/stalemate helpers
-  main.py              # CLI only; never mutates board directly
-tests/
-  ...
+    __init__.py       # Package init
+    types.py          # Piece, CastlingRights, LegalMove, BoardValidators
+    color.py          # Color enum
+    coords.py         # algebraic <-> index conversion
+    constants.py      # RowConstant, ColConstant, ConstantSquare, Color, PieceType
+    move.py           # Move dataclass and algebraic notation parser
+    ai.py             # Minimax with alpha-beta pruning, move ordering
+    evaluation.py     # Position evaluation (piece-square tables)
+    board/
+      __init__.py     # Package init
+      board.py        # Board class (top-level interface)
+      move_execution.py    # Move execution logic
+      move_validation.py   # Legal move validation
+      game_state.py        # Check, checkmate, stalemate detection
+      castling.py          # Castling rules and rights tracking
+      en_passant.py        # En passant rules
+      promotion.py         # Promotion validation
+      attack_utils.py      # Square attack detection
+      path_validator.py    # Path clearance for sliding pieces
+      piece_validation.py  # Piece-specific validation
+    pieces/
+      __init__.py    # Package init
+      piece_movers.py # Movement rules per piece type
+  main.py            # CLI only; never mutates board directly
+tests/               # Test suite (227 tests)
+docs/                # Documentation
+```
 
-A simpler alternative is acceptable if it preserves clean responsibilities.
+A simpler alternative was considered but the modular design proved effective for isolating concerns.
 
-Core data structures
-Piece
+### Core data structures (implemented)
 
-Suggested shape:
+**Piece** — mutable dataclass with color, kind, and optional square tracking:
 
-@dataclass(frozen=True)
+```python
+@dataclass
 class Piece:
     color: Color
     kind: PieceType
-Move
+    _square: Optional[ConstantSquare] = None
+```
 
-Suggested shape:
+**Move** — immutable dataclass for parsed algebraic notation:
 
+```python
 @dataclass(frozen=True)
 class Move:
-    start: Square
-    end: Square
-    promotion: PieceType | None = None
-Game state
+    start: ConstantSquare
+    end: ConstantSquare
+    promotion: Optional[PieceType] = None
+```
 
-At minimum:
+**LegalMove** — returned by move generation:
 
-board
+```python
+@dataclass
+class LegalMove:
+    start: ConstantSquare
+    end: ConstantSquare
+    promotion: Optional[PieceType] = None
+```
 
-side_to_move
+**Game state** — tracked on the Board class:
+- `board` — 8×8 grid of Piece references
+- `turn` — Color (WHITE or BLACK)
+- `castling_rights` — CastlingRights dataclass with 4 boolean fields
+- `en_passant_target` — Optional[ConstantSquare]
+- `halfmove_clock` and `fullmove_number` — not yet implemented
 
-castling rights
+**Castling rights** — stored explicitly in a CastlingRights dataclass:
+- `white_kingside: bool`
+- `white_queenside: bool`
+- `black_kingside: bool`
+- `black_queenside: bool`
 
-en_passant_target
-
-halfmove_clock (optional now, useful later)
-
-fullmove_number (optional now, useful later)
-
-Castling rights
-
-Store explicitly, for example:
-
-white_kingside: bool
-
-white_queenside: bool
-
-black_kingside: bool
-
-black_queenside: bool
-
-Do not try to infer this from piece positions alone.
+**ConstantSquare** — Pydantic model with RowConstant and ColConstant for type-safe coordinates. Row/Col constants provide arithmetic operators, hashing, and readable reprs (e.g., `ROW_8`, `COL_E`).
 
 Validation pipeline
 
@@ -525,96 +540,63 @@ Important testing rule
 
 Tests must represent real chess positions. Do not write tests that "pass" by putting impossible piece states on the board unless the test is explicitly about a low-level helper and documents that fact.
 
-Implementation phases
-Phase 0: stabilize the foundation
+## Implementation phases
 
-Fix imports and packaging so tests run.
+### Phase 0: stabilize the foundation ✅ DONE
+- Fix imports and packaging so tests run.
+- Freeze board/index conventions.
+- Replace ambiguous string-only pieces with color-aware representation.
+- Remove raw mutation from main.py.
 
-Freeze board/index conventions.
+### Phase 1: board + move primitives ✅ DONE
+- Implement square conversion helpers.
+- Implement Piece, Move, and board access helpers.
+- Rebuild starting position correctly.
 
-Replace ambiguous string-only pieces with color-aware representation.
+### Phase 2: pseudo-legal move rules ✅ DONE
+- Implement piece-specific move geometry.
+- Implement path blocking for sliding pieces.
+- Implement pawn directional rules.
 
-Remove raw mutation from main.py.
+### Phase 3: legal move rules ✅ DONE
+- Add king location lookup.
+- Add attack detection.
+- Add self-check rejection.
 
-Phase 1: board + move primitives
+### Phase 4: special rules ✅ DONE
+- Castling
+- En passant
+- Promotion
 
-Implement square conversion helpers.
+### Phase 5: status detection ✅ DONE
+- check
+- checkmate
+- stalemate
 
-Implement Piece, Move, and board access helpers.
+### Phase 6: CLI cleanup ✅ DONE
+- robust input loop
+- clear error messages
+- board display using canonical orientation
+- optional resignation/quit commands
 
-Rebuild starting position correctly.
+### Phase 7: post-correctness extensions ⚠️ PARTIAL
+- ~~AI~~ ✅ DONE — minimax with alpha-beta pruning implemented in `ai.py`
+- GUI — not yet implemented
+- notation improvements — algebraic notation parsing works; full SAN/UCI not implemented
+- serialization — not yet implemented
 
-Phase 2: pseudo-legal move rules
+## Definition of done
 
-Implement piece-specific move geometry.
+**The first correct milestone is COMPLETE.** All criteria are satisfied:
 
-Implement path blocking for sliding pieces.
-
-Implement pawn directional rules.
-
-Phase 3: legal move rules
-
-Add king location lookup.
-
-Add attack detection.
-
-Add self-check rejection.
-
-Phase 4: special rules
-
-Castling
-
-En passant
-
-Promotion
-
-Phase 5: status detection
-
-check
-
-checkmate
-
-stalemate
-
-Phase 6: CLI cleanup
-
-robust input loop
-
-clear error messages
-
-board display using canonical orientation
-
-optional resignation/quit commands
-
-Phase 7: only after correctness
-
-AI
-
-GUI
-
-notation improvements
-
-serialization
-
-Definition of done
-
-The first correct milestone is complete only when all of the following are true:
-
-pytest passes.
-
-Tests cover normal moves, illegal moves, and special moves.
-
-main.py never mutates board state directly.
-
-A king cannot be left in check after a legal move.
-
-Castling, en passant, and promotion work.
-
-Checkmate and stalemate are detected in at least representative test positions.
-
-The docs and tests agree on coordinate conventions.
-
-No test relies on the old incorrect board orientation assumptions.
+- ✅ pytest passes (227 tests)
+- ✅ Tests cover normal moves, illegal moves, and special moves
+- ✅ main.py never mutates board state directly
+- ✅ A king cannot be left in check after a legal move
+- ✅ Castling, en passant, and promotion work
+- ✅ Checkmate and stalemate are detected in at least representative test positions
+- ✅ The docs and tests agree on coordinate conventions
+- ✅ No test relies on the old incorrect board orientation assumptions
 
 Anti-goals and failure modes to avoid
 
