@@ -229,11 +229,30 @@ class MoveValidator:
         moves: List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]] = []
         for to_square in valid_moves:
             if self.is_valid_move(from_square, to_square):
-                promotion = None
                 if piece.kind == PieceType.PAWN:
-                    promotion = self._get_promotion_piece(piece, to_square)
-                moves.append((from_square, to_square, promotion))
+                    if self._is_promotion_dest(piece, to_square):
+                        for pt in (
+                            PieceType.QUEEN,
+                            PieceType.ROOK,
+                            PieceType.BISHOP,
+                            PieceType.KNIGHT,
+                        ):
+                            moves.append((from_square, to_square, pt))
+                    else:
+                        moves.append((from_square, to_square, None))
+                else:
+                    moves.append((from_square, to_square, None))
         return moves
+
+    def _is_promotion_dest(self, piece: Piece, to_square: ConstantSquare) -> bool:
+        """Check if moving to this square triggers pawn promotion."""
+        if piece.kind != PieceType.PAWN:
+            return False
+        if piece.color == Color.WHITE and int(to_square.row) == 0:
+            return True
+        if piece.color == Color.BLACK and int(to_square.row) == 7:
+            return True
+        return False
 
     def _get_promotion_piece(
         self, piece: Piece, to_square: ConstantSquare

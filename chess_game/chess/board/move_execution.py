@@ -10,7 +10,6 @@ from chess_game.chess.constants import Color
 from chess_game.chess.board.castling import CastlingValidator
 from chess_game.chess.board.promotion import PromotionValidator
 from chess_game.chess.constants import get_row_constant, get_col_constant
-
 if TYPE_CHECKING:
     from chess_game.chess.board.board import Board
 
@@ -34,6 +33,9 @@ class MoveExecutor:  # pylint: disable=too-few-public-methods
         piece = self.board.get_piece(from_square)
         if piece is None:
             raise ValueError(f"No piece at {from_square}")
+
+        if promotion_piece is not None and piece.kind != PieceType.PAWN:
+            return False
 
         if piece.kind == PieceType.PAWN:
             promotion_required = self.promotion_validator.is_promotion_required(
