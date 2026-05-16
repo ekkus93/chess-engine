@@ -4,7 +4,7 @@
 
 A correct, test-driven chess rules engine with a text-based CLI.
 
-**Correctness comes before features.** AI and GUI are not yet implemented and are not part of the current scope — they come after all rules are verifiably green.
+**Correctness comes before features.** A minimax-based AI with alpha-beta pruning is implemented and functional. GUI is not yet implemented.
 
 ### Coordinate Convention
 
@@ -23,7 +23,9 @@ The engine uses a canonical coordinate system:
 - Castling (all four variants) with rights tracking
 - En passant with expiry after one turn
 - Pawn promotion with all four choices (queen, rook, bishop, knight); defaults to queen when no suffix is supplied
-- Game status: `is_in_check`, `is_checkmate`, `is_stalemate`, `get_legal_moves`
+- Game status: check detection, checkmate, stalemate
+- AI: minimax with alpha-beta pruning, piece-square tables, move ordering (`get_best_move`)
+- Public API: `get_legal_moves`
 - Interactive CLI (`main.py`) that runs a full game loop
 
 ## Running the CLI
@@ -75,11 +77,29 @@ python -m pytest tests/ --cov=chess_game
 ```
 chess_game/          # Source code
   chess/
-    board.py         # Board class and move logic
-    piece.py         # Piece model
+    __init__.py      # Package init
+    types.py         # PieceType enum
+    color.py         # Color enum
     coords.py        # Coordinate constants and helpers
-    types.py         # Enums (Color, PieceType)
+    constants.py     # Board size, piece values
     move.py          # Move parsing
+    ai.py            # AI move ordering and search
+    evaluation.py    # Board position evaluation
+    board/
+      __init__.py    # Package init
+      board.py       # Board class (top-level interface)
+      move_execution.py    # Move execution logic
+      move_validation.py   # Legal move validation
+      game_state.py        # Check, checkmate, stalemate
+      castling.py          # Castling rules and rights
+      en_passant.py        # En passant rules
+      promotion.py         # Promotion validation
+      attack_utils.py      # Square attack detection
+      path_validator.py    # Path clearance for sliders
+      piece_validation.py  # Piece-specific validation
+    pieces/
+      __init__.py    # Package init
+      piece_movers.py # Movement rules per piece type
   main.py            # CLI entry point
 tests/               # Test suite
 docs/                # Documentation
