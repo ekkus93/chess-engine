@@ -201,3 +201,69 @@ class TestGetLegalMovesForColor:
             m[0] == sq("e7") and m[1] == sq("e5") for m in black_moves
         ), "Black e7-e5 should appear"
         assert board.turn == Color.BLACK
+
+
+class TestPinnedPieces:
+    """Task 8: Pinned-piece tests for get_legal_moves_for_color."""
+
+    def test_pinned_knight_has_no_legal_moves(self):
+        """A pinned knight has zero legal moves because all moves expose the king."""
+        board = Board()
+        board.clear_board()
+        board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
+        board.set_piece(sq("e2"), create_piece(Color.WHITE, PieceType.KNIGHT))
+        board.set_piece(sq("e8"), create_piece(Color.BLACK, PieceType.ROOK))
+        board.set_piece(sq("a8"), create_piece(Color.BLACK, PieceType.KING))
+        board.turn = Color.WHITE
+
+        knight_moves = [
+            m
+            for m in board.get_legal_moves_for_color(Color.WHITE)
+            if m[0] == sq("e2")
+        ]
+        assert knight_moves == []
+
+    def test_pinned_pawn_can_move_along_pin_line(self):
+        """
+        A pawn pinned on e-file by a rook on e8 may still move e2-e3/e2-e4
+        if those moves keep the e-file blocked.
+        """
+        board = Board()
+        board.clear_board()
+        board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
+        board.set_piece(sq("e2"), create_piece(Color.WHITE, PieceType.PAWN))
+        board.set_piece(sq("e8"), create_piece(Color.BLACK, PieceType.ROOK))
+        board.set_piece(sq("a8"), create_piece(Color.BLACK, PieceType.KING))
+        board.turn = Color.WHITE
+
+        moves = board.get_legal_moves_for_color(Color.WHITE)
+        from_e2 = [m for m in moves if m[0] == sq("e2")]
+
+        to_e3 = sq("e3")
+        to_e4 = sq("e4")
+
+        has_e3 = any(m[1] == to_e3 for m in from_e2)
+        has_e4 = any(m[1] == to_e4 for m in from_e2)
+        assert has_e3 or has_e4, "Pinned pawn should be able to move along pin line"
+
+    def test_pinned_pawn_diagonal_blocked_if_exposes_king(self):
+        """
+        A pinned pawn may not capture diagonally if it exposes the king.
+        Here white pawn on e2 pinned by black rook on e8, black pawn on d3.
+        e2xd3 must be illegal because it opens the e-file.
+        """
+        board = Board()
+        board.clear_board()
+        board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
+        board.set_piece(sq("e2"), create_piece(Color.WHITE, PieceType.PAWN))
+        board.set_piece(sq("d3"), create_piece(Color.BLACK, PieceType.PAWN))
+        board.set_piece(sq("e8"), create_piece(Color.BLACK, PieceType.ROOK))
+        board.set_piece(sq("a8"), create_piece(Color.BLACK, PieceType.KING))
+        board.turn = Color.WHITE
+
+        moves = board.get_legal_moves_for_color(Color.WHITE)
+        captures_on_d3 = any(
+            m[0] == sq("e2") and m[1] == sq("d3")
+            for m in moves
+        )
+        assert not captures_on_d3, "Diagonal capture that exposes king must be illegal"

@@ -551,7 +551,7 @@ The correct test is either:
 
 ## Required test: pinned knight has no legal moves
 
-- [ ] Construct this position:
+- [x] Construct this position:
 
   ```text
   White king: e1
@@ -561,7 +561,7 @@ The correct test is either:
   White to move
   ```
 
-- [ ] Assert the knight on `e2` has zero legal moves:
+- [x] Assert the knight on `e2` has zero legal moves:
 
   ```python
   board = Board()
@@ -578,7 +578,7 @@ The correct test is either:
 
 ## Optional test: pinned pawn can still move along pin line
 
-- [ ] Construct this position:
+- [x] Construct this position:
 
   ```text
   White king: e1
@@ -588,8 +588,8 @@ The correct test is either:
   White to move
   ```
 
-- [ ] Assert `e2e3` and/or `e2e4` may be legal if they continue blocking the rook.
-- [ ] Assert diagonal pawn captures that leave the `e` file open are rejected.
+- [x] Assert `e2e3` and/or `e2e4` may be legal if they continue blocking the rook.
+- [x] Assert diagonal pawn captures that leave the `e` file open are rejected.
 
 ## Expected code change
 
