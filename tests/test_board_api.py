@@ -267,3 +267,53 @@ class TestPinnedPieces:
             for m in moves
         )
         assert not captures_on_d3, "Diagonal capture that exposes king must be illegal"
+
+
+class TestCastlingInLegalMoves:
+    """Task 9: Castling moves appear in get_legal_moves_for_color."""
+
+    def test_white_kingside_castling_move_appears(self):
+        board = Board()
+        board.clear_square(sq("f1"))
+        board.clear_square(sq("g1"))
+        board.turn = Color.WHITE
+
+        moves = board.get_legal_moves_for_color(Color.WHITE)
+        assert any(
+            m[0] == sq("e1") and m[1] == sq("g1") for m in moves
+        ), "White kingside castling e1-g1 should be legal"
+
+    def test_white_queenside_castling_move_appears(self):
+        board = Board()
+        board.clear_square(sq("b1"))
+        board.clear_square(sq("c1"))
+        board.clear_square(sq("d1"))
+        board.turn = Color.WHITE
+
+        moves = board.get_legal_moves_for_color(Color.WHITE)
+        assert any(
+            m[0] == sq("e1") and m[1] == sq("c1") for m in moves
+        ), "White queenside castling e1-c1 should be legal"
+
+    def test_black_kingside_castling_move_appears(self):
+        board = Board()
+        board.clear_square(sq("f8"))
+        board.clear_square(sq("g8"))
+        board.turn = Color.BLACK
+
+        moves = board.get_legal_moves_for_color(Color.BLACK)
+        assert any(
+            m[0] == sq("e8") and m[1] == sq("g8") for m in moves
+        ), "Black kingside castling e8-g8 should be legal"
+
+    def test_black_queenside_castling_move_appears(self):
+        board = Board()
+        board.clear_square(sq("b8"))
+        board.clear_square(sq("c8"))
+        board.clear_square(sq("d8"))
+        board.turn = Color.BLACK
+
+        moves = board.get_legal_moves_for_color(Color.BLACK)
+        assert any(
+            m[0] == sq("e8") and m[1] == sq("c8") for m in moves
+        ), "Black queenside castling e8-c8 should be legal"
