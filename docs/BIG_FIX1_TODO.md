@@ -336,19 +336,19 @@ Do **not** write a test expecting `e2` or `e7` to be empty.
 
 ## Subtasks
 
-- [ ] Test default-board empty squares return `True`:
-  - [ ] `e3`
-  - [ ] `e4`
-  - [ ] `e5`
-  - [ ] `e6`
+- [x] Test default-board empty squares return `True`:
+  - [x] `e3`
+  - [x] `e4`
+  - [x] `e5`
+  - [x] `e6`
 
-- [ ] Test occupied squares return `False`:
-  - [ ] `e1` has white king.
-  - [ ] `e8` has black king.
-  - [ ] `e2` has white pawn.
-  - [ ] `e7` has black pawn.
+- [x] Test occupied squares return `False`:
+  - [x] `e1` has white king.
+  - [x] `e8` has black king.
+  - [x] `e2` has white pawn.
+  - [x] `e7` has black pawn.
 
-- [ ] Test square after `clear_square` returns `True`:
+- [x] Test square after `clear_square` returns `True`:
 
   ```python
   board = Board()
@@ -356,7 +356,7 @@ Do **not** write a test expecting `e2` or `e7` to be empty.
   assert board.is_empty(sq("e2")) is True
   ```
 
-- [ ] Test square after `set_piece` returns `False`:
+- [x] Test square after `set_piece` returns `False`:
 
   ```python
   board = Board()
@@ -365,11 +365,11 @@ Do **not** write a test expecting `e2` or `e7` to be empty.
   assert board.is_empty(sq("e4")) is False
   ```
 
-- [ ] Test occupied corner squares on default board return `False`:
-  - [ ] `a1`
-  - [ ] `h1`
-  - [ ] `a8`
-  - [ ] `h8`
+- [x] Test occupied corner squares on default board return `False`:
+  - [x] `a1`
+  - [x] `h1`
+  - [x] `a8`
+  - [x] `h8`
 
 ## Expected code change
 
@@ -394,8 +394,8 @@ Do **not** add new king-tracking fields unless your working branch already has t
 
 ## Subtasks
 
-- [ ] Test default board white king found at `e1`.
-- [ ] Test default board black king found at `e8`.
+- [x] Test default board white king found at `e1`.
+- [x] Test default board black king found at `e8`.
 
   Example:
 
@@ -405,7 +405,7 @@ Do **not** add new king-tracking fields unless your working branch already has t
   assert board.find_king(Color.BLACK) == sq("e8")
   ```
 
-- [ ] Test after a legal king move, the new square is returned.
+- [x] Test after a legal king move, the new square is returned.
 
   Important: `e1 -> f1` is illegal on the default board because `f1` starts occupied by a white bishop. Clear `f1` first or construct an empty board.
 
@@ -418,7 +418,7 @@ Do **not** add new king-tracking fields unless your working branch already has t
   assert board.find_king(Color.WHITE) == sq("f1")
   ```
 
-- [ ] Test after king removed from board, `find_king(color)` returns `None`.
+- [x] Test after king removed from board, `find_king(color)` returns `None`.
 
   Do not use a normal legal move to “capture” a king. King capture is illegal. For this API edge case, directly clear the king square:
 
@@ -428,7 +428,7 @@ Do **not** add new king-tracking fields unless your working branch already has t
   assert board.find_king(Color.WHITE) is None
   ```
 
-- [ ] Test both colors independently return correct squares after custom placement.
+- [x] Test both colors independently return correct squares after custom placement.
 
   Example:
 
@@ -441,7 +441,7 @@ Do **not** add new king-tracking fields unless your working branch already has t
   assert board.find_king(Color.BLACK) == sq("h8")
   ```
 
-- [ ] Test cloned board preserves king positions after king movement.
+- [x] Test cloned board preserves king positions after king movement.
 
   Example:
 
