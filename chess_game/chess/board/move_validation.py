@@ -11,9 +11,9 @@ from chess_game.chess.board.en_passant import EnPassantValidator
 from chess_game.chess.board.path_validator import PathValidator
 from chess_game.chess.pieces.piece_movers import PieceMovers
 from chess_game.chess.constants import (
-        get_row_constant,
-        get_col_constant,
-    )
+    get_row_constant,
+    get_col_constant,
+)
 
 if TYPE_CHECKING:
     from chess_game.chess.board.board import Board
@@ -268,25 +268,19 @@ class MoveValidator:
             return False
 
         enemy_color = Color.BLACK if piece.color == Color.WHITE else Color.WHITE
-        return self._is_square_attacked_by_color(
-            temp_board, king_square, enemy_color
-        )
+        return self._is_square_attacked_by_color(temp_board, king_square, enemy_color)
 
     def _would_expose_king_to_check_en_passant(
         self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
         """Check if en passant capture would expose king to check."""
-        temp_board = self._simulate_en_passant(
-            piece, from_square, to_square
-        )
+        temp_board = self._simulate_en_passant(piece, from_square, to_square)
         king_square = temp_board.find_king(piece.color)
         if king_square is None:
             return False
 
         enemy_color = Color.BLACK if piece.color == Color.WHITE else Color.WHITE
-        return self._is_square_attacked_by_color(
-            temp_board, king_square, enemy_color
-        )
+        return self._is_square_attacked_by_color(temp_board, king_square, enemy_color)
 
     def _simulate_en_passant(
         self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
@@ -358,9 +352,7 @@ class MoveValidator:
         if attacker.kind == PieceType.PAWN:
             return self._is_pawn_attack(attacker, attacker_square, target_square)
         if attacker.kind == PieceType.ROOK:
-            return self._is_rook_attack(
-                attacker, attacker_square, target_square, board
-            )
+            return self._is_rook_attack(attacker, attacker_square, target_square, board)
         if attacker.kind == PieceType.BISHOP:
             return self._is_bishop_attack(attacker_square, target_square, board)
         if attacker.kind == PieceType.QUEEN:

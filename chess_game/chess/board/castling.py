@@ -136,7 +136,7 @@ class CastlingValidator:
             board, king_square, rook_square, destination, color, color
         )
 
-   # pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-return-statements
     @staticmethod
     def _can_complete_castle(
         board: Board,
@@ -232,7 +232,7 @@ class CastlingValidator:
             piece is not None and piece.kind == PieceType.ROOK and piece.color == color
         )
 
-   # pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-return-statements
     @staticmethod
     def _castling_path_is_clear(
         king_square: ConstantSquare,

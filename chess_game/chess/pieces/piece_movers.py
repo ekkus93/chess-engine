@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import TYPE_CHECKING, Callable, List, Optional
 
-from chess_game.chess.constants import Color
 from chess_game.chess.constants import (
-    get_row_constant,
+    Color,
+    ConstantSquare,
     get_col_constant,
+    get_row_constant,
 )
 from chess_game.chess.types import Piece, PieceType
-from chess_game.chess.constants import ConstantSquare
+
+if TYPE_CHECKING:
+    from chess_game.chess.board.board import Board
 
 
 def _pawn_direction(color: Color) -> int:
@@ -19,7 +22,7 @@ def _pawn_direction(color: Color) -> int:
 
 
 def _get_en_passant_moves(
-    board,
+    board: "Board",
     next_row,
     current_col,
     moves,
@@ -30,16 +33,14 @@ def _get_en_passant_moves(
         ep_row = int(ep_target.row)
         ep_col = int(ep_target.col)
         if ep_row == int(next_row) and abs(ep_col - int(current_col)) == 1:
-            ep_square = ConstantSquare(
-                row=next_row, col=get_col_constant(ep_col)
-            )
+            ep_square = ConstantSquare(row=next_row, col=get_col_constant(ep_col))
             if PieceMovers.is_valid_position(ep_square):
                 moves.append(ep_target)
 
 
 def _get_pawn_captures(
     piece: Piece,
-    board,
+    board: "Board",
     next_row,
     current_col,
     moves,
@@ -72,14 +73,16 @@ class PieceMovers:
     }
 
     @staticmethod
-    def get_valid_moves(piece: Piece, board) -> List[ConstantSquare]:
+    def get_valid_moves(piece: Piece, board: "Board") -> List[ConstantSquare]:
         """Get all valid moves for a piece."""
         if piece.square is None:
             return []
         getter_name = PieceMovers._MOVEMENT_GETTERS.get(piece.kind)
         if getter_name is None:
             return []
-        getter = getattr(PieceMovers, getter_name)
+        getter: Callable[[Piece, "Board"], List[ConstantSquare]] = getattr(
+            PieceMovers, getter_name
+        )
         return getter(piece, board)
 
     @staticmethod
@@ -88,7 +91,7 @@ class PieceMovers:
         return 0 <= int(square.row) < 8 and 0 <= int(square.col) < 8
 
     @staticmethod
-    def _get_pawn_moves(piece: Piece, board) -> List[ConstantSquare]:
+    def _get_pawn_moves(piece: Piece, board: "Board") -> List[ConstantSquare]:
         """Get all valid pawn moves (forward, capture, 2-step, promotion)."""
         assert piece.square is not None
         moves = []
@@ -125,7 +128,7 @@ class PieceMovers:
         return moves
 
     @staticmethod
-    def _get_knight_moves(piece: Piece, board) -> List[ConstantSquare]:
+    def _get_knight_moves(piece: Piece, board: "Board") -> List[ConstantSquare]:
         """Get all valid knight moves (L-shaped)."""
         assert piece.square is not None
         moves = []
@@ -152,16 +155,16 @@ class PieceMovers:
                 col=get_col_constant(target_col),
             )
 
+            target_piece = board.get_piece(target_square)
             if board.is_empty(target_square) or (
-                board.get_piece(target_square) is not None
-                and board.get_piece(target_square).color != piece.color
+                target_piece is not None and target_piece.color != piece.color
             ):
                 moves.append(target_square)
 
         return moves
 
     @staticmethod
-    def _get_bishop_moves(piece: Piece, board) -> List[ConstantSquare]:
+    def _get_bishop_moves(piece: Piece, board: "Board") -> List[ConstantSquare]:
         """Get all valid bishop moves (diagonal)."""
         assert piece.square is not None
         moves = []
@@ -198,7 +201,7 @@ class PieceMovers:
         return moves
 
     @staticmethod
-    def _get_rook_moves(piece: Piece, board) -> List[ConstantSquare]:
+    def _get_rook_moves(piece: Piece, board: "Board") -> List[ConstantSquare]:
         """Get all valid rook moves (straight lines)."""
         assert piece.square is not None
         moves = []
@@ -249,14 +252,14 @@ class PieceMovers:
         return int(piece.square.col)
 
     @staticmethod
-    def _get_queen_moves(piece: Piece, board) -> List[ConstantSquare]:
+    def _get_queen_moves(piece: Piece, board: "Board") -> List[ConstantSquare]:
         """Get all valid queen moves (rook + bishop combined)."""
         rook_moves = PieceMovers._get_rook_moves(piece, board)
         bishop_moves = PieceMovers._get_bishop_moves(piece, board)
         return rook_moves + bishop_moves
 
     @staticmethod
-    def _get_king_moves(piece: Piece, board) -> List[ConstantSquare]:
+    def _get_king_moves(piece: Piece, board: "Board") -> List[ConstantSquare]:
         """Get all valid king moves (one square in any direction plus castling)."""
         assert piece.square is not None
         moves = []
@@ -280,9 +283,9 @@ class PieceMovers:
                 col=get_col_constant(target_col),
             )
 
+            target_piece = board.get_piece(target_square)
             if board.is_empty(target_square) or (
-                board.get_piece(target_square) is not None
-                and board.get_piece(target_square).color != piece.color
+                target_piece is not None and target_piece.color != piece.color
             ):
                 moves.append(target_square)
 

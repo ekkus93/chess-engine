@@ -1,7 +1,7 @@
 """Chess piece and move data types."""
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from chess_game.chess.constants import (
     ConstantSquare,
@@ -10,6 +10,13 @@ from chess_game.chess.constants import (
     RowConstant,
     ColConstant,
 )
+
+if TYPE_CHECKING:
+    from chess_game.chess.board.move_validation import MoveValidator
+    from chess_game.chess.board.move_execution import MoveExecutor
+    from chess_game.chess.board.promotion import PromotionValidator
+    from chess_game.chess.board.en_passant import EnPassantValidator
+    from chess_game.chess.board.piece_validation import PieceMoveChecker
 
 
 @dataclass
@@ -55,11 +62,11 @@ class CastlingRights:
 class BoardValidators:
     """Holds the validator components for a Board instance."""
 
-    move_validator: object = None  # type: ignore[assignment] # noqa: F821
-    promotion_validator: object = None  # type: ignore[assignment] # noqa: F821
-    en_passant_validator: object = None  # type: ignore[assignment] # noqa: F821
-    piece_move_checker: object = None  # type: ignore[assignment] # noqa: F821
-    move_executor: object = None  # type: ignore[assignment] # noqa: F821
+    move_validator: "MoveValidator"
+    promotion_validator: "PromotionValidator"
+    en_passant_validator: "EnPassantValidator"
+    piece_move_checker: "PieceMoveChecker"
+    move_executor: "MoveExecutor"
 
 
 @dataclass

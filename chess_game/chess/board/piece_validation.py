@@ -6,8 +6,13 @@ Board's public method count.
 
 from __future__ import annotations
 
-from chess_game.chess.types import PieceType
+from typing import TYPE_CHECKING
+
 from chess_game.chess.constants import ConstantSquare
+from chess_game.chess.types import PieceType
+
+if TYPE_CHECKING:
+    from chess_game.chess.board.board import Board
 
 _PIECE_CHECKERS = {
     PieceType.ROOK: "rook",
@@ -26,7 +31,10 @@ class PieceMoveChecker:
         self._board = board
 
     def _check_piece_move(
-        self, from_square: ConstantSquare, to_square: ConstantSquare, expected_kind: PieceType
+        self,
+        from_square: ConstantSquare,
+        to_square: ConstantSquare,
+        expected_kind: PieceType,
     ) -> bool:
         """Check that the piece on from_square matches expected_kind, then validate."""
         piece = self._board.get_piece(from_square)

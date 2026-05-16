@@ -94,7 +94,7 @@ class Board:
         self.turn = Color.WHITE
         self.en_passant_target: Optional[ConstantSquare] = None
         self.castling_rights = CastlingRights()
-        self._validators: BoardValidators  # type: ignore[assignment]
+        self._validators: BoardValidators
 
         self.init_validators()
 
@@ -475,11 +475,15 @@ class Board:
         )
 
         if is_en_passant:
-            move_valid = self._validators.en_passant_validator.validate_en_passant_capture(
-                start_pos, end_pos, start_piece
+            move_valid = (
+                self._validators.en_passant_validator.validate_en_passant_capture(
+                    start_pos, end_pos, start_piece
+                )
             )
         else:
-            move_valid = self._validators.move_validator.is_move_legal(start_pos, end_pos)
+            move_valid = self._validators.move_validator.is_move_legal(
+                start_pos, end_pos
+            )
         if not move_valid:
             return False
 
@@ -521,9 +525,7 @@ class Board:
 
         # Rook moves from starting square -> lose side-specific castling right
         if start_piece.kind == PieceType.ROOK:
-            _clear_rook_castling_right(
-                self.castling_rights, start_pos, piece_color
-            )
+            _clear_rook_castling_right(self.castling_rights, start_pos, piece_color)
 
         # Rook captured on its starting square
         _clear_captured_rook_castling_right(self.castling_rights, end_pos)

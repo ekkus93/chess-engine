@@ -6,10 +6,13 @@ doesn't have to carry them as instance methods.
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from chess_game.chess.board.castling import CastlingValidator
 from chess_game.chess.types import Color
+
+if TYPE_CHECKING:
+    from chess_game.chess.board.board import Board
 
 
 def is_in_check(board: "Board", color: Color) -> bool:  # noqa: F821

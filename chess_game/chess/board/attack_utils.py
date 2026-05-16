@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 from chess_game.chess.types import Piece, PieceType
 
@@ -85,12 +85,12 @@ def piece_attacks_square(
     checker = _ATTACK_CHECKERS.get(attacker.kind)
     if checker is None:
         return False
-    return checker(
-        attacker, attacker_square, target_square, board
-    )
+    return checker(attacker, attacker_square, target_square, board)
 
 
-_ATTACK_CHECKERS: dict[PieceType, callable] = {
+_ATTACK_CHECKERS: dict[
+    PieceType, Callable[[Piece, ConstantSquare, ConstantSquare, Board], bool]
+] = {
     PieceType.PAWN: _is_pawn_attack_wrapper,
     PieceType.ROOK: _is_rook_attack_wrapper,
     PieceType.BISHOP: _is_bishop_attack_wrapper,
