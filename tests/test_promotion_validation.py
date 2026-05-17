@@ -14,6 +14,7 @@ Covers:
 from chess_game.chess.board.board import Board, create_piece
 from chess_game.chess.board.promotion import PromotionValidator
 from chess_game.chess.types import Color, PieceType
+from chess_game.chess.constants import ConstantSquare
 from tests.helpers import sq, assert_piece, assert_empty
 
 
@@ -247,6 +248,53 @@ def test_algebraic_non_pawn_queen_promo_rejected() -> None:
     assert_piece(board, "d1", Color.WHITE, PieceType.QUEEN)
 
 
+# ── is_valid_promotion_choice enforces color-specific ranks via sq() ─────────
+
+
+def test_is_valid_promotion_choice_white_on_row_0() -> None:
+    """White pawn promoting on row 0 with QUEEN should be allowed."""
+    board = _setup_promo_board()
+    v = PromotionValidator(board)
+    white_pawn = board.get_piece(sq("e7"))
+    assert v.is_valid_promotion_choice(white_pawn, sq("e8"), PieceType.QUEEN) is True
+
+
+def test_is_valid_promotion_choice_white_rejected_on_row_7() -> None:
+    """White pawn promoting on row 7 should be rejected."""
+    board = _setup_promo_board()
+    v = PromotionValidator(board)
+    white_pawn = board.get_piece(sq("e7"))
+    assert v.is_valid_promotion_choice(white_pawn, sq("e1"), PieceType.QUEEN) is False
+
+
+def test_is_valid_promotion_choice_black_on_row_7() -> None:
+    """Black pawn promoting on row 7 should be allowed."""
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("c1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("e3"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.turn = Color.BLACK
+
+    v = PromotionValidator(board)
+    black_pawn = board.get_piece(sq("e3"))
+    assert v.is_valid_promotion_choice(black_pawn, sq("e1"), PieceType.ROOK) is True
+
+
+def test_is_valid_promotion_choice_black_rejected_on_row_0() -> None:
+    """Black pawn promoting on row 0 should be rejected."""
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("c1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("e3"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.turn = Color.BLACK
+
+    v = PromotionValidator(board)
+    black_pawn = board.get_piece(sq("e3"))
+    assert v.is_valid_promotion_choice(black_pawn, sq("e8"), PieceType.ROOK) is False
+
+
 def test_algebraic_pawn_promo_accepted() -> None:
     """parse_move_notation('e7e8q') on a pawn succeeds."""
     from chess_game.chess.move import parse_move_notation
@@ -256,6 +304,43 @@ def test_algebraic_pawn_promo_accepted() -> None:
     assert board.make_move(move.start, move.end, promotion=move.promotion) is True
     assert_piece(board, "e8", Color.WHITE, PieceType.QUEEN)
     assert_empty(board, "e7")
+
+
+# ── Color-specific promotion rank enforcement via existing helpers ───────────
+
+
+def test_white_pawn_must_promote_only_on_row_0() -> None:
+    """White pawn must only promote when moving to row 0."""
+    board = _setup_promo_board()
+    v = PromotionValidator(board)
+    white_pawn = board.get_piece(sq("e7"))
+
+    # Promoting to e8 (row 0) is valid
+    assert v.is_promotion_rank(white_pawn, sq("e8")) is True
+
+    # Other ranks are not promotion rank for white
+    for s in ["e7", "e6", "e5", "e4", "e3", "e2", "e1"]:
+        assert v.is_promotion_rank(white_pawn, sq(s)) is False
+
+
+def test_black_pawn_must_promote_only_on_row_7() -> None:
+    """Black pawn must only promote when moving to row 7."""
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("c1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("e3"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.turn = Color.BLACK
+
+    v = PromotionValidator(board)
+    black_pawn = board.get_piece(sq("e3"))
+
+    # Promoting to e1 (row 7) is valid
+    assert v.is_promotion_rank(black_pawn, sq("e1")) is True
+
+    # Other ranks are not promotion rank for black
+    for s in ["e2", "e3", "e4", "e5", "e6", "e7", "e8"]:
+        assert v.is_promotion_rank(black_pawn, sq(s)) is False
 
 
 # ── is_valid_promotion_piece hardening ───────────────────────────────────────
