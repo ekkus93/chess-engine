@@ -306,3 +306,95 @@ class TestPromotionValidatorDirect:
     def test_reject_none_promotion(self) -> None:
         v = self._validator()
         assert v.is_valid_promotion_piece(None) is False  # type: ignore[arg-type]
+
+
+# ── Color-specific promotion rank checks ─────────────────────────────────────
+
+
+def _setup_white_pawn_near_promo() -> Board:
+    """White pawn on e7, kings on c1/g8, white to move."""
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("c1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("e7"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.turn = Color.WHITE
+    return board
+
+
+def _setup_black_pawn_near_promo() -> Board:
+    """Black pawn on e3, kings on c1/g8, black to move."""
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("c1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("e3"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.turn = Color.BLACK
+    return board
+
+
+def test_white_pawn_promo_on_row_1_allowed() -> None:
+    """White pawn to row 1 should be allowed (promotion rank)."""
+    board = _setup_white_pawn_near_promo()
+    assert board.make_move(sq("e7"), sq("e8"), promotion=PieceType.QUEEN) is True
+    assert_piece(board, "e8", Color.WHITE, PieceType.QUEEN)
+
+
+def test_white_pawn_promo_on_row_8_not_allowed() -> None:
+    """White pawn cannot appear on row 8 via non-promo move (no rank wrap)."""
+    # Ensure only row 1 is treated as promotion rank for white.
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("c1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("e6"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.turn = Color.WHITE
+
+    # Move to e7 is normal (no promotion argument allowed).
+    assert board.make_move(sq("e6"), sq("e7")) is True
+    assert_piece(board, "e7", Color.WHITE, PieceType.PAWN)
+
+
+def test_black_pawn_promo_on_row_8_allowed() -> None:
+    """Black pawn to row 8 should be allowed (promotion rank for black)."""
+    board = _setup_black_pawn_near_promo()
+    # Black pawn e3->e2 is normal.
+    assert board.make_move(sq("e3"), sq("e2")) is True
+    assert_piece(board, "e2", Color.BLACK, PieceType.PAWN)
+
+
+def test_black_pawn_promo_when_reaching_row_1() -> None:
+    """Black pawn reaching row 1 should allow promotion."""
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("c1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("e2"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.turn = Color.BLACK
+
+    # Black pawn e2->e1 with promotion.
+    assert board.make_move(sq("e2"), sq("e1"), promotion=PieceType.ROOK) is True
+    assert_piece(board, "e1", Color.BLACK, PieceType.ROOK)
+
+
+def test_white_pawn_no_promo_on_non_promo_rank() -> None:
+    """White pawn moving on non-promo rank must not allow promotion arg."""
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("c1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("e7"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.turn = Color.WHITE
+
+    # e7->e6 with promotion arg should be rejected.
+    assert board.make_move(sq("e7"), sq("e6"), promotion=PieceType.QUEEN) is False
+    assert_piece(board, "e7", Color.WHITE, PieceType.PAWN)
+
+
+def test_black_pawn_no_promo_on_non_promo_rank() -> None:
+    """Black pawn moving on non-promo rank must not allow promotion arg."""
+    board = _setup_black_pawn_near_promo()
+
+    # e3->e4 with promotion arg should be rejected.
+    assert board.make_move(sq("e3"), sq("e4"), promotion=PieceType.QUEEN) is False
+    assert_piece(board, "e3", Color.BLACK, PieceType.PAWN)

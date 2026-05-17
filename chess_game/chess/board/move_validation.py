@@ -232,21 +232,6 @@ class MoveValidator:
             return True
         return False
 
-    def _get_promotion_piece(
-        self, piece: Piece, to_square: ConstantSquare
-    ) -> Optional[PieceType]:
-        """Get the promotion piece type if pawn promotion is needed."""
-        if piece.kind != PieceType.PAWN:
-            return None
-
-        # White promotes at row 0 (rank 8), Black at row 7 (rank 1)
-        if piece.color == Color.WHITE and int(to_square.row) == 0:
-            return PieceType.QUEEN
-        if piece.color == Color.BLACK and int(to_square.row) == 7:
-            return PieceType.QUEEN
-
-        return None
-
     def _would_expose_king_to_check(
         self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
