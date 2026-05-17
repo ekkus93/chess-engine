@@ -45,23 +45,23 @@ Do not broaden this patch into new chess features or a move-engine rewrite.
 
 ### 0.1 Run the current suite
 
-- [ ] From repo root, run:
+- [x] From repo root, run:
 
   ```bash
   python -m pytest tests -q
   ```
 
-- [ ] Expected baseline from the latest reviewed repo:
+- [x] Expected baseline from the latest reviewed repo:
 
   ```text
   273 passed
   ```
 
-- [ ] If the suite is failing before this cleanup starts, stop and inspect the failures before making changes.
+- [x] If the suite is failing before this cleanup starts, stop and inspect the failures before making changes.
 
 ### 0.2 Create a focused branch
 
-- [ ] Create a branch such as:
+- [x] Create a branch such as:
 
   ```bash
   git checkout -b fix/promotion-validator-cleanup
@@ -69,13 +69,13 @@ Do not broaden this patch into new chess features or a move-engine rewrite.
 
 ### 0.3 Add handoff docs
 
-- [ ] Copy the spec into:
+- [x] Copy the spec into:
 
   ```text
   docs/CHESS_ENGINE_PROMOTION_CLEANUP_SPEC.md
   ```
 
-- [ ] Copy this TODO into:
+- [x] Copy this TODO into:
 
   ```text
   docs/CHESS_ENGINE_PROMOTION_CLEANUP_TODO.md
@@ -87,54 +87,54 @@ Do not broaden this patch into new chess features or a move-engine rewrite.
 
 ### 1.1 Inspect promotion validator
 
-- [ ] Open:
+- [x] Open:
 
   ```text
   chess_game/chess/board/promotion.py
   ```
 
-- [ ] Locate:
-  - [ ] `get_promotion_options(...)`
-  - [ ] `is_valid_promotion_piece(...)`
-  - [ ] `is_valid_promotion_choice(...)`
-  - [ ] promotion-rank helper methods, if present.
+- [x] Locate:
+  - [x] `get_promotion_options(...)`
+  - [x] `is_valid_promotion_piece(...)`
+  - [x] `is_valid_promotion_choice(...)`
+  - [x] promotion-rank helper methods, if present.
 
-- [ ] Confirm whether promotion pieces are currently listed inline instead of via one shared constant.
+- [x] Confirm whether promotion pieces are currently listed inline instead of via one shared constant.
 
 ### 1.2 Inspect legal move generation
 
-- [ ] Open:
+- [x] Open:
 
   ```text
   chess_game/chess/board/move_validation.py
   ```
 
-- [ ] Locate promotion expansion logic in legal move generation.
-- [ ] Confirm it generates queen, rook, bishop, and knight.
-- [ ] Identify where it currently duplicates the promotion piece tuple/list.
+- [x] Locate promotion expansion logic in legal move generation.
+- [x] Confirm it generates queen, rook, bishop, and knight.
+- [x] Identify where it currently duplicates the promotion piece tuple/list.
 
 ### 1.3 Search for stale queen-only helper code
 
-- [ ] Run:
+- [x] Run:
 
   ```bash
   grep -R "_get_promotion_piece" -n chess_game tests
   ```
 
-- [ ] Determine whether `MoveValidator._get_promotion_piece()` is used.
-- [ ] If it is unused, plan to remove it.
-- [ ] If it is used, plan to rewrite it so it cannot hardcode queen-only legal move generation.
+- [x] Determine whether `MoveValidator._get_promotion_piece()` is used.
+- [x] If it is unused, plan to remove it.
+- [x] If it is used, plan to rewrite it so it cannot hardcode queen-only legal move generation.
 
 ### 1.4 Search all promotion-piece list duplication
 
-- [ ] Run:
+- [x] Run:
 
   ```bash
   grep -R "PieceType.QUEEN" -n chess_game tests | grep -E "PROMOTION|promotion|ROOK|BISHOP|KNIGHT|promotion.py|move_validation.py"
   ```
 
-- [ ] Identify production-code sites where the allowed promotion list is duplicated.
-- [ ] Do not worry about tests that explicitly list expected promotion choices.
+- [x] Identify production-code sites where the allowed promotion list is duplicated.
+- [x] Do not worry about tests that explicitly list expected promotion choices.
 
 ---
 
@@ -142,7 +142,7 @@ Do not broaden this patch into new chess features or a move-engine rewrite.
 
 ### 2.1 Define the constant
 
-- [ ] In:
+- [x] In:
 
   ```text
   chess_game/chess/board/promotion.py
@@ -159,12 +159,12 @@ Do not broaden this patch into new chess features or a move-engine rewrite.
   )
   ```
 
-- [ ] Put it near the top of the module after imports.
-- [ ] Use a tuple to avoid accidental mutation.
+- [x] Put it near the top of the module after imports.
+- [x] Use a tuple to avoid accidental mutation.
 
 ### 2.2 Use it in promotion validator
 
-- [ ] Update `get_promotion_options(...)` to return or derive from `PROMOTION_PIECES`.
+- [x] Update `get_promotion_options(...)` to return or derive from `PROMOTION_PIECES`.
 
   Acceptable shape:
 
@@ -175,20 +175,20 @@ Do not broaden this patch into new chess features or a move-engine rewrite.
       return list(PROMOTION_PIECES)
   ```
 
-- [ ] Update `is_valid_promotion_piece(...)` to use `PROMOTION_PIECES`.
-- [ ] Update `is_valid_promotion_choice(...)` to use `is_valid_promotion_piece(...)` rather than duplicating allowed choices.
+- [x] Update `is_valid_promotion_piece(...)` to use `PROMOTION_PIECES`.
+- [x] Update `is_valid_promotion_choice(...)` to use `is_valid_promotion_piece(...)` rather than duplicating allowed choices.
 
 ### 2.3 Use it in move generation
 
-- [ ] In `move_validation.py`, import `PROMOTION_PIECES` from `promotion.py`.
-- [ ] Replace any local tuple/list of promotion pieces with `PROMOTION_PIECES`.
-- [ ] Ensure legal move generation still emits all four promotion choices.
+- [x] In `move_validation.py`, import `PROMOTION_PIECES` from `promotion.py`.
+- [x] Replace any local tuple/list of promotion pieces with `PROMOTION_PIECES`.
+- [x] Ensure legal move generation still emits all four promotion choices.
 
 ### 2.4 Verify no production duplication remains
 
-- [ ] Re-run the search from Task 1.4.
-- [ ] Confirm production code no longer has duplicated allowed-promotion lists.
-- [ ] It is okay for tests to define an expected set of promotion pieces.
+- [x] Re-run the search from Task 1.4.
+- [x] Confirm production code no longer has duplicated allowed-promotion lists.
+- [x] It is okay for tests to define an expected set of promotion pieces.
 
 ---
 
@@ -206,7 +206,7 @@ can incorrectly accept `5` if `PieceType.QUEEN == 5`.
 
 ### 3.1 Update implementation
 
-- [ ] Change `PromotionValidator.is_valid_promotion_piece(...)` so it explicitly requires a real `PieceType` instance.
+- [x] Change `PromotionValidator.is_valid_promotion_piece(...)` so it explicitly requires a real `PieceType` instance.
 
 Recommended implementation:
 
@@ -215,8 +215,8 @@ def is_valid_promotion_piece(self, piece_type: object) -> bool:
     return isinstance(piece_type, PieceType) and piece_type in PROMOTION_PIECES
 ```
 
-- [ ] The parameter type may be broadened from `PieceType` to `object` because this method is intentionally validating runtime inputs.
-- [ ] Do not rely on membership alone.
+- [x] The parameter type may be broadened from `PieceType` to `object` because this method is intentionally validating runtime inputs.
+- [x] Do not rely on membership alone.
 
 ### 3.2 Add validator tests
 
@@ -232,20 +232,20 @@ or a new focused file:
 tests/test_promotion_validation.py
 ```
 
-- [ ] Test these valid values return `True`:
-  - [ ] `PieceType.QUEEN`
-  - [ ] `PieceType.ROOK`
-  - [ ] `PieceType.BISHOP`
-  - [ ] `PieceType.KNIGHT`
+- [x] Test these valid values return `True`:
+  - [x] `PieceType.QUEEN`
+  - [x] `PieceType.ROOK`
+  - [x] `PieceType.BISHOP`
+  - [x] `PieceType.KNIGHT`
 
-- [ ] Test these invalid values return `False`:
-  - [ ] `PieceType.KING`
-  - [ ] `PieceType.PAWN`
-  - [ ] `PieceType.EMPTY`
-  - [ ] raw integer `5`
-  - [ ] raw string `"q"`
-  - [ ] `None`
-  - [ ] arbitrary object, if desired.
+- [x] Test these invalid values return `False`:
+  - [x] `PieceType.KING`
+  - [x] `PieceType.PAWN`
+  - [x] `PieceType.EMPTY`
+  - [x] raw integer `5`
+  - [x] raw string `"q"`
+  - [x] `None`
+  - [x] arbitrary object, if desired.
 
 Example:
 
@@ -258,7 +258,7 @@ def test_is_valid_promotion_piece_rejects_raw_int():
 
 ### 3.3 Run tests
 
-- [ ] Run:
+- [x] Run:
 
   ```bash
   python -m pytest tests -q
@@ -279,7 +279,7 @@ Black pawn -> row 7 only
 
 ### 4.1 Add or reuse a promotion-rank helper
 
-- [ ] In `promotion.py`, add or reuse a helper with this behavior:
+- [x] In `promotion.py`, add or reuse a helper with this behavior:
 
 ```python
 def is_promotion_rank(self, piece: Piece, end_pos: ConstantSquare) -> bool:
@@ -290,15 +290,15 @@ def is_promotion_rank(self, piece: Piece, end_pos: ConstantSquare) -> bool:
     return int(end_pos.row) == 7
 ```
 
-- [ ] If a helper already exists, verify it behaves exactly this way.
+- [x] If a helper already exists, verify it behaves exactly this way.
 
 ### 4.2 Update `is_valid_promotion_choice(...)`
 
-- [ ] Ensure `promotion is None` still returns `True`.
-- [ ] If `promotion is not None`, require:
-  - [ ] valid promotion piece using `is_valid_promotion_piece(...)`;
-  - [ ] moving piece is a pawn;
-  - [ ] destination is the correct color-specific promotion rank using `is_promotion_rank(...)`.
+- [x] Ensure `promotion is None` still returns `True`.
+- [x] If `promotion is not None`, require:
+  - [x] valid promotion piece using `is_valid_promotion_piece(...)`;
+  - [x] moving piece is a pawn;
+  - [x] destination is the correct color-specific promotion rank using `is_promotion_rank(...)`.
 
 Recommended behavior:
 
@@ -317,10 +317,10 @@ def is_valid_promotion_choice(self, piece: Piece, end_pos: ConstantSquare, promo
 
 Add direct validator tests:
 
-- [ ] White pawn on/for row `0` with `PieceType.QUEEN` is valid.
-- [ ] White pawn targeting row `7` with `PieceType.QUEEN` is invalid.
-- [ ] Black pawn on/for row `7` with `PieceType.QUEEN` is valid.
-- [ ] Black pawn targeting row `0` with `PieceType.QUEEN` is invalid.
+- [x] White pawn on/for row `0` with `PieceType.QUEEN` is valid.
+- [x] White pawn targeting row `7` with `PieceType.QUEEN` is invalid.
+- [x] Black pawn on/for row `7` with `PieceType.QUEEN` is valid.
+- [x] Black pawn targeting row `0` with `PieceType.QUEEN` is invalid.
 
 Use algebraic helpers where possible:
 
@@ -336,13 +336,13 @@ assert validator.is_valid_promotion_choice(black_pawn, sq("e8"), PieceType.QUEEN
 
 ### 4.4 Preserve default queen public behavior
 
-- [ ] Confirm existing tests still pass for direct default queen promotion:
+- [x] Confirm existing tests still pass for direct default queen promotion:
 
 ```python
 board.make_move(sq("e7"), sq("e8"), promotion=None)
 ```
 
-- [ ] Confirm valid explicit underpromotion still works:
+- [x] Confirm valid explicit underpromotion still works:
 
 ```python
 board.make_move(sq("e7"), sq("e8"), promotion=PieceType.ROOK)
@@ -354,7 +354,7 @@ board.make_move(sq("e7"), sq("e8"), promotion=PieceType.ROOK)
 
 ### 5.1 Determine usage
 
-- [ ] Run:
+- [x] Run:
 
   ```bash
   grep -R "_get_promotion_piece" -n chess_game tests
@@ -362,27 +362,27 @@ board.make_move(sq("e7"), sq("e8"), promotion=PieceType.ROOK)
 
 ### 5.2 Remove if unused
 
-- [ ] If the only result is the method definition itself, delete the method.
-- [ ] Re-run the test suite.
+- [x] If the only result is the method definition itself, delete the method.
+- [x] Re-run the test suite.
 
 ### 5.3 Repair if used
 
 If there are callers:
 
-- [ ] Do not leave a helper that hardcodes queen-only legal move generation.
-- [ ] Rename or rewrite the helper so its purpose is clear.
-- [ ] If the helper is only for default queen execution, move that logic to promotion execution or validator code where default behavior belongs.
-- [ ] Legal move generation must continue to use `PROMOTION_PIECES` and emit all four choices.
+- [x] Do not leave a helper that hardcodes queen-only legal move generation.
+- [x] Rename or rewrite the helper so its purpose is clear.
+- [x] If the helper is only for default queen execution, move that logic to promotion execution or validator code where default behavior belongs.
+- [x] Legal move generation must continue to use `PROMOTION_PIECES` and emit all four choices.
 
 ### 5.4 Verify no queen-only generation remains
 
-- [ ] Search for suspicious patterns:
+- [x] Search for suspicious patterns:
 
   ```bash
   grep -R "return PieceType.QUEEN" -n chess_game/chess
   ```
 
-- [ ] Any remaining `return PieceType.QUEEN` must be clearly related to default queen promotion during execution, not legal move generation.
+- [x] Any remaining `return PieceType.QUEEN` must be clearly related to default queen promotion during execution, not legal move generation.
 
 ---
 
@@ -392,33 +392,33 @@ This is mostly to ensure the cleanup does not accidentally regress the already-f
 
 ### 6.1 Reuse existing tests if present
 
-- [ ] Locate existing promotion move generation tests.
-- [ ] If they already cover all cases below, do not duplicate unnecessarily.
+- [x] Locate existing promotion move generation tests.
+- [x] If they already cover all cases below, do not duplicate unnecessarily.
 
 ### 6.2 Required behavior to preserve
 
 Ensure tests cover:
 
-- [ ] White quiet promotion generates exactly:
-  - [ ] queen
-  - [ ] rook
-  - [ ] bishop
-  - [ ] knight
+- [x] White quiet promotion generates exactly:
+  - [x] queen
+  - [x] rook
+  - [x] bishop
+  - [x] knight
 
-- [ ] White capture promotion generates exactly the four choices.
-- [ ] Black quiet promotion generates exactly the four choices.
-- [ ] Black capture promotion generates exactly the four choices.
-- [ ] No duplicate identical promotion moves.
+- [x] White capture promotion generates exactly the four choices.
+- [x] Black quiet promotion generates exactly the four choices.
+- [x] Black capture promotion generates exactly the four choices.
+- [x] No duplicate identical promotion moves.
 
 ### 6.3 Run focused tests
 
-- [ ] Run promotion tests, for example:
+- [x] Run promotion tests, for example:
 
   ```bash
   python -m pytest tests/test_promotion.py tests/test_promotion_move_generation.py -q
   ```
 
-- [ ] Adjust command to match actual test file names.
+- [x] Adjust command to match actual test file names.
 
 ---
 
@@ -426,7 +426,7 @@ Ensure tests cover:
 
 ### 7.1 Inspect generated artifacts
 
-- [ ] From repo root, run:
+- [x] From repo root, run:
 
   ```bash
   find . \( -type d -name "__pycache__" -o -type d -name ".pytest_cache" -o -type f -name "*.pyc" \) -print
@@ -434,7 +434,7 @@ Ensure tests cover:
 
 ### 7.2 Remove generated artifacts
 
-- [ ] Remove these from the working tree:
+- [x] Remove these from the working tree:
 
   ```bash
   find . -type d -name "__pycache__" -prune -exec rm -rf {} +
@@ -442,12 +442,12 @@ Ensure tests cover:
   find . -type f -name "*.pyc" -delete
   ```
 
-- [ ] Do not delete source files.
+- [x] Do not delete source files.
 
 ### 7.3 Update `.gitignore`
 
-- [ ] Open `.gitignore`.
-- [ ] Ensure it contains:
+- [x] Open `.gitignore`.
+- [x] Ensure it contains:
 
   ```gitignore
   __pycache__/
@@ -455,17 +455,17 @@ Ensure tests cover:
   .pytest_cache/
   ```
 
-- [ ] Add those entries if missing.
+- [x] Add those entries if missing.
 
 ### 7.4 Verify cleanup
 
-- [ ] Re-run:
+- [x] Re-run:
 
   ```bash
   find . \( -type d -name "__pycache__" -o -type d -name ".pytest_cache" -o -type f -name "*.pyc" \) -print
   ```
 
-- [ ] It should print nothing from the tracked working tree.
+- [x] It should print nothing from the tracked working tree.
 
 ---
 
@@ -473,34 +473,34 @@ Ensure tests cover:
 
 ### 8.1 Run focused promotion tests
 
-- [ ] Run:
+- [x] Run:
 
   ```bash
   python -m pytest tests -q -k promotion
   ```
 
-- [ ] All promotion-related tests must pass.
+- [x] All promotion-related tests must pass.
 
 ### 8.2 Run Board API tests
 
-- [ ] Run:
+- [x] Run:
 
   ```bash
   python -m pytest tests/test_board_api.py -q
   ```
 
-- [ ] All Board API tests must pass.
+- [x] All Board API tests must pass.
 
 ### 8.3 Run full suite
 
-- [ ] Run:
+- [x] Run:
 
   ```bash
   python -m pytest tests -q
   ```
 
-- [ ] Expected result: all tests pass.
-- [ ] Final count should be at least:
+- [x] Expected result: all tests pass.
+- [x] Final count should be at least:
 
   ```text
   273 passed
@@ -510,8 +510,8 @@ Ensure tests cover:
 
 ### 8.4 Search for promotion duplication and cache files
 
-- [ ] Confirm production code uses canonical `PROMOTION_PIECES`.
-- [ ] Confirm no generated cache files remain.
+- [x] Confirm production code uses canonical `PROMOTION_PIECES`.
+- [x] Confirm no generated cache files remain.
 
 ---
 
@@ -519,22 +519,22 @@ Ensure tests cover:
 
 The patch is complete only when all items are true:
 
-- [ ] `PROMOTION_PIECES` exists in one canonical production module.
-- [ ] `get_promotion_options(...)` uses `PROMOTION_PIECES`.
-- [ ] `is_valid_promotion_piece(...)` uses `PROMOTION_PIECES` and rejects raw integers.
-- [ ] `is_valid_promotion_piece(5)` returns `False`.
-- [ ] `is_valid_promotion_piece("q")` returns `False`.
-- [ ] `is_valid_promotion_piece(PieceType.KING)` returns `False`.
-- [ ] `is_valid_promotion_piece(PieceType.PAWN)` returns `False`.
-- [ ] `is_valid_promotion_piece(PieceType.EMPTY)` returns `False`.
-- [ ] `is_valid_promotion_choice(...)` enforces white row `0` and black row `7`.
-- [ ] Legal move generation still emits all four promotion choices for both colors and capture/quiet promotions.
-- [ ] Direct default queen promotion still works.
-- [ ] Explicit rook/bishop/knight underpromotion still works.
-- [ ] Stale queen-only `_get_promotion_piece()` code is removed or made harmless.
-- [ ] `__pycache__/`, `*.pyc`, and `.pytest_cache/` files are removed.
-- [ ] `.gitignore` covers Python/cache artifacts.
-- [ ] Full suite passes.
+- [x] `PROMOTION_PIECES` exists in one canonical production module.
+- [x] `get_promotion_options(...)` uses `PROMOTION_PIECES`.
+- [x] `is_valid_promotion_piece(...)` uses `PROMOTION_PIECES` and rejects raw integers.
+- [x] `is_valid_promotion_piece(5)` returns `False`.
+- [x] `is_valid_promotion_piece("q")` returns `False`.
+- [x] `is_valid_promotion_piece(PieceType.KING)` returns `False`.
+- [x] `is_valid_promotion_piece(PieceType.PAWN)` returns `False`.
+- [x] `is_valid_promotion_piece(PieceType.EMPTY)` returns `False`.
+- [x] `is_valid_promotion_choice(...)` enforces white row `0` and black row `7`.
+- [x] Legal move generation still emits all four promotion choices for both colors and capture/quiet promotions.
+- [x] Direct default queen promotion still works.
+- [x] Explicit rook/bishop/knight underpromotion still works.
+- [x] Stale queen-only `_get_promotion_piece()` code is removed or made harmless.
+- [x] `__pycache__/`, `*.pyc`, and `.pytest_cache/` files are removed.
+- [x] `.gitignore` covers Python/cache artifacts.
+- [x] Full suite passes.
 
 ---
 
