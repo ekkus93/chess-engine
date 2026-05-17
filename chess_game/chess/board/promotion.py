@@ -11,6 +11,13 @@ from chess_game.chess.constants import ConstantSquare
 if TYPE_CHECKING:
     from chess_game.chess.board.board import Board
 
+PROMOTION_PIECES: tuple[PieceType, ...] = (
+    PieceType.QUEEN,
+    PieceType.ROOK,
+    PieceType.BISHOP,
+    PieceType.KNIGHT,
+)
+
 
 class PromotionValidator:
     """Validates pawn promotion moves."""
@@ -41,21 +48,11 @@ class PromotionValidator:
         if piece.kind != PieceType.PAWN:
             return []
 
-        return [
-            PieceType.QUEEN,
-            PieceType.ROOK,
-            PieceType.BISHOP,
-            PieceType.KNIGHT,
-        ]
+        return list(PROMOTION_PIECES)
 
-    def is_valid_promotion_piece(self, piece_type: PieceType) -> bool:
+    def is_valid_promotion_piece(self, piece_type: object) -> bool:
         """Return True if piece_type is a valid promotion target."""
-        return piece_type in [
-            PieceType.QUEEN,
-            PieceType.ROOK,
-            PieceType.BISHOP,
-            PieceType.KNIGHT,
-        ]
+        return isinstance(piece_type, PieceType) and piece_type in PROMOTION_PIECES
 
     def is_valid_promotion_choice(
         self, piece: Piece, end_pos: ConstantSquare, promotion: Optional[PieceType]
@@ -63,21 +60,11 @@ class PromotionValidator:
         """Return True if the promotion choice is valid for this move."""
         if promotion is None:
             return True
+        if not self.is_valid_promotion_piece(promotion):
+            return False
         if piece.kind != PieceType.PAWN:
             return False
-
-        if not isinstance(promotion, PieceType):
-            return False
-
-        if int(end_pos.row) not in {0, 7}:
-            return False
-
-        return promotion in [
-            PieceType.QUEEN,
-            PieceType.ROOK,
-            PieceType.BISHOP,
-            PieceType.KNIGHT,
-        ]
+        return self.is_promotion_rank(piece, end_pos)
 
     def is_promotion_rank(self, piece: Piece, to_square: ConstantSquare) -> bool:
         """Return True if to_square is on the promotion rank for piece's color."""

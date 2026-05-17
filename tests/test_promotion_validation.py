@@ -1,4 +1,4 @@
-"""Promotion input-validation regression tests — Task 4
+"""Promotion input-validation regression tests
 
 Covers:
   - Non-pawn moves with promotion suffix rejected
@@ -7,9 +7,12 @@ Covers:
   - Raw string promotion rejected
   - Invalid PieceType (KING, PAWN, EMPTY) rejected
   - Valid underpromotion still accepted
+  - PromotionValidator.is_valid_promotion_piece hardening
+  - Color-specific promotion rank checks via is_valid_promotion_choice
 """
 
 from chess_game.chess.board.board import Board, create_piece
+from chess_game.chess.board.promotion import PromotionValidator
 from chess_game.chess.types import Color, PieceType
 from tests.helpers import sq, assert_piece, assert_empty
 
@@ -253,3 +256,53 @@ def test_algebraic_pawn_promo_accepted() -> None:
     assert board.make_move(move.start, move.end, promotion=move.promotion) is True
     assert_piece(board, "e8", Color.WHITE, PieceType.QUEEN)
     assert_empty(board, "e7")
+
+
+# ── is_valid_promotion_piece hardening ───────────────────────────────────────
+
+
+class TestPromotionValidatorDirect:
+    """Unit tests for PromotionValidator hardening."""
+
+    def _validator(self) -> PromotionValidator:
+        return PromotionValidator(Board())
+
+    def test_valid_promotion_piece_queen(self) -> None:
+        v = self._validator()
+        assert v.is_valid_promotion_piece(PieceType.QUEEN) is True
+
+    def test_valid_promotion_piece_rook(self) -> None:
+        v = self._validator()
+        assert v.is_valid_promotion_piece(PieceType.ROOK) is True
+
+    def test_valid_promotion_piece_bishop(self) -> None:
+        v = self._validator()
+        assert v.is_valid_promotion_piece(PieceType.BISHOP) is True
+
+    def test_valid_promotion_piece_knight(self) -> None:
+        v = self._validator()
+        assert v.is_valid_promotion_piece(PieceType.KNIGHT) is True
+
+    def test_reject_king_promotion(self) -> None:
+        v = self._validator()
+        assert v.is_valid_promotion_piece(PieceType.KING) is False
+
+    def test_reject_pawn_promotion(self) -> None:
+        v = self._validator()
+        assert v.is_valid_promotion_piece(PieceType.PAWN) is False
+
+    def test_reject_empty_promotion(self) -> None:
+        v = self._validator()
+        assert v.is_valid_promotion_piece(PieceType.EMPTY) is False
+
+    def test_reject_raw_int_promotion(self) -> None:
+        v = self._validator()
+        assert v.is_valid_promotion_piece(5) is False  # type: ignore[arg-type]
+
+    def test_reject_raw_string_promotion(self) -> None:
+        v = self._validator()
+        assert v.is_valid_promotion_piece("q") is False  # type: ignore[arg-type]
+
+    def test_reject_none_promotion(self) -> None:
+        v = self._validator()
+        assert v.is_valid_promotion_piece(None) is False  # type: ignore[arg-type]

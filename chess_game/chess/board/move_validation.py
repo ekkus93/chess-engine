@@ -10,6 +10,7 @@ from chess_game.chess.board.attack_utils import piece_attacks_square
 from chess_game.chess.board.castling import CastlingValidator
 from chess_game.chess.board.en_passant import EnPassantValidator
 from chess_game.chess.board.path_validator import PathValidator
+from chess_game.chess.board.promotion import PROMOTION_PIECES
 from chess_game.chess.pieces.piece_movers import PieceMovers
 from chess_game.chess.constants import (
     get_row_constant,
@@ -213,12 +214,7 @@ class MoveValidator:
             if self.is_valid_move(from_square, to_square):
                 if piece.kind == PieceType.PAWN:
                     if self._is_promotion_dest(piece, to_square):
-                        for pt in (
-                            PieceType.QUEEN,
-                            PieceType.ROOK,
-                            PieceType.BISHOP,
-                            PieceType.KNIGHT,
-                        ):
+                        for pt in PROMOTION_PIECES:
                             moves.append((from_square, to_square, pt))
                     else:
                         moves.append((from_square, to_square, None))
