@@ -531,20 +531,44 @@ class Board:
         # Rook captured on its starting square
         _clear_captured_rook_castling_right(self.castling_rights, end_pos)
 
-    # ---- display ----
+  # ---- display ----
 
     def display(self) -> None:
-        """Display the board to console."""
-        print("  a b c d e f g h")
+        """Display the board to console in a clear ASCII format."""
+        # Header
+        print("    a   b   c   d   e   f   g   h")
+        print("  +---+---+---+---+---+---+---+---+")
+
         for row_index, row in enumerate(self.board):
             rank = 8 - row_index
-            symbols = []
+            line_parts = []
             for piece in row:
                 if piece is None:
-                    symbols.append(".")
-                elif piece.color == Color.WHITE:
-                    symbols.append(piece.kind.name.upper())
+                    line_parts.append("   ")
                 else:
-                    symbols.append(piece.kind.name.lower())
-            print(f"{rank}  {''.join(symbols)}")
-        print(f"{' ' * 10}{self.turn.name}")
+                    kind_name = piece.kind.name
+                    if piece.color == Color.WHITE:
+                        ch = {
+                            "KING": "K",
+                            "QUEEN": "Q",
+                            "ROOK": "R",
+                            "BISHOP": "B",
+                            "KNIGHT": "N",
+                            "PAWN": "P",
+                        }.get(kind_name, "?")
+                    else:
+                        ch = {
+                            "KING": "k",
+                            "QUEEN": "q",
+                            "ROOK": "r",
+                            "BISHOP": "b",
+                            "KNIGHT": "n",
+                            "PAWN": "p",
+                        }.get(kind_name, "?")
+                    line_parts.append(f" {ch} ")
+            print(f"{rank} |{''.join(line_parts)}")
+            print("  +---+---+---+---+---+---+---+---+")
+
+        # Footer with turn
+        turn_label = self.turn.name.upper()
+        print(f"  Turn: {turn_label}")
