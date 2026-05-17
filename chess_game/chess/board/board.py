@@ -541,12 +541,12 @@ class Board:
 
         for row_index, row in enumerate(self.board):
             rank = 8 - row_index
-            line_parts = []
+            cells = []
             for piece in row:
                 if piece is None:
-                    line_parts.append("   ")
+                    cells.append("   ")
                 else:
-                    kind_name = piece.kind.name
+                    kind = piece.kind.name
                     if piece.color == Color.WHITE:
                         ch = {
                             "KING": "K",
@@ -555,7 +555,7 @@ class Board:
                             "BISHOP": "B",
                             "KNIGHT": "N",
                             "PAWN": "P",
-                        }.get(kind_name, "?")
+                        }.get(kind, "?")
                     else:
                         ch = {
                             "KING": "k",
@@ -564,9 +564,9 @@ class Board:
                             "BISHOP": "b",
                             "KNIGHT": "n",
                             "PAWN": "p",
-                        }.get(kind_name, "?")
-                    line_parts.append(f" {ch} ")
-            print(f"{rank} |{''.join(line_parts)}")
+                        }.get(kind, "?")
+                    cells.append(f" {ch} ")
+            print(f"{rank} |{'|'.join(cells)}")
             print("  +---+---+---+---+---+---+---+---+")
 
         # Footer with turn

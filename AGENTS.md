@@ -1,69 +1,110 @@
 # AGENTS.md
 
-## Build, Lint, and Test Commands
+## Purpose
 
-### Running Tests
-- Run all tests: `python -m pytest tests/ -v`
-- Run a single test file: `python -m pytest tests/test_board.py -v`
-- Run a specific test function: `python -m pytest tests/test_board.py::test_rook_move -v`
-- Run tests with coverage: `python -m pytest tests/ --cov=chess_game`
+This repository is a correct, test-driven chess rules engine with a small CLI.
+All changes must preserve correctness, consistency, and test coverage.
 
-### Linting and Formatting
-- Lint with pylint: `pylint chess_game/`
-- Format with black: `black chess_game/`
-- Type checking with mypy: `mypy chess_game/`
-- Run all checks: `./check.sh` (if exists)
+Primary design document: `docs/THE_PLAN.md`. When in doubt, follow that file.
 
-### Project Structure
-The project follows Python package structure with:
-- Source code in `chess_game/` directory
-- Tests in `tests/` directory
-- Entry point in `chess_game/main.py`
+## Key Design Rules
 
-## Code Style Guidelines
+- Single source of truth:
+  - All move legality is enforced in one place (the Board’s API).
+  - No duplicate rules in main.py or elsewhere.
+- No direct board mutation from UI:
+  - main.py must never mutate board, turn, castling rights, or en_passant directly.
+  - All changes must go through Board’s official apply-move interface.
+- Separate pseudo-legal from legal:
+  - Pseudo-legal: geometry and piece-specific rules.
+  - Legal: additionally, must not leave the moving side’s king in check.
+- Encode piece color:
+  - Every square holds (color, piece_type), never a bare string like "Pawn".
 
-### Imports
-- Use absolute imports: `from chess_game.chess.board import Board`
-- Group imports in order: standard library, third-party, local
-- Avoid wildcard imports (`from module import *`)
+## Coordinate Convention
 
-### Formatting
-- Use Black code formatter (default settings)
-- Maximum line length: 88 characters
-- Use 4 spaces for indentation
-- Add spaces around operators and after commas
-- Use snake_case for functions and variables
-- Use PascalCase for classes
+Must be respected everywhere:
 
-### Type Hints
-- Use type annotations for all function parameters and return values
-- Import `List`, `Tuple`, `Optional` from `typing` module
-- Example: `def make_move(self, start: Tuple[int, int], end: Tuple[int, int]) -> bool:`
+- row 0 = rank 8
+- row 7 = rank 1
+- col 0 = file a, col 7 = file h
+- White pawns move toward smaller row indices.
+- Black pawns move toward larger row indices.
 
-### Naming Conventions
-- Classes: PascalCase (Board, ChessEngine)
-- Functions and variables: snake_case (create_board, make_move)
-- Constants: UPPER_CASE (MAX_DEPTH, BOARD_SIZE)
+Reference: `THE_PLAN.md` and `docs/coordinate_system.md`.
 
-### Error Handling
-- Use descriptive error messages
-- Validate input parameters early
-- Handle file operations with try/except blocks
-- Follow Python idioms for error handling
+## Project Structure
 
-### Documentation
-- Add docstrings for all public functions and classes
-- Use Google or NumPy style docstrings
-- Document function parameters and return values
+- `chess_game/`
+  - `chess/`
+    - `types.py`, `color.py`, `coords.py`, `constants.py`, `move.py`
+    - `ai.py`, `evaluation.py`
+    - `board/`
+      - `board.py` (top-level interface)
+      - `move_execution.py`, `move_validation.py`
+      - `game_state.py`, `castling.py`, `en_passant.py`
+      - `promotion.py`, `attack_utils.py`, `path_validator.py`, `piece_validation.py`
+    - `pieces/`
+      - `piece_movers.py` (movement rules per piece type)
+  - `main.py` (CLI; no direct board mutation)
+- `tests/`
+  - 227 tests; must continue to pass.
+- `docs/`
+  - `THE_PLAN.md` (authoritative for behavior/architecture)
+  - `coordinate_system.md`
 
-### Testing
-- All functions should have unit tests
-- Test edge cases and invalid inputs
-- Test both success and failure conditions
-- Use pytest framework with fixtures when appropriate
+## Build, Test, Lint
 
-### Code Structure
-- Keep functions short and focused
-- Avoid global variables
-- Use classes to organize related functionality
-- Follow single responsibility principle
+- Run all tests:
+  - `python -m pytest tests/ -q`
+- Verbose:
+  - `python -m pytest tests/ -v`
+- Coverage:
+  - `python -m pytest tests/ --cov=chess_game`
+- Lint (if used):
+  - `pylint chess_game/`
+- Format:
+  - `black chess_game/`
+- Type check:
+  - `mypy chess_game/`
+- All changes must keep existing tests passing (unless intentionally updating them).
+
+## Coding Guidelines
+
+- Imports:
+  - Use absolute imports: `from chess_game.chess.board import Board`
+  - Group: stdlib, third-party, local.
+- Naming:
+  - Classes: PascalCase
+  - Functions/variables: snake_case
+  - Constants: UPPER_CASE
+- Types:
+  - Use explicit type hints.
+  - Prefer clarity over cleverness.
+- Structure:
+  - Keep functions short and focused.
+  - No global mutable state.
+  - No duplicate rules across files.
+
+## Testing Rules
+
+- Must test real chess positions, not artificial nonsense.
+- Must cover:
+  - Normal moves, edge cases, invalid inputs
+  - Special rules: castling, en passant, promotion, check, checkmate, stalemate
+- Never allow “passing” tests based on impossible positions.
+- If you change rules or behavior:
+  - Add or adjust tests that explicitly capture the new behavior.
+
+## Constraints for Changes
+
+When modifying code:
+
+- Do not change coordinate conventions unless:
+  - You update THE_PLAN.md, docs, tests, and all code consistently.
+- Do not introduce:
+  - Direct board mutation in main.py
+  - Multiple conflicting move-validation paths
+- Always ensure:
+  - `pytest tests/ -q` still passes.
+  - The CLI (`python -m chess_game.main`) starts and accepts moves.

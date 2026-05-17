@@ -24,6 +24,28 @@ def _move_to_algebraic(start, end, promotion):
     return base
 
 
+def _position_key(board: Board) -> str:
+    """Generate a simple key from board state and side to move."""
+    pieces = ""
+    for row in board.board:
+        for piece in row:
+            if piece is None:
+                pieces += "."
+            else:
+                c = "W" if piece.color == Color.WHITE else "B"
+                kind = {
+                    "KING": "K",
+                    "QUEEN": "Q",
+                    "ROOK": "R",
+                    "BISHOP": "B",
+                    "KNIGHT": "N",
+                    "PAWN": "P",
+                }.get(piece.kind.name, "?")
+                pieces += c + kind
+    turn = "W" if board.turn == Color.WHITE else "B"
+    return pieces + "|" + turn
+
+
 def run_self_play(depth: int = 3, max_moves: int = 100):
     """Run a self-play game with the AI playing both sides."""
     board = Board()
@@ -33,13 +55,27 @@ def run_self_play(depth: int = 3, max_moves: int = 100):
     print("=" * 40)
     print()
 
-    for move_number in range(1, max_moves + 1):
-        # Check if game is over
+    move_number = 1
+    position_counts = {}
+
+    while move_number <= max_moves:
+        key = _position_key(board)
+        position_counts[key] = position_counts.get(key, 0) + 1
+
+        # Threefold repetition draw
+        if position_counts[key] >= 3:
+            print(f"\nDraw on move {move_number} (threefold repetition).")
+            board.display()
+            return
+
+        # Checkmate
         if is_checkmate(board):
             winner = "Black" if board.turn == Color.WHITE else "White"
             print(f"\nCheckmate on move {move_number}. {winner} wins.")
             board.display()
             return
+
+        # Stalemate
         if is_stalemate(board):
             print(f"\nStalemate on move {move_number}. The game is a draw.")
             board.display()
@@ -53,19 +89,21 @@ def run_self_play(depth: int = 3, max_moves: int = 100):
             board.display()
             return
 
+        # Record the side that is about to move
+        side = "White" if board.turn == Color.WHITE else "Black"
+
         # Make move on the real board
         board.make_move(best.start, best.end, promotion=best.promotion)
 
         # Print move in algebraic notation
         algebraic = _move_to_algebraic(best.start, best.end, best.promotion)
-        side = "White" if board.turn == Color.WHITE else "Black"
-
         print(f"Move {move_number}: {side} plays {algebraic}")
         board.display()
         print()
 
+        move_number += 1
     else:
-        print("Reached maximum move limit. Game stopped.")
+        print("\nReached maximum move limit. Game stopped.")
         board.display()
 
 
