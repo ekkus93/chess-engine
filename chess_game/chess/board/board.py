@@ -542,12 +542,9 @@ class Board:
 # ---- display ----
 
     def display(self) -> None:
-        """Display the board with move list on the right."""
-        last_moves = self._get_last_moves()
-
-        # Header
-        print("    a   b   c   d   e   f   g   h")
-        print("  +---+---+---+---+---+---+---+---+")
+        """Display the board with last moves on the right."""
+        # 1) Build board lines (rank, pieces, separators)
+        board_lines = []
 
         for row_index, row in enumerate(self.board):
             rank = 8 - row_index
@@ -577,22 +574,14 @@ class Board:
                         }.get(kind, "?")
                     cells.append(f" {ch} ")
 
-            # Row with rank and move note (last 10 moves aligned)
-            move_note = last_moves[row_index] if row_index < len(last_moves) else ""
-            print(f"{rank} |{'|'.join(cells)}| {move_note}")
-            print("  +---+---+---+---+---+---+---+---+")
+            rank_line = f"{rank} |{'|'.join(cells)}|"
+            board_lines.append(rank_line)
 
-        # Footer with turn
-        turn_label = self.turn.name.upper()
-        print(f"  Turn: {turn_label}")
-
-    def _get_last_moves(self) -> list[str]:
-        """Return last 10 moves as algebraic notation aligned to board rows."""
+        # 2) Build move list (last 10 moves = last 5 pairs)
         moves = self._move_history
         last_ten = moves[-10:] if len(moves) > 10 else moves
 
-        # Build lines: each line shows "N. move1 move2"
-        lines: list[str] = []
+        move_lines: list[str] = []
         i = 0
         while i < len(last_ten):
             start, end, promo = last_ten[i]
@@ -602,13 +591,26 @@ class Board:
             if i + 1 < len(last_ten):
                 s2, e2, p2 = last_ten[i + 1]
                 next_str = self._to_alg(s2, e2, p2)
-                lines.append(f"{move_num}. {move_str} {next_str}")
+                move_lines.append(f"{move_num}. {move_str} {next_str}")
                 i += 2
             else:
-                lines.append(f"{move_num}. {move_str}")
+                move_lines.append(f"{move_num}. {move_str}")
                 i += 1
 
-        return lines
+        # 3) Merge board lines and move list
+        # Print header
+        print("    a   b   c   d   e   f   g   h")
+        print("  +---+---+---+---+---+---+---+---+")
+
+        for row_index, rank_line in enumerate(board_lines):
+            # move_lines[row_index] if available
+            move_note = move_lines[row_index] if row_index < len(move_lines) else ""
+            print(rank_line + (f" {move_note}" if move_note else ""))
+            print("  +---+---+---+---+---+---+---+---+")
+
+        # Footer with turn
+        turn_label = self.turn.name.upper()
+        print(f"  Turn: {turn_label}")
 
     def _to_alg(self, start, end, promotion) -> str:
         """Format a single move as algebraic notation."""
