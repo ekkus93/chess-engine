@@ -27,6 +27,7 @@ from chess_game.chess.board.game_state import (
     is_checkmate as _gs_is_checkmate,
     is_stalemate as _gs_is_stalemate,
 )
+from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.constants import (
     ROW_1,
     ROW_2,
@@ -95,6 +96,7 @@ class Board:
         self.en_passant_target: Optional[ConstantSquare] = None
         self.castling_rights = CastlingRights()
         self._validators: BoardValidators
+        self._move_history: List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]] = []
 
         self.init_validators()
 
@@ -398,6 +400,7 @@ class Board:
             black_kingside=self.castling_rights.black_kingside,
             black_queenside=self.castling_rights.black_queenside,
         )
+        cloned._move_history = list(self._move_history)
         cloned.init_validators()
         return cloned
 
@@ -495,6 +498,11 @@ class Board:
         if not success:
             return False
 
+        # Record move in history
+        self._move_history.append(
+            (start_pos, end_pos, promotion)
+        )
+
         # Update castling rights
         self._update_castling_rights(start_pos, end_pos, start_piece)
 
@@ -531,10 +539,12 @@ class Board:
         # Rook captured on its starting square
         _clear_captured_rook_castling_right(self.castling_rights, end_pos)
 
-  # ---- display ----
+# ---- display ----
 
     def display(self) -> None:
-        """Display the board to console in a clear ASCII format."""
+        """Display the board with move list on the right."""
+        last_moves = self._get_last_moves()
+
         # Header
         print("    a   b   c   d   e   f   g   h")
         print("  +---+---+---+---+---+---+---+---+")
@@ -566,9 +576,44 @@ class Board:
                             "PAWN": "p",
                         }.get(kind, "?")
                     cells.append(f" {ch} ")
-            print(f"{rank} |{'|'.join(cells)}")
+
+            # Row with rank and move note (last 10 moves aligned)
+            move_note = last_moves[row_index] if row_index < len(last_moves) else ""
+            print(f"{rank} |{'|'.join(cells)}| {move_note}")
             print("  +---+---+---+---+---+---+---+---+")
 
         # Footer with turn
         turn_label = self.turn.name.upper()
         print(f"  Turn: {turn_label}")
+
+    def _get_last_moves(self) -> list[str]:
+        """Return last 10 moves as algebraic notation aligned to board rows."""
+        moves = self._move_history
+        last_ten = moves[-10:] if len(moves) > 10 else moves
+
+        # Build lines: each line shows "N. move1 move2"
+        lines: list[str] = []
+        i = 0
+        while i < len(last_ten):
+            start, end, promo = last_ten[i]
+            move_num = i // 2 + 1
+            move_str = self._to_alg(start, end, promo)
+
+            if i + 1 < len(last_ten):
+                s2, e2, p2 = last_ten[i + 1]
+                next_str = self._to_alg(s2, e2, p2)
+                lines.append(f"{move_num}. {move_str} {next_str}")
+                i += 2
+            else:
+                lines.append(f"{move_num}. {move_str}")
+                i += 1
+
+        return lines
+
+    def _to_alg(self, start, end, promotion) -> str:
+        """Format a single move as algebraic notation."""
+        base = index_to_algebraic(start) + index_to_algebraic(end)
+        if promotion is not None:
+            name = promotion.name.lower()
+            base += name[0] if name else "q"
+        return base
