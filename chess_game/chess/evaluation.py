@@ -24,27 +24,27 @@ MATERIAL_VALUES: dict[PieceType, int] = {
 # Encourage central control and advance pawns toward promotion
 # Black pawns (starting at row 6 moving down) should get positive values on white's side of board
 PAWN_TABLE: list[list[int]] = [
-    [-10, -10, -10, -10, -10, -10, -10, -10],  # rank 8 (row 0) - white starting
-    [-2, -2, -2, -2, -2, -2, -2, -2],  # rank 7 (row 1)
-    [2, 3, 1, 5, 4, 5, 1, 3],  # rank 6 (row 2)
-    [3, 5, 2, 0, 3, 3, 0, 3],  # rank 5 (row 3)
-    [3, 5, 2, 3, 5, 2, 3, 4],  # rank 4 (row 4) - central bias
-    [1, 2, 3, 2, 3, 2, 1, 0],  # rank 3 (row 5)
-    [-2, 0, 0, 0, 0, 0, 0, -2],  # rank 2 (row 6)
-    [-10, -10, -10, -10, -10, -10, -10, -10],  # rank 1 (row 7) - black starting
+    [-8, -8, -8, -8, -8, -8, -8, -8],  # rank 8 (row 0) - white starting
+    [-1, -1, -1, -1, -1, -1, -1, -1],  # rank 7 (row 1)
+    [1, 2, 1, 3, 2, 3, 1, 2],  # rank 6 (row 2)
+    [2, 3, 1, 2, 2, 2, 1, 2],  # rank 5 (row 3)
+    [2, 3, 1, 2, 3, 1, 2, 2],  # rank 4 (row 4) - central bias
+    [1, 1, 2, 1, 2, 1, 1, 0],  # rank 3 (row 5)
+    [-1, 0, 0, 0, 0, 0, 0, -1],  # rank 2 (row 6)
+    [-8, -8, -8, -8, -8, -8, -8, -8],  # rank 1 (row 7) - black starting
 ]
 
 
 # Knights: favor open positions, avoid corners
 KNIGHT_TABLE: list[list[int]] = [
-    [-5, -4, -3, -2, -2, -3, -4, -5],  # rank 8 (row 0)
-    [-4, -2, 1, 2, 2, 1, -2, -4],  # rank 7 (row 1)
-    [-3, 2, 5, 6, 6, 5, 2, -3],  # rank 6 (row 2) - central control
-    [-2, 3, 6, 8, 8, 6, 3, -2],  # rank 5 (row 3)
-    [-1, 4, 7, 9, 9, 7, 4, -1],  # rank 4 (row 4) - optimal central squares
-    [2, 4, 7, 8, 8, 7, 4, 2],  # rank 3 (row 5)
-    [-3, 1, 4, 5, 5, 4, 1, -3],  # rank 2 (row 6)
-    [-5, -4, -3, -2, -2, -3, -4, -5],  # rank 1 (row 7)
+    [-3, -2, -1, 0, 0, -1, -2, -3],  # rank 8 (row 0)
+    [-2, 0, 1, 1, 1, 1, 0, -2],  # rank 7 (row 1)
+    [-1, 1, 3, 3, 3, 3, 1, -1],  # rank 6 (row 2) - central control
+    [0, 1, 4, 4, 4, 4, 1, 0],  # rank 5 (row 3)
+    [0, 2, 4, 4, 4, 4, 2, 0],  # rank 4 (row 4) - optimal central squares
+    [0, 1, 3, 4, 4, 3, 1, 0],  # rank 3 (row 5)
+    [-2, 0, 2, 3, 3, 2, 0, -2],  # rank 2 (row 6)
+    [-3, -2, -1, 0, 0, -1, -2, -3],  # rank 1 (row 7)
 ]
 
 

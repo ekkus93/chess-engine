@@ -319,7 +319,7 @@ def _order_moves(
 
         # Bonus for promotion
         promoted_to = end.row in (ROW_1, ROW_8) and board.get_piece(start) is not None
-        promotion_value = 50 if promoted_to else 0
+        promotion_value = 25 if promoted_to else 0
 
         # Combine factors into ordering score
         order_score = capture_gain + promotion_value
@@ -335,11 +335,11 @@ def _order_moves(
 def _captured_piece_value(piece_type: PieceType) -> int:
     """Get capture value for material count."""
     values = {
-        PieceType.PAWN: 10,
-        PieceType.KNIGHT: 32,
-        PieceType.BISHOP: 33,
-        PieceType.ROOK: 50,
-        PieceType.QUEEN: 90,
+        PieceType.PAWN: 5,
+        PieceType.KNIGHT: 18,
+        PieceType.BISHOP: 20,
+        PieceType.ROOK: 35,
+        PieceType.QUEEN: 60,
     }
     return values.get(piece_type, 0)
 
