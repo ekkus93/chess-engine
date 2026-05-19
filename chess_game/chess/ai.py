@@ -424,9 +424,8 @@ def _store_tt_cache(
 ) -> None:
     """Store a result in the transposition table with correct flag."""
     tt = params.transposition_table
-    if not tt:
+    if tt is None:
         return
-
     key = _position_key(board) + f":d{params.depth}"
 
     # Determine flag based on original alpha/beta
