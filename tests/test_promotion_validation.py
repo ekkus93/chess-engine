@@ -14,7 +14,6 @@ Covers:
 from chess_game.chess.board.board import Board, create_piece
 from chess_game.chess.board.promotion import PromotionValidator
 from chess_game.chess.types import Color, PieceType
-from chess_game.chess.constants import ConstantSquare
 from tests.helpers import sq, assert_piece, assert_empty
 
 

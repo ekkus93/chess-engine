@@ -11,6 +11,9 @@ from chess_game.chess.board.game_state import is_checkmate, is_stalemate
 from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.types import Color
 
+# Increase recursion limit for deep search
+sys.setrecursionlimit(3000)
+
 
 def _move_to_algebraic(start, end, promotion):
     """Format a move as algebraic notation like e2e4 or e7e8q."""

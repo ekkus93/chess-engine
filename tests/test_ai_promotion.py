@@ -13,7 +13,7 @@ from chess_game.chess.ai import (
 )
 from chess_game.chess.board.board import Board, create_piece
 from chess_game.chess.types import Color, PieceType
-from tests.helpers import sq, assert_piece, assert_empty
+from tests.helpers import sq
 
 
 def _setup_promo_ai_board() -> Board:

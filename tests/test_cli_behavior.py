@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from unittest.mock import patch, MagicMock
-from chess_game.chess.constants import ROW_2, ROW_4, COL_E, ROW_8, COL_A, COL_H
+from chess_game.chess.constants import ROW_2, ROW_4, COL_E
 from chess_game.chess.move import parse_move_notation
 from chess_game.chess.types import Color, PieceType
 import pytest
@@ -154,7 +154,7 @@ class TestGameLoop:
         board_mock.turn = Color.WHITE
 
         # Simulate one move then checkmate detected.
-        with patch("chess_game.main.Board") as MockBoard, \
+        with patch("chess_game.main.Board"), \
              patch("builtins.input", side_effect=["e2e4"]), \
              patch("chess_game.main.is_checkmate", return_value=True):
             # make_move returns True once, then _game_over_message will end loop.

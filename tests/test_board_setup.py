@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from chess_game.chess.board import Board, create_piece
+from chess_game.chess.board import Board
 from chess_game.chess.move import parse_move_notation
 from chess_game.chess.types import Color, PieceType
 from tests.helpers import sq

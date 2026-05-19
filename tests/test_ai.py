@@ -1,6 +1,5 @@
 """Tests for AI evaluation symmetry and correctness."""
 
-import pytest
 
 from chess_game.chess.ai import evaluate
 from chess_game.chess.board import Board

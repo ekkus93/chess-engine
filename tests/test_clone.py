@@ -115,7 +115,6 @@ def test_clone_used_in_king_safety_simulation() -> None:
     # Set up a position where e2e4 is legal
     e2_piece = board.get_piece(sq("e2"))
     assert e2_piece is not None
-    original_square = e2_piece._square
 
     # Make the move (internally uses clone for king-safety check)
     result = board.make_move(

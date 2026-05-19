@@ -580,12 +580,13 @@ class Board:
         # 2) Build move list (last 10 moves = last 5 pairs)
         moves = self._move_history
         last_ten = moves[-10:] if len(moves) > 10 else moves
+        first_index = len(moves) - len(last_ten)
 
         move_lines: list[str] = []
         i = 0
         while i < len(last_ten):
             start, end, promo = last_ten[i]
-            move_num = i // 2 + 1
+            move_num = (first_index + i) // 2 + 1
             move_str = self._to_alg(start, end, promo)
 
             if i + 1 < len(last_ten):

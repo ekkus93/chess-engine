@@ -424,7 +424,7 @@ class TestBoardApiMutationSafety:
         initial_ep = board.en_passant_target
 
         # Try invalid promotion on non-pawn move
-        before_knight = board.get_piece(sq("g1"))
+        board.get_piece(sq("g1"))
 
         ok = board.make_move(
             sq("g1"),
