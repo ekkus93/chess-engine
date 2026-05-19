@@ -28,6 +28,10 @@ from chess_game.chess.constants import (
     get_col_constant,
 )
 
+LegalMoveKey = tuple[int, LegalMove]
+
+LegalMoveKey = tuple[int, LegalMove]
+
 
 @dataclass
 class MoveOrderingKey:
@@ -62,7 +66,7 @@ class MinimaxParams:
     alpha: int
     beta: int
     is_maximizing: bool
-    transposition_table: Optional[defaultdict[str, tuple[int, LegalMove]]] = None
+    transposition_table: Optional[dict[str, LegalMoveKey]] = None
 
 
 def evaluate(board: Board) -> int:
@@ -161,9 +165,10 @@ def _check_tt_cache(
     """Check transposition table for a cached result."""
     if params.transposition_table is None or params.depth >= 20:
         return None
-    key = _fen_key(board)
-    cached = params.transposition_table.get(key)
-    return cached if cached is not None else None
+    key = _fen_key(board) + f":d{params.depth}"
+    if key not in params.transposition_table:
+        return None
+    return params.transposition_table[key]
 
 
 def _store_tt_cache(
@@ -175,7 +180,7 @@ def _store_tt_cache(
     """Store a result in the transposition table."""
     if params.transposition_table is None:
         return
-    key = _fen_key(board)
+    key = _fen_key(board) + f":d{params.depth}"
     params.transposition_table[key] = (score, move)
 
 
@@ -216,16 +221,16 @@ def _search_move_loop(
             if child_score > best_score:
                 best_score = child_score
                 best_move = LegalMove(move.start, move.end, move.promotion)
-                alpha = max(alpha, best_score)
-                if alpha >= beta:
-                    break
+            alpha = max(alpha, child_score)
+            if alpha >= beta:
+                break
         else:
             if child_score < best_score:
                 best_score = child_score
                 best_move = LegalMove(move.start, move.end, move.promotion)
-                beta = min(beta, best_score)
-                if beta <= alpha:
-                    break
+            beta = min(beta, child_score)
+            if beta <= alpha:
+                break
 
     return (best_score, best_move)
 
@@ -374,7 +379,7 @@ def get_best_move(board: Board, depth: int) -> Optional[LegalMove]:
         Best legal move, or None if no moves exist.
     """
     # Create a transposition table to cache positions
-    tt: defaultdict[str, tuple[int, LegalMove]] = defaultdict(lambda: (0, None))
+    tt: dict[str, LegalMoveKey] = {}
 
     params = MinimaxParams(
         depth=depth,

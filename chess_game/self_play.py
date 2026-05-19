@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import argparse
+import sys
+
 from chess_game.chess.ai import get_best_move
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_checkmate, is_stalemate
@@ -46,14 +49,28 @@ def _position_key(board: Board) -> str:
     return pieces + "|" + turn
 
 
-def run_self_play(depth: int = 3, max_moves: int = 100):
-    """Run a self-play game with the AI playing both sides."""
+def run_self_play(
+    depth_white: int = 2,
+    depth_black: int = 2,
+    max_moves: int = 1000,
+    verbose: bool = True,
+):
+    """Run a self-play game with the AI playing both sides.
+
+    Args:
+        depth_white: Search depth for White.
+        depth_black: Search depth for Black.
+        max_moves: Maximum moves before stopping.
+        verbose: If True, print moves and board; else silent.
+    """
     board = Board()
 
-    print("=" * 40)
-    print("Self-play game starting")
-    print("=" * 40)
-    print()
+    if verbose:
+        print("=" * 40)
+        print("Self-play game starting")
+        print(f"White depth: {depth_white}, Black depth: {depth_black}")
+        print("=" * 40)
+        print()
 
     move_number = 1
     position_counts = {}
@@ -64,29 +81,36 @@ def run_self_play(depth: int = 3, max_moves: int = 100):
 
         # Threefold repetition draw
         if position_counts[key] >= 3:
-            print(f"\nDraw on move {move_number} (threefold repetition).")
-            board.display()
+            if verbose:
+                print(f"\nDraw on move {move_number} (threefold repetition).")
+                board.display()
             return
 
         # Checkmate
         if is_checkmate(board):
             winner = "Black" if board.turn == Color.WHITE else "White"
-            print(f"\nCheckmate on move {move_number}. {winner} wins.")
-            board.display()
+            if verbose:
+                print(f"\nCheckmate on move {move_number}. {winner} wins.")
+                board.display()
             return
 
         # Stalemate
         if is_stalemate(board):
-            print(f"\nStalemate on move {move_number}. The game is a draw.")
-            board.display()
+            if verbose:
+                print(f"\nStalemate on move {move_number}. The game is a draw.")
+                board.display()
             return
 
+        # Use side-specific depth
+        current_depth = depth_white if board.turn == Color.WHITE else depth_black
+
         # Get best move from AI
-        best = get_best_move(board, depth=depth)
+        best = get_best_move(board, depth=current_depth)
 
         if best is None:
-            print(f"\nGame ended on move {move_number} (no legal moves).")
-            board.display()
+            if verbose:
+                print(f"\nGame ended on move {move_number} (no legal moves).")
+                board.display()
             return
 
         # Record the side that is about to move
@@ -97,19 +121,53 @@ def run_self_play(depth: int = 3, max_moves: int = 100):
 
         # Print move in algebraic notation
         algebraic = _move_to_algebraic(best.start, best.end, best.promotion)
-        print(f"Move {move_number}: {side} plays {algebraic}")
-        board.display()
-        print()
+        if verbose:
+            print(f"Move {move_number}: {side} plays {algebraic}")
+            board.display()
+            print()
 
         move_number += 1
     else:
-        print("\nReached maximum move limit. Game stopped.")
-        board.display()
+        if verbose:
+            print("\nReached maximum move limit. Game stopped.")
+            board.display()
 
 
 def main():
-    """Entry point for self-play."""
-    run_self_play(depth=3)
+    """Entry point for self-play with optional depth arguments."""
+    parser = argparse.ArgumentParser(
+        description="Run self-play games with optional separate depths for White and Black.",
+    )
+    parser.add_argument(
+        "--white-depth",
+        type=int,
+        default=2,
+        help="Search depth for White (default: 2, max recommended: 4)",
+    )
+    parser.add_argument(
+        "--black-depth",
+        type=int,
+        default=2,
+        help="Search depth for Black (default: 2, max recommended: 4)",
+    )
+    parser.add_argument(
+        "--max-moves",
+        type=int,
+        default=1000,
+        help="Maximum moves before stopping (default: 1000)",
+    )
+    args = parser.parse_args()
+
+    # Enforce reasonable limits to avoid freezing
+    white_depth = min(args.white_depth, 4)
+    black_depth = min(args.black_depth, 4)
+
+    run_self_play(
+        depth_white=white_depth,
+        depth_black=black_depth,
+        max_moves=args.max_moves,
+        verbose=True,
+    )
 
 
 if __name__ == "__main__":
