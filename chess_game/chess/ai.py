@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from chess_game.chess.board import Board
+from chess_game.chess.board.game_state import is_in_check as _gs_is_in_check
 from chess_game.chess.constants import ConstantSquare
 from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.evaluation import (
@@ -257,7 +258,7 @@ def minimax(
     legal_moves = get_legal_moves(board)
     if not legal_moves:
         # If in check -> checkmate; else stalemate
-        in_check = board.is_in_check()
+        in_check = _gs_is_in_check(board, board.turn)
         if in_check:
             # Checkmate: extreme value depending on side to move
             val = -100_000_000 if params.is_maximizing else 100_000_000
