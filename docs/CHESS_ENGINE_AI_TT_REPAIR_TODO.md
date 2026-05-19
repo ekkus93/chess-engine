@@ -29,39 +29,39 @@ This is a focused AI/search correctness pass. Do not broaden this into evaluator
 
 ## 0.1 Run baseline tests
 
-- [ ] From repo root, run:
+- [X] From repo root, run:
 
   ```bash
   python -m pytest tests -q
   ```
 
-- [ ] Expected latest reviewed baseline:
+- [X] Expected latest reviewed baseline:
 
   ```text
   314 passed
   ```
 
-- [ ] If there are failures before starting, stop and inspect them first.
+- [X] If there are failures before starting, stop and inspect them first.
 
 ## 0.2 Create a focused branch
 
-- [ ] Create a branch such as:
+- [X] Create a branch such as:
 
   ```bash
   git checkout -b fix/ai-minimax-alpha-beta-tt
   ```
 
-- [ ] If the project workflow is currently direct-on-master, keep the patch small and clearly scoped.
+- [X] If the project workflow is currently direct-on-master, keep the patch small and clearly scoped.
 
 ## 0.3 Add handoff docs
 
-- [ ] Copy the spec into:
+- [X] Copy the spec into:
 
   ```text
   docs/CHESS_ENGINE_AI_TT_REPAIR_SPEC.md
   ```
 
-- [ ] Copy this TODO into:
+- [X] Copy this TODO into:
 
   ```text
   docs/CHESS_ENGINE_AI_TT_REPAIR_TODO.md
@@ -73,41 +73,41 @@ This is a focused AI/search correctness pass. Do not broaden this into evaluator
 
 ## 1.1 Read current AI code
 
-- [ ] Inspect:
+- [X] Inspect:
 
   ```text
   chess_game/chess/ai.py
   ```
 
-- [ ] Locate:
-  - [ ] `get_best_move`
-  - [ ] `minimax`
-  - [ ] `_order_moves`
-  - [ ] `MoveOrderingKey`
-  - [ ] `_fen_key` or equivalent TT key generator
-  - [ ] transposition table usage
-  - [ ] any duplicate/dead aliases such as duplicate `LegalMoveKey`
+- [X] Locate:
+  - [X] `get_best_move`
+  - [X] `minimax`
+  - [X] `_order_moves`
+  - [X] `MoveOrderingKey`
+  - [X] `_fen_key` or equivalent TT key generator
+  - [X] transposition table usage
+  - [X] any duplicate/dead aliases such as duplicate `LegalMoveKey`
 
 ## 1.2 Read self-play code
 
-- [ ] Inspect:
+- [X] Inspect:
 
   ```text
   chess_game/self_play.py
   ```
 
-- [ ] Locate:
-  - [ ] depth argument handling,
-  - [ ] `_move_to_algebraic` or equivalent,
-  - [ ] promotion suffix formatting.
+- [X] Locate:
+  - [X] depth argument handling,
+  - [X] `_move_to_algebraic` or equivalent,
+  - [X] promotion suffix formatting.
 
 ## 1.3 Confirm current known issues
 
-- [ ] Confirm `minimax()` checks `depth == 0` before terminal/no-legal-move handling.
-- [ ] Confirm leaf scores are clamped to alpha/beta.
-- [ ] Confirm TT entries lack exact/lower/upper bound flags.
-- [ ] Confirm any move matching by `(start, end)` only.
-- [ ] Confirm self-play promotion formatting does not use `PieceType` keys directly.
+- [X] Confirm `minimax()` checks `depth == 0` before terminal/no-legal-move handling.
+- [X] Confirm leaf scores are clamped to alpha/beta.
+- [X] Confirm TT entries lack exact/lower/upper bound flags.
+- [X] Confirm any move matching by `(start, end)` only.
+- [X] Confirm self-play promotion formatting does not use `PieceType` keys directly.
 
 ---
 
@@ -129,7 +129,7 @@ assert_empty(...)
 
 ## 2.1 Add move string helper
 
-- [ ] Add a local helper if not already available:
+- [X] Add a local helper if not already available:
 
   ```python
   from chess_game.chess.coords import index_to_algebraic
@@ -140,11 +140,11 @@ assert_empty(...)
       return index_to_algebraic(start) + index_to_algebraic(end) + suffix
   ```
 
-- [ ] Adjust to the repo's actual move representation if needed.
+- [X] Adjust to the repo's actual move representation if needed.
 
 ## 2.2 Mate-in-one at depth 1
 
-- [ ] Construct this position:
+- [X] Construct this position:
 
   ```text
   White king: g6
@@ -164,13 +164,13 @@ assert_empty(...)
   board.turn = Color.WHITE
   ```
 
-- [ ] Call:
+- [X] Call:
 
   ```python
   move = get_best_move(board, depth=1)
   ```
 
-- [ ] Assert the move is one of the actual checkmating moves.
+- [X] Assert the move is one of the actual checkmating moves.
 
   Acceptable expected moves include the set discovered from current legal move generation if they truly leave Black checkmated. Likely examples:
 
@@ -181,7 +181,7 @@ assert_empty(...)
   f7e8
   ```
 
-- [ ] After applying the chosen move to a clone, assert:
+- [X] After applying the chosen move to a clone, assert:
 
   ```python
   clone.is_checkmate(Color.BLACK) is True
@@ -191,12 +191,12 @@ assert_empty(...)
 
 ## 2.3 Black mate-in-one at depth 1
 
-- [ ] Add a symmetric or equivalent black-to-move mate-in-one position.
-- [ ] Assert `get_best_move(board, depth=1)` returns a move that checkmates White.
+- [X] Add a symmetric or equivalent black-to-move mate-in-one position.
+- [X] Assert `get_best_move(board, depth=1)` returns a move that checkmates White.
 
 ## 2.4 Ensure old bad move is not selected
 
-- [ ] For the white mate-in-one position, assert the AI does **not** choose a non-mating queen move such as `f7f4` if that remains legal.
+- [X] For the white mate-in-one position, assert the AI does **not** choose a non-mating queen move such as `f7f4` if that remains legal.
 
 ---
 
@@ -204,7 +204,7 @@ assert_empty(...)
 
 ## 3.1 Reorder minimax checks
 
-- [ ] In `minimax()`, move terminal no-legal-move detection before the `depth == 0` leaf cutoff.
+- [X] In `minimax()`, move terminal no-legal-move detection before the `depth == 0` leaf cutoff.
 
 Required structure:
 
@@ -220,11 +220,11 @@ if depth == 0:
     return evaluate(board), None
 ```
 
-- [ ] Use the repo's actual helper names for check detection. If only `_is_in_check` exists, use the current project style consistently.
+- [X] Use the repo's actual helper names for check detection. If only `_is_in_check` exists, use the current project style consistently.
 
 ## 3.2 Add mate score constants
 
-- [ ] Add:
+- [X] Add:
 
   ```python
   MATE_SCORE = 100_000
@@ -242,22 +242,22 @@ if board.turn == Color.WHITE:
 return MATE_SCORE - ply_from_root, None
 ```
 
-- [ ] If adding `ply_from_root` is too invasive, use plain `MATE_SCORE`/`-MATE_SCORE` for this pass and document the simplification.
+- [X] If adding `ply_from_root` is too invasive, use plain `MATE_SCORE`/`-MATE_SCORE` for this pass and document the simplification.
 
 ## 3.3 Preserve evaluation perspective
 
-- [ ] Ensure positive score still means good for White.
-- [ ] Ensure White maximizes and Black minimizes.
+- [X] Ensure positive score still means good for White.
+- [X] Ensure White maximizes and Black minimizes.
 
 ## 3.4 Run tests
 
-- [ ] Run:
+- [X] Run:
 
   ```bash
   python -m pytest tests/test_ai_search.py -q
   ```
 
-- [ ] Run full suite:
+- [X] Run full suite:
 
   ```bash
   python -m pytest tests -q
@@ -269,7 +269,7 @@ return MATE_SCORE - ply_from_root, None
 
 ## 4.1 Remove leaf score clamping
 
-- [ ] Find code similar to:
+- [X] Find code similar to:
 
   ```python
   return (
@@ -280,7 +280,7 @@ return MATE_SCORE - ply_from_root, None
   )
   ```
 
-- [ ] Replace it with:
+- [X] Replace it with:
 
   ```python
   return evaluate(board), None
@@ -290,10 +290,10 @@ return MATE_SCORE - ply_from_root, None
 
 ## 4.2 Add regression test for raw leaf score
 
-- [ ] Add a test that calls `minimax()` directly if existing tests already inspect it.
-- [ ] Construct a board with a known nonzero evaluation.
-- [ ] Call `minimax()` at depth 0 with a narrow alpha/beta window that does not contain the raw score.
-- [ ] Assert returned score equals `evaluate(board)`, not alpha or beta.
+- [X] Add a test that calls `minimax()` directly if existing tests already inspect it.
+- [X] Construct a board with a known nonzero evaluation.
+- [X] Call `minimax()` at depth 0 with a narrow alpha/beta window that does not contain the raw score.
+- [X] Assert returned score equals `evaluate(board)`, not alpha or beta.
 
 Example intent:
 
@@ -303,7 +303,7 @@ score, _ = minimax(board, depth=0, alpha=-1, beta=1, ...)
 assert score == raw
 ```
 
-- [ ] Adjust for the current `minimax()` signature.
+- [X] Adjust for the current `minimax()` signature.
 
 ---
 
@@ -311,7 +311,7 @@ assert score == raw
 
 ## 5.1 Add TT flag enum
 
-- [ ] In `chess_game/chess/ai.py` or a small AI support module, add:
+- [X] In `chess_game/chess/ai.py` or a small AI support module, add:
 
   ```python
   from enum import Enum
@@ -324,7 +324,7 @@ assert score == raw
 
 ## 5.2 Add TT entry dataclass
 
-- [ ] Add:
+- [X] Add:
 
   ```python
   @dataclass(frozen=True)
@@ -335,22 +335,22 @@ assert score == raw
       flag: TTFlag
   ```
 
-- [ ] If Python version requires `Optional[LegalMove]`, use that style.
+- [X] If Python version requires `Optional[LegalMove]`, use that style.
 
 ## 5.3 Define TT table type alias
 
-- [ ] Add a type alias such as:
+- [X] Add a type alias such as:
 
   ```python
   TranspositionTable = dict[str, TTEntry]
   ```
 
-- [ ] Use the actual key type if not string.
+- [X] Use the actual key type if not string.
 
 ## 5.4 Preserve promotion in stored moves
 
-- [ ] Ensure `best_move` is the full legal move object/tuple including promotion.
-- [ ] Do not store only `(start, end)`.
+- [X] Ensure `best_move` is the full legal move object/tuple including promotion.
+- [X] Do not store only `(start, end)`.
 
 ---
 
@@ -358,26 +358,26 @@ assert score == raw
 
 ## 6.1 Inspect current key
 
-- [ ] Inspect `_fen_key(board)` or equivalent.
-- [ ] Confirm it includes:
-  - [ ] board placement,
-  - [ ] side to move,
-  - [ ] castling rights,
-  - [ ] en passant target.
+- [X] Inspect `_fen_key(board)` or equivalent.
+- [X] Confirm it includes:
+  - [X] board placement,
+  - [X] side to move,
+  - [X] castling rights,
+  - [X] en passant target.
 
 ## 6.2 Add key tests
 
-- [ ] Add tests proving TT keys differ when only side to move differs.
-- [ ] Add tests proving TT keys differ when castling rights differ.
-- [ ] Add tests proving TT keys differ when en passant target differs.
-- [ ] Add tests proving TT keys differ when board placement differs.
+- [X] Add tests proving TT keys differ when only side to move differs.
+- [X] Add tests proving TT keys differ when castling rights differ.
+- [X] Add tests proving TT keys differ when en passant target differs.
+- [X] Add tests proving TT keys differ when board placement differs.
 
 ## 6.3 Rename if needed
 
-- [ ] If `_fen_key()` is not a valid full FEN string, either:
-  - [ ] keep the private name if existing tests expect it, or
-  - [ ] rename to `_position_key()` and update callers.
-- [ ] Do not spend time on full FEN compliance unless already trivial.
+- [X] If `_fen_key()` is not a valid full FEN string, either:
+  - [X] keep the private name if existing tests expect it, or
+  - [X] rename to `_position_key()` and update callers.
+- [X] Do not spend time on full FEN compliance unless already trivial.
 
 ---
 
@@ -385,18 +385,18 @@ assert score == raw
 
 ## 7.1 Save alpha/beta originals
 
-- [ ] At each `minimax()` node before TT lookup/search:
+- [X] At each `minimax()` node before TT lookup/search:
 
   ```python
   alpha_orig = alpha
   beta_orig = beta
   ```
 
-- [ ] Adapt to current parameter object if alpha/beta live in `SearchParams`.
+- [X] Adapt to current parameter object if alpha/beta live in `SearchParams`.
 
 ## 7.2 Lookup only sufficiently deep entries
 
-- [ ] On lookup:
+- [X] On lookup:
 
   ```python
   entry = transposition_table.get(key)
@@ -404,11 +404,11 @@ assert score == raw
       ...
   ```
 
-- [ ] Ignore shallower entries for direct reuse.
+- [X] Ignore shallower entries for direct reuse.
 
 ## 7.3 Apply TT flag semantics
 
-- [ ] Implement:
+- [X] Implement:
 
   ```python
   if entry.flag == TTFlag.EXACT:
@@ -423,15 +423,15 @@ assert score == raw
       return entry.score, entry.best_move
   ```
 
-- [ ] Ensure LOWERBOUND/UPPERBOUND entries do not get returned as exact unless they cause cutoff.
+- [X] Ensure LOWERBOUND/UPPERBOUND entries do not get returned as exact unless they cause cutoff.
 
 ## 7.4 Add TT lookup tests
 
-- [ ] Add focused tests for:
-  - [ ] exact entry reuse,
-  - [ ] lower-bound entry raising alpha,
-  - [ ] upper-bound entry lowering beta,
-  - [ ] shallow entry ignored when depth is insufficient.
+- [X] Add focused tests for:
+  - [X] exact entry reuse,
+  - [X] lower-bound entry raising alpha,
+  - [X] upper-bound entry lowering beta,
+  - [X] shallow entry ignored when depth is insufficient.
 
 Testing private internals is acceptable if there is no clean public hook.
 
@@ -441,7 +441,7 @@ Testing private internals is acceptable if there is no clean public hook.
 
 ## 8.1 Determine flag after search
 
-- [ ] After a node is searched, compute flag using original alpha/beta:
+- [X] After a node is searched, compute flag using original alpha/beta:
 
   ```python
   if best_score <= alpha_orig:
@@ -452,11 +452,11 @@ Testing private internals is acceptable if there is no clean public hook.
       flag = TTFlag.EXACT
   ```
 
-- [ ] Use `beta_orig`, not a mutated beta.
+- [X] Use `beta_orig`, not a mutated beta.
 
 ## 8.2 Store entry
 
-- [ ] Store:
+- [X] Store:
 
   ```python
   TTEntry(
@@ -469,22 +469,22 @@ Testing private internals is acceptable if there is no clean public hook.
 
 ## 8.3 Replacement policy
 
-- [ ] Only overwrite existing entry if:
-  - [ ] no entry exists, or
-  - [ ] new depth is greater than or equal to old depth.
+- [X] Only overwrite existing entry if:
+  - [X] no entry exists, or
+  - [X] new depth is greater than or equal to old depth.
 
 ## 8.4 Do not store invalid moves
 
-- [ ] If `best_move` is not `None`, it must be a legal move from the current position and include promotion identity.
-- [ ] Never store a `(start, end)` pair without promotion.
+- [X] If `best_move` is not `None`, it must be a legal move from the current position and include promotion identity.
+- [X] Never store a `(start, end)` pair without promotion.
 
 ## 8.5 Add TT store tests
 
-- [ ] Add tests proving:
-  - [ ] exact entries are stored with `TTFlag.EXACT`,
-  - [ ] cutoff entries are stored as lower/upper bound as appropriate,
-  - [ ] deeper entries replace shallower entries,
-  - [ ] shallower entries do not replace deeper entries.
+- [X] Add tests proving:
+  - [X] exact entries are stored with `TTFlag.EXACT`,
+  - [X] cutoff entries are stored as lower/upper bound as appropriate,
+  - [X] deeper entries replace shallower entries,
+  - [X] shallower entries do not replace deeper entries.
 
 ---
 
@@ -492,21 +492,21 @@ Testing private internals is acceptable if there is no clean public hook.
 
 ## 9.1 Inspect move ordering key
 
-- [ ] Confirm `MoveOrderingKey` includes:
+- [X] Confirm `MoveOrderingKey` includes:
 
   ```python
   promotion: PieceType | None
   ```
 
-- [ ] If not, add it.
+- [X] If not, add it.
 
 ## 9.2 Ordered move creation
 
-- [ ] When creating ordered move keys, include `move.promotion`.
+- [X] When creating ordered move keys, include `move.promotion`.
 
 ## 9.3 Ordered move matching
 
-- [ ] When matching an ordered key back to a legal move, match all three:
+- [X] When matching an ordered key back to a legal move, match all three:
 
   ```python
   m.start == move_key.start
@@ -516,19 +516,19 @@ Testing private internals is acceptable if there is no clean public hook.
 
 ## 9.4 TT best move preservation
 
-- [ ] Ensure TT stores the full legal move with promotion.
-- [ ] Ensure TT returns the same promotion value.
+- [X] Ensure TT stores the full legal move with promotion.
+- [X] Ensure TT returns the same promotion value.
 
 ## 9.5 Add promotion identity tests
 
-- [ ] Construct a position with a pawn promotion where all four promotions are legal.
-- [ ] Assert `_order_moves()` returns distinct entries for:
-  - [ ] queen promotion,
-  - [ ] rook promotion,
-  - [ ] bishop promotion,
-  - [ ] knight promotion.
+- [X] Construct a position with a pawn promotion where all four promotions are legal.
+- [X] Assert `_order_moves()` returns distinct entries for:
+  - [X] queen promotion,
+  - [X] rook promotion,
+  - [X] bishop promotion,
+  - [X] knight promotion.
 
-- [ ] Add a TT test where the stored/returned best move is an underpromotion, such as rook or knight, and verify promotion identity is preserved.
+- [X] Add a TT test where the stored/returned best move is an underpromotion, such as rook or knight, and verify promotion identity is preserved.
 
 ---
 
@@ -536,7 +536,7 @@ Testing private internals is acceptable if there is no clean public hook.
 
 ## 10.1 Fix promotion bonus logic
 
-- [ ] Replace any logic that treats rank-1/rank-8 moves as promotion.
+- [X] Replace any logic that treats rank-1/rank-8 moves as promotion.
 
 Bad pattern:
 
@@ -544,7 +544,7 @@ Bad pattern:
 promoted_to = end.row in (ROW_1, ROW_8) and board.get_piece(start) is not None
 ```
 
-- [ ] Use:
+- [X] Use:
 
   ```python
   if move.promotion is not None:
@@ -553,7 +553,7 @@ promoted_to = end.row in (ROW_1, ROW_8) and board.get_piece(start) is not None
 
 ## 10.2 Prefer higher-value promotions
 
-- [ ] Use a small ordering bonus by promotion piece:
+- [X] Use a small ordering bonus by promotion piece:
 
   ```python
   PROMOTION_ORDER_BONUS = {
@@ -564,17 +564,17 @@ promoted_to = end.row in (ROW_1, ROW_8) and board.get_piece(start) is not None
   }
   ```
 
-- [ ] This is move ordering only, not board evaluation tuning.
+- [X] This is move ordering only, not board evaluation tuning.
 
 ## 10.3 Remove duplicate/dead code
 
-- [ ] Remove duplicate aliases such as repeated `LegalMoveKey`.
-- [ ] Remove unused `_promotion_bonus()` if it has no callers.
-- [ ] Remove dead `if not scored_moves:` branch if truly unreachable.
+- [X] Remove duplicate aliases such as repeated `LegalMoveKey`.
+- [X] Remove unused `_promotion_bonus()` if it has no callers.
+- [X] Remove dead `if not scored_moves:` branch if truly unreachable.
 
 ## 10.4 Run tests
 
-- [ ] Run AI tests and full suite.
+- [X] Run AI tests and full suite.
 
 ---
 
@@ -582,7 +582,7 @@ promoted_to = end.row in (ROW_1, ROW_8) and board.get_piece(start) is not None
 
 ## 11.1 Add `get_best_move` depth guard
 
-- [ ] In `get_best_move(board, depth)`, add:
+- [X] In `get_best_move(board, depth)`, add:
 
   ```python
   if depth < 1:
@@ -591,18 +591,18 @@ promoted_to = end.row in (ROW_1, ROW_8) and board.get_piece(start) is not None
 
 ## 11.2 Add tests
 
-- [ ] Assert `get_best_move(board, depth=0)` raises `ValueError`.
-- [ ] Assert `get_best_move(board, depth=-1)` raises `ValueError`.
+- [X] Assert `get_best_move(board, depth=0)` raises `ValueError`.
+- [X] Assert `get_best_move(board, depth=-1)` raises `ValueError`.
 
 ## 11.3 Update self-play depth handling
 
-- [ ] In `self_play.py`, reject invalid depth values before search starts.
-- [ ] If using argparse, enforce `depth >= 1` after parsing and raise/exit with a clear message.
+- [X] In `self_play.py`, reject invalid depth values before search starts.
+- [X] If using argparse, enforce `depth >= 1` after parsing and raise/exit with a clear message.
 
 ## 11.4 Add self-play depth test if practical
 
-- [ ] If self-play has testable argument parsing, add a test for invalid depth.
-- [ ] If not practical, document manual verification.
+- [X] If self-play has testable argument parsing, add a test for invalid depth.
+- [X] If not practical, document manual verification.
 
 ---
 
@@ -610,14 +610,14 @@ promoted_to = end.row in (ROW_1, ROW_8) and board.get_piece(start) is not None
 
 ## 12.1 Replace string-based promotion suffix logic
 
-- [ ] Find code similar to:
+- [X] Find code similar to:
 
   ```python
   promo_key = str(promotion).lower()
   base += promo_map.get(promo_key, "q")
   ```
 
-- [ ] Replace with:
+- [X] Replace with:
 
   ```python
   PROMOTION_SUFFIXES = {
@@ -633,11 +633,11 @@ promoted_to = end.row in (ROW_1, ROW_8) and board.get_piece(start) is not None
 
 ## 12.2 Add tests
 
-- [ ] Test `_move_to_algebraic((sq("e7"), sq("e8"), PieceType.QUEEN)) == "e7e8q"`.
-- [ ] Test rook promotion suffix `"r"`.
-- [ ] Test bishop promotion suffix `"b"`.
-- [ ] Test knight promotion suffix `"n"`.
-- [ ] Test no suffix when promotion is `None`.
+- [X] Test `_move_to_algebraic((sq("e7"), sq("e8"), PieceType.QUEEN)) == "e7e8q"`.
+- [X] Test rook promotion suffix `"r"`.
+- [X] Test bishop promotion suffix `"b"`.
+- [X] Test knight promotion suffix `"n"`.
+- [X] Test no suffix when promotion is `None`.
 
 ---
 
@@ -645,7 +645,7 @@ promoted_to = end.row in (ROW_1, ROW_8) and board.get_piece(start) is not None
 
 ## 13.1 Stalemate returns no move
 
-- [ ] Construct known stalemate:
+- [X] Construct known stalemate:
 
   ```text
   Black king: h8
@@ -654,7 +654,7 @@ promoted_to = end.row in (ROW_1, ROW_8) and board.get_piece(start) is not None
   Black to move
   ```
 
-- [ ] Assert:
+- [X] Assert:
 
   ```python
   get_best_move(board, depth=1) is None
@@ -662,7 +662,7 @@ promoted_to = end.row in (ROW_1, ROW_8) and board.get_piece(start) is not None
 
 ## 13.2 Checkmate side to move returns no move
 
-- [ ] Construct known checkmate:
+- [X] Construct known checkmate:
 
   ```text
   Black king: h8
@@ -671,7 +671,7 @@ promoted_to = end.row in (ROW_1, ROW_8) and board.get_piece(start) is not None
   Black to move
   ```
 
-- [ ] Assert:
+- [X] Assert:
 
   ```python
   get_best_move(board, depth=1) is None
@@ -679,10 +679,10 @@ promoted_to = end.row in (ROW_1, ROW_8) and board.get_piece(start) is not None
 
 ## 13.3 AI does not mutate original board
 
-- [ ] Construct a normal legal position.
-- [ ] Save board representation/key before search.
-- [ ] Call `get_best_move(board, depth=2)`.
-- [ ] Assert board representation/key is unchanged.
+- [X] Construct a normal legal position.
+- [X] Save board representation/key before search.
+- [X] Call `get_best_move(board, depth=2)`.
+- [X] Assert board representation/key is unchanged.
 
 ---
 
@@ -711,7 +711,7 @@ assert clone.is_checkmate(Color.BLACK)
 print("mate-in-one smoke ok")
 ```
 
-- [ ] Run this manually or convert it into a test.
+- [X] Run this manually or convert it into a test.
 
 ---
 
@@ -719,13 +719,13 @@ print("mate-in-one smoke ok")
 
 ## 15.1 Focused tests
 
-- [ ] Run:
+- [X] Run:
 
   ```bash
   python -m pytest tests/test_ai*.py -q
   ```
 
-- [ ] Also run self-play tests if present:
+- [X] Also run self-play tests if present:
 
   ```bash
   python -m pytest tests/test_self_play*.py -q
@@ -733,23 +733,23 @@ print("mate-in-one smoke ok")
 
 ## 15.2 Full suite
 
-- [ ] Run:
+- [X] Run:
 
   ```bash
   python -m pytest tests -q
   ```
 
-- [ ] Required result: all tests pass.
+- [X] Required result: all tests pass.
 
 ## 15.3 Manual checks
 
-- [ ] Confirm mate-in-one is found at depth 1.
-- [ ] Confirm leaf score is raw evaluation.
-- [ ] Confirm TT entries include flags.
-- [ ] Confirm TT lookup respects exact/lower/upper semantics.
-- [ ] Confirm promotion identity is preserved in move ordering and TT.
-- [ ] Confirm invalid depth raises `ValueError`.
-- [ ] Confirm self-play underpromotion formatting is correct.
+- [X] Confirm mate-in-one is found at depth 1.
+- [X] Confirm leaf score is raw evaluation.
+- [X] Confirm TT entries include flags.
+- [X] Confirm TT lookup respects exact/lower/upper semantics.
+- [X] Confirm promotion identity is preserved in move ordering and TT.
+- [X] Confirm invalid depth raises `ValueError`.
+- [X] Confirm self-play underpromotion formatting is correct.
 
 ---
 
