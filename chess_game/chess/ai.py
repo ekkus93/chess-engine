@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 from typing import Optional
 
 import sys
@@ -33,6 +34,8 @@ sys.setrecursionlimit(50000)
 
 LegalMoveKey = tuple[int, LegalMove]
 
+MATE_SCORE = 100_000
+
 
 @dataclass
 class MoveOrderingKey:
@@ -59,17 +62,21 @@ class MoveOrderingKey:
         return self.score < other.score
 
 
-# Transposition table entry with TSCP-style bound.
-# Bound types:
-# 0 = exact: value is accurate within [alpha, beta]
-# 1 = lower: value is a lower bound (actual >= stored)
-# 2 = upper: value is an upper bound (actual <= stored)
-@dataclass
+from enum import Enum
+
+
+class TTFlag(Enum):
+    EXACT = "exact"
+    LOWERBOUND = "lowerbound"
+    UPPERBOUND = "upperbound"
+
+
+@dataclass(frozen=True)
 class TTEntry:
-    score: int
-    move: LegalMove | None
     depth: int
-    bound: int  # 0 = exact, 1 = lower, 2 = upper
+    score: int
+    best_move: LegalMove | None
+    flag: TTFlag
 
 
 @dataclass
@@ -380,7 +387,7 @@ def _check_tt_cache(
     if not tt:
         return None
 
-    key = _fen_key(board) + f":d{params.depth}"
+    key = _position_key(board) + f":d{params.depth}"
     if key not in tt:
         return None
 
@@ -394,18 +401,15 @@ def _check_tt_cache(
     beta = params.beta
 
     # TSCP-style lookup:
-    # 0 = exact: valid between alpha and beta
-    # 1 = lower: only usable if score >= alpha
-    # 2 = upper: only usable if score <= beta
-    bound = entry.bound
-    if bound == 0:
-        return (score, entry.move) if entry.move is not None else (score, None)
-    if bound == 1:
-        if score >= alpha:
-            return (score, entry.move) if entry.move is not None else (score, None)
-    elif bound == 2:
-        if score <= beta:
-            return (score, entry.move) if entry.move is not None else (score, None)
+    if entry.flag == TTFlag.EXACT:
+        return (score, entry.best_move)
+    if entry.flag == TTFlag.LOWERBOUND:
+        alpha = max(alpha, score)
+    elif entry.flag == TTFlag.UPPERBOUND:
+        beta = min(beta, score)
+
+    if alpha >= beta:
+        return (score, entry.best_move)
 
     return None
 
@@ -415,29 +419,57 @@ def _store_tt_cache(
     params: MinimaxParams,
     score: int,
     move: LegalMove | None,
-    bound: int,  # 0 = exact, 1 = lower, 2 = upper
+    alpha_orig: int,
+    beta_orig: int,
 ) -> None:
-    """Store a result in the transposition table."""
+    """Store a result in the transposition table with correct flag."""
     tt = params.transposition_table
     if not tt:
         return
 
-    key = _fen_key(board) + f":d{params.depth}"
-    tt[key] = TTEntry(score=score, move=move, depth=params.depth, bound=bound)
+    key = _position_key(board) + f":d{params.depth}"
+
+    # Determine flag based on original alpha/beta
+    if score <= alpha_orig:
+        flag = TTFlag.UPPERBOUND
+    elif score >= beta_orig:
+        flag = TTFlag.LOWERBOUND
+    else:
+        flag = TTFlag.EXACT
+
+    entry = TTEntry(
+        depth=params.depth,
+        score=score,
+        best_move=move,
+        flag=flag,
+    )
+
+    # Only overwrite if no entry or new depth >= existing depth
+    existing = tt.get(key)
+    if existing is None or params.depth >= existing.depth:
+        tt[key] = entry
 
 
 def shallow_clone_board(board: Board) -> Board:
     """Create a shallow clone of board for search (no deepcopy).
 
-    This copies the board array (row lists) but reuses Piece instances.
-    Fast enough for alpha-beta search at depth 5.
+    This copies the board array (row lists) and creates new Piece instances
+    to avoid mutating shared state. Fast enough for alpha-beta search at depth 5.
     """
     import copy
     from chess_game.chess.board.board import Board
 
     new_board = Board.__new__(Board)
-    # Shallow copy the board array (rows list of lists)
-    new_board.board = [row[:] for row in board.board]
+
+    # Deep copy the board array with new Piece instances
+    new_board.board = [
+        [
+            copy.deepcopy(p) if p is not None else None
+            for p in row
+        ]
+        for row in board.board
+    ]
+
     new_board.turn = board.turn
     new_board.en_passant_target = board.en_passant_target
     new_board.castling_rights = copy.copy(board.castling_rights)
@@ -456,6 +488,10 @@ def _search_move_loop(
     best_score: int = -100_000_000 if params.is_maximizing else 100_000_000
     best_move: LegalMove | None = None
     alpha, beta = params.alpha, params.beta
+
+    # Save original alpha/beta for TT flag calculation.
+    alpha_orig = alpha
+    beta_orig = beta
 
     for move_key in scored_moves:
         move = next(
@@ -498,6 +534,9 @@ def _search_move_loop(
             if beta <= alpha:
                 break
 
+    # Store in TT using original alpha/beta.
+    _store_tt_cache(board, params, best_score, best_move, alpha_orig, beta_orig)
+
     return (best_score, best_move)
 
 
@@ -520,37 +559,38 @@ def minimax(
     if cached is not None:
         return cached
 
-   # Base case: reached maximum depth
+    # Generate legal moves FIRST (terminal handling before depth cutoff).
+    legal_moves = get_legal_moves(board)
+
+    # No legal moves: checkmate or stalemate.
+    if not legal_moves:
+        in_check = _gs_is_in_check(board, board.turn)
+        if in_check:
+            # Checkmate: large score depending on whose king is mated.
+            # board.turn is the side to move (the checkmated side).
+            if board.turn == Color.WHITE:
+                # White is checkmated => great for Black.
+                return (-MATE_SCORE, None)
+            else:
+                # Black is checkmated => great for White.
+                return (MATE_SCORE, None)
+        else:
+            # Stalemate: draw.
+            return (0, None)
+
+    # Base case: reached maximum depth => raw evaluation.
     if params.depth == 0:
         score = evaluate(board)
         return (score, None)
 
-    # Check for game-over states (no legal moves)
-    legal_moves = get_legal_moves(board)
-    if not legal_moves:
-        # If in check -> checkmate; else stalemate
-        in_check = _gs_is_in_check(board, board.turn)
-        if in_check:
-            # Checkmate: extreme value depending on side to move
-            val = -100_000_000 if params.is_maximizing else 100_000_000
-            return (val, None)
-        else:
-            # Stalemate: draw
-            return (0, None)
-
-    # Sort moves for better pruning: captures first, then promotions
+    # Sort moves for better pruning: captures first, then promotions.
     scored_moves = _order_moves(board, legal_moves)
-
-    if not scored_moves:
-        score = evaluate(board)
-        _store_tt_cache(board, params, score, None, 0)
-        return (score, None)
 
     best_score, best_move = _search_move_loop(board, legal_moves, scored_moves, params)
 
-    # Store in transposition table only if we found a move
+    # Store in transposition table only if we found a move.
     if best_move is not None:
-        _store_tt_cache(board, params, best_score, best_move, 0)
+        _store_tt_cache(board, params, best_score, best_move, params.alpha, params.beta)
 
     return (best_score, best_move)
 
@@ -563,9 +603,8 @@ def _order_moves(
 
     Move ordering strategy:
     1. Captures (especially high-value piece captures)
-    2. Promotions
-    3. Pawn pushes to empty squares
-    4. Normal moves
+    2. Promotions (use promotion.promotion, not rank-based heuristic)
+    3. Normal moves
 
     Args:
         board: The current board state
@@ -574,6 +613,13 @@ def _order_moves(
     Returns:
         Sorted list of MoveOrderingKey objects with ConstantSquare start/end.
     """
+    PROMOTION_ORDER_BONUS = {
+        PieceType.QUEEN: 900,
+        PieceType.ROOK: 500,
+        PieceType.BISHOP: 330,
+        PieceType.KNIGHT: 320,
+    }
+
     scored_moves: list[MoveOrderingKey] = []
 
     for move in legal_moves:
@@ -587,9 +633,10 @@ def _order_moves(
             else 0
         )
 
-        # Bonus for promotion
-        promoted_to = end.row in (ROW_1, ROW_8) and board.get_piece(start) is not None
-        promotion_value = 25 if promoted_to else 0
+        # Promotion bonus based on move.promotion (not rank-based)
+        promotion_value = 0
+        if promotion is not None:
+            promotion_value = PROMOTION_ORDER_BONUS.get(promotion, 0)
 
         # Combine factors into ordering score
         order_score = capture_gain + promotion_value
@@ -642,9 +689,14 @@ def get_best_move(board: Board, depth: int) -> Optional[LegalMove]:
 
     Returns:
         Best legal move, or None if no moves exist.
+
+    Raises:
+        ValueError if depth < 1.
     """
+    if depth < 1:
+        raise ValueError("depth must be >= 1")
+
     # Use iterative deepening to gradually increase depth
-    # This helps alpha-beta pruning and uses the TT effectively.
     tt: dict[str, TTEntry] = {}
 
     best_move: LegalMove | None = None
@@ -661,9 +713,6 @@ def get_best_move(board: Board, depth: int) -> Optional[LegalMove]:
         if not legal_moves:
             return None
 
-        # Limit the number of moves considered at each level to speed up the search
-        legal_moves = legal_moves[:1]
-
         # Run minimax with alpha-beta pruning
         _, move = minimax(board, params)
         best_move = move
@@ -671,8 +720,8 @@ def get_best_move(board: Board, depth: int) -> Optional[LegalMove]:
     return best_move
 
 
-def _fen_key(board: Board) -> str:
-    """Generate a lightweight FEN-like key for transposition table.
+def _position_key(board: Board) -> str:
+    """Generate a position key for transposition table.
 
     Includes board placement, side to move, castling rights, and en passant target
     to ensure distinct positions produce distinct keys.
@@ -714,3 +763,8 @@ def _fen_key(board: Board) -> str:
         ep = "-"
 
     return "".join(pieces) + "|" + turn_char + "|" + castling + "|" + ep
+
+
+# Compatibility wrapper (no-op) if external callers expect _fen_key.
+def _fen_key(board: Board) -> str:
+    return _position_key(board)

@@ -12,21 +12,24 @@ from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.types import Color
 
 # Increase recursion limit for deep search
-sys.setrecursionlimit(3000)
+sys.setrecursionlimit(5000)
+
+
+from chess_game.chess.types import PieceType
+
+PROMOTION_SUFFIXES = {
+    PieceType.QUEEN: "q",
+    PieceType.ROOK: "r",
+    PieceType.BISHOP: "b",
+    PieceType.KNIGHT: "n",
+}
 
 
 def _move_to_algebraic(start, end, promotion):
     """Format a move as algebraic notation like e2e4 or e7e8q."""
     base = index_to_algebraic(start) + index_to_algebraic(end)
     if promotion is not None:
-        promo_map = {
-            "q": "q",
-            "r": "r",
-            "b": "b",
-            "n": "n",
-        }
-        promo_key = str(promotion).lower()
-        base += promo_map.get(promo_key, "q")
+        base += PROMOTION_SUFFIXES[promotion]
     return base
 
 
@@ -160,6 +163,14 @@ def main():
         help="Maximum moves before stopping (default: 1000)",
     )
     args = parser.parse_args()
+
+    # Validate depths >= 1
+    if args.white_depth < 1:
+        print("Error: --white-depth must be >= 1", file=sys.stderr)
+        sys.exit(1)
+    if args.black_depth < 1:
+        print("Error: --black-depth must be >= 1", file=sys.stderr)
+        sys.exit(1)
 
     # Enforce reasonable limits to avoid freezing
     white_depth = min(args.white_depth, 4)
