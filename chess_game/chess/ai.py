@@ -212,22 +212,19 @@ def _search_move_loop(
         child_score = int(child_result[0])
 
         if params.is_maximizing:
-            if best_score < child_score:
+            if child_score > best_score:
                 best_score = child_score
                 best_move = LegalMove(move.start, move.end, move.promotion)
+                alpha = max(alpha, best_score)
+                if alpha >= beta:
+                    break
         else:
-            if best_score > child_score:
+            if child_score < best_score:
                 best_score = child_score
                 best_move = LegalMove(move.start, move.end, move.promotion)
-
-        if params.is_maximizing:
-            if best_score >= beta:
-                break
-            alpha = max(alpha, best_score)
-        else:
-            if best_score <= alpha:
-                break
-            beta = min(beta, best_score)
+                beta = min(beta, best_score)
+                if beta <= alpha:
+                    break
 
     return (best_score, best_move)
 
@@ -253,12 +250,21 @@ def minimax(
 
     # Base case: reached maximum depth
     if params.depth == 0:
-        return (evaluate(board), None)
+        score = evaluate(board)
+        return (max(params.alpha, min(score, params.beta)) if params.is_maximizing else min(params.beta, max(score, params.alpha)), None)
 
     # Check for game-over states (no legal moves)
     legal_moves = get_legal_moves(board)
     if not legal_moves:
-        return (evaluate(board), None)
+        # If in check -> checkmate; else stalemate
+        in_check = board.is_in_check()
+        if in_check:
+            # Checkmate: extreme value depending on side to move
+            val = -100_000_000 if params.is_maximizing else 100_000_000
+            return (val, None)
+        else:
+            # Stalemate: draw
+            return (0, None)
 
     # Sort moves for better pruning: captures first, then promotions
     scored_moves = _order_moves(board, legal_moves)
@@ -302,7 +308,7 @@ def _order_moves(
     for move in legal_moves:
         start, end, promotion = move.start, move.end, move.promotion
 
-        # Calculate capture gain if applicable
+        # Calculate capture gain if applicable (scaled down to avoid dominating)
         captured_piece = board.get_piece(end)
         capture_gain = (
             _captured_piece_value(captured_piece.kind)
@@ -310,15 +316,9 @@ def _order_moves(
             else 0
         )
 
+        # Bonus for promotion
         promoted_to = end.row in (ROW_1, ROW_8) and board.get_piece(start) is not None
-
-        if promoted_to:
-            start_piece = board.get_piece(start)
-            promotion_value = (
-                500 if start_piece and start_piece.kind == PieceType.PAWN else 0
-            )
-        else:
-            promotion_value = 0
+        promotion_value = 50 if promoted_to else 0
 
         # Combine factors into ordering score
         order_score = capture_gain + promotion_value
@@ -334,11 +334,11 @@ def _order_moves(
 def _captured_piece_value(piece_type: PieceType) -> int:
     """Get capture value for material count."""
     values = {
-        PieceType.PAWN: 100,
-        PieceType.KNIGHT: 320,
-        PieceType.BISHOP: 320,
-        PieceType.ROOK: 500,
-        PieceType.QUEEN: 900,
+        PieceType.PAWN: 10,
+        PieceType.KNIGHT: 32,
+        PieceType.BISHOP: 33,
+        PieceType.ROOK: 50,
+        PieceType.QUEEN: 90,
     }
     return values.get(piece_type, 0)
 
@@ -366,16 +366,21 @@ def get_best_move(board: Board, depth: int) -> Optional[LegalMove]:
 
     Args:
         board: The current board state
-        depth: Search depth (in plies)
+        depth: Search depth in plies. Evaluation always occurs after
+               the opponent's move when using odd depths (recommended).
 
     Returns:
         Best legal move, or None if no moves exist.
     """
+    # Create a transposition table to cache positions
+    tt: defaultdict[str, tuple[int, LegalMove]] = defaultdict(lambda: (0, None))
+
     params = MinimaxParams(
         depth=depth,
         alpha=-10_000_000,
         beta=10_000_000,
         is_maximizing=board.turn == Color.WHITE,
+        transposition_table=tt,
     )
     legal_moves = get_legal_moves(board)
 
