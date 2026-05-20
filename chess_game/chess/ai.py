@@ -11,8 +11,6 @@ import sys
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_in_check as _gs_is_in_check
 from chess_game.chess.constants import (
-    ROW_1,
-    ROW_8,
     ConstantSquare,
     get_col_constant,
     get_row_constant,
@@ -453,23 +451,6 @@ def _captured_piece_value(piece_type: PieceType) -> int:
     return values.get(piece_type, 0)
 
 
-def _promotion_bonus(_end_rank: int, captured_piece: Optional[Piece]) -> int:
-    """Bonus for pawn promotion (simplified)."""
-    if captured_piece is None:
-        return -100
-
-    values = {
-        PieceType.PAWN: 100,
-        PieceType.KNIGHT: 320,
-        PieceType.BISHOP: 320,
-        PieceType.ROOK: 500,
-        PieceType.QUEEN: 900,
-    }
-    return (
-        values.get(captured_piece.kind if captured_piece else PieceType.PAWN, 100) - 100
-    )
-
-
 def get_best_move(board: Board, depth: int) -> Optional[LegalMove]:
     """Get the best move for the current position at given search depth."""
     if depth < 1:
@@ -478,7 +459,6 @@ def get_best_move(board: Board, depth: int) -> Optional[LegalMove]:
     tt: dict[str, TTEntry] = {}
 
     best_move: LegalMove | None = None
-    score = 0
 
     for d in range(1, depth + 1):
         # Use full-width alpha-beta for correctness.
@@ -498,7 +478,7 @@ def get_best_move(board: Board, depth: int) -> Optional[LegalMove]:
         if not legal_moves:
             return None
 
-        score, move = minimax(board, params)
+        _, move = minimax(board, params)
         best_move = move
 
     return best_move
@@ -572,10 +552,9 @@ def minimax_no_prune(
         in_check = _gs_is_in_check(board, board.turn)
         if in_check:
             # Checkmate: large score depending on whose king is mated.
-            if board.turn == Color.WHITE:
-                return -MATE_SCORE
-            else:
-                return MATE_SCORE
+            # board.turn is the side to move (the checkmated side).
+            score = -MATE_SCORE if board.turn == Color.WHITE else MATE_SCORE
+            return score
         # Stalemate: draw.
         return 0
 
@@ -583,21 +562,16 @@ def minimax_no_prune(
     if depth == 0:
         return evaluate(board)
 
-    if is_maximizing:
-        best = -INF
-        for move in legal_moves:
-            new_board = shallow_clone_board(board)
-            new_board.make_move(move.start, move.end, promotion=move.promotion)
-            val = minimax_no_prune(new_board, depth - 1, False, nodes)
-            if val > best:
-                best = val
-        return best
-    else:
-        best = INF
-        for move in legal_moves:
-            new_board = shallow_clone_board(board)
-            new_board.make_move(move.start, move.end, promotion=move.promotion)
-            val = minimax_no_prune(new_board, depth - 1, True, nodes)
-            if val < best:
-                best = val
-        return best
+    best = -INF if is_maximizing else INF
+
+    for move in legal_moves:
+        new_board = shallow_clone_board(board)
+        new_board.make_move(move.start, move.end, promotion=move.promotion)
+        val = minimax_no_prune(new_board, depth - 1, not is_maximizing, nodes)
+
+        if is_maximizing:
+            best = max(best, val)
+        else:
+            best = min(best, val)
+
+    return best

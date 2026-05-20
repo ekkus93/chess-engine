@@ -503,9 +503,10 @@ def test_minimax_respects_max_depth():
     assert nodes[0] > 0, "Minimax should explore at least one node"
 
 
-# Depth-5 manageability tests
+# Depth-5 manageability tests (marked slow to exclude from fast CI)
 
 
+@pytest.mark.slow
 def test_depth_5_search_completes():
     """Depth-5 search on a standard position should complete within reasonable time."""
     import time
@@ -521,6 +522,7 @@ def test_depth_5_search_completes():
     assert elapsed < 60, "Depth-5 search should complete within 60 seconds"
 
 
+@pytest.mark.slow
 def test_depth_5_nodes_within_reasonable_limit():
     """Depth-5 search nodes should be within some reasonable limit (no combinatorial explosion)."""
     board = Board()
