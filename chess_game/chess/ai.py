@@ -30,7 +30,6 @@ from chess_game.chess.evaluation import (
 from chess_game.chess.move import Move
 from chess_game.chess.types import Color, LegalMove, Piece, PieceType
 
-# Increase recursion limit for deep search
 sys.setrecursionlimit(50000)
 
 LegalMoveKey = tuple[int, LegalMove]
@@ -89,22 +88,13 @@ class MinimaxParams:
     is_maximizing: bool
     transposition_table: Optional[dict[str, TTEntry]] = None
     last_best_move: Optional[LegalMove] = None
-    nodes_searched: Optional[list[int]] = None  # for tests; only used when set
+    nodes_searched: Optional[list[int]] = None
 
 
 def evaluate(board: Board) -> int:
-    """Evaluate the board position from White's perspective.
-
-    Args:
-        board: The current board state
-
-    Returns:
-        Positive score if White is ahead, negative if Black is ahead,
-        zero if equal. Score is in "centipawn" units (1/100 of a pawn).
-    """
+    """Evaluate the board position from White's perspective."""
     total_score: int = 0
 
-    # Iterate over all squares to evaluate material + position
     for row in range(8):
         for col in range(8):
             piece = board.get_piece(
@@ -120,19 +110,13 @@ def evaluate(board: Board) -> int:
     return total_score
 
 
-# Undo-based move application for fast search (no clone)
-
 def apply_move_for_search(
     board: Board,
     start: ConstantSquare,
     end: ConstantSquare,
     promotion: Optional[PieceType],
 ) -> dict:
-    """Apply a move on the board in-place for search.
-
-    Returns a snapshot dict that can be used to undo the move.
-    Assumes the move is already known to be legal.
-    """
+    """Apply a move on the board in-place for search."""
     piece = board.get_piece(start)
     if not piece:
         raise RuntimeError(
@@ -141,15 +125,12 @@ def apply_move_for_search(
 
     info: dict = {}
 
-    # Save pre-move values that must be restored on undo
-    info["from_piece"] = piece  # piece object reference
+    info["from_piece"] = piece
     info["to_piece_before"] = board.get_piece(end)
     info["turn_before"] = board.turn
 
-    # En passant
     info["ep_before"] = board.en_passant_target
 
-    # Castling rights snapshot (we'll restore them on undo)
     cr = board.castling_rights
     info["cr_before"] = type(cr)(
         white_kingside=cr.white_kingside,
@@ -158,10 +139,8 @@ def apply_move_for_search(
         black_queenside=cr.black_queenside,
     )
 
-    # En passant capture
     ep_captured = None
     if piece.kind == PieceType.PAWN and board.en_passant_target == end:
-        # Captured pawn square is same rank as start, same file as end
         ep_captured = ConstantSquare(
             row=start.row,
             col=end.col,
@@ -171,22 +150,20 @@ def apply_move_for_search(
         info["ep_captured_piece"] = ep_captured_piece
         board.board[int(ep_captured.row)][int(ep_captured.col)] = None
 
-    # Castling
     is_castling = (
         piece.kind == PieceType.KING
         and (end.col - start.col) not in (-1, 0, 1)
     )
 
-    # Castling rook move tracking
     info["rook_from"] = None
     info["rook_to"] = None
     info["rook_piece"] = None
     if is_castling:
         r = int(start.row)
-        if end.col == 6:  # kingside
+        if end.col == 6:
             rook_from = ConstantSquare(row=start.row, col=7)
             rook_to = ConstantSquare(row=start.row, col=5)
-        else:  # queenside, end.col == 2
+        else:
             rook_from = ConstantSquare(row=start.row, col=0)
             rook_to = ConstantSquare(row=start.row, col=3)
         rook = board.get_piece(rook_from)
@@ -199,36 +176,26 @@ def apply_move_for_search(
         if rook:
             rook.square = rook_to
 
-    # Promotion
     info["promotion"] = promotion
     if piece.kind == PieceType.PAWN and end.row in (ROW_1, ROW_8):
-        prom = promotion or QUEEN_TABLE  # fallback (should never occur)
-        # Normalize to PieceType
+        prom = promotion or QUEEN_TABLE
         if isinstance(prom, int):
-            prom = PieceType.PAWN  # safe default; won't happen if logic correct
-        # Actually: promotion is PieceType (from move.promotion)
-        # We'll treat it as PieceType directly.
+            prom = PieceType.PAWN
 
-    # Move piece
     board.board[int(end.row)][int(end.col)] = piece
     piece.square = end
 
-    # Capture / clear
     board.board[int(start.row)][int(start.col)] = None
 
-    # Handle promotion
     if piece.kind == PieceType.PAWN and end.row in (ROW_1, ROW_8):
         prom_kind = promotion
         if not prom_kind:
-            # default queen if missing
             prom_kind = PieceType.QUEEN
 
         new_piece = Piece(piece.color, prom_kind, end)
         board.board[int(end.row)][int(end.col)] = new_piece
         piece.square = end
 
-    # Update castling rights
-    # King move -> clear both for that color
     if piece.kind == PieceType.KING:
         c = piece.color
         if c == Color.WHITE:
@@ -238,7 +205,6 @@ def apply_move_for_search(
             board.castling_rights.black_kingside = False
             board.castling_rights.black_queenside = False
 
-    # Rook move from home square
     if piece.kind == PieceType.ROOK:
         c = piece.color
         r = int(start.row)
@@ -253,7 +219,6 @@ def apply_move_for_search(
             elif r == 0 and start.col == 7:
                 board.castling_rights.black_kingside = False
 
-    # If landing on rook home square, clear opponent castling right
     r, _ = int(end.row), int(end.col)
     if end.row == ROW_8 and end.col == 0:
         board.castling_rights.black_queenside = False
@@ -264,19 +229,14 @@ def apply_move_for_search(
     elif end.row == ROW_1 and end.col == 7:
         board.castling_rights.white_kingside = False
 
-    # En passant target
     board.en_passant_target = None
     if piece.kind == PieceType.PAWN and (end.row - start.row) in (-2, 2):
-        # Valid en passant target: square between start and end
         ep = ConstantSquare(
             row=end.row,
             col=end.col,
         )
-        # Only set if opponent has a pawn that can capture en passant
-        # (We keep it simple and mirror board logic.)
         board.en_passant_target = ep
 
-    # Switch turn
     board.turn = Color.BLACK if board.turn == Color.WHITE else Color.WHITE
 
     return info
@@ -285,22 +245,18 @@ def apply_move_for_search(
 def unapply_move_for_search(board: Board, info: dict) -> None:
     """Undo a move that was applied with apply_move_for_search."""
     piece = info["from_piece"]
-    start = piece.square  # temporary; we restore square below
+    start = piece.square
 
-    # Restore board squares
     board.board[int(start.row)][int(start.col)] = piece
     piece.square = start
 
-    # Restore captured piece
     info.get("to_piece_before")
 
-    # Restore en passant captured pawn
     ep_captured = info.get("ep_captured")
     if ep_captured is not None:
         ep_captured_piece = info["ep_captured_piece"]
         board.board[int(ep_captured.row)][int(ep_captured.col)] = ep_captured_piece
 
-    # Restore rook for castling
     rook_from = info.get("rook_from")
     rook_to = info.get("rook_to")
     rook_piece = info.get("rook_piece")
@@ -308,24 +264,18 @@ def unapply_move_for_search(board: Board, info: dict) -> None:
         board.board[int(rook_from.row)][int(rook_from.col)] = rook_piece
         rook_piece.square = rook_from
 
-    # Restore castling rights
     cr_before = info["cr_before"]
     board.castling_rights = cr_before
 
-    # Restore en passant target
     board.en_passant_target = info["ep_before"]
 
-    # Restore turn
     board.turn = info["turn_before"]
 
 
 def _evaluate_piece(piece: Piece, row: int, col: int) -> int:
     """Get evaluation score for a single piece."""
-
-    # Material value (baseline)
     material = MATERIAL_VALUES[piece.kind]
 
-    # Mirror row for Black so White-centric tables apply correctly
     if piece.color == Color.BLACK:
         row = 7 - row
 
@@ -347,14 +297,7 @@ def _evaluate_piece(piece: Piece, row: int, col: int) -> int:
 
 
 def get_legal_moves(board: Board) -> list[Move]:
-    """Get all legal moves for the side to move.
-
-    Args:
-        board: The current board state
-
-    Returns:
-        List of Move objects with start, end, and promotion attributes.
-    """
+    """Get all legal moves for the side to move."""
     legal_moves = board.get_legal_moves()
     return [
         Move(
@@ -394,7 +337,6 @@ def _check_tt_cache(
         return None
 
     entry = tt[key]
-    # Only use cached result if depth is sufficient.
     if entry.depth < params.depth:
         return None
 
@@ -402,7 +344,6 @@ def _check_tt_cache(
     alpha = params.alpha
     beta = params.beta
 
-    # TSCP-style lookup:
     if entry.flag == TTFlag.EXACT:
         return (score, entry.best_move)
     if entry.flag == TTFlag.LOWERBOUND:
@@ -430,7 +371,6 @@ def _store_tt_cache(
         return
     key = _position_key(board) + f":d{params.depth}"
 
-    # Determine flag based on original alpha/beta
     if score <= alpha_orig:
         flag = TTFlag.UPPERBOUND
     elif score >= beta_orig:
@@ -445,21 +385,15 @@ def _store_tt_cache(
         flag=flag,
     )
 
-    # Only overwrite if no entry or new depth >= existing depth
     existing = tt.get(key)
     if existing is None or params.depth >= existing.depth:
         tt[key] = entry
 
 
 def shallow_clone_board(board: Board) -> Board:
-    """Create a shallow clone of board for search (no deepcopy).
-
-    This copies the board array (row lists) and creates new Piece instances
-    to avoid mutating shared state. Fast enough for alpha-beta search at depth 5.
-    """
+    """Create a shallow clone of board for search."""
     new_board = Board.__new__(Board)
 
-    # Deep copy the board array with new Piece instances
     new_board.board = [
         [
             copy.deepcopy(p) if p is not None else None
@@ -485,9 +419,10 @@ def _search_move_loop(
     """Execute the main minimax search loop with alpha-beta pruning."""
     best_score: int = -100_000_000 if params.is_maximizing else 100_000_000
     best_move: LegalMove | None = None
-    alpha, beta = params.alpha, params.beta
 
-    # Save original alpha/beta for TT flag calculation.
+    alpha = params.alpha
+    beta = params.beta
+
     alpha_orig = alpha
     beta_orig = beta
 
@@ -502,7 +437,6 @@ def _search_move_loop(
             )
         )
 
-        # Use shallow clone + make_move for correctness and speed
         new_board = shallow_clone_board(board)
         new_board.make_move(move.start, move.end, promotion=move.promotion)
 
@@ -517,7 +451,6 @@ def _search_move_loop(
         child_result = minimax(new_board, child_params)
         child_score = int(child_result[0])
 
-        # Alpha-beta pruning: if score exceeds bounds, prune remaining moves
         if params.is_maximizing:
             if child_score > best_score:
                 best_score = child_score
@@ -533,7 +466,6 @@ def _search_move_loop(
             if beta <= alpha:
                 break
 
-    # Store in TT using original alpha/beta.
     _store_tt_cache(board, params, best_score, best_move, alpha_orig, beta_orig)
 
     return (best_score, best_move)
@@ -543,16 +475,7 @@ def minimax(
     board: Board,
     params: MinimaxParams,
 ) -> tuple[int, Optional[LegalMove]]:
-    """Standard minimax with alpha-beta pruning.
-
-    Args:
-        board: The current board state
-        params: Search configuration containing depth, alpha/beta bounds,
-                maximizing flag, and optional transposition table.
-
-    Returns:
-        Tuple of (best_score, best_move). Best move may be None at leaf nodes.
-    """
+    """Standard minimax with alpha-beta pruning."""
     # Node counter for tests (no-op when not used)
     if params.nodes_searched is not None:
         params.nodes_searched[0] += 1
@@ -601,22 +524,7 @@ def _order_moves(
     legal_moves: list[Move],
     params: MinimaxParams | None = None,
 ) -> list[MoveOrderingKey]:
-    """Sort moves for better pruning order.
-
-    Move ordering strategy:
-    1. Best move from previous search or TT.
-    2. Captures (especially high-value piece captures).
-    3. Promotions (use promotion.promotion, not rank-based heuristic).
-    4. Normal moves.
-
-    Args:
-        board: The current board state
-        legal_moves: List of all legal moves to order
-        params: Optional MinimaxParams for previous best move
-
-    Returns:
-        Sorted list of MoveOrderingKey objects with ConstantSquare start/end.
-    """
+    """Sort moves for better pruning order."""
     promotion_order_bonus = {
         PieceType.QUEEN: 900,
         PieceType.ROOK: 500,
@@ -633,7 +541,6 @@ def _order_moves(
     for move in legal_moves:
         start, end, promotion = move.start, move.end, move.promotion
 
-        # Calculate capture gain if applicable (scaled down to avoid dominating)
         captured_piece = board.get_piece(end)
         capture_gain = (
             _captured_piece_value(captured_piece.kind)
@@ -641,15 +548,12 @@ def _order_moves(
             else 0
         )
 
-        # Promotion bonus based on move.promotion (not rank-based)
         promotion_value = 0
         if promotion is not None:
             promotion_value = promotion_order_bonus.get(promotion, 0)
 
-        # Combine factors into ordering score
         order_score = capture_gain + promotion_value
 
-        # Prioritize last best move or TT-suggested move
         if last_best_move is not None and (
             start == last_best_move.start
             and end == last_best_move.end
@@ -682,7 +586,6 @@ def _promotion_bonus(_end_rank: int, captured_piece: Optional[Piece]) -> int:
     if captured_piece is None:
         return -100
 
-    # Promotion + capture is excellent
     values = {
         PieceType.PAWN: 100,
         PieceType.KNIGHT: 320,
@@ -696,32 +599,18 @@ def _promotion_bonus(_end_rank: int, captured_piece: Optional[Piece]) -> int:
 
 
 def get_best_move(board: Board, depth: int) -> Optional[LegalMove]:
-    """Get the best move for the current position at given search depth.
-
-    Args:
-        board: The current board state
-        depth: Search depth in plies. Evaluation always occurs after
-                the opponent's move when using odd depths (recommended).
-
-    Returns:
-        Best legal move, or None if no moves exist.
-
-    Raises:
-        ValueError if depth < 1.
-    """
+    """Get the best move for the current position at given search depth."""
     if depth < 1:
         raise ValueError("depth must be >= 1")
 
-    # Use iterative deepening to gradually increase depth
     tt: dict[str, TTEntry] = {}
 
     best_move: LegalMove | None = None
-    score = 0  # For iterative deepening window
+    score = 0
 
     for d in range(1, depth + 1):
-        # Use a wider window around last best score for iterative deepening
-        alpha = score - 1000
-        beta = score + 1000
+        alpha = score - 50
+        beta = score + 50
 
         params = MinimaxParams(
             depth=d,
@@ -735,7 +624,6 @@ def get_best_move(board: Board, depth: int) -> Optional[LegalMove]:
         if not legal_moves:
             return None
 
-        # Run minimax with alpha-beta pruning
         score, move = minimax(board, params)
         best_move = move
 
@@ -743,11 +631,7 @@ def get_best_move(board: Board, depth: int) -> Optional[LegalMove]:
 
 
 def _position_key(board: Board) -> str:
-    """Generate a position key for transposition table.
-
-    Includes board placement, side to move, castling rights, and en passant target
-    to ensure distinct positions produce distinct keys.
-    """
+    """Generate a position key for transposition table."""
     pieces = []
     for row in board.board:
         for piece in row:
@@ -787,6 +671,5 @@ def _position_key(board: Board) -> str:
     return "".join(pieces) + "|" + turn_char + "|" + castling + "|" + ep
 
 
-# Compatibility wrapper (no-op) if external callers expect _fen_key.
 def _fen_key(board: Board) -> str:
     return _position_key(board)
