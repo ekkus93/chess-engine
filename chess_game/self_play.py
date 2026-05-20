@@ -9,13 +9,11 @@ from chess_game.chess.ai import get_best_move
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_checkmate, is_stalemate
 from chess_game.chess.coords import index_to_algebraic
-from chess_game.chess.types import Color
+from chess_game.chess.types import Color, PieceType
 
 # Increase recursion limit for deep search
 sys.setrecursionlimit(5000)
 
-
-from chess_game.chess.types import PieceType
 
 PROMOTION_SUFFIXES = {
     PieceType.QUEEN: "q",
@@ -133,10 +131,10 @@ def run_self_play(
             print()
 
         move_number += 1
-    else:
-        if verbose:
-            print("\nReached maximum move limit. Game stopped.")
-            board.display()
+    # After loop ends normally
+    if verbose:
+        print("\nReached maximum move limit. Game stopped.")
+        board.display()
 
 
 def main():

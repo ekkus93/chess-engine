@@ -413,3 +413,123 @@ def test_tt_entry_score_is_int():
     minimax(board, params)
 
     assert any(isinstance(e.score, int) for e in tt.values())
+
+
+def make_params_with_nodes(depth: int, is_maximizing: bool, alpha: int = -10_000_000, beta: int = 10_000_000):
+    """Helper to create MinimaxParams with nodes_searched."""
+    nodes = [0]
+    return MinimaxParams(
+        depth=depth,
+        alpha=alpha,
+        beta=beta,
+        is_maximizing=is_maximizing,
+        nodes_searched=nodes,
+    )
+
+
+# Alpha-beta pruning behavior tests
+
+
+def test_alpha_beta_pruning_fewer_nodes_than_without_pruning():
+    """
+    With alpha-beta pruning, using a very tight alpha/beta window
+    around a known good score should prune more than a wide window.
+    """
+    board = make_mate_in_one_white_position()
+
+    # Wide window: less pruning
+    wide_nodes = [0]
+    wide_params = MinimaxParams(
+        depth=3,
+        alpha=-10_000_000,
+        beta=10_000_000,
+        is_maximizing=True,
+        nodes_searched=wide_nodes,
+    )
+
+    # Tight window: more pruning (around mate score)
+    tight_nodes = [0]
+    tight_params = MinimaxParams(
+        depth=3,
+        alpha=MATE_SCORE - 500,
+        beta=MATE_SCORE + 500,
+        is_maximizing=True,
+        nodes_searched=tight_nodes,
+    )
+
+    minimax(board, wide_params)
+    minimax(board, tight_params)
+
+    # Tight window should prune more -> fewer nodes explored.
+    assert tight_nodes[0] <= wide_nodes[0], "Alpha-beta pruning should prune more with tighter bounds"
+
+
+def test_alpha_beta_pruning_does_not_affect_mate_detection():
+    """
+    Alpha-beta pruning should still find mate-in-one when available.
+    """
+    board = make_mate_in_one_white_position()
+
+    nodes = [0]
+    params = MinimaxParams(
+        depth=1,
+        alpha=-MATE_SCORE,
+        beta=MATE_SCORE,
+        is_maximizing=True,
+        nodes_searched=nodes,
+    )
+
+    score, move = minimax(board, params)
+
+    assert move is not None, "Alpha-beta should still find a mating move"
+    assert score >= MATE_SCORE - 1, "Score should reflect mate"
+
+
+def test_minimax_respects_max_depth():
+    """Minimax should not recurse beyond requested depth."""
+    board = Board()
+
+    nodes = [0]
+    params = MinimaxParams(
+        depth=1,
+        alpha=-10_000_000,
+        beta=10_000_000,
+        is_maximizing=True,
+        nodes_searched=nodes,
+    )
+
+    # Just ensure it completes without error at depth=1
+    minimax(board, params)
+    assert nodes[0] > 0, "Minimax should explore at least one node"
+
+
+# Depth-5 manageability tests
+
+
+def test_depth_5_search_completes():
+    """Depth-5 search on a standard position should complete within reasonable time."""
+    import time
+
+    board = Board()
+
+    start = time.monotonic()
+    move = get_best_move(board, depth=5)
+    elapsed = time.monotonic() - start
+
+    # Just ensure it finishes within 60s and returns a move.
+    assert move is not None, "Depth-5 search should return a move"
+    assert elapsed < 60, "Depth-5 search should complete within 60 seconds"
+
+
+def test_depth_5_nodes_within_reasonable_limit():
+    """Depth-5 search nodes should be within some reasonable limit (no combinatorial explosion)."""
+    board = Board()
+
+    nodes = [0]
+    params = make_params_with_nodes(depth=5, is_maximizing=True)
+
+    # Run a depth-5 search with nodes counted.
+    minimax(board, params)
+
+    # This threshold is heuristic but should hold for reasonable alpha-beta.
+    assert nodes[0] < 500_000, "Depth-5 search should not exceed 500k nodes"

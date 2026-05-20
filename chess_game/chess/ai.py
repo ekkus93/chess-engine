@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
@@ -62,10 +63,8 @@ class MoveOrderingKey:
         return self.score < other.score
 
 
-from enum import Enum
-
-
 class TTFlag(Enum):
+    """Transposition table entry flag."""
     EXACT = "exact"
     LOWERBOUND = "lowerbound"
     UPPERBOUND = "upperbound"
@@ -73,6 +72,7 @@ class TTFlag(Enum):
 
 @dataclass(frozen=True)
 class TTEntry:
+    """Entry in the transposition table."""
     depth: int
     score: int
     best_move: LegalMove | None
@@ -88,6 +88,8 @@ class MinimaxParams:
     beta: int
     is_maximizing: bool
     transposition_table: Optional[dict[str, TTEntry]] = None
+    last_best_move: Optional[LegalMove] = None
+    nodes_searched: Optional[list[int]] = None  # for tests; only used when set
 
 
 def evaluate(board: Board) -> int:
@@ -249,7 +251,7 @@ def apply_move_for_search(
             if r == 0 and start.col == 0:
                 board.castling_rights.black_queenside = False
             elif r == 0 and start.col == 7:
-                    board.castling_rights.black_kingside = False
+                board.castling_rights.black_kingside = False
 
     # If landing on rook home square, clear opponent castling right
     r, _ = int(end.row), int(end.col)
@@ -455,9 +457,6 @@ def shallow_clone_board(board: Board) -> Board:
     This copies the board array (row lists) and creates new Piece instances
     to avoid mutating shared state. Fast enough for alpha-beta search at depth 5.
     """
-    import copy
-    from chess_game.chess.board.board import Board
-
     new_board = Board.__new__(Board)
 
     # Deep copy the board array with new Piece instances
@@ -513,6 +512,7 @@ def _search_move_loop(
             beta=beta,
             is_maximizing=not params.is_maximizing,
             transposition_table=params.transposition_table,
+            nodes_searched=params.nodes_searched,
         )
         child_result = minimax(new_board, child_params)
         child_score = int(child_result[0])
@@ -553,6 +553,10 @@ def minimax(
     Returns:
         Tuple of (best_score, best_move). Best move may be None at leaf nodes.
     """
+    # Node counter for tests (no-op when not used)
+    if params.nodes_searched is not None:
+        params.nodes_searched[0] += 1
+
     # Check transposition table
     cached = _check_tt_cache(board, params)
     if cached is not None:
@@ -570,12 +574,10 @@ def minimax(
             if board.turn == Color.WHITE:
                 # White is checkmated => great for Black.
                 return (-MATE_SCORE, None)
-            else:
-                # Black is checkmated => great for White.
-                return (MATE_SCORE, None)
-        else:
-            # Stalemate: draw.
-            return (0, None)
+            # Black is checkmated => great for White.
+            return (MATE_SCORE, None)
+        # Stalemate: draw.
+        return (0, None)
 
     # Base case: reached maximum depth => raw evaluation.
     if params.depth == 0:
@@ -583,7 +585,7 @@ def minimax(
         return (score, None)
 
     # Sort moves for better pruning: captures first, then promotions.
-    scored_moves = _order_moves(board, legal_moves)
+    scored_moves = _order_moves(board, legal_moves, params)
 
     best_score, best_move = _search_move_loop(board, legal_moves, scored_moves, params)
 
@@ -597,22 +599,25 @@ def minimax(
 def _order_moves(
     board: Board,
     legal_moves: list[Move],
+    params: MinimaxParams | None = None,
 ) -> list[MoveOrderingKey]:
     """Sort moves for better pruning order.
 
     Move ordering strategy:
-    1. Captures (especially high-value piece captures)
-    2. Promotions (use promotion.promotion, not rank-based heuristic)
-    3. Normal moves
+    1. Best move from previous search or TT.
+    2. Captures (especially high-value piece captures).
+    3. Promotions (use promotion.promotion, not rank-based heuristic).
+    4. Normal moves.
 
     Args:
         board: The current board state
         legal_moves: List of all legal moves to order
+        params: Optional MinimaxParams for previous best move
 
     Returns:
         Sorted list of MoveOrderingKey objects with ConstantSquare start/end.
     """
-    PROMOTION_ORDER_BONUS = {
+    promotion_order_bonus = {
         PieceType.QUEEN: 900,
         PieceType.ROOK: 500,
         PieceType.BISHOP: 330,
@@ -620,6 +625,10 @@ def _order_moves(
     }
 
     scored_moves: list[MoveOrderingKey] = []
+
+    last_best_move = (
+        params.last_best_move if params is not None else None
+    )
 
     for move in legal_moves:
         start, end, promotion = move.start, move.end, move.promotion
@@ -635,10 +644,18 @@ def _order_moves(
         # Promotion bonus based on move.promotion (not rank-based)
         promotion_value = 0
         if promotion is not None:
-            promotion_value = PROMOTION_ORDER_BONUS.get(promotion, 0)
+            promotion_value = promotion_order_bonus.get(promotion, 0)
 
         # Combine factors into ordering score
         order_score = capture_gain + promotion_value
+
+        # Prioritize last best move or TT-suggested move
+        if last_best_move is not None and (
+            start == last_best_move.start
+            and end == last_best_move.end
+            and promotion == last_best_move.promotion
+        ):
+            order_score += 1000
 
         move_key = MoveOrderingKey(
             score=order_score, start=start, end=end, promotion=promotion
@@ -684,7 +701,7 @@ def get_best_move(board: Board, depth: int) -> Optional[LegalMove]:
     Args:
         board: The current board state
         depth: Search depth in plies. Evaluation always occurs after
-               the opponent's move when using odd depths (recommended).
+                the opponent's move when using odd depths (recommended).
 
     Returns:
         Best legal move, or None if no moves exist.
@@ -699,21 +716,27 @@ def get_best_move(board: Board, depth: int) -> Optional[LegalMove]:
     tt: dict[str, TTEntry] = {}
 
     best_move: LegalMove | None = None
+    score = 0  # For iterative deepening window
 
     for d in range(1, depth + 1):
+        # Use a wider window around last best score for iterative deepening
+        alpha = score - 1000
+        beta = score + 1000
+
         params = MinimaxParams(
             depth=d,
-            alpha=-10_000_000,
-            beta=10_000_000,
+            alpha=alpha,
+            beta=beta,
             is_maximizing=board.turn == Color.WHITE,
             transposition_table=tt,
+            last_best_move=best_move,
         )
         legal_moves = get_legal_moves(board)
         if not legal_moves:
             return None
 
         # Run minimax with alpha-beta pruning
-        _, move = minimax(board, params)
+        score, move = minimax(board, params)
         best_move = move
 
     return best_move
