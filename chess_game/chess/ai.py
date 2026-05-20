@@ -34,6 +34,7 @@ sys.setrecursionlimit(50000)
 
 LegalMoveKey = tuple[int, LegalMove]
 
+INF = 10_000_000
 MATE_SCORE = 100_000
 
 
@@ -79,6 +80,14 @@ class TTEntry:
 
 
 @dataclass
+class SearchStats:
+    """Lightweight stats for search (for tests/benchmarks only)."""
+    nodes: int = 0
+    cutoffs: int = 0
+    tt_hits: int = 0
+
+
+@dataclass
 class MinimaxParams:
     """Configuration for a minimax search."""
 
@@ -89,6 +98,7 @@ class MinimaxParams:
     transposition_table: Optional[dict[str, TTEntry]] = None
     last_best_move: Optional[LegalMove] = None
     nodes_searched: Optional[list[int]] = None
+    stats: Optional[SearchStats] = None
 
 
 def evaluate(board: Board) -> int:
@@ -108,168 +118,6 @@ def evaluate(board: Board) -> int:
             total_score += color_bonus * piece_score
 
     return total_score
-
-
-def apply_move_for_search(
-    board: Board,
-    start: ConstantSquare,
-    end: ConstantSquare,
-    promotion: Optional[PieceType],
-) -> dict:
-    """Apply a move on the board in-place for search."""
-    piece = board.get_piece(start)
-    if not piece:
-        raise RuntimeError(
-            f"apply_move_for_search: no piece at start {start}, end {end}, promotion {promotion}"
-        )
-
-    info: dict = {}
-
-    info["from_piece"] = piece
-    info["to_piece_before"] = board.get_piece(end)
-    info["turn_before"] = board.turn
-
-    info["ep_before"] = board.en_passant_target
-
-    cr = board.castling_rights
-    info["cr_before"] = type(cr)(
-        white_kingside=cr.white_kingside,
-        white_queenside=cr.white_queenside,
-        black_kingside=cr.black_kingside,
-        black_queenside=cr.black_queenside,
-    )
-
-    ep_captured = None
-    if piece.kind == PieceType.PAWN and board.en_passant_target == end:
-        ep_captured = ConstantSquare(
-            row=start.row,
-            col=end.col,
-        )
-        ep_captured_piece = board.get_piece(ep_captured)
-        info["ep_captured_sq"] = ep_captured
-        info["ep_captured_piece"] = ep_captured_piece
-        board.board[int(ep_captured.row)][int(ep_captured.col)] = None
-
-    is_castling = (
-        piece.kind == PieceType.KING
-        and (end.col - start.col) not in (-1, 0, 1)
-    )
-
-    info["rook_from"] = None
-    info["rook_to"] = None
-    info["rook_piece"] = None
-    if is_castling:
-        r = int(start.row)
-        if end.col == 6:
-            rook_from = ConstantSquare(row=start.row, col=7)
-            rook_to = ConstantSquare(row=start.row, col=5)
-        else:
-            rook_from = ConstantSquare(row=start.row, col=0)
-            rook_to = ConstantSquare(row=start.row, col=3)
-        rook = board.get_piece(rook_from)
-        info["rook_from"] = rook_from
-        info["rook_to"] = rook_to
-        info["rook_piece"] = rook
-
-        board.board[r][int(rook_to.col)] = rook
-        board.board[r][int(rook_from.col)] = None
-        if rook:
-            rook.square = rook_to
-
-    info["promotion"] = promotion
-    if piece.kind == PieceType.PAWN and end.row in (ROW_1, ROW_8):
-        prom = promotion or QUEEN_TABLE
-        if isinstance(prom, int):
-            prom = PieceType.PAWN
-
-    board.board[int(end.row)][int(end.col)] = piece
-    piece.square = end
-
-    board.board[int(start.row)][int(start.col)] = None
-
-    if piece.kind == PieceType.PAWN and end.row in (ROW_1, ROW_8):
-        prom_kind = promotion
-        if not prom_kind:
-            prom_kind = PieceType.QUEEN
-
-        new_piece = Piece(piece.color, prom_kind, end)
-        board.board[int(end.row)][int(end.col)] = new_piece
-        piece.square = end
-
-    if piece.kind == PieceType.KING:
-        c = piece.color
-        if c == Color.WHITE:
-            board.castling_rights.white_kingside = False
-            board.castling_rights.white_queenside = False
-        else:
-            board.castling_rights.black_kingside = False
-            board.castling_rights.black_queenside = False
-
-    if piece.kind == PieceType.ROOK:
-        c = piece.color
-        r = int(start.row)
-        if c == Color.WHITE:
-            if r == 7 and start.col == 0:
-                board.castling_rights.white_queenside = False
-            elif r == 7 and start.col == 7:
-                board.castling_rights.white_kingside = False
-        else:
-            if r == 0 and start.col == 0:
-                board.castling_rights.black_queenside = False
-            elif r == 0 and start.col == 7:
-                board.castling_rights.black_kingside = False
-
-    r, _ = int(end.row), int(end.col)
-    if end.row == ROW_8 and end.col == 0:
-        board.castling_rights.black_queenside = False
-    elif end.row == ROW_8 and end.col == 7:
-        board.castling_rights.black_kingside = False
-    elif end.row == ROW_1 and end.col == 0:
-        board.castling_rights.white_queenside = False
-    elif end.row == ROW_1 and end.col == 7:
-        board.castling_rights.white_kingside = False
-
-    board.en_passant_target = None
-    if piece.kind == PieceType.PAWN and (end.row - start.row) in (-2, 2):
-        ep = ConstantSquare(
-            row=end.row,
-            col=end.col,
-        )
-        board.en_passant_target = ep
-
-    board.turn = Color.BLACK if board.turn == Color.WHITE else Color.WHITE
-
-    return info
-
-
-def unapply_move_for_search(board: Board, info: dict) -> None:
-    """Undo a move that was applied with apply_move_for_search."""
-    piece = info["from_piece"]
-    start = piece.square
-
-    board.board[int(start.row)][int(start.col)] = piece
-    piece.square = start
-
-    info.get("to_piece_before")
-
-    ep_captured = info.get("ep_captured")
-    if ep_captured is not None:
-        ep_captured_piece = info["ep_captured_piece"]
-        board.board[int(ep_captured.row)][int(ep_captured.col)] = ep_captured_piece
-
-    rook_from = info.get("rook_from")
-    rook_to = info.get("rook_to")
-    rook_piece = info.get("rook_piece")
-    if rook_from is not None and rook_to is not None and rook_piece is not None:
-        board.board[int(rook_from.row)][int(rook_from.col)] = rook_piece
-        rook_piece.square = rook_from
-
-    cr_before = info["cr_before"]
-    board.castling_rights = cr_before
-
-    board.en_passant_target = info["ep_before"]
-
-    board.turn = info["turn_before"]
 
 
 def _evaluate_piece(piece: Piece, row: int, col: int) -> int:
@@ -332,7 +180,7 @@ def _check_tt_cache(
     if not tt:
         return None
 
-    key = _position_key(board) + f":d{params.depth}"
+    key = _position_key(board)
     if key not in tt:
         return None
 
@@ -340,19 +188,19 @@ def _check_tt_cache(
     if entry.depth < params.depth:
         return None
 
-    score = entry.score
     alpha = params.alpha
     beta = params.beta
 
     if entry.flag == TTFlag.EXACT:
-        return (score, entry.best_move)
-    if entry.flag == TTFlag.LOWERBOUND:
-        alpha = max(alpha, score)
-    elif entry.flag == TTFlag.UPPERBOUND:
-        beta = min(beta, score)
+        return (entry.score, entry.best_move)
 
-    if alpha >= beta:
-        return (score, entry.best_move)
+    # LOWERBOUND: useful if score >= beta
+    if entry.flag == TTFlag.LOWERBOUND and entry.score >= beta:
+        return (entry.score, entry.best_move)
+
+    # UPPERBOUND: useful if score <= alpha
+    if entry.flag == TTFlag.UPPERBOUND and entry.score <= alpha:
+        return (entry.score, entry.best_move)
 
     return None
 
@@ -369,7 +217,8 @@ def _store_tt_cache(
     tt = params.transposition_table
     if tt is None:
         return
-    key = _position_key(board) + f":d{params.depth}"
+
+    key = _position_key(board)
 
     if score <= alpha_orig:
         flag = TTFlag.UPPERBOUND
@@ -447,6 +296,7 @@ def _search_move_loop(
             is_maximizing=not params.is_maximizing,
             transposition_table=params.transposition_table,
             nodes_searched=params.nodes_searched,
+            stats=params.stats,
         )
         child_result = minimax(new_board, child_params)
         child_score = int(child_result[0])
@@ -457,6 +307,8 @@ def _search_move_loop(
                 best_move = LegalMove(move.start, move.end, move.promotion)
             alpha = max(alpha, child_score)
             if alpha >= beta:
+                if params.stats is not None:
+                    params.stats.cutoffs += 1
                 break
         else:
             if child_score < best_score:
@@ -464,6 +316,8 @@ def _search_move_loop(
                 best_move = LegalMove(move.start, move.end, move.promotion)
             beta = min(beta, child_score)
             if beta <= alpha:
+                if params.stats is not None:
+                    params.stats.cutoffs += 1
                 break
 
     _store_tt_cache(board, params, best_score, best_move, alpha_orig, beta_orig)
@@ -480,9 +334,15 @@ def minimax(
     if params.nodes_searched is not None:
         params.nodes_searched[0] += 1
 
+    # Use SearchStats if present
+    if params.stats is not None:
+        params.stats.nodes += 1
+
     # Check transposition table
     cached = _check_tt_cache(board, params)
     if cached is not None:
+        if params.stats is not None:
+            params.stats.tt_hits += 1
         return cached
 
     # Generate legal moves FIRST (terminal handling before depth cutoff).
@@ -512,10 +372,6 @@ def minimax(
 
     best_score, best_move = _search_move_loop(board, legal_moves, scored_moves, params)
 
-    # Store in transposition table only if we found a move.
-    if best_move is not None:
-        _store_tt_cache(board, params, best_score, best_move, params.alpha, params.beta)
-
     return (best_score, best_move)
 
 
@@ -537,6 +393,15 @@ def _order_moves(
     last_best_move = (
         params.last_best_move if params is not None else None
     )
+
+    tt_best_move: LegalMove | None = None
+    tt_entry = None
+    if params is not None and params.transposition_table is not None:
+        key = _position_key(board)
+        tt_entry = params.transposition_table.get(key)
+
+    if tt_entry is not None and tt_entry.best_move is not None:
+        tt_best_move = tt_entry.best_move
 
     for move in legal_moves:
         start, end, promotion = move.start, move.end, move.promotion
@@ -560,6 +425,13 @@ def _order_moves(
             and promotion == last_best_move.promotion
         ):
             order_score += 1000
+
+        if tt_best_move is not None and (
+            start == tt_best_move.start
+            and end == tt_best_move.end
+            and promotion == tt_best_move.promotion
+        ):
+            order_score += 2000
 
         move_key = MoveOrderingKey(
             score=order_score, start=start, end=end, promotion=promotion
@@ -609,8 +481,10 @@ def get_best_move(board: Board, depth: int) -> Optional[LegalMove]:
     score = 0
 
     for d in range(1, depth + 1):
-        alpha = score - 50
-        beta = score + 50
+        # Use full-width alpha-beta for correctness.
+        # Aspiration windows require fail-high/fail-low re-search.
+        alpha = -INF
+        beta = INF
 
         params = MinimaxParams(
             depth=d,
@@ -673,3 +547,57 @@ def _position_key(board: Board) -> str:
 
 def _fen_key(board: Board) -> str:
     return _position_key(board)
+
+
+def minimax_no_prune(
+    board: Board,
+    depth: int,
+    is_maximizing: bool,
+    nodes: Optional[list[int]] = None,
+) -> int:
+    """No-prune minimax reference for tests/benchmarks only.
+
+    Does not use alpha-beta pruning.
+    Uses the same terminal handling and evaluator as production search.
+    """
+    # Node counter for tests
+    if nodes is not None:
+        nodes[0] += 1
+
+    # Generate legal moves FIRST (terminal handling before depth cutoff).
+    legal_moves = get_legal_moves(board)
+
+    # No legal moves: checkmate or stalemate.
+    if not legal_moves:
+        in_check = _gs_is_in_check(board, board.turn)
+        if in_check:
+            # Checkmate: large score depending on whose king is mated.
+            if board.turn == Color.WHITE:
+                return -MATE_SCORE
+            else:
+                return MATE_SCORE
+        # Stalemate: draw.
+        return 0
+
+    # Base case: reached maximum depth => raw evaluation.
+    if depth == 0:
+        return evaluate(board)
+
+    if is_maximizing:
+        best = -INF
+        for move in legal_moves:
+            new_board = shallow_clone_board(board)
+            new_board.make_move(move.start, move.end, promotion=move.promotion)
+            val = minimax_no_prune(new_board, depth - 1, False, nodes)
+            if val > best:
+                best = val
+        return best
+    else:
+        best = INF
+        for move in legal_moves:
+            new_board = shallow_clone_board(board)
+            new_board.make_move(move.start, move.end, promotion=move.promotion)
+            val = minimax_no_prune(new_board, depth - 1, True, nodes)
+            if val < best:
+                best = val
+        return best
