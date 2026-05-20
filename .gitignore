@@ -21,5 +21,6 @@ dist/
 *.egg-info/
 
 run_opencode.sh
+run_copilot.sh
 .opencode/
 tmp/
