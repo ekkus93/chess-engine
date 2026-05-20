@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import signal
 import sys
 
 from chess_game.chess.ai import get_best_move
@@ -53,6 +54,35 @@ def _position_key(board: Board) -> str:
     return pieces + "|" + turn
 
 
+def _get_best_move_with_timeout(
+    board: Board,
+    depth: int,
+    timeout: float,
+) -> object:
+    """Run get_best_move with a POSIX alarm-based timeout.
+
+    If it exceeds 'timeout' seconds, returns None so caller can reduce depth.
+    """
+    class _SearchTimeout(Exception):
+        """Raised when move search exceeds allowed time."""
+
+    def _handler(signum: int, frame: object) -> None:
+        raise _SearchTimeout("Search timed out")
+
+    old_handler = signal.signal(signal.SIGALRM, _handler)
+    signal.alarm(int(timeout) or 1)
+
+    try:
+        best = get_best_move(board, depth=depth)
+    except _SearchTimeout:
+        best = None
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, old_handler)
+
+    return best
+
+
 def run_self_play(
     depth_white: int = 2,
     depth_black: int = 2,
@@ -77,7 +107,9 @@ def run_self_play(
         print()
 
     move_number = 1
-    position_counts = {}
+    position_counts: dict[str, int] = {}
+
+    per_move_timeout = 30  # seconds per move
 
     while move_number <= max_moves:
         key = _position_key(board)
@@ -106,10 +138,17 @@ def run_self_play(
             return
 
         # Use side-specific depth
-        current_depth = depth_white if board.turn == Color.WHITE else depth_black
+        base_depth = depth_white if board.turn == Color.WHITE else depth_black
 
-        # Get best move from AI
-        best = get_best_move(board, depth=current_depth)
+        # Try from base_depth down to 1 with a timeout to avoid freezing.
+        best = None
+        used_depth = base_depth
+        while used_depth >= 1:
+            candidate = _get_best_move_with_timeout(board, used_depth, per_move_timeout)
+            if candidate is not None:
+                best = candidate
+                break
+            used_depth = max(1, used_depth - 1)
 
         if best is None:
             if verbose:
@@ -131,6 +170,7 @@ def run_self_play(
             print()
 
         move_number += 1
+
     # After loop ends normally
     if verbose:
         print("\nReached maximum move limit. Game stopped.")
@@ -146,13 +186,13 @@ def main():
         "--white-depth",
         type=int,
         default=2,
-        help="Search depth for White (default: 2, max recommended: 4)",
+        help="Search depth for White (default: 2, max recommended: 5)",
     )
     parser.add_argument(
         "--black-depth",
         type=int,
         default=2,
-        help="Search depth for Black (default: 2, max recommended: 4)",
+        help="Search depth for Black (default: 2, max recommended: 5)",
     )
     parser.add_argument(
         "--max-moves",
@@ -170,9 +210,9 @@ def main():
         print("Error: --black-depth must be >= 1", file=sys.stderr)
         sys.exit(1)
 
-    # Validate depths >= 1 (already checked above)
-    white_depth = args.white_depth
-    black_depth = args.black_depth
+    # Enforce reasonable limits while still allowing higher via adaptive timeout.
+    white_depth = min(args.white_depth, 5)
+    black_depth = min(args.black_depth, 5)
 
     run_self_play(
         depth_white=white_depth,

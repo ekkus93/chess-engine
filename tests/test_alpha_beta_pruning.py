@@ -140,3 +140,68 @@ def get_best_move(board: Board, depth: int):
 
     score, move = minimax(board, params)
     return move
+
+
+def test_alpha_beta_prunes_fewer_nodes_than_no_prune():
+    """Alpha-beta minimax should explore fewer nodes than pure minimax on the same position."""
+    from chess_game.chess.ai import minimax_no_prune
+
+    board = Board()
+
+    # Alpha-beta minimax with nodes counter
+    nodes_ab = [0]
+    params_ab = MinimaxParams(
+        depth=2,
+        alpha=-10_000_000,
+        beta=10_000_000,
+        is_maximizing=True,
+        nodes_searched=nodes_ab,
+    )
+    score_ab, _ = minimax(board, params_ab)
+
+    # Pure minimax (no pruning) with nodes counter
+    nodes_nop = [0]
+    score_nop = minimax_no_prune(board, 2, True, nodes_nop)
+
+    # Both should agree on score.
+    assert score_ab == score_nop
+
+    # Alpha-beta should explore fewer nodes.
+    assert nodes_ab[0] < nodes_nop[0], "Alpha-beta should prune nodes compared to pure minimax"
+
+
+def test_alpha_beta_cutoffs_occurred():
+    """Alpha-beta search should record cutoffs at moderate depth."""
+    from chess_game.chess.ai import SearchStats
+
+    board = Board()
+    stats = SearchStats()
+
+    params = MinimaxParams(
+        depth=3,
+        alpha=-10_000_000,
+        beta=10_000_000,
+        is_maximizing=True,
+        stats=stats,
+    )
+
+    minimax(board, params)
+
+    assert stats.cutoffs > 0, "Alpha-beta should trigger cutoffs at depth 3"
+
+
+def test_self_play_depth_3_terminates():
+    """Self-play with depth 3 should terminate for a single move quickly."""
+    import time
+    from chess_game.self_play import run_self_play
+
+    start = time.monotonic()
+    run_self_play(
+        depth_white=3,
+        depth_black=3,
+        max_moves=1,
+        verbose=False,
+    )
+    elapsed = time.monotonic() - start
+
+    assert elapsed < 60, "Self-play with depth 3, 1 move should complete within 60s"

@@ -97,6 +97,7 @@ class MinimaxParams:
     last_best_move: Optional[LegalMove] = None
     nodes_searched: Optional[list[int]] = None
     stats: Optional[SearchStats] = None
+    killer_moves: Optional[list[tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]]] = None
 
 
 def evaluate(board: Board) -> int:
@@ -307,6 +308,10 @@ def _search_move_loop(
             if alpha >= beta:
                 if params.stats is not None:
                     params.stats.cutoffs += 1
+                if params.killer_moves is not None:
+                    kv = (move.start, move.end, move.promotion)
+                    if kv not in params.killer_moves:
+                        params.killer_moves.append(kv)
                 break
         else:
             if child_score < best_score:
@@ -316,6 +321,10 @@ def _search_move_loop(
             if beta <= alpha:
                 if params.stats is not None:
                     params.stats.cutoffs += 1
+                if params.killer_moves is not None:
+                    kv = (move.start, move.end, move.promotion)
+                    if kv not in params.killer_moves:
+                        params.killer_moves.append(kv)
                 break
 
     _store_tt_cache(board, params, best_score, best_move, alpha_orig, beta_orig)
@@ -378,7 +387,7 @@ def _order_moves(
     legal_moves: list[Move],
     params: MinimaxParams | None = None,
 ) -> list[MoveOrderingKey]:
-    """Sort moves for better pruning order."""
+    """Sort moves for better pruning order (MVV/LVA, killer moves, TT, last best)."""
     promotion_order_bonus = {
         PieceType.QUEEN: 900,
         PieceType.ROOK: 500,
@@ -401,35 +410,59 @@ def _order_moves(
     if tt_entry is not None and tt_entry.best_move is not None:
         tt_best_move = tt_entry.best_move
 
+    killer_moves_set: set[tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]] | None = (
+        set(params.killer_moves)
+        if params is not None and params.killer_moves is not None
+        else None
+    )
+
     for move in legal_moves:
         start, end, promotion = move.start, move.end, move.promotion
 
         captured_piece = board.get_piece(end)
-        capture_gain = (
-            _captured_piece_value(captured_piece.kind)
-            if captured_piece is not None
-            else 0
-        )
+        is_capture = captured_piece is not None
+
+        # MVV/LVA: prioritize captures of high-value pieces with low-value attackers
+        capture_gain = 0
+        if is_capture:
+            attacker = board.get_piece(start)
+            order_score = (
+                _mvv_lva_capture_score(attacker, captured_piece)
+                if attacker is not None
+                else 0
+            )
+            capture_gain = order_score
+        else:
+            capture_gain = 0
 
         promotion_value = 0
         if promotion is not None:
             promotion_value = promotion_order_bonus.get(promotion, 0)
 
+        # Base score
         order_score = capture_gain + promotion_value
 
+        # Killer move bonus (non-capture)
+        if killer_moves_set is not None and not is_capture:
+            kv = (start, end, promotion)
+            if kv in killer_moves_set:
+                order_score += 1500
+
+        # Last best move bonus
         if last_best_move is not None and (
             start == last_best_move.start
             and end == last_best_move.end
             and promotion == last_best_move.promotion
         ):
-            order_score += 1000
+            order_score += 2000
 
+        # TT best move bonus
         if tt_best_move is not None and (
             start == tt_best_move.start
             and end == tt_best_move.end
             and promotion == tt_best_move.promotion
         ):
-            order_score += 2000
+            order_score += 3000
 
         move_key = MoveOrderingKey(
             score=order_score, start=start, end=end, promotion=promotion
@@ -437,6 +470,31 @@ def _order_moves(
         scored_moves.append(move_key)
 
     return sorted(scored_moves, key=lambda x: x.score, reverse=True)
+
+
+def _mvv_lva_capture_score(attacker: Piece, victim: Piece) -> int:
+    """MVV/LVA score for a capture: Most Valuable Victim / Least Valuable Attacker."""
+    victim_values = {
+        PieceType.PAWN: 10,
+        PieceType.KNIGHT: 30,
+        PieceType.BISHOP: 32,
+        PieceType.ROOK: 35,
+        PieceType.QUEEN: 90,
+    }
+
+    attacker_values = {
+        PieceType.PAWN: 10,
+        PieceType.KNIGHT: 30,
+        PieceType.BISHOP: 32,
+        PieceType.ROOK: 35,
+        PieceType.QUEEN: 90,
+    }
+
+    v = victim_values.get(victim.kind, 0)
+    a = attacker_values.get(attacker.kind, 0)
+
+    # Higher is better; we want high victim, low attacker.
+    return (v * 1000) - a
 
 
 def _captured_piece_value(piece_type: PieceType) -> int:
@@ -457,29 +515,69 @@ def get_best_move(board: Board, depth: int) -> Optional[LegalMove]:
         raise ValueError("depth must be >= 1")
 
     tt: dict[str, TTEntry] = {}
+    killer_moves: list[LegalMove] = []
 
     best_move: LegalMove | None = None
+    prev_score: int = 0
 
     for d in range(1, depth + 1):
-        # Use full-width alpha-beta for correctness.
-        # Aspiration windows require fail-high/fail-low re-search.
+        # Use aspiration windows starting from depth 2.
+        use_aspiration = d >= 2
         alpha = -INF
         beta = INF
 
-        params = MinimaxParams(
-            depth=d,
-            alpha=alpha,
-            beta=beta,
-            is_maximizing=board.turn == Color.WHITE,
-            transposition_table=tt,
-            last_best_move=best_move,
-        )
-        legal_moves = get_legal_moves(board)
-        if not legal_moves:
-            return None
+        # Initial window around previous score
+        window = 1000
+        if use_aspiration:
+            alpha = prev_score - window
+            beta = prev_score + window
 
-        _, move = minimax(board, params)
-        best_move = move
+        max_attempts = 5
+        attempt = 0
+        while True:
+            params = MinimaxParams(
+                depth=d,
+                alpha=alpha,
+                beta=beta,
+                is_maximizing=board.turn == Color.WHITE,
+                transposition_table=tt,
+                last_best_move=best_move,
+                killer_moves=killer_moves,
+            )
+
+            legal_moves = get_legal_moves(board)
+            if not legal_moves:
+                return None
+
+            score, move = minimax(board, params)
+            best_move = move
+
+            # If score within [alpha, beta), success.
+            if alpha <= score < beta:
+                prev_score = score
+                break
+
+            # Fail-low: expand alpha downward.
+            if score <= alpha:
+                alpha = -INF
+                if not use_aspiration:
+                    break
+            # Fail-high: expand beta upward, then retry.
+            elif score >= beta:
+                beta = INF
+                if not use_aspiration:
+                    break
+
+            attempt += 1
+            if attempt >= max_attempts:
+                # Fallback to full window if too many retries.
+                alpha = -INF
+                beta = INF
+                break
+
+        # Ensure killer_moves stay limited.
+        if len(killer_moves) > 4:
+            killer_moves = killer_moves[-4:]
 
     return best_move
 
