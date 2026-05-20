@@ -170,9 +170,9 @@ def main():
         print("Error: --black-depth must be >= 1", file=sys.stderr)
         sys.exit(1)
 
-    # Enforce reasonable limits to avoid freezing
-    white_depth = min(args.white_depth, 4)
-    black_depth = min(args.black_depth, 4)
+    # Validate depths >= 1 (already checked above)
+    white_depth = args.white_depth
+    black_depth = args.black_depth
 
     run_self_play(
         depth_white=white_depth,
