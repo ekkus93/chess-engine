@@ -42,6 +42,7 @@ def _get_best_move_with_timeout(
     board: Board,
     depth: int,
     timeout: Optional[float],
+    position_counts: Optional[dict[str, int]] = None,
 ) -> object:
     """Run get_best_move with a POSIX alarm-based timeout.
 
@@ -49,7 +50,7 @@ def _get_best_move_with_timeout(
     Otherwise, if it exceeds 'timeout' seconds, returns None.
     """
     if timeout is None:
-        return get_best_move(board, depth=depth)
+        return get_best_move(board, depth=depth, position_counts=position_counts)
 
     class _SearchTimeout(Exception):
         """Raised when move search exceeds allowed time."""
@@ -61,7 +62,7 @@ def _get_best_move_with_timeout(
     signal.alarm(int(timeout) or 1)
 
     try:
-        best = get_best_move(board, depth=depth)
+        best = get_best_move(board, depth=depth, position_counts=position_counts)
     except _SearchTimeout:
         best = None
     finally:
@@ -108,10 +109,13 @@ def _terminal_message(
 
 
 def _pick_self_play_move(
-    board: Board, base_depth: int, timeout: Optional[int]
+    board: Board,
+    base_depth: int,
+    timeout: Optional[int],
+    position_counts: Optional[dict[str, int]] = None,
 ):
     """Choose a move at the exact requested depth."""
-    return _get_best_move_with_timeout(board, base_depth, timeout)
+    return _get_best_move_with_timeout(board, base_depth, timeout, position_counts)
 
 
 def _print_played_move(board: Board, move_number: int, side: str, best_move) -> None:
@@ -157,7 +161,12 @@ def run_self_play(
             return
 
         base_depth = depth_white if board.turn == Color.WHITE else depth_black
-        best = _pick_self_play_move(board, base_depth, per_move_timeout)
+        best = _pick_self_play_move(
+            board,
+            base_depth,
+            per_move_timeout,
+            position_counts,
+        )
         if best is None:
             if verbose:
                 _print_terminal_position(

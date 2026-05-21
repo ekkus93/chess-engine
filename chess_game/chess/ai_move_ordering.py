@@ -10,6 +10,10 @@ QUIET_PASSED_PAWN_PUSH_BONUS = 90
 QUIET_KING_CENTRALIZATION_BONUS = 18
 QUIET_HEAVY_PIECE_PRESSURE_BONUS = 24
 QUIET_CENTRALIZATION_BONUS = 12
+QUIET_KING_CUTOFF_BONUS = 32
+QUIET_ROOK_BEHIND_PASSER_BONUS = 40
+QUIET_LUFT_BONUS = 16
+QUIET_WORST_PIECE_BONUS = 18
 
 
 def quiet_strategy_order_score(board: Board, move: Move) -> int:
@@ -29,6 +33,14 @@ def quiet_strategy_order_score(board: Board, move: Move) -> int:
         score += QUIET_PASSED_PAWN_PUSH_BONUS + _pawn_push_progress(piece.color, move)
     if piece.kind in (PieceType.ROOK, PieceType.QUEEN) and _lines_up_with_enemy_king(board, move):
         score += QUIET_HEAVY_PIECE_PRESSURE_BONUS
+    if piece.kind in (PieceType.ROOK, PieceType.QUEEN) and _improves_king_cutoff(board, move):
+        score += QUIET_KING_CUTOFF_BONUS
+    if piece.kind == PieceType.ROOK and _moves_rook_behind_passer(board, piece.color, move):
+        score += QUIET_ROOK_BEHIND_PASSER_BONUS
+    if piece.kind == PieceType.PAWN and _creates_luft(piece.color, move):
+        score += QUIET_LUFT_BONUS
+    if _improves_worst_piece(board, piece.kind, move):
+        score += QUIET_WORST_PIECE_BONUS
     return score
 
 
@@ -139,3 +151,93 @@ def _lines_up_with_enemy_king(board: Board, move: Move) -> bool:
     if enemy_king is None:
         return False
     return int(move.end.row) == int(enemy_king.row) or int(move.end.col) == int(enemy_king.col)
+
+
+def _improves_king_cutoff(board: Board, move: Move) -> bool:
+    enemy_color = Color.BLACK if board.turn == Color.WHITE else Color.WHITE
+    enemy_king = next(
+        (
+            piece.square
+            for row in board.board
+            for piece in row
+            if piece is not None
+            and piece.color == enemy_color
+            and piece.kind == PieceType.KING
+        ),
+        None,
+    )
+    if enemy_king is None:
+        return False
+    start_same_line = (
+        int(move.start.row) == int(enemy_king.row)
+        or int(move.start.col) == int(enemy_king.col)
+    )
+    end_same_line = (
+        int(move.end.row) == int(enemy_king.row)
+        or int(move.end.col) == int(enemy_king.col)
+    )
+    return not start_same_line and end_same_line
+
+
+def _moves_rook_behind_passer(board: Board, color: Color, move: Move) -> bool:
+    for row_index, row in enumerate(board.board):
+        for col_index, piece in enumerate(row):
+            if piece is None or piece.color != color or piece.kind != PieceType.PAWN:
+                continue
+            if not _is_passed_pawn_candidate(board, color, row_index, col_index):
+                continue
+            if int(move.end.col) != col_index:
+                continue
+            if color == Color.WHITE and int(move.end.row) > row_index:
+                return True
+            if color == Color.BLACK and int(move.end.row) < row_index:
+                return True
+    return False
+
+
+def _is_passed_pawn_candidate(board: Board, color: Color, row: int, col: int) -> bool:
+    enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
+    for row_index, board_row in enumerate(board.board):
+        for col_index, piece in enumerate(board_row):
+            if (
+                piece is not None
+                and piece.color == enemy_color
+                and piece.kind == PieceType.PAWN
+                and abs(col_index - col) <= 1
+            ):
+                if color == Color.WHITE and row_index < row:
+                    return False
+                if color == Color.BLACK and row_index > row:
+                    return False
+    return True
+
+
+def _creates_luft(color: Color, move: Move) -> bool:
+    home_row = 6 if color == Color.WHITE else 1
+    return (
+        int(move.start.row) == home_row
+        and int(move.start.col) in {5, 6, 7}
+        and abs(int(move.end.row) - int(move.start.row)) == 1
+    )
+
+
+def _improves_worst_piece(board: Board, kind: PieceType, move: Move) -> bool:
+    if kind not in (PieceType.ROOK, PieceType.QUEEN, PieceType.BISHOP, PieceType.KNIGHT):
+        return False
+    moving_piece_distance = center_distance(int(move.start.row), int(move.start.col))
+    end_distance = center_distance(int(move.end.row), int(move.end.col))
+    if end_distance >= moving_piece_distance:
+        return False
+    color = board.turn
+    worst_distance = max(
+        (
+            center_distance(row_index, col_index)
+            for row_index, row in enumerate(board.board)
+            for col_index, piece in enumerate(row)
+            if piece is not None
+            and piece.color == color
+            and piece.kind == kind
+        ),
+        default=moving_piece_distance,
+    )
+    return moving_piece_distance >= worst_distance

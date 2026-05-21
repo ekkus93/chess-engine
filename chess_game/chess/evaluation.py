@@ -7,6 +7,7 @@ from chess_game.chess.constants import ConstantSquare, get_col_constant, get_row
 from chess_game.chess.endgame_evaluation import (
     evaluate_conversion as _evaluate_conversion,
     evaluate_endgame_technique as _evaluate_endgame_technique,
+    evaluate_progress as _evaluate_progress,
 )
 from chess_game.chess.pieces.piece_movers import PieceMovers
 from chess_game.chess.strategy_utils import (
@@ -93,6 +94,7 @@ def get_evaluation_breakdown(board: Board) -> EvaluationBreakdown:
         "space": _evaluate_space(board, middlegame_phase),
         "endgame_technique": _evaluate_endgame_technique(board, endgame_phase),
         "conversion": _evaluate_conversion(board, endgame_phase),
+        "progress": _evaluate_progress(board, endgame_phase),
         "development": _evaluate_development(board, middlegame_phase),
     }
     breakdown["total"] = sum(breakdown.values())

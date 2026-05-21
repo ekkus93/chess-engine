@@ -12,11 +12,25 @@ import time
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_in_check as _gs_is_in_check
 from chess_game.chess.ai_move_ordering import quiet_strategy_order_score
+from chess_game.chess.ai_search_helpers import (
+    RepetitionPolicy,
+    initial_root_window as _initial_root_window,
+    position_occurrence_count as _position_occurrence_count,
+    record_depth_timing as _record_depth_timing,
+    record_root_research as _record_root_research,
+    repetition_score as _repetition_score,
+    rerun_full_window_if_needed as _rerun_full_window_if_needed,
+    search_position_counts as _search_position_counts,
+)
 from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.evaluation import (
     MATERIAL_VALUES,
     evaluate,
     get_evaluation_breakdown as _get_evaluation_breakdown,
+)
+from chess_game.chess.evaluation_tables import (
+    REPETITION_PROGRESS_THRESHOLD,
+    VOLUNTARY_REPETITION_PENALTY,
 )
 from chess_game.chess.move import Move
 from chess_game.chess.strategy_utils import is_capture_move as _is_capture_move
@@ -233,6 +247,7 @@ class SearchContext:
     nodes_searched: Optional[list[int]] = None
     stats: Optional[SearchStats] = None
     killer_moves: Optional[list[LegalMoveKey]] = None
+    position_counts: Optional[dict[str, int]] = None
 
 
 @dataclass
@@ -244,6 +259,7 @@ class MinimaxParams:
     beta: int
     is_maximizing: bool
     context: Optional[SearchContext] = None
+    line_history: tuple[str, ...] = ()
 
 
 @dataclass
@@ -255,6 +271,7 @@ class QuiescenceParams:
     is_maximizing: bool
     context: Optional[SearchContext] = None
     depth_remaining: int = MAX_QUIESCENCE_DEPTH
+    line_history: tuple[str, ...] = ()
 
 
 def get_legal_moves(board: Board) -> list[Move]:
@@ -285,6 +302,8 @@ def _check_tt_cache(
 ) -> Optional[tuple[int, LegalMove | None]]:
     """Check transposition table for a cached result."""
 
+    if _position_occurrence_count(board, params.context, params.line_history, position_key) > 1:
+        return None
     context = params.context
     if context is None or context.transposition_table is None:
         return None
@@ -294,10 +313,9 @@ def _check_tt_cache(
     if entry.flag == TTFlag.EXACT:
         _record_tt_usage(context, entry)
         return (entry.score, entry.best_move)
-    if entry.flag == TTFlag.LOWERBOUND and entry.score >= params.beta:
-        _record_tt_usage(context, entry)
-        return (entry.score, entry.best_move)
-    if entry.flag == TTFlag.UPPERBOUND and entry.score <= params.alpha:
+    lower_bound_hit = entry.flag == TTFlag.LOWERBOUND and entry.score >= params.beta
+    upper_bound_hit = entry.flag == TTFlag.UPPERBOUND and entry.score <= params.alpha
+    if lower_bound_hit or upper_bound_hit:
         _record_tt_usage(context, entry)
         return (entry.score, entry.best_move)
     return None
@@ -312,6 +330,8 @@ def _store_tt_cache(
 ) -> None:
     """Store a result in the transposition table with the correct bound flag."""
 
+    if _position_occurrence_count(board, params.context, params.line_history, position_key) > 1:
+        return
     context = params.context
     if context is None or context.transposition_table is None:
         return
@@ -375,6 +395,19 @@ def minimax(
     """Standard minimax with alpha-beta pruning."""
 
     _record_search_node(params.context)
+    repetition_score = _repetition_score(
+        board,
+        params.context,
+        params.line_history,
+        RepetitionPolicy(
+            position_key=position_key,
+            evaluate=evaluate,
+            threshold=REPETITION_PROGRESS_THRESHOLD,
+            penalty=VOLUNTARY_REPETITION_PENALTY,
+        ),
+    )
+    if repetition_score is not None:
+        return (repetition_score, None)
     cached = _check_tt_cache(board, params)
     if cached is not None:
         _record_tt_hit(params.context)
@@ -476,6 +509,7 @@ def _evaluate_child_move(
             beta=beta,
             is_maximizing=not params.is_maximizing,
             context=params.context,
+            line_history=params.line_history + (position_key(child_board),),
         ),
     )
     return child_result
@@ -552,6 +586,19 @@ def _quiescence(board: Board, params: QuiescenceParams) -> int:
     beta = params.beta
     context = params.context
     _record_quiescence_node(context)
+    repetition_score = _repetition_score(
+        board,
+        context,
+        params.line_history,
+        RepetitionPolicy(
+            position_key=position_key,
+            evaluate=evaluate,
+            threshold=REPETITION_PROGRESS_THRESHOLD,
+            penalty=VOLUNTARY_REPETITION_PENALTY,
+        ),
+    )
+    if repetition_score is not None:
+        return repetition_score
     stand_pat = evaluate(board)
     best_score, alpha, beta = _stand_pat_bounds(
         stand_pat,
@@ -577,14 +624,16 @@ def _quiescence(board: Board, params: QuiescenceParams) -> int:
         context=context,
     )
     for move in _order_moves(board, tactical_moves, move_order_params):
+        child_board = _make_copy_with_move(board, move)
         child_score = _quiescence(
-            _make_copy_with_move(board, move),
+            child_board,
             QuiescenceParams(
                 alpha=alpha,
                 beta=beta,
                 is_maximizing=not params.is_maximizing,
                 context=context,
                 depth_remaining=params.depth_remaining - 1,
+                line_history=params.line_history + (position_key(child_board),),
             ),
         )
         if params.is_maximizing:
@@ -776,6 +825,7 @@ def get_best_move(
     board: Board,
     depth: int,
     stats: Optional[SearchStats] = None,
+    position_counts: Optional[dict[str, int]] = None,
 ) -> Optional[LegalMove]:
     """Get the best move for the current position at given search depth."""
 
@@ -788,6 +838,7 @@ def get_best_move(
         transposition_table={},
         stats=stats,
         killer_moves=[],
+        position_counts=_search_position_counts(board, position_counts, position_key),
     )
     best_move: Optional[LegalMove] = None
     previous_score = 0
@@ -828,7 +879,7 @@ def _search_root_depth(
 ) -> tuple[int, Optional[LegalMove]]:
     """Search one iterative-deepening layer, rerunning on aspiration failure."""
 
-    alpha, beta = _initial_root_window(depth, previous_score)
+    alpha, beta = _initial_root_window(depth, previous_score, ASPIRATION_WINDOW, INF)
     while True:
         score, move = minimax(
             board,
@@ -838,33 +889,13 @@ def _search_root_depth(
                 beta=beta,
                 is_maximizing=is_maximizing,
                 context=context,
+                line_history=(position_key(board),),
             ),
         )
-        if not _rerun_full_window_if_needed(score, alpha, beta, context):
+        if not _rerun_full_window_if_needed(score, alpha, beta, context, INF):
             return score, move
         _record_root_research(context)
         alpha, beta = -INF, INF
-
-
-def _record_root_research(context: SearchContext) -> None:
-    """Record a root re-search caused by aspiration failure."""
-
-    if context.stats is not None:
-        context.stats.root_researches += 1
-
-
-def _record_depth_timing(
-    context: SearchContext,
-    depth: int,
-    elapsed: float,
-) -> None:
-    """Store per-depth timing diagnostics."""
-
-    if context.stats is None:
-        return
-    if context.stats.depth_timings is None:
-        context.stats.depth_timings = {}
-    context.stats.depth_timings[depth] = elapsed
 
 
 def search_root_depth(
@@ -877,35 +908,6 @@ def search_root_depth(
     """Public wrapper for root-depth search used by diagnostics and tests."""
 
     return _search_root_depth(board, depth, is_maximizing, previous_score, context)
-
-
-def _initial_root_window(depth: int, previous_score: int) -> tuple[int, int]:
-    """Return the initial alpha-beta window for one root search."""
-
-    if depth == 1:
-        return -INF, INF
-    return previous_score - ASPIRATION_WINDOW, previous_score + ASPIRATION_WINDOW
-
-
-def _rerun_full_window_if_needed(
-    score: int,
-    alpha: int,
-    beta: int,
-    context: SearchContext,
-) -> bool:
-    """Return True when the root search must rerun with a full window."""
-
-    if alpha == -INF and beta == INF:
-        return False
-    if score <= alpha:
-        if context.stats is not None:
-            context.stats.fail_low_retries += 1
-        return True
-    if score >= beta:
-        if context.stats is not None:
-            context.stats.fail_high_retries += 1
-        return True
-    return False
 
 
 def position_key(board: Board) -> str:

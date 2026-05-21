@@ -125,7 +125,8 @@ def test_self_play_honors_requested_depth(monkeypatch):
     """Self-play should use the exact requested depth for both sides."""
     requested_depths = []
 
-    def fake_get_best_move(board: Board, depth: int):
+    def fake_get_best_move(board: Board, depth: int, position_counts=None):
+        _ = position_counts
         requested_depths.append(depth)
         start, end, promotion = board.get_legal_moves()[0]
         return LegalMove(start, end, promotion)

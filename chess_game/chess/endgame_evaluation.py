@@ -4,12 +4,19 @@ from chess_game.chess.board import Board
 from chess_game.chess.evaluation_tables import (
     ACTIVE_KING_ENDGAME_BONUS,
     BLOCKADED_PASSED_PAWN_BONUS,
+    COUNTERPLAY_REDUCTION_BONUS,
+    ENEMY_KING_BOX_BONUS,
     HEAVY_PIECE_COORDINATION_BONUS,
+    HEAVY_PIECE_ACTIVITY_BONUS,
+    KING_CUTOFF_BONUS,
+    KING_ESCORT_PASSED_PAWN_BONUS,
     MATERIAL_VALUES,
     MATING_EDGE_BONUS,
     MATING_KING_DISTANCE_BONUS,
     MATING_MATERIAL_BASE,
+    PROMOTION_SQUARE_CONTROL_BONUS,
     QUEENS_OFF_WHEN_AHEAD_BONUS,
+    ROOK_BEHIND_PASSED_PAWN_BONUS,
     SIMPLIFICATION_BONUS_SCALE,
     STARTING_NON_PAWN_MATERIAL,
 )
@@ -55,6 +62,28 @@ def evaluate_conversion(board: Board, endgame_phase: int) -> int:
     return _color_sign(leading_color) * bonus
 
 
+def evaluate_progress(board: Board, endgame_phase: int) -> int:
+    """Return progress and restriction bonuses for practical endgame play."""
+
+    material_without_kings = _material_without_kings(board)
+    lead = material_without_kings[Color.WHITE] - material_without_kings[Color.BLACK]
+    if lead == 0:
+        return 0
+    leading_color = Color.WHITE if lead > 0 else Color.BLACK
+    if not _has_conversion_assets(board, leading_color):
+        return 0
+    bonus = 0
+    bonus += _king_cutoff_score(board, leading_color)
+    bonus += _rook_behind_passed_pawn_score(board, leading_color)
+    bonus += _king_escort_passed_pawn_score(board, leading_color)
+    bonus += _promotion_square_control_score(board, leading_color)
+    bonus += _enemy_king_box_score(board, leading_color)
+    bonus += _counterplay_reduction_score(board, leading_color)
+    bonus += _heavy_piece_activity_score(board, leading_color)
+    phase_scale = max(40, 40 + endgame_phase)
+    return _color_sign(leading_color) * ((bonus * phase_scale) // 100)
+
+
 def _collect_pawn_positions(board: Board) -> dict[Color, list[tuple[int, int]]]:
     positions = {Color.WHITE: [], Color.BLACK: []}
     for piece, row, col in iter_board_pieces(board):
@@ -67,6 +96,26 @@ def _find_king(board: Board, color: Color):
         if piece.kind == PieceType.KING:
             return piece.square
     return None
+
+
+def _passed_pawns_for_color(board: Board, color: Color) -> list[tuple[int, int]]:
+    pawn_positions = _collect_pawn_positions(board)
+    return [
+        (row, col)
+        for row, col in pawn_positions[color]
+        if is_passed_pawn(color, row, col, pawn_positions[_opponent(color)])
+    ]
+
+
+def _has_conversion_assets(board: Board, color: Color) -> bool:
+    return any(
+        piece.kind in (PieceType.ROOK, PieceType.QUEEN)
+        for piece, _, _ in iter_color_pieces(board, color)
+    ) or any(_is_advanced_passer(color, row) for row, _ in _passed_pawns_for_color(board, color))
+
+
+def _is_advanced_passer(color: Color, row: int) -> bool:
+    return row <= 3 if color == Color.WHITE else row >= 4
 
 
 def _active_king_score(board: Board, endgame_phase: int) -> int:
@@ -168,6 +217,156 @@ def _heavy_piece_coordination(board: Board, color: Color) -> bool:
             (second_row, second_col),
         )
     return False
+
+
+def _king_cutoff_score(board: Board, color: Color) -> int:
+    enemy_king = _find_king(board, _opponent(color))
+    if enemy_king is None:
+        return 0
+    enemy_row = int(enemy_king.row)
+    enemy_col = int(enemy_king.col)
+    score = 0
+    for piece, row, col in iter_color_pieces(board, color):
+        if piece.kind not in (PieceType.ROOK, PieceType.QUEEN):
+            continue
+        if row in {0, 7} or col in {0, 7}:
+            continue
+        row_distance = abs(row - enemy_row)
+        col_distance = abs(col - enemy_col)
+        if row == enemy_row and col_distance >= 2:
+            score += KING_CUTOFF_BONUS
+        if col == enemy_col and row_distance >= 2:
+            score += KING_CUTOFF_BONUS
+    return score
+
+
+def _rook_behind_passed_pawn_score(board: Board, color: Color) -> int:
+    rooks = [
+        (row, col)
+        for piece, row, col in iter_color_pieces(board, color)
+        if piece.kind == PieceType.ROOK
+    ]
+    if not rooks:
+        return 0
+    score = 0
+    for pawn_row, pawn_col in _passed_pawns_for_color(board, color):
+        if not _is_advanced_passer(color, pawn_row):
+            continue
+        for rook_row, rook_col in rooks:
+            if rook_col != pawn_col:
+                continue
+            if color == Color.WHITE and rook_row <= pawn_row:
+                continue
+            if color == Color.BLACK and rook_row >= pawn_row:
+                continue
+            if path_clear_between(board, (rook_row, rook_col), (pawn_row, pawn_col)):
+                score += ROOK_BEHIND_PASSED_PAWN_BONUS
+    return score
+
+
+def _king_escort_passed_pawn_score(board: Board, color: Color) -> int:
+    king_square = _find_king(board, color)
+    enemy_king = _find_king(board, _opponent(color))
+    if king_square is None or enemy_king is None:
+        return 0
+    own_king = (int(king_square.row), int(king_square.col))
+    enemy_king_pos = (int(enemy_king.row), int(enemy_king.col))
+    score = 0
+    for pawn_row, pawn_col in _passed_pawns_for_color(board, color):
+        if not _is_advanced_passer(color, pawn_row):
+            continue
+        own_distance = abs(own_king[0] - pawn_row) + abs(own_king[1] - pawn_col)
+        enemy_distance = abs(enemy_king_pos[0] - pawn_row) + abs(enemy_king_pos[1] - pawn_col)
+        if own_distance + 1 < enemy_distance:
+            score += KING_ESCORT_PASSED_PAWN_BONUS
+    return score
+
+
+def _promotion_square_control_score(board: Board, color: Color) -> int:
+    enemy_king = _find_king(board, _opponent(color))
+    if enemy_king is None:
+        return 0
+    enemy_king_pos = (int(enemy_king.row), int(enemy_king.col))
+    score = 0
+    for pawn_row, pawn_col in _passed_pawns_for_color(board, color):
+        if not _is_advanced_passer(color, pawn_row):
+            continue
+        promotion_row = 0 if color == Color.WHITE else 7
+        promotion_square = (promotion_row, pawn_col)
+        enemy_distance = abs(enemy_king_pos[0] - promotion_row) + abs(
+            enemy_king_pos[1] - pawn_col
+        )
+        if enemy_distance > 2:
+            score += PROMOTION_SQUARE_CONTROL_BONUS
+        for piece, row, col in iter_color_pieces(board, color):
+            if piece.kind in (PieceType.ROOK, PieceType.QUEEN) and col == pawn_col:
+                if color == Color.WHITE and row > pawn_row:
+                    score += PROMOTION_SQUARE_CONTROL_BONUS // 2
+                if color == Color.BLACK and row < pawn_row:
+                    score += PROMOTION_SQUARE_CONTROL_BONUS // 2
+        if _own_king_controls_square(board, color, promotion_square):
+            score += PROMOTION_SQUARE_CONTROL_BONUS // 2
+    return score
+
+
+def _own_king_controls_square(
+    board: Board,
+    color: Color,
+    target: tuple[int, int],
+) -> bool:
+    king_square = _find_king(board, color)
+    if king_square is None:
+        return False
+    return max(
+        abs(int(king_square.row) - target[0]),
+        abs(int(king_square.col) - target[1]),
+    ) <= 1
+
+
+def _enemy_king_box_score(board: Board, color: Color) -> int:
+    enemy_color = _opponent(color)
+    enemy_king = _find_king(board, enemy_color)
+    if enemy_king is None:
+        return 0
+    enemy_moves = [
+        move
+        for move in board.get_legal_moves_for_color(enemy_color)
+        if move[0] == enemy_king
+    ]
+    restricted = max(0, 8 - len(enemy_moves))
+    return restricted * ENEMY_KING_BOX_BONUS
+
+
+def _counterplay_reduction_score(board: Board, color: Color) -> int:
+    enemy_color = _opponent(color)
+    own_king = _find_king(board, color)
+    if own_king is None:
+        return 0
+    own_king_row = int(own_king.row)
+    own_king_col = int(own_king.col)
+    score = 0
+    for piece, row, col in iter_color_pieces(board, enemy_color):
+        if piece.kind not in (PieceType.ROOK, PieceType.QUEEN):
+            continue
+        if row == own_king_row or col == own_king_col:
+            score -= COUNTERPLAY_REDUCTION_BONUS
+    return score
+
+
+def _heavy_piece_activity_score(board: Board, color: Color) -> int:
+    enemy_king = _find_king(board, _opponent(color))
+    if enemy_king is None:
+        return 0
+    enemy_row = int(enemy_king.row)
+    enemy_col = int(enemy_king.col)
+    score = 0
+    for piece, row, col in iter_color_pieces(board, color):
+        if piece.kind not in (PieceType.ROOK, PieceType.QUEEN):
+            continue
+        distance = max(abs(row - enemy_row), abs(col - enemy_col))
+        if distance <= 2:
+            score += HEAVY_PIECE_ACTIVITY_BONUS
+    return score
 
 
 def _material_without_kings(board: Board) -> dict[Color, int]:

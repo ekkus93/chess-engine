@@ -14,6 +14,7 @@ from chess_game.chess.ai import (
     position_key,
     quiescence,
 )
+from chess_game.chess.ai_search_helpers import RepetitionPolicy, repetition_score
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.types import Color, LegalMove, PieceType
 from tests.helpers import sq
@@ -479,3 +480,158 @@ def test_quiet_move_order_prefers_castling_over_idle_rook_move() -> None:
         rook_shuffle,
         None,
     )
+
+
+def test_progress_breakdown_rewards_rook_cutoff() -> None:
+    """A rook cutting off the enemy king should improve the progress breakdown."""
+
+    cutoff_board = _empty_board_with_kings()
+    cutoff_board.clear_board()
+    cutoff_board.set_piece(sq("f5"), create_piece(Color.WHITE, PieceType.KING))
+    cutoff_board.set_piece(sq("e7"), create_piece(Color.WHITE, PieceType.ROOK))
+    cutoff_board.set_piece(sq("d5"), create_piece(Color.WHITE, PieceType.PAWN))
+    cutoff_board.set_piece(sq("g7"), create_piece(Color.BLACK, PieceType.KING))
+
+    loose_board = cutoff_board.clone()
+    loose_board.clear_square(sq("e7"))
+    loose_board.set_piece(sq("a7"), create_piece(Color.WHITE, PieceType.ROOK))
+
+    assert (
+        get_evaluation_breakdown(cutoff_board)["progress"]
+        > get_evaluation_breakdown(loose_board)["progress"]
+    )
+
+
+def test_progress_breakdown_rewards_rook_behind_passed_pawn() -> None:
+    """A rook behind its own passed pawn should be rewarded."""
+
+    behind_board = _empty_board_with_kings()
+    behind_board.clear_board()
+    behind_board.set_piece(sq("f4"), create_piece(Color.WHITE, PieceType.KING))
+    behind_board.set_piece(sq("d1"), create_piece(Color.WHITE, PieceType.ROOK))
+    behind_board.set_piece(sq("d5"), create_piece(Color.WHITE, PieceType.PAWN))
+    behind_board.set_piece(sq("g7"), create_piece(Color.BLACK, PieceType.KING))
+
+    side_board = behind_board.clone()
+    side_board.clear_square(sq("d1"))
+    side_board.set_piece(sq("a1"), create_piece(Color.WHITE, PieceType.ROOK))
+
+    assert (
+        get_evaluation_breakdown(behind_board)["progress"]
+        > get_evaluation_breakdown(side_board)["progress"]
+    )
+
+
+def test_progress_breakdown_rewards_king_escort_of_passed_pawn() -> None:
+    """A king escorting its passed pawn should improve progress scoring."""
+
+    escorted_board = _empty_board_with_kings()
+    escorted_board.clear_board()
+    escorted_board.set_piece(sq("e5"), create_piece(Color.WHITE, PieceType.KING))
+    escorted_board.set_piece(sq("d6"), create_piece(Color.WHITE, PieceType.PAWN))
+    escorted_board.set_piece(sq("h8"), create_piece(Color.BLACK, PieceType.KING))
+
+    distant_board = escorted_board.clone()
+    distant_board.clear_square(sq("e5"))
+    distant_board.set_piece(sq("a1"), create_piece(Color.WHITE, PieceType.KING))
+
+    assert (
+        get_evaluation_breakdown(escorted_board)["progress"]
+        > get_evaluation_breakdown(distant_board)["progress"]
+    )
+
+
+def test_quiet_move_order_prefers_rook_behind_passed_pawn_move() -> None:
+    """Quiet move ordering should prefer bringing a rook behind a passed pawn."""
+
+    board = _empty_board_with_kings()
+    board.clear_board()
+    board.set_piece(sq("f4"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("a1"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(sq("d5"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("g7"), create_piece(Color.BLACK, PieceType.KING))
+    board.turn = Color.WHITE
+
+    behind_move = ai.Move(start=sq("a1"), end=sq("d1"))
+    side_move = ai.Move(start=sq("a1"), end=sq("a5"))
+
+    assert _move_order_score(board, behind_move, None) > _move_order_score(
+        board,
+        side_move,
+        None,
+    )
+
+
+def test_search_prefers_king_centralization_in_winning_rook_endgame() -> None:
+    """Search should activate the king rather than drift in a winning rook ending."""
+
+    board = _empty_board_with_kings()
+    board.clear_board()
+    board.set_piece(sq("g3"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("d1"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(sq("d5"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("g7"), create_piece(Color.BLACK, PieceType.KING))
+    board.turn = Color.WHITE
+
+    best_move = get_best_move(board, depth=1)
+
+    assert best_move == LegalMove(start=sq("g3"), end=sq("f4"))
+
+
+def test_repetition_score_penalizes_draw_when_better_side_is_ahead() -> None:
+    """Threefold repetition should be biased against the materially better side."""
+
+    board = _empty_board_with_kings()
+    board.set_piece(sq("d4"), create_piece(Color.WHITE, PieceType.ROOK))
+    key = position_key(board)
+
+    assert repetition_score(
+        board,
+        None,
+        (key, key, key),
+        RepetitionPolicy(
+            position_key=position_key,
+            evaluate=ai.evaluate,
+            threshold=120,
+            penalty=32,
+        ),
+    ) < 0
+
+
+def test_repetition_score_preserves_draw_when_position_is_equal() -> None:
+    """Equal repeated positions should still score as a neutral draw."""
+
+    board = _empty_board_with_kings()
+    key = position_key(board)
+
+    assert repetition_score(
+        board,
+        None,
+        (key, key, key),
+        RepetitionPolicy(
+            position_key=position_key,
+            evaluate=ai.evaluate,
+            threshold=120,
+            penalty=32,
+        ),
+    ) == 0
+
+
+def test_repetition_score_favors_drawing_resource_when_behind() -> None:
+    """A repeated draw should be attractive to the materially worse side."""
+
+    board = _empty_board_with_kings()
+    board.set_piece(sq("d4"), create_piece(Color.BLACK, PieceType.ROOK))
+    key = position_key(board)
+
+    assert repetition_score(
+        board,
+        None,
+        (key, key, key),
+        RepetitionPolicy(
+            position_key=position_key,
+            evaluate=ai.evaluate,
+            threshold=120,
+            penalty=32,
+        ),
+    ) > 0

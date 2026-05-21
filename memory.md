@@ -349,3 +349,12 @@ Quality:
 ## 2026-05-21T06:38:23Z - GPT-5.4 - Post-merge validation remains green
 - Re-ran `pylint chess_game` on commit `26f6ebb`; the repository still rates 10.00/10.
 - Re-ran `python -m pytest tests -q`; all 379 tests passed in about 65.9 seconds.
+
+## 2026-05-21T09:24:57Z - GPT-5.4 - Strategy2 roadmap added
+- Added `docs/STRATEGY2_TODO.md`, a detailed follow-up roadmap focused on anti-repetition logic, progress-aware evaluation, cleaner winning-endgame conversion, playing against counterplay, and stronger quiet-move ordering for practical improvement.
+- The roadmap is explicitly driven by the depth-5 self-play failure mode seen in `docs/game3_w5b5.md`: safe but drifting play, repeated rook/queen shuffles, and voluntary repetition instead of clean conversion.
+
+## 2026-05-21T12:31:16Z - GPT-5.4 - Strategy2 progress-aware search phase
+- Added a first STRATEGY2 implementation slice across `ai.py`, `ai_search_helpers.py`, `endgame_evaluation.py`, `ai_move_ordering.py`, and `self_play.py` for repetition-aware search scoring, progress breakdown scoring, and new quiet-move ordering bonuses for king cutoff, rook-behind-passer play, king activation, and worst-piece improvement.
+- Expanded `tests/test_ai_quality.py` with regression coverage for repetition policy, rook cutoff, rook-behind-passed-pawn progress, king escort progress, and quiet improvement choices; the full suite now passes at `387 passed`.
+- A fresh depth-5 self-play comparison in `tmp/strategy2_w5b5.txt` ended with `Checkmate on move 69. Black wins.` instead of the earlier move-114 repetition draw in `docs/game3_w5b5.md`, while the depth-5 benchmark still passes in about 37.8 seconds on this machine.
