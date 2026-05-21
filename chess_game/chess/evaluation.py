@@ -9,6 +9,13 @@ from chess_game.chess.endgame_evaluation import (
     evaluate_endgame_technique as _evaluate_endgame_technique,
     evaluate_progress as _evaluate_progress,
 )
+from chess_game.chess.opening_development import (
+    coordinated_minor_piece_setup as _coordinated_minor_piece_setup,
+    early_flank_raid_penalty as _early_flank_raid_penalty,
+    opening_central_control_bonus as _opening_central_control_bonus,
+    opening_piece_coordination_bonus as _opening_piece_coordination_bonus,
+    undeveloped_minor_piece_count as _undeveloped_minor_piece_count,
+)
 from chess_game.chess.pieces.piece_movers import PieceMovers
 from chess_game.chess.strategy_utils import (
     is_passed_pawn as _is_passed_pawn,
@@ -41,7 +48,6 @@ from chess_game.chess.evaluation_tables import (
     EXPOSED_CENTRAL_KING_PENALTY,
     HEAVY_FILE_PRESSURE_PENALTY,
     EXTENDED_CENTER_FILES,
-    EXTENDED_CENTER_RANKS,
     ISOLATED_PAWN_PENALTY,
     KING_TABLE,
     KING_ZONE_ATTACK_PENALTY,
@@ -830,21 +836,6 @@ def _pawn_attacks_square(
     )
 
 
-def _coordinated_minor_piece_setup(minor_squares: list[tuple[int, int]]) -> bool:
-    central_squares = [
-        square
-        for square in minor_squares
-        if square[1] in EXTENDED_CENTER_FILES and square[0] in EXTENDED_CENTER_RANKS
-    ]
-    if len(central_squares) < 2:
-        return False
-    first_row, first_col = central_squares[0]
-    for second_row, second_col in central_squares[1:]:
-        if abs(first_row - second_row) <= 2 and abs(first_col - second_col) <= 2:
-            return True
-    return False
-
-
 def _evaluate_space(board: Board, middlegame_phase: int) -> int:
     if middlegame_phase == 0:
         return 0
@@ -894,35 +885,19 @@ def _evaluate_development(board: Board, middlegame_phase: int) -> int:
         sign = _color_sign(color)
         undeveloped = _undeveloped_minor_piece_count(board, color)
         development_score -= sign * undeveloped * UNDEVELOPED_MINOR_PIECE_PENALTY
+        development_score += sign * _opening_central_control_bonus(board, color)
+        development_score += sign * _opening_piece_coordination_bonus(
+            board,
+            color,
+            undeveloped,
+        )
         if undeveloped >= 2 and _queen_left_home_square(board, color):
             development_score -= sign * EARLY_QUEEN_MOVE_PENALTY
         development_score -= sign * _early_queen_raid_penalty(board, color, undeveloped)
         if undeveloped >= 2 and _rook_left_home_square_early(board, color):
             development_score -= sign * EARLY_ROOK_MOVE_PENALTY
+        development_score -= sign * _early_flank_raid_penalty(board, color, undeveloped)
     return _scale_signed(development_score, middlegame_phase)
-
-
-def _undeveloped_minor_piece_count(board: Board, color: Color) -> int:
-    starting_squares = {
-        Color.WHITE: {
-            PieceType.KNIGHT: {(7, 1), (7, 6)},
-            PieceType.BISHOP: {(7, 2), (7, 5)},
-        },
-        Color.BLACK: {
-            PieceType.KNIGHT: {(0, 1), (0, 6)},
-            PieceType.BISHOP: {(0, 2), (0, 5)},
-        },
-    }
-    undeveloped = 0
-    for piece, row, col in _iter_board_pieces(board):
-        piece_squares = starting_squares[color].get(piece.kind)
-        if (
-            piece.color == color
-            and piece_squares is not None
-            and (row, col) in piece_squares
-        ):
-            undeveloped += 1
-    return undeveloped
 
 
 def _queen_left_home_square(board: Board, color: Color) -> bool:

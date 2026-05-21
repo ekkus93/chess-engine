@@ -293,9 +293,9 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
 
 - [x] Strengthen early-game preferences for:
   - [x] minor-piece development
-  - [ ] central control
+  - [x] central control
   - [x] castling readiness
-  - [ ] piece coordination
+  - [x] piece coordination
   - [x] avoiding repeated queen moves
 
 ## 6.2 Penalize premature heavy-piece wandering
@@ -303,15 +303,15 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
 - [x] Penalize:
   - [x] early queen moves without concrete gain
   - [x] rook lifts before development is complete
-  - [ ] flank raids that ignore king safety
-  - [ ] repeated movement of one piece while others sleep
+  - [x] flank raids that ignore king safety
+  - [x] repeated movement of one piece while others sleep
 
 ## 6.3 Add opening regression tests
 
 - [x] Add tests that prefer:
   - [x] developing a knight/bishop over an early queen sortie
   - [x] castling-support moves over speculative queen checks
-  - [ ] sensible recapture/development over showy queen pressure
+  - [x] sensible recapture/development over showy queen pressure
 
 ---
 

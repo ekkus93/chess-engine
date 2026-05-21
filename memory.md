@@ -5,6 +5,11 @@
 - Extensions now trigger for in-check replies, urgent king-danger relief, and forcing queen/rook back-rank invasions against exposed kings, with tests proving they do not revive empty-check or fake-attack regressions.
 - Added a root-only stability adjustment so urgent threat-reducing moves can beat flashy but low-value queen shuffles in close searches.
 
+## 2026-05-21T22:09:26Z - GPT-5.4 - STRATEGY3 opening-discipline slice
+- Added opening-development helpers in `chess_game/chess/opening_development.py` and wired them into `evaluation.py` so early central control, coordinated minors, and unsafe flank raids affect the development breakdown.
+- Tightened quiet move ordering in `ai_move_ordering.py` so repeated early queen/rook moves lose priority while development is still unfinished.
+- Added `tests/test_ai_opening_strategy.py` to cover central control, coordinated minors, flank queen raids, repeated queen moves, and preferring central recapture over flashy queen pressure.
+
 ## Current Status: Phase 9 Complete - AI Module with Type Checking Fixes
 
 ### Session ID: 531fe519-d26a-4d2c-a870-ffa34f44987f

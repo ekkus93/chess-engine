@@ -570,6 +570,8 @@ def test_development_breakdown_penalizes_early_rook_wander() -> None:
     )
 
 
+
+
 def test_search_prefers_castling_in_quiet_position() -> None:
     """Search should choose castling when it is the best quiet king-safety improvement."""
 
@@ -633,6 +635,8 @@ def test_quiet_move_order_prefers_developing_knight_over_early_queen_sortie() ->
         queen_sortie,
         None,
     )
+
+
 
 
 def test_quiet_move_order_prefers_useful_check_over_flank_queen_drift() -> None:
@@ -726,6 +730,8 @@ def test_search_prefers_luft_over_empty_check_under_back_rank_pressure() -> None
     best_move = get_best_move(board, depth=2)
 
     assert best_move == LegalMove(start=sq("g2"), end=sq("g3"))
+
+
 
 
 def test_progress_breakdown_rewards_rook_cutoff() -> None:
