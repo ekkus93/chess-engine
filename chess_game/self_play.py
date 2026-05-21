@@ -41,12 +41,16 @@ def _move_to_algebraic(
 def _get_best_move_with_timeout(
     board: Board,
     depth: int,
-    timeout: float,
+    timeout: Optional[float],
 ) -> object:
     """Run get_best_move with a POSIX alarm-based timeout.
 
-    If it exceeds 'timeout' seconds, returns None so caller can reduce depth.
+    If timeout is None, search runs to completion at the requested depth.
+    Otherwise, if it exceeds 'timeout' seconds, returns None.
     """
+    if timeout is None:
+        return get_best_move(board, depth=depth)
+
     class _SearchTimeout(Exception):
         """Raised when move search exceeds allowed time."""
 
@@ -103,18 +107,11 @@ def _terminal_message(
     return None
 
 
-def _pick_self_play_move(board: Board, base_depth: int, timeout: int):
-    """Choose a move, progressively lowering depth on timeout."""
-
-    used_depth = base_depth
-    while used_depth >= 1:
-        candidate = _get_best_move_with_timeout(board, used_depth, timeout)
-        if candidate is not None:
-            return candidate
-        if used_depth == 1:
-            break
-        used_depth -= 1
-    return None
+def _pick_self_play_move(
+    board: Board, base_depth: int, timeout: Optional[int]
+):
+    """Choose a move at the exact requested depth."""
+    return _get_best_move_with_timeout(board, base_depth, timeout)
 
 
 def _print_played_move(board: Board, move_number: int, side: str, best_move) -> None:
@@ -128,11 +125,6 @@ def _print_played_move(board: Board, move_number: int, side: str, best_move) -> 
     print(f"Move {move_number}: {side} plays {algebraic}")
     board.display()
     print()
-
-
-def _get_per_move_timeout(depth_white: int, depth_black: int) -> int:
-    """Pick a per-move timeout that preserves requested search depth."""
-    return 60 if max(depth_white, depth_black) >= 5 else 30
 
 
 def run_self_play(
@@ -155,7 +147,7 @@ def run_self_play(
 
     move_number = 1
     position_counts: dict[str, int] = {}
-    per_move_timeout = _get_per_move_timeout(depth_white, depth_black)
+    per_move_timeout: Optional[int] = None
 
     while move_number <= max_moves:
         terminal_message = _terminal_message(board, move_number, position_counts)
@@ -193,13 +185,13 @@ def main():
         "--white-depth",
         type=int,
         default=2,
-        help="Search depth for White (default: 2, max recommended: 5)",
+        help="Search depth for White (default: 2)",
     )
     parser.add_argument(
         "--black-depth",
         type=int,
         default=2,
-        help="Search depth for Black (default: 2, max recommended: 5)",
+        help="Search depth for Black (default: 2)",
     )
     parser.add_argument(
         "--max-moves",
@@ -217,13 +209,9 @@ def main():
         print("Error: --black-depth must be >= 1", file=sys.stderr)
         sys.exit(1)
 
-    # Enforce reasonable limits while still allowing higher via adaptive timeout.
-    white_depth = min(args.white_depth, 5)
-    black_depth = min(args.black_depth, 5)
-
     run_self_play(
-        depth_white=white_depth,
-        depth_black=black_depth,
+        depth_white=args.white_depth,
+        depth_black=args.black_depth,
         max_moves=args.max_moves,
         verbose=True,
     )

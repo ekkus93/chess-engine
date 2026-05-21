@@ -325,3 +325,8 @@ Quality:
 - GitHub Actions CI was failing because `.github/workflows/ci.yml` ran `python -m pytest tests -q`, which included the depth-5 wall-clock benchmark despite the repo defining a `slow` marker in `pyproject.toml`.
 - Updated the CI workflow to run `python -m pytest tests -q -m "not slow"` so normal CI matches the marker policy and avoids flaky runner-dependent performance failures.
 - Verified locally that the CI-equivalent command passes with `363 passed, 4 deselected`.
+
+## 2026-05-21T05:21:39Z - GPT-5.4 - Self-play now honors requested depth exactly
+- Removed the silent `min(depth, 5)` cap from `chess_game/self_play.py` so the CLI now uses the exact `--white-depth` and `--black-depth` values requested by the user.
+- Removed the timeout-based depth fallback from self-play so a requested high-depth game is not silently downgraded mid-search.
+- Added a regression test in `tests/test_alpha_beta_pruning.py` to verify self-play requests depth 7 for both sides when asked.

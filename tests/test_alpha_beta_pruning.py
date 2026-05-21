@@ -2,10 +2,11 @@
 
 import time
 
+from chess_game import self_play
 from chess_game.self_play import run_self_play
 from chess_game.chess.ai import SearchStats, minimax, minimax_no_prune
 from chess_game.chess.board import Board
-from chess_game.chess.types import Color
+from chess_game.chess.types import Color, LegalMove
 from tests.helpers import (
     make_search_context,
     make_search_params,
@@ -118,3 +119,24 @@ def test_self_play_depth_3_terminates():
     elapsed = time.monotonic() - start
 
     assert elapsed < 60, "Self-play with depth 3, 1 move should complete within 60s"
+
+
+def test_self_play_honors_requested_depth(monkeypatch):
+    """Self-play should use the exact requested depth for both sides."""
+    requested_depths = []
+
+    def fake_get_best_move(board: Board, depth: int):
+        requested_depths.append(depth)
+        start, end, promotion = board.get_legal_moves()[0]
+        return LegalMove(start, end, promotion)
+
+    monkeypatch.setattr(self_play, "get_best_move", fake_get_best_move)
+
+    run_self_play(
+        depth_white=7,
+        depth_black=7,
+        max_moves=2,
+        verbose=False,
+    )
+
+    assert requested_depths == [7, 7]
