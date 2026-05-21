@@ -7,13 +7,17 @@ import time
 import pytest
 from chess_game.chess.ai import (
     MATE_SCORE,
+    SearchStats,
     TTFlag,
     evaluate,
     get_best_move,
     minimax,
+    search_root_depth,
 )
+from chess_game.chess.ai_search_helpers import selective_extension_bonus
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.board.game_state import is_checkmate
+from chess_game.chess.move import Move
 from chess_game.chess.types import Color, PieceType
 from tests.helpers import (
     make_mate_in_one_white_position,
@@ -181,6 +185,33 @@ def make_params(
     )
 
 
+def make_forcing_check_extension_position() -> Board:
+    """Create a position where a back-rank queen invasion deserves an extension."""
+
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("g1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("d1"), create_piece(Color.WHITE, PieceType.QUEEN))
+    board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("g7"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.set_piece(sq("h7"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.turn = Color.WHITE
+    return board
+
+
+def make_check_evasion_extension_position() -> Board:
+    """Create a position where the side to move must answer a check."""
+
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("g1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("d1"), create_piece(Color.WHITE, PieceType.QUEEN))
+    board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("e1"), create_piece(Color.BLACK, PieceType.ROOK))
+    board.turn = Color.WHITE
+    return board
+
+
 # Tests for minimax leaf evaluation behavior
 
 
@@ -249,6 +280,58 @@ def test_minimax_prefers_checkmate_over_material():
     clone = board.clone()
     assert clone.make_move(move.start, move.end, promotion=move.promotion) is True
     assert is_checkmate(clone, Color.BLACK), "Minimax should find mate over material win"
+
+
+def test_selective_extension_bonus_triggers_for_forcing_check() -> None:
+    """Back-rank queen checks against an exposed king should get one extra ply."""
+
+    board = make_forcing_check_extension_position()
+    move = Move(start=sq("d1"), end=sq("d8"))
+    child_board = board.clone()
+
+    assert child_board.apply_legal_move(move.start, move.end) is True
+    assert selective_extension_bonus(board, move, child_board, extension_budget=1) == 1
+
+
+def test_selective_extension_bonus_triggers_for_check_evasion() -> None:
+    """Legal replies while in check should keep searching one ply deeper."""
+
+    board = make_check_evasion_extension_position()
+    move = Move(start=sq("d1"), end=sq("e1"))
+    child_board = board.clone()
+
+    assert child_board.apply_legal_move(move.start, move.end) is True
+    assert selective_extension_bonus(board, move, child_board, extension_budget=1) == 1
+
+
+def test_selective_extension_bonus_skips_harmless_queen_drift() -> None:
+    """Fake attacking queen moves should not trigger the extension."""
+
+    board = make_forcing_check_extension_position()
+    move = Move(start=sq("d1"), end=sq("h5"))
+    child_board = board.clone()
+
+    assert child_board.apply_legal_move(move.start, move.end) is True
+    assert selective_extension_bonus(board, move, child_board, extension_budget=1) == 0
+
+
+def test_search_records_selective_extension_diagnostics() -> None:
+    """Search diagnostics should record when a bounded extension is applied."""
+
+    board = make_forcing_check_extension_position()
+    stats = SearchStats()
+    context = make_search_context(stats=stats)
+
+    search_root_depth(
+        board,
+        depth=1,
+        is_maximizing=True,
+        previous_score=0,
+        context=context,
+    )
+
+    assert stats.diagnostics is not None
+    assert stats.diagnostics.selective_extensions > 0
 
 
 # Tests for alpha-beta pruning behavior

@@ -319,27 +319,27 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
 
 ## 7.1 Add selective search help in dangerous positions
 
-- [ ] Decide where to extend search when kings are exposed.
+- [x] Decide where to extend search when kings are exposed.
 - [ ] Consider extensions for:
-  - [ ] forcing checks near exposed kings
+  - [x] forcing checks near exposed kings
   - [ ] recaptures that open files toward a king
-  - [ ] queen/rook invasions on the 7th or 8th rank
-  - [ ] mate-threat replies
-  - [ ] only-move defensive resources
+  - [x] queen/rook invasions on the 7th or 8th rank
+  - [x] mate-threat replies
+  - [x] only-move defensive resources
 
 ## 7.2 Keep extensions bounded and explainable
 
-- [ ] Ensure extensions are:
-  - [ ] structurally limited
-  - [ ] testable
-  - [ ] not applied to empty checks or fake attacks
-  - [ ] not causing large practical regressions at depth 5
+- [x] Ensure extensions are:
+  - [x] structurally limited
+  - [x] testable
+  - [x] not applied to empty checks or fake attacks
+  - [x] not causing large practical regressions at depth 5
 
 ## 7.3 Improve root-choice stability in tactical positions
 
 - [ ] Ensure root move selection prefers:
-  - [ ] stable attacking moves with follow-up
-  - [ ] stable defensive moves that eliminate threats
+  - [x] stable attacking moves with follow-up
+  - [x] stable defensive moves that eliminate threats
   - [ ] non-repeating tactical lines with genuine payoff
 
 ---

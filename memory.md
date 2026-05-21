@@ -1,5 +1,10 @@
 # Chess Engine Project Memory
 
+## 2026-05-21T22:00:40Z - GPT-5.4 - STRATEGY3 search slice: bounded king-danger extensions
+- Added bounded one-ply selective search extensions in `chess_game/chess/ai.py` and `chess_game/chess/ai_search_helpers.py`.
+- Extensions now trigger for in-check replies, urgent king-danger relief, and forcing queen/rook back-rank invasions against exposed kings, with tests proving they do not revive empty-check or fake-attack regressions.
+- Added a root-only stability adjustment so urgent threat-reducing moves can beat flashy but low-value queen shuffles in close searches.
+
 ## Current Status: Phase 9 Complete - AI Module with Type Checking Fixes
 
 ### Session ID: 531fe519-d26a-4d2c-a870-ffa34f44987f

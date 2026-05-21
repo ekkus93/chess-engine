@@ -18,9 +18,14 @@ from chess_game.chess.ai_search_helpers import (
     position_occurrence_count as _position_occurrence_count,
     record_depth_timing as _record_depth_timing,
     record_root_research as _record_root_research,
+    record_selective_extension as _record_selective_extension,
     repetition_score as _repetition_score,
+    root_stability_adjustment as _root_stability_adjustment,
     rerun_full_window_if_needed as _rerun_full_window_if_needed,
+    selective_extension_bonus as _selective_extension_bonus,
     search_position_counts as _search_position_counts,
+    update_alpha_beta as _update_alpha_beta,
+    update_best_result as _update_best_result,
 )
 from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.evaluation import (
@@ -38,13 +43,11 @@ from chess_game.chess.strategy_utils import is_capture_move as _is_capture_move
 from chess_game.chess.types import Color, LegalMove, Piece, PieceType
 
 sys.setrecursionlimit(50000)
-
 INF = 10_000_000
 MATE_SCORE = 100_000
 ASPIRATION_WINDOW = 150
 MAX_QUIESCENCE_DEPTH = 1
 MAX_QUIESCENCE_MOVES = 4
-
 LegalMoveKey = tuple[object, object, Optional[PieceType]]
 get_evaluation_breakdown = _get_evaluation_breakdown
 def _progress_score(board: Board) -> int:
@@ -95,6 +98,7 @@ class SearchDiagnostics:
     fail_high_retries: int = 0
     fail_low_retries: int = 0
     root_researches: int = 0
+    selective_extensions: int = 0
     depth_timings: dict[int, float] | None = None
     tt: TTHitDiagnostics | None = None
     tactical: TacticalDiagnostics | None = None
@@ -263,6 +267,7 @@ class MinimaxParams:
     is_maximizing: bool
     context: Optional[SearchContext] = None
     line_history: tuple[str, ...] = ()
+    extension_budget: int = 1
 
 
 @dataclass
@@ -506,48 +511,43 @@ def _evaluate_child_move(
     """Evaluate a single child move recursively."""
 
     child_board = _make_copy_with_move(board, move)
+    extension_bonus = _leaf_extension_bonus(board, move, child_board, params)
     child_result, _ = minimax(
         child_board,
         MinimaxParams(
-            depth=params.depth - 1,
+            depth=params.depth - 1 + extension_bonus,
             alpha=alpha,
             beta=beta,
             is_maximizing=not params.is_maximizing,
             context=params.context,
             line_history=params.line_history + (position_key(child_board),),
+            extension_budget=params.extension_budget - extension_bonus,
         ),
     )
+    if len(params.line_history) == 1:
+        child_result += _root_stability_adjustment(board, move, child_board)
     return child_result
 
 
-def _update_best_result(
-    is_maximizing: bool,
+def _leaf_extension_bonus(
+    board: Board,
     move: Move,
-    child_score: int,
-    best_score: int,
-    best_move: Optional[LegalMove],
-) -> tuple[int, Optional[LegalMove]]:
-    """Update the best move/score for the current node."""
+    child_board: Board,
+    params: MinimaxParams,
+) -> int:
+    """Return a bounded extension bonus for critical near-horizon moves."""
 
-    better_score = child_score > best_score if is_maximizing else child_score < best_score
-    if not better_score:
-        return best_score, best_move
-    return child_score, LegalMove(move.start, move.end, move.promotion)
-
-
-def _update_alpha_beta(
-    is_maximizing: bool,
-    best_score: int,
-    alpha: int,
-    beta: int,
-) -> tuple[int, int, bool]:
-    """Update alpha/beta and report whether a cutoff occurred."""
-
-    if is_maximizing:
-        alpha = max(alpha, best_score)
-        return alpha, beta, alpha >= beta
-    beta = min(beta, best_score)
-    return alpha, beta, beta <= alpha
+    if params.depth > 2:
+        return 0
+    extension_bonus = _selective_extension_bonus(
+        board,
+        move,
+        child_board,
+        params.extension_budget,
+    )
+    if extension_bonus > 0:
+        _record_selective_extension(params.context)
+    return extension_bonus
 
 
 def _record_cutoff(context: Optional[SearchContext], move: Move) -> None:
