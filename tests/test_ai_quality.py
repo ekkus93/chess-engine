@@ -111,6 +111,58 @@ def test_castled_king_scores_better_than_exposed_king() -> None:
     assert ai.evaluate(castled_board) > ai.evaluate(exposed_board)
 
 
+def test_king_exposure_breakdown_penalizes_central_king_with_queens() -> None:
+    """A central king with queens and rooks on the board should look more exposed."""
+
+    safe_board = _empty_board_with_kings()
+    safe_board.clear_board()
+    safe_board.set_piece(sq("g1"), create_piece(Color.WHITE, PieceType.KING))
+    safe_board.set_piece(sq("f2"), create_piece(Color.WHITE, PieceType.PAWN))
+    safe_board.set_piece(sq("g2"), create_piece(Color.WHITE, PieceType.PAWN))
+    safe_board.set_piece(sq("h2"), create_piece(Color.WHITE, PieceType.PAWN))
+    safe_board.set_piece(sq("d1"), create_piece(Color.WHITE, PieceType.QUEEN))
+    safe_board.set_piece(sq("a1"), create_piece(Color.WHITE, PieceType.ROOK))
+    safe_board.set_piece(sq("f1"), create_piece(Color.WHITE, PieceType.ROOK))
+    safe_board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    safe_board.set_piece(sq("d8"), create_piece(Color.BLACK, PieceType.QUEEN))
+    safe_board.set_piece(sq("a8"), create_piece(Color.BLACK, PieceType.ROOK))
+    safe_board.set_piece(sq("f8"), create_piece(Color.BLACK, PieceType.ROOK))
+
+    exposed_board = safe_board.clone()
+    exposed_board.clear_square(sq("g1"))
+    exposed_board.clear_square(sq("f1"))
+    exposed_board.set_piece(sq("e4"), create_piece(Color.WHITE, PieceType.KING))
+    exposed_board.set_piece(sq("h1"), create_piece(Color.WHITE, PieceType.ROOK))
+
+    assert (
+        get_evaluation_breakdown(safe_board)["king_exposure"]
+        > get_evaluation_breakdown(exposed_board)["king_exposure"]
+    )
+
+
+def test_defender_coordination_breakdown_prefers_nearby_heavy_pieces() -> None:
+    """Heavy pieces should score better when they stay connected to king defense."""
+
+    connected_board = _empty_board_with_kings()
+    connected_board.clear_board()
+    connected_board.set_piece(sq("g1"), create_piece(Color.WHITE, PieceType.KING))
+    connected_board.set_piece(sq("d2"), create_piece(Color.WHITE, PieceType.QUEEN))
+    connected_board.set_piece(sq("f1"), create_piece(Color.WHITE, PieceType.ROOK))
+    connected_board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    connected_board.set_piece(sq("d8"), create_piece(Color.BLACK, PieceType.QUEEN))
+
+    disconnected_board = connected_board.clone()
+    disconnected_board.clear_square(sq("d2"))
+    disconnected_board.clear_square(sq("f1"))
+    disconnected_board.set_piece(sq("h6"), create_piece(Color.WHITE, PieceType.QUEEN))
+    disconnected_board.set_piece(sq("a1"), create_piece(Color.WHITE, PieceType.ROOK))
+
+    assert (
+        get_evaluation_breakdown(connected_board)["defender_coordination"]
+        > get_evaluation_breakdown(disconnected_board)["defender_coordination"]
+    )
+
+
 def test_bishop_pair_breakdown_reports_bonus() -> None:
     """Evaluation breakdown should expose the bishop-pair bonus."""
 
@@ -451,6 +503,38 @@ def test_two_rooks_mating_material_reports_endgame_bonus() -> None:
     assert get_evaluation_breakdown(board)["endgame_technique"] > 0
 
 
+def test_development_breakdown_penalizes_unsupported_early_queen_raid() -> None:
+    """An advanced unsupported queen raid should score worse than a restrained queen."""
+
+    restrained_board = _empty_board_with_kings()
+    restrained_board.clear_board()
+    restrained_board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
+    restrained_board.set_piece(sq("d1"), create_piece(Color.WHITE, PieceType.QUEEN))
+    restrained_board.set_piece(sq("a1"), create_piece(Color.WHITE, PieceType.ROOK))
+    restrained_board.set_piece(sq("h1"), create_piece(Color.WHITE, PieceType.ROOK))
+    restrained_board.set_piece(sq("b1"), create_piece(Color.WHITE, PieceType.KNIGHT))
+    restrained_board.set_piece(sq("g1"), create_piece(Color.WHITE, PieceType.KNIGHT))
+    restrained_board.set_piece(sq("c1"), create_piece(Color.WHITE, PieceType.BISHOP))
+    restrained_board.set_piece(sq("f1"), create_piece(Color.WHITE, PieceType.BISHOP))
+    restrained_board.set_piece(sq("e8"), create_piece(Color.BLACK, PieceType.KING))
+    restrained_board.set_piece(sq("d8"), create_piece(Color.BLACK, PieceType.QUEEN))
+    restrained_board.set_piece(sq("a8"), create_piece(Color.BLACK, PieceType.ROOK))
+    restrained_board.set_piece(sq("h8"), create_piece(Color.BLACK, PieceType.ROOK))
+    restrained_board.set_piece(sq("b8"), create_piece(Color.BLACK, PieceType.KNIGHT))
+    restrained_board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KNIGHT))
+    restrained_board.set_piece(sq("c8"), create_piece(Color.BLACK, PieceType.BISHOP))
+    restrained_board.set_piece(sq("f8"), create_piece(Color.BLACK, PieceType.BISHOP))
+
+    raiding_board = restrained_board.clone()
+    raiding_board.clear_square(sq("d1"))
+    raiding_board.set_piece(sq("h6"), create_piece(Color.WHITE, PieceType.QUEEN))
+
+    assert (
+        get_evaluation_breakdown(restrained_board)["development"]
+        > get_evaluation_breakdown(raiding_board)["development"]
+    )
+
+
 def test_search_prefers_castling_in_quiet_position() -> None:
     """Search should choose castling when it is the best quiet king-safety improvement."""
 
@@ -498,6 +582,69 @@ def test_quiet_move_order_prefers_castling_over_idle_rook_move() -> None:
     assert _move_order_score(board, castling_move, None) > _move_order_score(
         board,
         rook_shuffle,
+        None,
+    )
+
+
+def test_quiet_move_order_prefers_developing_knight_over_early_queen_sortie() -> None:
+    """Opening move ordering should favor development over a premature queen sortie."""
+
+    board = Board()
+    developing_move = ai.Move(start=sq("g1"), end=sq("f3"))
+    queen_sortie = ai.Move(start=sq("d1"), end=sq("h5"))
+
+    assert _move_order_score(board, developing_move, None) > _move_order_score(
+        board,
+        queen_sortie,
+        None,
+    )
+
+
+def test_quiet_move_order_prefers_useful_check_over_flank_queen_drift() -> None:
+    """A direct checking move should outrank a harmless queen drift."""
+
+    board = _empty_board_with_kings()
+    board.clear_board()
+    board.set_piece(sq("g1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("d1"), create_piece(Color.WHITE, PieceType.QUEEN))
+    board.set_piece(sq("a1"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(sq("c4"), create_piece(Color.WHITE, PieceType.BISHOP))
+    board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("g7"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.set_piece(sq("h7"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.set_piece(sq("a8"), create_piece(Color.BLACK, PieceType.ROOK))
+    board.turn = Color.WHITE
+
+    useful_check = ai.Move(start=sq("d1"), end=sq("d8"))
+    queen_drift = ai.Move(start=sq("d1"), end=sq("h5"))
+
+    assert _move_order_score(board, useful_check, None) > _move_order_score(
+        board,
+        queen_drift,
+        None,
+    )
+
+
+def test_quiet_move_order_prefers_urgent_luft_under_back_rank_pressure() -> None:
+    """Back-rank pressure should make a luft move outrank an idle pawn move."""
+
+    board = _empty_board_with_kings()
+    board.clear_board()
+    board.set_piece(sq("g1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("h1"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(sq("g2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("h2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("d8"), create_piece(Color.BLACK, PieceType.ROOK))
+    board.set_piece(sq("h4"), create_piece(Color.BLACK, PieceType.QUEEN))
+    board.turn = Color.WHITE
+
+    luft_move = ai.Move(start=sq("h2"), end=sq("h3"))
+    idle_move = ai.Move(start=sq("a2"), end=sq("a3"))
+
+    assert _move_order_score(board, luft_move, None) > _move_order_score(
+        board,
+        idle_move,
         None,
     )
 

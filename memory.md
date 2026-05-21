@@ -338,6 +338,11 @@ Quality:
 
 ## 2026-05-21T05:41:00Z - GPT-5.4 - Strategy roadmap added
 - Added `docs/STRATEGY1_TODO.md`, a detailed strategy-focused roadmap covering phase-aware evaluation, stronger pawn-structure and king-safety heuristics, piece coordination, space/restriction scoring, quiet-move support, and conversion heuristics.
+
+## 2026-05-21T21:03:51Z - GPT-5.4 - STRATEGY3 phase 1 baseline and king-safety slice
+- Added `docs/STRATEGY3_TODO.md` and completed the first STRATEGY3 slice: saved a fresh depth-3 self-play baseline to `tmp/strategy3_w3b3.txt`, documented the queen-raid/king-walk failure pattern, and advanced the SQL tracker (`strategy3-baseline-tests` done, `strategy3-eval-ordering` in progress).
+- Expanded the evaluator with `king_exposure` and `defender_coordination` breakdown components, added queen-heavy central-king pressure, heavy-file pressure, defender-distance penalties, and unsupported early queen-raid penalties.
+- Expanded `tests/test_ai_quality.py` with green regressions for king exposure, defender coordination, unsupported queen raids, opening development over early queen sorties, useful checks, and urgent luft; validation was green with `pylint chess_game`, `python -m pytest tests -q`, and the targeted AI suite.
 - Included basic endgame mating-protocol work for KRR vs K, KQR vs K, KQ vs K, and KR vs K.
 - Explicitly deferred opening-database work to a later pass per current product direction.
 

@@ -16,6 +16,10 @@ QUIET_LUFT_BONUS = 16
 QUIET_WORST_PIECE_BONUS = 18
 QUIET_BLOCKADE_BONUS = 28
 QUIET_MAJOR_TRADE_OFFER_BONUS = 26
+QUIET_DEVELOPING_MINOR_BONUS = 26
+QUIET_USEFUL_CHECK_BONUS = 34
+QUIET_URGENT_LUFT_BONUS = 24
+QUIET_EARLY_QUEEN_SORTIE_PENALTY = 32
 
 
 def quiet_strategy_order_score(board: Board, move: Move) -> int:
@@ -27,28 +31,13 @@ def quiet_strategy_order_score(board: Board, move: Move) -> int:
     if piece is None:
         return 0
     score = _centralization_bonus(piece.kind, move)
-    if piece.kind == PieceType.KING and _is_castling_move(move):
-        score += QUIET_CASTLING_BONUS
-    if piece.kind == PieceType.KING and _is_heavy_piece_endgame(board):
-        score += _king_centralization_bonus(move)
-    if piece.kind == PieceType.PAWN and _is_passed_pawn_push(board, piece.color, move):
-        score += QUIET_PASSED_PAWN_PUSH_BONUS + _pawn_push_progress(piece.color, move)
-    if piece.kind in (PieceType.ROOK, PieceType.QUEEN) and _lines_up_with_enemy_king(board, move):
-        score += QUIET_HEAVY_PIECE_PRESSURE_BONUS
-    if piece.kind in (PieceType.ROOK, PieceType.QUEEN) and _improves_king_cutoff(board, move):
-        score += QUIET_KING_CUTOFF_BONUS
-    if piece.kind in (PieceType.ROOK, PieceType.QUEEN) and _offers_major_piece_trade(board, move):
-        score += QUIET_MAJOR_TRADE_OFFER_BONUS
-    if piece.kind == PieceType.ROOK and _moves_rook_behind_passer(board, piece.color, move):
-        score += QUIET_ROOK_BEHIND_PASSER_BONUS
-    if piece.kind in (PieceType.KING, PieceType.ROOK, PieceType.QUEEN) and _blockades_enemy_passer(
-        board, piece.color, move
-    ):
-        score += QUIET_BLOCKADE_BONUS
-    if piece.kind == PieceType.PAWN and _creates_luft(piece.color, move):
-        score += QUIET_LUFT_BONUS
+    score += _opening_discipline_bonus(board, piece.kind, move)
+    score += _king_move_bonus(board, piece.kind, move)
+    score += _heavy_piece_bonus(board, piece.kind, piece.color, move)
+    score += _pawn_bonus(board, piece.color, piece.kind, move)
     if _improves_worst_piece(board, piece.kind, move):
         score += QUIET_WORST_PIECE_BONUS
+    score += _check_quality_bonus(board, piece.kind, move)
     return score
 
 
@@ -84,6 +73,78 @@ def _is_castling_move(move: Move) -> bool:
     """Return True for king-side or queen-side castling geometry."""
 
     return int(move.start.col) == 4 and abs(int(move.start.col) - int(move.end.col)) == 2
+
+
+def _opening_discipline_bonus(board: Board, kind: PieceType, move: Move) -> int:
+    score = 0
+    if kind in (PieceType.KNIGHT, PieceType.BISHOP) and _develops_minor_piece(move):
+        score += QUIET_DEVELOPING_MINOR_BONUS
+    if kind == PieceType.QUEEN and _is_early_queen_sortie(board, move):
+        score -= QUIET_EARLY_QUEEN_SORTIE_PENALTY
+    return score
+
+
+def _king_move_bonus(board: Board, kind: PieceType, move: Move) -> int:
+    score = 0
+    if kind == PieceType.KING and _is_castling_move(move):
+        score += QUIET_CASTLING_BONUS
+    if kind == PieceType.KING and _is_heavy_piece_endgame(board):
+        score += _king_centralization_bonus(move)
+    return score
+
+
+def _heavy_piece_bonus(board: Board, kind: PieceType, color: Color, move: Move) -> int:
+    score = 0
+    if kind in (PieceType.ROOK, PieceType.QUEEN) and _lines_up_with_enemy_king(board, move):
+        score += QUIET_HEAVY_PIECE_PRESSURE_BONUS
+    if kind in (PieceType.ROOK, PieceType.QUEEN) and _improves_king_cutoff(board, move):
+        score += QUIET_KING_CUTOFF_BONUS
+    if kind in (PieceType.ROOK, PieceType.QUEEN) and _offers_major_piece_trade(board, move):
+        score += QUIET_MAJOR_TRADE_OFFER_BONUS
+    if kind == PieceType.ROOK and _moves_rook_behind_passer(board, color, move):
+        score += QUIET_ROOK_BEHIND_PASSER_BONUS
+    if kind in (PieceType.KING, PieceType.ROOK, PieceType.QUEEN) and _blockades_enemy_passer(
+        board, color, move
+    ):
+        score += QUIET_BLOCKADE_BONUS
+    return score
+
+
+def _pawn_bonus(board: Board, color: Color, kind: PieceType, move: Move) -> int:
+    score = 0
+    if kind == PieceType.PAWN and _is_passed_pawn_push(board, color, move):
+        score += QUIET_PASSED_PAWN_PUSH_BONUS + _pawn_push_progress(color, move)
+    if kind == PieceType.PAWN and _creates_luft(color, move):
+        score += QUIET_LUFT_BONUS
+        if _is_urgent_luft(board, color):
+            score += QUIET_URGENT_LUFT_BONUS
+    return score
+
+
+def _develops_minor_piece(move: Move) -> bool:
+    start_row = int(move.start.row)
+    end_row = int(move.end.row)
+    start_col = int(move.start.col)
+    end_col = int(move.end.col)
+    return start_row in {0, 7} and end_row not in {0, 7} and center_distance(
+        end_row, end_col
+    ) < center_distance(start_row, start_col)
+
+
+def _is_early_queen_sortie(board: Board, move: Move) -> bool:
+    undeveloped = 0
+    for row_index, row in enumerate(board.board):
+        for col_index, piece in enumerate(row):
+            if piece is None or piece.color != board.turn:
+                continue
+            if piece.kind == PieceType.KNIGHT and row_index in {0, 7} and col_index in {1, 6}:
+                undeveloped += 1
+            if piece.kind == PieceType.BISHOP and row_index in {0, 7} and col_index in {2, 5}:
+                undeveloped += 1
+    end_row = int(move.end.row)
+    if board.turn == Color.WHITE:
+        return undeveloped >= 2 and end_row <= 3
+    return undeveloped >= 2 and end_row >= 4
 
 
 def _is_heavy_piece_endgame(board: Board) -> bool:
@@ -229,6 +290,28 @@ def _creates_luft(color: Color, move: Move) -> bool:
     )
 
 
+def _is_urgent_luft(board: Board, color: Color) -> bool:
+    king_square = next(
+        (
+            piece.square
+            for row in board.board
+            for piece in row
+            if piece is not None and piece.color == color and piece.kind == PieceType.KING
+        ),
+        None,
+    )
+    if king_square is None or int(king_square.row) not in {0, 7}:
+        return False
+    enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
+    return any(
+        piece is not None
+        and piece.color == enemy_color
+        and piece.kind in (PieceType.QUEEN, PieceType.ROOK)
+        for row in board.board
+        for piece in row
+    )
+
+
 def _improves_worst_piece(board: Board, kind: PieceType, move: Move) -> bool:
     if kind not in (PieceType.ROOK, PieceType.QUEEN, PieceType.BISHOP, PieceType.KNIGHT):
         return False
@@ -346,3 +429,90 @@ def _piece_value(kind: PieceType) -> int:
     if kind == PieceType.QUEEN:
         return 900
     return 0
+
+
+def _check_quality_bonus(board: Board, kind: PieceType, move: Move) -> int:
+    enemy_color = Color.BLACK if board.turn == Color.WHITE else Color.WHITE
+    enemy_king = next(
+        (
+            piece.square
+            for row in board.board
+            for piece in row
+            if piece is not None
+            and piece.color == enemy_color
+            and piece.kind == PieceType.KING
+        ),
+        None,
+    )
+    if enemy_king is None:
+        return 0
+    if not _move_gives_check(board, kind, move, (int(enemy_king.row), int(enemy_king.col))):
+        return 0
+    return QUIET_USEFUL_CHECK_BONUS
+
+
+def _move_gives_check(
+    board: Board,
+    kind: PieceType,
+    move: Move,
+    enemy_king: tuple[int, int],
+) -> bool:
+    end_row = int(move.end.row)
+    end_col = int(move.end.col)
+    row_delta = enemy_king[0] - end_row
+    col_delta = enemy_king[1] - end_col
+    delta = (row_delta, col_delta)
+    gives_check = False
+    if kind == PieceType.QUEEN:
+        gives_check = _slider_gives_check(board, move, enemy_king, delta, queen=True)
+    elif kind == PieceType.ROOK:
+        gives_check = _slider_gives_check(board, move, enemy_king, delta, queen=False)
+    elif kind == PieceType.BISHOP:
+        gives_check = abs(row_delta) == abs(col_delta) and _path_clear_after_move(
+            board, move, enemy_king
+        )
+    elif kind == PieceType.KNIGHT:
+        gives_check = sorted((abs(row_delta), abs(col_delta))) == [1, 2]
+    elif kind == PieceType.PAWN:
+        direction = -1 if board.turn == Color.WHITE else 1
+        gives_check = row_delta == direction and abs(col_delta) == 1
+    elif kind == PieceType.KING:
+        gives_check = max(abs(row_delta), abs(col_delta)) == 1
+    return gives_check
+
+
+def _slider_gives_check(
+    board: Board,
+    move: Move,
+    enemy_king: tuple[int, int],
+    delta: tuple[int, int],
+    queen: bool,
+) -> bool:
+    row_delta, col_delta = delta
+    if row_delta == 0 or col_delta == 0:
+        return _path_clear_after_move(board, move, enemy_king)
+    if queen and abs(row_delta) == abs(col_delta):
+        return _path_clear_after_move(board, move, enemy_king)
+    return False
+
+
+def _path_clear_after_move(
+    board: Board,
+    move: Move,
+    enemy_king: tuple[int, int],
+) -> bool:
+    start = (int(move.start.row), int(move.start.col))
+    end = (int(move.end.row), int(move.end.col))
+    row_step = 0 if end[0] == enemy_king[0] else (1 if enemy_king[0] > end[0] else -1)
+    col_step = 0 if end[1] == enemy_king[1] else (1 if enemy_king[1] > end[1] else -1)
+    current_row = end[0] + row_step
+    current_col = end[1] + col_step
+    while (current_row, current_col) != enemy_king:
+        if (
+            (current_row, current_col) != start
+            and board.board[current_row][current_col] is not None
+        ):
+            return False
+        current_row += row_step
+        current_col += col_step
+    return True

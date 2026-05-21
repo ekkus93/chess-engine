@@ -26,6 +26,7 @@ from chess_game.chess.strategy_utils import (
     is_passed_pawn,
     iter_board_pieces,
     iter_color_pieces,
+    iter_king_squares,
     path_clear_between,
     scale_signed,
 )
@@ -123,10 +124,7 @@ def _is_advanced_passer(color: Color, row: int) -> bool:
 
 def _active_king_score(board: Board, endgame_phase: int) -> int:
     score = 0
-    for color in (Color.WHITE, Color.BLACK):
-        king_square = _find_king(board, color)
-        if king_square is None:
-            continue
+    for color, king_square in iter_king_squares(board):
         distance = center_distance(int(king_square.row), int(king_square.col))
         score += _color_sign(color) * (
             ACTIVE_KING_ENDGAME_BONUS - distance * MATING_KING_DISTANCE_BONUS

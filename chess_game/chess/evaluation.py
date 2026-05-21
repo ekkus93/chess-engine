@@ -12,6 +12,7 @@ from chess_game.chess.endgame_evaluation import (
 from chess_game.chess.pieces.piece_movers import PieceMovers
 from chess_game.chess.strategy_utils import (
     is_passed_pawn as _is_passed_pawn,
+    iter_king_squares as _iter_king_squares,
     path_clear_between as _path_clear_between,
     scale_signed as _scale_signed,
 )
@@ -30,11 +31,15 @@ from chess_game.chess.evaluation_tables import (
     CENTRAL_SQUARES,
     CONNECTED_PASSED_PAWN_BONUS,
     CONNECTED_ROOKS_BONUS,
+    CENTRAL_KING_WITH_QUEENS_PENALTY,
     CRAMPED_PIECE_PENALTY,
+    DEFENDER_DISTANCE_PENALTY,
     DOUBLED_PAWN_PENALTY,
     EARLY_QUEEN_MOVE_PENALTY,
+    EARLY_QUEEN_RAID_PENALTY,
     EARLY_ROOK_MOVE_PENALTY,
     EXPOSED_CENTRAL_KING_PENALTY,
+    HEAVY_FILE_PRESSURE_PENALTY,
     EXTENDED_CENTER_FILES,
     EXTENDED_CENTER_RANKS,
     ISOLATED_PAWN_PENALTY,
@@ -88,6 +93,8 @@ def get_evaluation_breakdown(board: Board) -> EvaluationBreakdown:
         "mobility": _evaluate_mobility(board),
         "pawn_structure": _evaluate_pawn_structure(board, endgame_phase),
         "king_safety": _evaluate_king_safety(board, middlegame_phase),
+        "king_exposure": _evaluate_king_exposure(board, middlegame_phase),
+        "defender_coordination": _evaluate_defender_coordination(board, middlegame_phase),
         "rook_activity": _evaluate_rook_activity(board),
         "bishop_pair": _evaluate_bishop_pair(board),
         "minor_piece_activity": _evaluate_minor_piece_activity(board),
@@ -439,6 +446,28 @@ def _evaluate_king_safety(board: Board, middlegame_phase: int) -> int:
     return _scale_signed(king_safety_score, middlegame_phase)
 
 
+def _evaluate_king_exposure(board: Board, middlegame_phase: int) -> int:
+    if middlegame_phase == 0:
+        return 0
+    score = 0
+    queens_on_board = _queens_on_board(board)
+    for color in (Color.WHITE, Color.BLACK):
+        king_square = _find_king(board, color)
+        if king_square is None:
+            continue
+        color_score = 0
+        if queens_on_board and _is_exposed_central_king(king_square):
+            color_score -= CENTRAL_KING_WITH_QUEENS_PENALTY
+        color_score -= _heavy_piece_lane_pressure(board, color, king_square)
+        score += _color_sign(color) * color_score
+    return _scale_signed(score, middlegame_phase)
+def _evaluate_defender_coordination(board: Board, middlegame_phase: int) -> int:
+    if middlegame_phase == 0 or not _queens_on_board(board):
+        return 0
+    score = 0
+    for color, king_square in _iter_king_squares(board):
+        score += _color_sign(color) * (-_heavy_defender_distance_penalty(board, color, king_square))
+    return _scale_signed(score, middlegame_phase)
 def _middlegame_phase(board: Board) -> int:
     non_pawn_material = 0
     for piece, _, _ in _iter_board_pieces(board):
@@ -541,6 +570,43 @@ def _back_rank_tension(board: Board, color: Color, square: ConstantSquare) -> in
 
 def _is_exposed_central_king(square: ConstantSquare) -> bool:
     return int(square.col) in CENTER_FILES
+
+
+def _queens_on_board(board: Board) -> bool:
+    return any(piece.kind == PieceType.QUEEN for piece, _, _ in _iter_board_pieces(board))
+def _heavy_piece_lane_pressure(
+    board: Board,
+    color: Color,
+    square: ConstantSquare,
+) -> int:
+    enemy_color = _opponent(color)
+    king_row = int(square.row)
+    king_col = int(square.col)
+    penalty = 0
+    for piece, row, col in _iter_color_pieces(board, enemy_color):
+        if piece.kind not in (PieceType.ROOK, PieceType.QUEEN):
+            continue
+        if row == king_row or col == king_col:
+            if _path_clear_between(board, (row, col), (king_row, king_col)):
+                penalty += HEAVY_FILE_PRESSURE_PENALTY
+    return penalty
+
+
+def _heavy_defender_distance_penalty(
+    board: Board,
+    color: Color,
+    king_square: ConstantSquare,
+) -> int:
+    king_row = int(king_square.row)
+    king_col = int(king_square.col)
+    penalty = 0
+    for piece, row, col in _iter_color_pieces(board, color):
+        if piece.kind not in (PieceType.QUEEN, PieceType.ROOK):
+            continue
+        distance = max(abs(row - king_row), abs(col - king_col))
+        if distance >= 4:
+            penalty += DEFENDER_DISTANCE_PENALTY
+    return penalty
 
 
 def _evaluate_rook_activity(board: Board) -> int:
@@ -830,6 +896,7 @@ def _evaluate_development(board: Board, middlegame_phase: int) -> int:
         development_score -= sign * undeveloped * UNDEVELOPED_MINOR_PIECE_PENALTY
         if undeveloped >= 2 and _queen_left_home_square(board, color):
             development_score -= sign * EARLY_QUEEN_MOVE_PENALTY
+        development_score -= sign * _early_queen_raid_penalty(board, color, undeveloped)
         if undeveloped >= 2 and _rook_left_home_square_early(board, color):
             development_score -= sign * EARLY_ROOK_MOVE_PENALTY
     return _scale_signed(development_score, middlegame_phase)
@@ -861,6 +928,42 @@ def _undeveloped_minor_piece_count(board: Board, color: Color) -> int:
 def _queen_left_home_square(board: Board, color: Color) -> bool:
     home_square = (7, 3) if color == Color.WHITE else (0, 3)
     return not _piece_on_square(board, color, PieceType.QUEEN, home_square)
+
+
+def _early_queen_raid_penalty(board: Board, color: Color, undeveloped: int) -> int:
+    queens = _collect_piece_positions(board, color, PieceType.QUEEN)
+    if len(queens) != 1:
+        return 0
+    queen_row, queen_col = queens[0]
+    if not _queen_in_enemy_half(color, queen_row):
+        return 0
+    if _queen_has_nearby_support(board, color, queen_row, queen_col):
+        return 0
+    penalty = EARLY_QUEEN_RAID_PENALTY
+    if undeveloped >= 2:
+        penalty += EARLY_QUEEN_MOVE_PENALTY // 2
+    king_square = _find_king(board, color)
+    if king_square is not None:
+        king_distance = max(
+            abs(int(king_square.row) - queen_row),
+            abs(int(king_square.col) - queen_col),
+        )
+        if king_distance >= 4:
+            penalty += DEFENDER_DISTANCE_PENALTY
+    return penalty
+
+
+def _queen_in_enemy_half(color: Color, queen_row: int) -> bool:
+    return queen_row <= 2 if color == Color.WHITE else queen_row >= 5
+
+
+def _queen_has_nearby_support(board: Board, color: Color, queen_row: int, queen_col: int) -> bool:
+    for piece, row, col in _iter_color_pieces(board, color):
+        if piece.kind == PieceType.QUEEN:
+            continue
+        if max(abs(row - queen_row), abs(col - queen_col)) <= 1:
+            return True
+    return False
 
 
 def _rook_left_home_square_early(board: Board, color: Color) -> bool:

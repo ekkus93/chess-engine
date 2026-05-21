@@ -2,6 +2,7 @@
 
 from chess_game.chess.board import Board
 from chess_game.chess.move import Move
+from chess_game.chess.constants import ConstantSquare
 from chess_game.chess.types import Color, PieceType
 
 
@@ -20,6 +21,14 @@ def iter_color_pieces(board: Board, color: Color):
     for piece, row, col in iter_board_pieces(board):
         if piece.color == color:
             yield piece, row, col
+
+
+def iter_king_squares(board: Board):
+    """Yield king squares as color, square pairs."""
+
+    for piece, _, _ in iter_board_pieces(board):
+        if piece.kind == PieceType.KING and isinstance(piece.square, ConstantSquare):
+            yield piece.color, piece.square
 
 
 def center_distance(row: int, col: int) -> int:
