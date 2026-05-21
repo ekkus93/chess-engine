@@ -1,96 +1,18 @@
 """Tests for alpha-beta pruning and search manageability."""
 
-from chess_game.chess.board import Board, create_piece
-from chess_game.chess.types import Color, PieceType
-from chess_game.chess.ai import minimax, MinimaxParams, MATE_SCORE
-from tests.helpers import sq
+import time
 
-
-def make_mate_in_one_white_position():
-    board = Board()
-    board.clear_board()
-    board.set_piece(sq("g6"), create_piece(Color.WHITE, PieceType.KING))
-    board.set_piece(sq("f7"), create_piece(Color.WHITE, PieceType.QUEEN))
-    board.set_piece(sq("h8"), create_piece(Color.BLACK, PieceType.KING))
-    board.turn = Color.WHITE
-    return board
-
-
-def test_alpha_beta_pruning_does_not_affect_mate_detection():
-    """Alpha-beta pruning should still find mate-in-one when available."""
-    board = make_mate_in_one_white_position()
-
-    nodes = [0]
-    params = MinimaxParams(
-        depth=1,
-        alpha=-MATE_SCORE,
-        beta=MATE_SCORE,
-        is_maximizing=True,
-        nodes_searched=nodes,
-    )
-
-    score, move = minimax(board, params)
-
-    assert move is not None, "Alpha-beta should still find a mating move"
-    assert score >= MATE_SCORE - 1, "Score should reflect mate"
-
-
-def test_alpha_beta_pruning_fewer_or_equal_with_tighter_window():
-    """With alpha-beta pruning, tightening the window around the expected score
-    should not explore more nodes than a very wide window (it should prune at least as much)."""
-    board = make_mate_in_one_white_position()
-
-    # Wide window: less pruning.
-    wide_nodes = [0]
-    wide_params = MinimaxParams(
-        depth=2,
-        alpha=-10_000_000,
-        beta=10_000_000,
-        is_maximizing=True,
-        nodes_searched=wide_nodes,
-    )
-
-    # Tighter window around mate score.
-    tight_nodes = [0]
-    tight_params = MinimaxParams(
-        depth=2,
-        alpha=MATE_SCORE - 500,
-        beta=MATE_SCORE + 500,
-        is_maximizing=True,
-        nodes_searched=tight_nodes,
-    )
-
-    minimax(board, wide_params)
-    minimax(board, tight_params)
-
-    # Tighter bounds should not cause more work.
-    assert tight_nodes[0] <= wide_nodes[0], (
-        "Tighter alpha/beta should prune at least as much as a wide window"
-    )
-
-
-def test_minimax_respects_max_depth():
-    """Minimax should not recurse beyond requested depth."""
-    board = Board()
-
-    nodes = [0]
-    params = MinimaxParams(
-        depth=1,
-        alpha=-10_000_000,
-        beta=10_000_000,
-        is_maximizing=True,
-        nodes_searched=nodes,
-    )
-
-    # Just ensure it completes without error at depth=1.
-    minimax(board, params)
-    assert nodes[0] > 0, "Minimax should explore at least one node"
-
+from chess_game.self_play import run_self_play
+from chess_game.chess.ai import SearchStats, minimax, minimax_no_prune
+from chess_game.chess.board import Board
+from chess_game.chess.types import Color
+from tests.helpers import (
+    make_search_context,
+    make_search_params,
+)
 
 def test_depth_2_search_completes():
     """Depth-2 search on a standard position should complete within reasonable time."""
-    import time
-
     board = Board()
 
     start = time.monotonic()
@@ -107,12 +29,12 @@ def test_depth_3_nodes_within_reasonable_limit():
     board = Board()
 
     nodes = [0]
-    params = MinimaxParams(
-        depth=3,
-        alpha=-10_000_000,
-        beta=10_000_000,
-        is_maximizing=True,
-        nodes_searched=nodes,
+    params = make_search_params(
+        3,
+        -10_000_000,
+        10_000_000,
+        True,
+        context=make_search_context(nodes=nodes),
     )
 
     # Run a depth-3 search with nodes counted.
@@ -124,38 +46,34 @@ def test_depth_3_nodes_within_reasonable_limit():
 
 def get_best_move(board: Board, depth: int):
     """Simple wrapper around minimax for testing."""
-    from chess_game.chess.types import Color
-
     if depth < 1:
         raise ValueError("depth must be >= 1")
 
     nodes = [0]
-    params = MinimaxParams(
-        depth=depth,
-        alpha=-10_000_000,
-        beta=10_000_000,
-        is_maximizing=(board.turn == Color.WHITE),
-        nodes_searched=nodes,
+    params = make_search_params(
+        depth,
+        -10_000_000,
+        10_000_000,
+        board.turn == Color.WHITE,
+        context=make_search_context(nodes=nodes),
     )
 
-    score, move = minimax(board, params)
+    _, move = minimax(board, params)
     return move
 
 
 def test_alpha_beta_prunes_fewer_nodes_than_no_prune():
     """Alpha-beta minimax should explore fewer nodes than pure minimax on the same position."""
-    from chess_game.chess.ai import minimax_no_prune
-
     board = Board()
 
     # Alpha-beta minimax with nodes counter
     nodes_ab = [0]
-    params_ab = MinimaxParams(
-        depth=2,
-        alpha=-10_000_000,
-        beta=10_000_000,
-        is_maximizing=True,
-        nodes_searched=nodes_ab,
+    params_ab = make_search_params(
+        2,
+        -10_000_000,
+        10_000_000,
+        True,
+        context=make_search_context(nodes=nodes_ab),
     )
     score_ab, _ = minimax(board, params_ab)
 
@@ -172,17 +90,15 @@ def test_alpha_beta_prunes_fewer_nodes_than_no_prune():
 
 def test_alpha_beta_cutoffs_occurred():
     """Alpha-beta search should record cutoffs at moderate depth."""
-    from chess_game.chess.ai import SearchStats
-
     board = Board()
     stats = SearchStats()
 
-    params = MinimaxParams(
-        depth=3,
-        alpha=-10_000_000,
-        beta=10_000_000,
-        is_maximizing=True,
-        stats=stats,
+    params = make_search_params(
+        3,
+        -10_000_000,
+        10_000_000,
+        True,
+        context=make_search_context(stats=stats),
     )
 
     minimax(board, params)
@@ -192,9 +108,6 @@ def test_alpha_beta_cutoffs_occurred():
 
 def test_self_play_depth_3_terminates():
     """Self-play with depth 3 should terminate for a single move quickly."""
-    import time
-    from chess_game.self_play import run_self_play
-
     start = time.monotonic()
     run_self_play(
         depth_white=3,

@@ -5,10 +5,12 @@ from __future__ import annotations
 import argparse
 import signal
 import sys
+from typing import Optional
 
-from chess_game.chess.ai import get_best_move
+from chess_game.chess.ai import get_best_move, position_key
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_checkmate, is_stalemate
+from chess_game.chess.constants import ConstantSquare
 from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.types import Color, PieceType
 
@@ -24,34 +26,16 @@ PROMOTION_SUFFIXES = {
 }
 
 
-def _move_to_algebraic(start, end, promotion):
+def _move_to_algebraic(
+    start: ConstantSquare,
+    end: ConstantSquare,
+    promotion: Optional[PieceType],
+) -> str:
     """Format a move as algebraic notation like e2e4 or e7e8q."""
     base = index_to_algebraic(start) + index_to_algebraic(end)
     if promotion is not None:
         base += PROMOTION_SUFFIXES[promotion]
     return base
-
-
-def _position_key(board: Board) -> str:
-    """Generate a simple key from board state and side to move."""
-    pieces = ""
-    for row in board.board:
-        for piece in row:
-            if piece is None:
-                pieces += "."
-            else:
-                c = "W" if piece.color == Color.WHITE else "B"
-                kind = {
-                    "KING": "K",
-                    "QUEEN": "Q",
-                    "ROOK": "R",
-                    "BISHOP": "B",
-                    "KNIGHT": "N",
-                    "PAWN": "P",
-                }.get(piece.kind.name, "?")
-                pieces += c + kind
-    turn = "W" if board.turn == Color.WHITE else "B"
-    return pieces + "|" + turn
 
 
 def _get_best_move_with_timeout(
@@ -83,6 +67,74 @@ def _get_best_move_with_timeout(
     return best
 
 
+def _print_game_header(depth_white: int, depth_black: int) -> None:
+    """Print the self-play header."""
+
+    print("=" * 40)
+    print("Self-play game starting")
+    print(f"White depth: {depth_white}, Black depth: {depth_black}")
+    print("=" * 40)
+    print()
+
+
+def _print_terminal_position(message: str, board: Board) -> None:
+    """Print a final message and the terminal board."""
+
+    print(f"\n{message}")
+    board.display()
+
+
+def _terminal_message(
+    board: Board,
+    move_number: int,
+    position_counts: dict[str, int],
+) -> Optional[str]:
+    """Return a terminal message if the game is already over."""
+
+    key = position_key(board)
+    position_counts[key] = position_counts.get(key, 0) + 1
+    if position_counts[key] >= 3:
+        return f"Draw on move {move_number} (threefold repetition)."
+    if is_checkmate(board):
+        winner = "Black" if board.turn == Color.WHITE else "White"
+        return f"Checkmate on move {move_number}. {winner} wins."
+    if is_stalemate(board):
+        return f"Stalemate on move {move_number}. The game is a draw."
+    return None
+
+
+def _pick_self_play_move(board: Board, base_depth: int, timeout: int):
+    """Choose a move, progressively lowering depth on timeout."""
+
+    used_depth = base_depth
+    while used_depth >= 1:
+        candidate = _get_best_move_with_timeout(board, used_depth, timeout)
+        if candidate is not None:
+            return candidate
+        if used_depth == 1:
+            break
+        used_depth -= 1
+    return None
+
+
+def _print_played_move(board: Board, move_number: int, side: str, best_move) -> None:
+    """Print the chosen move and resulting position."""
+
+    algebraic = _move_to_algebraic(
+        best_move.start,
+        best_move.end,
+        best_move.promotion,
+    )
+    print(f"Move {move_number}: {side} plays {algebraic}")
+    board.display()
+    print()
+
+
+def _get_per_move_timeout(depth_white: int, depth_black: int) -> int:
+    """Pick a per-move timeout that preserves requested search depth."""
+    return 60 if max(depth_white, depth_black) >= 5 else 30
+
+
 def run_self_play(
     depth_white: int = 2,
     depth_black: int = 2,
@@ -98,83 +150,38 @@ def run_self_play(
         verbose: If True, print moves and board; else silent.
     """
     board = Board()
-
     if verbose:
-        print("=" * 40)
-        print("Self-play game starting")
-        print(f"White depth: {depth_white}, Black depth: {depth_black}")
-        print("=" * 40)
-        print()
+        _print_game_header(depth_white, depth_black)
 
     move_number = 1
     position_counts: dict[str, int] = {}
-
-    per_move_timeout = 30  # seconds per move
+    per_move_timeout = _get_per_move_timeout(depth_white, depth_black)
 
     while move_number <= max_moves:
-        key = _position_key(board)
-        position_counts[key] = position_counts.get(key, 0) + 1
-
-        # Threefold repetition draw
-        if position_counts[key] >= 3:
+        terminal_message = _terminal_message(board, move_number, position_counts)
+        if terminal_message is not None:
             if verbose:
-                print(f"\nDraw on move {move_number} (threefold repetition).")
-                board.display()
+                _print_terminal_position(terminal_message, board)
             return
 
-        # Checkmate
-        if is_checkmate(board):
-            winner = "Black" if board.turn == Color.WHITE else "White"
-            if verbose:
-                print(f"\nCheckmate on move {move_number}. {winner} wins.")
-                board.display()
-            return
-
-        # Stalemate
-        if is_stalemate(board):
-            if verbose:
-                print(f"\nStalemate on move {move_number}. The game is a draw.")
-                board.display()
-            return
-
-        # Use side-specific depth
         base_depth = depth_white if board.turn == Color.WHITE else depth_black
-
-        # Try from base_depth down to 1 with a timeout to avoid freezing.
-        best = None
-        used_depth = base_depth
-        while used_depth >= 1:
-            candidate = _get_best_move_with_timeout(board, used_depth, per_move_timeout)
-            if candidate is not None:
-                best = candidate
-                break
-            used_depth = max(1, used_depth - 1)
-
+        best = _pick_self_play_move(board, base_depth, per_move_timeout)
         if best is None:
             if verbose:
-                print(f"\nGame ended on move {move_number} (no legal moves).")
-                board.display()
+                _print_terminal_position(
+                    f"Game ended on move {move_number} (no legal moves).",
+                    board,
+                )
             return
 
-        # Record the side that is about to move
         side = "White" if board.turn == Color.WHITE else "Black"
-
-        # Make move on the real board
         board.make_move(best.start, best.end, promotion=best.promotion)
-
-        # Print move in algebraic notation
-        algebraic = _move_to_algebraic(best.start, best.end, best.promotion)
         if verbose:
-            print(f"Move {move_number}: {side} plays {algebraic}")
-            board.display()
-            print()
-
+            _print_played_move(board, move_number, side, best)
         move_number += 1
 
-    # After loop ends normally
     if verbose:
-        print("\nReached maximum move limit. Game stopped.")
-        board.display()
+        _print_terminal_position("Reached maximum move limit. Game stopped.", board)
 
 
 def main():

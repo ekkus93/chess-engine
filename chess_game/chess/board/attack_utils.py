@@ -9,8 +9,6 @@ from chess_game.chess.types import Piece, PieceType
 from chess_game.chess.constants import (
     Color,
     ConstantSquare,
-    get_row_constant,
-    get_col_constant,
 )
 
 if TYPE_CHECKING:
@@ -201,15 +199,7 @@ def _path_is_clear(
     for _ in range(1, steps):
         current_row += step_row
         current_col += step_col
-        if (
-            board.get_piece(
-                ConstantSquare(
-                    row=get_row_constant(current_row),
-                    col=get_col_constant(current_col),
-                )
-            )
-            is not None
-        ):
+        if board.board[current_row][current_col] is not None:
             return False
 
     return True

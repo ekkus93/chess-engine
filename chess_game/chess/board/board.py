@@ -5,8 +5,6 @@ to specialized modules for validation, execution, and special rules.
 """
 
 from __future__ import annotations
-
-import copy
 from typing import List, Optional, Tuple
 
 from chess_game.chess.constants import Color
@@ -161,16 +159,13 @@ class Board:
         """Find king of given color."""
         for row in range(8):
             for col in range(8):
-                square = ConstantSquare(
-                    row=get_row_constant(row), col=get_col_constant(col)
-                )
-                piece = self.get_piece(square)
+                piece = self.board[row][col]
                 if (
                     piece is not None
                     and piece.color == color
                     and piece.kind == PieceType.KING
                 ):
-                    return square
+                    return get_square_constant(row, col)
         return None
 
     def is_valid_position(self, square: ConstantSquare) -> bool:
@@ -386,11 +381,9 @@ class Board:
     def clone(self) -> Board:
         """Create a deep copy of the board."""
         cloned = Board.__new__(Board)
-        cloned.board = [row[:] for row in self.board]
-        # Deep copy pieces so they're independent
         cloned.board = [
-            [copy.deepcopy(p) if p is not None else None for p in row]
-            for row in cloned.board
+            [piece.clone() if piece is not None else None for piece in row]
+            for row in self.board
         ]
         cloned.turn = self.turn
         cloned.en_passant_target = self.en_passant_target
@@ -400,9 +393,22 @@ class Board:
             black_kingside=self.castling_rights.black_kingside,
             black_queenside=self.castling_rights.black_queenside,
         )
-        cloned._move_history = list(self._move_history)
+        cloned.__dict__["_move_history"] = self._move_history_copy()
         cloned.init_validators()
         return cloned
+
+    def _move_history_copy(
+        self,
+    ) -> List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]]:
+        """Return a copy of the move history."""
+        return list(self._move_history)
+
+    def _replace_move_history(
+        self,
+        moves: List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]],
+    ) -> None:
+        """Replace the move history with a copied list."""
+        self._move_history = list(moves)
 
     # ---- legal moves ----
 
@@ -491,32 +497,41 @@ class Board:
         if not move_valid:
             return False
 
-        # Execute
+        return self.apply_legal_move(
+            start_pos,
+            end_pos,
+            promotion=promotion,
+            start_piece=start_piece,
+        )
+
+    def apply_legal_move(
+        self,
+        start_pos: ConstantSquare,
+        end_pos: ConstantSquare,
+        promotion: Optional[PieceType] = None,
+        start_piece: Optional[Piece] = None,
+    ) -> bool:
+        """Apply a move that has already been validated as legal."""
+        if start_piece is None:
+            start_piece = self.get_piece(start_pos)
+        if start_piece is None:
+            return False
+
         success = self._validators.move_executor.execute_move(
             start_pos, end_pos, promotion, start_piece
         )
         if not success:
             return False
 
-        # Record move in history
-        self._move_history.append(
-            (start_pos, end_pos, promotion)
-        )
-
-        # Update castling rights
+        self._move_history.append((start_pos, end_pos, promotion))
         self._update_castling_rights(start_pos, end_pos, start_piece)
-
-        # Update en passant target
         self._validators.en_passant_validator.clear_en_passant_target_if_needed(
             start_pos, end_pos, start_piece
         )
         self._validators.en_passant_validator.set_en_passant_target_if_valid(
             start_pos, end_pos, start_piece
         )
-
-        # Switch turn
         self.turn = Color.BLACK if self.turn == Color.WHITE else Color.WHITE
-
         return True
 
     def _update_castling_rights(
@@ -543,75 +558,66 @@ class Board:
 
     def display(self) -> None:
         """Display the board with last moves on the right."""
-        # 1) Build board lines (rank, pieces, separators)
-        board_lines = []
-
-        for row_index, row in enumerate(self.board):
-            rank = 8 - row_index
-            cells = []
-            for piece in row:
-                if piece is None:
-                    cells.append("   ")
-                else:
-                    kind = piece.kind.name
-                    if piece.color == Color.WHITE:
-                        ch = {
-                            "KING": "K",
-                            "QUEEN": "Q",
-                            "ROOK": "R",
-                            "BISHOP": "B",
-                            "KNIGHT": "N",
-                            "PAWN": "P",
-                        }.get(kind, "?")
-                    else:
-                        ch = {
-                            "KING": "k",
-                            "QUEEN": "q",
-                            "ROOK": "r",
-                            "BISHOP": "b",
-                            "KNIGHT": "n",
-                            "PAWN": "p",
-                        }.get(kind, "?")
-                    cells.append(f" {ch} ")
-
-            rank_line = f"{rank} |{'|'.join(cells)}|"
-            board_lines.append(rank_line)
-
-        # 2) Build move list (last 10 moves = last 5 pairs)
-        moves = self._move_history
-        last_ten = moves[-10:] if len(moves) > 10 else moves
-        first_index = len(moves) - len(last_ten)
-
-        move_lines: list[str] = []
-        i = 0
-        while i < len(last_ten):
-            start, end, promo = last_ten[i]
-            move_num = (first_index + i) // 2 + 1
-            move_str = self._to_alg(start, end, promo)
-
-            if i + 1 < len(last_ten):
-                s2, e2, p2 = last_ten[i + 1]
-                next_str = self._to_alg(s2, e2, p2)
-                move_lines.append(f"{move_num}. {move_str} {next_str}")
-                i += 2
-            else:
-                move_lines.append(f"{move_num}. {move_str}")
-                i += 1
-
-        # 3) Merge board lines and move list
-        # Print header
+        board_lines = self._build_board_lines()
+        move_lines = self._build_recent_move_lines()
         print("    a   b   c   d   e   f   g   h")
         print("  +---+---+---+---+---+---+---+---+")
 
         for row_index, rank_line in enumerate(board_lines):
-            # move_lines[row_index] if available
             move_note = move_lines[row_index] if row_index < len(move_lines) else ""
             print(rank_line + (f" {move_note}" if move_note else ""))
             print("  +---+---+---+---+---+---+---+---+")
 
-        # Footer with turn
         turn_label = self.turn.name.upper()
         print(f"  Turn: {turn_label}")
+
+    def _build_board_lines(self) -> List[str]:
+        """Build the board rows for display."""
+        board_lines: List[str] = []
+        for row_index, row in enumerate(self.board):
+            rank = 8 - row_index
+            cells = [self._display_cell(piece) for piece in row]
+            board_lines.append(f"{rank} |{'|'.join(cells)}|")
+        return board_lines
+
+    def _display_cell(self, piece: Optional[Piece]) -> str:
+        """Format one display cell."""
+        if piece is None:
+            return "   "
+        symbol = piece.kind.name[0]
+        if piece.kind == PieceType.KNIGHT:
+            symbol = "N"
+        if piece.color == Color.BLACK:
+            symbol = symbol.lower()
+        return f" {symbol} "
+
+    def _build_recent_move_lines(self) -> List[str]:
+        """Build move-history strings shown next to the board."""
+        moves = self._move_history_copy()
+        recent_moves = moves[-10:] if len(moves) > 10 else moves
+        first_index = len(moves) - len(recent_moves)
+        move_lines: List[str] = []
+        index = 0
+        while index < len(recent_moves):
+            move_lines.append(self._format_move_pair(recent_moves, first_index, index))
+            index += 2
+        return move_lines
+
+    def _format_move_pair(
+        self,
+        recent_moves: List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]],
+        first_index: int,
+        index: int,
+    ) -> str:
+        """Format one move pair from the recent move list."""
+        start, end, promo = recent_moves[index]
+        move_num = (first_index + index) // 2 + 1
+        first_move = self._to_alg(start, end, promo)
+        if index + 1 >= len(recent_moves):
+            return f"{move_num}. {first_move}"
+        second_start, second_end, second_promo = recent_moves[index + 1]
+        second_move = self._to_alg(second_start, second_end, second_promo)
+        return f"{move_num}. {first_move} {second_move}"
 
     def _to_alg(self, start, end, promotion) -> str:
         """Format a single move as algebraic notation."""

@@ -47,6 +47,10 @@ class Piece:
         """Set the piece's current square."""
         self._square = value
 
+    def clone(self) -> "Piece":
+        """Create a cheap independent copy of the piece."""
+        return Piece(color=self.color, kind=self.kind, _square=self._square)
+
 
 @dataclass
 class CastlingRights:

@@ -6,6 +6,16 @@ from pydantic import BaseModel
 
 # Board geometry constants
 BOARD_SIZE = 8
+KNIGHT_MOVE_OFFSETS = (
+    (-2, -1),
+    (-2, 1),
+    (-1, -2),
+    (-1, 2),
+    (1, -2),
+    (1, 2),
+    (2, -1),
+    (2, 1),
+)
 
 
 # Color enum
@@ -244,18 +254,22 @@ ColType: TypeAlias = int
 
 
 # Helper functions for creating ConstantSquare
+_ROW_CONSTANTS = tuple(RowConstant(row) for row in range(8))
+_COL_CONSTANTS = tuple(ColConstant(col) for col in range(8))
+
+
 def get_row_constant(row: int) -> RowConstant:
     """Convert integer row (0-7) to RowConstant."""
     if row < 0 or row >= 8:
         raise ValueError(f"Row must be between 0 and 7, got {row}")
-    return RowConstant(row)
+    return _ROW_CONSTANTS[row]
 
 
 def get_col_constant(col: int) -> ColConstant:
     """Convert integer column (0-7) to ColConstant."""
     if col < 0 or col >= 8:
         raise ValueError(f"Column must be between 0 and 7, got {col}")
-    return ColConstant(col)
+    return _COL_CONSTANTS[col]
 
 
 # Algebraic coordinate constants (external system)
@@ -279,6 +293,14 @@ G2 = AlgebraicSquare("g", 2)
 H2 = AlgebraicSquare("h", 2)
 
 
+_SQUARE_CONSTANTS = tuple(
+    tuple(ConstantSquare(row=get_row_constant(row), col=get_col_constant(col)) for col in range(8))
+    for row in range(8)
+)
+
+
 def get_square_constant(row: int, col: int) -> ConstantSquare:
     """Convert integer coordinates to ConstantSquare."""
-    return ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
+    if row < 0 or row >= 8 or col < 0 or col >= 8:
+        raise ValueError(f"Square must be between 0 and 7, got ({row}, {col})")
+    return _SQUARE_CONSTANTS[row][col]

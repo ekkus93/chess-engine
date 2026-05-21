@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
-from chess_game.chess.constants import Color, ConstantSquare
+from chess_game.chess.constants import Color, ConstantSquare, KNIGHT_MOVE_OFFSETS
 from chess_game.chess.types import Piece, PieceType
 from chess_game.chess.board.attack_utils import piece_attacks_square
 from chess_game.chess.board.castling import CastlingValidator
@@ -13,8 +13,7 @@ from chess_game.chess.board.path_validator import PathValidator
 from chess_game.chess.board.promotion import PROMOTION_PIECES
 from chess_game.chess.pieces.piece_movers import PieceMovers
 from chess_game.chess.constants import (
-    get_row_constant,
-    get_col_constant,
+    get_square_constant,
 )
 
 if TYPE_CHECKING:
@@ -23,6 +22,15 @@ if TYPE_CHECKING:
 
 class MoveValidator:
     """Validates whether a move is legal according to chess rules."""
+
+    _STRAIGHT_ATTACK_RAYS = (
+        ((1, 0), (-1, 0), (0, 1), (0, -1)),
+        frozenset({PieceType.ROOK, PieceType.QUEEN}),
+    )
+    _DIAGONAL_ATTACK_RAYS = (
+        ((1, 1), (1, -1), (-1, 1), (-1, -1)),
+        frozenset({PieceType.BISHOP, PieceType.QUEEN}),
+    )
 
     def __init__(self, board: Board):
         """Initialize with board."""
@@ -135,20 +143,10 @@ class MoveValidator:
         king_row = int(piece.square.row)
 
         if CastlingValidator.can_castle_kingside(self.board, piece.color):
-            moves.append(
-                ConstantSquare(
-                    row=get_row_constant(king_row),
-                    col=get_col_constant(6),
-                )
-            )
+            moves.append(get_square_constant(king_row, 6))
 
         if CastlingValidator.can_castle_queenside(self.board, piece.color):
-            moves.append(
-                ConstantSquare(
-                    row=get_row_constant(king_row),
-                    col=get_col_constant(2),
-                )
-            )
+            moves.append(get_square_constant(king_row, 2))
 
         return moves
 
@@ -191,12 +189,14 @@ class MoveValidator:
         all_moves: List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]] = []
         for row in range(8):
             for col in range(8):
-                sq = ConstantSquare(
-                    row=get_row_constant(row), col=get_col_constant(col)
-                )
-                piece = self.board.get_piece(sq)
+                piece = self.board.board[row][col]
                 if piece is not None and piece.color == self.board.turn:
-                    all_moves.extend(self._get_legal_moves_for_piece(piece, sq))
+                    all_moves.extend(
+                        self._get_legal_moves_for_piece(
+                            piece,
+                            get_square_constant(row, col),
+                        )
+                    )
         return all_moves
 
     def _get_legal_moves_for_piece(
@@ -280,10 +280,7 @@ class MoveValidator:
         direction = -1 if piece.color == Color.WHITE else 1
         assert self.board.en_passant_target is not None
         captured_row = int(self.board.en_passant_target.row) - direction
-        captured_square = ConstantSquare(
-            row=get_row_constant(captured_row),
-            col=get_col_constant(int(to_square.col)),
-        )
+        captured_square = get_square_constant(captured_row, int(to_square.col))
         temp_board.clear_square(captured_square)
         return temp_board
 
@@ -291,15 +288,109 @@ class MoveValidator:
         self, board: "Board", square: ConstantSquare, color: Color
     ) -> bool:
         """Check if square is attacked by any piece of the given color."""
-        for row in range(8):
-            for col in range(8):
-                sq = ConstantSquare(
-                    row=get_row_constant(row), col=get_col_constant(col)
-                )
-                attacker = board.get_piece(sq)
-                if attacker is not None and attacker.color == color:
-                    if self._can_piece_attack(attacker, sq, square, board):
-                        return True
+        target_row = int(square.row)
+        target_col = int(square.col)
+        return any(
+            (
+                self._is_attacked_by_pawn(board, target_row, target_col, color),
+                self._is_attacked_by_knight(board, target_row, target_col, color),
+                self._is_attacked_by_king(board, target_row, target_col, color),
+                self._is_attacked_on_rays(
+                    board,
+                    (target_row, target_col),
+                    color,
+                    self._STRAIGHT_ATTACK_RAYS,
+                ),
+                self._is_attacked_on_rays(
+                    board,
+                    (target_row, target_col),
+                    color,
+                    self._DIAGONAL_ATTACK_RAYS,
+                ),
+            )
+        )
+
+    def _is_attacked_by_pawn(
+        self, board: "Board", target_row: int, target_col: int, color: Color
+    ) -> bool:
+        """Check whether a pawn of the given color attacks the target square."""
+        pawn_row = target_row + 1 if color == Color.WHITE else target_row - 1
+        if not 0 <= pawn_row < 8:
+            return False
+
+        for pawn_col in (target_col - 1, target_col + 1):
+            if not 0 <= pawn_col < 8:
+                continue
+            attacker = board.board[pawn_row][pawn_col]
+            if (
+                attacker is not None
+                and attacker.color == color
+                and attacker.kind == PieceType.PAWN
+            ):
+                return True
+        return False
+
+    def _is_attacked_by_knight(
+        self, board: "Board", target_row: int, target_col: int, color: Color
+    ) -> bool:
+        """Check whether a knight of the given color attacks the target square."""
+        for row_offset, col_offset in KNIGHT_MOVE_OFFSETS:
+            row = target_row + row_offset
+            col = target_col + col_offset
+            if not (0 <= row < 8 and 0 <= col < 8):
+                continue
+            attacker = board.board[row][col]
+            if (
+                attacker is not None
+                and attacker.color == color
+                and attacker.kind == PieceType.KNIGHT
+            ):
+                return True
+        return False
+
+    def _is_attacked_by_king(
+        self, board: "Board", target_row: int, target_col: int, color: Color
+    ) -> bool:
+        """Check whether a king of the given color attacks the target square."""
+        for row_offset in (-1, 0, 1):
+            for col_offset in (-1, 0, 1):
+                if row_offset == 0 and col_offset == 0:
+                    continue
+                row = target_row + row_offset
+                col = target_col + col_offset
+                if not (0 <= row < 8 and 0 <= col < 8):
+                    continue
+                attacker = board.board[row][col]
+                if (
+                    attacker is not None
+                    and attacker.color == color
+                    and attacker.kind == PieceType.KING
+                ):
+                    return True
+        return False
+
+    def _is_attacked_on_rays(
+        self,
+        board: "Board",
+        target: Tuple[int, int],
+        color: Color,
+        ray_config: tuple[Tuple[Tuple[int, int], ...], frozenset[PieceType]],
+    ) -> bool:
+        """Check whether a sliding piece attacks the target square along any ray."""
+        target_row, target_col = target
+        directions, attackers = ray_config
+        for row_step, col_step in directions:
+            row = target_row + row_step
+            col = target_col + col_step
+            while 0 <= row < 8 and 0 <= col < 8:
+                attacker = board.board[row][col]
+                if attacker is None:
+                    row += row_step
+                    col += col_step
+                    continue
+                if attacker.color == color and attacker.kind in attackers:
+                    return True
+                break
         return False
 
     def is_piece_pinned(self, square: ConstantSquare, piece_color: Color) -> bool:
@@ -312,13 +403,15 @@ class MoveValidator:
 
         for row in range(8):
             for col in range(8):
-                sq = ConstantSquare(
-                    row=get_row_constant(row), col=get_col_constant(col)
-                )
-                attacker = self.board.get_piece(sq)
+                attacker = self.board.board[row][col]
                 if attacker and attacker.color == enemy_color:
-                    if self._can_piece_attack(attacker, sq, king_square, self.board):
-                        if self._attack_line_goes_through(sq, king_square, square):
+                    attacker_square = get_square_constant(row, col)
+                    if self._can_piece_attack(
+                        attacker, attacker_square, king_square, self.board
+                    ):
+                        if self._attack_line_goes_through(
+                            attacker_square, king_square, square
+                        ):
                             return True
 
         return False

@@ -8,6 +8,7 @@ Covers:
 
 from chess_game.chess.ai import (
     MinimaxParams,
+    SearchContext,
     get_legal_moves,
     minimax,
 )
@@ -35,8 +36,9 @@ def test_ai_promotion_no_stopiteration() -> None:
         alpha=-100_000_000,
         beta=100_000_000,
         is_maximizing=True,
+        context=SearchContext(),
     )
-    score, move = minimax(board, params)
+    _, move = minimax(board, params)
     assert move is not None
     assert move.start == sq("d7")
     assert move.end == sq("d8")
@@ -50,8 +52,9 @@ def test_ai_promotion_move_identity_queen() -> None:
         alpha=-100_000_000,
         beta=100_000_000,
         is_maximizing=True,
+        context=SearchContext(),
     )
-    score, move = minimax(board, params)
+    _, move = minimax(board, params)
     assert move is not None
     # Play the returned move on a fresh board and verify the promotion matches
     board2 = _setup_promo_ai_board()
@@ -81,6 +84,7 @@ def test_ai_promotion_depth2_no_crash() -> None:
         alpha=-100_000_000,
         beta=100_000_000,
         is_maximizing=True,
+        context=SearchContext(),
     )
     score, move = minimax(board, params)
     assert move is not None or score != 0  # At least something returned

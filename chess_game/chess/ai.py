@@ -2,67 +2,39 @@
 
 from __future__ import annotations
 
-import copy
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
 import sys
+import time
+
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_in_check as _gs_is_in_check
-from chess_game.chess.constants import (
-    ConstantSquare,
-    get_col_constant,
-    get_row_constant,
-)
 from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.evaluation import (
-    KING_TABLE,
-    KNIGHT_TABLE,
     MATERIAL_VALUES,
-    PAWN_TABLE,
-    QUEEN_TABLE,
-    BISHOP_TABLE,
-    ROOK_TABLE,
+    evaluate,
+    get_evaluation_breakdown as _get_evaluation_breakdown,
 )
 from chess_game.chess.move import Move
 from chess_game.chess.types import Color, LegalMove, Piece, PieceType
 
 sys.setrecursionlimit(50000)
 
-LegalMoveKey = tuple[int, LegalMove]
-
 INF = 10_000_000
 MATE_SCORE = 100_000
+ASPIRATION_WINDOW = 150
+MAX_QUIESCENCE_DEPTH = 1
+MAX_QUIESCENCE_MOVES = 4
 
-
-@dataclass
-class MoveOrderingKey:
-    """Score for move ordering (higher = prioritize first)."""
-
-    score: int
-    start: ConstantSquare
-    end: ConstantSquare
-    promotion: Optional[PieceType] = None
-
-    def __init__(
-        self,
-        score: int,
-        start: ConstantSquare,
-        end: ConstantSquare,
-        promotion: Optional[PieceType] = None,
-    ):
-        self.score = score
-        self.start = start
-        self.end = end
-        self.promotion = promotion
-
-    def __lt__(self, other: MoveOrderingKey) -> bool:
-        return self.score < other.score
+LegalMoveKey = tuple[object, object, Optional[PieceType]]
+get_evaluation_breakdown = _get_evaluation_breakdown
 
 
 class TTFlag(Enum):
     """Transposition table entry flag."""
+
     EXACT = "exact"
     LOWERBOUND = "lowerbound"
     UPPERBOUND = "upperbound"
@@ -71,6 +43,7 @@ class TTFlag(Enum):
 @dataclass(frozen=True)
 class TTEntry:
     """Entry in the transposition table."""
+
     depth: int
     score: int
     best_move: LegalMove | None
@@ -78,11 +51,186 @@ class TTEntry:
 
 
 @dataclass
+class TTHitDiagnostics:
+    """Diagnostics describing how TT entries were reused."""
+
+    tt_exact_hits: int = 0
+    tt_bound_hits: int = 0
+    tt_depth_sum: int = 0
+    tt_depth_uses: int = 0
+
+
+@dataclass
+class TacticalDiagnostics:
+    """Diagnostics about quiescence branching."""
+
+    tactical_move_sum: int = 0
+    tactical_positions: int = 0
+    tactical_max_width: int = 0
+
+
+@dataclass
+class SearchDiagnostics:
+    """Detailed optional diagnostics gathered during search."""
+
+    fail_high_retries: int = 0
+    fail_low_retries: int = 0
+    root_researches: int = 0
+    depth_timings: dict[int, float] | None = None
+    tt: TTHitDiagnostics | None = None
+    tactical: TacticalDiagnostics | None = None
+
+    def __post_init__(self) -> None:
+        """Ensure nested diagnostics are always available."""
+        if self.tt is None:
+            self.tt = TTHitDiagnostics()
+        if self.tactical is None:
+            self.tactical = TacticalDiagnostics()
+
+
+@dataclass
 class SearchStats:
-    """Lightweight stats for search (for tests/benchmarks only)."""
+    """Lightweight stats for search and diagnostics."""
+
     nodes: int = 0
     cutoffs: int = 0
     tt_hits: int = 0
+    quiescence_nodes: int = 0
+    diagnostics: SearchDiagnostics | None = None
+
+    def __post_init__(self) -> None:
+        """Ensure diagnostics are always available for callers."""
+        if self.diagnostics is None:
+            self.diagnostics = SearchDiagnostics()
+
+    @property
+    def fail_high_retries(self) -> int:
+        """Expose fail-high retries without expanding top-level state."""
+        assert self.diagnostics is not None
+        return self.diagnostics.fail_high_retries
+
+    @fail_high_retries.setter
+    def fail_high_retries(self, value: int) -> None:
+        assert self.diagnostics is not None
+        self.diagnostics.fail_high_retries = value
+
+    @property
+    def fail_low_retries(self) -> int:
+        """Expose fail-low retries without expanding top-level state."""
+        assert self.diagnostics is not None
+        return self.diagnostics.fail_low_retries
+
+    @fail_low_retries.setter
+    def fail_low_retries(self, value: int) -> None:
+        assert self.diagnostics is not None
+        self.diagnostics.fail_low_retries = value
+
+    @property
+    def root_researches(self) -> int:
+        """Expose root re-search count without expanding top-level state."""
+        assert self.diagnostics is not None
+        return self.diagnostics.root_researches
+
+    @root_researches.setter
+    def root_researches(self, value: int) -> None:
+        assert self.diagnostics is not None
+        self.diagnostics.root_researches = value
+
+    @property
+    def tactical_move_sum(self) -> int:
+        """Expose tactical move totals without expanding top-level state."""
+        assert self.diagnostics is not None
+        assert self.diagnostics.tactical is not None
+        return self.diagnostics.tactical.tactical_move_sum
+
+    @tactical_move_sum.setter
+    def tactical_move_sum(self, value: int) -> None:
+        assert self.diagnostics is not None
+        assert self.diagnostics.tactical is not None
+        self.diagnostics.tactical.tactical_move_sum = value
+
+    @property
+    def tactical_positions(self) -> int:
+        """Expose tactical node count without expanding top-level state."""
+        assert self.diagnostics is not None
+        assert self.diagnostics.tactical is not None
+        return self.diagnostics.tactical.tactical_positions
+
+    @tactical_positions.setter
+    def tactical_positions(self, value: int) -> None:
+        assert self.diagnostics is not None
+        assert self.diagnostics.tactical is not None
+        self.diagnostics.tactical.tactical_positions = value
+
+    @property
+    def tactical_max_width(self) -> int:
+        """Expose maximum tactical width without expanding top-level state."""
+        assert self.diagnostics is not None
+        assert self.diagnostics.tactical is not None
+        return self.diagnostics.tactical.tactical_max_width
+
+    @tactical_max_width.setter
+    def tactical_max_width(self, value: int) -> None:
+        assert self.diagnostics is not None
+        assert self.diagnostics.tactical is not None
+        self.diagnostics.tactical.tactical_max_width = value
+
+    @property
+    def depth_timings(self) -> dict[int, float] | None:
+        """Expose per-depth timing diagnostics."""
+        assert self.diagnostics is not None
+        return self.diagnostics.depth_timings
+
+    @depth_timings.setter
+    def depth_timings(self, value: dict[int, float] | None) -> None:
+        assert self.diagnostics is not None
+        self.diagnostics.depth_timings = value
+
+    @property
+    def tt_exact_hits(self) -> int:
+        """Expose exact TT hits."""
+        assert self.diagnostics is not None
+        assert self.diagnostics.tt is not None
+        return self.diagnostics.tt.tt_exact_hits
+
+    @tt_exact_hits.setter
+    def tt_exact_hits(self, value: int) -> None:
+        assert self.diagnostics is not None
+        assert self.diagnostics.tt is not None
+        self.diagnostics.tt.tt_exact_hits = value
+
+    @property
+    def tt_bound_hits(self) -> int:
+        """Expose bound-based TT hits."""
+        assert self.diagnostics is not None
+        assert self.diagnostics.tt is not None
+        return self.diagnostics.tt.tt_bound_hits
+
+    @tt_bound_hits.setter
+    def tt_bound_hits(self, value: int) -> None:
+        assert self.diagnostics is not None
+        assert self.diagnostics.tt is not None
+        self.diagnostics.tt.tt_bound_hits = value
+
+    @property
+    def avg_tt_hit_depth(self) -> float:
+        """Return the average depth of TT entries reused during search."""
+        assert self.diagnostics is not None
+        assert self.diagnostics.tt is not None
+        if self.diagnostics.tt.tt_depth_uses == 0:
+            return 0.0
+        return self.diagnostics.tt.tt_depth_sum / self.diagnostics.tt.tt_depth_uses
+
+
+@dataclass
+class SearchContext:
+    """Shared search state reused across recursive calls."""
+
+    transposition_table: Optional[dict[str, TTEntry]] = None
+    last_best_move: Optional[LegalMove] = None
+    nodes_searched: Optional[list[int]] = None
+    stats: Optional[SearchStats] = None
+    killer_moves: Optional[list[LegalMoveKey]] = None
 
 
 @dataclass
@@ -93,79 +241,38 @@ class MinimaxParams:
     alpha: int
     beta: int
     is_maximizing: bool
-    transposition_table: Optional[dict[str, TTEntry]] = None
-    last_best_move: Optional[LegalMove] = None
-    nodes_searched: Optional[list[int]] = None
-    stats: Optional[SearchStats] = None
-    killer_moves: Optional[list[tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]]] = None
+    context: Optional[SearchContext] = None
 
 
-def evaluate(board: Board) -> int:
-    """Evaluate the board position from White's perspective."""
-    total_score: int = 0
+@dataclass
+class QuiescenceParams:
+    """Parameters for quiescence search."""
 
-    for row in range(8):
-        for col in range(8):
-            piece = board.get_piece(
-                ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
-            )
-            if piece is None:
-                continue
-
-            color_bonus = 1 if piece.color == Color.WHITE else -1
-            piece_score = _evaluate_piece(piece, row, col)
-            total_score += color_bonus * piece_score
-
-    return total_score
-
-
-def _evaluate_piece(piece: Piece, row: int, col: int) -> int:
-    """Get evaluation score for a single piece."""
-    material = MATERIAL_VALUES[piece.kind]
-
-    if piece.color == Color.BLACK:
-        row = 7 - row
-
-    positional_bias = 0
-    if piece.kind == PieceType.PAWN:
-        positional_bias = PAWN_TABLE[row][col]
-    elif piece.kind == PieceType.KNIGHT:
-        positional_bias = KNIGHT_TABLE[row][col]
-    elif piece.kind == PieceType.BISHOP:
-        positional_bias = BISHOP_TABLE[row][col]
-    elif piece.kind == PieceType.ROOK:
-        positional_bias = ROOK_TABLE[row][col]
-    elif piece.kind == PieceType.QUEEN:
-        positional_bias = QUEEN_TABLE[row][col]
-    elif piece.kind == PieceType.KING:
-        positional_bias = KING_TABLE[row][col]
-
-    return material + positional_bias
+    alpha: int
+    beta: int
+    is_maximizing: bool
+    context: Optional[SearchContext] = None
+    depth_remaining: int = MAX_QUIESCENCE_DEPTH
 
 
 def get_legal_moves(board: Board) -> list[Move]:
     """Get all legal moves for the side to move."""
-    legal_moves = board.get_legal_moves()
+
     return [
-        Move(
-            start=move[0],
-            end=move[1],
-            promotion=move[2],
-        )
-        for move in legal_moves
+        Move(start=start, end=end, promotion=promotion)
+        for start, end, promotion in board.get_legal_moves()
     ]
 
 
-def _make_copy_with_move(
-    board: Board,
-    start: ConstantSquare,
-    end: ConstantSquare,
-    promotion: Optional[PieceType] = None,
-) -> Board:
+def _make_copy_with_move(board: Board, move: Move) -> Board:
     """Create a new board state after making a move."""
-    simulated = board.clone()
-    success = simulated.make_move(start, end, promotion=promotion)
-    if not success:
+
+    simulated = shallow_clone_board(board)
+    if not simulated.apply_legal_move(
+        move.start,
+        move.end,
+        promotion=move.promotion,
+    ):
         raise RuntimeError("Simulated move failed legality check")
     return simulated
 
@@ -173,34 +280,24 @@ def _make_copy_with_move(
 def _check_tt_cache(
     board: Board,
     params: MinimaxParams,
-) -> Optional[tuple[int, LegalMove]]:
+) -> Optional[tuple[int, LegalMove | None]]:
     """Check transposition table for a cached result."""
-    tt = params.transposition_table
-    if not tt:
+
+    context = params.context
+    if context is None or context.transposition_table is None:
         return None
-
-    key = _position_key(board)
-    if key not in tt:
+    entry = context.transposition_table.get(position_key(board))
+    if entry is None or entry.depth < params.depth:
         return None
-
-    entry = tt[key]
-    if entry.depth < params.depth:
-        return None
-
-    alpha = params.alpha
-    beta = params.beta
-
     if entry.flag == TTFlag.EXACT:
+        _record_tt_usage(context, entry)
         return (entry.score, entry.best_move)
-
-    # LOWERBOUND: useful if score >= beta
-    if entry.flag == TTFlag.LOWERBOUND and entry.score >= beta:
+    if entry.flag == TTFlag.LOWERBOUND and entry.score >= params.beta:
+        _record_tt_usage(context, entry)
         return (entry.score, entry.best_move)
-
-    # UPPERBOUND: useful if score <= alpha
-    if entry.flag == TTFlag.UPPERBOUND and entry.score <= alpha:
+    if entry.flag == TTFlag.UPPERBOUND and entry.score <= params.alpha:
+        _record_tt_usage(context, entry)
         return (entry.score, entry.best_move)
-
     return None
 
 
@@ -209,127 +306,64 @@ def _store_tt_cache(
     params: MinimaxParams,
     score: int,
     move: LegalMove | None,
-    alpha_orig: int,
-    beta_orig: int,
+    original_window: tuple[int, int],
 ) -> None:
-    """Store a result in the transposition table with correct flag."""
-    tt = params.transposition_table
-    if tt is None:
+    """Store a result in the transposition table with the correct bound flag."""
+
+    context = params.context
+    if context is None or context.transposition_table is None:
         return
-
-    key = _position_key(board)
-
+    alpha_orig, beta_orig = original_window
     if score <= alpha_orig:
         flag = TTFlag.UPPERBOUND
     elif score >= beta_orig:
         flag = TTFlag.LOWERBOUND
     else:
         flag = TTFlag.EXACT
-
-    entry = TTEntry(
+    new_entry = TTEntry(
         depth=params.depth,
         score=score,
         best_move=move,
         flag=flag,
     )
-
-    existing = tt.get(key)
+    key = position_key(board)
+    existing = context.transposition_table.get(key)
     if existing is None or params.depth >= existing.depth:
-        tt[key] = entry
+        context.transposition_table[key] = new_entry
 
 
 def shallow_clone_board(board: Board) -> Board:
-    """Create a shallow clone of board for search."""
-    new_board = Board.__new__(Board)
+    """Create a search clone of the board."""
 
-    new_board.board = [
-        [
-            copy.deepcopy(p) if p is not None else None
-            for p in row
-        ]
-        for row in board.board
-    ]
-
-    new_board.turn = board.turn
-    new_board.en_passant_target = board.en_passant_target
-    new_board.castling_rights = copy.copy(board.castling_rights)
-    new_board._move_history = list(board._move_history)
-    new_board.init_validators()
-    return new_board
+    return board.clone()
 
 
-def _search_move_loop(
-    board: Board,
-    legal_moves: list[Move],
-    scored_moves: list[MoveOrderingKey],
-    params: MinimaxParams,
-) -> tuple[int, Optional[LegalMove]]:
-    """Execute the main minimax search loop with alpha-beta pruning."""
-    best_score: int = -100_000_000 if params.is_maximizing else 100_000_000
-    best_move: LegalMove | None = None
+def _record_search_node(context: Optional[SearchContext]) -> None:
+    """Increment node counters when diagnostics are enabled."""
 
-    alpha = params.alpha
-    beta = params.beta
+    if context is None:
+        return
+    if context.nodes_searched is not None:
+        context.nodes_searched[0] += 1
+    if context.stats is not None:
+        context.stats.nodes += 1
 
-    alpha_orig = alpha
-    beta_orig = beta
 
-    for move_key in scored_moves:
-        move = next(
-            m
-            for m in legal_moves
-            if (
-                m.start == move_key.start
-                and m.end == move_key.end
-                and m.promotion == move_key.promotion
-            )
-        )
+def _record_quiescence_node(context: Optional[SearchContext]) -> None:
+    """Increment quiescence counters when diagnostics are enabled."""
 
-        new_board = shallow_clone_board(board)
-        new_board.make_move(move.start, move.end, promotion=move.promotion)
+    if context is not None and context.stats is not None:
+        context.stats.quiescence_nodes += 1
 
-        child_params = MinimaxParams(
-            depth=params.depth - 1,
-            alpha=alpha,
-            beta=beta,
-            is_maximizing=not params.is_maximizing,
-            transposition_table=params.transposition_table,
-            nodes_searched=params.nodes_searched,
-            stats=params.stats,
-        )
-        child_result = minimax(new_board, child_params)
-        child_score = int(child_result[0])
 
-        if params.is_maximizing:
-            if child_score > best_score:
-                best_score = child_score
-                best_move = LegalMove(move.start, move.end, move.promotion)
-            alpha = max(alpha, child_score)
-            if alpha >= beta:
-                if params.stats is not None:
-                    params.stats.cutoffs += 1
-                if params.killer_moves is not None:
-                    kv = (move.start, move.end, move.promotion)
-                    if kv not in params.killer_moves:
-                        params.killer_moves.append(kv)
-                break
-        else:
-            if child_score < best_score:
-                best_score = child_score
-                best_move = LegalMove(move.start, move.end, move.promotion)
-            beta = min(beta, child_score)
-            if beta <= alpha:
-                if params.stats is not None:
-                    params.stats.cutoffs += 1
-                if params.killer_moves is not None:
-                    kv = (move.start, move.end, move.promotion)
-                    if kv not in params.killer_moves:
-                        params.killer_moves.append(kv)
-                break
+def _terminal_score(board: Board, legal_moves: list[Move]) -> Optional[int]:
+    """Return a terminal score when the side to move is mated or stalemated."""
 
-    _store_tt_cache(board, params, best_score, best_move, alpha_orig, beta_orig)
-
-    return (best_score, best_move)
+    if legal_moves:
+        return None
+    if _gs_is_in_check(board, board.turn):
+        return -MATE_SCORE if board.turn == Color.WHITE else MATE_SCORE
+    return 0
 
 
 def minimax(
@@ -337,143 +371,398 @@ def minimax(
     params: MinimaxParams,
 ) -> tuple[int, Optional[LegalMove]]:
     """Standard minimax with alpha-beta pruning."""
-    # Node counter for tests (no-op when not used)
-    if params.nodes_searched is not None:
-        params.nodes_searched[0] += 1
 
-    # Use SearchStats if present
-    if params.stats is not None:
-        params.stats.nodes += 1
-
-    # Check transposition table
+    _record_search_node(params.context)
     cached = _check_tt_cache(board, params)
     if cached is not None:
-        if params.stats is not None:
-            params.stats.tt_hits += 1
+        _record_tt_hit(params.context)
         return cached
 
-    # Generate legal moves FIRST (terminal handling before depth cutoff).
     legal_moves = get_legal_moves(board)
-
-    # No legal moves: checkmate or stalemate.
-    if not legal_moves:
-        in_check = _gs_is_in_check(board, board.turn)
-        if in_check:
-            # Checkmate: large score depending on whose king is mated.
-            # board.turn is the side to move (the checkmated side).
-            if board.turn == Color.WHITE:
-                # White is checkmated => great for Black.
-                return (-MATE_SCORE, None)
-            # Black is checkmated => great for White.
-            return (MATE_SCORE, None)
-        # Stalemate: draw.
-        return (0, None)
-
-    # Base case: reached maximum depth => raw evaluation.
+    terminal_score = _terminal_score(board, legal_moves)
+    if terminal_score is not None:
+        return (terminal_score, None)
     if params.depth == 0:
-        score = evaluate(board)
-        return (score, None)
+        return (
+            quiescence(
+                board,
+                params.alpha,
+                params.beta,
+                params.is_maximizing,
+                params.context,
+            ),
+            None,
+        )
 
-    # Sort moves for better pruning: captures first, then promotions.
-    scored_moves = _order_moves(board, legal_moves, params)
+    ordered_moves = _order_moves(board, legal_moves, params)
+    return _search_move_loop(board, ordered_moves, params)
 
-    best_score, best_move = _search_move_loop(board, legal_moves, scored_moves, params)
 
+def _record_tt_hit(context: Optional[SearchContext]) -> None:
+    """Record a transposition-table hit when stats are enabled."""
+
+    if context is not None and context.stats is not None:
+        context.stats.tt_hits += 1
+
+
+def _record_tt_usage(context: Optional[SearchContext], entry: TTEntry) -> None:
+    """Record the kind and depth of a TT reuse."""
+
+    if context is None or context.stats is None:
+        return
+    if entry.flag == TTFlag.EXACT:
+        context.stats.tt_exact_hits += 1
+    else:
+        context.stats.tt_bound_hits += 1
+    assert context.stats.diagnostics is not None
+    assert context.stats.diagnostics.tt is not None
+    context.stats.diagnostics.tt.tt_depth_sum += entry.depth
+    context.stats.diagnostics.tt.tt_depth_uses += 1
+
+
+def _search_move_loop(
+    board: Board,
+    ordered_moves: list[Move],
+    params: MinimaxParams,
+) -> tuple[int, Optional[LegalMove]]:
+    """Search one ply of child moves with alpha-beta pruning."""
+
+    best_score = -INF if params.is_maximizing else INF
+    best_move: Optional[LegalMove] = None
+    alpha = params.alpha
+    beta = params.beta
+    original_window = (alpha, beta)
+
+    for move in ordered_moves:
+        child_score = _evaluate_child_move(board, move, params, alpha, beta)
+        best_score, best_move = _update_best_result(
+            params.is_maximizing,
+            move,
+            child_score,
+            best_score,
+            best_move,
+        )
+        alpha, beta, cutoff = _update_alpha_beta(
+            params.is_maximizing,
+            best_score,
+            alpha,
+            beta,
+        )
+        if cutoff:
+            _record_cutoff(params.context, move)
+            break
+
+    _store_tt_cache(board, params, best_score, best_move, original_window)
     return (best_score, best_move)
+
+
+def _evaluate_child_move(
+    board: Board,
+    move: Move,
+    params: MinimaxParams,
+    alpha: int,
+    beta: int,
+) -> int:
+    """Evaluate a single child move recursively."""
+
+    child_board = _make_copy_with_move(board, move)
+    child_result, _ = minimax(
+        child_board,
+        MinimaxParams(
+            depth=params.depth - 1,
+            alpha=alpha,
+            beta=beta,
+            is_maximizing=not params.is_maximizing,
+            context=params.context,
+        ),
+    )
+    return child_result
+
+
+def _update_best_result(
+    is_maximizing: bool,
+    move: Move,
+    child_score: int,
+    best_score: int,
+    best_move: Optional[LegalMove],
+) -> tuple[int, Optional[LegalMove]]:
+    """Update the best move/score for the current node."""
+
+    better_score = child_score > best_score if is_maximizing else child_score < best_score
+    if not better_score:
+        return best_score, best_move
+    return child_score, LegalMove(move.start, move.end, move.promotion)
+
+
+def _update_alpha_beta(
+    is_maximizing: bool,
+    best_score: int,
+    alpha: int,
+    beta: int,
+) -> tuple[int, int, bool]:
+    """Update alpha/beta and report whether a cutoff occurred."""
+
+    if is_maximizing:
+        alpha = max(alpha, best_score)
+        return alpha, beta, alpha >= beta
+    beta = min(beta, best_score)
+    return alpha, beta, beta <= alpha
+
+
+def _record_cutoff(context: Optional[SearchContext], move: Move) -> None:
+    """Record cutoff diagnostics and killer moves."""
+
+    if context is None:
+        return
+    if context.stats is not None:
+        context.stats.cutoffs += 1
+    if context.killer_moves is None:
+        return
+    killer_move = (move.start, move.end, move.promotion)
+    if killer_move not in context.killer_moves:
+        context.killer_moves.append(killer_move)
+
+
+def quiescence(
+    board: Board,
+    alpha: int,
+    beta: int,
+    is_maximizing: bool,
+    context: Optional[SearchContext] = None,
+) -> int:
+    """Extend tactical leaf nodes through captures and promotions."""
+
+    return _quiescence(
+        board,
+        QuiescenceParams(
+            alpha=alpha,
+            beta=beta,
+            is_maximizing=is_maximizing,
+            context=context,
+        ),
+    )
+
+
+def _quiescence(board: Board, params: QuiescenceParams) -> int:
+    """Internal quiescence implementation with bounded recursion."""
+
+    alpha = params.alpha
+    beta = params.beta
+    context = params.context
+    _record_quiescence_node(context)
+    stand_pat = evaluate(board)
+    best_score, alpha, beta = _stand_pat_bounds(
+        stand_pat,
+        alpha,
+        beta,
+        params.is_maximizing,
+    )
+    if _is_quiescence_cutoff(stand_pat, alpha, beta, params.is_maximizing):
+        return stand_pat
+    if params.depth_remaining <= 0:
+        return stand_pat
+
+    tactical_moves = _get_tactical_moves(board)
+    if not tactical_moves:
+        return stand_pat
+    _record_tactical_width(context, len(tactical_moves))
+
+    move_order_params = MinimaxParams(
+        depth=0,
+        alpha=alpha,
+        beta=beta,
+        is_maximizing=params.is_maximizing,
+        context=context,
+    )
+    for move in _order_moves(board, tactical_moves, move_order_params):
+        child_score = _quiescence(
+            _make_copy_with_move(board, move),
+            QuiescenceParams(
+                alpha=alpha,
+                beta=beta,
+                is_maximizing=not params.is_maximizing,
+                context=context,
+                depth_remaining=params.depth_remaining - 1,
+            ),
+        )
+        if params.is_maximizing:
+            best_score = max(best_score, child_score)
+            alpha = max(alpha, best_score)
+        else:
+            best_score = min(best_score, child_score)
+            beta = min(beta, best_score)
+        if alpha >= beta:
+            break
+    return best_score
+
+
+def _stand_pat_bounds(
+    stand_pat: int,
+    alpha: int,
+    beta: int,
+    is_maximizing: bool,
+) -> tuple[int, int, int]:
+    """Seed quiescence bounds from the stand-pat evaluation."""
+
+    if is_maximizing:
+        return stand_pat, max(alpha, stand_pat), beta
+    return stand_pat, alpha, min(beta, stand_pat)
+
+
+def _is_quiescence_cutoff(
+    stand_pat: int,
+    alpha: int,
+    beta: int,
+    is_maximizing: bool,
+) -> bool:
+    """Return True when quiescence can terminate before exploring captures."""
+
+    if is_maximizing:
+        return stand_pat >= beta
+    return stand_pat <= alpha
+
+
+def _get_tactical_moves(board: Board) -> list[Move]:
+    """Return capture and promotion moves for quiescence search."""
+
+    tactical_moves = [
+        move for move in get_legal_moves(board) if _is_tactical_move(board, move)
+    ]
+    ordered_moves = _order_moves(board, tactical_moves)
+    return ordered_moves[:MAX_QUIESCENCE_MOVES]
+
+
+def _record_tactical_width(context: Optional[SearchContext], width: int) -> None:
+    """Record tactical branching diagnostics."""
+
+    if context is None or context.stats is None:
+        return
+    context.stats.tactical_positions += 1
+    context.stats.tactical_move_sum += width
+    context.stats.tactical_max_width = max(context.stats.tactical_max_width, width)
+
+
+def _is_tactical_move(board: Board, move: Move) -> bool:
+    """Return True when a move changes material immediately."""
+
+    if move.promotion is not None:
+        return True
+    return _is_interesting_capture(board, move)
+
+
+def _is_interesting_capture(board: Board, move: Move) -> bool:
+    """Return True for tactical captures worth exploring in quiescence."""
+
+    if not _is_capture_move(board, move):
+        return False
+    captured_piece = board.get_piece(move.end)
+    attacker = board.get_piece(move.start)
+    if attacker is None:
+        return False
+    if captured_piece is None:
+        return False
+    if MATERIAL_VALUES[captured_piece.kind] < MATERIAL_VALUES[PieceType.BISHOP]:
+        return False
+    return MATERIAL_VALUES[captured_piece.kind] >= MATERIAL_VALUES[attacker.kind]
+
+
+def _is_capture_move(board: Board, move: Move) -> bool:
+    """Return True for regular captures and en passant."""
+
+    if board.get_piece(move.end) is not None:
+        return True
+    moving_piece = board.get_piece(move.start)
+    return (
+        moving_piece is not None
+        and moving_piece.kind == PieceType.PAWN
+        and board.en_passant_target == move.end
+        and move.start.col != move.end.col
+    )
 
 
 def _order_moves(
     board: Board,
     legal_moves: list[Move],
-    params: MinimaxParams | None = None,
-) -> list[MoveOrderingKey]:
-    """Sort moves for better pruning order (MVV/LVA, killer moves, TT, last best)."""
+    params: Optional[MinimaxParams] = None,
+) -> list[Move]:
+    """Sort moves for better pruning order."""
+
+    scored_moves = [
+        (_move_order_score(board, move, params), move)
+        for move in legal_moves
+    ]
+    scored_moves.sort(key=lambda item: item[0], reverse=True)
+    return [move for _, move in scored_moves]
+
+
+def _move_order_score(
+    board: Board,
+    move: Move,
+    params: Optional[MinimaxParams],
+) -> int:
+    """Return a move-ordering score."""
+
+    score = _capture_order_score(board, move) + _promotion_order_score(move)
+    context = None if params is None else params.context
+    if context is None:
+        return score
+    move_key = (move.start, move.end, move.promotion)
+    if context.killer_moves is not None and move_key in context.killer_moves:
+        score += 1_500
+    if context.last_best_move is not None and _same_legal_move(move, context.last_best_move):
+        score += 2_000
+    tt_best_move = _tt_best_move(board, context)
+    if tt_best_move is not None and _same_legal_move(move, tt_best_move):
+        score += 3_000
+    return score
+
+
+def _capture_order_score(board: Board, move: Move) -> int:
+    """Return capture ordering score using MVV/LVA."""
+
+    captured_piece = board.get_piece(move.end)
+    attacker = board.get_piece(move.start)
+    if attacker is None or captured_piece is None:
+        return 900 if _is_capture_move(board, move) else 0
+    return _mvv_lva_capture_score(attacker, captured_piece)
+
+
+def _promotion_order_score(move: Move) -> int:
+    """Return a move-ordering bonus for promotions."""
+
+    if move.promotion is None:
+        return 0
     promotion_order_bonus = {
         PieceType.QUEEN: 900,
         PieceType.ROOK: 500,
         PieceType.BISHOP: 330,
         PieceType.KNIGHT: 320,
     }
+    return promotion_order_bonus.get(move.promotion, 0)
 
-    scored_moves: list[MoveOrderingKey] = []
 
-    last_best_move = (
-        params.last_best_move if params is not None else None
+def _tt_best_move(board: Board, context: SearchContext) -> Optional[LegalMove]:
+    """Return the TT move for the current board if one exists."""
+
+    if context.transposition_table is None:
+        return None
+    entry = context.transposition_table.get(position_key(board))
+    return None if entry is None else entry.best_move
+
+
+def _same_legal_move(move: Move, legal_move: LegalMove) -> bool:
+    """Return True when two move objects represent the same move."""
+
+    return (
+        move.start == legal_move.start
+        and move.end == legal_move.end
+        and move.promotion == legal_move.promotion
     )
-
-    tt_best_move: LegalMove | None = None
-    tt_entry = None
-    if params is not None and params.transposition_table is not None:
-        key = _position_key(board)
-        tt_entry = params.transposition_table.get(key)
-
-    if tt_entry is not None and tt_entry.best_move is not None:
-        tt_best_move = tt_entry.best_move
-
-    killer_moves_set: set[tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]] | None = (
-        set(params.killer_moves)
-        if params is not None and params.killer_moves is not None
-        else None
-    )
-
-    for move in legal_moves:
-        start, end, promotion = move.start, move.end, move.promotion
-
-        captured_piece = board.get_piece(end)
-        is_capture = captured_piece is not None
-
-        # MVV/LVA: prioritize captures of high-value pieces with low-value attackers
-        capture_gain = 0
-        if is_capture:
-            attacker = board.get_piece(start)
-            order_score = (
-                _mvv_lva_capture_score(attacker, captured_piece)
-                if attacker is not None
-                else 0
-            )
-            capture_gain = order_score
-        else:
-            capture_gain = 0
-
-        promotion_value = 0
-        if promotion is not None:
-            promotion_value = promotion_order_bonus.get(promotion, 0)
-
-        # Base score
-        order_score = capture_gain + promotion_value
-
-        # Killer move bonus (non-capture)
-        if killer_moves_set is not None and not is_capture:
-            kv = (start, end, promotion)
-            if kv in killer_moves_set:
-                order_score += 1500
-
-        # Last best move bonus
-        if last_best_move is not None and (
-            start == last_best_move.start
-            and end == last_best_move.end
-            and promotion == last_best_move.promotion
-        ):
-            order_score += 2000
-
-        # TT best move bonus
-        if tt_best_move is not None and (
-            start == tt_best_move.start
-            and end == tt_best_move.end
-            and promotion == tt_best_move.promotion
-        ):
-            order_score += 3000
-
-        move_key = MoveOrderingKey(
-            score=order_score, start=start, end=end, promotion=promotion
-        )
-        scored_moves.append(move_key)
-
-    return sorted(scored_moves, key=lambda x: x.score, reverse=True)
 
 
 def _mvv_lva_capture_score(attacker: Piece, victim: Piece) -> int:
-    """MVV/LVA score for a capture: Most Valuable Victim / Least Valuable Attacker."""
+    """MVV/LVA score for a capture."""
+
     victim_values = {
         PieceType.PAWN: 10,
         PieceType.KNIGHT: 30,
@@ -481,7 +770,6 @@ def _mvv_lva_capture_score(attacker: Piece, victim: Piece) -> int:
         PieceType.ROOK: 35,
         PieceType.QUEEN: 90,
     }
-
     attacker_values = {
         PieceType.PAWN: 10,
         PieceType.KNIGHT: 30,
@@ -489,101 +777,148 @@ def _mvv_lva_capture_score(attacker: Piece, victim: Piece) -> int:
         PieceType.ROOK: 35,
         PieceType.QUEEN: 90,
     }
-
-    v = victim_values.get(victim.kind, 0)
-    a = attacker_values.get(attacker.kind, 0)
-
-    # Higher is better; we want high victim, low attacker.
-    return (v * 1000) - a
+    return (victim_values.get(victim.kind, 0) * 1_000) - attacker_values.get(attacker.kind, 0)
 
 
-def _captured_piece_value(piece_type: PieceType) -> int:
-    """Get capture value for material count."""
-    values = {
-        PieceType.PAWN: 5,
-        PieceType.KNIGHT: 18,
-        PieceType.BISHOP: 20,
-        PieceType.ROOK: 35,
-        PieceType.QUEEN: 60,
-    }
-    return values.get(piece_type, 0)
-
-
-def get_best_move(board: Board, depth: int) -> Optional[LegalMove]:
+def get_best_move(
+    board: Board,
+    depth: int,
+    stats: Optional[SearchStats] = None,
+) -> Optional[LegalMove]:
     """Get the best move for the current position at given search depth."""
+
     if depth < 1:
         raise ValueError("depth must be >= 1")
+    if not get_legal_moves(board):
+        return None
 
-    tt: dict[str, TTEntry] = {}
-    killer_moves: list[LegalMove] = []
+    context = SearchContext(
+        transposition_table={},
+        stats=stats,
+        killer_moves=[],
+    )
+    best_move: Optional[LegalMove] = None
+    previous_score = 0
+    is_maximizing = board.turn == Color.WHITE
 
-    best_move: LegalMove | None = None
-    prev_score: int = 0
-
-    for d in range(1, depth + 1):
-        # Use aspiration windows starting from depth 2.
-        use_aspiration = d >= 2
-        alpha = -INF
-        beta = INF
-
-        # Initial window around previous score
-        window = 1000
-        if use_aspiration:
-            alpha = prev_score - window
-            beta = prev_score + window
-
-        max_attempts = 5
-        attempt = 0
-        while True:
-            params = MinimaxParams(
-                depth=d,
-                alpha=alpha,
-                beta=beta,
-                is_maximizing=board.turn == Color.WHITE,
-                transposition_table=tt,
-                last_best_move=best_move,
-                killer_moves=killer_moves,
-            )
-
-            legal_moves = get_legal_moves(board)
-            if not legal_moves:
-                return None
-
-            score, move = minimax(board, params)
-            best_move = move
-
-            # If score within [alpha, beta), success.
-            if alpha <= score < beta:
-                prev_score = score
-                break
-
-            # Fail-low: expand alpha downward.
-            if score <= alpha:
-                alpha = -INF
-                if not use_aspiration:
-                    break
-            # Fail-high: expand beta upward, then retry.
-            elif score >= beta:
-                beta = INF
-                if not use_aspiration:
-                    break
-
-            attempt += 1
-            if attempt >= max_attempts:
-                # Fallback to full window if too many retries.
-                alpha = -INF
-                beta = INF
-                break
-
-        # Ensure killer_moves stay limited.
-        if len(killer_moves) > 4:
-            killer_moves = killer_moves[-4:]
-
+    for current_depth in range(1, depth + 1):
+        context.last_best_move = best_move
+        depth_start = time.monotonic()
+        score, move = _search_root_depth(
+            board,
+            current_depth,
+            is_maximizing,
+            previous_score,
+            context,
+        )
+        _record_depth_timing(context, current_depth, time.monotonic() - depth_start)
+        if move is None:
+            return None
+        previous_score = score
+        best_move = move
+        _trim_killer_moves(context)
     return best_move
 
 
-def _position_key(board: Board) -> str:
-    """Generate a position key for transposition table."""
+def _trim_killer_moves(context: SearchContext) -> None:
+    """Keep the killer-move list small and recent."""
+
+    if context.killer_moves is not None and len(context.killer_moves) > 4:
+        context.killer_moves[:] = context.killer_moves[-4:]
+
+
+def _search_root_depth(
+    board: Board,
+    depth: int,
+    is_maximizing: bool,
+    previous_score: int,
+    context: SearchContext,
+) -> tuple[int, Optional[LegalMove]]:
+    """Search one iterative-deepening layer, rerunning on aspiration failure."""
+
+    alpha, beta = _initial_root_window(depth, previous_score)
+    while True:
+        score, move = minimax(
+            board,
+            MinimaxParams(
+                depth=depth,
+                alpha=alpha,
+                beta=beta,
+                is_maximizing=is_maximizing,
+                context=context,
+            ),
+        )
+        if not _rerun_full_window_if_needed(score, alpha, beta, context):
+            return score, move
+        _record_root_research(context)
+        alpha, beta = -INF, INF
+
+
+def _record_root_research(context: SearchContext) -> None:
+    """Record a root re-search caused by aspiration failure."""
+
+    if context.stats is not None:
+        context.stats.root_researches += 1
+
+
+def _record_depth_timing(
+    context: SearchContext,
+    depth: int,
+    elapsed: float,
+) -> None:
+    """Store per-depth timing diagnostics."""
+
+    if context.stats is None:
+        return
+    if context.stats.depth_timings is None:
+        context.stats.depth_timings = {}
+    context.stats.depth_timings[depth] = elapsed
+
+
+def search_root_depth(
+    board: Board,
+    depth: int,
+    is_maximizing: bool,
+    previous_score: int,
+    context: SearchContext,
+) -> tuple[int, Optional[LegalMove]]:
+    """Public wrapper for root-depth search used by diagnostics and tests."""
+
+    return _search_root_depth(board, depth, is_maximizing, previous_score, context)
+
+
+def _initial_root_window(depth: int, previous_score: int) -> tuple[int, int]:
+    """Return the initial alpha-beta window for one root search."""
+
+    if depth == 1:
+        return -INF, INF
+    return previous_score - ASPIRATION_WINDOW, previous_score + ASPIRATION_WINDOW
+
+
+def _rerun_full_window_if_needed(
+    score: int,
+    alpha: int,
+    beta: int,
+    context: SearchContext,
+) -> bool:
+    """Return True when the root search must rerun with a full window."""
+
+    if alpha == -INF and beta == INF:
+        return False
+    if score <= alpha:
+        if context.stats is not None:
+            context.stats.fail_low_retries += 1
+        return True
+    if score >= beta:
+        if context.stats is not None:
+            context.stats.fail_high_retries += 1
+        return True
+    return False
+
+
+def position_key(board: Board) -> str:
+    """Generate a full position key including turn, castling rights, and en passant."""
+
     pieces = []
     for row in board.board:
         for piece in row:
@@ -600,9 +935,7 @@ def _position_key(board: Board) -> str:
                     PieceType.KING: "k",
                 }[piece.kind]
                 pieces.append(f"{color_char}{kind_char}")
-
     turn_char = "w" if board.turn == Color.WHITE else "b"
-
     castling = ""
     if board.castling_rights.white_kingside:
         castling += "K"
@@ -612,19 +945,25 @@ def _position_key(board: Board) -> str:
         castling += "k"
     if board.castling_rights.black_queenside:
         castling += "q"
-    if not castling:
-        castling = "-"
+    ep_target = (
+        "-"
+        if board.en_passant_target is None
+        else index_to_algebraic(board.en_passant_target)
+    )
+    castling = castling or "-"
+    return "".join(pieces) + "|" + turn_char + "|" + castling + "|" + ep_target
 
-    if board.en_passant_target is not None:
-        ep = index_to_algebraic(board.en_passant_target)
-    else:
-        ep = "-"
 
-    return "".join(pieces) + "|" + turn_char + "|" + castling + "|" + ep
+def _position_key(board: Board) -> str:
+    """Backward-compatible internal alias for the full position key."""
+
+    return position_key(board)
 
 
 def _fen_key(board: Board) -> str:
-    return _position_key(board)
+    """Compatibility alias for older tests and scripts."""
+
+    return position_key(board)
 
 
 def minimax_no_prune(
@@ -633,43 +972,27 @@ def minimax_no_prune(
     is_maximizing: bool,
     nodes: Optional[list[int]] = None,
 ) -> int:
-    """No-prune minimax reference for tests/benchmarks only.
+    """No-prune minimax reference for tests and shallow benchmarks."""
 
-    Does not use alpha-beta pruning.
-    Uses the same terminal handling and evaluator as production search.
-    """
-    # Node counter for tests
     if nodes is not None:
         nodes[0] += 1
-
-    # Generate legal moves FIRST (terminal handling before depth cutoff).
     legal_moves = get_legal_moves(board)
-
-    # No legal moves: checkmate or stalemate.
-    if not legal_moves:
-        in_check = _gs_is_in_check(board, board.turn)
-        if in_check:
-            # Checkmate: large score depending on whose king is mated.
-            # board.turn is the side to move (the checkmated side).
-            score = -MATE_SCORE if board.turn == Color.WHITE else MATE_SCORE
-            return score
-        # Stalemate: draw.
-        return 0
-
-    # Base case: reached maximum depth => raw evaluation.
+    terminal_score = _terminal_score(board, legal_moves)
+    if terminal_score is not None:
+        return terminal_score
     if depth == 0:
-        return evaluate(board)
+        return quiescence(board, -INF, INF, is_maximizing)
 
-    best = -INF if is_maximizing else INF
-
+    best_score = -INF if is_maximizing else INF
     for move in legal_moves:
-        new_board = shallow_clone_board(board)
-        new_board.make_move(move.start, move.end, promotion=move.promotion)
-        val = minimax_no_prune(new_board, depth - 1, not is_maximizing, nodes)
-
+        child_score = minimax_no_prune(
+            _make_copy_with_move(board, move),
+            depth - 1,
+            not is_maximizing,
+            nodes,
+        )
         if is_maximizing:
-            best = max(best, val)
+            best_score = max(best_score, child_score)
         else:
-            best = min(best, val)
-
-    return best
+            best_score = min(best_score, child_score)
+    return best_score

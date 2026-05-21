@@ -2,11 +2,25 @@
 
 from __future__ import annotations
 
+import time
+
 import pytest
+from chess_game.chess.ai import (
+    MATE_SCORE,
+    TTFlag,
+    evaluate,
+    get_best_move,
+    minimax,
+)
 from chess_game.chess.board import Board, create_piece
+from chess_game.chess.board.game_state import is_checkmate
 from chess_game.chess.types import Color, PieceType
-from chess_game.chess.ai import get_best_move, minimax, MinimaxParams, MATE_SCORE
-from tests.helpers import sq
+from tests.helpers import (
+    make_mate_in_one_white_position,
+    make_search_context,
+    make_search_params,
+    sq,
+)
 
 
 def move_to_str(move):
@@ -23,22 +37,6 @@ def index_to_str(sq_obj):
     file = chr(ord("a") + int(sq_obj.col))
     rank = str(8 - int(sq_obj.row))
     return f"{rank}{file}"
-
-
-def make_mate_in_one_white_position():
-    """Position:
-    White king on g6
-    White queen on f7
-    Black king on h8
-    White to move
-    """
-    board = Board()
-    board.clear_board()
-    board.set_piece(sq("g6"), create_piece(Color.WHITE, PieceType.KING))
-    board.set_piece(sq("f7"), create_piece(Color.WHITE, PieceType.QUEEN))
-    board.set_piece(sq("h8"), create_piece(Color.BLACK, PieceType.KING))
-    board.turn = Color.WHITE
-    return board
 
 
 def make_mate_in_one_black_position():
@@ -66,7 +64,7 @@ def test_mate_in_one_white_finds_checkmate():
     # Verify it actually mates
     clone = board.clone()
     assert clone.make_move(move.start, move.end, promotion=move.promotion) is True
-    assert clone._is_checkmate(Color.BLACK), "Black should be checkmated"
+    assert is_checkmate(clone, Color.BLACK), "Black should be checkmated"
 
 
 def test_mate_in_one_black_finds_checkmate():
@@ -77,7 +75,7 @@ def test_mate_in_one_black_finds_checkmate():
 
     clone = board.clone()
     assert clone.make_move(move.start, move.end, promotion=move.promotion) is True
-    assert clone._is_checkmate(Color.WHITE), "White should be checkmated"
+    assert is_checkmate(clone, Color.WHITE), "White should be checkmated"
 
 
 def test_mate_in_one_does_not_choose_non_mating_queen_move():
@@ -89,7 +87,7 @@ def test_mate_in_one_does_not_choose_non_mating_queen_move():
     clone = board.clone()
     clone.make_move(move.start, move.end, promotion=move.promotion)
     # If it's not a checkmate, we failed to prioritize mate
-    assert clone._is_checkmate(Color.BLACK), "Move should be checkmate, not random queen move"
+    assert is_checkmate(clone, Color.BLACK), "Move should be checkmate, not random queen move"
 
 
 def test_stalemate_returns_no_best_move():
@@ -147,7 +145,7 @@ def test_get_best_move_does_not_mutate_board():
     # Capture initial key
     initial_key = _board_key(board)
 
-    move = get_best_move(board, depth=2)
+    get_best_move(board, depth=2)
     # Just ensure it runs and does not mutate
     final_key = _board_key(board)
     assert initial_key == final_key, "Board state must not be mutated by AI search"
@@ -174,12 +172,12 @@ def make_params(
     tt=None,
 ):
     """Helper to create MinimaxParams."""
-    return MinimaxParams(
-        depth=depth,
-        alpha=alpha,
-        beta=beta,
-        is_maximizing=is_maximizing,
-        transposition_table=tt,
+    return make_search_params(
+        depth,
+        alpha,
+        beta,
+        is_maximizing,
+        context=make_search_context(tt=tt),
     )
 
 
@@ -245,12 +243,12 @@ def test_minimax_prefers_checkmate_over_material():
     """Minimax should prefer a line that mates over a material win."""
     board = make_mate_in_one_white_position()
     params = make_params(depth=2, is_maximizing=True)
-    score, move = minimax(board, params)
+    _, move = minimax(board, params)
 
     assert move is not None
     clone = board.clone()
     assert clone.make_move(move.start, move.end, promotion=move.promotion) is True
-    assert clone._is_checkmate(Color.BLACK), "Minimax should find mate over material win"
+    assert is_checkmate(clone, Color.BLACK), "Minimax should find mate over material win"
 
 
 # Tests for alpha-beta pruning behavior
@@ -261,7 +259,7 @@ def test_alpha_beta_pruning_cuts_off_search():
     # We cannot inspect cutoffs directly, but search should complete and return a move.
     board = Board()
     params = make_params(depth=2, is_maximizing=True)
-    score, move = minimax(board, params)
+    score, _ = minimax(board, params)
     assert isinstance(score, int)
 
 
@@ -288,7 +286,7 @@ def test_minimax_no_move_on_checkmate_side():
     board.set_piece(sq("g7"), create_piece(Color.WHITE, PieceType.QUEEN))
     board.turn = Color.BLACK
 
-    score, move = minimax(board, make_params(depth=1, is_maximizing=True))
+    _, move = minimax(board, make_params(depth=1, is_maximizing=True))
     assert move is None
 
 
@@ -297,8 +295,6 @@ def test_minimax_no_move_on_checkmate_side():
 
 def test_evaluation_positive_for_white_advantage():
     """Evaluation should be positive when White has material advantage."""
-    from chess_game.chess.ai import evaluate
-
     board = Board()
     board.clear_board()
     board.set_piece(sq("e4"), create_piece(Color.WHITE, PieceType.QUEEN))
@@ -310,8 +306,6 @@ def test_evaluation_positive_for_white_advantage():
 
 def test_evaluation_negative_for_black_advantage():
     """Evaluation should be negative when Black has material advantage."""
-    from chess_game.chess.ai import evaluate
-
     board = Board()
     board.clear_board()
     board.set_piece(sq("e4"), create_piece(Color.BLACK, PieceType.QUEEN))
@@ -322,8 +316,6 @@ def test_evaluation_negative_for_black_advantage():
 
 def test_evaluation_symmetric_for_equal_positions():
     """Symmetric positions should yield equal evaluations."""
-    from chess_game.chess.ai import evaluate
-
     board1 = Board()
     board2 = Board()
 
@@ -344,7 +336,7 @@ def make_simple_board_with_legal_moves():
     """Create a simple position with legal moves."""
     board = Board()
     board.clear_board()
-    board.set_piece(sq("e4"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("c3"), create_piece(Color.WHITE, PieceType.KING))
     board.set_piece(sq("e5"), create_piece(Color.BLACK, PieceType.KING))
     board.set_piece(sq("e4"), create_piece(Color.WHITE, PieceType.QUEEN))
     board.turn = Color.WHITE
@@ -385,14 +377,15 @@ def test_tt_does_not_overwrite_deeper_entry():
 
 def test_tt_entry_has_flag():
     """TT entries should have a valid flag."""
-    from chess_game.chess.ai import TTFlag
-
     board = make_simple_board_with_legal_moves()
     tt: dict = {}
     params = make_params(depth=1, is_maximizing=True, tt=tt)
     minimax(board, params)
 
-    assert any(e.flag in (TTFlag.EXACT, TTFlag.LOWERBOUND, TTFlag.UPPERBOUND) for e in tt.values())
+    assert any(
+        e.flag in (TTFlag.EXACT, TTFlag.LOWERBOUND, TTFlag.UPPERBOUND)
+        for e in tt.values()
+    )
 
 
 def test_tt_entry_depth_positive():
@@ -415,15 +408,20 @@ def test_tt_entry_score_is_int():
     assert any(isinstance(e.score, int) for e in tt.values())
 
 
-def make_params_with_nodes(depth: int, is_maximizing: bool, alpha: int = -10_000_000, beta: int = 10_000_000):
+def make_params_with_nodes(
+    depth: int,
+    is_maximizing: bool,
+    alpha: int = -10_000_000,
+    beta: int = 10_000_000,
+):
     """Helper to create MinimaxParams with nodes_searched."""
     nodes = [0]
-    return MinimaxParams(
-        depth=depth,
-        alpha=alpha,
-        beta=beta,
-        is_maximizing=is_maximizing,
-        nodes_searched=nodes,
+    return make_search_params(
+        depth,
+        alpha,
+        beta,
+        is_maximizing,
+        context=make_search_context(nodes=nodes),
     )
 
 
@@ -439,29 +437,31 @@ def test_alpha_beta_pruning_fewer_nodes_than_without_pruning():
 
     # Wide window: less pruning
     wide_nodes = [0]
-    wide_params = MinimaxParams(
-        depth=3,
-        alpha=-10_000_000,
-        beta=10_000_000,
-        is_maximizing=True,
-        nodes_searched=wide_nodes,
+    wide_params = make_search_params(
+        3,
+        -10_000_000,
+        10_000_000,
+        True,
+        context=make_search_context(nodes=wide_nodes),
     )
 
     # Tight window: more pruning (around mate score)
     tight_nodes = [0]
-    tight_params = MinimaxParams(
-        depth=3,
-        alpha=MATE_SCORE - 500,
-        beta=MATE_SCORE + 500,
-        is_maximizing=True,
-        nodes_searched=tight_nodes,
+    tight_params = make_search_params(
+        3,
+        MATE_SCORE - 500,
+        MATE_SCORE + 500,
+        True,
+        context=make_search_context(nodes=tight_nodes),
     )
 
     minimax(board, wide_params)
     minimax(board, tight_params)
 
     # Tight window should prune more -> fewer nodes explored.
-    assert tight_nodes[0] <= wide_nodes[0], "Alpha-beta pruning should prune more with tighter bounds"
+    assert tight_nodes[0] <= wide_nodes[0], (
+        "Alpha-beta pruning should prune more with tighter bounds"
+    )
 
 
 def test_alpha_beta_pruning_does_not_affect_mate_detection():
@@ -471,12 +471,12 @@ def test_alpha_beta_pruning_does_not_affect_mate_detection():
     board = make_mate_in_one_white_position()
 
     nodes = [0]
-    params = MinimaxParams(
-        depth=1,
-        alpha=-MATE_SCORE,
-        beta=MATE_SCORE,
-        is_maximizing=True,
-        nodes_searched=nodes,
+    params = make_search_params(
+        1,
+        -MATE_SCORE,
+        MATE_SCORE,
+        True,
+        context=make_search_context(nodes=nodes),
     )
 
     score, move = minimax(board, params)
@@ -490,12 +490,12 @@ def test_minimax_respects_max_depth():
     board = Board()
 
     nodes = [0]
-    params = MinimaxParams(
-        depth=1,
-        alpha=-10_000_000,
-        beta=10_000_000,
-        is_maximizing=True,
-        nodes_searched=nodes,
+    params = make_search_params(
+        1,
+        -10_000_000,
+        10_000_000,
+        True,
+        context=make_search_context(nodes=nodes),
     )
 
     # Just ensure it completes without error at depth=1
@@ -507,10 +507,30 @@ def test_minimax_respects_max_depth():
 
 
 @pytest.mark.slow
+@pytest.mark.parametrize(
+    ("depth", "max_seconds"),
+    [
+        (3, 5),
+        (4, 20),
+    ],
+)
+def test_intermediate_search_depths_complete(depth: int, max_seconds: int):
+    """Depth-3 and depth-4 searches should stay comfortably practical."""
+    board = Board()
+
+    start = time.monotonic()
+    move = get_best_move(board, depth=depth)
+    elapsed = time.monotonic() - start
+
+    assert move is not None, f"Depth-{depth} search should return a move"
+    assert elapsed < max_seconds, (
+        f"Depth-{depth} search should complete within {max_seconds} seconds"
+    )
+
+
+@pytest.mark.slow
 def test_depth_5_search_completes():
     """Depth-5 search on a standard position should complete within reasonable time."""
-    import time
-
     board = Board()
 
     start = time.monotonic()

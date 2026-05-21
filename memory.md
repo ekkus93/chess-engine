@@ -296,3 +296,27 @@ Quality:
 
 ## 2026-05-20T06:00:05Z - qwen36-27B-Q3KM-turbo - Alpha-beta pruning not working; needs expert review
 
+## 2026-05-20T20:56:06Z - GPT-5.4 - Depth-3 self-play transcript and quality check
+- Ran `python -m chess_game.self_play --white-depth 3 --black-depth 3` and saved output to `tmp/game1_w3b3.txt`.
+- The flushed transcript replayed cleanly through the engine; all recorded moves were legal in sequence.
+- Final saved game ended in a threefold-repetition draw on move 136 after 135 recorded plies. The game looked tactically coherent but low-depth and non-human in places, with odd rook/queen shuffles and early flank pawn pushes.
+
+## 2026-05-20T20:59:05Z - GPT-5.4 - AI weakness analysis after depth-3 self-play
+- `chess_game/chess/ai.py` evaluator is still very simple: material plus piece-square tables only. It does not score mobility, pawn structure, king shelter, repetition, initiative, or tactical instability.
+- The search implementation appears broadly sane from code inspection and existing tests: terminal handling, evaluator symmetry, TT flags, and basic alpha-beta behavior are covered.
+- Depth 3 is only a very shallow search here, so weak strategic and tactical play is expected even if the implementation is correct.
+- `chess_game/self_play.py` uses a simplified repetition key based only on piece placement and side to move, omitting castling rights and en passant, so its threefold-repetition detection can declare a draw earlier than true chess repetition rules allow.
+
+## 2026-05-20T21:07:09Z - GPT-5.4 - Added BOARD_FIX1 task plan
+- Added `docs/BOARD_FIX1_TODO.md`, a detailed implementation plan for AI quality improvements.
+- The TODO covers baseline measurement, evaluator regression tests, mobility/pawn-structure/king-safety heuristics, quiescence search, aspiration-window fallback hardening, repetition-key correctness, diagnostics, and benchmark/self-play validation.
+
+## 2026-05-20T23:02:46Z - GPT-5.4 - Depth-3 self-play game2 review
+- Ran `python -u -m chess_game.self_play --white-depth 3 --black-depth 3` and saved the transcript to `tmp/game2_w3b3.txt`.
+- Replayed all 65 recorded moves through the engine; every move was legal and executed successfully.
+- Final result was `Checkmate on move 66. White wins.` The game was tactically livelier than the earlier repetition-heavy draw, but still looked shallow and non-human, with odd piece adventures and loose king safety before White converted the attack.
+
+## 2026-05-20T23:52:22Z - GPT-5.4 - Depth-5 recovery milestone
+- Reduced opening-position search time to about 1.1s at depth 3, 8.4s at depth 4, and 50.2s at depth 5 after replacing deepcopy-heavy cloning, adding cached square constants, rewriting hot attack checks, and adding a fast validated-move apply path for search clones.
+- `tests/test_ai_search.py::test_depth_5_search_completes` now passes, the full suite passes (`367 passed`), and `pylint chess_game` is clean at 10.00/10.
+- Fresh depth-3 self-play saved to `tmp/game3_w3b3.txt` replayed legally for all 75 recorded plies and ended with `Checkmate on move 76. White wins.` A true depth-5 self-play transcript (`tmp/game3_w5b5.txt`) is running but remains much slower than single-move depth-5 search.
