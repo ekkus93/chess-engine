@@ -29,6 +29,7 @@ from chess_game.chess.evaluation import (
     get_evaluation_breakdown as _get_evaluation_breakdown,
 )
 from chess_game.chess.evaluation_tables import (
+    REPETITION_PROGRESS_ONLY_THRESHOLD,
     REPETITION_PROGRESS_THRESHOLD,
     VOLUNTARY_REPETITION_PENALTY,
 )
@@ -46,11 +47,14 @@ MAX_QUIESCENCE_MOVES = 4
 
 LegalMoveKey = tuple[object, object, Optional[PieceType]]
 get_evaluation_breakdown = _get_evaluation_breakdown
+def _progress_score(board: Board) -> int:
+    """Return the progress component used to discourage empty repetitions."""
+
+    return _get_evaluation_breakdown(board)["progress"]
 
 
 class TTFlag(Enum):
     """Transposition table entry flag."""
-
     EXACT = "exact"
     LOWERBOUND = "lowerbound"
     UPPERBOUND = "upperbound"
@@ -59,7 +63,6 @@ class TTFlag(Enum):
 @dataclass(frozen=True)
 class TTEntry:
     """Entry in the transposition table."""
-
     depth: int
     score: int
     best_move: LegalMove | None
@@ -402,7 +405,9 @@ def minimax(
         RepetitionPolicy(
             position_key=position_key,
             evaluate=evaluate,
+            progress=_progress_score,
             threshold=REPETITION_PROGRESS_THRESHOLD,
+            progress_threshold=REPETITION_PROGRESS_ONLY_THRESHOLD,
             penalty=VOLUNTARY_REPETITION_PENALTY,
         ),
     )
@@ -593,7 +598,9 @@ def _quiescence(board: Board, params: QuiescenceParams) -> int:
         RepetitionPolicy(
             position_key=position_key,
             evaluate=evaluate,
+            progress=_progress_score,
             threshold=REPETITION_PROGRESS_THRESHOLD,
+            progress_threshold=REPETITION_PROGRESS_ONLY_THRESHOLD,
             penalty=VOLUNTARY_REPETITION_PENALTY,
         ),
     )

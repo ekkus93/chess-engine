@@ -12,7 +12,9 @@ class RepetitionPolicy:
 
     position_key: Callable[[Board], str]
     evaluate: Callable[[Board], int]
+    progress: Callable[[Board], int]
     threshold: int
+    progress_threshold: int
     penalty: int
 
 
@@ -121,5 +123,10 @@ def repetition_score(
     if evaluation >= policy.threshold:
         return -policy.penalty
     if evaluation <= -policy.threshold:
+        return policy.penalty
+    progress = policy.progress(board)
+    if progress >= policy.progress_threshold:
+        return -policy.penalty
+    if progress <= -policy.progress_threshold:
         return policy.penalty
     return 0

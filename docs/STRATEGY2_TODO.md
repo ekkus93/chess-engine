@@ -61,7 +61,7 @@ Baseline note: `docs/game3_w5b5.md` ended in a voluntary threefold-repetition dr
   - [x] better king activity in a simplified ending
   - [x] rook behind a passed pawn
   - [x] rook cutting off the enemy king
-  - [ ] queen trade when ahead
+  - [x] queen trade when ahead
   - [x] blockade of an enemy passer
   - [x] improvement of the worst-placed piece
 - [x] Record current `evaluate()` and `get_best_move()` behavior for each.
@@ -102,7 +102,7 @@ Baseline note: `docs/game3_w5b5.md` ended in a voluntary threefold-repetition dr
 ## 1.3 Add conversion-choice tests
 
 - [x] Add tests that a winning side prefers:
-  - [ ] queen trade into a clearly won ending
+  - [x] queen trade into a clearly won ending
   - [ ] rook trade into a trivially won king-and-pawn or rook ending
   - [x] king activation before pointless checking
   - [x] restricting the enemy king before pawn pushing
@@ -115,7 +115,7 @@ Baseline note: `docs/game3_w5b5.md` ended in a voluntary threefold-repetition dr
   - [x] bring the king one square closer in an ending
   - [x] move a heavy piece behind a passed pawn
   - [ ] occupy a file/rank that reduces enemy mobility
-  - [ ] create luft to avoid future back-rank issues
+  - [x] create luft to avoid future back-rank issues
 
 ---
 
@@ -227,8 +227,8 @@ Baseline note: `docs/game3_w5b5.md` ended in a voluntary threefold-repetition dr
 ## 4.4 Prefer cleaner winning transitions
 
 - [x] When ahead, reward:
-  - [ ] exchanging queens if the resulting ending is simpler and still winning
-  - [ ] exchanging one rook if the remaining ending is trivially won
+  - [x] exchanging queens if the resulting ending is simpler and still winning
+  - [x] exchanging one rook if the remaining ending is trivially won
   - [x] avoiding unnecessary tactical complications
   - [x] eliminating enemy checking resources
 
@@ -272,8 +272,8 @@ Baseline note: `docs/game3_w5b5.md` ended in a voluntary threefold-repetition dr
   - [x] king cutoff moves
   - [x] rook-behind-passer moves
   - [x] king-centralization moves in winning endings
-  - [ ] queen-trade offers when materially ahead
-  - [ ] blockade moves against enemy passers
+  - [x] queen-trade offers when materially ahead
+  - [x] blockade moves against enemy passers
   - [x] moves that improve the worst-placed piece
 
 ## 6.2 Distinguish progress checks from empty checks
@@ -378,6 +378,8 @@ Comparison note: `tmp/strategy2_w5b5.txt` ended with **checkmate on move 69 (Bla
 - [x] If performance regresses materially, note which heuristics caused it.
 
 Performance note: `tests/test_ai_search.py::test_depth_5_search_completes` still passes, but the measured time rose from about **28.5s** in the STRATEGY1 pass to about **37.8s** here, mainly from the added progress/repetition bookkeeping and richer endgame-progress evaluation.
+
+Phase note: the follow-up regression slice added green coverage for queen-trade simplification, rookless conversion scoring, blockade ordering, luft creation, and progress-aware repetition scoring; the depth-5 benchmark remained practical at about **36.5s** on the latest run.
 
 ---
 

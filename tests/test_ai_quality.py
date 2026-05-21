@@ -399,6 +399,26 @@ def test_simplified_winning_position_scores_better_when_ahead() -> None:
     assert ai.evaluate(simplified_board) > ai.evaluate(unsimplified_board)
 
 
+def test_conversion_breakdown_rewards_rooks_off_when_ahead() -> None:
+    """A winning side should value trading off the defender's last rook."""
+
+    rookless_board = _empty_board_with_kings()
+    rookless_board.clear_board()
+    rookless_board.set_piece(sq("g3"), create_piece(Color.WHITE, PieceType.KING))
+    rookless_board.set_piece(sq("a1"), create_piece(Color.WHITE, PieceType.ROOK))
+    rookless_board.set_piece(sq("h1"), create_piece(Color.WHITE, PieceType.ROOK))
+    rookless_board.set_piece(sq("g7"), create_piece(Color.BLACK, PieceType.KING))
+
+    defended_board = rookless_board.clone()
+    defended_board.clear_square(sq("h1"))
+    defended_board.set_piece(sq("a8"), create_piece(Color.BLACK, PieceType.ROOK))
+
+    assert (
+        get_evaluation_breakdown(rookless_board)["conversion"]
+        > get_evaluation_breakdown(defended_board)["conversion"]
+    )
+
+
 def test_endgame_technique_rewards_driving_king_to_edge() -> None:
     """Basic mating-material endings should reward reducing the enemy king box."""
 
@@ -578,6 +598,87 @@ def test_search_prefers_king_centralization_in_winning_rook_endgame() -> None:
     assert best_move == LegalMove(start=sq("g3"), end=sq("f4"))
 
 
+def test_search_prefers_queen_trade_in_clearly_won_ending() -> None:
+    """When already ahead, the search should simplify into a winning queenless ending."""
+
+    board = _empty_board_with_kings()
+    board.clear_board()
+    board.set_piece(sq("g3"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("d4"), create_piece(Color.WHITE, PieceType.QUEEN))
+    board.set_piece(sq("a1"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(sq("g7"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("d7"), create_piece(Color.BLACK, PieceType.QUEEN))
+    board.turn = Color.WHITE
+
+    best_move = get_best_move(board, depth=1)
+
+    assert best_move == LegalMove(start=sq("d4"), end=sq("d7"))
+
+
+def test_quiet_move_order_prefers_blockading_enemy_passed_pawn() -> None:
+    """Quiet ordering should favor stepping in front of an enemy passed pawn."""
+
+    board = _empty_board_with_kings()
+    board.clear_board()
+    board.set_piece(sq("e4"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("a1"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(sq("g7"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("d6"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.turn = Color.WHITE
+
+    blockade_move = ai.Move(start=sq("e4"), end=sq("d5"))
+    drift_move = ai.Move(start=sq("e4"), end=sq("f5"))
+
+    assert _move_order_score(board, blockade_move, None) > _move_order_score(
+        board,
+        drift_move,
+        None,
+    )
+
+
+def test_quiet_move_order_prefers_creating_luft() -> None:
+    """Quiet ordering should prefer a useful luft move over an idle king sidestep."""
+
+    board = _empty_board_with_kings()
+    board.clear_board()
+    board.set_piece(sq("g1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("h1"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(sq("g2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("h2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    board.turn = Color.WHITE
+
+    luft_move = ai.Move(start=sq("h2"), end=sq("h3"))
+    king_drift = ai.Move(start=sq("g1"), end=sq("f1"))
+
+    assert _move_order_score(board, luft_move, None) > _move_order_score(
+        board,
+        king_drift,
+        None,
+    )
+
+
+def test_repetition_score_penalizes_equal_repetition_when_progress_exists() -> None:
+    """Equal material should still avoid repetition when one side has a clear plan."""
+
+    board = _empty_board_with_kings()
+    key = position_key(board)
+
+    assert repetition_score(
+        board,
+        None,
+        (key, key, key),
+        RepetitionPolicy(
+            position_key=position_key,
+            evaluate=lambda _board: 0,
+            progress=lambda _board: 32,
+            threshold=120,
+            progress_threshold=24,
+            penalty=32,
+        ),
+    ) < 0
+
+
 def test_repetition_score_penalizes_draw_when_better_side_is_ahead() -> None:
     """Threefold repetition should be biased against the materially better side."""
 
@@ -592,7 +693,9 @@ def test_repetition_score_penalizes_draw_when_better_side_is_ahead() -> None:
         RepetitionPolicy(
             position_key=position_key,
             evaluate=ai.evaluate,
+            progress=lambda _board: 0,
             threshold=120,
+            progress_threshold=24,
             penalty=32,
         ),
     ) < 0
@@ -611,7 +714,9 @@ def test_repetition_score_preserves_draw_when_position_is_equal() -> None:
         RepetitionPolicy(
             position_key=position_key,
             evaluate=ai.evaluate,
+            progress=lambda _board: 0,
             threshold=120,
+            progress_threshold=24,
             penalty=32,
         ),
     ) == 0
@@ -631,7 +736,9 @@ def test_repetition_score_favors_drawing_resource_when_behind() -> None:
         RepetitionPolicy(
             position_key=position_key,
             evaluate=ai.evaluate,
+            progress=lambda _board: 0,
             threshold=120,
+            progress_threshold=24,
             penalty=32,
         ),
     ) > 0

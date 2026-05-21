@@ -2,7 +2,7 @@
 
 from chess_game.chess.board import Board
 from chess_game.chess.move import Move
-from chess_game.chess.strategy_utils import center_distance, is_capture_move
+from chess_game.chess.strategy_utils import center_distance, is_capture_move, path_clear_between
 from chess_game.chess.types import Color, PieceType
 
 QUIET_CASTLING_BONUS = 160
@@ -14,6 +14,8 @@ QUIET_KING_CUTOFF_BONUS = 32
 QUIET_ROOK_BEHIND_PASSER_BONUS = 40
 QUIET_LUFT_BONUS = 16
 QUIET_WORST_PIECE_BONUS = 18
+QUIET_BLOCKADE_BONUS = 28
+QUIET_MAJOR_TRADE_OFFER_BONUS = 26
 
 
 def quiet_strategy_order_score(board: Board, move: Move) -> int:
@@ -35,8 +37,14 @@ def quiet_strategy_order_score(board: Board, move: Move) -> int:
         score += QUIET_HEAVY_PIECE_PRESSURE_BONUS
     if piece.kind in (PieceType.ROOK, PieceType.QUEEN) and _improves_king_cutoff(board, move):
         score += QUIET_KING_CUTOFF_BONUS
+    if piece.kind in (PieceType.ROOK, PieceType.QUEEN) and _offers_major_piece_trade(board, move):
+        score += QUIET_MAJOR_TRADE_OFFER_BONUS
     if piece.kind == PieceType.ROOK and _moves_rook_behind_passer(board, piece.color, move):
         score += QUIET_ROOK_BEHIND_PASSER_BONUS
+    if piece.kind in (PieceType.KING, PieceType.ROOK, PieceType.QUEEN) and _blockades_enemy_passer(
+        board, piece.color, move
+    ):
+        score += QUIET_BLOCKADE_BONUS
     if piece.kind == PieceType.PAWN and _creates_luft(piece.color, move):
         score += QUIET_LUFT_BONUS
     if _improves_worst_piece(board, piece.kind, move):
@@ -241,3 +249,100 @@ def _improves_worst_piece(board: Board, kind: PieceType, move: Move) -> bool:
         default=moving_piece_distance,
     )
     return moving_piece_distance >= worst_distance
+
+
+def _offers_major_piece_trade(board: Board, move: Move) -> bool:
+    if not _is_materially_ahead(board, board.turn):
+        return False
+    enemy_color = Color.BLACK if board.turn == Color.WHITE else Color.WHITE
+    enemy_targets = {
+        (row_index, col_index)
+        for row_index, row in enumerate(board.board)
+        for col_index, piece in enumerate(row)
+        if (
+            piece is not None
+            and piece.color == enemy_color
+            and piece.kind in (PieceType.ROOK, PieceType.QUEEN)
+        )
+    }
+    if not enemy_targets:
+        return False
+    return _attacks_any_target(board, move, enemy_targets)
+
+
+def _blockades_enemy_passer(board: Board, color: Color, move: Move) -> bool:
+    enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
+    target_square = (int(move.end.row), int(move.end.col))
+    for row_index, board_row in enumerate(board.board):
+        for col_index, piece in enumerate(board_row):
+            if piece is None or piece.color != enemy_color or piece.kind != PieceType.PAWN:
+                continue
+            if not _is_passed_pawn_candidate(board, enemy_color, row_index, col_index):
+                continue
+            blockade_row = row_index + (-1 if enemy_color == Color.WHITE else 1)
+            if target_square == (blockade_row, col_index):
+                return True
+    return False
+
+
+def _is_materially_ahead(board: Board, color: Color) -> bool:
+    own_material = 0
+    enemy_material = 0
+    for row in board.board:
+        for piece in row:
+            if piece is None or piece.kind == PieceType.KING:
+                continue
+            value = _piece_value(piece.kind)
+            if piece.color == color:
+                own_material += value
+            else:
+                enemy_material += value
+    return own_material > enemy_material
+
+
+def _attacks_any_target(
+    board: Board,
+    move: Move,
+    enemy_targets: set[tuple[int, int]],
+) -> bool:
+    start_row = int(move.start.row)
+    start_col = int(move.start.col)
+    end_row = int(move.end.row)
+    end_col = int(move.end.col)
+    piece = board.board[start_row][start_col]
+    if piece is None:
+        return False
+    for target_row, target_col in enemy_targets:
+        row_delta = target_row - end_row
+        col_delta = target_col - end_col
+        if piece.kind == PieceType.ROOK and _rook_attacks_delta(row_delta, col_delta):
+            if not path_clear_between(board, (end_row, end_col), (target_row, target_col)):
+                continue
+            return True
+        if piece.kind == PieceType.QUEEN and _queen_attacks_delta(row_delta, col_delta):
+            if not path_clear_between(board, (end_row, end_col), (target_row, target_col)):
+                continue
+            return True
+    return False
+
+
+def _rook_attacks_delta(row_delta: int, col_delta: int) -> bool:
+    return row_delta == 0 or col_delta == 0
+
+
+def _queen_attacks_delta(row_delta: int, col_delta: int) -> bool:
+    return _rook_attacks_delta(row_delta, col_delta) or abs(row_delta) == abs(col_delta)
+
+
+def _piece_value(kind: PieceType) -> int:
+    if kind == PieceType.PAWN:
+        return 100
+    if kind == PieceType.KNIGHT:
+        return 320
+    if kind == PieceType.BISHOP:
+        return 330
+    if kind == PieceType.ROOK:
+        return 500
+    if kind == PieceType.QUEEN:
+        return 900
+    return 0

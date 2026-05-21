@@ -17,6 +17,7 @@ from chess_game.chess.evaluation_tables import (
     PROMOTION_SQUARE_CONTROL_BONUS,
     QUEENS_OFF_WHEN_AHEAD_BONUS,
     ROOK_BEHIND_PASSED_PAWN_BONUS,
+    ROOKS_OFF_WHEN_AHEAD_BONUS,
     SIMPLIFICATION_BONUS_SCALE,
     STARTING_NON_PAWN_MATERIAL,
 )
@@ -57,6 +58,8 @@ def evaluate_conversion(board: Board, endgame_phase: int) -> int:
     bonus *= SIMPLIFICATION_BONUS_SCALE
     if not _has_queen(board, _opponent(leading_color)):
         bonus += QUEENS_OFF_WHEN_AHEAD_BONUS
+    if not _has_rook(board, _opponent(leading_color)):
+        bonus += ROOKS_OFF_WHEN_AHEAD_BONUS
     if endgame_phase > 0:
         bonus = (bonus * (50 + endgame_phase)) // 100
     return _color_sign(leading_color) * bonus
@@ -388,6 +391,13 @@ def _total_non_pawn_material(board: Board) -> int:
 def _has_queen(board: Board, color: Color) -> bool:
     return any(
         piece.kind == PieceType.QUEEN
+        for piece, _, _ in iter_color_pieces(board, color)
+    )
+
+
+def _has_rook(board: Board, color: Color) -> bool:
+    return any(
+        piece.kind == PieceType.ROOK
         for piece, _, _ in iter_color_pieces(board, color)
     )
 
