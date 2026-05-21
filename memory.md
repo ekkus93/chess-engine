@@ -345,3 +345,7 @@ Quality:
 - Split the new strategy work into `evaluation.py`, `evaluation_tables.py`, `endgame_evaluation.py`, `ai_move_ordering.py`, and `strategy_utils.py` so pylint stays clean while positional, endgame, and quiet-move heuristics remain modular.
 - Added strategy regression coverage in `tests/test_ai_quality.py` for pawn structure, king safety, rook/minor activity, space, simplification, endgame technique, and quiet castling behavior.
 - Restored evaluator mirror symmetry by using sign-safe percentage scaling for phased terms, and re-measured depth-5 search with `tests/test_ai_search.py::test_depth_5_search_completes` passing in about 28.5 seconds on this machine.
+
+## 2026-05-21T06:38:23Z - GPT-5.4 - Post-merge validation remains green
+- Re-ran `pylint chess_game` on commit `26f6ebb`; the repository still rates 10.00/10.
+- Re-ran `python -m pytest tests -q`; all 379 tests passed in about 65.9 seconds.
