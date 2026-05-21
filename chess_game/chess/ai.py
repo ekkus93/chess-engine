@@ -11,6 +11,7 @@ import time
 
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_in_check as _gs_is_in_check
+from chess_game.chess.ai_move_ordering import quiet_strategy_order_score
 from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.evaluation import (
     MATERIAL_VALUES,
@@ -18,6 +19,7 @@ from chess_game.chess.evaluation import (
     get_evaluation_breakdown as _get_evaluation_breakdown,
 )
 from chess_game.chess.move import Move
+from chess_game.chess.strategy_utils import is_capture_move as _is_capture_move
 from chess_game.chess.types import Color, LegalMove, Piece, PieceType
 
 sys.setrecursionlimit(50000)
@@ -666,20 +668,6 @@ def _is_interesting_capture(board: Board, move: Move) -> bool:
     return MATERIAL_VALUES[captured_piece.kind] >= MATERIAL_VALUES[attacker.kind]
 
 
-def _is_capture_move(board: Board, move: Move) -> bool:
-    """Return True for regular captures and en passant."""
-
-    if board.get_piece(move.end) is not None:
-        return True
-    moving_piece = board.get_piece(move.start)
-    return (
-        moving_piece is not None
-        and moving_piece.kind == PieceType.PAWN
-        and board.en_passant_target == move.end
-        and move.start.col != move.end.col
-    )
-
-
 def _order_moves(
     board: Board,
     legal_moves: list[Move],
@@ -702,7 +690,11 @@ def _move_order_score(
 ) -> int:
     """Return a move-ordering score."""
 
-    score = _capture_order_score(board, move) + _promotion_order_score(move)
+    score = (
+        _capture_order_score(board, move)
+        + _promotion_order_score(move)
+        + quiet_strategy_order_score(board, move)
+    )
     context = None if params is None else params.context
     if context is None:
         return score

@@ -330,3 +330,18 @@ Quality:
 - Removed the silent `min(depth, 5)` cap from `chess_game/self_play.py` so the CLI now uses the exact `--white-depth` and `--black-depth` values requested by the user.
 - Removed the timeout-based depth fallback from self-play so a requested high-depth game is not silently downgraded mid-search.
 - Added a regression test in `tests/test_alpha_beta_pruning.py` to verify self-play requests depth 7 for both sides when asked.
+
+## 2026-05-21T05:41:00Z - GPT-5.4 - Strategy roadmap added
+- Added `docs/STRATEGY1_TODO.md`, a detailed strategy-focused roadmap covering phase-aware evaluation, stronger pawn-structure and king-safety heuristics, piece coordination, space/restriction scoring, quiet-move support, and conversion heuristics.
+- Included basic endgame mating-protocol work for KRR vs K, KQR vs K, KQ vs K, and KR vs K.
+- Explicitly deferred opening-database work to a later pass per current product direction.
+
+## 2026-05-21T06:09:23Z - GPT-5.4 - Selective pruning roadmap deferred
+- Stopped the true depth-7 self-play after it proved impractically slow early in the game, reinforcing that higher-depth search needs stronger selectivity rather than brute force.
+- Added `docs/SELECTIVE_PRUNING.md`, a deferred roadmap covering PVS, LMR, careful null-move pruning, futility/razoring, and depth-aware quiet-move filtering.
+- The recommended implementation order is PVS, then LMR, then careful null-move pruning, followed by frontier pruning and tuning.
+
+## 2026-05-21T06:35:29Z - GPT-5.4 - Strategy evaluator/search-ordering phase landed
+- Split the new strategy work into `evaluation.py`, `evaluation_tables.py`, `endgame_evaluation.py`, `ai_move_ordering.py`, and `strategy_utils.py` so pylint stays clean while positional, endgame, and quiet-move heuristics remain modular.
+- Added strategy regression coverage in `tests/test_ai_quality.py` for pawn structure, king safety, rook/minor activity, space, simplification, endgame technique, and quiet castling behavior.
+- Restored evaluator mirror symmetry by using sign-safe percentage scaling for phased terms, and re-measured depth-5 search with `tests/test_ai_search.py::test_depth_5_search_completes` passing in about 28.5 seconds on this machine.
