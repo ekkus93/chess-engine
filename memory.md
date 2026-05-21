@@ -320,3 +320,8 @@ Quality:
 - Reduced opening-position search time to about 1.1s at depth 3, 8.4s at depth 4, and 50.2s at depth 5 after replacing deepcopy-heavy cloning, adding cached square constants, rewriting hot attack checks, and adding a fast validated-move apply path for search clones.
 - `tests/test_ai_search.py::test_depth_5_search_completes` now passes, the full suite passes (`367 passed`), and `pylint chess_game` is clean at 10.00/10.
 - Fresh depth-3 self-play saved to `tmp/game3_w3b3.txt` replayed legally for all 75 recorded plies and ended with `Checkmate on move 76. White wins.` A true depth-5 self-play transcript (`tmp/game3_w5b5.txt`) is running but remains much slower than single-move depth-5 search.
+
+## 2026-05-21T00:32:22Z - GPT-5.4 - CI excludes slow benchmark tests
+- GitHub Actions CI was failing because `.github/workflows/ci.yml` ran `python -m pytest tests -q`, which included the depth-5 wall-clock benchmark despite the repo defining a `slow` marker in `pyproject.toml`.
+- Updated the CI workflow to run `python -m pytest tests -q -m "not slow"` so normal CI matches the marker policy and avoids flaky runner-dependent performance failures.
+- Verified locally that the CI-equivalent command passes with `363 passed, 4 deselected`.

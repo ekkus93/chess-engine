@@ -25,4 +25,4 @@ jobs:
           python -m pip install pytest pydantic
       - name: Run tests
         run: |
-          python -m pytest tests -q
+          python -m pytest tests -q -m "not slow"
