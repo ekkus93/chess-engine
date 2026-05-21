@@ -20,6 +20,7 @@ QUIET_DEVELOPING_MINOR_BONUS = 26
 QUIET_USEFUL_CHECK_BONUS = 34
 QUIET_URGENT_LUFT_BONUS = 24
 QUIET_EARLY_QUEEN_SORTIE_PENALTY = 32
+QUIET_CONTEST_ATTACK_FILE_BONUS = 44
 
 
 def quiet_strategy_order_score(board: Board, move: Move) -> int:
@@ -95,6 +96,8 @@ def _king_move_bonus(board: Board, kind: PieceType, move: Move) -> int:
 
 def _heavy_piece_bonus(board: Board, kind: PieceType, color: Color, move: Move) -> int:
     score = 0
+    if _contests_attack_line(board, color, move):
+        score += QUIET_CONTEST_ATTACK_FILE_BONUS
     if kind in (PieceType.ROOK, PieceType.QUEEN) and _lines_up_with_enemy_king(board, move):
         score += QUIET_HEAVY_PIECE_PRESSURE_BONUS
     if kind in (PieceType.ROOK, PieceType.QUEEN) and _improves_king_cutoff(board, move):
@@ -365,6 +368,68 @@ def _blockades_enemy_passer(board: Board, color: Color, move: Move) -> bool:
             blockade_row = row_index + (-1 if enemy_color == Color.WHITE else 1)
             if target_square == (blockade_row, col_index):
                 return True
+    return False
+
+
+def _contests_attack_line(board: Board, color: Color, move: Move) -> bool:
+    king_square = next(
+        (
+            piece.square
+            for row in board.board
+            for piece in row
+            if piece is not None and piece.color == color and piece.kind == PieceType.KING
+        ),
+        None,
+    )
+    if king_square is None:
+        return False
+    end_square = (int(move.end.row), int(move.end.col))
+    king_row = int(king_square.row)
+    king_col = int(king_square.col)
+    enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
+    for row_index, row in enumerate(board.board):
+        for col_index, piece in enumerate(row):
+            if (
+                piece is None
+                or piece.color != enemy_color
+                or piece.kind not in (PieceType.ROOK, PieceType.QUEEN)
+            ):
+                continue
+            attacker_square = (row_index, col_index)
+            if not _attacks_king_line(attacker_square, (king_row, king_col)):
+                continue
+            if not path_clear_between(board, attacker_square, (king_row, king_col)):
+                continue
+            if _lies_between(attacker_square, (king_row, king_col), end_square):
+                return True
+    return False
+
+
+def _attacks_king_line(
+    attacker_square: tuple[int, int],
+    king_square: tuple[int, int],
+) -> bool:
+    return (
+        attacker_square[0] == king_square[0]
+        or attacker_square[1] == king_square[1]
+    )
+
+
+def _lies_between(
+    attacker_square: tuple[int, int],
+    king_square: tuple[int, int],
+    target_square: tuple[int, int],
+) -> bool:
+    if target_square in {attacker_square, king_square}:
+        return False
+    if attacker_square[0] == king_square[0] == target_square[0]:
+        start_col = min(attacker_square[1], king_square[1])
+        end_col = max(attacker_square[1], king_square[1])
+        return start_col < target_square[1] < end_col
+    if attacker_square[1] == king_square[1] == target_square[1]:
+        start_row = min(attacker_square[0], king_square[0])
+        end_row = max(attacker_square[0], king_square[0])
+        return start_row < target_square[0] < end_row
     return False
 
 

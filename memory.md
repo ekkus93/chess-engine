@@ -368,3 +368,8 @@ Quality:
 - Added a first STRATEGY2 implementation slice across `ai.py`, `ai_search_helpers.py`, `endgame_evaluation.py`, `ai_move_ordering.py`, and `self_play.py` for repetition-aware search scoring, progress breakdown scoring, and new quiet-move ordering bonuses for king cutoff, rook-behind-passer play, king activation, and worst-piece improvement.
 - Expanded `tests/test_ai_quality.py` with regression coverage for repetition policy, rook cutoff, rook-behind-passed-pawn progress, king escort progress, and quiet improvement choices; the full suite now passes at `387 passed`.
 - A fresh depth-5 self-play comparison in `tmp/strategy2_w5b5.txt` ended with `Checkmate on move 69. Black wins.` instead of the earlier move-114 repetition draw in `docs/game3_w5b5.md`, while the depth-5 benchmark still passes in about 37.8 seconds on this machine.
+
+## 2026-05-21T21:22:18Z - GPT-5.4 - STRATEGY3 phase 2 defense-first ordering slice
+- Added a second STRATEGY3 eval/ordering slice on top of `91f2b74`: quiet move ordering now rewards interposing on active king-attack files, and the regression suite now locks in contest-the-file behavior, castling-readiness advantages, early-rook-wander penalties, and choosing luft over a harmless queen check when the back rank is under pressure.
+- Expanded `tests/test_ai_quality.py` with green regressions for castling-ready development, early rook wandering, file-contest ordering, and defense-first search choices under back-rank pressure; the repository now passes at `402 passed`.
+- Validation stayed green with `pylint chess_game`, `python -m pytest tests -q`, and the targeted AI suite (`96 passed`), while `strategy3-eval-ordering` remains the active SQL phase and search-specific STRATEGY3 work is still pending.

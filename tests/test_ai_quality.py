@@ -535,6 +535,41 @@ def test_development_breakdown_penalizes_unsupported_early_queen_raid() -> None:
     )
 
 
+def test_development_breakdown_rewards_castling_ready_setup() -> None:
+    """A setup ready to castle should score better than an undeveloped queen-first setup."""
+
+    ready_board = Board()
+    ready_board.set_piece(sq("g1"), create_piece(Color.WHITE, PieceType.KNIGHT))
+    ready_board.clear_square(sq("g1"))
+    ready_board.set_piece(sq("f3"), create_piece(Color.WHITE, PieceType.KNIGHT))
+    ready_board.clear_square(sq("f1"))
+    ready_board.set_piece(sq("c4"), create_piece(Color.WHITE, PieceType.BISHOP))
+
+    unready_board = Board()
+    unready_board.clear_square(sq("d1"))
+    unready_board.set_piece(sq("h5"), create_piece(Color.WHITE, PieceType.QUEEN))
+
+    assert (
+        get_evaluation_breakdown(ready_board)["development"]
+        > get_evaluation_breakdown(unready_board)["development"]
+    )
+
+
+def test_development_breakdown_penalizes_early_rook_wander() -> None:
+    """A rook wander before development and castling should be penalized."""
+
+    stable_board = Board()
+
+    wandering_board = Board()
+    wandering_board.clear_square(sq("h1"))
+    wandering_board.set_piece(sq("h3"), create_piece(Color.WHITE, PieceType.ROOK))
+
+    assert (
+        get_evaluation_breakdown(stable_board)["development"]
+        > get_evaluation_breakdown(wandering_board)["development"]
+    )
+
+
 def test_search_prefers_castling_in_quiet_position() -> None:
     """Search should choose castling when it is the best quiet king-safety improvement."""
 
@@ -647,6 +682,50 @@ def test_quiet_move_order_prefers_urgent_luft_under_back_rank_pressure() -> None
         idle_move,
         None,
     )
+
+
+def test_quiet_move_order_prefers_contesting_attack_file_over_side_pawn_push() -> None:
+    """Defensive interposition on an attack file should outrank an idle side pawn push."""
+
+    board = _empty_board_with_kings()
+    board.clear_board()
+    board.set_piece(sq("d1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("a2"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(sq("e2"), create_piece(Color.WHITE, PieceType.QUEEN))
+    board.set_piece(sq("a3"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("g2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("h2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("d8"), create_piece(Color.BLACK, PieceType.ROOK))
+    board.turn = Color.WHITE
+
+    contest_move = ai.Move(start=sq("a2"), end=sq("d2"))
+    side_pawn_push = ai.Move(start=sq("a3"), end=sq("a4"))
+
+    assert _move_order_score(board, contest_move, None) > _move_order_score(
+        board,
+        side_pawn_push,
+        None,
+    )
+
+
+def test_search_prefers_luft_over_empty_check_under_back_rank_pressure() -> None:
+    """Under back-rank pressure, the search should prefer luft over a harmless queen check."""
+
+    board = _empty_board_with_kings()
+    board.clear_board()
+    board.set_piece(sq("g1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("h1"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(sq("d1"), create_piece(Color.WHITE, PieceType.QUEEN))
+    board.set_piece(sq("g2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("h2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("h8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("h4"), create_piece(Color.BLACK, PieceType.QUEEN))
+    board.turn = Color.WHITE
+
+    best_move = get_best_move(board, depth=2)
+
+    assert best_move == LegalMove(start=sq("g2"), end=sq("g3"))
 
 
 def test_progress_breakdown_rewards_rook_cutoff() -> None:

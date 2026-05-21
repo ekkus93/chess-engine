@@ -113,7 +113,7 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
   - [ ] create or preserve a mating net
 - [ ] Add tests where checks should be downgraded because they:
   - [ ] merely repeat geometry
-  - [ ] improve nothing strategically
+  - [x] improve nothing strategically
   - [ ] surrender the attacker’s own king safety
   - [ ] concede a key defensive or central square
 
@@ -122,7 +122,7 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
 - [x] Add tests where the best move is defensive and non-flashy.
 - [ ] Cover cases such as:
   - [x] making luft instead of launching a side attack
-  - [ ] contesting an open file instead of pawn grabbing
+  - [x] contesting an open file instead of pawn grabbing
   - [ ] covering an invasion square instead of checking
   - [ ] reconnecting queen and rook instead of chasing pawns
   - [ ] moving the king to safety instead of seeking counterplay
@@ -132,9 +132,9 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
 - [x] Add tests for healthier early-game priorities.
 - [ ] Cover cases such as:
   - [x] developing a minor piece before repeating a queen move
-  - [ ] castling readiness over premature queen adventure
+  - [x] castling readiness over premature queen adventure
   - [ ] keeping central pawn structure sound over speculative flank activity
-  - [ ] preferring completed development over early rook wandering
+  - [x] preferring completed development over early rook wandering
 
 ---
 
@@ -202,7 +202,7 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
 - [ ] Penalize rook/queen activity that:
   - [ ] abandons the back rank
   - [ ] disconnects queen and rook
-  - [ ] loses control of key files
+  - [x] loses control of key files
   - [ ] opens tactical access to the own king
   - [ ] gives the opponent obvious invasion squares
 
@@ -237,13 +237,13 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
 - [ ] Downgrade checks when they:
   - [ ] preserve the same king box
   - [ ] can be met by easy king shuffles
-  - [ ] surrender centralization or defensive control
+  - [x] surrender centralization or defensive control
 
 ## 4.3 Apply check quality in ordering and search
 
 - [x] Use check quality in quiet/tactical move ordering.
 - [x] Ensure strong forcing checks still search early.
-- [ ] Prevent empty checks from dominating root choice just because they check.
+- [x] Prevent empty checks from dominating root choice just because they check.
 
 ---
 
@@ -254,7 +254,7 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
 - [ ] Define a defense-first model for positions under pressure.
 - [ ] Include at least:
   - [ ] covering entry squares
-  - [ ] contesting attack files/ranks
+  - [x] contesting attack files/ranks
   - [ ] reconnecting defenders
   - [ ] creating luft
   - [ ] trading the attacker’s most dangerous piece
@@ -262,7 +262,7 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
 ## 5.2 Reward stabilizing defensive moves
 
 - [ ] Reward moves that:
-  - [ ] close or contest a file aimed at the king
+  - [x] close or contest a file aimed at the king
   - [ ] block queen/rook invasion routes
   - [ ] add a defender to the king zone
   - [ ] trade off the attacker’s strongest heavy piece
@@ -294,7 +294,7 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
 - [x] Strengthen early-game preferences for:
   - [x] minor-piece development
   - [ ] central control
-  - [ ] castling readiness
+  - [x] castling readiness
   - [ ] piece coordination
   - [x] avoiding repeated queen moves
 
@@ -302,7 +302,7 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
 
 - [x] Penalize:
   - [x] early queen moves without concrete gain
-  - [ ] rook lifts before development is complete
+  - [x] rook lifts before development is complete
   - [ ] flank raids that ignore king safety
   - [ ] repeated movement of one piece while others sleep
 
@@ -310,7 +310,7 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
 
 - [x] Add tests that prefer:
   - [x] developing a knight/bishop over an early queen sortie
-  - [ ] castling-support moves over speculative queen checks
+  - [x] castling-support moves over speculative queen checks
   - [ ] sensible recapture/development over showy queen pressure
 
 ---
