@@ -5,11 +5,14 @@ from typing import Any, Callable, Optional
 
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_in_check
+from chess_game.chess.defensive_priorities import (
+    DANGEROUS_KING_PRESSURE_THRESHOLD,
+    king_defense_profile,
+    king_danger_index,
+    king_needs_shelter,
+)
 from chess_game.chess.move import Move
-from chess_game.chess.strategy_utils import iter_color_pieces, path_clear_between
 from chess_game.chess.types import Color, LegalMove, PieceType
-
-DANGEROUS_KING_EXTENSION_THRESHOLD = 3
 
 
 @dataclass(frozen=True)
@@ -168,12 +171,58 @@ def update_alpha_beta(
     return alpha, beta, beta <= alpha
 
 
+def same_legal_move(move: Move, legal_move: LegalMove) -> bool:
+    """Return True when two move objects represent the same move."""
+
+    return (
+        move.start == legal_move.start
+        and move.end == legal_move.end
+        and move.promotion == legal_move.promotion
+    )
+
+
 def record_selective_extension(context: Any) -> None:
     """Record a bounded selective extension when diagnostics are enabled."""
 
     if context is None or context.stats is None or context.stats.diagnostics is None:
         return
     context.stats.diagnostics.selective_extensions += 1
+
+
+def promotion_order_score(move: Move) -> int:
+    """Return a move-ordering bonus for promotions."""
+
+    if move.promotion is None:
+        return 0
+    promotion_order_bonus = {
+        PieceType.QUEEN: 900,
+        PieceType.ROOK: 500,
+        PieceType.BISHOP: 330,
+        PieceType.KNIGHT: 320,
+    }
+    return promotion_order_bonus.get(move.promotion, 0)
+
+
+def defensive_capture_bonus(
+    board: Board,
+    move: Move,
+    captured_kind: PieceType,
+    copy_with_move: Callable[[Board, Move], Board],
+) -> int:
+    """Prioritize danger-reducing heavy-piece trades when the king is under pressure."""
+
+    if captured_kind not in {PieceType.QUEEN, PieceType.ROOK}:
+        return 0
+    before = king_defense_profile(board, board.turn)
+    if before.danger < DANGEROUS_KING_PRESSURE_THRESHOLD:
+        return 0
+    child_board = copy_with_move(board, move)
+    after = king_defense_profile(child_board, board.turn)
+    score = max(0, before.danger - after.danger) * 250
+    score += max(0, before.invasion_lines - after.invasion_lines) * 120
+    if before.back_rank_weak and not after.back_rank_weak:
+        score += 90
+    return score
 
 
 def root_stability_adjustment(
@@ -186,13 +235,18 @@ def root_stability_adjustment(
     moving_piece = board.get_piece(move.start)
     if moving_piece is None:
         return 0
-    current_danger = king_danger_index(board, moving_piece.color)
-    if current_danger < DANGEROUS_KING_EXTENSION_THRESHOLD:
+    before = king_defense_profile(board, moving_piece.color)
+    if before.danger < DANGEROUS_KING_PRESSURE_THRESHOLD:
         return 0
-    danger_reduction = current_danger - king_danger_index(child_board, moving_piece.color)
-    if danger_reduction <= 0:
+    after = king_defense_profile(child_board, moving_piece.color)
+    signed_bonus = max(0, before.danger - after.danger) * 36
+    signed_bonus += max(0, before.invasion_lines - after.invasion_lines) * 24
+    signed_bonus += max(0, after.king_zone_defenders - before.king_zone_defenders) * 16
+    signed_bonus += max(0, after.heavy_connections - before.heavy_connections) * 12
+    if before.back_rank_weak and not after.back_rank_weak:
+        signed_bonus += 24
+    if signed_bonus == 0:
         return 0
-    signed_bonus = min(2, danger_reduction) * 36
     return signed_bonus if moving_piece.color == Color.WHITE else -signed_bonus
 
 
@@ -213,10 +267,10 @@ def selective_extension_bonus(
     current_danger = king_danger_index(board, moving_color)
     if is_in_check(board, moving_color):
         bonus = 1
-    elif current_danger >= DANGEROUS_KING_EXTENSION_THRESHOLD:
+    elif current_danger >= DANGEROUS_KING_PRESSURE_THRESHOLD:
         if king_danger_index(child_board, moving_color) < current_danger:
             bonus = 1
-    elif not _king_needs_shelter(board, moving_color) and _is_forcing_attack_extension(
+    elif not king_needs_shelter(board, moving_color) and _is_forcing_attack_extension(
         board,
         move,
         child_board,
@@ -225,36 +279,6 @@ def selective_extension_bonus(
     ):
         bonus = 1
     return bonus
-
-
-def king_danger_index(board: Board, color: Color) -> int:
-    """Return a simple attack-pressure score around one king."""
-
-    king_square = board.find_king(color)
-    if king_square is None:
-        return 0
-    king_row = int(king_square.row)
-    king_col = int(king_square.col)
-    enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
-    danger = 0
-    if _king_lacks_luft(board, color, king_row):
-        danger += 1
-    if _is_central_king(king_row, king_col) and _queens_remain(board):
-        danger += 1
-    for piece, row_index, col_index in iter_color_pieces(board, enemy_color):
-        if piece.kind in {PieceType.ROOK, PieceType.QUEEN} and (
-            row_index == king_row or col_index == king_col
-        ):
-            if path_clear_between(board, (row_index, col_index), (king_row, king_col)):
-                danger += 2
-        distance = max(abs(row_index - king_row), abs(col_index - king_col))
-        if piece.kind == PieceType.QUEEN and distance <= 3:
-            danger += 2
-        if piece.kind == PieceType.ROOK and distance <= 3:
-            danger += 1
-    return danger
-
-
 def _is_forcing_attack_extension(
     board: Board,
     move: Move,
@@ -269,7 +293,7 @@ def _is_forcing_attack_extension(
     gives_check = is_in_check(child_board, enemy_color)
     if (
         not gives_check
-        or enemy_danger_after < DANGEROUS_KING_EXTENSION_THRESHOLD
+        or enemy_danger_after < DANGEROUS_KING_PRESSURE_THRESHOLD
         or not _is_heavy_piece_invasion(move, moving_kind, enemy_color)
     ):
         return False
@@ -287,38 +311,3 @@ def _is_heavy_piece_invasion(
         return False
     enemy_back_rank_zone = {0, 1} if enemy_color == Color.BLACK else {6, 7}
     return int(move.end.row) in enemy_back_rank_zone
-
-
-def _king_lacks_luft(board: Board, color: Color, king_row: int) -> bool:
-    """Return True when the king sits on the home rank without a pawn escape square."""
-
-    luft_row = 5 if color == Color.WHITE else 2
-    home_row = 7 if color == Color.WHITE else 0
-    if king_row != home_row:
-        return False
-    return not any(
-        piece.kind == PieceType.PAWN and row_index == luft_row
-        for piece, row_index, _ in iter_color_pieces(board, color)
-    )
-
-
-def _king_needs_shelter(board: Board, color: Color) -> bool:
-    """Return True when the king is still parked in the center on its home rank."""
-
-    king_square = board.find_king(color)
-    home_row = 7 if color == Color.WHITE else 0
-    return king_square is not None and int(king_square.row) == home_row and int(
-        king_square.col
-    ) in {3, 4, 5}
-
-
-def _is_central_king(king_row: int, king_col: int) -> bool:
-    """Return True when the king is not tucked near an edge."""
-
-    return king_row in {2, 3, 4, 5} and king_col in {2, 3, 4, 5}
-
-
-def _queens_remain(board: Board) -> bool:
-    """Return True when at least one queen is still on the board."""
-
-    return any(piece.kind == PieceType.QUEEN for row in board.board for piece in row if piece)

@@ -1,6 +1,12 @@
 """Helpers for scoring quiet strategic moves during search ordering."""
 
 from chess_game.chess.board import Board
+from chess_game.chess.defensive_priorities import (
+    DANGEROUS_KING_PRESSURE_THRESHOLD,
+    king_defense_profile,
+    king_danger_index,
+    king_needs_shelter,
+)
 from chess_game.chess.move import Move
 from chess_game.chess.strategy_utils import center_distance, is_capture_move, path_clear_between
 from chess_game.chess.types import Color, PieceType
@@ -23,6 +29,12 @@ QUIET_EARLY_QUEEN_SORTIE_PENALTY = 32
 QUIET_CONTEST_ATTACK_FILE_BONUS = 44
 QUIET_FLANK_RAID_PENALTY = 28
 QUIET_REPEAT_HEAVY_PIECE_PENALTY = 24
+QUIET_DANGER_RELIEF_BONUS = 52
+QUIET_ENTRY_SQUARE_BONUS = 28
+QUIET_ADD_DEFENDER_BONUS = 22
+QUIET_RECONNECT_DEFENDER_BONUS = 18
+QUIET_RESTORE_BACK_RANK_BONUS = 26
+QUIET_NEGLECT_DANGER_PENALTY = 34
 
 
 def quiet_strategy_order_score(board: Board, move: Move) -> int:
@@ -88,6 +100,7 @@ def _opening_discipline_bonus(board: Board, kind: PieceType, move: Move) -> int:
         score -= QUIET_FLANK_RAID_PENALTY
     if kind in {PieceType.QUEEN, PieceType.ROOK} and _is_repeat_heavy_piece_move(board, kind, move):
         score -= QUIET_REPEAT_HEAVY_PIECE_PENALTY
+    score += _defensive_priority_bonus(board, move)
     return score
 
 
@@ -162,7 +175,7 @@ def _undeveloped_minor_count(board: Board) -> int:
 
 
 def _is_flank_raid(board: Board, move: Move) -> bool:
-    if _undeveloped_minor_count(board) < 2 or not _king_needs_shelter(board):
+    if _undeveloped_minor_count(board) < 2 or not king_needs_shelter(board, board.turn):
         return False
     end_col = int(move.end.col)
     end_row = int(move.end.row)
@@ -174,24 +187,10 @@ def _is_flank_raid(board: Board, move: Move) -> bool:
 def _is_repeat_heavy_piece_move(board: Board, kind: PieceType, move: Move) -> bool:
     return (
         _undeveloped_minor_count(board) >= 2
-        and _king_needs_shelter(board)
+        and king_needs_shelter(board, board.turn)
         and not _heavy_piece_on_home_square(board.turn, kind, move.start)
         and not _heavy_piece_on_home_square(board.turn, kind, move.end)
     )
-
-
-def _king_needs_shelter(board: Board) -> bool:
-    king = next(
-        (
-            piece.square
-            for row in board.board
-            for piece in row
-            if piece is not None and piece.color == board.turn and piece.kind == PieceType.KING
-        ),
-        None,
-    )
-    home_row = 7 if board.turn == Color.WHITE else 0
-    return king is not None and int(king.row) == home_row and int(king.col) in {3, 4, 5}
 
 
 def _heavy_piece_on_home_square(color: Color, kind: PieceType, square) -> bool:
@@ -203,6 +202,38 @@ def _heavy_piece_on_home_square(color: Color, kind: PieceType, square) -> bool:
         home_row = 7 if color == Color.WHITE else 0
         return (row, col) in {(home_row, 0), (home_row, 7)}
     return False
+
+
+def _defensive_priority_bonus(board: Board, move: Move) -> int:
+    """Reward defense-first quiet moves when the side to move is under pressure."""
+
+    before = king_defense_profile(board, board.turn)
+    if before.danger < DANGEROUS_KING_PRESSURE_THRESHOLD:
+        return 0
+    child_board = board.clone()
+    if not child_board.apply_legal_move(move.start, move.end, promotion=move.promotion):
+        return 0
+    after = king_defense_profile(child_board, board.turn)
+    danger_reduction = max(0, before.danger - after.danger)
+    score = danger_reduction * QUIET_DANGER_RELIEF_BONUS
+    score += max(0, before.invasion_lines - after.invasion_lines) * QUIET_ENTRY_SQUARE_BONUS
+    score += max(
+        0,
+        after.king_zone_defenders - before.king_zone_defenders,
+    ) * QUIET_ADD_DEFENDER_BONUS
+    score += max(
+        0,
+        after.heavy_connections - before.heavy_connections,
+    ) * QUIET_RECONNECT_DEFENDER_BONUS
+    if before.back_rank_weak and not after.back_rank_weak:
+        score += QUIET_RESTORE_BACK_RANK_BONUS
+    score -= max(0, after.danger - before.danger) * QUIET_NEGLECT_DANGER_PENALTY
+    score -= max(0, after.invasion_lines - before.invasion_lines) * QUIET_ENTRY_SQUARE_BONUS
+    if after.king_zone_defenders < before.king_zone_defenders:
+        score -= QUIET_ADD_DEFENDER_BONUS
+    if after.heavy_connections < before.heavy_connections:
+        score -= QUIET_RECONNECT_DEFENDER_BONUS
+    return score
 
 
 def _is_heavy_piece_endgame(board: Board) -> bool:
@@ -349,25 +380,7 @@ def _creates_luft(color: Color, move: Move) -> bool:
 
 
 def _is_urgent_luft(board: Board, color: Color) -> bool:
-    king_square = next(
-        (
-            piece.square
-            for row in board.board
-            for piece in row
-            if piece is not None and piece.color == color and piece.kind == PieceType.KING
-        ),
-        None,
-    )
-    if king_square is None or int(king_square.row) not in {0, 7}:
-        return False
-    enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
-    return any(
-        piece is not None
-        and piece.color == enemy_color
-        and piece.kind in (PieceType.QUEEN, PieceType.ROOK)
-        for row in board.board
-        for piece in row
-    )
+    return king_danger_index(board, color) >= DANGEROUS_KING_PRESSURE_THRESHOLD
 
 
 def _improves_worst_piece(board: Board, kind: PieceType, move: Move) -> bool:

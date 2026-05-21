@@ -13,7 +13,9 @@ from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_in_check as _gs_is_in_check
 from chess_game.chess.ai_move_ordering import quiet_strategy_order_score
 from chess_game.chess.ai_search_helpers import (
+    defensive_capture_bonus as _defensive_capture_bonus,
     RepetitionPolicy,
+    promotion_order_score as _promotion_order_score,
     initial_root_window as _initial_root_window,
     position_occurrence_count as _position_occurrence_count,
     record_depth_timing as _record_depth_timing,
@@ -22,6 +24,7 @@ from chess_game.chess.ai_search_helpers import (
     repetition_score as _repetition_score,
     root_stability_adjustment as _root_stability_adjustment,
     rerun_full_window_if_needed as _rerun_full_window_if_needed,
+    same_legal_move as _same_legal_move,
     selective_extension_bonus as _selective_extension_bonus,
     search_position_counts as _search_position_counts,
     update_alpha_beta as _update_alpha_beta,
@@ -772,21 +775,12 @@ def _capture_order_score(board: Board, move: Move) -> int:
     attacker = board.get_piece(move.start)
     if attacker is None or captured_piece is None:
         return 900 if _is_capture_move(board, move) else 0
-    return _mvv_lva_capture_score(attacker, captured_piece)
-
-
-def _promotion_order_score(move: Move) -> int:
-    """Return a move-ordering bonus for promotions."""
-
-    if move.promotion is None:
-        return 0
-    promotion_order_bonus = {
-        PieceType.QUEEN: 900,
-        PieceType.ROOK: 500,
-        PieceType.BISHOP: 330,
-        PieceType.KNIGHT: 320,
-    }
-    return promotion_order_bonus.get(move.promotion, 0)
+    return _mvv_lva_capture_score(attacker, captured_piece) + _defensive_capture_bonus(
+        board,
+        move,
+        captured_piece.kind,
+        _make_copy_with_move,
+    )
 
 
 def _tt_best_move(board: Board, context: SearchContext) -> Optional[LegalMove]:
@@ -796,16 +790,6 @@ def _tt_best_move(board: Board, context: SearchContext) -> Optional[LegalMove]:
         return None
     entry = context.transposition_table.get(position_key(board))
     return None if entry is None else entry.best_move
-
-
-def _same_legal_move(move: Move, legal_move: LegalMove) -> bool:
-    """Return True when two move objects represent the same move."""
-
-    return (
-        move.start == legal_move.start
-        and move.end == legal_move.end
-        and move.promotion == legal_move.promotion
-    )
 
 
 def _mvv_lva_capture_score(attacker: Piece, victim: Piece) -> int:

@@ -251,39 +251,39 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
 
 ## 5.1 Model defensive priorities
 
-- [ ] Define a defense-first model for positions under pressure.
-- [ ] Include at least:
-  - [ ] covering entry squares
+- [x] Define a defense-first model for positions under pressure.
+- [x] Include at least:
+  - [x] covering entry squares
   - [x] contesting attack files/ranks
-  - [ ] reconnecting defenders
-  - [ ] creating luft
-  - [ ] trading the attacker’s most dangerous piece
+  - [x] reconnecting defenders
+  - [x] creating luft
+  - [x] trading the attacker’s most dangerous piece
 
 ## 5.2 Reward stabilizing defensive moves
 
-- [ ] Reward moves that:
+- [x] Reward moves that:
   - [x] close or contest a file aimed at the king
-  - [ ] block queen/rook invasion routes
-  - [ ] add a defender to the king zone
-  - [ ] trade off the attacker’s strongest heavy piece
-  - [ ] restore back-rank safety
+  - [x] block queen/rook invasion routes
+  - [x] add a defender to the king zone
+  - [x] trade off the attacker’s strongest heavy piece
+  - [x] restore back-rank safety
 
 ## 5.3 Penalize negligent counterplay
 
 - [ ] Penalize moves that seek activity while:
-  - [ ] mate threats remain unresolved
-  - [ ] the back rank is weak
-  - [ ] the queen/rook is disconnected from king defense
-  - [ ] an invasion square is left uncontrolled
+  - [x] mate threats remain unresolved
+  - [x] the back rank is weak
+  - [x] the queen/rook is disconnected from king defense
+  - [x] an invasion square is left uncontrolled
   - [ ] the king has fewer safe squares after the move
 
 ## 5.4 Add defensive regression tests
 
-- [ ] Add tests where the engine should:
-  - [ ] defend instead of check
-  - [ ] make luft instead of pawn grabbing
-  - [ ] trade queens or rooks to reduce danger
-  - [ ] hold a file rather than start a side attack
+- [x] Add tests where the engine should:
+  - [x] defend instead of check
+  - [x] make luft instead of pawn grabbing
+  - [x] trade queens or rooks to reduce danger
+  - [x] hold a file rather than start a side attack
 
 ---
 

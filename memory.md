@@ -10,6 +10,11 @@
 - Tightened quiet move ordering in `ai_move_ordering.py` so repeated early queen/rook moves lose priority while development is still unfinished.
 - Added `tests/test_ai_opening_strategy.py` to cover central control, coordinated minors, flank queen raids, repeated queen moves, and preferring central recapture over flashy queen pressure.
 
+## 2026-05-21T22:24:01Z - GPT-5.4 - STRATEGY3 defensive coordination slice
+- Added `chess_game/chess/defensive_priorities.py` to share king-danger, invasion-line, defender-count, and back-rank weakness profiling across ordering and search.
+- Tightened `ai_move_ordering.py`, `ai_search_helpers.py`, and `ai.py` so defense-first moves gain priority under pressure, danger-reducing heavy-piece trades search earlier, and disconnected counterplay is downgraded.
+- Added `tests/test_ai_defensive_strategy.py` for defense-over-check, reconnecting defenders, queen trades that reduce king danger, and luft over pawn-grabbing.
+
 ## Current Status: Phase 9 Complete - AI Module with Type Checking Fixes
 
 ### Session ID: 531fe519-d26a-4d2c-a870-ffa34f44987f
