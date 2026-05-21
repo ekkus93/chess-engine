@@ -212,6 +212,19 @@ def make_check_evasion_extension_position() -> Board:
     return board
 
 
+def make_capture_extension_position() -> Board:
+    """Create a capture that tears open a file near the enemy king."""
+
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("a1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("g1"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("g7"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.turn = Color.WHITE
+    return board
+
+
 # Tests for minimax leaf evaluation behavior
 
 
@@ -313,6 +326,17 @@ def test_selective_extension_bonus_skips_harmless_queen_drift() -> None:
 
     assert child_board.apply_legal_move(move.start, move.end) is True
     assert selective_extension_bonus(board, move, child_board, extension_budget=1) == 0
+
+
+def test_selective_extension_bonus_triggers_for_capture_that_opens_king_pressure() -> None:
+    """Captures that increase king pressure should keep searching one ply deeper."""
+
+    board = make_capture_extension_position()
+    move = Move(start=sq("g1"), end=sq("g7"))
+    child_board = board.clone()
+
+    assert child_board.apply_legal_move(move.start, move.end) is True
+    assert selective_extension_bonus(board, move, child_board, extension_budget=1) == 1
 
 
 def test_search_records_selective_extension_diagnostics() -> None:

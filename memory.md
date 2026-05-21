@@ -15,6 +15,10 @@
 - Tightened `ai_move_ordering.py`, `ai_search_helpers.py`, and `ai.py` so defense-first moves gain priority under pressure, danger-reducing heavy-piece trades search earlier, and disconnected counterplay is downgraded.
 - Added `tests/test_ai_defensive_strategy.py` for defense-over-check, reconnecting defenders, queen trades that reduce king danger, and luft over pawn-grabbing.
 
+## 2026-05-21T22:29:20Z - GPT-5.4 - STRATEGY3 capture-extension slice
+- Extended `selective_extension_bonus()` so forcing captures that increase enemy king pressure now keep searching one extra ply.
+- Added a new search regression in `tests/test_ai_search.py` for a rook capture on the 7th rank that tears open pressure against the enemy king.
+
 ## Current Status: Phase 9 Complete - AI Module with Type Checking Fixes
 
 ### Session ID: 531fe519-d26a-4d2c-a870-ffa34f44987f

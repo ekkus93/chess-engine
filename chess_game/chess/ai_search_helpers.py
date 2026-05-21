@@ -12,6 +12,7 @@ from chess_game.chess.defensive_priorities import (
     king_needs_shelter,
 )
 from chess_game.chess.move import Move
+from chess_game.chess.strategy_utils import is_capture_move
 from chess_game.chess.types import Color, LegalMove, PieceType
 
 
@@ -270,6 +271,8 @@ def selective_extension_bonus(
     elif current_danger >= DANGEROUS_KING_PRESSURE_THRESHOLD:
         if king_danger_index(child_board, moving_color) < current_danger:
             bonus = 1
+    elif _is_danger_opening_capture(board, move, child_board, enemy_color):
+        bonus = 1
     elif not king_needs_shelter(board, moving_color) and _is_forcing_attack_extension(
         board,
         move,
@@ -298,6 +301,23 @@ def _is_forcing_attack_extension(
     ):
         return False
     return enemy_danger_after > enemy_danger_before
+
+
+def _is_danger_opening_capture(
+    board: Board,
+    move: Move,
+    child_board: Board,
+    enemy_color: Color,
+) -> bool:
+    """Return True for captures that clearly increase pressure on the enemy king."""
+
+    if not is_capture_move(board, move):
+        return False
+    before = king_defense_profile(board, enemy_color)
+    after = king_defense_profile(child_board, enemy_color)
+    if after.danger < DANGEROUS_KING_PRESSURE_THRESHOLD:
+        return False
+    return after.danger > before.danger or after.invasion_lines > before.invasion_lines
 
 
 def _is_heavy_piece_invasion(

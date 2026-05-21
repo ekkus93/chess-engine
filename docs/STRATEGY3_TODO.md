@@ -322,7 +322,7 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
 - [x] Decide where to extend search when kings are exposed.
 - [ ] Consider extensions for:
   - [x] forcing checks near exposed kings
-  - [ ] recaptures that open files toward a king
+  - [x] recaptures that open files toward a king
   - [x] queen/rook invasions on the 7th or 8th rank
   - [x] mate-threat replies
   - [x] only-move defensive resources
