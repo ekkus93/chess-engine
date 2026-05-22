@@ -130,16 +130,31 @@ def repetition_score(
     if position_occurrence_count(board, context, line_history, policy.position_key) < 3:
         return None
     evaluation = policy.evaluate(board)
+    penalty = _repetition_penalty(policy, evaluation, policy.progress(board))
     if evaluation >= policy.threshold:
-        return -policy.penalty
+        return -penalty
     if evaluation <= -policy.threshold:
-        return policy.penalty
+        return penalty
     progress = policy.progress(board)
     if progress >= policy.progress_threshold:
-        return -policy.penalty
+        return -penalty
     if progress <= -policy.progress_threshold:
-        return policy.penalty
+        return penalty
     return 0
+
+
+def _repetition_penalty(
+    policy: RepetitionPolicy,
+    evaluation: int,
+    progress: int,
+) -> int:
+    scale = max(
+        abs(evaluation) // max(policy.threshold, 1),
+        abs(progress) // max(policy.progress_threshold, 1),
+        1,
+    )
+    capped_scale = min(scale, 5)
+    return policy.penalty * capped_scale
 
 
 def update_best_result(
@@ -371,9 +386,15 @@ def _attacking_root_bonus(
         return 0
     before = king_defense_profile(board, enemy_color)
     after = king_defense_profile(child_board, enemy_color)
-    score = max(0, after.danger - before.danger) * 16
-    score += max(0, after.invasion_lines - before.invasion_lines) * 18
-    if is_in_check(child_board, enemy_color) and after.danger >= DANGEROUS_KING_PRESSURE_THRESHOLD:
+    danger_gain = max(0, after.danger - before.danger)
+    invasion_gain = max(0, after.invasion_lines - before.invasion_lines)
+    score = danger_gain * 16
+    score += invasion_gain * 18
+    if (
+        is_in_check(child_board, enemy_color)
+        and after.danger >= DANGEROUS_KING_PRESSURE_THRESHOLD
+        and (danger_gain > 0 or invasion_gain > 0)
+    ):
         score += 14
     if is_capture_move(board, move):
         score += 10

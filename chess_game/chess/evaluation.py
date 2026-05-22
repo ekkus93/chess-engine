@@ -10,10 +10,12 @@ from chess_game.chess.endgame_evaluation import (
     evaluate_progress as _evaluate_progress,
 )
 from chess_game.chess.opening_development import (
+    early_shelter_pawn_push_penalty as _early_shelter_pawn_push_penalty,
     coordinated_minor_piece_setup as _coordinated_minor_piece_setup,
     early_flank_raid_penalty as _early_flank_raid_penalty,
     opening_central_control_bonus as _opening_central_control_bonus,
     opening_piece_coordination_bonus as _opening_piece_coordination_bonus,
+    unforced_shelter_loosening_penalty as _unforced_shelter_loosening_penalty,
     undeveloped_minor_piece_count as _undeveloped_minor_piece_count,
 )
 from chess_game.chess.pieces.piece_movers import PieceMovers
@@ -440,11 +442,18 @@ def _evaluate_king_safety(board: Board, middlegame_phase: int) -> int:
         if king_square is None:
             continue
         color_score = 0
+        attack_pressure = _king_zone_attack_pressure(board, color, king_square)
         if _is_castled_king(color, king_square):
             color_score += CASTLED_KING_BONUS
         color_score += _pawn_shield_score(board, color, king_square)
         color_score -= _open_king_file_penalty(board, color, king_square)
-        color_score -= _king_zone_attack_pressure(board, color, king_square)
+        color_score -= _unforced_shelter_loosening_penalty(
+            board,
+            color,
+            king_square,
+            attack_pressure,
+        )
+        color_score -= attack_pressure
         color_score -= _back_rank_tension(board, color, king_square)
         if _is_exposed_central_king(king_square):
             color_score -= EXPOSED_CENTRAL_KING_PENALTY
@@ -521,8 +530,6 @@ def _open_king_file_penalty(board: Board, color: Color, square: ConstantSquare) 
         if not _file_has_friendly_pawn(board, color, file_index):
             penalty += OPEN_KING_FILE_PENALTY
     return penalty
-
-
 def _file_has_friendly_pawn(board: Board, color: Color, file_index: int) -> bool:
     for rank_index in range(8):
         square = ConstantSquare(
@@ -887,6 +894,11 @@ def _evaluate_development(board: Board, middlegame_phase: int) -> int:
         development_score -= sign * undeveloped * UNDEVELOPED_MINOR_PIECE_PENALTY
         development_score += sign * _opening_central_control_bonus(board, color)
         development_score += sign * _opening_piece_coordination_bonus(
+            board,
+            color,
+            undeveloped,
+        )
+        development_score -= sign * _early_shelter_pawn_push_penalty(
             board,
             color,
             undeveloped,

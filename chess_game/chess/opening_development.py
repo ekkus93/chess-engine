@@ -1,7 +1,7 @@
 """Opening-phase development helpers shared by evaluation and ordering."""
 
 from chess_game.chess.board import Board
-from chess_game.chess.constants import ConstantSquare
+from chess_game.chess.constants import ConstantSquare, get_col_constant, get_row_constant
 from chess_game.chess.evaluation_tables import (
     CENTRAL_DUO_BONUS,
     CENTRAL_MINOR_PIECE_BONUS,
@@ -71,6 +71,52 @@ def early_flank_raid_penalty(board: Board, color: Color, undeveloped: int) -> in
     return penalty
 
 
+def unforced_shelter_loosening_penalty(
+    board: Board,
+    color: Color,
+    square: ConstantSquare,
+    attack_pressure: int,
+) -> int:
+    """Penalize single-step shield pawn pushes when the castled king is not under fire."""
+
+    if not _is_castled_king(color, square) or not _queens_on_board(board) or attack_pressure > 0:
+        return 0
+    king_col = int(square.col)
+    shield_row = 6 if color == Color.WHITE else 1
+    advance_row = shield_row - 1 if color == Color.WHITE else shield_row + 1
+    penalty = 0
+    for file_index in range(max(0, king_col - 1), min(7, king_col + 1) + 1):
+        home_square = ConstantSquare(
+            row=get_row_constant(shield_row),
+            col=get_col_constant(file_index),
+        )
+        home_pawn = board.get_piece(home_square)
+        if home_pawn is not None and home_pawn.color == color and home_pawn.kind == PieceType.PAWN:
+            continue
+        advanced_square = ConstantSquare(
+            row=get_row_constant(advance_row),
+            col=get_col_constant(file_index),
+        )
+        advanced_pawn = board.get_piece(advanced_square)
+        if (
+            advanced_pawn is not None
+            and advanced_pawn.color == color
+            and advanced_pawn.kind == PieceType.PAWN
+        ):
+            penalty += EARLY_FLANK_RAID_PENALTY
+    return penalty
+
+
+def early_shelter_pawn_push_penalty(board: Board, color: Color, undeveloped: int) -> int:
+    """Penalize premature castled-king shelter loosening before development finishes."""
+
+    king_square = board.find_king(color)
+    if king_square is None or undeveloped < 2:
+        return 0
+    attack_pressure = _king_zone_attack_pressure(board, color, king_square)
+    return unforced_shelter_loosening_penalty(board, color, king_square, attack_pressure) * 2
+
+
 def minor_on_home_square(color: Color, kind: PieceType, row: int, col: int) -> bool:
     """Return True when a minor piece still sits on its original square."""
 
@@ -130,3 +176,37 @@ def _piece_in_enemy_half(color: Color, row: int) -> bool:
     """Return True when the piece has advanced far enough to count as a raid."""
 
     return row <= 3 if color == Color.WHITE else row >= 4
+
+
+def _queens_on_board(board: Board) -> bool:
+    white_has_queen = any(
+        piece.kind == PieceType.QUEEN
+        for piece, _, _ in iter_color_pieces(board, Color.WHITE)
+    )
+    black_has_queen = any(
+        piece.kind == PieceType.QUEEN
+        for piece, _, _ in iter_color_pieces(board, Color.BLACK)
+    )
+    return white_has_queen or black_has_queen
+
+
+def _king_zone_attack_pressure(
+    board: Board,
+    color: Color,
+    square: ConstantSquare,
+) -> int:
+    enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
+    king_row = int(square.row)
+    king_col = int(square.col)
+    penalty = 0
+    for piece, row, col in iter_color_pieces(board, enemy_color):
+        distance = max(abs(row - king_row), abs(col - king_col))
+        if distance > 2:
+            continue
+        if piece.kind == PieceType.QUEEN:
+            penalty += 15
+        elif piece.kind == PieceType.ROOK:
+            penalty += 10
+        elif piece.kind in (PieceType.BISHOP, PieceType.KNIGHT):
+            penalty += 5
+    return penalty

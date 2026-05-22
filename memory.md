@@ -410,3 +410,8 @@ Quality:
 ## 2026-05-22T20:26:15Z - GPT-5.4 - STRATEGY4 baseline recorded from failed depth-5 draw
 - Added `tmp/strategy4_baseline_positions.txt` and updated `docs/STRATEGY4_TODO.md` Task 0 to capture the depth-5 self-play draw in `tmp/game2605211902_1_w5b5.md`, including the kingside self-weakening phase, the late winning-but-unconverted rook ending, and the final repeated `...Rg2` / `...Rg3` loop that led to move-204 repetition.
 - The active next phase is STRATEGY4 Task 1 + conversion work: add prophylaxis/self-restraint regressions and then fix the technical endgame logic those regressions expose.
+
+## 2026-05-22T20:39:51Z - GPT-5.4 - STRATEGY4 self-restraint regression slice
+- Added `tests/test_ai_strategy4_regressions.py` to lock in penalties for premature castled-king `h`-pawn loosening with queens on the board and to require stronger repetition penalties when a clearly winning side drifts into a draw.
+- Extracted new shelter-pawn helpers into `chess_game/chess/opening_development.py`, wired them through `evaluation.py`, and kept `pylint chess_game` and `python -m pytest tests -q` green.
+- Updated `docs/STRATEGY4_TODO.md` to mark the first `do not self-weaken` regression (`h`-pawn push for no reason) as complete.
