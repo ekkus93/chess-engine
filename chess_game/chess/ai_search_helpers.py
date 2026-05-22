@@ -230,25 +230,39 @@ def root_stability_adjustment(
     board: Board,
     move: Move,
     child_board: Board,
+    context: Any = None,
+    position_key: Callable[[Board], str] | None = None,
 ) -> int:
-    """Return a small root-only bonus for urgent threat-reducing moves."""
+    """Return a root-only tie-break bonus for stable attack/defense moves.
+
+    This intentionally stays out of static evaluation and quiescence: it only
+    nudges near-equal root choices toward lines that either reduce urgent king
+    danger or create fresh tactical pressure without drifting into repetition.
+    """
 
     moving_piece = board.get_piece(move.start)
     if moving_piece is None:
         return 0
-    before = king_defense_profile(board, moving_piece.color)
-    if before.danger < DANGEROUS_KING_PRESSURE_THRESHOLD:
-        return 0
-    after = king_defense_profile(child_board, moving_piece.color)
-    signed_bonus = max(0, before.danger - after.danger) * 36
-    signed_bonus += max(0, before.invasion_lines - after.invasion_lines) * 24
-    signed_bonus += max(0, after.king_zone_defenders - before.king_zone_defenders) * 16
-    signed_bonus += max(0, after.heavy_connections - before.heavy_connections) * 12
-    if before.back_rank_weak and not after.back_rank_weak:
-        signed_bonus += 24
+    moving_color = moving_piece.color
+    enemy_color = Color.BLACK if moving_color == Color.WHITE else Color.WHITE
+    signed_bonus = _defensive_root_bonus(board, child_board, moving_color)
+    signed_bonus += _attacking_root_bonus(
+        board,
+        move,
+        child_board,
+        moving_color,
+        enemy_color,
+    )
+    signed_bonus -= _repetition_root_penalty(
+        board,
+        move,
+        child_board,
+        context,
+        position_key,
+    )
     if signed_bonus == 0:
         return 0
-    return signed_bonus if moving_piece.color == Color.WHITE else -signed_bonus
+    return signed_bonus if moving_color == Color.WHITE else -signed_bonus
 
 
 def selective_extension_bonus(
@@ -257,7 +271,11 @@ def selective_extension_bonus(
     child_board: Board,
     extension_budget: int,
 ) -> int:
-    """Return a bounded one-ply extension for critical attack/defense moves."""
+    """Return a bounded one-ply extension for critical attack/defense moves.
+
+    Extensions stay binary and narrow on purpose so king-danger signals do not
+    double-count with static evaluation or root tie-break logic.
+    """
 
     bonus = 0
     moving_piece = board.get_piece(move.start)
@@ -318,6 +336,98 @@ def _is_danger_opening_capture(
     if after.danger < DANGEROUS_KING_PRESSURE_THRESHOLD:
         return False
     return after.danger > before.danger or after.invasion_lines > before.invasion_lines
+
+
+def _defensive_root_bonus(board: Board, child_board: Board, moving_color: Color) -> int:
+    """Return a small bonus for root moves that clearly stabilize the king."""
+
+    before = king_defense_profile(board, moving_color)
+    if before.danger < DANGEROUS_KING_PRESSURE_THRESHOLD:
+        return 0
+    after = king_defense_profile(child_board, moving_color)
+    score = max(0, before.danger - after.danger) * 36
+    score += max(0, before.invasion_lines - after.invasion_lines) * 24
+    score += max(0, after.king_zone_defenders - before.king_zone_defenders) * 16
+    score += max(0, after.heavy_connections - before.heavy_connections) * 12
+    score += max(0, after.safe_king_moves - before.safe_king_moves) * 12
+    if before.back_rank_weak and not after.back_rank_weak:
+        score += 24
+    return score
+
+
+def _attacking_root_bonus(
+    board: Board,
+    move: Move,
+    child_board: Board,
+    moving_color: Color,
+    enemy_color: Color,
+) -> int:
+    """Return a bonus for fresh tactical lines that keep real pressure alive."""
+
+    if (
+        king_danger_index(board, moving_color) >= DANGEROUS_KING_PRESSURE_THRESHOLD
+        or king_needs_shelter(board, moving_color)
+    ):
+        return 0
+    before = king_defense_profile(board, enemy_color)
+    after = king_defense_profile(child_board, enemy_color)
+    score = max(0, after.danger - before.danger) * 16
+    score += max(0, after.invasion_lines - before.invasion_lines) * 18
+    if is_in_check(child_board, enemy_color) and after.danger >= DANGEROUS_KING_PRESSURE_THRESHOLD:
+        score += 14
+    if is_capture_move(board, move):
+        score += 10
+    return score
+
+
+def _repetition_root_penalty(
+    board: Board,
+    move: Move,
+    child_board: Board,
+    context: Any,
+    position_key: Callable[[Board], str] | None,
+) -> int:
+    """Penalize repeated root tactics unless they clearly improve the position."""
+
+    if context is None or position_key is None:
+        return 0
+    occurrence_count = position_occurrence_count(
+        child_board,
+        context,
+        (),
+        position_key,
+    )
+    if occurrence_count <= 0:
+        return 0
+    moving_piece = board.get_piece(move.start)
+    if moving_piece is None:
+        return 0
+    moving_color = moving_piece.color
+    enemy_color = Color.BLACK if moving_color == Color.WHITE else Color.WHITE
+    if _has_genuine_tactical_payoff(board, move, child_board, moving_color, enemy_color):
+        return 0
+    return 48 * occurrence_count
+
+
+def _has_genuine_tactical_payoff(
+    board: Board,
+    move: Move,
+    child_board: Board,
+    moving_color: Color,
+    enemy_color: Color,
+) -> bool:
+    """Return True when a repeated tactical line still improves attack or defense."""
+
+    before_enemy = king_defense_profile(board, enemy_color)
+    after_enemy = king_defense_profile(child_board, enemy_color)
+    before_self = king_defense_profile(board, moving_color)
+    after_self = king_defense_profile(child_board, moving_color)
+    return (
+        is_capture_move(board, move)
+        or after_enemy.danger > before_enemy.danger
+        or after_enemy.invasion_lines > before_enemy.invasion_lines
+        or after_self.danger < before_self.danger
+    )
 
 
 def _is_heavy_piece_invasion(

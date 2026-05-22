@@ -19,6 +19,11 @@
 - Extended `selective_extension_bonus()` so forcing captures that increase enemy king pressure now keep searching one extra ply.
 - Added a new search regression in `tests/test_ai_search.py` for a rook capture on the 7th rank that tears open pressure against the enemy king.
 
+## 2026-05-22T01:07:02Z - GPT-5.4 - STRATEGY3 completion and validation
+- Added root tie-break logic for non-repeating tactical payoffs and a safe-king-moves signal in the shared defensive profile so moves that shrink king mobility are explicitly downgraded.
+- Added final regressions in `tests/test_ai_search.py` and `tests/test_ai_defensive_strategy.py`, then finished the STRATEGY3 checklist in `docs/STRATEGY3_TODO.md`.
+- Final validation passed with `pylint chess_game`, `python -m pytest tests -q`, and the existing depth-5 benchmark tests. Fresh self-play artifacts were saved to `tmp/strategy3_w3b3_final.txt` and `tmp/strategy3_w5b5_final.txt`; the depth-5 run was capped as a practical opening sample because full depth-5 self-play remained too slow.
+
 ## Current Status: Phase 9 Complete - AI Module with Type Checking Fixes
 
 ### Session ID: 531fe519-d26a-4d2c-a870-ffa34f44987f

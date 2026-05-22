@@ -12,9 +12,10 @@ from chess_game.chess.ai import (
     evaluate,
     get_best_move,
     minimax,
+    position_key,
     search_root_depth,
 )
-from chess_game.chess.ai_search_helpers import selective_extension_bonus
+from chess_game.chess.ai_search_helpers import root_stability_adjustment, selective_extension_bonus
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.board.game_state import is_checkmate
 from chess_game.chess.move import Move
@@ -356,6 +357,41 @@ def test_search_records_selective_extension_diagnostics() -> None:
 
     assert stats.diagnostics is not None
     assert stats.diagnostics.selective_extensions > 0
+
+
+def test_root_stability_adjustment_penalizes_repeated_empty_tactic() -> None:
+    """Repeated root tactics should lose tie-breaks unless they improve the attack."""
+
+    board = make_forcing_check_extension_position()
+    repeated_move = Move(start=sq("d1"), end=sq("h5"))
+    fresh_move = Move(start=sq("d1"), end=sq("d8"))
+
+    repeated_child = board.clone()
+    fresh_child = board.clone()
+    assert repeated_child.apply_legal_move(repeated_move.start, repeated_move.end) is True
+    assert fresh_child.apply_legal_move(fresh_move.start, fresh_move.end) is True
+
+    context = make_search_context(
+        stats=SearchStats(),
+    )
+    context.position_counts = {position_key(repeated_child): 1}
+
+    repeated_adjustment = root_stability_adjustment(
+        board,
+        repeated_move,
+        repeated_child,
+        context,
+        position_key,
+    )
+    fresh_adjustment = root_stability_adjustment(
+        board,
+        fresh_move,
+        fresh_child,
+        context,
+        position_key,
+    )
+
+    assert fresh_adjustment > repeated_adjustment
 
 
 # Tests for alpha-beta pruning behavior

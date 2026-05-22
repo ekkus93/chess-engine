@@ -38,7 +38,12 @@ QUIET_NEGLECT_DANGER_PENALTY = 34
 
 
 def quiet_strategy_order_score(board: Board, move: Move) -> int:
-    """Return a bonus for strong quiet strategic moves."""
+    """Return a bonus for strong quiet strategic moves.
+
+    Placement audit: this file scores only quiet candidates. It intentionally
+    avoids capture-ordering and root-only tie-break work so king-danger signals
+    are not rewarded the same way in every search stage.
+    """
 
     if move.promotion is not None or is_capture_move(board, move):
         return 0
@@ -225,10 +230,12 @@ def _defensive_priority_bonus(board: Board, move: Move) -> int:
         0,
         after.heavy_connections - before.heavy_connections,
     ) * QUIET_RECONNECT_DEFENDER_BONUS
+    score += max(0, after.safe_king_moves - before.safe_king_moves) * QUIET_ADD_DEFENDER_BONUS
     if before.back_rank_weak and not after.back_rank_weak:
         score += QUIET_RESTORE_BACK_RANK_BONUS
     score -= max(0, after.danger - before.danger) * QUIET_NEGLECT_DANGER_PENALTY
     score -= max(0, after.invasion_lines - before.invasion_lines) * QUIET_ENTRY_SQUARE_BONUS
+    score -= max(0, before.safe_king_moves - after.safe_king_moves) * QUIET_NEGLECT_DANGER_PENALTY
     if after.king_zone_defenders < before.king_zone_defenders:
         score -= QUIET_ADD_DEFENDER_BONUS
     if after.heavy_connections < before.heavy_connections:

@@ -528,7 +528,13 @@ def _evaluate_child_move(
         ),
     )
     if len(params.line_history) == 1:
-        child_result += _root_stability_adjustment(board, move, child_board)
+        child_result += _root_stability_adjustment(
+            board,
+            move,
+            child_board,
+            params.context,
+            position_key,
+        )
     return child_result
 
 
@@ -747,7 +753,14 @@ def _move_order_score(
     move: Move,
     params: Optional[MinimaxParams],
 ) -> int:
-    """Return a move-ordering score."""
+    """Return a move-ordering score.
+
+    Placement audit:
+    - quiet strategic heuristics live in `ai_move_ordering.py`
+    - tactical capture ordering lives here
+    - root-only tie-breaks stay in `root_stability_adjustment()`
+    - selective extensions stay in `selective_extension_bonus()`
+    """
 
     score = (
         _capture_order_score(board, move)

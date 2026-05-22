@@ -270,12 +270,12 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
 
 ## 5.3 Penalize negligent counterplay
 
-- [ ] Penalize moves that seek activity while:
+- [x] Penalize moves that seek activity while:
   - [x] mate threats remain unresolved
   - [x] the back rank is weak
   - [x] the queen/rook is disconnected from king defense
   - [x] an invasion square is left uncontrolled
-  - [ ] the king has fewer safe squares after the move
+  - [x] the king has fewer safe squares after the move
 
 ## 5.4 Add defensive regression tests
 
@@ -337,10 +337,10 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
 
 ## 7.3 Improve root-choice stability in tactical positions
 
-- [ ] Ensure root move selection prefers:
+- [x] Ensure root move selection prefers:
   - [x] stable attacking moves with follow-up
   - [x] stable defensive moves that eliminate threats
-  - [ ] non-repeating tactical lines with genuine payoff
+  - [x] non-repeating tactical lines with genuine payoff
 
 ---
 
@@ -348,26 +348,26 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
 
 ## 8.1 Decide where each signal belongs
 
-- [ ] Audit whether each new heuristic belongs in:
-  - [ ] static evaluation
-  - [ ] quiet move ordering
-  - [ ] tactical move ordering
-  - [ ] quiescence
-  - [ ] root tie-break logic
-  - [ ] selective extensions
+- [x] Audit whether each new heuristic belongs in:
+  - [x] static evaluation
+  - [x] quiet move ordering
+  - [x] tactical move ordering
+  - [x] quiescence
+  - [x] root tie-break logic
+  - [x] selective extensions
 
 ## 8.2 Avoid double-counting
 
-- [ ] Ensure king danger, attack quality, and check quality do not all reward the same idea three times.
-- [ ] Keep the implementation explainable in code comments and breakdown output.
+- [x] Ensure king danger, attack quality, and check quality do not all reward the same idea three times.
+- [x] Keep the implementation explainable in code comments and breakdown output.
 
 ## 8.3 Preserve existing STRATEGY2 gains
 
-- [ ] Ensure the new logic does not undo:
-  - [ ] anti-repetition behavior
-  - [ ] progress-aware conversion
-  - [ ] trade-when-ahead improvements
-  - [ ] blockade and luft ordering
+- [x] Ensure the new logic does not undo:
+  - [x] anti-repetition behavior
+  - [x] progress-aware conversion
+  - [x] trade-when-ahead improvements
+  - [x] blockade and luft ordering
 
 ---
 
@@ -375,26 +375,26 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
 
 ## 9.1 Re-run self-play
 
-- [ ] Run at least one fresh depth-3 vs depth-3 self-play game.
-- [ ] Run at least one fresh depth-5 vs depth-5 self-play game if practical.
-- [ ] Save transcripts under `tmp/` or `docs/` as appropriate.
-- [ ] Compare them with earlier STRATEGY2 games.
+- [x] Run at least one fresh depth-3 vs depth-3 self-play game.
+- [x] Run at least one fresh depth-5 vs depth-5 self-play game if practical.
+- [x] Save transcripts under `tmp/` or `docs/` as appropriate.
+- [x] Compare them with earlier STRATEGY2 games.
 
 ## 9.2 Review outcome quality
 
-- [ ] Check whether the new games show:
-  - [ ] fewer reckless queen raids
-  - [ ] fewer unsafe king walks
-  - [ ] more defense-first choices under pressure
-  - [ ] fewer empty checks
-  - [ ] better development in the opening
-  - [ ] better coordination of attack and defense
+- [x] Check whether the new games show:
+  - [x] fewer reckless queen raids
+  - [x] fewer unsafe king walks
+  - [x] more defense-first choices under pressure
+  - [x] fewer empty checks
+  - [x] better development in the opening
+  - [x] better coordination of attack and defense
 
 ## 9.3 Re-check performance
 
-- [ ] Re-run the depth-5 search benchmark.
-- [ ] Ensure the new logic does not materially damage current search practicality.
-- [ ] If performance regresses, note which heuristics or extensions caused it.
+- [x] Re-run the depth-5 search benchmark.
+- [x] Ensure the new logic does not materially damage current search practicality.
+- [x] If performance regresses, note which heuristics or extensions caused it.
 
 ---
 
@@ -402,21 +402,21 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
 
 ## 10.1 Correctness target
 
-- [ ] `pylint chess_game` passes
-- [ ] `python -m pytest tests -q` passes
+- [x] `pylint chess_game` passes
+- [x] `python -m pytest tests -q` passes
 
 ## 10.2 Strategic-quality target
 
-- [ ] The engine distinguishes useful checks from empty checks in targeted tests.
-- [ ] The engine avoids unsupported queen raids in targeted tests.
-- [ ] The engine chooses defense-first moves when king danger is urgent.
-- [ ] The engine values development and king safety more sanely in the opening.
-- [ ] Self-play shows fewer king walks into heavy-piece pressure.
+- [x] The engine distinguishes useful checks from empty checks in targeted tests.
+- [x] The engine avoids unsupported queen raids in targeted tests.
+- [x] The engine chooses defense-first moves when king danger is urgent.
+- [x] The engine values development and king safety more sanely in the opening.
+- [x] Self-play shows fewer king walks into heavy-piece pressure.
 
 ## 10.3 Performance target
 
-- [ ] Depth-5 remains practical after the new logic.
-- [ ] Tactical extensions stay bounded and do not explode search cost.
+- [x] Depth-5 remains practical after the new logic.
+- [x] Tactical extensions stay bounded and do not explode search cost.
 
 ---
 

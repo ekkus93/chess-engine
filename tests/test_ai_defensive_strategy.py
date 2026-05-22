@@ -111,3 +111,29 @@ def test_search_prefers_luft_over_pawn_grab_under_pressure() -> None:
     best_move = get_best_move(board, depth=1)
 
     assert best_move == LegalMove(start=sq("g2"), end=sq("g3"))
+
+
+def test_quiet_move_order_penalizes_moves_that_reduce_safe_king_squares() -> None:
+    """A defensive move that increases king mobility should beat a loose queen drift."""
+
+    board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("e2", Color.WHITE, PieceType.QUEEN),
+            ("h1", Color.WHITE, PieceType.ROOK),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("h4", Color.BLACK, PieceType.QUEEN),
+        ],
+        Color.WHITE,
+    )
+
+    safer_move = ai.Move(start=sq("h1"), end=sq("e1"))
+    loose_drift = ai.Move(start=sq("e2"), end=sq("a6"))
+
+    assert _move_order_score(board, safer_move, None) > _move_order_score(
+        board,
+        loose_drift,
+        None,
+    )

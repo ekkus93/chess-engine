@@ -18,6 +18,7 @@ class KingDefenseProfile:
     king_zone_defenders: int
     heavy_connections: int
     back_rank_weak: bool
+    safe_king_moves: int
 
 
 def king_defense_profile(board: Board, color: Color) -> KingDefenseProfile:
@@ -29,6 +30,7 @@ def king_defense_profile(board: Board, color: Color) -> KingDefenseProfile:
         king_zone_defenders=_king_zone_defender_count(board, color),
         heavy_connections=_heavy_defender_connection_score(board, color),
         back_rank_weak=back_rank_is_weak(board, color),
+        safe_king_moves=_safe_king_move_count(board, color),
     )
 
 
@@ -139,6 +141,17 @@ def _heavy_defender_connection_score(board: Board, color: Color) -> int:
         ):
             score += 1
     return score
+
+
+def _safe_king_move_count(board: Board, color: Color) -> int:
+    """Count the legal king moves currently available to the side being defended."""
+
+    king_square = board.find_king(color)
+    if king_square is None:
+        return 0
+    temp_board = board.clone()
+    temp_board.turn = color
+    return len(temp_board.get_legal_moves(king_square))
 
 
 def _king_lacks_luft(board: Board, color: Color, king_row: int) -> bool:
