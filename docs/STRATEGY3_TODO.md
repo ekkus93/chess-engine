@@ -57,37 +57,39 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
 
 ## 0.2 Build baseline “unsafe king” positions
 
-- [ ] Create a small set of hand-built positions where one side has tempting activity but an unsafe king.
-- [ ] Include positions covering:
-  - [ ] central king with queens still on the board
-  - [ ] king with broken pawn shelter
-  - [ ] king exposed to queen + rook pressure
-  - [ ] king vulnerable on open files
-  - [ ] king with back-rank weaknesses and no luft
-  - [ ] king walk that loses coordination with defenders
-- [ ] Record current `evaluate()` and `get_best_move()` behavior for each.
+- [x] Create a small set of hand-built positions where one side has tempting activity but an unsafe king.
+- [x] Include positions covering:
+  - [x] central king with queens still on the board
+  - [x] king with broken pawn shelter
+  - [x] king exposed to queen + rook pressure
+  - [x] king vulnerable on open files
+  - [x] king with back-rank weaknesses and no luft
+  - [x] king walk that loses coordination with defenders
+- [x] Record current `evaluate()` and `get_best_move()` behavior for each.
 
 ## 0.3 Build baseline “fake activity” positions
 
-- [ ] Create targeted positions where flashy queen or rook moves look active but do not improve the position.
-- [ ] Include cases such as:
-  - [ ] queen raid that wins no material and creates no mating net
-  - [ ] repeated queen swings that do not improve king pressure
-  - [ ] harmless side checks that do not worsen the enemy king
-  - [ ] rook lift that abandons key defensive squares
-  - [ ] pawn-grabbing line that opens the moving side’s own king
-- [ ] Record whether the engine currently overrates the active-looking move.
+- [x] Create targeted positions where flashy queen or rook moves look active but do not improve the position.
+- [x] Include cases such as:
+  - [x] queen raid that wins no material and creates no mating net
+  - [x] repeated queen swings that do not improve king pressure
+  - [x] harmless side checks that do not worsen the enemy king
+  - [x] rook lift that abandons key defensive squares
+  - [x] pawn-grabbing line that opens the moving side’s own king
+- [x] Record whether the engine currently overrates the active-looking move.
 
 ## 0.4 Build baseline “must defend” positions
 
-- [ ] Create positions where one side must defend before pursuing its own plan.
-- [ ] Include cases such as:
-  - [ ] contesting an invasion file
-  - [ ] blocking a mate threat
-  - [ ] preventing queen penetration on the 7th or 8th rank
-  - [ ] creating luft before the back rank collapses
-  - [ ] keeping queen and rook connected around the king
-- [ ] Record whether the engine chooses defense or drifts into pseudo-activity.
+- [x] Create positions where one side must defend before pursuing its own plan.
+- [x] Include cases such as:
+  - [x] contesting an invasion file
+  - [x] blocking a mate threat
+  - [x] preventing queen penetration on the 7th or 8th rank
+  - [x] creating luft before the back rank collapses
+  - [x] keeping queen and rook connected around the king
+- [x] Record whether the engine chooses defense or drifts into pseudo-activity.
+
+Baseline artifact: `tmp/strategy3_baseline_positions.txt` records the hand-built unsafe-king, fake-activity, and must-defend positions together with current `evaluate()` and `get_best_move()` outputs.
 
 ---
 
@@ -96,44 +98,44 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
 ## 1.1 Add “do not play fake attack” tests
 
 - [x] Add tests where an apparently active move should be rejected.
-- [ ] Cover cases such as:
+- [x] Cover cases such as:
   - [x] queen raid without material gain or mating threat
-  - [ ] repeated queen shuffle without improving geometry
-  - [ ] side check that does not reduce enemy king safety
-  - [ ] rook swing that abandons king protection
-  - [ ] pawn grab that exposes the moving side’s king
+  - [x] repeated queen shuffle without improving geometry
+  - [x] side check that does not reduce enemy king safety
+  - [x] rook swing that abandons king protection
+  - [x] pawn grab that exposes the moving side’s king
 
 ## 1.2 Add “useful check vs empty check” tests
 
 - [x] Add tests where checks should be preferred only when they matter.
-- [ ] Cover checks that:
-  - [ ] force the enemy king toward the edge
-  - [ ] force the king away from a key defensive square
+- [x] Cover checks that:
+  - [x] force the enemy king toward the edge
+  - [x] force the king away from a key defensive square
   - [x] support simplification or material gain
-  - [ ] create or preserve a mating net
-- [ ] Add tests where checks should be downgraded because they:
-  - [ ] merely repeat geometry
+  - [x] create or preserve a mating net
+- [x] Add tests where checks should be downgraded because they:
+  - [x] merely repeat geometry
   - [x] improve nothing strategically
-  - [ ] surrender the attacker’s own king safety
-  - [ ] concede a key defensive or central square
+  - [x] surrender the attacker’s own king safety
+  - [x] concede a key defensive or central square
 
 ## 1.3 Add “must defend first” tests
 
 - [x] Add tests where the best move is defensive and non-flashy.
-- [ ] Cover cases such as:
+- [x] Cover cases such as:
   - [x] making luft instead of launching a side attack
   - [x] contesting an open file instead of pawn grabbing
-  - [ ] covering an invasion square instead of checking
-  - [ ] reconnecting queen and rook instead of chasing pawns
-  - [ ] moving the king to safety instead of seeking counterplay
+  - [x] covering an invasion square instead of checking
+  - [x] reconnecting queen and rook instead of chasing pawns
+  - [x] moving the king to safety instead of seeking counterplay
 
 ## 1.4 Add opening-sanity tests
 
 - [x] Add tests for healthier early-game priorities.
-- [ ] Cover cases such as:
+- [x] Cover cases such as:
   - [x] developing a minor piece before repeating a queen move
   - [x] castling readiness over premature queen adventure
-  - [ ] keeping central pawn structure sound over speculative flank activity
+  - [x] keeping central pawn structure sound over speculative flank activity
   - [x] preferring completed development over early rook wandering
 
 ---
@@ -143,7 +145,7 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
 ## 2.1 Expand king-danger model
 
 - [x] Define a clearer king-danger model for middlegame and queen-heavy positions.
-- [ ] Include at least:
+- [x] Include at least:
   - [x] pawn shelter quality
   - [x] open or semi-open files near the king
   - [x] attacker count near king ring squares
@@ -156,7 +158,7 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
 - [x] Increase penalties when:
   - [x] queens remain on the board
   - [x] multiple heavy pieces can attack files or ranks near the king
-  - [ ] the king leaves shelter without compensation
+  - [x] the king leaves shelter without compensation
   - [x] the king walks into zones controlled by enemy heavy pieces
 - [x] Ensure the penalty scales down appropriately in simplified endings.
 
@@ -180,13 +182,13 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
 
 ## 3.1 Define “real activity” for heavy pieces
 
-- [ ] Decide what counts as meaningful queen/rook activity.
-- [ ] Include at least:
-  - [ ] direct tactical threat
-  - [ ] material gain or forced concession
-  - [ ] improved pressure on king entry squares
-  - [ ] stronger coordination with other attackers
-  - [ ] reduction of enemy counterplay
+- [x] Decide what counts as meaningful queen/rook activity.
+- [x] Include at least:
+  - [x] direct tactical threat
+  - [x] material gain or forced concession
+  - [x] improved pressure on king entry squares
+  - [x] stronger coordination with other attackers
+  - [x] reduction of enemy counterplay
 
 ## 3.2 Penalize unsupported queen raids
 
@@ -194,25 +196,25 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
   - [x] enter enemy territory without support
   - [x] create no concrete threat
   - [x] abandon defense of own king
-  - [ ] repeat the same route with no improved outcome
-  - [ ] can be chased while losing tempi
+  - [x] repeat the same route with no improved outcome
+  - [x] can be chased while losing tempi
 
 ## 3.3 Penalize flashy moves that loosen the moving side
 
-- [ ] Penalize rook/queen activity that:
-  - [ ] abandons the back rank
-  - [ ] disconnects queen and rook
+- [x] Penalize rook/queen activity that:
+  - [x] abandons the back rank
+  - [x] disconnects queen and rook
   - [x] loses control of key files
-  - [ ] opens tactical access to the own king
-  - [ ] gives the opponent obvious invasion squares
+  - [x] opens tactical access to the own king
+  - [x] gives the opponent obvious invasion squares
 
 ## 3.4 Reward coordinated heavy-piece pressure more precisely
 
-- [ ] Reward heavy-piece moves that:
-  - [ ] attack along open lines toward the king
-  - [ ] increase pressure on defended-but-stressed squares
-  - [ ] support mate threats or simplification
-  - [ ] improve attacker concentration without loosening the rear
+- [x] Reward heavy-piece moves that:
+  - [x] attack along open lines toward the king
+  - [x] increase pressure on defended-but-stressed squares
+  - [x] support mate threats or simplification
+  - [x] improve attacker concentration without loosening the rear
 
 ---
 
@@ -220,23 +222,23 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
 
 ## 4.1 Define categories of useful checks
 
-- [ ] Classify checking moves into:
-  - [ ] mating-net checks
-  - [ ] forcing checks that win material
-  - [ ] driving checks that worsen king safety
-  - [ ] simplifying checks that lead to favorable trades
-  - [ ] empty checks that only repeat
+- [x] Classify checking moves into:
+  - [x] mating-net checks
+  - [x] forcing checks that win material
+  - [x] driving checks that worsen king safety
+  - [x] simplifying checks that lead to favorable trades
+  - [x] empty checks that only repeat
 
 ## 4.2 Add check-quality scoring
 
 - [x] Add logic that rewards checks more when they:
-  - [ ] shrink the king’s safe area
-  - [ ] drive the king away from defenders
+  - [x] shrink the king’s safe area
+  - [x] drive the king away from defenders
   - [x] improve attack geometry for the next move
   - [x] expose tactical follow-ups
-- [ ] Downgrade checks when they:
-  - [ ] preserve the same king box
-  - [ ] can be met by easy king shuffles
+- [x] Downgrade checks when they:
+  - [x] preserve the same king box
+  - [x] can be met by easy king shuffles
   - [x] surrender centralization or defensive control
 
 ## 4.3 Apply check quality in ordering and search
@@ -320,7 +322,7 @@ Baseline note: `tmp/strategy3_w3b3.txt` ended with **checkmate on move 40 (White
 ## 7.1 Add selective search help in dangerous positions
 
 - [x] Decide where to extend search when kings are exposed.
-- [ ] Consider extensions for:
+- [x] Consider extensions for:
   - [x] forcing checks near exposed kings
   - [x] recaptures that open files toward a king
   - [x] queen/rook invasions on the 7th or 8th rank

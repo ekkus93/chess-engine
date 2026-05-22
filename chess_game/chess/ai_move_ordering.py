@@ -1,6 +1,10 @@
 """Helpers for scoring quiet strategic moves during search ordering."""
 
+from dataclasses import dataclass
+
+from chess_game.chess.board.attack_utils import piece_attacks_square
 from chess_game.chess.board import Board
+from chess_game.chess.board.game_state import is_checkmate, is_in_check
 from chess_game.chess.defensive_priorities import (
     DANGEROUS_KING_PRESSURE_THRESHOLD,
     king_defense_profile,
@@ -35,6 +39,34 @@ QUIET_ADD_DEFENDER_BONUS = 22
 QUIET_RECONNECT_DEFENDER_BONUS = 18
 QUIET_RESTORE_BACK_RANK_BONUS = 26
 QUIET_NEGLECT_DANGER_PENALTY = 34
+QUIET_ACTIVITY_LINE_PRESSURE_BONUS = 16
+QUIET_ACTIVITY_COORDINATION_BONUS = 14
+QUIET_ACTIVITY_SIMPLIFY_BONUS = 18
+QUIET_ACTIVITY_CHASE_PENALTY = 22
+QUIET_ACTIVITY_REPEAT_PENALTY = 28
+QUIET_ACTIVITY_LOOSEN_PENALTY = 18
+QUIET_CHECK_MATE_NET_BONUS = 64
+QUIET_CHECK_MATERIAL_BONUS = 30
+QUIET_CHECK_DRIVING_BONUS = 22
+QUIET_CHECK_SIMPLIFY_BONUS = 16
+QUIET_CHECK_SHRINK_BOX_BONUS = 16
+QUIET_CHECK_BREAK_DEFENDER_BONUS = 12
+QUIET_EMPTY_CHECK_PENALTY = 40
+QUIET_EASY_SHUFFLE_CHECK_PENALTY = 20
+QUIET_SELF_EXPOSING_CHECK_PENALTY = 22
+
+
+@dataclass(frozen=True)
+class CheckQuality:
+    """Classify checks so only forcing ones receive strong quiet-order bonuses."""
+
+    category: str
+    enemy_safe_move_delta: int
+    enemy_defender_delta: int
+    enemy_connection_delta: int
+    enemy_danger_delta: int
+    self_danger_delta: int
+    self_invasion_delta: int
 
 
 def quiet_strategy_order_score(board: Board, move: Move) -> int:
@@ -128,6 +160,8 @@ def _heavy_piece_bonus(board: Board, kind: PieceType, color: Color, move: Move) 
         score += QUIET_KING_CUTOFF_BONUS
     if kind in (PieceType.ROOK, PieceType.QUEEN) and _offers_major_piece_trade(board, move):
         score += QUIET_MAJOR_TRADE_OFFER_BONUS
+    if kind in (PieceType.ROOK, PieceType.QUEEN):
+        score += _heavy_piece_activity_bonus(board, color, kind, move)
     if kind == PieceType.ROOK and _moves_rook_behind_passer(board, color, move):
         score += QUIET_ROOK_BEHIND_PASSER_BONUS
     if kind in (PieceType.KING, PieceType.ROOK, PieceType.QUEEN) and _blockades_enemy_passer(
@@ -572,6 +606,35 @@ def _piece_value(kind: PieceType) -> int:
 
 
 def _check_quality_bonus(board: Board, kind: PieceType, move: Move) -> int:
+    quality = _check_quality(board, kind, move)
+    if quality is None:
+        return 0
+    score = 0
+    if quality.category == "mating-net":
+        score += QUIET_USEFUL_CHECK_BONUS + QUIET_CHECK_MATE_NET_BONUS
+    elif quality.category == "forcing-material":
+        score += QUIET_USEFUL_CHECK_BONUS + QUIET_CHECK_MATERIAL_BONUS
+    elif quality.category == "driving":
+        score += QUIET_USEFUL_CHECK_BONUS + QUIET_CHECK_DRIVING_BONUS
+    elif quality.category == "simplifying":
+        score += QUIET_USEFUL_CHECK_BONUS + QUIET_CHECK_SIMPLIFY_BONUS
+    else:
+        score -= QUIET_EMPTY_CHECK_PENALTY
+    score += quality.enemy_safe_move_delta * QUIET_CHECK_SHRINK_BOX_BONUS
+    score += (quality.enemy_defender_delta + quality.enemy_connection_delta) * (
+        QUIET_CHECK_BREAK_DEFENDER_BONUS
+    )
+    score += quality.enemy_danger_delta * (QUIET_CHECK_DRIVING_BONUS // 2)
+    if quality.category == "empty" and quality.enemy_safe_move_delta == 0:
+        score -= QUIET_EASY_SHUFFLE_CHECK_PENALTY
+    score -= quality.self_danger_delta * QUIET_SELF_EXPOSING_CHECK_PENALTY
+    score -= quality.self_invasion_delta * (QUIET_SELF_EXPOSING_CHECK_PENALTY // 2)
+    return score
+
+
+def _check_quality(board: Board, kind: PieceType, move: Move) -> CheckQuality | None:
+    """Classify checks as mating-net, forcing, driving, simplifying, or empty."""
+
     enemy_color = Color.BLACK if board.turn == Color.WHITE else Color.WHITE
     enemy_king = next(
         (
@@ -584,11 +647,171 @@ def _check_quality_bonus(board: Board, kind: PieceType, move: Move) -> int:
         ),
         None,
     )
-    if enemy_king is None:
+    if enemy_king is None or not _move_gives_check(
+        board,
+        kind,
+        move,
+        (int(enemy_king.row), int(enemy_king.col)),
+    ):
+        return None
+    child_board = board.clone()
+    if not child_board.apply_legal_move(move.start, move.end, promotion=move.promotion):
+        return None
+    if not is_in_check(child_board, enemy_color):
+        return None
+    before_enemy = king_defense_profile(board, enemy_color)
+    after_enemy = king_defense_profile(child_board, enemy_color)
+    before_self = king_defense_profile(board, board.turn)
+    after_self = king_defense_profile(child_board, board.turn)
+    quality = CheckQuality(
+        category=_check_category(board, kind, move, child_board, after_enemy),
+        enemy_safe_move_delta=max(0, before_enemy.safe_king_moves - after_enemy.safe_king_moves),
+        enemy_defender_delta=max(
+            0,
+            before_enemy.king_zone_defenders - after_enemy.king_zone_defenders,
+        ),
+        enemy_connection_delta=max(
+            0,
+            before_enemy.heavy_connections - after_enemy.heavy_connections,
+        ),
+        enemy_danger_delta=max(0, after_enemy.danger - before_enemy.danger),
+        self_danger_delta=max(0, after_self.danger - before_self.danger),
+        self_invasion_delta=max(0, after_self.invasion_lines - before_self.invasion_lines),
+    )
+    return quality
+
+
+def _check_category(
+    board: Board,
+    kind: PieceType,
+    move: Move,
+    child_board: Board,
+    enemy_profile,
+) -> str:
+    enemy_color = Color.BLACK if board.turn == Color.WHITE else Color.WHITE
+    if is_checkmate(child_board, enemy_color):
+        return "mating-net"
+    if _move_creates_material_threat(child_board, move, enemy_color):
+        return "forcing-material"
+    if _offers_major_piece_trade(board, move):
+        return "simplifying"
+    if (
+        enemy_profile.danger >= DANGEROUS_KING_PRESSURE_THRESHOLD
+        and kind in {PieceType.QUEEN, PieceType.ROOK, PieceType.BISHOP}
+    ):
+        return "driving"
+    return "empty"
+
+
+def _move_creates_material_threat(
+    child_board: Board,
+    move: Move,
+    enemy_color: Color,
+) -> bool:
+    moved_piece = child_board.get_piece(move.end)
+    if moved_piece is None:
+        return False
+    for row in child_board.board:
+        for piece in row:
+            if (
+                piece is None
+                or piece.color != enemy_color
+                or piece.kind in {PieceType.KING, PieceType.PAWN}
+            ):
+                continue
+            if piece_attacks_square(moved_piece, move.end, piece.square, child_board):
+                return True
+    return False
+
+
+def _heavy_piece_activity_bonus(
+    board: Board,
+    color: Color,
+    kind: PieceType,
+    move: Move,
+) -> int:
+    """Reward real heavy-piece pressure and penalize flashy loosening moves.
+
+    Real activity means the move creates a direct tactical threat, improves
+    pressure on king-entry lines, coordinates with other attackers, offers
+    simplifying concessions when ahead, or reduces enemy counterplay.
+    """
+
+    child_board = board.clone()
+    if not child_board.apply_legal_move(move.start, move.end, promotion=move.promotion):
         return 0
-    if not _move_gives_check(board, kind, move, (int(enemy_king.row), int(enemy_king.col))):
-        return 0
-    return QUIET_USEFUL_CHECK_BONUS
+    enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
+    before_self = king_defense_profile(board, color)
+    after_self = king_defense_profile(child_board, color)
+    before_enemy = king_defense_profile(board, enemy_color)
+    after_enemy = king_defense_profile(child_board, enemy_color)
+    score = max(0, after_enemy.invasion_lines - before_enemy.invasion_lines)
+    score *= QUIET_ACTIVITY_LINE_PRESSURE_BONUS
+    score += max(0, after_enemy.danger - before_enemy.danger) * (
+        QUIET_ACTIVITY_LINE_PRESSURE_BONUS // 2
+    )
+    score += max(0, before_enemy.king_zone_defenders - after_enemy.king_zone_defenders) * (
+        QUIET_ACTIVITY_COORDINATION_BONUS
+    )
+    score += max(0, before_enemy.heavy_connections - after_enemy.heavy_connections) * (
+        QUIET_ACTIVITY_COORDINATION_BONUS
+    )
+    if _offers_major_piece_trade(board, move):
+        score += QUIET_ACTIVITY_SIMPLIFY_BONUS
+    if _square_has_friendly_support(child_board, color, move.end):
+        score += QUIET_ACTIVITY_COORDINATION_BONUS // 2
+    if _is_repeat_heavy_piece_move(board, kind, move) and score == 0:
+        score -= QUIET_ACTIVITY_REPEAT_PENALTY
+    if (
+        _is_forward_heavy_move(board.turn, move)
+        and not _square_has_friendly_support(child_board, color, move.end)
+        and _enemy_can_chase_square(child_board, enemy_color, move.end, kind)
+    ):
+        score -= QUIET_ACTIVITY_CHASE_PENALTY
+    score -= max(0, after_self.danger - before_self.danger) * QUIET_ACTIVITY_LOOSEN_PENALTY
+    score -= max(0, after_self.invasion_lines - before_self.invasion_lines) * (
+        QUIET_ACTIVITY_LOOSEN_PENALTY
+    )
+    score -= max(0, before_self.heavy_connections - after_self.heavy_connections) * (
+        QUIET_ACTIVITY_LOOSEN_PENALTY
+    )
+    if after_self.back_rank_weak and not before_self.back_rank_weak:
+        score -= QUIET_ACTIVITY_CHASE_PENALTY
+    return score
+
+
+def _square_has_friendly_support(board: Board, color: Color, target_square) -> bool:
+    for row in board.board:
+        for piece in row:
+            if piece is None or piece.color != color or piece.square == target_square:
+                continue
+            if piece_attacks_square(piece, piece.square, target_square, board):
+                return True
+    return False
+
+
+def _enemy_can_chase_square(
+    board: Board,
+    enemy_color: Color,
+    target_square,
+    moving_kind: PieceType,
+) -> bool:
+    moving_value = _piece_value(moving_kind)
+    for row in board.board:
+        for piece in row:
+            if piece is None or piece.color != enemy_color:
+                continue
+            if _piece_value(piece.kind) >= moving_value:
+                continue
+            if piece_attacks_square(piece, piece.square, target_square, board):
+                return True
+    return False
+
+
+def _is_forward_heavy_move(color: Color, move: Move) -> bool:
+    return int(move.end.row) < int(move.start.row) if color == Color.WHITE else int(
+        move.end.row
+    ) > int(move.start.row)
 
 
 def _move_gives_check(

@@ -397,3 +397,8 @@ Quality:
 - Added a second STRATEGY3 eval/ordering slice on top of `91f2b74`: quiet move ordering now rewards interposing on active king-attack files, and the regression suite now locks in contest-the-file behavior, castling-readiness advantages, early-rook-wander penalties, and choosing luft over a harmless queen check when the back rank is under pressure.
 - Expanded `tests/test_ai_quality.py` with green regressions for castling-ready development, early rook wandering, file-contest ordering, and defense-first search choices under back-rank pressure; the repository now passes at `402 passed`.
 - Validation stayed green with `pylint chess_game`, `python -m pytest tests -q`, and the targeted AI suite (`96 passed`), while `strategy3-eval-ordering` remains the active SQL phase and search-specific STRATEGY3 work is still pending.
+
+## 2026-05-22T01:37:46Z - GPT-5.4 - STRATEGY3 tracker fully closed
+- Closed the remaining STRATEGY3 gaps by adding explicit real-activity and check-quality scoring in `chess_game/chess/ai_move_ordering.py`, plus a new regression file `tests/test_ai_activity_strategy.py` for repeated queen shuffles, rook swings that abandon defense, central-structure-vs-flank opening discipline, exposed king shelter loss, and useful-vs-empty checks.
+- Added `tmp/strategy3_baseline_positions.txt` to record the hand-built unsafe-king, fake-activity, and must-defend baseline positions together with current `evaluate()` and `get_best_move()` outputs, and updated `docs/STRATEGY3_TODO.md` so every remaining checkbox is now marked complete.
+- Final validation stayed green with `pylint chess_game` at `10.00/10` and `python -m pytest tests -q` at `424 passed`; the final STRATEGY3 closure work is ready to commit and push.
