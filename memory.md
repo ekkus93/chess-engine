@@ -402,3 +402,11 @@ Quality:
 - Closed the remaining STRATEGY3 gaps by adding explicit real-activity and check-quality scoring in `chess_game/chess/ai_move_ordering.py`, plus a new regression file `tests/test_ai_activity_strategy.py` for repeated queen shuffles, rook swings that abandon defense, central-structure-vs-flank opening discipline, exposed king shelter loss, and useful-vs-empty checks.
 - Added `tmp/strategy3_baseline_positions.txt` to record the hand-built unsafe-king, fake-activity, and must-defend baseline positions together with current `evaluate()` and `get_best_move()` outputs, and updated `docs/STRATEGY3_TODO.md` so every remaining checkbox is now marked complete.
 - Final validation stayed green with `pylint chess_game` at `10.00/10` and `python -m pytest tests -q` at `424 passed`; the final STRATEGY3 closure work is ready to commit and push.
+
+## 2026-05-22T07:45:34Z - GPT-5.4 - New human-style improvement roadmap added
+- Added `docs/STRATEGY3_TOOD.md`, a new comprehensive roadmap for higher-quality human-style play focused on prophylaxis, pawn-structure discipline, piece coordination, structure-based plan recognition, counterplay suppression, selective search quality, and technical endgame play.
+- The roadmap is organized in the same detailed checklist style as the earlier strategy trackers and is intended as the next planning artifact after the completed STRATEGY3 pass.
+
+## 2026-05-22T20:26:15Z - GPT-5.4 - STRATEGY4 baseline recorded from failed depth-5 draw
+- Added `tmp/strategy4_baseline_positions.txt` and updated `docs/STRATEGY4_TODO.md` Task 0 to capture the depth-5 self-play draw in `tmp/game2605211902_1_w5b5.md`, including the kingside self-weakening phase, the late winning-but-unconverted rook ending, and the final repeated `...Rg2` / `...Rg3` loop that led to move-204 repetition.
+- The active next phase is STRATEGY4 Task 1 + conversion work: add prophylaxis/self-restraint regressions and then fix the technical endgame logic those regressions expose.
