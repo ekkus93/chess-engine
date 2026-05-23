@@ -152,12 +152,12 @@ Phase note: Task 1.4 is covered by the existing STRATEGY3/4 quality suites: `tes
 ## 2.1 Expand pawn-structure evaluation
 
 - [ ] Add or refine evaluation terms for:
-  - [ ] backward pawns
+  - [x] backward pawns
   - [ ] weak dark/light square complexes
   - [ ] overextended pawn chains
   - [x] loose pawn advances around castled kings
   - [ ] fixed pawn targets that a strong human would exploit
-  - [ ] pawn breaks that are only good when pieces are ready
+  - [x] pawn breaks that are only good when pieces are ready
 
 ## 2.2 Penalize needless king-shelter damage more sharply
 
@@ -173,18 +173,18 @@ Phase note: Task 1.4 is covered by the existing STRATEGY3/4 quality suites: `tes
 - [ ] Reward:
   - [ ] keeping a healthy shelter when no attack exists
   - [ ] preserving central tension when a break is premature
-  - [ ] preparing a pawn break with pieces first
+  - [x] preparing a pawn break with pieces first
   - [ ] maintaining flexible pawn structure instead of fixing weaknesses too early
 
 ## 2.4 Add pawn-structure regression tests
 
 - [ ] Add tests that prefer:
   - [x] stable shelter over speculative pawn pushes
-  - [ ] prepared breaks over immediate breaks
+  - [x] prepared breaks over immediate breaks
   - [x] central integrity over side pawn grabs
   - [ ] restraining enemy breaks over mirror-image drifting
 
-Phase note: The first Task 2 pawn-structure slice now adds a middlegame-weighted shelter-structure penalty for castled-king shield pawns that race forward, and `tests/test_ai_strategy4_regressions.py` now locks in stable-shelter and central-integrity comparisons against speculative side-pawn structures.
+Phase note: Task 2 now has two green slices in place: the shelter-structure penalty for loose castled-king `g`/`h` pawn advances, plus explicit prepared-break scoring that rewards central pawns when minor pieces are ready and keeps backward-pawn targets from scoring like healthy structure. `tests/test_ai_strategy4_regressions.py` now locks in stable shelter, central integrity, backward-pawn weakness, and prepared-break-over-premature-break comparisons.
 
 ---
 

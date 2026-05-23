@@ -1,5 +1,10 @@
 # Chess Engine Project Memory
 
+## 2026-05-23T05:48:53Z - GPT-5.4 - STRATEGY4 Task 2 prepared-break slice
+- Extended `chess_game/chess/pawn_structure_evaluation.py` with a middlegame-weighted prepared-central-break term that rewards advanced central pawns when minor pieces are developed and penalizes the same structure when support pieces are still undeveloped.
+- Expanded `tests/test_ai_strategy4_regressions.py` so Task 2 now has explicit regressions for backward-pawn targets and prepared breaks over unsupported central pushes.
+- Updated `docs/STRATEGY4_TODO.md`, then revalidated the full repo green with `pylint chess_game` and `python -m pytest tests -q` (`439 passed`).
+
 ## 2026-05-21T22:00:40Z - GPT-5.4 - STRATEGY3 search slice: bounded king-danger extensions
 - Added bounded one-ply selective search extensions in `chess_game/chess/ai.py` and `chess_game/chess/ai_search_helpers.py`.
 - Extensions now trigger for in-check replies, urgent king-danger relief, and forcing queen/rook back-rank invasions against exposed kings, with tests proving they do not revive empty-check or fake-attack regressions.

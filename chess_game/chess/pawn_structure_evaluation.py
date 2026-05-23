@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from chess_game.chess.board import Board
 from chess_game.chess.constants import ConstantSquare, get_col_constant, get_row_constant
+from chess_game.chess.opening_development import undeveloped_minor_piece_count
 from chess_game.chess.evaluation_tables import (
     BACKWARD_PAWN_PENALTY,
     BLOCKED_CENTRAL_PAWN_PENALTY,
@@ -96,6 +97,12 @@ def _pawn_structure_score_for_color(
         context.color_positions,
         context.enemy_positions,
         context.endgame_phase,
+    )
+    score += context.sign * _prepared_central_break_bonus(
+        board,
+        context.color,
+        context.color_positions,
+        context.middlegame_phase,
     )
     score -= context.sign * _loose_shelter_pawn_penalty(
         board,
@@ -226,6 +233,47 @@ def _loose_shelter_pawn_penalty(
         if distance >= 2:
             penalty += KING_SHELTER_LOOSENING_PENALTY // 2
     return (penalty * middlegame_phase) // 100
+
+
+def _prepared_central_break_bonus(
+    board: Board,
+    color: Color,
+    positions: list[tuple[int, int]],
+    middlegame_phase: int,
+) -> int:
+    advanced_central_pawns = _advanced_central_pawn_count(color, positions)
+    if advanced_central_pawns == 0 or middlegame_phase == 0:
+        return 0
+    undeveloped = undeveloped_minor_piece_count(board, color)
+    total_minors = _minor_piece_count(board, color)
+    developed = max(0, total_minors - undeveloped)
+    raw_score = (advanced_central_pawns * developed * 4) - (
+        advanced_central_pawns * max(0, undeveloped - 1) * 5
+    )
+    return (raw_score * middlegame_phase) // 100
+
+
+def _advanced_central_pawn_count(color: Color, positions: list[tuple[int, int]]) -> int:
+    return sum(
+        1
+        for row, col in positions
+        if col in CENTER_FILES and _central_pawn_has_advanced(color, row)
+    )
+
+
+def _central_pawn_has_advanced(color: Color, row: int) -> bool:
+    return row <= 4 if color == Color.WHITE else row >= 3
+
+
+def _minor_piece_count(board: Board, color: Color) -> int:
+    return sum(
+        1
+        for row in board.board
+        for piece in row
+        if piece is not None
+        and piece.color == color
+        and piece.kind in {PieceType.KNIGHT, PieceType.BISHOP}
+    )
 
 
 def _is_weak_pawn_chain(

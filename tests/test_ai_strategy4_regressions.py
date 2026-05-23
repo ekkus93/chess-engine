@@ -350,6 +350,85 @@ def test_pawn_structure_prefers_central_integrity_over_side_grab_structure() -> 
     )
 
 
+def test_pawn_structure_penalizes_backward_pawn_target() -> None:
+    """A backward pawn target should score worse than a supported chain."""
+
+    backward_board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("d3", Color.WHITE, PieceType.PAWN),
+            ("f2", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("c4", Color.BLACK, PieceType.PAWN),
+            ("e4", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+    supported_board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("d3", Color.WHITE, PieceType.PAWN),
+            ("c4", Color.WHITE, PieceType.PAWN),
+            ("f2", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("e4", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+    assert (
+        get_evaluation_breakdown(supported_board)["pawn_structure"]
+        > get_evaluation_breakdown(backward_board)["pawn_structure"]
+    )
+
+
+def test_pawn_structure_prefers_prepared_breaks_over_unsupported_central_pushes() -> None:
+    """Central pawns should score better when the pieces are ready to support them."""
+
+    prepared_board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("h1", Color.WHITE, PieceType.ROOK),
+            ("c3", Color.WHITE, PieceType.KNIGHT),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("c4", Color.WHITE, PieceType.BISHOP),
+            ("e2", Color.WHITE, PieceType.BISHOP),
+            ("d4", Color.WHITE, PieceType.PAWN),
+            ("e4", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+        ]
+    )
+    premature_board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("h1", Color.WHITE, PieceType.ROOK),
+            ("b1", Color.WHITE, PieceType.KNIGHT),
+            ("c1", Color.WHITE, PieceType.BISHOP),
+            ("f1", Color.WHITE, PieceType.BISHOP),
+            ("d4", Color.WHITE, PieceType.PAWN),
+            ("e4", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+        ]
+    )
+
+    assert (
+        get_evaluation_breakdown(prepared_board)["pawn_structure"]
+        > get_evaluation_breakdown(premature_board)["pawn_structure"]
+    )
+
+
 def test_repetition_score_scales_up_for_large_winning_margin() -> None:
     """A repeated draw should be much worse when the side to move is clearly winning."""
 
