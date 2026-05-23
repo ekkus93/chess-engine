@@ -192,21 +192,21 @@ Phase note: Task 2 is now complete. The pawn-structure evaluator covers loose ca
 
 ## 3.1 Define a “worst piece” model
 
-- [ ] Decide how to identify the current worst-placed piece.
-- [ ] Include signals such as:
-  - [ ] low mobility
-  - [ ] poor coordination with friendly pieces
-  - [ ] distance from the relevant theater of play
-  - [ ] blocked lines
-  - [ ] defensive overload or misplacement
+- [x] Decide how to identify the current worst-placed piece.
+- [x] Include signals such as:
+  - [x] low mobility
+  - [x] poor coordination with friendly pieces
+  - [x] distance from the relevant theater of play
+  - [x] blocked lines
+  - [x] defensive overload or misplacement
 
 ## 3.2 Reward moves that improve the worst piece
 
 - [ ] Reward:
-  - [ ] rook moves to useful central files
-  - [ ] bishop reroutes to active diagonals
+  - [x] rook moves to useful central files
+  - [x] bishop reroutes to active diagonals
   - [ ] knight maneuvers toward outposts
-  - [ ] queen repositioning that supports the whole position
+  - [x] queen repositioning that supports the whole position
   - [ ] king centralization in safe technical endings
 
 ## 3.3 Penalize repeated movement without plan gain
@@ -219,11 +219,13 @@ Phase note: Task 2 is now complete. The pawn-structure evaluator covers loose ca
 
 ## 3.4 Add coordination regression tests
 
-- [ ] Add tests where the engine should:
-  - [ ] improve the worst rook instead of check
-  - [ ] reconnect rooks before starting a side plan
-  - [ ] bring a bishop to the long diagonal before pawn racing
-  - [ ] centralize a queen only when it improves team coordination
+- [x] Add tests where the engine should:
+  - [x] improve the worst rook instead of check
+  - [x] reconnect rooks before starting a side plan
+  - [x] bring a bishop to the long diagonal before pawn racing
+  - [x] centralize a queen only when it improves team coordination
+
+Phase note: The first Task 3 slice extracts piece-coordination heuristics into `chess_game/chess/piece_coordination.py`, replacing the old center-distance-only worst-piece check with a placement profile that accounts for mobility, coordination, theater distance, blocked lines, and king-side overload. `tests/test_ai_activity_strategy.py` now locks in worst-rook improvement, rook reconnection, bishop long-diagonal reroutes, and queen centralization only when it actually improves coordination.
 
 ---
 

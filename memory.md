@@ -1,5 +1,10 @@
 # Chess Engine Project Memory
 
+## 2026-05-23T06:21:20Z - GPT-5.4 - STRATEGY4 Task 3 worst-piece slice
+- Added `chess_game/chess/piece_coordination.py` and rewired `chess_game/chess/ai_move_ordering.py` to use a real worst-piece placement profile based on mobility, coordination, theater distance, blocked lines, and king-overload distance instead of only center distance.
+- Expanded `tests/test_ai_activity_strategy.py` with explicit coordination regressions for improving the worst rook instead of checking, reconnecting rooks before a side plan, bishop reroutes to the long diagonal before pawn racing, and queen centralization only when it actually improves coordination.
+- Updated `docs/STRATEGY4_TODO.md`, then revalidated the full repo green with `pylint chess_game` and `python -m pytest tests -q` (`449 passed`).
+
 ## 2026-05-23T06:10:11Z - GPT-5.4 - STRATEGY4 Task 2 completion
 - Finished `docs/STRATEGY4_TODO.md` Task 2 end-to-end: pawn-structure scoring now covers backward pawns, prepared breaks, fixed targets, flexible structures, overextended chains, castled-king file gaps, same-color kingside hole complexes, preserved central tension, and restraining enemy breaks.
 - Added the final Task 2 regressions in `tests/test_ai_strategy4_regressions.py` for preserving central tension and preferring enemy-break restraint over mirror drifting.

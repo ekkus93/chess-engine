@@ -173,3 +173,125 @@ def test_quiet_move_order_downgrades_flank_check_that_can_be_chased() -> None:
         flank_check,
         None,
     )
+
+
+def test_quiet_move_order_prefers_improving_worst_rook_over_side_check() -> None:
+    """A misplaced rook should be improved before giving a cosmetic side check."""
+
+    board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("e2", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.ROOK),
+            ("g7", Color.BLACK, PieceType.PAWN),
+            ("h7", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+    improve_rook = ai.Move(start=sq("a1"), end=sq("d1"))
+    side_check = ai.Move(start=sq("a1"), end=sq("a8"))
+
+    assert _move_order_score(board, improve_rook, None) > _move_order_score(
+        board,
+        side_check,
+        None,
+    )
+
+
+def test_quiet_move_order_prefers_reconnecting_rooks_before_side_plan() -> None:
+    """Rook coordination should beat an idle wing pawn plan."""
+
+    board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d2", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("c4", Color.WHITE, PieceType.BISHOP),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("f2", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+            ("g7", Color.BLACK, PieceType.PAWN),
+            ("h7", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+    reconnect_rooks = ai.Move(start=sq("a1"), end=sq("e1"))
+    side_plan = ai.Move(start=sq("h2"), end=sq("h4"))
+
+    assert _move_order_score(board, reconnect_rooks, None) > _move_order_score(
+        board,
+        side_plan,
+        None,
+    )
+
+
+def test_quiet_move_order_prefers_bishop_reroute_to_long_diagonal_before_pawn_race() -> None:
+    """A blocked bishop should reach the long diagonal before a loose pawn race."""
+
+    board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("c1", Color.WHITE, PieceType.BISHOP),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("d3", Color.WHITE, PieceType.PAWN),
+            ("e4", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+            ("g7", Color.BLACK, PieceType.PAWN),
+            ("h7", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+    bishop_reroute = ai.Move(start=sq("c1"), end=sq("b2"))
+    pawn_race = ai.Move(start=sq("h2"), end=sq("h4"))
+
+    assert _move_order_score(board, bishop_reroute, None) > _move_order_score(
+        board,
+        pawn_race,
+        None,
+    )
+
+
+def test_quiet_move_order_prefers_queen_centralization_that_supports_coordination() -> None:
+    """A queen move that supports the team should beat a loose flank drift."""
+
+    board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("b3", Color.WHITE, PieceType.QUEEN),
+            ("c4", Color.WHITE, PieceType.BISHOP),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("f2", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+            ("g7", Color.BLACK, PieceType.PAWN),
+            ("h7", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+    support_move = ai.Move(start=sq("b3"), end=sq("e2"))
+    flank_drift = ai.Move(start=sq("b3"), end=sq("h3"))
+
+    assert _move_order_score(board, support_move, None) > _move_order_score(
+        board,
+        flank_drift,
+        None,
+    )

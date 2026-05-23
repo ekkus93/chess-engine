@@ -12,6 +12,13 @@ from chess_game.chess.defensive_priorities import (
     king_needs_shelter,
 )
 from chess_game.chess.move import Move
+from chess_game.chess.piece_coordination import (
+    bishop_coordination_bonus,
+    improves_worst_piece,
+    queen_coordination_bonus,
+    rook_coordination_bonus,
+    square_has_friendly_support as _square_has_friendly_support,
+)
 from chess_game.chess.strategy_utils import center_distance, is_capture_move, path_clear_between
 from chess_game.chess.types import Color, PieceType
 
@@ -87,7 +94,8 @@ def quiet_strategy_order_score(board: Board, move: Move) -> int:
     score += _king_move_bonus(board, piece.kind, move)
     score += _heavy_piece_bonus(board, piece.kind, piece.color, move)
     score += _pawn_bonus(board, piece.color, piece.kind, move)
-    if _improves_worst_piece(board, piece.kind, move):
+    score += _piece_coordination_bonus(board, piece.color, piece.kind, move)
+    if improves_worst_piece(board, move):
         score += QUIET_WORST_PIECE_BONUS
     score += _check_quality_bonus(board, piece.kind, move)
     return score
@@ -424,26 +432,19 @@ def _is_urgent_luft(board: Board, color: Color) -> bool:
     return king_danger_index(board, color) >= DANGEROUS_KING_PRESSURE_THRESHOLD
 
 
-def _improves_worst_piece(board: Board, kind: PieceType, move: Move) -> bool:
-    if kind not in (PieceType.ROOK, PieceType.QUEEN, PieceType.BISHOP, PieceType.KNIGHT):
-        return False
-    moving_piece_distance = center_distance(int(move.start.row), int(move.start.col))
-    end_distance = center_distance(int(move.end.row), int(move.end.col))
-    if end_distance >= moving_piece_distance:
-        return False
-    color = board.turn
-    worst_distance = max(
-        (
-            center_distance(row_index, col_index)
-            for row_index, row in enumerate(board.board)
-            for col_index, piece in enumerate(row)
-            if piece is not None
-            and piece.color == color
-            and piece.kind == kind
-        ),
-        default=moving_piece_distance,
-    )
-    return moving_piece_distance >= worst_distance
+def _piece_coordination_bonus(
+    board: Board,
+    color: Color,
+    kind: PieceType,
+    move: Move,
+) -> int:
+    if kind == PieceType.ROOK:
+        return rook_coordination_bonus(board, color, move)
+    if kind == PieceType.BISHOP:
+        return bishop_coordination_bonus(board, move)
+    if kind == PieceType.QUEEN:
+        return queen_coordination_bonus(board, color, move)
+    return 0
 
 
 def _offers_major_piece_trade(board: Board, move: Move) -> bool:
@@ -778,16 +779,6 @@ def _heavy_piece_activity_bonus(
     if after_self.back_rank_weak and not before_self.back_rank_weak:
         score -= QUIET_ACTIVITY_CHASE_PENALTY
     return score
-
-
-def _square_has_friendly_support(board: Board, color: Color, target_square) -> bool:
-    for row in board.board:
-        for piece in row:
-            if piece is None or piece.color != color or piece.square == target_square:
-                continue
-            if piece_attacks_square(piece, piece.square, target_square, board):
-                return True
-    return False
 
 
 def _enemy_can_chase_square(
