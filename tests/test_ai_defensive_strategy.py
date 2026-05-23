@@ -137,3 +137,41 @@ def test_quiet_move_order_penalizes_moves_that_reduce_safe_king_squares() -> Non
         loose_drift,
         None,
     )
+
+
+def test_quiet_move_order_prefers_stopping_pawn_break_before_rook_improvement() -> None:
+    """A move that kills the enemy central break should beat quiet piece improvement."""
+
+    board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("c4", Color.WHITE, PieceType.BISHOP),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("d4", Color.WHITE, PieceType.PAWN),
+            ("e4", Color.WHITE, PieceType.PAWN),
+            ("f2", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+            ("c5", Color.BLACK, PieceType.PAWN),
+            ("d6", Color.BLACK, PieceType.PAWN),
+            ("e5", Color.BLACK, PieceType.PAWN),
+            ("f6", Color.BLACK, PieceType.KNIGHT),
+            ("a7", Color.BLACK, PieceType.PAWN),
+            ("h7", Color.BLACK, PieceType.PAWN),
+        ],
+        Color.WHITE,
+    )
+
+    stop_break = ai.Move(start=sq("d4"), end=sq("d5"))
+    improve_rook = ai.Move(start=sq("a1"), end=sq("b1"))
+
+    assert _move_order_score(board, stop_break, None) > _move_order_score(
+        board,
+        improve_rook,
+        None,
+    )

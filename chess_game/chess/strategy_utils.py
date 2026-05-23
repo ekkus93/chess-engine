@@ -31,6 +31,15 @@ def iter_king_squares(board: Board):
             yield piece.color, piece.square
 
 
+def king_coordinates(board: Board, color: Color) -> tuple[int, int] | None:
+    """Return a king's board coordinates, or None when that king is absent."""
+
+    king_square = board.find_king(color)
+    if king_square is None:
+        return None
+    return int(king_square.row), int(king_square.col)
+
+
 def center_distance(row: int, col: int) -> int:
     """Return a simple Manhattan distance to the board center."""
 

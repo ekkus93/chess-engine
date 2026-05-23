@@ -3,7 +3,11 @@
 from dataclasses import dataclass
 
 from chess_game.chess.board import Board
-from chess_game.chess.strategy_utils import iter_color_pieces, path_clear_between
+from chess_game.chess.strategy_utils import (
+    iter_color_pieces,
+    king_coordinates,
+    path_clear_between,
+)
 from chess_game.chess.types import Color, PieceType
 
 DANGEROUS_KING_PRESSURE_THRESHOLD = 3
@@ -26,7 +30,7 @@ def king_defense_profile(board: Board, color: Color) -> KingDefenseProfile:
 
     return KingDefenseProfile(
         danger=king_danger_index(board, color),
-        invasion_lines=_open_heavy_invasion_lines(board, color),
+        invasion_lines=open_heavy_invasion_lines(board, color),
         king_zone_defenders=_king_zone_defender_count(board, color),
         heavy_connections=_heavy_defender_connection_score(board, color),
         back_rank_weak=back_rank_is_weak(board, color),
@@ -37,11 +41,10 @@ def king_defense_profile(board: Board, color: Color) -> KingDefenseProfile:
 def king_danger_index(board: Board, color: Color) -> int:
     """Return a simple attack-pressure score around one king."""
 
-    king_square = board.find_king(color)
-    if king_square is None:
+    king_position = king_coordinates(board, color)
+    if king_position is None:
         return 0
-    king_row = int(king_square.row)
-    king_col = int(king_square.col)
+    king_row, king_col = king_position
     enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
     danger = 0
     if _king_lacks_luft(board, color, king_row):
@@ -65,34 +68,35 @@ def king_danger_index(board: Board, color: Color) -> int:
 def king_needs_shelter(board: Board, color: Color) -> bool:
     """Return True when the king is still parked on a central home-rank square."""
 
-    king_square = board.find_king(color)
+    king_position = king_coordinates(board, color)
     home_row = 7 if color == Color.WHITE else 0
-    return king_square is not None and int(king_square.row) == home_row and int(
-        king_square.col
-    ) in {3, 4, 5}
+    return king_position is not None and king_position[0] == home_row and king_position[1] in {
+        3,
+        4,
+        5,
+    }
 
 
 def back_rank_is_weak(board: Board, color: Color) -> bool:
     """Return True when the king lacks luft while enemy heavy pieces remain."""
 
-    king_square = board.find_king(color)
-    if king_square is None or int(king_square.row) not in {0, 7}:
+    king_position = king_coordinates(board, color)
+    if king_position is None or king_position[0] not in {0, 7}:
         return False
     enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
-    return _king_lacks_luft(board, color, int(king_square.row)) and any(
+    return _king_lacks_luft(board, color, king_position[0]) and any(
         piece.kind in {PieceType.QUEEN, PieceType.ROOK}
         for piece, _, _ in iter_color_pieces(board, enemy_color)
     )
 
 
-def _open_heavy_invasion_lines(board: Board, color: Color) -> int:
+def open_heavy_invasion_lines(board: Board, color: Color) -> int:
     """Count enemy queen/rook lines that already point straight at the king."""
 
-    king_square = board.find_king(color)
-    if king_square is None:
+    king_position = king_coordinates(board, color)
+    if king_position is None:
         return 0
-    king_row = int(king_square.row)
-    king_col = int(king_square.col)
+    king_row, king_col = king_position
     enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
     return sum(
         1
@@ -106,11 +110,10 @@ def _open_heavy_invasion_lines(board: Board, color: Color) -> int:
 def _king_zone_defender_count(board: Board, color: Color) -> int:
     """Count friendly non-king pieces actively covering the king's zone."""
 
-    king_square = board.find_king(color)
-    if king_square is None:
+    king_position = king_coordinates(board, color)
+    if king_position is None:
         return 0
-    king_row = int(king_square.row)
-    king_col = int(king_square.col)
+    king_row, king_col = king_position
     return sum(
         1
         for piece, row_index, col_index in iter_color_pieces(board, color)
@@ -122,11 +125,10 @@ def _king_zone_defender_count(board: Board, color: Color) -> int:
 def _heavy_defender_connection_score(board: Board, color: Color) -> int:
     """Count queen/rook defenders that stay connected to the king's file or rank."""
 
-    king_square = board.find_king(color)
-    if king_square is None:
+    king_position = king_coordinates(board, color)
+    if king_position is None:
         return 0
-    king_row = int(king_square.row)
-    king_col = int(king_square.col)
+    king_row, king_col = king_position
     score = 0
     for piece, row_index, col_index in iter_color_pieces(board, color):
         if piece.kind not in {PieceType.QUEEN, PieceType.ROOK}:
@@ -146,11 +148,14 @@ def _heavy_defender_connection_score(board: Board, color: Color) -> int:
 def _safe_king_move_count(board: Board, color: Color) -> int:
     """Count the legal king moves currently available to the side being defended."""
 
-    king_square = board.find_king(color)
-    if king_square is None:
+    king_position = king_coordinates(board, color)
+    if king_position is None:
         return 0
     temp_board = board.clone()
     temp_board.turn = color
+    king_square = temp_board.find_king(color)
+    if king_square is None:
+        return 0
     return len(temp_board.get_legal_moves(king_square))
 
 

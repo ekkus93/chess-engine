@@ -12,6 +12,7 @@ from chess_game.chess.defensive_priorities import (
     king_needs_shelter,
 )
 from chess_game.chess.move import Move
+from chess_game.chess.opponent_plans import opponent_plan_profile
 from chess_game.chess.piece_coordination import (
     bishop_coordination_bonus,
     improves_worst_piece,
@@ -46,6 +47,8 @@ QUIET_ADD_DEFENDER_BONUS = 22
 QUIET_RECONNECT_DEFENDER_BONUS = 18
 QUIET_RESTORE_BACK_RANK_BONUS = 26
 QUIET_NEGLECT_DANGER_PENALTY = 34
+QUIET_PLAN_RELIEF_BONUS = 8
+QUIET_PLAN_NEGLECT_PENALTY = 7
 QUIET_ACTIVITY_LINE_PRESSURE_BONUS = 16
 QUIET_ACTIVITY_COORDINATION_BONUS = 14
 QUIET_ACTIVITY_SIMPLIFY_BONUS = 18
@@ -255,12 +258,14 @@ def _defensive_priority_bonus(board: Board, move: Move) -> int:
     """Reward defense-first quiet moves when the side to move is under pressure."""
 
     before = king_defense_profile(board, board.turn)
+    before_plan = opponent_plan_profile(board, board.turn)
     if before.danger < DANGEROUS_KING_PRESSURE_THRESHOLD:
-        return 0
+        return _opponent_plan_bonus(board, move, before_plan)
     child_board = board.clone()
     if not child_board.apply_legal_move(move.start, move.end, promotion=move.promotion):
         return 0
     after = king_defense_profile(child_board, board.turn)
+    after_plan = opponent_plan_profile(child_board, board.turn)
     danger_reduction = max(0, before.danger - after.danger)
     score = danger_reduction * QUIET_DANGER_RELIEF_BONUS
     score += max(0, before.invasion_lines - after.invasion_lines) * QUIET_ENTRY_SQUARE_BONUS
@@ -282,6 +287,21 @@ def _defensive_priority_bonus(board: Board, move: Move) -> int:
         score -= QUIET_ADD_DEFENDER_BONUS
     if after.heavy_connections < before.heavy_connections:
         score -= QUIET_RECONNECT_DEFENDER_BONUS
+    score += _plan_pressure_delta_score(before_plan.pressure, after_plan.pressure)
+    return score
+
+
+def _opponent_plan_bonus(board: Board, move: Move, before_plan) -> int:
+    child_board = board.clone()
+    if not child_board.apply_legal_move(move.start, move.end, promotion=move.promotion):
+        return 0
+    after_plan = opponent_plan_profile(child_board, board.turn)
+    return _plan_pressure_delta_score(before_plan.pressure, after_plan.pressure)
+
+
+def _plan_pressure_delta_score(before_pressure: int, after_pressure: int) -> int:
+    score = max(0, before_pressure - after_pressure) * QUIET_PLAN_RELIEF_BONUS
+    score -= max(0, after_pressure - before_pressure) * QUIET_PLAN_NEGLECT_PENALTY
     return score
 
 

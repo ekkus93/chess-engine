@@ -1,5 +1,10 @@
 # Chess Engine Project Memory
 
+## 2026-05-23T06:35:25Z - GPT-5.4 - STRATEGY4 Task 4 first threat-recognition slice
+- Added `chess_game/chess/opponent_plans.py` so quiet ordering can compare enemy near-term plan pressure before and after a move, including invasion lines, knight jumps, central pawn breaks, checking resources, and passed-pawn pushes.
+- Wired that plan-pressure delta into `chess_game/chess/ai_move_ordering.py` and added a new prophylaxis regression in `tests/test_ai_defensive_strategy.py` proving that stopping an enemy central break outranks quiet rook improvement.
+- Updated `docs/STRATEGY4_TODO.md`, then revalidated the full repo green with `pylint chess_game` and `python -m pytest tests -q` (`451 passed`).
+
 ## 2026-05-23T06:25:27Z - GPT-5.4 - STRATEGY4 Task 3 completion
 - Finished `docs/STRATEGY4_TODO.md` Task 3: the coordination logic now uses `chess_game/chess/piece_coordination.py` for worst-piece profiling, rook reconnection, bishop long-diagonal reroutes, queen support moves, and the existing anti-shuffle coverage is now tracked explicitly against the Task 3 bullets.
 - Added the final explicit Task 3 regression in `tests/test_ai_activity_strategy.py` for a knight maneuver toward a supported outpost over a quiet queen drift.

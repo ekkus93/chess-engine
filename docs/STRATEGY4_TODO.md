@@ -237,38 +237,40 @@ Task 3 note: The remaining Task 3 bullets are now covered as well. `tests/test_a
 
 ## 4.1 Model the opponent’s next plan
 
-- [ ] Add logic that identifies the opponent’s most dangerous near-term plan.
-- [ ] Include threats such as:
-  - [ ] file or rank invasions
-  - [ ] knight jumps into weak squares
-  - [ ] pawn breaks that open lines toward the king
-  - [ ] perpetual-check resources
-  - [ ] passed-pawn activation
+- [x] Add logic that identifies the opponent’s most dangerous near-term plan.
+- [x] Include threats such as:
+  - [x] file or rank invasions
+  - [x] knight jumps into weak squares
+  - [x] pawn breaks that open lines toward the king
+  - [x] perpetual-check resources
+  - [x] passed-pawn activation
 
 ## 4.2 Reward prophylactic moves explicitly
 
 - [ ] Reward moves that:
-  - [ ] take away entry squares
+  - [x] take away entry squares
   - [ ] reduce tactical targets
-  - [ ] improve defensive flexibility
-  - [ ] prevent an enemy break before it happens
+  - [x] improve defensive flexibility
+  - [x] prevent an enemy break before it happens
   - [ ] force the opponent into a lower-quality plan
 
 ## 4.3 Penalize “my move only” thinking
 
 - [ ] Penalize moves that:
-  - [ ] improve one’s own activity but allow a stronger enemy reply
-  - [ ] ignore the opponent’s only counterplay source
+  - [x] improve one’s own activity but allow a stronger enemy reply
+  - [x] ignore the opponent’s only counterplay source
   - [ ] create new hooks or targets around the king
   - [ ] open a line the opponent can use better
 
 ## 4.4 Add prophylaxis tests
 
 - [ ] Add tests where the engine must:
-  - [ ] stop a break before improving a piece
-  - [ ] prevent an invasion before pawn winning
+  - [x] stop a break before improving a piece
+  - [x] prevent an invasion before pawn winning
   - [ ] deny counterplay before converting material
   - [ ] choose a human waiting move that improves flexibility
+
+Phase note: The first Task 4 slice adds `chess_game/chess/opponent_plans.py` so quiet ordering can compare enemy near-term plan pressure before and after a move. The new plan profile tracks invasion lines, knight jumps, central pawn breaks, checking resources, and passed-pawn pushes; existing defense/blockade regressions plus the new `tests/test_ai_defensive_strategy.py` break-stopping case now cover the completed Task 4 bullets above.
 
 ---
 
