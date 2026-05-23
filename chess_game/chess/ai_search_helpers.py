@@ -331,6 +331,7 @@ def selective_extension_bonus(
     move: Move,
     child_board: Board,
     extension_budget: int,
+    allow_strategic_extensions: bool = True,
 ) -> int:
     """Return a bounded one-ply extension for critical attack/defense moves.
 
@@ -345,22 +346,64 @@ def selective_extension_bonus(
     moving_color = moving_piece.color
     enemy_color = Color.BLACK if moving_color == Color.WHITE else Color.WHITE
     current_danger = king_danger_index(board, moving_color)
-    if is_in_check(board, moving_color):
-        bonus = 1
-    elif current_danger >= DANGEROUS_KING_PRESSURE_THRESHOLD:
-        if king_danger_index(child_board, moving_color) < current_danger:
-            bonus = 1
-    elif _is_danger_opening_capture(board, move, child_board, enemy_color):
-        bonus = 1
-    elif not king_needs_shelter(board, moving_color) and _is_forcing_attack_extension(
+    forced_extension = is_in_check(board, moving_color)
+    forced_extension = forced_extension or (
+        current_danger >= DANGEROUS_KING_PRESSURE_THRESHOLD
+        and king_danger_index(child_board, moving_color) < current_danger
+    )
+    forced_extension = forced_extension or _is_danger_opening_capture(
+        board,
+        move,
+        child_board,
+        enemy_color,
+    )
+    forcing_attack = not king_needs_shelter(board, moving_color) and _is_forcing_attack_extension(
         board,
         move,
         child_board,
         moving_piece.kind,
         enemy_color,
-    ):
+    )
+    strategic_extension = allow_strategic_extensions and _is_favorable_simplification_extension(
+        board,
+        move,
+        child_board,
+        moving_color,
+    )
+    if forced_extension or forcing_attack or strategic_extension:
         bonus = 1
     return bonus
+
+
+def _is_favorable_simplification_extension(
+    board: Board,
+    move: Move,
+    child_board: Board,
+    moving_color: Color,
+) -> bool:
+    captured_piece = board.get_piece(move.end)
+    if captured_piece is None or captured_piece.kind == PieceType.PAWN:
+        return False
+    if not is_capture_move(board, move) or not _is_simple_endgame(child_board):
+        return False
+    before_margin = _material_margin(board, moving_color)
+    after_margin = _material_margin(child_board, moving_color)
+    return after_margin >= 300 and after_margin >= before_margin
+
+
+def _material_margin(board: Board, color: Color) -> int:
+    own_total = 0
+    enemy_total = 0
+    enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
+    for row in board.board:
+        for piece in row:
+            if piece is None or piece.kind == PieceType.KING:
+                continue
+            if piece.color == color:
+                own_total += MATERIAL_VALUES[piece.kind]
+            elif piece.color == enemy_color:
+                enemy_total += MATERIAL_VALUES[piece.kind]
+    return own_total - enemy_total
 def _is_forcing_attack_extension(
     board: Board,
     move: Move,

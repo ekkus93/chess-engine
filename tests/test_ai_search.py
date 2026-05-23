@@ -226,6 +226,24 @@ def make_capture_extension_position() -> Board:
     return board
 
 
+def make_technical_simplification_extension_position() -> Board:
+    """Create a favorable simplification into a trivial technical ending."""
+
+    board = Board()
+    board.clear_board()
+    placements = [
+        ("g1", Color.WHITE, PieceType.KING),
+        ("d1", Color.WHITE, PieceType.ROOK),
+        ("d5", Color.WHITE, PieceType.PAWN),
+        ("g8", Color.BLACK, PieceType.KING),
+        ("d8", Color.BLACK, PieceType.ROOK),
+    ]
+    for square_name, color, piece_kind in placements:
+        board.set_piece(sq(square_name), create_piece(color, piece_kind))
+    board.turn = Color.WHITE
+    return board
+
+
 # Tests for minimax leaf evaluation behavior
 
 
@@ -334,6 +352,17 @@ def test_selective_extension_bonus_triggers_for_capture_that_opens_king_pressure
 
     board = make_capture_extension_position()
     move = Move(start=sq("g1"), end=sq("g7"))
+    child_board = board.clone()
+
+    assert child_board.apply_legal_move(move.start, move.end) is True
+    assert selective_extension_bonus(board, move, child_board, extension_budget=1) == 1
+
+
+def test_selective_extension_bonus_triggers_for_favorable_simplification() -> None:
+    """Winning trades into simple technical endings should get one extra ply."""
+
+    board = make_technical_simplification_extension_position()
+    move = Move(start=sq("d1"), end=sq("d8"))
     child_board = board.clone()
 
     assert child_board.apply_legal_move(move.start, move.end) is True

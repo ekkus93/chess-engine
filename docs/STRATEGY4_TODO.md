@@ -367,7 +367,7 @@ Phase note: Task 4 is now complete. The new `chess_game/chess/opponent_plans.py`
   - [ ] forced defensive resources
   - [ ] moves that open or close king files
   - [ ] recaptures that change structure near the king
-  - [ ] simplifying trades into favorable technical endings
+  - [x] simplifying trades into favorable technical endings
   - [ ] only-move prophylactic resources
 
 ## 7.2 Avoid wasting search on empty forcing moves

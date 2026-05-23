@@ -35,6 +35,11 @@
 - Moved the root-choice comparator into `chess_game/chess/ai_search_helpers.py`, which kept `chess_game/chess/ai.py` under the structural pylint limits while preserving the new Task 6.3 root-quality behavior.
 - Expanded `tests/test_ai_search.py`, marked Task 6.3 complete in `docs/STRATEGY4_TODO.md`, and revalidated the full repo green with `pylint chess_game` and `python -m pytest tests -q` (`474 passed`).
 
+## 2026-05-23T08:55:27Z - GPT-5.4 - STRATEGY4 Task 7 first selective-search slice
+- Started `docs/STRATEGY4_TODO.md` Task 7 with the lowest-risk strategic extension first: favorable simplifying captures that collapse into clearly won technical endings now get one extra ply.
+- Added the new bounded-extension coverage in `tests/test_ai_search.py` and deliberately narrowed the slice back down after broader Task 7.1 probes pushed the depth-5 benchmark over the repository limit.
+- Revalidated the full repo green with `pylint chess_game` and `python -m pytest tests -q` before continuing with the remaining Task 7 selective-search bullets.
+
 ## 2026-05-23T06:35:25Z - GPT-5.4 - STRATEGY4 Task 4 first threat-recognition slice
 - Added `chess_game/chess/opponent_plans.py` so quiet ordering can compare enemy near-term plan pressure before and after a move, including invasion lines, knight jumps, central pawn breaks, checking resources, and passed-pawn pushes.
 - Wired that plan-pressure delta into `chess_game/chess/ai_move_ordering.py` and added a new prophylaxis regression in `tests/test_ai_defensive_strategy.py` proving that stopping an enemy central break outranks quiet rook improvement.

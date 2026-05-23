@@ -573,6 +573,7 @@ def _leaf_extension_bonus(
         move,
         child_board,
         params.extension_budget,
+        allow_strategic_extensions=params.depth == 1,
     )
     if extension_bonus > 0:
         _record_selective_extension(params.context)
