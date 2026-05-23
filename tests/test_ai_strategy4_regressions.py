@@ -547,6 +547,62 @@ def test_move_order_prefers_safer_simplification_over_speculative_gain() -> None
     )
 
 
+def test_quiet_move_order_penalizes_shelter_loosening_pawn_push() -> None:
+    """Task 6 should push a loose h-pawn lunge behind normal improvement."""
+
+    board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("e2", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("f2", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+            ("h8", Color.BLACK, PieceType.ROOK),
+        ]
+    )
+
+    loosen_shelter = ai.Move(start=sq("h2"), end=sq("h4"))
+    improve_rook = ai.Move(start=sq("a1"), end=sq("d1"))
+
+    assert _move_order_score(board, improve_rook, None) > _move_order_score(
+        board,
+        loosen_shelter,
+        None,
+    )
+
+
+def test_quiet_move_order_penalizes_middlegame_king_drift() -> None:
+    """Task 6 should keep middlegame king drifts behind coordinated improvement."""
+
+    board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("e2", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("f2", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h3", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+            ("h8", Color.BLACK, PieceType.ROOK),
+        ]
+    )
+
+    king_drift = ai.Move(start=sq("g1"), end=sq("h2"))
+    improve_rook = ai.Move(start=sq("a1"), end=sq("d1"))
+
+    assert _move_order_score(board, improve_rook, None) > _move_order_score(
+        board,
+        king_drift,
+        None,
+    )
+
+
 def test_search_rejects_rook_lift_that_drops_back_rank_safety() -> None:
     """Under pressure, luft should beat a rook lift that abandons the back rank."""
 

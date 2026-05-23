@@ -25,6 +25,11 @@
 - Added Task 6 regressions in `tests/test_ai_strategy4_regressions.py` for penalizing that pawn-grab pattern and for preferring safer simplification over a speculative queen sortie.
 - Updated `docs/STRATEGY4_TODO.md` to mark the first Task 6 bullets complete, then revalidated the full repo green with `pylint chess_game` and `python -m pytest tests -q` (`468 passed`).
 
+## 2026-05-23T07:39:44Z - GPT-5.4 - STRATEGY4 Task 6 non-root ordering complete
+- Added explicit Task 6 regressions proving that shelter-loosening h-pawn pushes and middlegame king drifts stay behind normal coordinated improvement in move ordering.
+- Marked STRATEGY4 Task 6.1, 6.2, and 6.4 complete in `docs/STRATEGY4_TODO.md`, using the new regressions plus existing prophylaxis, worst-piece, anti-shuffle, speculative-check, and structure-plan coverage from prior phases.
+- Revalidated the full repo green with `pylint chess_game` and `python -m pytest tests -q` (`470 passed`) before moving on to the remaining Task 6 root tie-break work.
+
 ## 2026-05-23T06:35:25Z - GPT-5.4 - STRATEGY4 Task 4 first threat-recognition slice
 - Added `chess_game/chess/opponent_plans.py` so quiet ordering can compare enemy near-term plan pressure before and after a move, including invasion lines, knight jumps, central pawn breaks, checking resources, and passed-pawn pushes.
 - Wired that plan-pressure delta into `chess_game/chess/ai_move_ordering.py` and added a new prophylaxis regression in `tests/test_ai_defensive_strategy.py` proving that stopping an enemy central break outranks quiet rook improvement.
