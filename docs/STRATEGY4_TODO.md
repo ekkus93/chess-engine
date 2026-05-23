@@ -290,26 +290,26 @@ Phase note: Task 4 is now complete. The new `chess_game/chess/opponent_plans.py`
 
 ## 5.2 Attach structure-appropriate preferences
 
-- [ ] In open centers, prefer:
-  - [ ] development lead
+- [x] In open centers, prefer:
+  - [x] development lead
   - [x] open-line control
-  - [ ] king safety before flank attacks
-- [ ] In closed centers, prefer:
+  - [x] king safety before flank attacks
+- [x] In closed centers, prefer:
   - [x] piece maneuvers
   - [x] useful breaks
-  - [ ] restraint before wing expansion
+  - [x] restraint before wing expansion
 - [ ] In IQP/hanging-pawn structures, prefer:
   - [x] blockade squares
   - [ ] favorable exchanges
-  - [ ] piece pressure on structural targets
+  - [x] piece pressure on structural targets
 
 ## 5.3 Avoid plan mismatch
 
 - [ ] Penalize moves that:
-  - [ ] start a flank race in an open center without support
+  - [x] start a flank race in an open center without support
   - [ ] exchange the wrong minor pieces for the structure
-  - [ ] push the wrong pawn break too early
-  - [ ] chase tactics while ignoring the correct strategic plan
+  - [x] push the wrong pawn break too early
+  - [x] chase tactics while ignoring the correct strategic plan
 
 ## 5.4 Add structure-plan regression tests
 
