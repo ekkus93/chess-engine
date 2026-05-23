@@ -104,6 +104,11 @@ def _pawn_structure_score_for_color(
         context.color_positions,
         context.middlegame_phase,
     )
+    score -= context.sign * _overextended_chain_penalty(
+        context.color,
+        context.color_positions,
+        context.middlegame_phase,
+    )
     score -= context.sign * _loose_shelter_pawn_penalty(
         board,
         context.color,
@@ -282,6 +287,22 @@ def _shelter_file_gap_penalty(
     return (penalty * middlegame_phase) // 100
 
 
+def _overextended_chain_penalty(
+    color: Color,
+    positions: list[tuple[int, int]],
+    middlegame_phase: int,
+) -> int:
+    if middlegame_phase == 0:
+        return 0
+    overextended_count = sum(
+        1
+        for row, col in positions
+        if _is_overextended_chain_pawn(color, row, col, positions)
+    )
+    penalty = overextended_count * WEAK_CHAIN_PAWN_PENALTY * 2
+    return (penalty * middlegame_phase) // 100
+
+
 def _advanced_central_pawn_count(color: Color, positions: list[tuple[int, int]]) -> int:
     return sum(
         1
@@ -312,6 +333,35 @@ def _enemy_has_queen(board: Board, color: Color) -> bool:
         for row in board.board
         for piece in row
     )
+
+
+def _is_overextended_chain_pawn(
+    color: Color,
+    row: int,
+    col: int,
+    pawn_positions: list[tuple[int, int]],
+) -> bool:
+    if not _is_advanced_pawn(color, row):
+        return False
+    supporting_pawns = _rear_adjacent_supporters(color, row, col, pawn_positions)
+    return bool(supporting_pawns) and all(
+        not _rear_adjacent_supporters(color, support_row, support_col, pawn_positions)
+        for support_row, support_col in supporting_pawns
+    )
+
+
+def _rear_adjacent_supporters(
+    color: Color,
+    row: int,
+    col: int,
+    pawn_positions: list[tuple[int, int]],
+) -> list[tuple[int, int]]:
+    support_row = row + 1 if color == Color.WHITE else row - 1
+    return [
+        (support_row, neighbor_col)
+        for neighbor_col in (col - 1, col + 1)
+        if (support_row, neighbor_col) in pawn_positions
+    ]
 
 
 def _is_weak_pawn_chain(

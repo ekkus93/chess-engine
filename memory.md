@@ -1,5 +1,10 @@
 # Chess Engine Project Memory
 
+## 2026-05-23T06:01:50Z - GPT-5.4 - STRATEGY4 Task 2 overextension and flexibility slice
+- Extended `chess_game/chess/pawn_structure_evaluation.py` with a middlegame-weighted overextended-chain penalty so connected pawns pushed too far into the enemy half stop outscoring a healthier compact center.
+- Expanded `tests/test_ai_strategy4_regressions.py` with regressions for overextended connected chains and for preferring flexible structures over early fixed pawn targets.
+- Updated `docs/STRATEGY4_TODO.md`, then revalidated the full repo green with `pylint chess_game` and `python -m pytest tests -q` (`442 passed`).
+
 ## 2026-05-23T05:56:40Z - GPT-5.4 - STRATEGY4 Task 2 shelter-file slice
 - Extended `chess_game/chess/pawn_structure_evaluation.py` with a castled-king shelter-file-gap penalty so missing shield pawns are punished more sharply, especially while the enemy queen is still on the board.
 - Added an explicit regression in `tests/test_ai_strategy4_regressions.py` proving that opening a castled king file is penalized more with queens on than in a queenless version of the same structure.

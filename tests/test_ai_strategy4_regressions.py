@@ -495,6 +495,112 @@ def test_pawn_structure_penalizes_castled_king_file_gaps_more_with_enemy_queen()
     )
 
 
+def test_pawn_structure_penalizes_overextended_connected_chain() -> None:
+    """A compact center should outscore a connected chain that is pushed too far."""
+
+    compact_center = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("c3", Color.WHITE, PieceType.KNIGHT),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("c4", Color.WHITE, PieceType.BISHOP),
+            ("e2", Color.WHITE, PieceType.BISHOP),
+            ("c4", Color.WHITE, PieceType.PAWN),
+            ("d4", Color.WHITE, PieceType.PAWN),
+            ("e4", Color.WHITE, PieceType.PAWN),
+            ("f2", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+            ("c6", Color.BLACK, PieceType.KNIGHT),
+            ("f6", Color.BLACK, PieceType.KNIGHT),
+        ]
+    )
+    overextended_chain = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("c3", Color.WHITE, PieceType.KNIGHT),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("c4", Color.WHITE, PieceType.BISHOP),
+            ("e2", Color.WHITE, PieceType.BISHOP),
+            ("c5", Color.WHITE, PieceType.PAWN),
+            ("d4", Color.WHITE, PieceType.PAWN),
+            ("e5", Color.WHITE, PieceType.PAWN),
+            ("f2", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+            ("c6", Color.BLACK, PieceType.KNIGHT),
+            ("f6", Color.BLACK, PieceType.KNIGHT),
+        ]
+    )
+
+    assert (
+        get_evaluation_breakdown(compact_center)["pawn_structure"]
+        > get_evaluation_breakdown(overextended_chain)["pawn_structure"]
+    )
+
+
+def test_pawn_structure_prefers_flexible_structure_over_fixed_targets() -> None:
+    """Fixing multiple pawn targets early should lose to a more flexible structure."""
+
+    fixed_targets = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("c3", Color.WHITE, PieceType.KNIGHT),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("c4", Color.WHITE, PieceType.BISHOP),
+            ("e2", Color.WHITE, PieceType.BISHOP),
+            ("c4", Color.WHITE, PieceType.PAWN),
+            ("e4", Color.WHITE, PieceType.PAWN),
+            ("f4", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+            ("c7", Color.BLACK, PieceType.BISHOP),
+            ("g7", Color.BLACK, PieceType.BISHOP),
+        ]
+    )
+    flexible_structure = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("c3", Color.WHITE, PieceType.KNIGHT),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("c4", Color.WHITE, PieceType.BISHOP),
+            ("e2", Color.WHITE, PieceType.BISHOP),
+            ("c3", Color.WHITE, PieceType.PAWN),
+            ("d4", Color.WHITE, PieceType.PAWN),
+            ("e4", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+            ("c7", Color.BLACK, PieceType.BISHOP),
+            ("g7", Color.BLACK, PieceType.BISHOP),
+        ]
+    )
+
+    assert (
+        get_evaluation_breakdown(flexible_structure)["pawn_structure"]
+        > get_evaluation_breakdown(fixed_targets)["pawn_structure"]
+    )
+
+
 def test_repetition_score_scales_up_for_large_winning_margin() -> None:
     """A repeated draw should be much worse when the side to move is clearly winning."""
 
