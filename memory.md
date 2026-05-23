@@ -1,5 +1,10 @@
 # Chess Engine Project Memory
 
+## 2026-05-23T06:25:27Z - GPT-5.4 - STRATEGY4 Task 3 completion
+- Finished `docs/STRATEGY4_TODO.md` Task 3: the coordination logic now uses `chess_game/chess/piece_coordination.py` for worst-piece profiling, rook reconnection, bishop long-diagonal reroutes, queen support moves, and the existing anti-shuffle coverage is now tracked explicitly against the Task 3 bullets.
+- Added the final explicit Task 3 regression in `tests/test_ai_activity_strategy.py` for a knight maneuver toward a supported outpost over a quiet queen drift.
+- Revalidated the full repo green with `pylint chess_game` and `python -m pytest tests -q` (`450 passed`) before moving on to STRATEGY4 Task 4.
+
 ## 2026-05-23T06:21:20Z - GPT-5.4 - STRATEGY4 Task 3 worst-piece slice
 - Added `chess_game/chess/piece_coordination.py` and rewired `chess_game/chess/ai_move_ordering.py` to use a real worst-piece placement profile based on mobility, coordination, theater distance, blocked lines, and king-overload distance instead of only center distance.
 - Expanded `tests/test_ai_activity_strategy.py` with explicit coordination regressions for improving the worst rook instead of checking, reconnecting rooks before a side plan, bishop reroutes to the long diagonal before pawn racing, and queen centralization only when it actually improves coordination.

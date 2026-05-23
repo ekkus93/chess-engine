@@ -295,3 +295,34 @@ def test_quiet_move_order_prefers_queen_centralization_that_supports_coordinatio
         flank_drift,
         None,
     )
+
+
+def test_quiet_move_order_prefers_knight_maneuver_to_outpost_over_queen_drift() -> None:
+    """A knight jump toward a supported outpost should beat a quiet queen drift."""
+
+    board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("c3", Color.WHITE, PieceType.KNIGHT),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("e4", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+            ("a7", Color.BLACK, PieceType.PAWN),
+            ("h7", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+    outpost_maneuver = ai.Move(start=sq("c3"), end=sq("d5"))
+    queen_drift = ai.Move(start=sq("d1"), end=sq("c1"))
+
+    assert _move_order_score(board, outpost_maneuver, None) > _move_order_score(
+        board,
+        queen_drift,
+        None,
+    )

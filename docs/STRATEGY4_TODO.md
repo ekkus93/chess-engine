@@ -202,20 +202,20 @@ Phase note: Task 2 is now complete. The pawn-structure evaluator covers loose ca
 
 ## 3.2 Reward moves that improve the worst piece
 
-- [ ] Reward:
+- [x] Reward:
   - [x] rook moves to useful central files
   - [x] bishop reroutes to active diagonals
-  - [ ] knight maneuvers toward outposts
+  - [x] knight maneuvers toward outposts
   - [x] queen repositioning that supports the whole position
-  - [ ] king centralization in safe technical endings
+  - [x] king centralization in safe technical endings
 
 ## 3.3 Penalize repeated movement without plan gain
 
-- [ ] Penalize:
-  - [ ] moving the same heavy piece repeatedly in quiet positions
-  - [ ] re-aiming an attacker without increasing pressure
-  - [ ] piece shuffles that preserve identical geometry
-  - [ ] reroutes that abandon a key defensive responsibility
+- [x] Penalize:
+  - [x] moving the same heavy piece repeatedly in quiet positions
+  - [x] re-aiming an attacker without increasing pressure
+  - [x] piece shuffles that preserve identical geometry
+  - [x] reroutes that abandon a key defensive responsibility
 
 ## 3.4 Add coordination regression tests
 
@@ -226,6 +226,10 @@ Phase note: Task 2 is now complete. The pawn-structure evaluator covers loose ca
   - [x] centralize a queen only when it improves team coordination
 
 Phase note: The first Task 3 slice extracts piece-coordination heuristics into `chess_game/chess/piece_coordination.py`, replacing the old center-distance-only worst-piece check with a placement profile that accounts for mobility, coordination, theater distance, blocked lines, and king-side overload. `tests/test_ai_activity_strategy.py` now locks in worst-rook improvement, rook reconnection, bishop long-diagonal reroutes, and queen centralization only when it actually improves coordination.
+
+Task 3 note: The remaining Task 3 bullets are now covered as well. `tests/test_ai_activity_strategy.py` adds the explicit knight-to-outpost maneuver regression and already covered repeated heavy-piece shuffles, no-plan re-aiming, and defensive-responsibility abandonment; `tests/test_ai_quality.py` already locks in safe-endgame king centralization. Task 3 is complete.
+
+- [x] Task 3 complete
 
 ---
 
