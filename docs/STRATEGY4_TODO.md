@@ -329,7 +329,7 @@ Phase note: Task 4 is now complete. The new `chess_game/chess/opponent_plans.py`
   - [ ] prophylactic moves
   - [ ] worst-piece improvements
   - [ ] moves that suppress counterplay
-  - [ ] simplifying moves when clearly favorable
+  - [x] simplifying moves when clearly favorable
   - [ ] structure-consistent plan moves
 
 ## 6.2 Push suspicious humanly-bad candidates later
@@ -338,7 +338,7 @@ Phase note: Task 4 is now complete. The new `chess_game/chess/opponent_plans.py`
   - [ ] shelter-loosening pawn moves
   - [ ] repeated heavy-piece shuffles
   - [ ] speculative checks with easy replies
-  - [ ] pawn grabs that concede files or diagonals
+  - [x] pawn grabs that concede files or diagonals
   - [ ] king moves that worsen coordination in middlegames
 
 ## 6.3 Improve root tie-break quality
@@ -353,7 +353,7 @@ Phase note: Task 4 is now complete. The new `chess_game/chess/opponent_plans.py`
 
 - [ ] Add tests where ordering should prefer:
   - [ ] prophylaxis over cosmetic activity
-  - [ ] safer simplification over speculative gain
+  - [x] safer simplification over speculative gain
   - [ ] coordinated improvements over solo-piece heroics
   - [ ] suppression of counterplay over a second-best attack
 

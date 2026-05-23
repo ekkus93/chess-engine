@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from chess_game.chess.ai_search_helpers import defensive_capture_bonus
 from chess_game.chess.board import Board
+from chess_game.chess.constants import Color, ConstantSquare
 from chess_game.chess.move import Move
 from chess_game.chess.strategy_utils import is_capture_move
 from chess_game.chess.structure_recognition import structure_capture_bonus
@@ -24,6 +25,7 @@ _ATTACKER_VALUES = {
     PieceType.ROOK: 35,
     PieceType.QUEEN: 90,
 }
+_LOOSE_SHELTER_PAWN_GRAB_PENALTY = 10_500
 
 
 def capture_order_score(
@@ -52,6 +54,7 @@ def capture_order_score(
             captured_piece.kind,
             move.end,
         )
+        - _shelter_loosening_pawn_grab_penalty(board, move, attacker, captured_piece)
     )
 
 
@@ -71,3 +74,53 @@ def attacker_value(kind: PieceType) -> int:
     """Return the MVV/LVA attacker priority value."""
 
     return _ATTACKER_VALUES.get(kind, 0)
+
+
+def _shelter_loosening_pawn_grab_penalty(
+    board: Board,
+    move: Move,
+    attacker: Piece,
+    captured_piece: Piece,
+) -> int:
+    if attacker.kind != PieceType.PAWN or captured_piece.kind != PieceType.PAWN:
+        return 0
+    king_square = board.find_king(attacker.color)
+    if king_square is None or not _is_castled_king(attacker.color, king_square):
+        return 0
+    if not _is_shelter_pawn(attacker.color, king_square, move.start):
+        return 0
+    if int(move.start.col) == int(move.end.col):
+        return 0
+    if not _enemy_long_range_piece_present(board, attacker.color):
+        return 0
+    return _LOOSE_SHELTER_PAWN_GRAB_PENALTY
+
+
+def _is_castled_king(color: Color, square: ConstantSquare) -> bool:
+    row = int(square.row)
+    col = int(square.col)
+    return (color == Color.WHITE and row == 7 and col in {2, 6}) or (
+        color == Color.BLACK and row == 0 and col in {2, 6}
+    )
+
+
+def _is_shelter_pawn(
+    color: Color,
+    king_square: ConstantSquare,
+    pawn_square: ConstantSquare,
+) -> bool:
+    home_row = 6 if color == Color.WHITE else 1
+    return int(pawn_square.row) == home_row and abs(
+        int(pawn_square.col) - int(king_square.col)
+    ) <= 1
+
+
+def _enemy_long_range_piece_present(board: Board, color: Color) -> bool:
+    enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
+    return any(
+        piece is not None
+        and piece.color == enemy_color
+        and piece.kind in {PieceType.BISHOP, PieceType.ROOK, PieceType.QUEEN}
+        for row in board.board
+        for piece in row
+    )

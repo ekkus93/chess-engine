@@ -485,6 +485,68 @@ def test_capture_order_prefers_bishop_for_knight_in_open_center() -> None:
     )
 
 
+def test_capture_order_penalizes_pawn_grab_that_opens_king_lines() -> None:
+    """Task 6 should demote pawn grabs that rip open shelter files or diagonals."""
+
+    board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("e2", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("c4", Color.WHITE, PieceType.BISHOP),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("f2", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+            ("c5", Color.BLACK, PieceType.BISHOP),
+            ("f6", Color.BLACK, PieceType.KNIGHT),
+            ("h3", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+    loosening_grab = ai.Move(start=sq("g2"), end=sq("h3"))
+    improving_move = ai.Move(start=sq("a1"), end=sq("d1"))
+
+    assert _move_order_score(board, improving_move, None) > _move_order_score(
+        board,
+        loosening_grab,
+        None,
+    )
+
+
+def test_move_order_prefers_safer_simplification_over_speculative_gain() -> None:
+    """Task 6 should order clear simplification ahead of a loose queen sortie."""
+
+    board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("d2", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("a5", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+            ("d7", Color.BLACK, PieceType.ROOK),
+            ("g7", Color.BLACK, PieceType.PAWN),
+            ("h7", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+    simplify = ai.Move(start=sq("d2"), end=sq("d7"))
+    speculative_gain = ai.Move(start=sq("d1"), end=sq("h5"))
+
+    assert _move_order_score(board, simplify, None) > _move_order_score(
+        board,
+        speculative_gain,
+        None,
+    )
+
+
 def test_search_rejects_rook_lift_that_drops_back_rank_safety() -> None:
     """Under pressure, luft should beat a rook lift that abandons the back rank."""
 
