@@ -1,5 +1,10 @@
 # Chess Engine Project Memory
 
+## 2026-05-23T06:06:08Z - GPT-5.4 - STRATEGY4 Task 2 square-complex slice
+- Extended `chess_game/chess/pawn_structure_evaluation.py` with a castled-king square-complex penalty so multiple same-color shelter holes stop scoring like a healthy shield, especially when the enemy still has the matching bishop color.
+- Added a new regression in `tests/test_ai_strategy4_regressions.py` proving that a same-color kingside hole complex scores worse than an intact shelter.
+- Updated `docs/STRATEGY4_TODO.md`, then revalidated the full repo green with `pylint chess_game` and `python -m pytest tests -q` (`443 passed`).
+
 ## 2026-05-23T06:01:50Z - GPT-5.4 - STRATEGY4 Task 2 overextension and flexibility slice
 - Extended `chess_game/chess/pawn_structure_evaluation.py` with a middlegame-weighted overextended-chain penalty so connected pawns pushed too far into the enemy half stop outscoring a healthier compact center.
 - Expanded `tests/test_ai_strategy4_regressions.py` with regressions for overextended connected chains and for preferring flexible structures over early fixed pawn targets.

@@ -153,7 +153,7 @@ Phase note: Task 1.4 is covered by the existing STRATEGY3/4 quality suites: `tes
 
 - [ ] Add or refine evaluation terms for:
   - [x] backward pawns
-  - [ ] weak dark/light square complexes
+  - [x] weak dark/light square complexes
   - [x] overextended pawn chains
   - [x] loose pawn advances around castled kings
   - [x] fixed pawn targets that a strong human would exploit
@@ -165,7 +165,7 @@ Phase note: Task 1.4 is covered by the existing STRATEGY3/4 quality suites: `tes
   - [x] advances `g`/`h` pawns without a real attack
   - [x] opens files around its king while queens remain
   - [x] creates long-term holes near king shelter
-  - [ ] accepts a pawn structure that makes piece defense harder
+  - [x] accepts a pawn structure that makes piece defense harder
 - [x] Scale penalties down appropriately in true endings.
 
 ## 2.3 Reward human-style pawn restraint
@@ -184,7 +184,7 @@ Phase note: Task 1.4 is covered by the existing STRATEGY3/4 quality suites: `tes
   - [x] central integrity over side pawn grabs
   - [ ] restraining enemy breaks over mirror-image drifting
 
-Phase note: Task 2 now has four green slices in place: the shelter-structure penalty for loose castled-king `g`/`h` pawn advances, an extra castled-king file-gap penalty that gets harsher while the enemy queen remains, a middlegame overextension penalty for connected chains pushed too far, and explicit prepared-break scoring that rewards central pawns when minor pieces are ready while keeping backward-pawn and fixed-target structures from scoring like healthy, flexible ones. `tests/test_ai_strategy4_regressions.py` now locks in stable shelter, castled-king file-gap restraint, central integrity, backward-pawn weakness, fixed-target restraint, overextended-chain discipline, and prepared-break-over-premature-break comparisons.
+Phase note: Task 2 now has five green slices in place: the shelter-structure penalty for loose castled-king `g`/`h` pawn advances, an extra castled-king file-gap penalty that gets harsher while the enemy queen remains, a castled-king square-complex penalty for same-color shelter holes that make defense harder, a middlegame overextension penalty for connected chains pushed too far, and explicit prepared-break scoring that rewards central pawns when minor pieces are ready while keeping backward-pawn and fixed-target structures from scoring like healthy, flexible ones. `tests/test_ai_strategy4_regressions.py` now locks in stable shelter, castled-king file-gap restraint, same-color hole-complex discipline, central integrity, backward-pawn weakness, fixed-target restraint, overextended-chain discipline, and prepared-break-over-premature-break comparisons.
 
 ---
 

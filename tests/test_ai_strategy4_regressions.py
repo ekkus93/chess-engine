@@ -495,6 +495,44 @@ def test_pawn_structure_penalizes_castled_king_file_gaps_more_with_enemy_queen()
     )
 
 
+def test_pawn_structure_penalizes_same_color_king_hole_complex() -> None:
+    """Multiple same-color shelter holes should lose to an intact kingside shield."""
+
+    healthy_kingside = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("c1", Color.WHITE, PieceType.BISHOP),
+            ("f2", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+            ("c5", Color.BLACK, PieceType.BISHOP),
+        ]
+    )
+    hole_complex = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("c1", Color.WHITE, PieceType.BISHOP),
+            ("f4", Color.WHITE, PieceType.PAWN),
+            ("g3", Color.WHITE, PieceType.PAWN),
+            ("h4", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+            ("c5", Color.BLACK, PieceType.BISHOP),
+        ]
+    )
+
+    assert (
+        get_evaluation_breakdown(healthy_kingside)["pawn_structure"]
+        > get_evaluation_breakdown(hole_complex)["pawn_structure"]
+    )
+
+
 def test_pawn_structure_penalizes_overextended_connected_chain() -> None:
     """A compact center should outscore a connected chain that is pushed too far."""
 

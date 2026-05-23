@@ -121,6 +121,12 @@ def _pawn_structure_score_for_color(
         context.file_map,
         context.middlegame_phase,
     )
+    score -= context.sign * _weak_shelter_square_complex_penalty(
+        board,
+        context.color,
+        context.file_map,
+        context.middlegame_phase,
+    )
     for row, col in context.color_positions:
         score -= context.sign * _pawn_file_penalty(context.file_map, col)
         score += _pawn_square_structure_score(
@@ -303,6 +309,31 @@ def _overextended_chain_penalty(
     return (penalty * middlegame_phase) // 100
 
 
+def _weak_shelter_square_complex_penalty(
+    board: Board,
+    color: Color,
+    file_map: dict[int, list[int]],
+    middlegame_phase: int,
+) -> int:
+    king_square = board.find_king(color)
+    if king_square is None or middlegame_phase == 0 or not _is_castled_king(color, king_square):
+        return 0
+    shield_row = 6 if color == Color.WHITE else 1
+    king_col = int(king_square.col)
+    exposed_counts = {0: 0, 1: 0}
+    for file_index in range(max(0, king_col - 1), min(7, king_col + 1) + 1):
+        if _shield_square_is_exposed(file_map, shield_row, file_index):
+            exposed_counts[(shield_row + file_index) % 2] += 1
+    penalty = 0
+    for square_color, exposed_count in exposed_counts.items():
+        if exposed_count < 2:
+            continue
+        penalty += (exposed_count - 1) * KING_SHELTER_LOOSENING_PENALTY
+        if _enemy_has_bishop_on_color_complex(board, color, square_color):
+            penalty += KING_SHELTER_LOOSENING_PENALTY
+    return (penalty * middlegame_phase) // 100
+
+
 def _advanced_central_pawn_count(color: Color, positions: list[tuple[int, int]]) -> int:
     return sum(
         1
@@ -333,6 +364,31 @@ def _enemy_has_queen(board: Board, color: Color) -> bool:
         for row in board.board
         for piece in row
     )
+
+
+def _enemy_has_bishop_on_color_complex(
+    board: Board,
+    color: Color,
+    square_color: int,
+) -> bool:
+    enemy = _opponent(color)
+    return any(
+        piece is not None
+        and piece.color == enemy
+        and piece.kind == PieceType.BISHOP
+        and (row_index + col_index) % 2 == square_color
+        for row_index, row in enumerate(board.board)
+        for col_index, piece in enumerate(row)
+    )
+
+
+def _shield_square_is_exposed(
+    file_map: dict[int, list[int]],
+    shield_row: int,
+    file_index: int,
+) -> bool:
+    rows = file_map.get(file_index, [])
+    return not rows or min(abs(row - shield_row) for row in rows) >= 1
 
 
 def _is_overextended_chain_pawn(
