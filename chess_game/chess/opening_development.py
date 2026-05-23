@@ -6,7 +6,10 @@ from chess_game.chess.evaluation_tables import (
     CENTRAL_DUO_BONUS,
     CENTRAL_MINOR_PIECE_BONUS,
     CENTRAL_SQUARES,
+    DEFENDER_DISTANCE_PENALTY,
     EARLY_FLANK_RAID_PENALTY,
+    EARLY_QUEEN_MOVE_PENALTY,
+    EARLY_QUEEN_RAID_PENALTY,
     EXTENDED_CENTER_FILES,
     EXTENDED_CENTER_RANKS,
     MINOR_COORDINATION_BONUS,
@@ -69,6 +72,56 @@ def early_flank_raid_penalty(board: Board, color: Color, undeveloped: int) -> in
             else EARLY_FLANK_RAID_PENALTY // 2
         )
     return penalty
+
+
+def early_flank_queen_sortie_penalty(board: Board, color: Color, undeveloped: int) -> int:
+    """Penalize early unsupported queen swings to the board edge."""
+
+    queens = [
+        (row, col)
+        for piece, row, col in iter_color_pieces(board, color)
+        if piece.kind == PieceType.QUEEN
+    ]
+    if undeveloped < 2 or len(queens) != 1:
+        return 0
+    queen_row, queen_col = queens[0]
+    if queen_col not in {0, 1, 6, 7} or not _queen_on_flank_sortie(color, queen_row):
+        return 0
+    if _queen_has_nearby_support(board, color, queen_row, queen_col):
+        return 0
+
+    penalty = EARLY_FLANK_RAID_PENALTY + EARLY_QUEEN_MOVE_PENALTY // 2
+    king_square = board.find_king(color)
+    if king_square is None:
+        return penalty
+    king_distance = max(
+        abs(int(king_square.row) - queen_row),
+        abs(int(king_square.col) - queen_col),
+    )
+    if king_distance >= 4:
+        penalty += DEFENDER_DISTANCE_PENALTY
+    return penalty
+
+
+def early_queen_raid_penalty(board: Board, color: Color, undeveloped: int) -> int:
+    """Penalize unsupported early queen raids into the enemy half."""
+
+    queens = [
+        (row, col)
+        for piece, row, col in iter_color_pieces(board, color)
+        if piece.kind == PieceType.QUEEN
+    ]
+    if len(queens) != 1:
+        return 0
+    queen_row, queen_col = queens[0]
+    if not _queen_in_enemy_half(color, queen_row):
+        return 0
+    if _queen_has_nearby_support(board, color, queen_row, queen_col):
+        return 0
+    penalty = EARLY_QUEEN_RAID_PENALTY
+    if undeveloped >= 2:
+        penalty += EARLY_QUEEN_MOVE_PENALTY // 2
+    return penalty + _distant_queen_from_king_penalty(board, color, queen_row, queen_col)
 
 
 def unforced_shelter_loosening_penalty(
@@ -178,6 +231,14 @@ def _piece_in_enemy_half(color: Color, row: int) -> bool:
     return row <= 3 if color == Color.WHITE else row >= 4
 
 
+def _queen_on_flank_sortie(color: Color, row: int) -> bool:
+    return row <= 4 if color == Color.WHITE else row >= 3
+
+
+def _queen_in_enemy_half(color: Color, queen_row: int) -> bool:
+    return queen_row <= 2 if color == Color.WHITE else queen_row >= 5
+
+
 def _queens_on_board(board: Board) -> bool:
     white_has_queen = any(
         piece.kind == PieceType.QUEEN
@@ -188,6 +249,36 @@ def _queens_on_board(board: Board) -> bool:
         for piece, _, _ in iter_color_pieces(board, Color.BLACK)
     )
     return white_has_queen or black_has_queen
+
+
+def _queen_has_nearby_support(
+    board: Board,
+    color: Color,
+    queen_row: int,
+    queen_col: int,
+) -> bool:
+    for piece, row, col in iter_color_pieces(board, color):
+        if piece.kind == PieceType.QUEEN:
+            continue
+        if max(abs(row - queen_row), abs(col - queen_col)) <= 1:
+            return True
+    return False
+
+
+def _distant_queen_from_king_penalty(
+    board: Board,
+    color: Color,
+    queen_row: int,
+    queen_col: int,
+) -> int:
+    king_square = board.find_king(color)
+    if king_square is None:
+        return 0
+    king_distance = max(
+        abs(int(king_square.row) - queen_row),
+        abs(int(king_square.col) - queen_col),
+    )
+    return DEFENDER_DISTANCE_PENALTY if king_distance >= 4 else 0
 
 
 def _king_zone_attack_pressure(

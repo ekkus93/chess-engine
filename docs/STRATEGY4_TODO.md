@@ -109,15 +109,15 @@ Baseline artifact: `tmp/strategy4_baseline_positions.txt` records the latest sel
 
 ## 1.2 Add “do not self-weaken” tests
 
-- [ ] Add tests where the engine must reject self-inflicted weaknesses.
-- [ ] Cover cases such as:
+- [x] Add tests where the engine must reject self-inflicted weaknesses.
+- [x] Cover cases such as:
   - [x] `h`-pawn push that weakens the king for no reason
-  - [ ] `g`-pawn recapture that opens the king without compensation
-  - [ ] flank pawn grab that abandons the center
-  - [ ] rook lift that abandons back-rank safety
-  - [ ] king move that disconnects defenders in a middlegame
+  - [x] `g`-pawn recapture that opens the king without compensation
+  - [x] flank pawn grab that abandons the center
+  - [x] rook lift that abandons back-rank safety
+  - [x] king move that disconnects defenders in a middlegame
 
-Phase note: `tests/test_ai_strategy4_regressions.py` now locks in explicit penalties for an early castled-king `h`-pawn push with queens on the board, plus an opening-development regression for the same self-weakening pattern.
+Phase note: `tests/test_ai_strategy4_regressions.py` now covers the full Task 1.2 self-weakening set: early castled-king `h`-pawn loosening, `g`-pawn king opening, flank queen sorties that abandon central tension, rook lifts that drop back-rank safety, and middlegame king drift away from its defenders.
 
 ## 1.3 Add “quiet improvement beats cosmetic activity” tests
 

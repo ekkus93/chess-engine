@@ -415,3 +415,8 @@ Quality:
 - Added `tests/test_ai_strategy4_regressions.py` to lock in penalties for premature castled-king `h`-pawn loosening with queens on the board and to require stronger repetition penalties when a clearly winning side drifts into a draw.
 - Extracted new shelter-pawn helpers into `chess_game/chess/opening_development.py`, wired them through `evaluation.py`, and kept `pylint chess_game` and `python -m pytest tests -q` green.
 - Updated `docs/STRATEGY4_TODO.md` to mark the first `do not self-weaken` regression (`h`-pawn push for no reason) as complete.
+
+## 2026-05-23T02:45:12Z - GPT-5.4 - STRATEGY4 completed Task 1.2 self-weakening coverage
+- Expanded `tests/test_ai_strategy4_regressions.py` to finish the remaining Task 1.2 regressions: `g`-pawn king opening, flank queen sorties that abandon central tension, rook lifts that drop back-rank safety, and middlegame king drift away from defenders.
+- Moved the early queen-raid and flank-sortie penalties into `chess_game/chess/opening_development.py` so opening self-weakening logic stays shared and `pylint chess_game` remains warning-free.
+- Updated `docs/STRATEGY4_TODO.md` to mark all Task 1.2 bullets complete, with validation green at `pylint chess_game` and `python -m pytest tests -q`.

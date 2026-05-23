@@ -12,7 +12,9 @@ from chess_game.chess.endgame_evaluation import (
 from chess_game.chess.opening_development import (
     early_shelter_pawn_push_penalty as _early_shelter_pawn_push_penalty,
     coordinated_minor_piece_setup as _coordinated_minor_piece_setup,
+    early_flank_queen_sortie_penalty as _early_flank_queen_sortie_penalty,
     early_flank_raid_penalty as _early_flank_raid_penalty,
+    early_queen_raid_penalty as _early_queen_raid_penalty,
     opening_central_control_bonus as _opening_central_control_bonus,
     opening_piece_coordination_bonus as _opening_piece_coordination_bonus,
     unforced_shelter_loosening_penalty as _unforced_shelter_loosening_penalty,
@@ -45,7 +47,6 @@ from chess_game.chess.evaluation_tables import (
     DEFENDER_DISTANCE_PENALTY,
     DOUBLED_PAWN_PENALTY,
     EARLY_QUEEN_MOVE_PENALTY,
-    EARLY_QUEEN_RAID_PENALTY,
     EARLY_ROOK_MOVE_PENALTY,
     EXPOSED_CENTRAL_KING_PENALTY,
     HEAVY_FILE_PRESSURE_PENALTY,
@@ -905,6 +906,11 @@ def _evaluate_development(board: Board, middlegame_phase: int) -> int:
         )
         if undeveloped >= 2 and _queen_left_home_square(board, color):
             development_score -= sign * EARLY_QUEEN_MOVE_PENALTY
+        development_score -= sign * _early_flank_queen_sortie_penalty(
+            board,
+            color,
+            undeveloped,
+        )
         development_score -= sign * _early_queen_raid_penalty(board, color, undeveloped)
         if undeveloped >= 2 and _rook_left_home_square_early(board, color):
             development_score -= sign * EARLY_ROOK_MOVE_PENALTY
@@ -915,42 +921,6 @@ def _evaluate_development(board: Board, middlegame_phase: int) -> int:
 def _queen_left_home_square(board: Board, color: Color) -> bool:
     home_square = (7, 3) if color == Color.WHITE else (0, 3)
     return not _piece_on_square(board, color, PieceType.QUEEN, home_square)
-
-
-def _early_queen_raid_penalty(board: Board, color: Color, undeveloped: int) -> int:
-    queens = _collect_piece_positions(board, color, PieceType.QUEEN)
-    if len(queens) != 1:
-        return 0
-    queen_row, queen_col = queens[0]
-    if not _queen_in_enemy_half(color, queen_row):
-        return 0
-    if _queen_has_nearby_support(board, color, queen_row, queen_col):
-        return 0
-    penalty = EARLY_QUEEN_RAID_PENALTY
-    if undeveloped >= 2:
-        penalty += EARLY_QUEEN_MOVE_PENALTY // 2
-    king_square = _find_king(board, color)
-    if king_square is not None:
-        king_distance = max(
-            abs(int(king_square.row) - queen_row),
-            abs(int(king_square.col) - queen_col),
-        )
-        if king_distance >= 4:
-            penalty += DEFENDER_DISTANCE_PENALTY
-    return penalty
-
-
-def _queen_in_enemy_half(color: Color, queen_row: int) -> bool:
-    return queen_row <= 2 if color == Color.WHITE else queen_row >= 5
-
-
-def _queen_has_nearby_support(board: Board, color: Color, queen_row: int, queen_col: int) -> bool:
-    for piece, row, col in _iter_color_pieces(board, color):
-        if piece.kind == PieceType.QUEEN:
-            continue
-        if max(abs(row - queen_row), abs(col - queen_col)) <= 1:
-            return True
-    return False
 
 
 def _rook_left_home_square_early(board: Board, color: Color) -> bool:
