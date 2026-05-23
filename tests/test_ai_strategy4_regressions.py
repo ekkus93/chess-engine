@@ -426,6 +426,65 @@ def test_quiet_move_order_prefers_pressure_on_iqp_target() -> None:
     )
 
 
+def test_capture_order_prefers_exchanging_off_iqp_defender() -> None:
+    """Task 5 should favor exchanges that remove defenders of an IQP target."""
+
+    board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.ROOK),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("e2", Color.WHITE, PieceType.QUEEN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+            ("d7", Color.BLACK, PieceType.ROOK),
+            ("a7", Color.BLACK, PieceType.ROOK),
+            ("d5", Color.BLACK, PieceType.PAWN),
+            ("g7", Color.BLACK, PieceType.PAWN),
+            ("h7", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+    exchange_defender = ai.Move(start=sq("d1"), end=sq("d7"))
+    side_exchange = ai.Move(start=sq("a1"), end=sq("a7"))
+
+    assert _move_order_score(board, exchange_defender, None) > _move_order_score(
+        board,
+        side_exchange,
+        None,
+    )
+
+
+def test_capture_order_prefers_bishop_for_knight_in_open_center() -> None:
+    """Task 5 should avoid the wrong minor exchange in open positions."""
+
+    board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("c4", Color.WHITE, PieceType.BISHOP),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("d5", Color.BLACK, PieceType.KNIGHT),
+            ("e5", Color.BLACK, PieceType.BISHOP),
+            ("g7", Color.BLACK, PieceType.PAWN),
+            ("h7", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+    bishop_for_knight = ai.Move(start=sq("c4"), end=sq("d5"))
+    knight_for_bishop = ai.Move(start=sq("f3"), end=sq("e5"))
+
+    assert _move_order_score(board, bishop_for_knight, None) > _move_order_score(
+        board,
+        knight_for_bishop,
+        None,
+    )
+
+
 def test_search_rejects_rook_lift_that_drops_back_rank_safety() -> None:
     """Under pressure, luft should beat a rook lift that abandons the back rank."""
 

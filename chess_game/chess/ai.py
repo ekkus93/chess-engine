@@ -11,9 +11,9 @@ import time
 
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_in_check as _gs_is_in_check
+from chess_game.chess.ai_capture_ordering import capture_order_score as _shared_capture_order_score
 from chess_game.chess.ai_move_ordering import quiet_strategy_order_score
 from chess_game.chess.ai_search_helpers import (
-    defensive_capture_bonus as _defensive_capture_bonus,
     RepetitionPolicy,
     promotion_order_score as _promotion_order_score,
     initial_root_window as _initial_root_window,
@@ -43,7 +43,7 @@ from chess_game.chess.evaluation_tables import (
 )
 from chess_game.chess.move import Move
 from chess_game.chess.strategy_utils import is_capture_move as _is_capture_move
-from chess_game.chess.types import Color, LegalMove, Piece, PieceType
+from chess_game.chess.types import Color, LegalMove, PieceType
 
 sys.setrecursionlimit(50000)
 INF = 10_000_000
@@ -782,18 +782,9 @@ def _move_order_score(
 
 
 def _capture_order_score(board: Board, move: Move) -> int:
-    """Return capture ordering score using MVV/LVA."""
+    """Return capture ordering score using the shared capture-order helper."""
 
-    captured_piece = board.get_piece(move.end)
-    attacker = board.get_piece(move.start)
-    if attacker is None or captured_piece is None:
-        return 900 if _is_capture_move(board, move) else 0
-    return _mvv_lva_capture_score(attacker, captured_piece) + _defensive_capture_bonus(
-        board,
-        move,
-        captured_piece.kind,
-        _make_copy_with_move,
-    )
+    return _shared_capture_order_score(board, move, _make_copy_with_move)
 
 
 def _tt_best_move(board: Board, context: SearchContext) -> Optional[LegalMove]:
@@ -803,26 +794,6 @@ def _tt_best_move(board: Board, context: SearchContext) -> Optional[LegalMove]:
         return None
     entry = context.transposition_table.get(position_key(board))
     return None if entry is None else entry.best_move
-
-
-def _mvv_lva_capture_score(attacker: Piece, victim: Piece) -> int:
-    """MVV/LVA score for a capture."""
-
-    victim_values = {
-        PieceType.PAWN: 10,
-        PieceType.KNIGHT: 30,
-        PieceType.BISHOP: 32,
-        PieceType.ROOK: 35,
-        PieceType.QUEEN: 90,
-    }
-    attacker_values = {
-        PieceType.PAWN: 10,
-        PieceType.KNIGHT: 30,
-        PieceType.BISHOP: 32,
-        PieceType.ROOK: 35,
-        PieceType.QUEEN: 90,
-    }
-    return (victim_values.get(victim.kind, 0) * 1_000) - attacker_values.get(attacker.kind, 0)
 
 
 def get_best_move(

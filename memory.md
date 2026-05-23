@@ -15,6 +15,11 @@
 - Updated `docs/STRATEGY4_TODO.md` to mark all open-center and closed-center Task 5.2 bullets complete, plus the related Task 5.3 bullets for unsupported flank races, wrong pawn breaks, and chasing tactics over the right plan.
 - Revalidated the full repo green with `pylint chess_game` and `python -m pytest tests -q` (`464 passed`) before continuing with the remaining Task 5 bullets.
 
+## 2026-05-23T07:28:54Z - GPT-5.4 - STRATEGY4 Task 5 completion
+- Added `chess_game/chess/ai_capture_ordering.py` and rewired `chess_game/chess/ai.py` so capture ordering can use structure-aware exchange priorities without pushing `ai.py` over the module-size lint limit.
+- Finished the last Task 5 gaps by rewarding exchanges that remove defenders of enemy IQP/hanging-pawn targets and by preferring the correct bishop-vs-knight exchanges for open versus closed centers.
+- Expanded `tests/test_ai_strategy4_regressions.py`, marked the remaining Task 5 bullets complete in `docs/STRATEGY4_TODO.md`, and revalidated the full repo green with `pylint chess_game` and `python -m pytest tests -q` (`466 passed`).
+
 ## 2026-05-23T06:35:25Z - GPT-5.4 - STRATEGY4 Task 4 first threat-recognition slice
 - Added `chess_game/chess/opponent_plans.py` so quiet ordering can compare enemy near-term plan pressure before and after a move, including invasion lines, knight jumps, central pawn breaks, checking resources, and passed-pawn pushes.
 - Wired that plan-pressure delta into `chess_game/chess/ai_move_ordering.py` and added a new prophylaxis regression in `tests/test_ai_defensive_strategy.py` proving that stopping an enemy central break outranks quiet rook improvement.

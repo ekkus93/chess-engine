@@ -298,16 +298,16 @@ Phase note: Task 4 is now complete. The new `chess_game/chess/opponent_plans.py`
   - [x] piece maneuvers
   - [x] useful breaks
   - [x] restraint before wing expansion
-- [ ] In IQP/hanging-pawn structures, prefer:
+- [x] In IQP/hanging-pawn structures, prefer:
   - [x] blockade squares
-  - [ ] favorable exchanges
+  - [x] favorable exchanges
   - [x] piece pressure on structural targets
 
 ## 5.3 Avoid plan mismatch
 
-- [ ] Penalize moves that:
+- [x] Penalize moves that:
   - [x] start a flank race in an open center without support
-  - [ ] exchange the wrong minor pieces for the structure
+  - [x] exchange the wrong minor pieces for the structure
   - [x] push the wrong pawn break too early
   - [x] chase tactics while ignoring the correct strategic plan
 

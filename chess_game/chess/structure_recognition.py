@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from chess_game.chess.board.attack_utils import piece_attacks_square
+from chess_game.chess.constants import ConstantSquare, get_col_constant, get_row_constant
 from chess_game.chess.board import Board
 from chess_game.chess.move import Move
 from chess_game.chess.strategy_utils import (
@@ -24,6 +26,9 @@ _CLOSED_CENTER_MANEUVER_BONUS = 24
 _CLOSED_CENTER_BREAK_BONUS = 18
 _STRUCTURAL_BLOCKADE_BONUS = 36
 _MINORITY_ATTACK_BONUS = 64
+_FAVORABLE_MINOR_EXCHANGE_BONUS = 1_200
+_WRONG_MINOR_EXCHANGE_PENALTY = 1_200
+_STRUCTURAL_DEFENDER_EXCHANGE_BONUS = 450
 
 
 @dataclass(frozen=True)
@@ -118,6 +123,25 @@ def structure_plan_bonus(board: Board, color: Color, kind: PieceType, move: Move
     score += _structural_target_bonus(profile.enemy(color), kind, move)
     if _is_minority_attack_push(profile.side(color).minority_attack_file, color, kind, move):
         score += _MINORITY_ATTACK_BONUS
+    return score
+
+
+def structure_capture_bonus(
+    board: Board,
+    color: Color,
+    attacker_kind: PieceType,
+    captured_kind: PieceType,
+    captured_square: ConstantSquare,
+) -> int:
+    """Return capture-order adjustments from structure-specific plans."""
+
+    profile = structure_profile(board)
+    score = _minor_piece_exchange_bonus(profile, attacker_kind, captured_kind)
+    score += _structural_defender_capture_bonus(
+        board,
+        profile.enemy(color),
+        captured_square,
+    )
     return score
 
 
@@ -322,6 +346,83 @@ def _structural_target_bonus(
         if target_square == (target.blockade_row, target.col):
             return _STRUCTURAL_BLOCKADE_BONUS
     return 0
+
+
+def _minor_piece_exchange_bonus(
+    profile: StructureProfile,
+    attacker_kind: PieceType,
+    captured_kind: PieceType,
+) -> int:
+    is_minor_exchange = (
+        attacker_kind in {PieceType.BISHOP, PieceType.KNIGHT}
+        and captured_kind in {PieceType.BISHOP, PieceType.KNIGHT}
+    )
+    if not is_minor_exchange:
+        return 0
+    if profile.open_center:
+        return _open_center_exchange_bonus(attacker_kind, captured_kind)
+    if profile.closed_center:
+        return _closed_center_exchange_bonus(attacker_kind, captured_kind)
+    return 0
+
+
+def _open_center_exchange_bonus(
+    attacker_kind: PieceType,
+    captured_kind: PieceType,
+) -> int:
+    if attacker_kind == PieceType.BISHOP and captured_kind == PieceType.KNIGHT:
+        return _FAVORABLE_MINOR_EXCHANGE_BONUS
+    if attacker_kind == PieceType.KNIGHT and captured_kind == PieceType.BISHOP:
+        return -_WRONG_MINOR_EXCHANGE_PENALTY
+    return 0
+
+
+def _closed_center_exchange_bonus(
+    attacker_kind: PieceType,
+    captured_kind: PieceType,
+) -> int:
+    if attacker_kind == PieceType.KNIGHT and captured_kind == PieceType.BISHOP:
+        return _FAVORABLE_MINOR_EXCHANGE_BONUS
+    if attacker_kind == PieceType.BISHOP and captured_kind == PieceType.KNIGHT:
+        return -_WRONG_MINOR_EXCHANGE_PENALTY
+    return 0
+
+
+def _structural_defender_capture_bonus(
+    board: Board,
+    enemy_profile: SideStructureProfile,
+    captured_square: ConstantSquare,
+) -> int:
+    captured_piece = board.get_piece(captured_square)
+    if captured_piece is None:
+        return 0
+    for target in enemy_profile.isolated_queen_pawns + enemy_profile.hanging_pawns:
+        if _piece_defends_structural_target(board, captured_piece, captured_square, target):
+            return _STRUCTURAL_DEFENDER_EXCHANGE_BONUS
+    return 0
+
+
+def _piece_defends_structural_target(
+    board: Board,
+    piece,
+    piece_square: ConstantSquare,
+    target: StructuralTarget,
+) -> bool:
+    return piece_attacks_square(
+        piece,
+        piece_square,
+        _target_square(target.row, target.col),
+        board,
+    ) or piece_attacks_square(
+        piece,
+        piece_square,
+        _target_square(target.blockade_row, target.col),
+        board,
+    )
+
+
+def _target_square(row: int, col: int) -> ConstantSquare:
+    return ConstantSquare(row=get_row_constant(row), col=get_col_constant(col))
 
 
 def _is_minority_attack_push(
