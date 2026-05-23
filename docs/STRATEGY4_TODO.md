@@ -99,13 +99,15 @@ Baseline artifact: `tmp/strategy4_baseline_positions.txt` records the latest sel
 
 ## 1.1 Add “stop the opponent first” tests
 
-- [ ] Add tests where the best move is prophylactic rather than active.
-- [ ] Cover cases such as:
-  - [ ] stopping a file invasion before attacking elsewhere
-  - [ ] preventing a knight outpost before launching a pawn advance
-  - [ ] controlling a key entry square before checking
-  - [ ] creating luft before starting an attack
-  - [ ] exchanging the opponent’s most active piece before improving one’s own attack
+- [x] Add tests where the best move is prophylactic rather than active.
+- [x] Cover cases such as:
+  - [x] stopping a file invasion before attacking elsewhere
+  - [x] preventing a knight outpost before launching a pawn advance
+  - [x] controlling a key entry square before checking
+  - [x] creating luft before starting an attack
+  - [x] exchanging the opponent’s most active piece before improving one’s own attack
+
+Phase note: Task 1.1 coverage now spans `tests/test_ai_strategy4_regressions.py` plus the earlier defense-first suites: sealing an invasion file and preventing a knight outpost are now explicit STRATEGY4 regressions, while `tests/test_ai_defensive_strategy.py` and `tests/test_ai_quality.py` already lock in the luft-first and active-piece-exchange prophylaxis cases.
 
 ## 1.2 Add “do not self-weaken” tests
 

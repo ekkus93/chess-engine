@@ -420,3 +420,8 @@ Quality:
 - Expanded `tests/test_ai_strategy4_regressions.py` to finish the remaining Task 1.2 regressions: `g`-pawn king opening, flank queen sorties that abandon central tension, rook lifts that drop back-rank safety, and middlegame king drift away from defenders.
 - Moved the early queen-raid and flank-sortie penalties into `chess_game/chess/opening_development.py` so opening self-weakening logic stays shared and `pylint chess_game` remains warning-free.
 - Updated `docs/STRATEGY4_TODO.md` to mark all Task 1.2 bullets complete, with validation green at `pylint chess_game` and `python -m pytest tests -q`.
+
+## 2026-05-23T02:50:01Z - GPT-5.4 - STRATEGY4 completed Task 1.1 prophylaxis coverage
+- Expanded `tests/test_ai_strategy4_regressions.py` with explicit prophylaxis regressions for sealing an invasion file before attacking elsewhere and for stopping a looming knight outpost before a loose pawn push.
+- Verified the complementary Task 1.1 cases are already covered by the existing defense-first suites (`tests/test_ai_defensive_strategy.py`, `tests/test_ai_quality.py`) for luft-first play and exchanging the opponent's most active piece before pressing an attack.
+- Updated `docs/STRATEGY4_TODO.md` to mark all of Task 1.1 complete, with validation green at `pylint chess_game` and `python -m pytest tests -q`.

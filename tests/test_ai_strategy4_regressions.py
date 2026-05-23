@@ -1,11 +1,13 @@
 """Strategy 4 regressions for self-restraint and conversion discipline."""
 
+from chess_game.chess import ai
 from chess_game.chess.ai import get_best_move, get_evaluation_breakdown, position_key
 from chess_game.chess.ai_search_helpers import RepetitionPolicy, repetition_score
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.types import LegalMove
 from chess_game.chess.types import Color, PieceType
 from tests.helpers import sq
+from tests.test_ai_quality import _move_order_score
 
 
 def _build_board(
@@ -164,6 +166,63 @@ def test_king_breakdowns_penalize_middlegame_king_drift_from_defenders() -> None
 
     assert coordinated_breakdown["king_safety"] > drifted_breakdown["king_safety"]
     assert coordinated_breakdown["king_exposure"] > drifted_breakdown["king_exposure"]
+
+
+def test_quiet_move_order_prefers_sealing_entry_file_before_harmless_check() -> None:
+    """Stopping a file invasion should beat a cosmetic attack elsewhere."""
+
+    board = _build_board(
+        [
+            ("d1", Color.WHITE, PieceType.KING),
+            ("a2", Color.WHITE, PieceType.ROOK),
+            ("e2", Color.WHITE, PieceType.QUEEN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.ROOK),
+        ]
+    )
+
+    seal_entry = ai.Move(start=sq("a2"), end=sq("d2"))
+    cosmetic_check = ai.Move(start=sq("e2"), end=sq("e8"))
+
+    assert _move_order_score(board, seal_entry, None) > _move_order_score(
+        board,
+        cosmetic_check,
+        None,
+    )
+
+
+def test_quiet_move_order_prefers_stopping_knight_outpost_before_pawn_push() -> None:
+    """Prophylaxis against a knight outpost should beat a loose flank advance."""
+
+    board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("c3", Color.WHITE, PieceType.KNIGHT),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("d3", Color.WHITE, PieceType.PAWN),
+            ("e4", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("f6", Color.BLACK, PieceType.KNIGHT),
+            ("d7", Color.BLACK, PieceType.PAWN),
+            ("e7", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+    stop_outpost = ai.Move(start=sq("g2"), end=sq("g3"))
+    flank_push = ai.Move(start=sq("h2"), end=sq("h4"))
+
+    assert _move_order_score(board, stop_outpost, None) > _move_order_score(
+        board,
+        flank_push,
+        None,
+    )
 
 
 def test_repetition_score_scales_up_for_large_winning_margin() -> None:
