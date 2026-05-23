@@ -639,6 +639,109 @@ def test_pawn_structure_prefers_flexible_structure_over_fixed_targets() -> None:
     )
 
 
+def test_pawn_structure_prefers_preserving_central_tension() -> None:
+    """Central tension should beat a premature structure-fixing release."""
+
+    tension_kept = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("c3", Color.WHITE, PieceType.KNIGHT),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("c4", Color.WHITE, PieceType.BISHOP),
+            ("e2", Color.WHITE, PieceType.BISHOP),
+            ("d4", Color.WHITE, PieceType.PAWN),
+            ("e4", Color.WHITE, PieceType.PAWN),
+            ("d5", Color.BLACK, PieceType.PAWN),
+            ("e5", Color.BLACK, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+            ("c8", Color.BLACK, PieceType.BISHOP),
+            ("f8", Color.BLACK, PieceType.BISHOP),
+        ]
+    )
+    tension_released = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("c3", Color.WHITE, PieceType.KNIGHT),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("c4", Color.WHITE, PieceType.BISHOP),
+            ("e2", Color.WHITE, PieceType.BISHOP),
+            ("d4", Color.WHITE, PieceType.PAWN),
+            ("e5", Color.WHITE, PieceType.PAWN),
+            ("d5", Color.BLACK, PieceType.PAWN),
+            ("e6", Color.BLACK, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+            ("c8", Color.BLACK, PieceType.BISHOP),
+            ("f8", Color.BLACK, PieceType.BISHOP),
+        ]
+    )
+
+    assert (
+        get_evaluation_breakdown(tension_kept)["pawn_structure"]
+        > get_evaluation_breakdown(tension_released)["pawn_structure"]
+    )
+
+
+def test_pawn_structure_prefers_restraining_enemy_breaks_over_mirror_drift() -> None:
+    """A clamping pawn structure should beat a harmless mirror drift."""
+
+    restrained_structure = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("c3", Color.WHITE, PieceType.KNIGHT),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("c4", Color.WHITE, PieceType.PAWN),
+            ("d4", Color.WHITE, PieceType.PAWN),
+            ("e4", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+            ("c5", Color.BLACK, PieceType.PAWN),
+            ("d6", Color.BLACK, PieceType.PAWN),
+            ("e5", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+    drifting_structure = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("c3", Color.WHITE, PieceType.KNIGHT),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("d4", Color.WHITE, PieceType.PAWN),
+            ("e4", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h3", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+            ("c5", Color.BLACK, PieceType.PAWN),
+            ("d6", Color.BLACK, PieceType.PAWN),
+            ("e5", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+    assert (
+        get_evaluation_breakdown(restrained_structure)["pawn_structure"]
+        > get_evaluation_breakdown(drifting_structure)["pawn_structure"]
+    )
+
+
 def test_repetition_score_scales_up_for_large_winning_margin() -> None:
     """A repeated draw should be much worse when the side to move is clearly winning."""
 

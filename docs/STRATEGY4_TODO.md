@@ -151,7 +151,7 @@ Phase note: Task 1.4 is covered by the existing STRATEGY3/4 quality suites: `tes
 
 ## 2.1 Expand pawn-structure evaluation
 
-- [ ] Add or refine evaluation terms for:
+- [x] Add or refine evaluation terms for:
   - [x] backward pawns
   - [x] weak dark/light square complexes
   - [x] overextended pawn chains
@@ -161,7 +161,7 @@ Phase note: Task 1.4 is covered by the existing STRATEGY3/4 quality suites: `tes
 
 ## 2.2 Penalize needless king-shelter damage more sharply
 
-- [ ] Increase penalties when a side:
+- [x] Increase penalties when a side:
   - [x] advances `g`/`h` pawns without a real attack
   - [x] opens files around its king while queens remain
   - [x] creates long-term holes near king shelter
@@ -170,21 +170,21 @@ Phase note: Task 1.4 is covered by the existing STRATEGY3/4 quality suites: `tes
 
 ## 2.3 Reward human-style pawn restraint
 
-- [ ] Reward:
+- [x] Reward:
   - [x] keeping a healthy shelter when no attack exists
-  - [ ] preserving central tension when a break is premature
+  - [x] preserving central tension when a break is premature
   - [x] preparing a pawn break with pieces first
   - [x] maintaining flexible pawn structure instead of fixing weaknesses too early
 
 ## 2.4 Add pawn-structure regression tests
 
-- [ ] Add tests that prefer:
+- [x] Add tests that prefer:
   - [x] stable shelter over speculative pawn pushes
   - [x] prepared breaks over immediate breaks
   - [x] central integrity over side pawn grabs
-  - [ ] restraining enemy breaks over mirror-image drifting
+  - [x] restraining enemy breaks over mirror-image drifting
 
-Phase note: Task 2 now has five green slices in place: the shelter-structure penalty for loose castled-king `g`/`h` pawn advances, an extra castled-king file-gap penalty that gets harsher while the enemy queen remains, a castled-king square-complex penalty for same-color shelter holes that make defense harder, a middlegame overextension penalty for connected chains pushed too far, and explicit prepared-break scoring that rewards central pawns when minor pieces are ready while keeping backward-pawn and fixed-target structures from scoring like healthy, flexible ones. `tests/test_ai_strategy4_regressions.py` now locks in stable shelter, castled-king file-gap restraint, same-color hole-complex discipline, central integrity, backward-pawn weakness, fixed-target restraint, overextended-chain discipline, and prepared-break-over-premature-break comparisons.
+Phase note: Task 2 is now complete. The pawn-structure evaluator covers loose castled-king shelter advances, queen-sensitive castled-king file gaps, same-color kingside hole complexes, overextended connected chains, backward pawns, fixed targets versus flexible structures, prepared breaks, preserved central tension, and restraining enemy pawn breaks instead of drifting. `tests/test_ai_strategy4_regressions.py` now locks in stable shelter, castled-king file-gap restraint, same-color hole-complex discipline, central integrity, backward-pawn weakness, fixed-target restraint, overextended-chain discipline, prepared-break timing, central-tension restraint, and enemy-break clamping.
 
 ---
 

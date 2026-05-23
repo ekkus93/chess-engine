@@ -1,5 +1,10 @@
 # Chess Engine Project Memory
 
+## 2026-05-23T06:10:11Z - GPT-5.4 - STRATEGY4 Task 2 completion
+- Finished `docs/STRATEGY4_TODO.md` Task 2 end-to-end: pawn-structure scoring now covers backward pawns, prepared breaks, fixed targets, flexible structures, overextended chains, castled-king file gaps, same-color kingside hole complexes, preserved central tension, and restraining enemy breaks.
+- Added the final Task 2 regressions in `tests/test_ai_strategy4_regressions.py` for preserving central tension and preferring enemy-break restraint over mirror drifting.
+- Revalidated the full repo green with `pylint chess_game` and `python -m pytest tests -q` (`445 passed`) before moving on to STRATEGY4 Task 3.
+
 ## 2026-05-23T06:06:08Z - GPT-5.4 - STRATEGY4 Task 2 square-complex slice
 - Extended `chess_game/chess/pawn_structure_evaluation.py` with a castled-king square-complex penalty so multiple same-color shelter holes stop scoring like a healthy shield, especially when the enemy still has the matching bishop color.
 - Added a new regression in `tests/test_ai_strategy4_regressions.py` proving that a same-color kingside hole complex scores worse than an intact shelter.
