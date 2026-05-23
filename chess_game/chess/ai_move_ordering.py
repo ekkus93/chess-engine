@@ -257,15 +257,28 @@ def _heavy_piece_on_home_square(color: Color, kind: PieceType, square) -> bool:
 def _defensive_priority_bonus(board: Board, move: Move) -> int:
     """Reward defense-first quiet moves when the side to move is under pressure."""
 
+    piece = board.get_piece(move.start)
+    if piece is None:
+        return 0
     before = king_defense_profile(board, board.turn)
-    before_plan = opponent_plan_profile(board, board.turn)
-    if before.danger < DANGEROUS_KING_PRESSURE_THRESHOLD:
-        return _opponent_plan_bonus(board, move, before_plan)
+    assess_plan = _requires_plan_assessment(piece.kind, move)
+    if before.danger < DANGEROUS_KING_PRESSURE_THRESHOLD and not assess_plan:
+        return 0
     child_board = board.clone()
     if not child_board.apply_legal_move(move.start, move.end, promotion=move.promotion):
         return 0
+    before_plan = None
+    if assess_plan or before.danger >= DANGEROUS_KING_PRESSURE_THRESHOLD:
+        before_plan = opponent_plan_profile(board, board.turn)
+        after_plan = opponent_plan_profile(child_board, board.turn)
+    else:
+        after_plan = None
+    if before.danger < DANGEROUS_KING_PRESSURE_THRESHOLD:
+        return 0 if before_plan is None or after_plan is None else _plan_pressure_delta_score(
+            before_plan.pressure,
+            after_plan.pressure,
+        )
     after = king_defense_profile(child_board, board.turn)
-    after_plan = opponent_plan_profile(child_board, board.turn)
     danger_reduction = max(0, before.danger - after.danger)
     score = danger_reduction * QUIET_DANGER_RELIEF_BONUS
     score += max(0, before.invasion_lines - after.invasion_lines) * QUIET_ENTRY_SQUARE_BONUS
@@ -287,22 +300,23 @@ def _defensive_priority_bonus(board: Board, move: Move) -> int:
         score -= QUIET_ADD_DEFENDER_BONUS
     if after.heavy_connections < before.heavy_connections:
         score -= QUIET_RECONNECT_DEFENDER_BONUS
-    score += _plan_pressure_delta_score(before_plan.pressure, after_plan.pressure)
+    if before_plan is not None and after_plan is not None:
+        score += _plan_pressure_delta_score(before_plan.pressure, after_plan.pressure)
     return score
-
-
-def _opponent_plan_bonus(board: Board, move: Move, before_plan) -> int:
-    child_board = board.clone()
-    if not child_board.apply_legal_move(move.start, move.end, promotion=move.promotion):
-        return 0
-    after_plan = opponent_plan_profile(child_board, board.turn)
-    return _plan_pressure_delta_score(before_plan.pressure, after_plan.pressure)
 
 
 def _plan_pressure_delta_score(before_pressure: int, after_pressure: int) -> int:
     score = max(0, before_pressure - after_pressure) * QUIET_PLAN_RELIEF_BONUS
     score -= max(0, after_pressure - before_pressure) * QUIET_PLAN_NEGLECT_PENALTY
     return score
+
+
+def _requires_plan_assessment(kind: PieceType, move: Move) -> bool:
+    if kind in {PieceType.KING, PieceType.QUEEN, PieceType.ROOK}:
+        return True
+    if kind == PieceType.PAWN:
+        return int(move.start.col) in {3, 4, 5, 6, 7} or int(move.end.col) in {3, 4}
+    return False
 
 
 def _is_heavy_piece_endgame(board: Board) -> bool:

@@ -247,30 +247,32 @@ Task 3 note: The remaining Task 3 bullets are now covered as well. `tests/test_a
 
 ## 4.2 Reward prophylactic moves explicitly
 
-- [ ] Reward moves that:
+- [x] Reward moves that:
   - [x] take away entry squares
-  - [ ] reduce tactical targets
+  - [x] reduce tactical targets
   - [x] improve defensive flexibility
   - [x] prevent an enemy break before it happens
-  - [ ] force the opponent into a lower-quality plan
+  - [x] force the opponent into a lower-quality plan
 
 ## 4.3 Penalize “my move only” thinking
 
-- [ ] Penalize moves that:
+- [x] Penalize moves that:
   - [x] improve one’s own activity but allow a stronger enemy reply
   - [x] ignore the opponent’s only counterplay source
-  - [ ] create new hooks or targets around the king
-  - [ ] open a line the opponent can use better
+  - [x] create new hooks or targets around the king
+  - [x] open a line the opponent can use better
 
 ## 4.4 Add prophylaxis tests
 
-- [ ] Add tests where the engine must:
+- [x] Add tests where the engine must:
   - [x] stop a break before improving a piece
   - [x] prevent an invasion before pawn winning
-  - [ ] deny counterplay before converting material
-  - [ ] choose a human waiting move that improves flexibility
+  - [x] deny counterplay before converting material
+  - [x] choose a human waiting move that improves flexibility
 
-Phase note: The first Task 4 slice adds `chess_game/chess/opponent_plans.py` so quiet ordering can compare enemy near-term plan pressure before and after a move. The new plan profile tracks invasion lines, knight jumps, central pawn breaks, checking resources, and passed-pawn pushes; existing defense/blockade regressions plus the new `tests/test_ai_defensive_strategy.py` break-stopping case now cover the completed Task 4 bullets above.
+Phase note: Task 4 is now complete. The new `chess_game/chess/opponent_plans.py` profile gives quiet ordering an explicit model of enemy invasion lines, knight jumps, central pawn breaks, checking resources, and passed-pawn pushes. The remaining prophylaxis bullets are covered by the existing STRATEGY3/4 regression set: `tests/test_ai_defensive_strategy.py` locks in queen trades that reduce king danger plus the new break-stopping case, `tests/test_ai_quality.py` locks in blockade-first conversion and useful waiting/luft moves, and `tests/test_ai_strategy4_regressions.py` plus `tests/test_ai_activity_strategy.py` lock in invasion-file defense and punishment for self-weakening king-side drifts.
+
+- [x] Task 4 complete
 
 ---
 

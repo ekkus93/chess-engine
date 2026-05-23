@@ -1,5 +1,10 @@
 # Chess Engine Project Memory
 
+## 2026-05-23T06:47:50Z - GPT-5.4 - STRATEGY4 Task 4 completion
+- Finished `docs/STRATEGY4_TODO.md` Task 4: quiet ordering now uses `chess_game/chess/opponent_plans.py` to score enemy near-term plan pressure, and the remaining prophylaxis bullets were reconciled against the existing STRATEGY3/4 regression coverage.
+- Tightened `chess_game/chess/ai_move_ordering.py` so opponent-plan assessment only runs for moves that can materially affect prophylaxis, restoring the depth-5 search benchmark while keeping the new break-stopping behavior.
+- Revalidated the full repo green with `pylint chess_game` and `python -m pytest tests -q` (`451 passed`) before moving on to STRATEGY4 Task 5.
+
 ## 2026-05-23T06:35:25Z - GPT-5.4 - STRATEGY4 Task 4 first threat-recognition slice
 - Added `chess_game/chess/opponent_plans.py` so quiet ordering can compare enemy near-term plan pressure before and after a move, including invasion lines, knight jumps, central pawn breaks, checking resources, and passed-pawn pushes.
 - Wired that plan-pressure delta into `chess_game/chess/ai_move_ordering.py` and added a new prophylaxis regression in `tests/test_ai_defensive_strategy.py` proving that stopping an enemy central break outranks quiet rook improvement.
