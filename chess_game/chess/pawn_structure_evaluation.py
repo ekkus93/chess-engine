@@ -110,6 +110,12 @@ def _pawn_structure_score_for_color(
         context.color_positions,
         context.middlegame_phase,
     )
+    score -= context.sign * _shelter_file_gap_penalty(
+        board,
+        context.color,
+        context.file_map,
+        context.middlegame_phase,
+    )
     for row, col in context.color_positions:
         score -= context.sign * _pawn_file_penalty(context.file_map, col)
         score += _pawn_square_structure_score(
@@ -253,6 +259,29 @@ def _prepared_central_break_bonus(
     return (raw_score * middlegame_phase) // 100
 
 
+def _shelter_file_gap_penalty(
+    board: Board,
+    color: Color,
+    file_map: dict[int, list[int]],
+    middlegame_phase: int,
+) -> int:
+    king_square = board.find_king(color)
+    if king_square is None or middlegame_phase == 0 or not _is_castled_king(color, king_square):
+        return 0
+    king_col = int(king_square.col)
+    gap_files = sum(
+        1
+        for file_index in range(max(0, king_col - 1), min(7, king_col + 1) + 1)
+        if not file_map.get(file_index)
+    )
+    if gap_files == 0:
+        return 0
+    penalty = gap_files * KING_SHELTER_LOOSENING_PENALTY * 2
+    if _enemy_has_queen(board, color):
+        penalty += gap_files * KING_SHELTER_LOOSENING_PENALTY
+    return (penalty * middlegame_phase) // 100
+
+
 def _advanced_central_pawn_count(color: Color, positions: list[tuple[int, int]]) -> int:
     return sum(
         1
@@ -273,6 +302,15 @@ def _minor_piece_count(board: Board, color: Color) -> int:
         if piece is not None
         and piece.color == color
         and piece.kind in {PieceType.KNIGHT, PieceType.BISHOP}
+    )
+
+
+def _enemy_has_queen(board: Board, color: Color) -> bool:
+    enemy = _opponent(color)
+    return any(
+        piece is not None and piece.color == enemy and piece.kind == PieceType.QUEEN
+        for row in board.board
+        for piece in row
     )
 
 

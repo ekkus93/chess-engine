@@ -429,6 +429,72 @@ def test_pawn_structure_prefers_prepared_breaks_over_unsupported_central_pushes(
     )
 
 
+def test_pawn_structure_penalizes_castled_king_file_gaps_more_with_enemy_queen() -> None:
+    """Opening a castled king file should be punished more while the enemy queen remains."""
+
+    sheltered_queens_on = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("f2", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+        ]
+    )
+    open_file_queens_on = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("f2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+        ]
+    )
+    sheltered_queens_off = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("f2", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+        ]
+    )
+    open_file_queens_off = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("f2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+        ]
+    )
+
+    queens_on_penalty = (
+        get_evaluation_breakdown(sheltered_queens_on)["pawn_structure"]
+        - get_evaluation_breakdown(open_file_queens_on)["pawn_structure"]
+    )
+    queens_off_penalty = (
+        get_evaluation_breakdown(sheltered_queens_off)["pawn_structure"]
+        - get_evaluation_breakdown(open_file_queens_off)["pawn_structure"]
+    )
+
+    assert queens_on_penalty > queens_off_penalty
+    assert (
+        get_evaluation_breakdown(sheltered_queens_on)["pawn_structure"]
+        > get_evaluation_breakdown(open_file_queens_on)["pawn_structure"]
+    )
+
+
 def test_repetition_score_scales_up_for_large_winning_margin() -> None:
     """A repeated draw should be much worse when the side to move is clearly winning."""
 

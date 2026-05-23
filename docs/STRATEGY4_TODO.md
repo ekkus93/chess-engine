@@ -163,7 +163,7 @@ Phase note: Task 1.4 is covered by the existing STRATEGY3/4 quality suites: `tes
 
 - [ ] Increase penalties when a side:
   - [x] advances `g`/`h` pawns without a real attack
-  - [ ] opens files around its king while queens remain
+  - [x] opens files around its king while queens remain
   - [x] creates long-term holes near king shelter
   - [ ] accepts a pawn structure that makes piece defense harder
 - [x] Scale penalties down appropriately in true endings.
@@ -171,7 +171,7 @@ Phase note: Task 1.4 is covered by the existing STRATEGY3/4 quality suites: `tes
 ## 2.3 Reward human-style pawn restraint
 
 - [ ] Reward:
-  - [ ] keeping a healthy shelter when no attack exists
+  - [x] keeping a healthy shelter when no attack exists
   - [ ] preserving central tension when a break is premature
   - [x] preparing a pawn break with pieces first
   - [ ] maintaining flexible pawn structure instead of fixing weaknesses too early
@@ -184,7 +184,7 @@ Phase note: Task 1.4 is covered by the existing STRATEGY3/4 quality suites: `tes
   - [x] central integrity over side pawn grabs
   - [ ] restraining enemy breaks over mirror-image drifting
 
-Phase note: Task 2 now has two green slices in place: the shelter-structure penalty for loose castled-king `g`/`h` pawn advances, plus explicit prepared-break scoring that rewards central pawns when minor pieces are ready and keeps backward-pawn targets from scoring like healthy structure. `tests/test_ai_strategy4_regressions.py` now locks in stable shelter, central integrity, backward-pawn weakness, and prepared-break-over-premature-break comparisons.
+Phase note: Task 2 now has three green slices in place: the shelter-structure penalty for loose castled-king `g`/`h` pawn advances, an extra castled-king file-gap penalty that gets harsher while the enemy queen remains, and explicit prepared-break scoring that rewards central pawns when minor pieces are ready while keeping backward-pawn targets from scoring like healthy structure. `tests/test_ai_strategy4_regressions.py` now locks in stable shelter, castled-king file-gap restraint, central integrity, backward-pawn weakness, and prepared-break-over-premature-break comparisons.
 
 ---
 
