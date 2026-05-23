@@ -9,6 +9,10 @@ from chess_game.chess.endgame_evaluation import (
     evaluate_endgame_technique as _evaluate_endgame_technique,
     evaluate_progress as _evaluate_progress,
 )
+from chess_game.chess.pawn_structure_evaluation import (
+    collect_pawn_positions as _collect_pawn_positions,
+    evaluate_pawn_structure as _evaluate_pawn_structure,
+)
 from chess_game.chess.opening_development import (
     early_shelter_pawn_push_penalty as _early_shelter_pawn_push_penalty,
     coordinated_minor_piece_setup as _coordinated_minor_piece_setup,
@@ -22,36 +26,28 @@ from chess_game.chess.opening_development import (
 )
 from chess_game.chess.pieces.piece_movers import PieceMovers
 from chess_game.chess.strategy_utils import (
-    is_passed_pawn as _is_passed_pawn,
     iter_king_squares as _iter_king_squares,
     path_clear_between as _path_clear_between,
     scale_signed as _scale_signed,
 )
 from chess_game.chess.evaluation_tables import (
-    BACKWARD_PAWN_PENALTY,
     BACK_RANK_TENSION_PENALTY,
     BAD_BISHOP_PAWN_PENALTY,
     BISHOP_TABLE,
     BISHOP_PAIR_BONUS,
-    BLOCKED_CENTRAL_PAWN_PENALTY,
-    CANDIDATE_PASSED_PAWN_BONUS,
     CASTLED_KING_BONUS,
     CENTER_FILES,
-    CENTRAL_DUO_BONUS,
     CENTRAL_MINOR_PIECE_BONUS,
     CENTRAL_SQUARES,
-    CONNECTED_PASSED_PAWN_BONUS,
     CONNECTED_ROOKS_BONUS,
     CENTRAL_KING_WITH_QUEENS_PENALTY,
     CRAMPED_PIECE_PENALTY,
     DEFENDER_DISTANCE_PENALTY,
-    DOUBLED_PAWN_PENALTY,
     EARLY_QUEEN_MOVE_PENALTY,
     EARLY_ROOK_MOVE_PENALTY,
     EXPOSED_CENTRAL_KING_PENALTY,
     HEAVY_FILE_PRESSURE_PENALTY,
     EXTENDED_CENTER_FILES,
-    ISOLATED_PAWN_PENALTY,
     KING_TABLE,
     KING_ZONE_ATTACK_PENALTY,
     KNIGHT_OUTPOST_BONUS,
@@ -62,9 +58,6 @@ from chess_game.chess.evaluation_tables import (
     MINOR_COORDINATION_BONUS,
     MOBILITY_WEIGHTS,
     OPEN_KING_FILE_PENALTY,
-    PASSED_PAWN_BONUS_BY_PROGRESS,
-    PAWN_ISLAND_PENALTY,
-    PAWN_MAJORITY_ENDGAME_BONUS,
     PAWN_SHIELD_BONUS,
     PAWN_TABLE,
     QUEEN_ROOK_BATTERY_BONUS,
@@ -77,7 +70,6 @@ from chess_game.chess.evaluation_tables import (
     SPACE_ADVANTAGE_BONUS,
     STARTING_NON_PAWN_MATERIAL,
     UNDEVELOPED_MINOR_PIECE_PENALTY,
-    WEAK_CHAIN_PAWN_PENALTY,
 )
 from chess_game.chess.types import Color, Piece, PieceType
 
@@ -184,250 +176,6 @@ def _evaluate_mobility(board: Board) -> int:
         move_count = len(PieceMovers.get_valid_moves(piece, board))
         mobility_score += _color_sign(piece.color) * move_count * weight
     return mobility_score
-
-
-def _evaluate_pawn_structure(board: Board, endgame_phase: int) -> int:
-    pawn_positions = _collect_pawn_positions(board)
-    pawn_structure_score = 0
-    for color in (Color.WHITE, Color.BLACK):
-        sign = _color_sign(color)
-        color_positions = pawn_positions[color]
-        file_map = _group_rows_by_file(color_positions)
-        enemy_positions = pawn_positions[_opponent(color)]
-        passed_pawns: set[tuple[int, int]] = set()
-        pawn_structure_score -= sign * _pawn_island_penalty(file_map)
-        pawn_structure_score += sign * _central_duo_bonus(color_positions)
-        pawn_structure_score += sign * _pawn_majority_bonus(
-            color_positions,
-            enemy_positions,
-            endgame_phase,
-        )
-        for row, col in color_positions:
-            pawn_structure_score -= sign * _pawn_file_penalty(file_map, col)
-            pawn_position = (row, col)
-            if _is_backward_pawn(
-                board,
-                color,
-                pawn_position,
-                file_map,
-                enemy_positions,
-            ):
-                pawn_structure_score -= sign * BACKWARD_PAWN_PENALTY
-            if _is_weak_pawn_chain(color, row, col, color_positions):
-                pawn_structure_score -= sign * WEAK_CHAIN_PAWN_PENALTY
-            if _is_blocked_central_pawn(board, color, row, col):
-                pawn_structure_score -= sign * BLOCKED_CENTRAL_PAWN_PENALTY
-            if _is_passed_pawn(color, row, col, enemy_positions):
-                progress = _pawn_progress(color, row)
-                pawn_structure_score += (
-                    sign * PASSED_PAWN_BONUS_BY_PROGRESS[progress]
-                )
-                passed_pawns.add((row, col))
-            elif _is_candidate_passed_pawn(color, row, col, enemy_positions):
-                progress = _pawn_progress(color, row)
-                pawn_structure_score += (
-                    sign * (CANDIDATE_PASSED_PAWN_BONUS + progress * 2)
-                )
-        for row, col in passed_pawns:
-            if _has_connected_passed_pawn(row, col, passed_pawns):
-                pawn_structure_score += sign * CONNECTED_PASSED_PAWN_BONUS
-    return pawn_structure_score
-
-
-def _collect_pawn_positions(board: Board) -> dict[Color, list[tuple[int, int]]]:
-    pawn_positions = {Color.WHITE: [], Color.BLACK: []}
-    for piece, row, col in _iter_board_pieces(board):
-        if piece.kind == PieceType.PAWN:
-            pawn_positions[piece.color].append((row, col))
-    return pawn_positions
-
-
-def _group_rows_by_file(positions: list[tuple[int, int]]) -> dict[int, list[int]]:
-    grouped: dict[int, list[int]] = {}
-    for row, col in positions:
-        grouped.setdefault(col, []).append(row)
-    for rows in grouped.values():
-        rows.sort()
-    return grouped
-
-
-def _pawn_file_penalty(file_map: dict[int, list[int]], col: int) -> int:
-    penalty = 0
-    if len(file_map.get(col, [])) > 1:
-        penalty += DOUBLED_PAWN_PENALTY
-    if not any(file_map.get(file_index) for file_index in (col - 1, col + 1)):
-        penalty += ISOLATED_PAWN_PENALTY
-    return penalty
-
-
-def _pawn_island_penalty(file_map: dict[int, list[int]]) -> int:
-    occupied_files = sorted(file_map)
-    if not occupied_files:
-        return 0
-    islands = 1
-    for current, previous in zip(occupied_files[1:], occupied_files):
-        if current != previous + 1:
-            islands += 1
-    return max(0, islands - 1) * PAWN_ISLAND_PENALTY
-
-
-def _central_duo_bonus(positions: list[tuple[int, int]]) -> int:
-    position_set = set(positions)
-    bonus = 0
-    for row, col in positions:
-        if col not in CENTER_FILES:
-            continue
-        if (row, col + 1) in position_set or (row, col - 1) in position_set:
-            bonus += CENTRAL_DUO_BONUS
-    return bonus // 2
-
-
-def _pawn_majority_bonus(
-    positions: list[tuple[int, int]],
-    enemy_positions: list[tuple[int, int]],
-    endgame_phase: int,
-) -> int:
-    if endgame_phase == 0:
-        return 0
-    bonus = 0
-    for files in ({0, 1, 2}, {3, 4}, {5, 6, 7}):
-        friendly = sum(1 for _, col in positions if col in files)
-        enemy = sum(1 for _, col in enemy_positions if col in files)
-        if friendly > enemy:
-            bonus += (friendly - enemy) * PAWN_MAJORITY_ENDGAME_BONUS
-    return (bonus * endgame_phase) // 100
-
-
-def _is_weak_pawn_chain(
-    color: Color,
-    row: int,
-    col: int,
-    pawn_positions: list[tuple[int, int]],
-) -> bool:
-    if not _is_advanced_pawn(color, row):
-        return False
-    for neighbor_col in (col - 1, col + 1):
-        if color == Color.WHITE and (row + 1, neighbor_col) in pawn_positions:
-            return False
-        if color == Color.BLACK and (row - 1, neighbor_col) in pawn_positions:
-            return False
-    return True
-
-
-def _is_advanced_pawn(color: Color, row: int) -> bool:
-    return row <= 3 if color == Color.WHITE else row >= 4
-
-
-def _is_blocked_central_pawn(board: Board, color: Color, row: int, col: int) -> bool:
-    if col not in CENTER_FILES:
-        return False
-    next_row = row + _pawn_direction(color)
-    if not 0 <= next_row < 8:
-        return False
-    next_square = ConstantSquare(
-        row=get_row_constant(next_row),
-        col=get_col_constant(col),
-    )
-    piece = board.get_piece(next_square)
-    return piece is not None
-
-
-def _is_candidate_passed_pawn(
-    color: Color,
-    row: int,
-    col: int,
-    enemy_positions: list[tuple[int, int]],
-) -> bool:
-    blockers = 0
-    for enemy_row, enemy_col in enemy_positions:
-        if enemy_col != col:
-            continue
-        if color == Color.WHITE and enemy_row < row:
-            blockers += 1
-        if color == Color.BLACK and enemy_row > row:
-            blockers += 1
-    if blockers != 0:
-        return False
-    for enemy_row, enemy_col in enemy_positions:
-        if abs(enemy_col - col) != 1:
-            continue
-        if color == Color.WHITE and enemy_row < row - 1:
-            return False
-        if color == Color.BLACK and enemy_row > row + 1:
-            return False
-    return True
-
-
-def _has_connected_passed_pawn(
-    row: int,
-    col: int,
-    passed_pawns: set[tuple[int, int]],
-) -> bool:
-    for file_offset in (-1, 1):
-        neighbor_col = col + file_offset
-        if not 0 <= neighbor_col < 8:
-            continue
-        valid_rows = {row, row - 1, row + 1}
-        if any(
-            (candidate_row, neighbor_col) in passed_pawns
-            for candidate_row in valid_rows
-        ):
-            return True
-    return False
-
-
-def _is_backward_pawn(
-    board: Board,
-    color: Color,
-    pawn_position: tuple[int, int],
-    file_map: dict[int, list[int]],
-    enemy_positions: list[tuple[int, int]],
-) -> bool:
-    row, col = pawn_position
-    if _has_supporting_adjacent_pawn(color, row, col, file_map):
-        return False
-    next_row = row + _pawn_direction(color)
-    if not 0 <= next_row < 8:
-        return False
-    next_square = ConstantSquare(
-        row=get_row_constant(next_row),
-        col=get_col_constant(col),
-    )
-    if board.get_piece(next_square) is not None:
-        return True
-    return _enemy_pawn_controls_square(_opponent(color), next_row, col, enemy_positions)
-
-
-def _has_supporting_adjacent_pawn(
-    color: Color,
-    row: int,
-    col: int,
-    file_map: dict[int, list[int]],
-) -> bool:
-    for file_offset in (-1, 1):
-        for neighbor_row in file_map.get(col + file_offset, []):
-            if color == Color.WHITE and neighbor_row >= row:
-                return True
-            if color == Color.BLACK and neighbor_row <= row:
-                return True
-    return False
-
-
-def _enemy_pawn_controls_square(
-    enemy_color: Color,
-    target_row: int,
-    target_col: int,
-    enemy_positions: list[tuple[int, int]],
-) -> bool:
-    attack_step = _pawn_direction(enemy_color)
-    for enemy_row, enemy_col in enemy_positions:
-        if enemy_row + attack_step == target_row and abs(enemy_col - target_col) == 1:
-            return True
-    return False
-
-
-def _pawn_progress(color: Color, row: int) -> int:
-    return 6 - row if color == Color.WHITE else row - 1
 
 
 def _pawn_direction(color: Color) -> int:

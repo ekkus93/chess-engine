@@ -155,18 +155,18 @@ Phase note: Task 1.4 is covered by the existing STRATEGY3/4 quality suites: `tes
   - [ ] backward pawns
   - [ ] weak dark/light square complexes
   - [ ] overextended pawn chains
-  - [ ] loose pawn advances around castled kings
+  - [x] loose pawn advances around castled kings
   - [ ] fixed pawn targets that a strong human would exploit
   - [ ] pawn breaks that are only good when pieces are ready
 
 ## 2.2 Penalize needless king-shelter damage more sharply
 
 - [ ] Increase penalties when a side:
-  - [ ] advances `g`/`h` pawns without a real attack
+  - [x] advances `g`/`h` pawns without a real attack
   - [ ] opens files around its king while queens remain
-  - [ ] creates long-term holes near king shelter
+  - [x] creates long-term holes near king shelter
   - [ ] accepts a pawn structure that makes piece defense harder
-- [ ] Scale penalties down appropriately in true endings.
+- [x] Scale penalties down appropriately in true endings.
 
 ## 2.3 Reward human-style pawn restraint
 
@@ -179,10 +179,12 @@ Phase note: Task 1.4 is covered by the existing STRATEGY3/4 quality suites: `tes
 ## 2.4 Add pawn-structure regression tests
 
 - [ ] Add tests that prefer:
-  - [ ] stable shelter over speculative pawn pushes
+  - [x] stable shelter over speculative pawn pushes
   - [ ] prepared breaks over immediate breaks
-  - [ ] central integrity over side pawn grabs
+  - [x] central integrity over side pawn grabs
   - [ ] restraining enemy breaks over mirror-image drifting
+
+Phase note: The first Task 2 pawn-structure slice now adds a middlegame-weighted shelter-structure penalty for castled-king shield pawns that race forward, and `tests/test_ai_strategy4_regressions.py` now locks in stable-shelter and central-integrity comparisons against speculative side-pawn structures.
 
 ---
 

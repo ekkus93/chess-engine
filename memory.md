@@ -430,3 +430,8 @@ Quality:
 - Expanded `tests/test_ai_strategy4_regressions.py` again so quiet-improvement cases are explicit: rook centralization now beats harmless side checks, and bishop reroutes beat loose queen pokes.
 - Closed out the remaining Task 1 tracker items by verifying the existing quality/defense suites already cover counterplay suppression first: blockade-first, rook cutoff, file-closing, queen-trade simplification, and king-safety-over-material cases.
 - Updated `docs/STRATEGY4_TODO.md` so all of Task 1 (`1.1` through `1.4`) is now marked complete, with validation green at `pylint chess_game` and `python -m pytest tests -q`.
+
+## 2026-05-23T03:03:53Z - GPT-5.4 - STRATEGY4 first Task 2 pawn-structure slice
+- Added `chess_game/chess/pawn_structure_evaluation.py` and moved pawn-structure scoring out of `evaluation.py` so Task 2 growth stays structural and lint-clean.
+- Added STRATEGY4 regressions for loose castled-king shelter pawn advances and for central integrity beating side-grab structures, then introduced a middlegame-weighted shelter penalty that scales down in endings.
+- Updated `docs/STRATEGY4_TODO.md` to mark the completed Task 2 bullets for loose castled-king pawn advances, sharper `g`/`h`-pawn shelter penalties, endgame scaling, and the new stable-shelter / central-integrity regression coverage.

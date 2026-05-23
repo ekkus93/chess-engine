@@ -278,6 +278,78 @@ def test_quiet_move_order_prefers_bishop_reroute_over_loose_queen_poke() -> None
     )
 
 
+def test_pawn_structure_penalizes_loose_shelter_pawn_advances() -> None:
+    """Pawn structure should dislike castled-king shelter pawns racing forward."""
+
+    stable_board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("f2", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("d4", Color.WHITE, PieceType.PAWN),
+            ("e4", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+        ]
+    )
+    loose_board = stable_board.clone()
+    loose_board.clear_square(sq("g2"))
+    loose_board.clear_square(sq("h2"))
+    loose_board.set_piece(sq("g4"), create_piece(Color.WHITE, PieceType.PAWN))
+    loose_board.set_piece(sq("h4"), create_piece(Color.WHITE, PieceType.PAWN))
+
+    assert (
+        get_evaluation_breakdown(stable_board)["pawn_structure"]
+        > get_evaluation_breakdown(loose_board)["pawn_structure"]
+    )
+
+
+def test_pawn_structure_prefers_central_integrity_over_side_grab_structure() -> None:
+    """Holding the center should beat a side-grab structure with retreated central pawns."""
+
+    central_board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("c3", Color.WHITE, PieceType.KNIGHT),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("c4", Color.WHITE, PieceType.BISHOP),
+            ("e2", Color.WHITE, PieceType.BISHOP),
+            ("d4", Color.WHITE, PieceType.PAWN),
+            ("e4", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+        ]
+    )
+    side_grab_board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("h5", Color.WHITE, PieceType.QUEEN),
+            ("c3", Color.WHITE, PieceType.KNIGHT),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("c4", Color.WHITE, PieceType.BISHOP),
+            ("e2", Color.WHITE, PieceType.BISHOP),
+            ("d2", Color.WHITE, PieceType.PAWN),
+            ("e3", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+        ]
+    )
+
+    assert (
+        get_evaluation_breakdown(central_board)["pawn_structure"]
+        > get_evaluation_breakdown(side_grab_board)["pawn_structure"]
+    )
+
+
 def test_repetition_score_scales_up_for_large_winning_margin() -> None:
     """A repeated draw should be much worse when the side to move is clearly winning."""
 
