@@ -118,6 +118,134 @@ def test_development_penalizes_flank_queen_sortie_over_center_tension() -> None:
     )
 
 
+def test_quiet_move_order_prefers_blockading_iqp_over_aimless_centralization() -> None:
+    """Task 5 should recognize the blockade square against an isolated queen pawn."""
+
+    board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("e2", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("c4", Color.WHITE, PieceType.BISHOP),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+            ("a8", Color.BLACK, PieceType.ROOK),
+            ("d5", Color.BLACK, PieceType.PAWN),
+            ("g7", Color.BLACK, PieceType.PAWN),
+            ("h7", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+    blockade = ai.Move(start=sq("f3"), end=sq("d4"))
+    queen_drift = ai.Move(start=sq("d1"), end=sq("h5"))
+
+    assert _move_order_score(board, blockade, None) > _move_order_score(board, queen_drift, None)
+
+
+def test_quiet_move_order_prefers_minority_attack_prep_over_random_pawn_lunge() -> None:
+    """Task 5 should reward the queenside minority plan in the right structure."""
+
+    board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("c4", Color.WHITE, PieceType.BISHOP),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("a2", Color.WHITE, PieceType.PAWN),
+            ("b2", Color.WHITE, PieceType.PAWN),
+            ("d4", Color.WHITE, PieceType.PAWN),
+            ("e5", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+            ("a7", Color.BLACK, PieceType.PAWN),
+            ("b7", Color.BLACK, PieceType.PAWN),
+            ("c6", Color.BLACK, PieceType.PAWN),
+            ("d5", Color.BLACK, PieceType.PAWN),
+            ("e6", Color.BLACK, PieceType.PAWN),
+            ("g7", Color.BLACK, PieceType.PAWN),
+            ("h7", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+    minority_attack = ai.Move(start=sq("b2"), end=sq("b4"))
+    pawn_lunge = ai.Move(start=sq("h2"), end=sq("h3"))
+
+    assert _move_order_score(board, minority_attack, None) > _move_order_score(board, pawn_lunge, None)
+
+
+def test_quiet_move_order_prefers_maneuvering_in_closed_center_over_empty_tactic() -> None:
+    """Task 5 should favor rerouting pieces when the center is locked."""
+
+    board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("c1", Color.WHITE, PieceType.BISHOP),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("d4", Color.WHITE, PieceType.PAWN),
+            ("e5", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+            ("d5", Color.BLACK, PieceType.PAWN),
+            ("e6", Color.BLACK, PieceType.PAWN),
+            ("g7", Color.BLACK, PieceType.PAWN),
+            ("h7", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+    bishop_maneuver = ai.Move(start=sq("c1"), end=sq("b2"))
+    empty_tactic = ai.Move(start=sq("d1"), end=sq("h5"))
+
+    assert _move_order_score(board, bishop_maneuver, None) > _move_order_score(
+        board,
+        empty_tactic,
+        None,
+    )
+
+
+def test_quiet_move_order_prefers_open_file_occupation_over_side_check_in_open_center() -> None:
+    """Task 5 should keep open-center play focused on open lines."""
+
+    board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("c4", Color.WHITE, PieceType.BISHOP),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+            ("a8", Color.BLACK, PieceType.ROOK),
+            ("g7", Color.BLACK, PieceType.PAWN),
+            ("h7", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+    occupy_open_file = ai.Move(start=sq("a1"), end=sq("d1"))
+    side_check = ai.Move(start=sq("a1"), end=sq("a8"))
+
+    assert _move_order_score(board, occupy_open_file, None) > _move_order_score(
+        board,
+        side_check,
+        None,
+    )
+
+
 def test_search_rejects_rook_lift_that_drops_back_rank_safety() -> None:
     """Under pressure, luft should beat a rook lift that abandons the back rank."""
 

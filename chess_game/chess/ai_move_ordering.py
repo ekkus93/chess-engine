@@ -20,6 +20,7 @@ from chess_game.chess.piece_coordination import (
     rook_coordination_bonus,
     square_has_friendly_support as _square_has_friendly_support,
 )
+from chess_game.chess.structure_recognition import structure_plan_bonus
 from chess_game.chess.strategy_utils import center_distance, is_capture_move, path_clear_between
 from chess_game.chess.types import Color, PieceType
 
@@ -98,6 +99,7 @@ def quiet_strategy_order_score(board: Board, move: Move) -> int:
     score += _heavy_piece_bonus(board, piece.kind, piece.color, move)
     score += _pawn_bonus(board, piece.color, piece.kind, move)
     score += _piece_coordination_bonus(board, piece.color, piece.kind, move)
+    score += structure_plan_bonus(board, piece.color, piece.kind, move)
     if improves_worst_piece(board, move):
         score += QUIET_WORST_PIECE_BONUS
     score += _check_quality_bonus(board, piece.kind, move)

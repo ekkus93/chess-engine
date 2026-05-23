@@ -5,6 +5,11 @@
 - Tightened `chess_game/chess/ai_move_ordering.py` so opponent-plan assessment only runs for moves that can materially affect prophylaxis, restoring the depth-5 search benchmark while keeping the new break-stopping behavior.
 - Revalidated the full repo green with `pylint chess_game` and `python -m pytest tests -q` (`451 passed`) before moving on to STRATEGY4 Task 5.
 
+## 2026-05-23T06:59:16Z - GPT-5.4 - STRATEGY4 Task 5 structure-recognition slice
+- Added `chess_game/chess/structure_recognition.py` so the engine can group positions by open center, closed center, IQP, hanging pawns, opposite-side castling, and rook endgames with outside/protected passers.
+- Wired `chess_game/chess/ai_move_ordering.py` to reward open-file occupation in open centers, piece maneuvers and useful breaks in closed centers, blockade squares against IQP/hanging-pawn targets, and minority-attack preparation in the right queenside structures.
+- Added direct helper tests in `tests/test_structure_recognition.py`, expanded `tests/test_ai_strategy4_regressions.py` with the Task 5 structure-plan regressions, and revalidated the full repo green with `pylint chess_game` and `python -m pytest tests -q` (`458 passed`).
+
 ## 2026-05-23T06:35:25Z - GPT-5.4 - STRATEGY4 Task 4 first threat-recognition slice
 - Added `chess_game/chess/opponent_plans.py` so quiet ordering can compare enemy near-term plan pressure before and after a move, including invasion lines, knight jumps, central pawn breaks, checking resources, and passed-pawn pushes.
 - Wired that plan-pressure delta into `chess_game/chess/ai_move_ordering.py` and added a new prophylaxis regression in `tests/test_ai_defensive_strategy.py` proving that stopping an enemy central break outranks quiet rook improvement.

@@ -26,6 +26,7 @@ from chess_game.chess.opening_development import (
 )
 from chess_game.chess.pieces.piece_movers import PieceMovers
 from chess_game.chess.strategy_utils import (
+    file_pawn_state as _file_pawn_state,
     iter_king_squares as _iter_king_squares,
     path_clear_between as _path_clear_between,
     scale_signed as _scale_signed,
@@ -394,26 +395,7 @@ def _evaluate_rook_activity(board: Board) -> int:
 
 
 def _rook_file_state(board: Board, color: Color, file_index: int) -> str:
-    has_friendly_pawn = False
-    has_enemy_pawn = False
-    enemy_color = _opponent(color)
-    for rank_index in range(8):
-        square = ConstantSquare(
-            row=get_row_constant(rank_index),
-            col=get_col_constant(file_index),
-        )
-        piece = board.get_piece(square)
-        if piece is None or piece.kind != PieceType.PAWN:
-            continue
-        if piece.color == color:
-            has_friendly_pawn = True
-        elif piece.color == enemy_color:
-            has_enemy_pawn = True
-    if not has_friendly_pawn and not has_enemy_pawn:
-        return "open"
-    if not has_friendly_pawn:
-        return "semi-open"
-    return "closed"
+    return _file_pawn_state(board, color, file_index)
 
 
 def _rook_on_seventh_rank(color: Color, row: int) -> bool:

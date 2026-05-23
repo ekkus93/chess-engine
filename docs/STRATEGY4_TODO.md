@@ -280,26 +280,26 @@ Phase note: Task 4 is now complete. The new `chess_game/chess/opponent_plans.py`
 
 ## 5.1 Group positions by pawn structure
 
-- [ ] Introduce lightweight structure recognition helpers for:
-  - [ ] open center
-  - [ ] closed center
-  - [ ] isolated queen pawn
-  - [ ] hanging pawns
-  - [ ] opposite-side castling
-  - [ ] rook endgames with outside passer / protected passer
+- [x] Introduce lightweight structure recognition helpers for:
+  - [x] open center
+  - [x] closed center
+  - [x] isolated queen pawn
+  - [x] hanging pawns
+  - [x] opposite-side castling
+  - [x] rook endgames with outside passer / protected passer
 
 ## 5.2 Attach structure-appropriate preferences
 
 - [ ] In open centers, prefer:
   - [ ] development lead
-  - [ ] open-line control
+  - [x] open-line control
   - [ ] king safety before flank attacks
 - [ ] In closed centers, prefer:
-  - [ ] piece maneuvers
-  - [ ] useful breaks
+  - [x] piece maneuvers
+  - [x] useful breaks
   - [ ] restraint before wing expansion
 - [ ] In IQP/hanging-pawn structures, prefer:
-  - [ ] blockade squares
+  - [x] blockade squares
   - [ ] favorable exchanges
   - [ ] piece pressure on structural targets
 
@@ -313,11 +313,11 @@ Phase note: Task 4 is now complete. The new `chess_game/chess/opponent_plans.py`
 
 ## 5.4 Add structure-plan regression tests
 
-- [ ] Add tests that prefer:
-  - [ ] blockading an IQP over aimless centralization
-  - [ ] preparing a minority attack instead of a random pawn lunge
-  - [ ] maneuvering in a closed center instead of forcing empty tactics
-  - [ ] open-file occupation in open positions over side checks
+- [x] Add tests that prefer:
+  - [x] blockading an IQP over aimless centralization
+  - [x] preparing a minority attack instead of a random pawn lunge
+  - [x] maneuvering in a closed center instead of forcing empty tactics
+  - [x] open-file occupation in open positions over side checks
 
 ---
 

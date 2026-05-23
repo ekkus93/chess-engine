@@ -102,6 +102,27 @@ def is_capture_move(board: Board, move: Move) -> bool:
     )
 
 
+def file_pawn_state(board: Board, color: Color, file_index: int) -> str:
+    """Return whether a file is open, semi-open, or closed for one side."""
+
+    has_friendly_pawn = False
+    has_enemy_pawn = False
+    enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
+    for rank_index in range(8):
+        piece = board.board[rank_index][file_index]
+        if piece is None or piece.kind != PieceType.PAWN:
+            continue
+        if piece.color == color:
+            has_friendly_pawn = True
+        elif piece.color == enemy_color:
+            has_enemy_pawn = True
+    if not has_friendly_pawn and not has_enemy_pawn:
+        return "open"
+    if not has_friendly_pawn:
+        return "semi-open"
+    return "closed"
+
+
 def scale_signed(value: int, factor: int) -> int:
     """Scale a signed value by a percentage without floor-bias asymmetry."""
 
