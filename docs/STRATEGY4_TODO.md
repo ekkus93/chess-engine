@@ -123,23 +123,27 @@ Phase note: `tests/test_ai_strategy4_regressions.py` now covers the full Task 1.
 
 ## 1.3 Add “quiet improvement beats cosmetic activity” tests
 
-- [ ] Add tests where human-style piece improvement should win.
-- [ ] Cover cases such as:
-  - [ ] worst-piece improvement over repeated pressure move
-  - [ ] rook centralization over a harmless side check
-  - [ ] defender regrouping over a speculative pawn thrust
-  - [ ] central king improvement in safe endings over pointless checking
-  - [ ] bishop reroute to a long diagonal over a loose tactical poke
+- [x] Add tests where human-style piece improvement should win.
+- [x] Cover cases such as:
+  - [x] worst-piece improvement over repeated pressure move
+  - [x] rook centralization over a harmless side check
+  - [x] defender regrouping over a speculative pawn thrust
+  - [x] central king improvement in safe endings over pointless checking
+  - [x] bishop reroute to a long diagonal over a loose tactical poke
+
+Phase note: Task 1.3 coverage now spans `tests/test_ai_strategy4_regressions.py` plus the earlier activity/defense suites: repeated queen-pressure moves lose to worst-piece improvement, rook centralization beats side checks, defender regrouping beats speculative drifting, winning endings prefer king centralization, and bishop reroutes beat loose queen pokes.
 
 ## 1.4 Add “counterplay suppression first” tests
 
-- [ ] Add tests where a side with the advantage must first kill counterplay.
-- [ ] Cover cases such as:
-  - [ ] blockading the only enemy passer
-  - [ ] cutting off rook checking distance
-  - [ ] closing the only open file near one’s king
-  - [ ] exchanging the enemy active queen before pushing a passer
-  - [ ] choosing king safety over immediate material gain
+- [x] Add tests where a side with the advantage must first kill counterplay.
+- [x] Cover cases such as:
+  - [x] blockading the only enemy passer
+  - [x] cutting off rook checking distance
+  - [x] closing the only open file near one’s king
+  - [x] exchanging the enemy active queen before pushing a passer
+  - [x] choosing king safety over immediate material gain
+
+Phase note: Task 1.4 is covered by the existing STRATEGY3/4 quality suites: `tests/test_ai_quality.py` locks in blockade-first and rook-cutoff progress choices, `tests/test_ai_defensive_strategy.py` locks in file-closing, queen-trade, and king-safety-over-material behavior, and `tests/test_ai_strategy4_regressions.py` now includes the complementary prophylaxis cases from Task 1.1.
 
 ---
 

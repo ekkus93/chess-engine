@@ -225,6 +225,59 @@ def test_quiet_move_order_prefers_stopping_knight_outpost_before_pawn_push() -> 
     )
 
 
+def test_quiet_move_order_prefers_rook_centralization_over_side_check() -> None:
+    """Improving the rook should beat a low-value side check."""
+
+    board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("e2", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.ROOK),
+        ]
+    )
+
+    centralize = ai.Move(start=sq("a1"), end=sq("d1"))
+    side_check = ai.Move(start=sq("a1"), end=sq("a8"))
+
+    assert _move_order_score(board, centralize, None) > _move_order_score(
+        board,
+        side_check,
+        None,
+    )
+
+
+def test_quiet_move_order_prefers_bishop_reroute_over_loose_queen_poke() -> None:
+    """A bishop reroute should beat a loose queen poke with no new pressure."""
+
+    board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("c1", Color.WHITE, PieceType.BISHOP),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("f6", Color.BLACK, PieceType.KNIGHT),
+            ("g7", Color.BLACK, PieceType.PAWN),
+            ("h7", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+    bishop_reroute = ai.Move(start=sq("c1"), end=sq("b2"))
+    queen_poke = ai.Move(start=sq("d1"), end=sq("h5"))
+
+    assert _move_order_score(board, bishop_reroute, None) > _move_order_score(
+        board,
+        queen_poke,
+        None,
+    )
+
+
 def test_repetition_score_scales_up_for_large_winning_margin() -> None:
     """A repeated draw should be much worse when the side to move is clearly winning."""
 

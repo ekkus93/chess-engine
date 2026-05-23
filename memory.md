@@ -425,3 +425,8 @@ Quality:
 - Expanded `tests/test_ai_strategy4_regressions.py` with explicit prophylaxis regressions for sealing an invasion file before attacking elsewhere and for stopping a looming knight outpost before a loose pawn push.
 - Verified the complementary Task 1.1 cases are already covered by the existing defense-first suites (`tests/test_ai_defensive_strategy.py`, `tests/test_ai_quality.py`) for luft-first play and exchanging the opponent's most active piece before pressing an attack.
 - Updated `docs/STRATEGY4_TODO.md` to mark all of Task 1.1 complete, with validation green at `pylint chess_game` and `python -m pytest tests -q`.
+
+## 2026-05-23T02:54:04Z - GPT-5.4 - STRATEGY4 Task 1 completed
+- Expanded `tests/test_ai_strategy4_regressions.py` again so quiet-improvement cases are explicit: rook centralization now beats harmless side checks, and bishop reroutes beat loose queen pokes.
+- Closed out the remaining Task 1 tracker items by verifying the existing quality/defense suites already cover counterplay suppression first: blockade-first, rook cutoff, file-closing, queen-trade simplification, and king-safety-over-material cases.
+- Updated `docs/STRATEGY4_TODO.md` so all of Task 1 (`1.1` through `1.4`) is now marked complete, with validation green at `pylint chess_game` and `python -m pytest tests -q`.
