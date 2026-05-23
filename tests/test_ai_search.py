@@ -394,6 +394,148 @@ def test_root_stability_adjustment_penalizes_repeated_empty_tactic() -> None:
     assert fresh_adjustment > repeated_adjustment
 
 
+def test_root_stability_adjustment_prefers_fewer_strategic_weaknesses() -> None:
+    """Root tie-breaks should prefer moves that avoid creating fresh weaknesses."""
+
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("g1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("e2"), create_piece(Color.WHITE, PieceType.QUEEN))
+    board.set_piece(sq("a1"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(sq("f1"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(sq("f2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("g2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("h2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("d8"), create_piece(Color.BLACK, PieceType.QUEEN))
+    board.set_piece(sq("h8"), create_piece(Color.BLACK, PieceType.ROOK))
+    board.turn = Color.WHITE
+
+    solid_move = Move(start=sq("a1"), end=sq("d1"))
+    loosening_move = Move(start=sq("h2"), end=sq("h4"))
+
+    solid_child = board.clone()
+    loosening_child = board.clone()
+    assert solid_child.apply_legal_move(solid_move.start, solid_move.end) is True
+    assert loosening_child.apply_legal_move(loosening_move.start, loosening_move.end) is True
+
+    assert root_stability_adjustment(board, solid_move, solid_child) > root_stability_adjustment(
+        board,
+        loosening_move,
+        loosening_child,
+    )
+
+
+def test_root_stability_adjustment_prefers_reducing_opponent_options() -> None:
+    """Root tie-breaks should reward moves that narrow the opponent's plan choices."""
+
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("d1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("a2"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(sq("e2"), create_piece(Color.WHITE, PieceType.QUEEN))
+    board.set_piece(sq("g2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("h2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("d8"), create_piece(Color.BLACK, PieceType.ROOK))
+    board.turn = Color.WHITE
+
+    suppress_move = Move(start=sq("a2"), end=sq("d2"))
+    attack_move = Move(start=sq("e2"), end=sq("e8"))
+
+    suppress_child = board.clone()
+    attack_child = board.clone()
+    assert suppress_child.apply_legal_move(suppress_move.start, suppress_move.end) is True
+    assert attack_child.apply_legal_move(attack_move.start, attack_move.end) is True
+
+    assert root_stability_adjustment(board, suppress_move, suppress_child) > root_stability_adjustment(
+        board,
+        attack_move,
+        attack_child,
+    )
+
+
+def test_root_stability_adjustment_prefers_plan_continuity() -> None:
+    """Root tie-breaks should keep a good structural plan alive over queen drift."""
+
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("g1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("d1"), create_piece(Color.WHITE, PieceType.QUEEN))
+    board.set_piece(sq("a1"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(sq("f1"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(sq("c4"), create_piece(Color.WHITE, PieceType.BISHOP))
+    board.set_piece(sq("f3"), create_piece(Color.WHITE, PieceType.KNIGHT))
+    board.set_piece(sq("a2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("b2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("d4"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("e5"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("g2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("h2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("d8"), create_piece(Color.BLACK, PieceType.QUEEN))
+    board.set_piece(sq("a7"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.set_piece(sq("b7"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.set_piece(sq("c6"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.set_piece(sq("d5"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.set_piece(sq("e6"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.set_piece(sq("g7"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.set_piece(sq("h7"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.turn = Color.WHITE
+
+    plan_move = Move(start=sq("b2"), end=sq("b4"))
+    drift_move = Move(start=sq("d1"), end=sq("h5"))
+
+    plan_child = board.clone()
+    drift_child = board.clone()
+    assert plan_child.apply_legal_move(plan_move.start, plan_move.end) is True
+    assert drift_child.apply_legal_move(drift_move.start, drift_move.end) is True
+
+    assert root_stability_adjustment(board, plan_move, plan_child) > root_stability_adjustment(
+        board,
+        drift_move,
+        drift_child,
+    )
+
+
+def test_root_stability_adjustment_prefers_structure_improvement_with_stability() -> None:
+    """Root tie-breaks should like structure improvement when it keeps the position stable."""
+
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("g1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("d1"), create_piece(Color.WHITE, PieceType.QUEEN))
+    board.set_piece(sq("a1"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(sq("f1"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(sq("c4"), create_piece(Color.WHITE, PieceType.BISHOP))
+    board.set_piece(sq("f3"), create_piece(Color.WHITE, PieceType.KNIGHT))
+    board.set_piece(sq("c2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("d4"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("e3"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("f2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("g2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("h2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("d8"), create_piece(Color.BLACK, PieceType.QUEEN))
+    board.set_piece(sq("g7"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.set_piece(sq("h7"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.turn = Color.WHITE
+
+    stable_structure = Move(start=sq("c2"), end=sq("c3"))
+    speculative_move = Move(start=sq("d1"), end=sq("h5"))
+
+    stable_child = board.clone()
+    speculative_child = board.clone()
+    assert stable_child.apply_legal_move(stable_structure.start, stable_structure.end) is True
+    assert speculative_child.apply_legal_move(speculative_move.start, speculative_move.end) is True
+
+    assert root_stability_adjustment(
+        board,
+        stable_structure,
+        stable_child,
+    ) > root_stability_adjustment(board, speculative_move, speculative_child)
+
+
 # Tests for alpha-beta pruning behavior
 
 

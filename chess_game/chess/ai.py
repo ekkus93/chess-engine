@@ -22,13 +22,13 @@ from chess_game.chess.ai_search_helpers import (
     record_root_research as _record_root_research,
     record_selective_extension as _record_selective_extension,
     repetition_score as _repetition_score,
+    prefer_root_move as _prefer_root_move,
     root_stability_adjustment as _root_stability_adjustment,
     rerun_full_window_if_needed as _rerun_full_window_if_needed,
     same_legal_move as _same_legal_move,
     selective_extension_bonus as _selective_extension_bonus,
     search_position_counts as _search_position_counts,
     update_alpha_beta as _update_alpha_beta,
-    update_best_result as _update_best_result,
 )
 from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.evaluation import (
@@ -475,21 +475,40 @@ def _search_move_loop(
 ) -> tuple[int, Optional[LegalMove]]:
     """Search one ply of child moves with alpha-beta pruning."""
 
+    is_root = len(params.line_history) == 1
     best_score = -INF if params.is_maximizing else INF
+    selected_score = -INF if params.is_maximizing else INF
+    best_root_tiebreak = -INF if params.is_maximizing else INF
     best_move: Optional[LegalMove] = None
     alpha = params.alpha
     beta = params.beta
-    original_window = (alpha, beta)
 
     for move in ordered_moves:
-        child_score = _evaluate_child_move(board, move, params, alpha, beta)
-        best_score, best_move = _update_best_result(
-            params.is_maximizing,
-            move,
-            child_score,
-            best_score,
-            best_move,
-        )
+        child_score, root_tiebreak = _evaluate_child_move(board, move, params, alpha, beta)
+        if (
+            child_score > best_score
+            if params.is_maximizing
+            else child_score < best_score
+        ):
+            best_score = child_score
+        if is_root:
+            replace_selected_move = _prefer_root_move(
+                params.is_maximizing,
+                child_score,
+                root_tiebreak,
+                selected_score,
+                best_root_tiebreak,
+            )
+        else:
+            replace_selected_move = (
+                child_score > selected_score
+                if params.is_maximizing
+                else child_score < selected_score
+            )
+        if best_move is None or replace_selected_move:
+            selected_score = child_score
+            best_root_tiebreak = root_tiebreak
+            best_move = LegalMove(move.start, move.end, move.promotion)
         alpha, beta, cutoff = _update_alpha_beta(
             params.is_maximizing,
             best_score,
@@ -500,7 +519,7 @@ def _search_move_loop(
             _record_cutoff(params.context, move)
             break
 
-    _store_tt_cache(board, params, best_score, best_move, original_window)
+    _store_tt_cache(board, params, best_score, best_move, (params.alpha, params.beta))
     return (best_score, best_move)
 
 
@@ -510,7 +529,7 @@ def _evaluate_child_move(
     params: MinimaxParams,
     alpha: int,
     beta: int,
-) -> int:
+) -> tuple[int, int]:
     """Evaluate a single child move recursively."""
 
     child_board = _make_copy_with_move(board, move)
@@ -527,15 +546,16 @@ def _evaluate_child_move(
             extension_budget=params.extension_budget - extension_bonus,
         ),
     )
+    root_tiebreak = 0
     if len(params.line_history) == 1:
-        child_result += _root_stability_adjustment(
+        root_tiebreak = _root_stability_adjustment(
             board,
             move,
             child_board,
             params.context,
             position_key,
         )
-    return child_result
+    return child_result, root_tiebreak
 
 
 def _leaf_extension_bonus(

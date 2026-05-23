@@ -30,6 +30,11 @@
 - Marked STRATEGY4 Task 6.1, 6.2, and 6.4 complete in `docs/STRATEGY4_TODO.md`, using the new regressions plus existing prophylaxis, worst-piece, anti-shuffle, speculative-check, and structure-plan coverage from prior phases.
 - Revalidated the full repo green with `pylint chess_game` and `python -m pytest tests -q` (`470 passed`) before moving on to the remaining Task 6 root tie-break work.
 
+## 2026-05-23T08:25:20Z - GPT-5.4 - STRATEGY4 Task 6 root tie-break completion
+- Finished `docs/STRATEGY4_TODO.md` Task 6.3 by keeping root tie-break overrides inside a guarded near-equality band, so stable defensive/plan-continuity moves can win close root choices without displacing clearly better raw search results.
+- Moved the root-choice comparator into `chess_game/chess/ai_search_helpers.py`, which kept `chess_game/chess/ai.py` under the structural pylint limits while preserving the new Task 6.3 root-quality behavior.
+- Expanded `tests/test_ai_search.py`, marked Task 6.3 complete in `docs/STRATEGY4_TODO.md`, and revalidated the full repo green with `pylint chess_game` and `python -m pytest tests -q` (`474 passed`).
+
 ## 2026-05-23T06:35:25Z - GPT-5.4 - STRATEGY4 Task 4 first threat-recognition slice
 - Added `chess_game/chess/opponent_plans.py` so quiet ordering can compare enemy near-term plan pressure before and after a move, including invasion lines, knight jumps, central pawn breaks, checking resources, and passed-pawn pushes.
 - Wired that plan-pressure delta into `chess_game/chess/ai_move_ordering.py` and added a new prophylaxis regression in `tests/test_ai_defensive_strategy.py` proving that stopping an enemy central break outranks quiet rook improvement.

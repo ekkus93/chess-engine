@@ -343,11 +343,11 @@ Phase note: Task 4 is now complete. The new `chess_game/chess/opponent_plans.py`
 
 ## 6.3 Improve root tie-break quality
 
-- [ ] Prefer root moves that:
-  - [ ] leave fewer strategic weaknesses
-  - [ ] reduce the opponent’s practical options
-  - [ ] maintain plan continuity
-  - [ ] improve structure while keeping tactical stability
+- [x] Prefer root moves that:
+  - [x] leave fewer strategic weaknesses
+  - [x] reduce the opponent’s practical options
+  - [x] maintain plan continuity
+  - [x] improve structure while keeping tactical stability
 
 ## 6.4 Add ordering regressions
 

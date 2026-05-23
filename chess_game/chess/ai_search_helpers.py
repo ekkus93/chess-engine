@@ -12,8 +12,15 @@ from chess_game.chess.defensive_priorities import (
     king_needs_shelter,
 )
 from chess_game.chess.move import Move
+from chess_game.chess.opponent_plans import opponent_plan_profile
+from chess_game.chess.pawn_structure_evaluation import evaluate_pawn_structure
+from chess_game.chess.structure_recognition import structure_plan_bonus
 from chess_game.chess.strategy_utils import is_capture_move
 from chess_game.chess.types import Color, LegalMove, PieceType
+from chess_game.chess.evaluation_tables import MATERIAL_VALUES, STARTING_NON_PAWN_MATERIAL
+
+ROOT_TIEBREAK_MARGIN = 50
+ROOT_TIEBREAK_OVERRIDE = 24
 
 
 @dataclass(frozen=True)
@@ -61,6 +68,38 @@ def rerun_full_window_if_needed(
             context.stats.fail_high_retries += 1
         return True
     return False
+
+
+def prefer_root_move(
+    is_maximizing: bool,
+    child_score: int,
+    root_tiebreak: int,
+    selected_score: int,
+    best_root_tiebreak: int,
+) -> bool:
+    """Return True when a near-equal root move should replace the current pick."""
+
+    score_gap = child_score - selected_score
+    if not is_maximizing:
+        score_gap = -score_gap
+    if score_gap > ROOT_TIEBREAK_MARGIN:
+        return True
+    if score_gap < -ROOT_TIEBREAK_MARGIN:
+        return False
+    if root_tiebreak != best_root_tiebreak:
+        tiebreak_gap = (
+            root_tiebreak - best_root_tiebreak
+            if is_maximizing
+            else best_root_tiebreak - root_tiebreak
+        )
+        if score_gap > 0:
+            return not (
+                -tiebreak_gap >= ROOT_TIEBREAK_OVERRIDE and -tiebreak_gap > score_gap
+            )
+        if score_gap < 0:
+            return tiebreak_gap >= ROOT_TIEBREAK_OVERRIDE and tiebreak_gap > -score_gap
+        return tiebreak_gap > 0
+    return score_gap > 0
 
 
 def record_root_research(context: Any) -> None:
@@ -268,6 +307,13 @@ def root_stability_adjustment(
         moving_color,
         enemy_color,
     )
+    signed_bonus += _strategic_root_bonus(
+        board,
+        move,
+        child_board,
+        moving_piece.kind,
+        moving_color,
+    )
     signed_bonus -= _repetition_root_penalty(
         board,
         move,
@@ -399,6 +445,96 @@ def _attacking_root_bonus(
     if is_capture_move(board, move):
         score += 10
     return score
+
+
+def _strategic_root_bonus(
+    board: Board,
+    move: Move,
+    child_board: Board,
+    moving_kind: PieceType,
+    moving_color: Color,
+) -> int:
+    if king_danger_index(board, moving_color) >= DANGEROUS_KING_PRESSURE_THRESHOLD:
+        return 0
+    if _is_simple_endgame(board):
+        return 0
+    score = _pawn_structure_root_bonus(board, move, child_board)
+    score += _plan_continuity_bonus(
+        board,
+        move,
+        child_board,
+        moving_kind,
+        moving_color,
+    )
+    return score
+
+
+def _pawn_structure_root_bonus(board: Board, move: Move, child_board: Board) -> int:
+    moving_piece = board.get_piece(move.start)
+    if moving_piece is None or moving_piece.kind != PieceType.PAWN:
+        return 0
+    endgame_phase = _endgame_phase(board)
+    before = evaluate_pawn_structure(board, endgame_phase)
+    after = evaluate_pawn_structure(child_board, endgame_phase)
+    delta = after - before
+    if delta == 0:
+        return 0
+    return delta * 8
+
+
+def _practical_options_bonus(board: Board, child_board: Board, moving_color: Color) -> int:
+    before_pressure = opponent_plan_profile(board, moving_color).pressure
+    after_pressure = opponent_plan_profile(child_board, moving_color).pressure
+    score = max(0, before_pressure - after_pressure) * 6
+    score -= max(0, after_pressure - before_pressure) * 5
+    return score
+
+
+def _plan_continuity_bonus(
+    board: Board,
+    move: Move,
+    child_board: Board,
+    moving_kind: PieceType,
+    moving_color: Color,
+) -> int:
+    continuity = structure_plan_bonus(board, moving_color, moving_kind, move)
+    if continuity == 0:
+        return 0
+    score = continuity // 2
+    if _keeps_tactical_stability(board, child_board, moving_color):
+        score += 8
+    return score
+
+
+def _keeps_tactical_stability(
+    board: Board,
+    child_board: Board,
+    moving_color: Color,
+) -> bool:
+    before = king_defense_profile(board, moving_color)
+    after = king_defense_profile(child_board, moving_color)
+    return after.danger <= before.danger and after.invasion_lines <= before.invasion_lines
+
+
+def _endgame_phase(board: Board) -> int:
+    non_pawn_material = 0
+    for row in board.board:
+        for piece in row:
+            if piece is None or piece.kind in {PieceType.KING, PieceType.PAWN}:
+                continue
+            non_pawn_material += MATERIAL_VALUES[piece.kind]
+    middlegame_phase = min((non_pawn_material * 100) // STARTING_NON_PAWN_MATERIAL, 100)
+    return 100 - middlegame_phase
+
+
+def _is_simple_endgame(board: Board) -> bool:
+    non_king_pieces = [
+        piece
+        for row in board.board
+        for piece in row
+        if piece is not None and piece.kind != PieceType.KING
+    ]
+    return len(non_king_pieces) <= 4
 
 
 def _repetition_root_penalty(
