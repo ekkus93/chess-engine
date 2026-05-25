@@ -40,6 +40,11 @@
 - Added the new bounded-extension coverage in `tests/test_ai_search.py` and deliberately narrowed the slice back down after broader Task 7.1 probes pushed the depth-5 benchmark over the repository limit.
 - Revalidated the full repo green with `pylint chess_game` and `python -m pytest tests -q` before continuing with the remaining Task 7 selective-search bullets.
 
+## 2026-05-24T07:08:50Z - GPT-5.4 - STRATEGY4 Task 7 forced-defense slice
+- Added a second bounded Task 7.1 extension so central pawn pushes that materially reduce enemy plan pressure count as forced defensive resources worth one extra search ply.
+- Covered that trigger directly in `tests/test_ai_search.py` and kept the broader selective-search work deliberately narrow so the depth-3/4/5 timing tests continue to pass.
+- Validation remained green with `pylint chess_game` and `python -m pytest tests -q`; this slice is ready to be committed and pushed on top of `d8507e8`.
+
 ## 2026-05-23T06:35:25Z - GPT-5.4 - STRATEGY4 Task 4 first threat-recognition slice
 - Added `chess_game/chess/opponent_plans.py` so quiet ordering can compare enemy near-term plan pressure before and after a move, including invasion lines, knight jumps, central pawn breaks, checking resources, and passed-pawn pushes.
 - Wired that plan-pressure delta into `chess_game/chess/ai_move_ordering.py` and added a new prophylaxis regression in `tests/test_ai_defensive_strategy.py` proving that stopping an enemy central break outranks quiet rook improvement.

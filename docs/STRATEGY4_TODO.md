@@ -364,7 +364,7 @@ Phase note: Task 4 is now complete. The new `chess_game/chess/opponent_plans.py`
 ## 7.1 Extend lines that matter strategically
 
 - [ ] Consider bounded extensions for:
-  - [ ] forced defensive resources
+  - [x] forced defensive resources
   - [ ] moves that open or close king files
   - [ ] recaptures that change structure near the king
   - [x] simplifying trades into favorable technical endings

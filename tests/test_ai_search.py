@@ -19,7 +19,7 @@ from chess_game.chess.ai_search_helpers import root_stability_adjustment, select
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.board.game_state import is_checkmate
 from chess_game.chess.move import Move
-from chess_game.chess.types import Color, PieceType
+from chess_game.chess.types import Color, LegalMove, PieceType
 from tests.helpers import (
     make_mate_in_one_white_position,
     make_search_context,
@@ -244,6 +244,36 @@ def make_technical_simplification_extension_position() -> Board:
     return board
 
 
+def make_central_prophylaxis_extension_position() -> Board:
+    """Create a central pawn push that sharply reduces enemy plan pressure."""
+
+    board = Board()
+    board.clear_board()
+    placements = [
+        ("g1", Color.WHITE, PieceType.KING),
+        ("d1", Color.WHITE, PieceType.QUEEN),
+        ("a1", Color.WHITE, PieceType.ROOK),
+        ("f1", Color.WHITE, PieceType.ROOK),
+        ("c4", Color.WHITE, PieceType.BISHOP),
+        ("f3", Color.WHITE, PieceType.KNIGHT),
+        ("d4", Color.WHITE, PieceType.PAWN),
+        ("e4", Color.WHITE, PieceType.PAWN),
+        ("f2", Color.WHITE, PieceType.PAWN),
+        ("g2", Color.WHITE, PieceType.PAWN),
+        ("h2", Color.WHITE, PieceType.PAWN),
+        ("g8", Color.BLACK, PieceType.KING),
+        ("d8", Color.BLACK, PieceType.QUEEN),
+        ("c5", Color.BLACK, PieceType.PAWN),
+        ("d6", Color.BLACK, PieceType.PAWN),
+        ("e5", Color.BLACK, PieceType.PAWN),
+        ("f6", Color.BLACK, PieceType.KNIGHT),
+    ]
+    for square_name, color, piece_kind in placements:
+        board.set_piece(sq(square_name), create_piece(color, piece_kind))
+    board.turn = Color.WHITE
+    return board
+
+
 # Tests for minimax leaf evaluation behavior
 
 
@@ -363,6 +393,17 @@ def test_selective_extension_bonus_triggers_for_favorable_simplification() -> No
 
     board = make_technical_simplification_extension_position()
     move = Move(start=sq("d1"), end=sq("d8"))
+    child_board = board.clone()
+
+    assert child_board.apply_legal_move(move.start, move.end) is True
+    assert selective_extension_bonus(board, move, child_board, extension_budget=1) == 1
+
+
+def test_selective_extension_bonus_triggers_for_central_prophylaxis() -> None:
+    """Central pawn pushes that cut enemy plan pressure should get one extra ply."""
+
+    board = make_central_prophylaxis_extension_position()
+    move = Move(start=sq("d4"), end=sq("d5"))
     child_board = board.clone()
 
     assert child_board.apply_legal_move(move.start, move.end) is True

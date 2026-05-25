@@ -364,15 +364,45 @@ def selective_extension_bonus(
         moving_piece.kind,
         enemy_color,
     )
-    strategic_extension = allow_strategic_extensions and _is_favorable_simplification_extension(
-        board,
-        move,
-        child_board,
-        moving_color,
+    strategic_extension = allow_strategic_extensions and (
+        _is_central_prophylaxis_extension(
+            board,
+            move,
+            child_board,
+            moving_color,
+        )
+        or _is_favorable_simplification_extension(
+            board,
+            move,
+            child_board,
+            moving_color,
+        )
     )
     if forced_extension or forcing_attack or strategic_extension:
         bonus = 1
     return bonus
+
+
+def _is_central_prophylaxis_extension(
+    board: Board,
+    move: Move,
+    child_board: Board,
+    moving_color: Color,
+) -> bool:
+    moving_piece = board.get_piece(move.start)
+    if moving_piece is None or moving_piece.kind != PieceType.PAWN:
+        return False
+    if is_capture_move(board, move):
+        return False
+    if int(move.start.col) not in {2, 3, 4, 5} or int(move.end.col) not in {2, 3, 4, 5}:
+        return False
+    before_pressure = opponent_plan_profile(board, moving_color).pressure
+    after_pressure = opponent_plan_profile(child_board, moving_color).pressure
+    if before_pressure < 6 or before_pressure - after_pressure < 3:
+        return False
+    if not _keeps_tactical_stability(board, child_board, moving_color):
+        return False
+    return _material_margin(child_board, moving_color) >= _material_margin(board, moving_color)
 
 
 def _is_favorable_simplification_extension(
