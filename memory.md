@@ -551,6 +551,11 @@ Quality:
 - The new guidance scores front/behind-passer rook placement, king support for advanced passers, outside-passer activity, passive rook penalties, and discourages worse-side checking drift when it ignores the enemy passer file.
 - Added `tests/test_ai_endgame_strategy.py`, updated `docs/STRATEGY4_TODO.md` and the session `plan.md` to mark Task 9 complete, and kept validation green at `pylint chess_game` plus `python -m pytest tests -q` (`498 passed`).
 
+## 2026-05-25T14:54:03Z - GPT-5.4 - STRATEGY4 Task 10 review loop and final acceptance completed
+- Saved a fresh post-Task-9 self-play transcript in `tmp/strategy4_task10_w3b3.txt`, then recorded the reviewed embarrassing moves, expected human choices, strategic reasons, and evaluation-vs-search diagnosis in `tmp/strategy4_task10_review.txt`.
+- Added `tests/test_ai_review_loop.py` so the recurring reviewed failures from that transcript (unjustified flank pawn pokes and planless rook shuffles) are preserved as precise regressions instead of staying as prose-only notes.
+- Updated `docs/STRATEGY4_TODO.md` and the session `plan.md` to mark Tasks 10 and 11 complete, with the final repo validation still green at `pylint chess_game` and `python -m pytest tests -q` (`500 passed`).
+
 ## 2026-05-25T14:12:12Z - GPT-5 - STRATEGY4 Task 9 inspection
 - Inspected `docs/STRATEGY4_TODO.md` Task 9 against current endgame code in `chess_game/chess/endgame_evaluation.py`, `chess_game/chess/ai_move_ordering.py`, and the existing regressions in `tests/test_ai_quality.py`/`tests/test_ai_search.py`.
 - Current coverage is already solid for king activation, rook-behind-own-passer, king cutoff, simplification when ahead, and basic counterplay reduction; the weakest gaps are explicit rook-endgame defense heuristics (correct side/behind enemy passer), checking-distance/Lucena-style setup guidance, and stronger demotion of flashy checks when quiet conversion moves improve placement more safely.

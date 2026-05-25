@@ -478,34 +478,34 @@ Phase note: Quiescence now keeps only the most relevant tactical leaves, favorin
 
 ## 10.1 Save and classify bad self-play decisions
 
-- [ ] After each major phase, review fresh self-play transcripts.
-- [ ] For each poor move, classify it as:
-  - [ ] king-safety failure
-  - [ ] pawn-structure failure
-  - [ ] prophylaxis failure
-  - [ ] plan-recognition failure
-  - [ ] search-selectivity failure
-  - [ ] technical endgame failure
+- [x] After each major phase, review fresh self-play transcripts.
+- [x] For each poor move, classify it as:
+  - [x] king-safety failure
+  - [x] pawn-structure failure
+  - [x] prophylaxis failure
+  - [x] plan-recognition failure
+  - [x] search-selectivity failure
+  - [x] technical endgame failure
 
 ## 10.2 Turn reviewed failures into permanent regressions
 
-- [ ] Add a regression test for every recurring category.
-- [ ] Prefer one precise test over one vague aggregate test.
-- [ ] Keep a running list of “humanly embarrassing” failures that must not return.
+- [x] Add a regression test for every recurring category.
+- [x] Prefer one precise test over one vague aggregate test.
+- [x] Keep a running list of “humanly embarrassing” failures that must not return.
 
 ## 10.3 Compare against stronger move choices
 
-- [ ] For selected critical positions, compare engine moves against a stronger reference engine or curated human judgment.
-- [ ] Record:
-  - [ ] chosen move
-  - [ ] expected human move
-  - [ ] strategic reason for the difference
-  - [ ] whether the miss is evaluation- or search-driven
+- [x] For selected critical positions, compare engine moves against a stronger reference engine or curated human judgment.
+- [x] Record:
+  - [x] chosen move
+  - [x] expected human move
+  - [x] strategic reason for the difference
+  - [x] whether the miss is evaluation- or search-driven
 
 ## 10.4 Keep the review loop explainable
 
-- [ ] Document the final cause of each fixed failure in code comments or tracker notes.
-- [ ] Avoid adding opaque bonuses that cannot be justified from the position.
+- [x] Document the final cause of each fixed failure in code comments or tracker notes.
+- [x] Avoid adding opaque bonuses that cannot be justified from the position.
 
 ---
 
@@ -513,23 +513,23 @@ Phase note: Quiescence now keeps only the most relevant tactical leaves, favorin
 
 ## 11.1 Correctness target
 
-- [ ] `pylint chess_game` passes
-- [ ] `python -m pytest tests -q` passes
+- [x] `pylint chess_game` passes
+- [x] `python -m pytest tests -q` passes
 
 ## 11.2 Human-style quality target
 
-- [ ] The engine prefers prophylaxis over empty activity in targeted tests.
-- [ ] The engine avoids damaging its own king shelter without compensation.
-- [ ] The engine improves the worst piece more consistently in quiet positions.
-- [ ] The engine suppresses the opponent’s main counterplay before converting.
-- [ ] The engine follows pawn-structure-appropriate plans more often in regression suites.
-- [ ] Self-play shows fewer self-inflicted pawn weaknesses and fewer planless shuffles.
+- [x] The engine prefers prophylaxis over empty activity in targeted tests.
+- [x] The engine avoids damaging its own king shelter without compensation.
+- [x] The engine improves the worst piece more consistently in quiet positions.
+- [x] The engine suppresses the opponent’s main counterplay before converting.
+- [x] The engine follows pawn-structure-appropriate plans more often in regression suites.
+- [x] Self-play shows fewer self-inflicted pawn weaknesses and fewer planless shuffles.
 
 ## 11.3 Practicality target
 
-- [ ] Depth-5 remains practical after the new logic.
-- [ ] Selective search improvements stay bounded.
-- [ ] New positional heuristics do not cause broad tactical blindness.
+- [x] Depth-5 remains practical after the new logic.
+- [x] Selective search improvements stay bounded.
+- [x] New positional heuristics do not cause broad tactical blindness.
 
 ---
 
