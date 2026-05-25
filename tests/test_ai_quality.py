@@ -8,6 +8,9 @@ from chess_game.chess.ai import (
     SearchContext,
     SearchStats,
     _move_order_score,
+    _quiescence_capture_score,
+    _quiescence_check_score,
+    _quiescence_tactical_score,
     get_best_move,
     get_evaluation_breakdown,
     minimax,
@@ -16,6 +19,7 @@ from chess_game.chess.ai import (
 )
 from chess_game.chess.ai_search_helpers import RepetitionPolicy, repetition_score
 from chess_game.chess.board import Board, create_piece
+from chess_game.chess.move import Move
 from chess_game.chess.types import Color, LegalMove, PieceType
 from tests.helpers import sq
 
@@ -323,6 +327,88 @@ def test_quiescence_values_undefended_capture_above_defended_capture() -> None:
     score_defended = quiescence(defended_board, -INF, INF, True)
 
     assert score_undefended > score_defended
+
+
+def test_quiescence_capture_score_prefers_king_shelter_recovery() -> None:
+    """Quiescence should keep a shelter-restoring capture over a side pawn grab."""
+
+    board = _empty_board_with_kings()
+    board.clear_board()
+    board.set_piece(sq("g1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("g2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("a2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("h8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("h3"), create_piece(Color.BLACK, PieceType.ROOK))
+    board.set_piece(sq("a3"), create_piece(Color.BLACK, PieceType.PAWN))
+
+    shelter_move = Move(start=sq("g2"), end=sq("h3"))
+    side_move = Move(start=sq("a2"), end=sq("a3"))
+    shelter_board = board.clone()
+    side_board = board.clone()
+    assert shelter_board.apply_legal_move(shelter_move.start, shelter_move.end) is True
+    assert side_board.apply_legal_move(side_move.start, side_move.end) is True
+
+    shelter_score = _quiescence_capture_score(
+        board,
+        shelter_move,
+        shelter_board,
+        Color.WHITE,
+    )
+    side_score = _quiescence_capture_score(board, side_move, side_board, Color.WHITE)
+
+    assert shelter_score > side_score
+    assert shelter_score > 0
+
+
+def test_quiescence_check_score_ignores_harmless_knight_check() -> None:
+    """Quiescence should skip checks that do not materially change king safety."""
+
+    board = _empty_board_with_kings()
+    board.clear_board()
+    board.set_piece(sq("a1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("e4"), create_piece(Color.WHITE, PieceType.KNIGHT))
+    board.set_piece(sq("f7"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("c5"), create_piece(Color.BLACK, PieceType.ROOK))
+    board.turn = Color.WHITE
+
+    checking_move = Move(start=sq("e4"), end=sq("d6"))
+    child_board = board.clone()
+    assert child_board.apply_legal_move(checking_move.start, checking_move.end) is True
+
+    assert _quiescence_check_score(board, child_board, Color.BLACK) == 0
+
+
+def test_quiescence_tactical_score_prefers_structural_capture_followup() -> None:
+    """Quiescence should keep captures that change pawn structure ahead of side grabs."""
+
+    board = _empty_board_with_kings()
+    board.clear_board()
+    board.set_piece(sq("a1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("b5"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("e4"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("h8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("d5"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.set_piece(sq("c6"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.turn = Color.WHITE
+
+    target_capture = Move(start=sq("e4"), end=sq("d5"))
+    structural_capture = Move(start=sq("b5"), end=sq("c6"))
+    target_board = board.clone()
+    structural_board = board.clone()
+    assert target_board.apply_legal_move(target_capture.start, target_capture.end) is True
+    assert (
+        structural_board.apply_legal_move(
+            structural_capture.start,
+            structural_capture.end,
+        )
+        is True
+    )
+
+    target_score = _quiescence_tactical_score(board, target_capture)
+    structural_score = _quiescence_tactical_score(board, structural_capture)
+
+    assert structural_score > target_score
+    assert structural_score > 0
 
 
 def test_simple_quality_benchmark_prefers_hanging_rook_capture() -> None:

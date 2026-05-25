@@ -13,6 +13,12 @@ from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_in_check as _gs_is_in_check
 from chess_game.chess.ai_capture_ordering import capture_order_score as _shared_capture_order_score
 from chess_game.chess.ai_move_ordering import quiet_strategy_order_score
+from chess_game.chess.ai_quiescence_helpers import (
+    _quiescence_capture_score as _quiescence_capture_score_impl,
+    _quiescence_check_score as _quiescence_check_score_impl,
+    _quiescence_structure_follow_up_score as _quiescence_structure_follow_up_score_impl,
+    _quiescence_tactical_score as _quiescence_tactical_score_impl,
+)
 from chess_game.chess.ai_search_helpers import (
     RepetitionPolicy,
     promotion_order_score as _promotion_order_score,
@@ -53,6 +59,10 @@ MAX_QUIESCENCE_DEPTH = 1
 MAX_QUIESCENCE_MOVES = 4
 LegalMoveKey = tuple[object, object, Optional[PieceType]]
 get_evaluation_breakdown = _get_evaluation_breakdown
+_quiescence_capture_score = _quiescence_capture_score_impl
+_quiescence_check_score = _quiescence_check_score_impl
+_quiescence_structure_follow_up_score = _quiescence_structure_follow_up_score_impl
+_quiescence_tactical_score = _quiescence_tactical_score_impl
 def _progress_score(board: Board) -> int:
     """Return the progress component used to discourage empty repetitions."""
 
@@ -283,6 +293,7 @@ class QuiescenceParams:
     context: Optional[SearchContext] = None
     depth_remaining: int = MAX_QUIESCENCE_DEPTH
     line_history: tuple[str, ...] = ()
+    legal_moves: tuple[Move, ...] | None = None
 
 
 def get_legal_moves(board: Board) -> list[Move]:
@@ -432,12 +443,15 @@ def minimax(
         return (terminal_score, None)
     if params.depth == 0:
         return (
-            quiescence(
+            _quiescence(
                 board,
-                params.alpha,
-                params.beta,
-                params.is_maximizing,
-                params.context,
+                QuiescenceParams(
+                    alpha=params.alpha,
+                    beta=params.beta,
+                    is_maximizing=params.is_maximizing,
+                    context=params.context,
+                    legal_moves=tuple(legal_moves),
+                ),
             ),
             None,
         )
@@ -648,7 +662,10 @@ def _quiescence(board: Board, params: QuiescenceParams) -> int:
     if params.depth_remaining <= 0:
         return stand_pat
 
-    tactical_moves = _get_tactical_moves(board)
+    tactical_moves = _get_tactical_moves(
+        board,
+        list(params.legal_moves) if params.legal_moves else None,
+    )
     if not tactical_moves:
         return stand_pat
     _record_tactical_width(context, len(tactical_moves))
@@ -710,16 +727,6 @@ def _is_quiescence_cutoff(
     return stand_pat <= alpha
 
 
-def _get_tactical_moves(board: Board) -> list[Move]:
-    """Return capture and promotion moves for quiescence search."""
-
-    tactical_moves = [
-        move for move in get_legal_moves(board) if _is_tactical_move(board, move)
-    ]
-    ordered_moves = _order_moves(board, tactical_moves)
-    return ordered_moves[:MAX_QUIESCENCE_MOVES]
-
-
 def _record_tactical_width(context: Optional[SearchContext], width: int) -> None:
     """Record tactical branching diagnostics."""
 
@@ -728,6 +735,22 @@ def _record_tactical_width(context: Optional[SearchContext], width: int) -> None
     context.stats.tactical_positions += 1
     context.stats.tactical_move_sum += width
     context.stats.tactical_max_width = max(context.stats.tactical_max_width, width)
+
+
+def _get_tactical_moves(
+    board: Board,
+    legal_moves: list[Move] | None = None,
+) -> list[Move]:
+    """Return capture and promotion moves for quiescence search.
+
+    Uses pre-computed legal_moves when available to avoid a redundant
+    get_legal_moves() call at depth-0 leaf nodes.
+    """
+
+    moves = legal_moves if legal_moves is not None else get_legal_moves(board)
+    tactical_moves = [move for move in moves if _is_tactical_move(board, move)]
+    ordered_moves = _order_moves(board, tactical_moves)
+    return ordered_moves[:MAX_QUIESCENCE_MOVES]
 
 
 def _is_tactical_move(board: Board, move: Move) -> bool:
@@ -786,8 +809,9 @@ def _move_order_score(
     score = (
         _capture_order_score(board, move)
         + _promotion_order_score(move)
-        + quiet_strategy_order_score(board, move)
     )
+    if not _is_capture_move(board, move) and move.promotion is None:
+        score += quiet_strategy_order_score(board, move)
     context = None if params is None else params.context
     if context is None:
         return score

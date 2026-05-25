@@ -380,11 +380,13 @@ Phase note: Task 4 is now complete. The new `chess_game/chess/opponent_plans.py`
 
 ## 7.3 Improve quiescence quality
 
-- [ ] Make quiescence more selective about:
-  - [ ] which captures are actually stabilizing
-  - [ ] which recaptures matter for king shelter
-  - [ ] which checks change the evaluation materially
-  - [ ] when structural changes deserve follow-up
+- [x] Make quiescence more selective about:
+  - [x] which captures are actually stabilizing
+  - [x] which recaptures matter for king shelter
+  - [x] which checks change the evaluation materially
+  - [x] when structural changes deserve follow-up
+
+Phase note: Quiescence now keeps only the most relevant tactical leaves, favoring stabilizing captures, shelter-recovering recaptures, material checks, and structural follow-up while staying tight enough for the depth-4 benchmark.
 
 ## 7.4 Add search regressions
 
