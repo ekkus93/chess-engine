@@ -45,6 +45,11 @@
 - Covered that trigger directly in `tests/test_ai_search.py` and kept the broader selective-search work deliberately narrow so the depth-3/4/5 timing tests continue to pass.
 - Validation remained green with `pylint chess_game` and `python -m pytest tests -q`; this slice is ready to be committed and pushed on top of `d8507e8`.
 
+## 2026-05-25T08:14:59Z - GPT-5.3-Codex - STRATEGY4 Task 7 king-shelter extension slice
+- Extended selective search with two additional bounded Task 7.1 strategic triggers: king-file shelter shifts and local king-zone pawn recaptures that materially change king defense profile.
+- Added direct coverage in `tests/test_ai_search.py` for both new triggers and kept the strategic extension gate depth-limited to preserve practical search speed.
+- Revalidated full repository quality (`pylint chess_game`, `python -m pytest tests -q`), then marked the corresponding Task 7.1 bullets complete in `docs/STRATEGY4_TODO.md`.
+
 ## 2026-05-23T06:35:25Z - GPT-5.4 - STRATEGY4 Task 4 first threat-recognition slice
 - Added `chess_game/chess/opponent_plans.py` so quiet ordering can compare enemy near-term plan pressure before and after a move, including invasion lines, knight jumps, central pawn breaks, checking resources, and passed-pawn pushes.
 - Wired that plan-pressure delta into `chess_game/chess/ai_move_ordering.py` and added a new prophylaxis regression in `tests/test_ai_defensive_strategy.py` proving that stopping an enemy central break outranks quiet rook improvement.

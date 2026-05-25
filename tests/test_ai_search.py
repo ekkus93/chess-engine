@@ -274,6 +274,51 @@ def make_central_prophylaxis_extension_position() -> Board:
     return board
 
 
+def make_king_file_shift_extension_position() -> Board:
+    """Create a shelter-pawn shift near the king that changes king-file safety."""
+
+    board = Board()
+    board.clear_board()
+    placements = [
+        ("g1", Color.WHITE, PieceType.KING),
+        ("d1", Color.WHITE, PieceType.QUEEN),
+        ("h1", Color.WHITE, PieceType.ROOK),
+        ("g2", Color.WHITE, PieceType.PAWN),
+        ("h2", Color.WHITE, PieceType.PAWN),
+        ("g8", Color.BLACK, PieceType.KING),
+        ("g7", Color.BLACK, PieceType.ROOK),
+        ("h4", Color.BLACK, PieceType.QUEEN),
+        ("h5", Color.BLACK, PieceType.PAWN),
+    ]
+    for square_name, color, piece_kind in placements:
+        board.set_piece(sq(square_name), create_piece(color, piece_kind))
+    board.turn = Color.WHITE
+    return board
+
+
+def make_king_shelter_recapture_extension_position() -> Board:
+    """Create a king-side pawn recapture that changes shelter geometry."""
+
+    board = Board()
+    board.clear_board()
+    placements = [
+        ("g1", Color.WHITE, PieceType.KING),
+        ("d1", Color.WHITE, PieceType.QUEEN),
+        ("h1", Color.WHITE, PieceType.ROOK),
+        ("f2", Color.WHITE, PieceType.PAWN),
+        ("g3", Color.WHITE, PieceType.PAWN),
+        ("h2", Color.WHITE, PieceType.PAWN),
+        ("g8", Color.BLACK, PieceType.KING),
+        ("g7", Color.BLACK, PieceType.ROOK),
+        ("h5", Color.BLACK, PieceType.QUEEN),
+        ("h4", Color.BLACK, PieceType.PAWN),
+    ]
+    for square_name, color, piece_kind in placements:
+        board.set_piece(sq(square_name), create_piece(color, piece_kind))
+    board.turn = Color.WHITE
+    return board
+
+
 # Tests for minimax leaf evaluation behavior
 
 
@@ -404,6 +449,28 @@ def test_selective_extension_bonus_triggers_for_central_prophylaxis() -> None:
 
     board = make_central_prophylaxis_extension_position()
     move = Move(start=sq("d4"), end=sq("d5"))
+    child_board = board.clone()
+
+    assert child_board.apply_legal_move(move.start, move.end) is True
+    assert selective_extension_bonus(board, move, child_board, extension_budget=1) == 1
+
+
+def test_selective_extension_bonus_triggers_for_king_file_shift() -> None:
+    """King-file shelter shifts should get one extra ply under real pressure."""
+
+    board = make_king_file_shift_extension_position()
+    move = Move(start=sq("g2"), end=sq("g3"))
+    child_board = board.clone()
+
+    assert child_board.apply_legal_move(move.start, move.end) is True
+    assert selective_extension_bonus(board, move, child_board, extension_budget=1) == 1
+
+
+def test_selective_extension_bonus_triggers_for_king_shelter_recapture() -> None:
+    """Pawn recaptures beside the king should extend when shelter profile changes."""
+
+    board = make_king_shelter_recapture_extension_position()
+    move = Move(start=sq("g3"), end=sq("h4"))
     child_board = board.clone()
 
     assert child_board.apply_legal_move(move.start, move.end) is True

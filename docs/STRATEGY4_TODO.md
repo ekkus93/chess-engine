@@ -365,8 +365,8 @@ Phase note: Task 4 is now complete. The new `chess_game/chess/opponent_plans.py`
 
 - [ ] Consider bounded extensions for:
   - [x] forced defensive resources
-  - [ ] moves that open or close king files
-  - [ ] recaptures that change structure near the king
+  - [x] moves that open or close king files
+  - [x] recaptures that change structure near the king
   - [x] simplifying trades into favorable technical endings
   - [ ] only-move prophylactic resources
 

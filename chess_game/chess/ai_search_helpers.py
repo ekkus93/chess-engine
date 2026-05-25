@@ -15,7 +15,7 @@ from chess_game.chess.move import Move
 from chess_game.chess.opponent_plans import opponent_plan_profile
 from chess_game.chess.pawn_structure_evaluation import evaluate_pawn_structure
 from chess_game.chess.structure_recognition import structure_plan_bonus
-from chess_game.chess.strategy_utils import is_capture_move
+from chess_game.chess.strategy_utils import is_capture_move, king_coordinates
 from chess_game.chess.types import Color, LegalMove, PieceType
 from chess_game.chess.evaluation_tables import MATERIAL_VALUES, STARTING_NON_PAWN_MATERIAL
 
@@ -371,6 +371,18 @@ def selective_extension_bonus(
             child_board,
             moving_color,
         )
+        or _is_king_file_shift_extension(
+            board,
+            move,
+            child_board,
+            moving_color,
+        )
+        or _is_king_shelter_recapture_extension(
+            board,
+            move,
+            child_board,
+            moving_color,
+        )
         or _is_favorable_simplification_extension(
             board,
             move,
@@ -403,6 +415,77 @@ def _is_central_prophylaxis_extension(
     if not _keeps_tactical_stability(board, child_board, moving_color):
         return False
     return _material_margin(child_board, moving_color) >= _material_margin(board, moving_color)
+
+
+def _is_king_file_shift_extension(
+    board: Board,
+    move: Move,
+    child_board: Board,
+    moving_color: Color,
+) -> bool:
+    moving_piece = board.get_piece(move.start)
+    if moving_piece is None or moving_piece.kind != PieceType.PAWN:
+        return False
+    king_position = king_coordinates(board, moving_color)
+    if king_position is None:
+        return False
+    _, king_col = king_position
+    if king_col not in {2, 6}:
+        return False
+    if abs(int(move.start.col) - king_col) > 1 or abs(int(move.end.col) - king_col) > 1:
+        return False
+    if not (king_needs_shelter(board, moving_color) or king_danger_index(board, moving_color) >= 2):
+        return False
+    return _significant_king_profile_change(board, child_board, moving_color)
+
+
+def _is_king_shelter_recapture_extension(
+    board: Board,
+    move: Move,
+    child_board: Board,
+    moving_color: Color,
+) -> bool:
+    moving_piece = board.get_piece(move.start)
+    is_valid_recapture = (
+        moving_piece is not None
+        and moving_piece.kind == PieceType.PAWN
+        and is_capture_move(board, move)
+    )
+    if not is_valid_recapture:
+        return False
+    king_position = king_coordinates(board, moving_color)
+    if king_position is None:
+        return False
+    king_row, king_col = king_position
+    is_castled_king = king_col in {2, 6}
+    is_local_recapture = (
+        max(abs(int(move.start.row) - king_row), abs(int(move.start.col) - king_col)) <= 2
+    )
+    if not (is_castled_king and is_local_recapture):
+        return False
+    before = king_defense_profile(board, moving_color)
+    after = king_defense_profile(child_board, moving_color)
+    if max(before.danger, after.danger) < 2:
+        return False
+    return (
+        before.danger != after.danger
+        or before.invasion_lines != after.invasion_lines
+        or before.back_rank_weak != after.back_rank_weak
+    )
+
+
+def _significant_king_profile_change(
+    board: Board,
+    child_board: Board,
+    moving_color: Color,
+) -> bool:
+    before = king_defense_profile(board, moving_color)
+    after = king_defense_profile(child_board, moving_color)
+    return (
+        before.danger != after.danger
+        or before.invasion_lines != after.invasion_lines
+        or before.back_rank_weak != after.back_rank_weak
+    )
 
 
 def _is_favorable_simplification_extension(
