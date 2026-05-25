@@ -545,3 +545,13 @@ Quality:
 - Added `chess_game/chess/opening_guidance.py`, a small explainable opening preference table for very early move-order sanity, and wired it through `chess_game/chess/ai_move_ordering.py` together with broader early-queen, flank-pawn, and rook-wander opening penalties.
 - Added evaluation-side punishment for premature flank pawn lunges in `chess_game/chess/opening_development.py`, expanded `tests/test_ai_opening_strategy.py` with Task 8 regressions, and updated `docs/STRATEGY4_TODO.md` plus the session `plan.md` to mark Task 8 complete.
 - Removed the last repo-wide pylint blockers by extracting shared AI move utilities into `chess_game/chess/ai_board_utils.py`; the repository is back to `pylint chess_game` at `10.00/10` and `python -m pytest tests -q` at `493 passed`.
+
+## 2026-05-25T14:23:53Z - GPT-5.4 - STRATEGY4 Task 9 rook-endgame phase completed
+- Added `chess_game/chess/rook_endgame_guidance.py` as a shared helper for rook-endgame conversion and defense, then wired it into both `chess_game/chess/evaluation.py` / `chess_game/chess/endgame_evaluation.py` and `chess_game/chess/ai_move_ordering.py`.
+- The new guidance scores front/behind-passer rook placement, king support for advanced passers, outside-passer activity, passive rook penalties, and discourages worse-side checking drift when it ignores the enemy passer file.
+- Added `tests/test_ai_endgame_strategy.py`, updated `docs/STRATEGY4_TODO.md` and the session `plan.md` to mark Task 9 complete, and kept validation green at `pylint chess_game` plus `python -m pytest tests -q` (`498 passed`).
+
+## 2026-05-25T14:12:12Z - GPT-5 - STRATEGY4 Task 9 inspection
+- Inspected `docs/STRATEGY4_TODO.md` Task 9 against current endgame code in `chess_game/chess/endgame_evaluation.py`, `chess_game/chess/ai_move_ordering.py`, and the existing regressions in `tests/test_ai_quality.py`/`tests/test_ai_search.py`.
+- Current coverage is already solid for king activation, rook-behind-own-passer, king cutoff, simplification when ahead, and basic counterplay reduction; the weakest gaps are explicit rook-endgame defense heuristics (correct side/behind enemy passer), checking-distance/Lucena-style setup guidance, and stronger demotion of flashy checks when quiet conversion moves improve placement more safely.
+- Quick probes confirmed the existing targeted endgame tests pass, but also showed a likely remaining gap: in a simple winning rook ending the engine still favored a rook-sideways pressure move over calmer conversion moves, and in a worse rook ending the best move remained active checking rather than a clearly defensive setup.

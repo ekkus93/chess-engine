@@ -21,6 +21,8 @@ from chess_game.chess.evaluation_tables import (
     SIMPLIFICATION_BONUS_SCALE,
     STARTING_NON_PAWN_MATERIAL,
 )
+from chess_game.chess.rook_endgame_guidance import rook_endgame_evaluation_score
+from chess_game.chess.rook_endgame_guidance import rook_positions
 from chess_game.chess.strategy_utils import (
     center_distance,
     is_passed_pawn,
@@ -86,6 +88,14 @@ def evaluate_progress(board: Board, endgame_phase: int) -> int:
     bonus += _heavy_piece_activity_score(board, leading_color)
     phase_scale = max(40, 40 + endgame_phase)
     return _color_sign(leading_color) * ((bonus * phase_scale) // 100)
+
+
+def evaluate_rook_endgames(board: Board, endgame_phase: int) -> int:
+    """Return rook-endgame placement and defense bonuses."""
+
+    if endgame_phase == 0:
+        return 0
+    return scale_signed(rook_endgame_evaluation_score(board), endgame_phase)
 
 
 def _collect_pawn_positions(board: Board) -> dict[Color, list[tuple[int, int]]]:
@@ -242,11 +252,7 @@ def _king_cutoff_score(board: Board, color: Color) -> int:
 
 
 def _rook_behind_passed_pawn_score(board: Board, color: Color) -> int:
-    rooks = [
-        (row, col)
-        for piece, row, col in iter_color_pieces(board, color)
-        if piece.kind == PieceType.ROOK
-    ]
+    rooks = rook_positions(board, color)
     if not rooks:
         return 0
     score = 0

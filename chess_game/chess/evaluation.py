@@ -8,6 +8,7 @@ from chess_game.chess.endgame_evaluation import (
     evaluate_conversion as _evaluate_conversion,
     evaluate_endgame_technique as _evaluate_endgame_technique,
     evaluate_progress as _evaluate_progress,
+    evaluate_rook_endgames as _evaluate_rook_endgames,
 )
 from chess_game.chess.pawn_structure_evaluation import (
     collect_pawn_positions as _collect_pawn_positions,
@@ -105,6 +106,7 @@ def get_evaluation_breakdown(board: Board) -> EvaluationBreakdown:
         "endgame_technique": _evaluate_endgame_technique(board, endgame_phase),
         "conversion": _evaluate_conversion(board, endgame_phase),
         "progress": _evaluate_progress(board, endgame_phase),
+        "rook_endgame": _evaluate_rook_endgames(board, endgame_phase),
         "development": _evaluate_development(board, middlegame_phase),
     }
     breakdown["total"] = sum(breakdown.values())

@@ -440,37 +440,37 @@ Phase note: Quiescence now keeps only the most relevant tactical leaves, favorin
 
 ## 9.1 Strengthen endgame “conversion first” logic
 
-- [ ] Reward:
-  - [ ] king activation
-  - [ ] rook activity behind or behind-against passers
-  - [ ] cutting off the enemy king
-  - [ ] liquidation into trivially won endings
-  - [ ] keeping the opponent tied down to defense
+- [x] Reward:
+  - [x] king activation
+  - [x] rook activity behind or behind-against passers
+  - [x] cutting off the enemy king
+  - [x] liquidation into trivially won endings
+  - [x] keeping the opponent tied down to defense
 
 ## 9.2 Add explicit rook-endgame guidance
 
-- [ ] Improve heuristics for:
-  - [ ] checking distance
-  - [ ] Lucena-like winning setup ideas
-  - [ ] avoiding passive rook placement
-  - [ ] outside passers and rook activity balance
-  - [ ] defending from the correct side when worse
+- [x] Improve heuristics for:
+  - [x] checking distance
+  - [x] Lucena-like winning setup ideas
+  - [x] avoiding passive rook placement
+  - [x] outside passers and rook activity balance
+  - [x] defending from the correct side when worse
 
 ## 9.3 Avoid unnecessary counterplay when winning
 
-- [ ] Penalize:
-  - [ ] chasing side pawns while allowing active checks
-  - [ ] pawn pushes that release the enemy king
-  - [ ] king drift that reopens perpetual resources
-  - [ ] refusing simplifying trades when the ending is easy
+- [x] Penalize:
+  - [x] chasing side pawns while allowing active checks
+  - [x] pawn pushes that release the enemy king
+  - [x] king drift that reopens perpetual resources
+  - [x] refusing simplifying trades when the ending is easy
 
 ## 9.4 Add endgame regressions
 
-- [ ] Add tests where the engine should:
-  - [ ] reduce counterplay before pawn racing
-  - [ ] improve king and rook placement before checking
-  - [ ] choose a simpler win over a messier stronger-looking line
-  - [ ] defend accurately when worse instead of drifting
+- [x] Add tests where the engine should:
+  - [x] reduce counterplay before pawn racing
+  - [x] improve king and rook placement before checking
+  - [x] choose a simpler win over a messier stronger-looking line
+  - [x] defend accurately when worse instead of drifting
 
 ---
 

@@ -21,6 +21,7 @@ from chess_game.chess.piece_coordination import (
     rook_coordination_bonus,
     square_has_friendly_support as _square_has_friendly_support,
 )
+from chess_game.chess.rook_endgame_guidance import non_king_piece_kinds, rook_endgame_order_bonus
 from chess_game.chess.structure_recognition import structure_plan_bonus
 from chess_game.chess.strategy_utils import center_distance, is_capture_move, path_clear_between
 from chess_game.chess.types import Color, PieceType
@@ -103,6 +104,7 @@ def quiet_strategy_order_score(board: Board, move: Move) -> int:
     score += _pawn_bonus(board, piece.color, piece.kind, move)
     score += _piece_coordination_bonus(board, piece.color, piece.kind, move)
     score += structure_plan_bonus(board, piece.color, piece.kind, move)
+    score += rook_endgame_order_bonus(board, piece.color, piece.kind, move)
     if improves_worst_piece(board, move):
         score += QUIET_WORST_PIECE_BONUS
     score += _check_quality_bonus(board, piece.kind, move)
@@ -351,13 +353,7 @@ def _requires_plan_assessment(kind: PieceType, move: Move) -> bool:
 def _is_heavy_piece_endgame(board: Board) -> bool:
     """Return True in simple endings where king centralization matters more."""
 
-    non_king_pieces = [
-        piece.kind
-        for row in board.board
-        for piece in row
-        if piece is not None and piece.kind != PieceType.KING
-    ]
-    return len(non_king_pieces) <= 4
+    return len(non_king_piece_kinds(board)) <= 4
 
 
 def _king_centralization_bonus(move: Move) -> int:
