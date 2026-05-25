@@ -1008,3 +1008,118 @@ def test_depth_5_nodes_within_reasonable_limit():
 
     # This threshold is heuristic but should hold for reasonable alpha-beta.
     assert nodes[0] < 500_000, "Depth-5 search should not exceed 500k nodes"
+
+
+# ─── Task 7.4: Search-level regressions ──────────────────────────────────────
+
+
+def test_search_sees_prophylactic_line_is_best() -> None:
+    """Depth-3 search should capture a piece that immediately enables a check threat.
+
+    Black knight on d4 threatens Nf3+ (check on the White king at g1).
+    White's best prophylactic response is Qxd4 — eliminating the threat and
+    winning a free piece — rather than any passive move that lets the check land.
+    """
+    board = Board()
+    board.clear_board()
+    placements = [
+        ("g1", Color.WHITE, PieceType.KING),
+        ("d1", Color.WHITE, PieceType.QUEEN),
+        ("f2", Color.WHITE, PieceType.PAWN),
+        ("g2", Color.WHITE, PieceType.PAWN),
+        ("h2", Color.WHITE, PieceType.PAWN),
+        ("e8", Color.BLACK, PieceType.KING),
+        ("d4", Color.BLACK, PieceType.KNIGHT),
+    ]
+    for square_name, color, piece_kind in placements:
+        board.set_piece(sq(square_name), create_piece(color, piece_kind))
+    board.turn = Color.WHITE
+
+    move = get_best_move(board, depth=3)
+    assert move is not None
+    assert move.end == sq("d4"), "Prophylactic Qxd4 should eliminate the Nf3+ fork threat"
+
+
+def test_search_prefers_clean_simplifying_line_over_repeated_checking() -> None:
+    """Depth-3 search should win a free rook rather than give a harmless check.
+
+    White's rook on a1 can capture an unprotected Black rook on d8 (a free
+    rook worth +500 cp).  The alternative — a queen check that leads nowhere —
+    should score far worse once the engine looks two moves ahead.
+    """
+    board = Board()
+    board.clear_board()
+    placements = [
+        ("g1", Color.WHITE, PieceType.KING),
+        ("f4", Color.WHITE, PieceType.QUEEN),
+        ("d1", Color.WHITE, PieceType.ROOK),  # on d-file to reach d8
+        ("g2", Color.WHITE, PieceType.PAWN),
+        ("h2", Color.WHITE, PieceType.PAWN),
+        # Black king on h8 (far from d8) so the rook is genuinely unprotected
+        ("h8", Color.BLACK, PieceType.KING),
+        ("d8", Color.BLACK, PieceType.ROOK),
+        ("g7", Color.BLACK, PieceType.PAWN),
+        ("h7", Color.BLACK, PieceType.PAWN),
+    ]
+    for square_name, color, piece_kind in placements:
+        board.set_piece(sq(square_name), create_piece(color, piece_kind))
+    board.turn = Color.WHITE
+
+    move = get_best_move(board, depth=3)
+    assert move is not None
+    assert move.end == sq("d8"), "Should capture the free rook (clean simplification)"
+
+
+def test_search_rejects_material_win_that_opens_fatal_counterplay() -> None:
+    """Depth-3 search should not capture a pawn that costs a rook via back-rank tactic.
+
+    White's queen on a4 can capture the undefended pawn on d7 — tempting,
+    but after Qxd7 Black's rook on e8 slides to e1 (capturing White's sole
+    back-rank defender) with a decisive counter.  The engine must reject the
+    pawn grab and keep the back rank covered.
+    """
+    board = Board()
+    board.clear_board()
+    placements = [
+        ("g1", Color.WHITE, PieceType.KING),
+        ("e1", Color.WHITE, PieceType.ROOK),
+        ("a4", Color.WHITE, PieceType.QUEEN),
+        ("g2", Color.WHITE, PieceType.PAWN),
+        ("h2", Color.WHITE, PieceType.PAWN),
+        ("g8", Color.BLACK, PieceType.KING),
+        ("e8", Color.BLACK, PieceType.ROOK),
+        ("d7", Color.BLACK, PieceType.PAWN),
+    ]
+    for square_name, color, piece_kind in placements:
+        board.set_piece(sq(square_name), create_piece(color, piece_kind))
+    board.turn = Color.WHITE
+
+    move = get_best_move(board, depth=3)
+    assert move is not None
+    assert move.end != sq("d7"), "Should not grab the pawn that opens the e1 back-rank counter"
+
+
+def test_search_goes_deeper_in_structure_changing_defensive_moments() -> None:
+    """Engine should log selective extensions when a shelter-restoring capture is available.
+
+    The king-shelter recapture position already triggers a selective extension bonus.
+    This end-to-end test verifies that `search_root_depth` actually records at least
+    one selective extension in its diagnostics when the position contains a
+    structure-changing defensive capture.
+    """
+    board = make_king_shelter_recapture_extension_position()
+    stats = SearchStats()
+    context = make_search_context(stats=stats)
+
+    search_root_depth(
+        board,
+        depth=2,
+        is_maximizing=True,
+        previous_score=0,
+        context=context,
+    )
+
+    assert stats.diagnostics is not None
+    assert stats.diagnostics.selective_extensions > 0, (
+        "Should have fired at least one selective extension in a shelter-changing position"
+    )

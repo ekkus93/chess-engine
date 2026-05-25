@@ -390,11 +390,11 @@ Phase note: Quiescence now keeps only the most relevant tactical leaves, favorin
 
 ## 7.4 Add search regressions
 
-- [ ] Add tests where search should:
-  - [ ] see that a prophylactic line is best
-  - [ ] prefer a clean simplifying line over repeated checking
-  - [ ] reject a material win that opens fatal counterplay
-  - [ ] search deeper in structure-changing defensive moments
+- [x] Add tests where search should:
+  - [x] see that a prophylactic line is best
+  - [x] prefer a clean simplifying line over repeated checking
+  - [x] reject a material win that opens fatal counterplay
+  - [x] search deeper in structure-changing defensive moments
 
 ---
 
