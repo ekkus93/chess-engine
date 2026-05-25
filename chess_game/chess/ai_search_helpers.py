@@ -500,7 +500,16 @@ def _is_only_move_prophylaxis_extension(
     child_board: Board,
     moving_color: Color,
 ) -> bool:
-    if not _is_back_rank_stabilizer(board, move, child_board, moving_color):
+    moving_piece = board.get_piece(move.start)
+    king_position = king_coordinates(board, moving_color)
+    if moving_piece is None or king_position is None:
+        return False
+    _, king_col = king_position
+    is_candidate = moving_piece.kind == PieceType.PAWN and king_col in {2, 6}
+    is_candidate = is_candidate and abs(int(move.start.col) - king_col) <= 1
+    is_candidate = is_candidate and abs(int(move.end.col) - king_col) <= 1
+    is_candidate = is_candidate and _is_back_rank_stabilizer(board, move, child_board, moving_color)
+    if not is_candidate:
         return False
     stabilizer_count = 0
     for start, end, promotion in board.get_legal_moves():

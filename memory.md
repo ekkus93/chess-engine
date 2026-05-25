@@ -60,6 +60,11 @@
 - Verified the targeted tests directly (`test_quiet_move_order_downgrades_flank_check_that_can_be_chased`, `test_root_stability_adjustment_penalizes_repeated_empty_tactic`, `test_capture_order_penalizes_pawn_grab_that_opens_king_lines`, `test_quiet_move_order_prefers_sealing_entry_file_before_harmless_check`, and `test_search_prefers_luft_over_empty_check_under_back_rank_pressure`).
 - Updated `docs/STRATEGY4_TODO.md` so Task 7.2 is now explicitly marked complete before moving to Task 7.3.
 
+## 2026-05-25T08:49:43Z - GPT-5.3-Codex - Task 7.1 performance-stability optimization
+- Tightened `_is_only_move_prophylaxis_extension()` gating in `ai_search_helpers.py` so expensive uniqueness scans run only for castled-king shelter pawn candidates that already satisfy back-rank stabilization criteria.
+- This preserved Task 7.1 behavior while removing avoidable search overhead from non-candidate moves.
+- Full validation stayed green after the optimization (`pylint chess_game`, `python -m pytest tests -q`, `479 passed`).
+
 ## 2026-05-23T06:35:25Z - GPT-5.4 - STRATEGY4 Task 4 first threat-recognition slice
 - Added `chess_game/chess/opponent_plans.py` so quiet ordering can compare enemy near-term plan pressure before and after a move, including invasion lines, knight jumps, central pawn breaks, checking resources, and passed-pawn pushes.
 - Wired that plan-pressure delta into `chess_game/chess/ai_move_ordering.py` and added a new prophylaxis regression in `tests/test_ai_defensive_strategy.py` proving that stopping an enemy central break outranks quiet rook improvement.
