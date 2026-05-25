@@ -4,6 +4,10 @@ from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
 from chess_game.chess.ai_board_utils import move_colors
+from chess_game.chess.ai_repetition_patterns import (
+    move_undoes_last_own_move,
+    root_cycle_penalty,
+)
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_in_check
 from chess_game.chess.defensive_priorities import (
@@ -766,16 +770,31 @@ def _repetition_root_penalty(
         (),
         position_key,
     )
-    if occurrence_count <= 0:
-        return 0
     moving_piece = board.get_piece(move.start)
     if moving_piece is None:
         return 0
     moving_color = moving_piece.color
     enemy_color = Color.BLACK if moving_color == Color.WHITE else Color.WHITE
-    if _has_genuine_tactical_payoff(board, move, child_board, moving_color, enemy_color):
+    has_tactical_payoff = _has_genuine_tactical_payoff(
+        board,
+        move,
+        child_board,
+        moving_color,
+        enemy_color,
+    )
+    penalty = root_cycle_penalty(
+        board,
+        move,
+        moving_piece.kind,
+        occurrence_count,
+        _is_simple_endgame(board),
+    )
+    repeated_position_penalty = 48 * occurrence_count if occurrence_count > 0 else 0
+    if has_tactical_payoff:
         return 0
-    return 48 * occurrence_count
+    if penalty > 0:
+        return penalty
+    return repeated_position_penalty
 
 
 def _has_genuine_tactical_payoff(
@@ -787,6 +806,8 @@ def _has_genuine_tactical_payoff(
 ) -> bool:
     """Return True when a repeated tactical line still improves attack or defense."""
 
+    if move_undoes_last_own_move(board, move) and not is_capture_move(board, move):
+        return False
     before_enemy = king_defense_profile(board, enemy_color)
     after_enemy = king_defense_profile(child_board, enemy_color)
     before_self = king_defense_profile(board, moving_color)

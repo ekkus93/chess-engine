@@ -5,6 +5,11 @@
 - Tightened `chess_game/chess/ai_move_ordering.py` so opponent-plan assessment only runs for moves that can materially affect prophylaxis, restoring the depth-5 search benchmark while keeping the new break-stopping behavior.
 - Revalidated the full repo green with `pylint chess_game` and `python -m pytest tests -q` (`451 passed`) before moving on to STRATEGY4 Task 5.
 
+## 2026-05-25T23:27:01Z - GPT-5.4 - STRATEGY5 anti-repetition slice
+- Added `chess_game/chess/ai_repetition_patterns.py` so quiet ordering and root tie-breaks share immediate-undo / short-cycle detection instead of each reimplementing it.
+- Tightened `chess_game/chess/ai_move_ordering.py` and `chess_game/chess/ai_search_helpers.py` so low-value rook/king reversals are penalized before formal repetition, especially in simple winning endgames, without suppressing genuinely necessary drawing lines.
+- Added `tests/test_ai_strategy5_regressions.py`, updated `docs/STRATEGY5_TODO.md` to close Tasks 1 and 2, and revalidated the full repository green with `pylint chess_game` and `python -m pytest tests -q` (`507 passed`).
+
 ## 2026-05-23T06:59:16Z - GPT-5.4 - STRATEGY4 Task 5 structure-recognition slice
 - Added `chess_game/chess/structure_recognition.py` so the engine can group positions by open center, closed center, IQP, hanging pawns, opposite-side castling, and rook endgames with outside/protected passers.
 - Wired `chess_game/chess/ai_move_ordering.py` to reward open-file occupation in open centers, piece maneuvers and useful breaks in closed centers, blockade squares against IQP/hanging-pawn targets, and minority-attack preparation in the right queenside structures.

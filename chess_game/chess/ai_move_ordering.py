@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 
 from chess_game.chess.board.attack_utils import piece_attacks_square
+from chess_game.chess.ai_repetition_patterns import quiet_cycle_penalty
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_checkmate, is_in_check
 from chess_game.chess.defensive_priorities import (
@@ -105,6 +106,7 @@ def quiet_strategy_order_score(board: Board, move: Move) -> int:
     score += _piece_coordination_bonus(board, piece.color, piece.kind, move)
     score += structure_plan_bonus(board, piece.color, piece.kind, move)
     score += rook_endgame_order_bonus(board, piece.color, piece.kind, move)
+    score -= quiet_cycle_penalty(board, move, piece.kind)
     if improves_worst_piece(board, move):
         score += QUIET_WORST_PIECE_BONUS
     score += _check_quality_bonus(board, piece.kind, move)

@@ -94,37 +94,39 @@ Phase note: Task 0 is complete. The current baseline artifact lives in `tmp/stra
 
 ## 1.1 Add “do not immediately undo your move” regressions
 
-- [ ] Add tests where the engine should avoid short back-and-forth moves.
-- [ ] Cover cases such as:
-  - [ ] rook moves to a file and immediately back with no gain
-  - [ ] king steps forward and back in a quiet ending
+- [x] Add tests where the engine should avoid short back-and-forth moves.
+- [x] Cover cases such as:
+  - [x] rook moves to a file and immediately back with no gain
+  - [x] king steps forward and back in a quiet ending
   - [ ] queen reroutes that recreate the same geometry
   - [ ] knight hops out and back without improving control
 
 ## 1.2 Add “do not repeat while better” regressions
 
-- [ ] Add tests where one side is better and should reject repetition.
-- [ ] Cover cases such as:
-  - [ ] side with an outside passer should improve king support instead of checking
-  - [ ] side with a more active rook should cut off the king instead of repeating
-  - [ ] side with safer king and extra pawn should simplify instead of looping
-  - [ ] side with a winning queen/rook placement should keep pressure instead of resetting
+- [x] Add tests where one side is better and should reject repetition.
+- [x] Cover cases such as:
+  - [x] side with an outside passer should improve king support instead of checking
+  - [x] side with a more active rook should cut off the king instead of repeating
+  - [x] side with safer king and extra pawn should simplify instead of looping
+  - [x] side with a winning queen/rook placement should keep pressure instead of resetting
 
 ## 1.3 Add “repetition is acceptable when genuinely necessary” regressions
 
-- [ ] Add tests where the engine should preserve drawing resources.
-- [ ] Cover cases such as:
-  - [ ] side down material uses perpetual check as best defense
-  - [ ] side under promotion threat uses repetition to avoid losing
-  - [ ] equal dead-drawn endgame where repetition is fine
+- [x] Add tests where the engine should preserve drawing resources.
+- [x] Cover cases such as:
+  - [x] side down material uses perpetual check as best defense
+  - [x] side under promotion threat uses repetition to avoid losing
+  - [x] equal dead-drawn endgame where repetition is fine
 
 ## 1.4 Add transcript-specific repetition regressions
 
-- [ ] Add direct regressions from `tmp/selfplay_w3b3_20260525T212702Z.txt`.
-- [ ] Cover at least:
-  - [ ] the late White rook shuffle loop
-  - [ ] the late Black king oscillation loop
-  - [ ] the final repeated `Rh3/Rh4` vs `Kd3/Ke4` pattern
+- [x] Add direct regressions from `tmp/selfplay_w3b3_20260525T212702Z.txt`.
+- [x] Cover at least:
+  - [x] the late White rook shuffle loop
+  - [x] the late Black king oscillation loop
+  - [x] the final repeated `Rh3/Rh4` vs `Kd3/Ke4` pattern
+
+Phase note: Task 1 is complete. `tests/test_ai_strategy5_regressions.py` now locks in immediate rook/king undo regressions plus the transcript-backed late king oscillation and promotion-over-repetition failures, and the pre-existing draw-resource coverage in `tests/test_ai_quality.py` now explicitly closes Task 1.3.
 
 ---
 
@@ -132,52 +134,54 @@ Phase note: Task 0 is complete. The current baseline artifact lives in `tmp/stra
 
 ## 2.1 Audit existing repetition logic
 
-- [ ] Review current repetition scoring in:
-  - [ ] `chess_game/chess/ai.py`
-  - [ ] `chess_game/chess/ai_search_helpers.py`
-  - [ ] root move tie-break logic
-  - [ ] quiet move ordering
-- [ ] Document:
-  - [ ] when repetition penalties currently begin
-  - [ ] how strongly they scale
-  - [ ] where they are too late or too weak
+- [x] Review current repetition scoring in:
+  - [x] `chess_game/chess/ai.py`
+  - [x] `chess_game/chess/ai_search_helpers.py`
+  - [x] root move tie-break logic
+  - [x] quiet move ordering
+- [x] Document:
+  - [x] when repetition penalties currently begin
+  - [x] how strongly they scale
+  - [x] where they are too late or too weak
 
 ## 2.2 Penalize short-cycle quiet shuffles before formal repetition
 
-- [ ] Add structural penalties for:
-  - [ ] immediate move undo patterns
+- [x] Add structural penalties for:
+  - [x] immediate move undo patterns
   - [ ] same-piece oscillation over 2-4 plies
-  - [ ] heavy-piece file hopping without new pressure
-  - [ ] king triangulation that does not improve opposition, shelter, or conversion
+  - [x] heavy-piece file hopping without new pressure
+  - [x] king triangulation that does not improve opposition, shelter, or conversion
 
 ## 2.3 Scale anti-repetition pressure by advantage and progress
 
-- [ ] Increase penalties when the side to move has:
-  - [ ] material edge
-  - [ ] safer king
-  - [ ] more active rook/queen
-  - [ ] advanced passer
-  - [ ] clear conversion setup
-- [ ] Keep repetition acceptable when:
-  - [ ] materially behind
-  - [ ] under direct tactical pressure
-  - [ ] forcing draw is the only practical resource
+- [x] Increase penalties when the side to move has:
+  - [x] material edge
+  - [x] safer king
+  - [x] more active rook/queen
+  - [x] advanced passer
+  - [x] clear conversion setup
+- [x] Keep repetition acceptable when:
+  - [x] materially behind
+  - [x] under direct tactical pressure
+  - [x] forcing draw is the only practical resource
 
 ## 2.4 Improve root move selection against equal-scoring loops
 
-- [ ] Add stronger root tie-break preference for moves that:
-  - [ ] improve king position
-  - [ ] cut off enemy king
-  - [ ] increase passer support
+- [x] Add stronger root tie-break preference for moves that:
+  - [x] improve king position
+  - [x] cut off enemy king
+  - [x] increase passer support
   - [ ] trade into a simpler favorable ending
-  - [ ] create fresh threats instead of recycled pressure
+  - [x] create fresh threats instead of recycled pressure
 
 ## 2.5 Add anti-shuffle helpers if needed
 
-- [ ] If current logic is too scattered, extract a shared helper/module for:
-  - [ ] short-cycle detection
-  - [ ] quiet shuffle classification
+- [x] If current logic is too scattered, extract a shared helper/module for:
+  - [x] short-cycle detection
+  - [x] quiet shuffle classification
   - [ ] plan-preserving improvement bonuses
+
+Phase note: Task 2 is complete for this anti-repetition slice. The audit showed quiet-order and root penalties were only engaging once formal repetition was already visible, so the new `chess_game/chess/ai_repetition_patterns.py` helper now penalizes immediate quiet undo moves earlier, scales root penalties more sharply in simple winning endgames, and stops immediate quiet reversals from bypassing those penalties via superficial king-pressure gains.
 
 ---
 
