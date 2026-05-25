@@ -372,11 +372,11 @@ Phase note: Task 4 is now complete. The new `chess_game/chess/opponent_plans.py`
 
 ## 7.2 Avoid wasting search on empty forcing moves
 
-- [ ] Reduce priority for:
-  - [ ] harmless checks
-  - [ ] repeated tactical geometry with no payoff
-  - [ ] speculative captures that worsen structure
-  - [ ] side threats that ignore the center or king safety
+- [x] Reduce priority for:
+  - [x] harmless checks
+  - [x] repeated tactical geometry with no payoff
+  - [x] speculative captures that worsen structure
+  - [x] side threats that ignore the center or king safety
 
 ## 7.3 Improve quiescence quality
 

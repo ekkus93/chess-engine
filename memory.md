@@ -55,6 +55,11 @@
 - Added explicit regression coverage in `tests/test_ai_search.py` and kept the extension bounded so depth benchmarks and full-suite runtime remained within existing limits.
 - Revalidated the repository green with `pylint chess_game` and `python -m pytest tests -q`, and updated `docs/STRATEGY4_TODO.md` to mark all of Task 7.1 complete.
 
+## 2026-05-25T08:21:39Z - GPT-5.3-Codex - STRATEGY4 Task 7.2 closure
+- Closed Task 7.2 by mapping each sub-bullet to explicit existing behavior and regression coverage already present in the suite: harmless-check demotion, repeated empty tactical geometry penalties, speculative structure-worsening capture demotion, and side-threat demotion behind center/king safety.
+- Verified the targeted tests directly (`test_quiet_move_order_downgrades_flank_check_that_can_be_chased`, `test_root_stability_adjustment_penalizes_repeated_empty_tactic`, `test_capture_order_penalizes_pawn_grab_that_opens_king_lines`, `test_quiet_move_order_prefers_sealing_entry_file_before_harmless_check`, and `test_search_prefers_luft_over_empty_check_under_back_rank_pressure`).
+- Updated `docs/STRATEGY4_TODO.md` so Task 7.2 is now explicitly marked complete before moving to Task 7.3.
+
 ## 2026-05-23T06:35:25Z - GPT-5.4 - STRATEGY4 Task 4 first threat-recognition slice
 - Added `chess_game/chess/opponent_plans.py` so quiet ordering can compare enemy near-term plan pressure before and after a move, including invasion lines, knight jumps, central pawn breaks, checking resources, and passed-pawn pushes.
 - Wired that plan-pressure delta into `chess_game/chess/ai_move_ordering.py` and added a new prophylaxis regression in `tests/test_ai_defensive_strategy.py` proving that stopping an enemy central break outranks quiet rook improvement.
