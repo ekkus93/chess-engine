@@ -402,37 +402,37 @@ Phase note: Quiescence now keeps only the most relevant tactical leaves, favorin
 
 ## 8.1 Strengthen opening-principle heuristics
 
-- [ ] Further reward:
-  - [ ] fast development
-  - [ ] central control
-  - [ ] safe castling
-  - [ ] piece harmony
-  - [ ] keeping multiple plans available
+- [x] Further reward:
+  - [x] fast development
+  - [x] central control
+  - [x] safe castling
+  - [x] piece harmony
+  - [x] keeping multiple plans available
 
 ## 8.2 Penalize non-human opening habits
 
-- [ ] Penalize:
-  - [ ] repeated queen moves
-  - [ ] flank pawn pokes without a center or king-safety reason
-  - [ ] rook wandering before the minor pieces are coordinated
-  - [ ] exchanging helpful developing pieces for no structural reason
+- [x] Penalize:
+  - [x] repeated queen moves
+  - [x] flank pawn pokes without a center or king-safety reason
+  - [x] rook wandering before the minor pieces are coordinated
+  - [x] exchanging helpful developing pieces for no structural reason
 
 ## 8.3 Add opening-plan tests
 
-- [ ] Add tests that prefer:
-  - [ ] completing development over pawn raids
-  - [ ] castling over speculative initiative
-  - [ ] central recapture over side pressure
-  - [ ] preserving structure over low-value activity
+- [x] Add tests that prefer:
+  - [x] completing development over pawn raids
+  - [x] castling over speculative initiative
+  - [x] central recapture over side pressure
+  - [x] preserving structure over low-value activity
 
 ## 8.4 Optional lightweight opening guidance
 
-- [ ] Evaluate whether a small non-random opening preference table would help.
-- [ ] If added:
-  - [ ] keep it explainable
-  - [ ] keep it small
-  - [ ] avoid conflicting with legal/evaluation logic
-  - [ ] cover only very early move-order sanity
+- [x] Evaluate whether a small non-random opening preference table would help.
+- [x] If added:
+  - [x] keep it explainable
+  - [x] keep it small
+  - [x] avoid conflicting with legal/evaluation logic
+  - [x] cover only very early move-order sanity
 
 ---
 

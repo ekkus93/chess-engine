@@ -17,6 +17,7 @@ from chess_game.chess.opening_development import (
     early_shelter_pawn_push_penalty as _early_shelter_pawn_push_penalty,
     coordinated_minor_piece_setup as _coordinated_minor_piece_setup,
     early_flank_queen_sortie_penalty as _early_flank_queen_sortie_penalty,
+    early_flank_pawn_poke_penalty as _early_flank_pawn_poke_penalty,
     early_flank_raid_penalty as _early_flank_raid_penalty,
     early_queen_raid_penalty as _early_queen_raid_penalty,
     opening_central_control_bonus as _opening_central_control_bonus,
@@ -644,6 +645,11 @@ def _evaluate_development(board: Board, middlegame_phase: int) -> int:
         development_score -= sign * _early_queen_raid_penalty(board, color, undeveloped)
         if undeveloped >= 2 and _rook_left_home_square_early(board, color):
             development_score -= sign * EARLY_ROOK_MOVE_PENALTY
+        development_score -= sign * _early_flank_pawn_poke_penalty(
+            board,
+            color,
+            undeveloped,
+        )
         development_score -= sign * _early_flank_raid_penalty(board, color, undeveloped)
     return _scale_signed(development_score, middlegame_phase)
 

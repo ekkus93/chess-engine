@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
+from chess_game.chess.ai_board_utils import move_colors
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_in_check
 from chess_game.chess.defensive_priorities import (
@@ -297,8 +298,10 @@ def root_stability_adjustment(
     moving_piece = board.get_piece(move.start)
     if moving_piece is None:
         return 0
-    moving_color = moving_piece.color
-    enemy_color = Color.BLACK if moving_color == Color.WHITE else Color.WHITE
+    colors = move_colors(board, move)
+    if colors is None:
+        return 0
+    moving_color, enemy_color = colors
     signed_bonus = _defensive_root_bonus(board, child_board, moving_color)
     signed_bonus += _attacking_root_bonus(
         board,

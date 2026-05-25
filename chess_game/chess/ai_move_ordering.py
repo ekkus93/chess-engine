@@ -12,6 +12,7 @@ from chess_game.chess.defensive_priorities import (
     king_needs_shelter,
 )
 from chess_game.chess.move import Move
+from chess_game.chess.opening_guidance import opening_guidance_bonus
 from chess_game.chess.opponent_plans import opponent_plan_profile
 from chess_game.chess.piece_coordination import (
     bishop_coordination_bonus,
@@ -65,6 +66,8 @@ QUIET_CHECK_BREAK_DEFENDER_BONUS = 12
 QUIET_EMPTY_CHECK_PENALTY = 40
 QUIET_EASY_SHUFFLE_CHECK_PENALTY = 20
 QUIET_SELF_EXPOSING_CHECK_PENALTY = 22
+QUIET_FLANK_PAWN_POKE_PENALTY = 18
+QUIET_EARLY_ROOK_WANDER_PENALTY = 18
 
 
 @dataclass(frozen=True)
@@ -142,6 +145,7 @@ def _is_castling_move(move: Move) -> bool:
 
 def _opening_discipline_bonus(board: Board, kind: PieceType, move: Move) -> int:
     score = 0
+    score += opening_guidance_bonus(board, board.turn, kind, move)
     if kind in (PieceType.KNIGHT, PieceType.BISHOP) and _develops_minor_piece(move):
         score += QUIET_DEVELOPING_MINOR_BONUS
     if kind == PieceType.QUEEN and _is_early_queen_sortie(board, move):
@@ -150,6 +154,10 @@ def _opening_discipline_bonus(board: Board, kind: PieceType, move: Move) -> int:
         score -= QUIET_FLANK_RAID_PENALTY
     if kind in {PieceType.QUEEN, PieceType.ROOK} and _is_repeat_heavy_piece_move(board, kind, move):
         score -= QUIET_REPEAT_HEAVY_PIECE_PENALTY
+    if kind == PieceType.PAWN and _is_early_flank_pawn_poke(board, move):
+        score -= QUIET_FLANK_PAWN_POKE_PENALTY
+    if kind == PieceType.ROOK and _is_early_rook_wander(board, move):
+        score -= QUIET_EARLY_ROOK_WANDER_PENALTY
     score += _defensive_priority_bonus(board, move)
     return score
 
@@ -209,8 +217,8 @@ def _is_early_queen_sortie(board: Board, move: Move) -> bool:
     undeveloped = _undeveloped_minor_count(board)
     end_row = int(move.end.row)
     if board.turn == Color.WHITE:
-        return undeveloped >= 2 and end_row <= 3
-    return undeveloped >= 2 and end_row >= 4
+        return undeveloped >= 2 and end_row <= 4
+    return undeveloped >= 2 and end_row >= 3
 
 
 def _undeveloped_minor_count(board: Board) -> int:
@@ -243,6 +251,25 @@ def _is_repeat_heavy_piece_move(board: Board, kind: PieceType, move: Move) -> bo
         and not _heavy_piece_on_home_square(board.turn, kind, move.start)
         and not _heavy_piece_on_home_square(board.turn, kind, move.end)
     )
+
+
+def _is_early_flank_pawn_poke(board: Board, move: Move) -> bool:
+    """Return True for premature flank pawn pushes before development is complete."""
+    if _undeveloped_minor_count(board) < 2 or not king_needs_shelter(board, board.turn):
+        return False
+    end_col = int(move.end.col)
+    if end_col not in {0, 1, 6, 7}:
+        return False
+    end_row = int(move.end.row)
+    return end_row <= 4 if board.turn == Color.WHITE else end_row >= 3
+
+
+def _is_early_rook_wander(board: Board, move: Move) -> bool:
+    """Return True for rooks leaving the back rank before development and king safety."""
+    if _undeveloped_minor_count(board) < 2 or not king_needs_shelter(board, board.turn):
+        return False
+    home_row = 7 if board.turn == Color.WHITE else 0
+    return int(move.start.row) == home_row and int(move.end.row) != home_row
 
 
 def _heavy_piece_on_home_square(color: Color, kind: PieceType, square) -> bool:

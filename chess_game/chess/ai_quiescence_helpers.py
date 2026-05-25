@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Callable
 
+from chess_game.chess.ai_board_utils import clone_with_move as _make_copy_with_move, move_colors
 from chess_game.chess.ai_search_helpers import promotion_order_score
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_in_check as _gs_is_in_check
@@ -101,11 +102,10 @@ def _quiescence_tactical_score(board: Board, move: Move) -> int:
     hot path; exported for regression tests.
     """
 
-    moving_piece = board.get_piece(move.start)
-    if moving_piece is None:
+    colors = move_colors(board, move)
+    if colors is None:
         return 0
-    moving_color = moving_piece.color
-    enemy_color = Color.BLACK if moving_color == Color.WHITE else Color.WHITE
+    moving_color, enemy_color = colors
     score = 0
     if move.promotion is not None:
         score += 1_000 + promotion_order_score(move)
@@ -226,16 +226,3 @@ def _quiescence_structure_follow_up_score(board: Board, child_board: Board) -> i
     if before_profile.black != after_profile.black:
         score += 80
     return score
-
-
-def _make_copy_with_move(board: Board, move: Move) -> Board:
-    """Create a new board state after making a move."""
-
-    simulated = board.clone()
-    if not simulated.apply_legal_move(
-        move.start,
-        move.end,
-        promotion=move.promotion,
-    ):
-        raise RuntimeError("Simulated move failed legality check")
-    return simulated

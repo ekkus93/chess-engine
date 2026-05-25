@@ -540,3 +540,8 @@ Quality:
 - Added `chess_game/chess/pawn_structure_evaluation.py` and moved pawn-structure scoring out of `evaluation.py` so Task 2 growth stays structural and lint-clean.
 - Added STRATEGY4 regressions for loose castled-king shelter pawn advances and for central integrity beating side-grab structures, then introduced a middlegame-weighted shelter penalty that scales down in endings.
 - Updated `docs/STRATEGY4_TODO.md` to mark the completed Task 2 bullets for loose castled-king pawn advances, sharper `g`/`h`-pawn shelter penalties, endgame scaling, and the new stable-shelter / central-integrity regression coverage.
+
+## 2026-05-25T14:09:19Z - GPT-5.4 - STRATEGY4 Task 8 and lint cleanup completed
+- Added `chess_game/chess/opening_guidance.py`, a small explainable opening preference table for very early move-order sanity, and wired it through `chess_game/chess/ai_move_ordering.py` together with broader early-queen, flank-pawn, and rook-wander opening penalties.
+- Added evaluation-side punishment for premature flank pawn lunges in `chess_game/chess/opening_development.py`, expanded `tests/test_ai_opening_strategy.py` with Task 8 regressions, and updated `docs/STRATEGY4_TODO.md` plus the session `plan.md` to mark Task 8 complete.
+- Removed the last repo-wide pylint blockers by extracting shared AI move utilities into `chess_game/chess/ai_board_utils.py`; the repository is back to `pylint chess_game` at `10.00/10` and `python -m pytest tests -q` at `493 passed`.

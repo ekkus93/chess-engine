@@ -74,6 +74,21 @@ def early_flank_raid_penalty(board: Board, color: Color, undeveloped: int) -> in
     return penalty
 
 
+def early_flank_pawn_poke_penalty(board: Board, color: Color, undeveloped: int) -> int:
+    """Penalize premature flank pawn lunges before development and castling."""
+
+    king_square = board.find_king(color)
+    if undeveloped < 2 or king_square is None or _is_castled_king(color, king_square):
+        return 0
+    penalty = 0
+    for piece, row, col in iter_color_pieces(board, color):
+        if piece.kind != PieceType.PAWN or col not in {0, 1, 6, 7}:
+            continue
+        if _flank_pawn_is_overextended(color, row):
+            penalty += EARLY_FLANK_RAID_PENALTY
+    return penalty
+
+
 def early_flank_queen_sortie_penalty(board: Board, color: Color, undeveloped: int) -> int:
     """Penalize early unsupported queen swings to the board edge."""
 
@@ -232,6 +247,10 @@ def _piece_in_enemy_half(color: Color, row: int) -> bool:
 
 
 def _queen_on_flank_sortie(color: Color, row: int) -> bool:
+    return row <= 4 if color == Color.WHITE else row >= 3
+
+
+def _flank_pawn_is_overextended(color: Color, row: int) -> bool:
     return row <= 4 if color == Color.WHITE else row >= 3
 
 

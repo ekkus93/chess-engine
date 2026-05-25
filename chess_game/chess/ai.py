@@ -12,6 +12,10 @@ import time
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_in_check as _gs_is_in_check
 from chess_game.chess.ai_capture_ordering import capture_order_score as _shared_capture_order_score
+from chess_game.chess.ai_board_utils import (
+    clone_with_move as _make_copy_with_move,
+    get_legal_moves,
+)
 from chess_game.chess.ai_move_ordering import quiet_strategy_order_score
 from chess_game.chess.ai_quiescence_helpers import (
     _quiescence_capture_score as _quiescence_capture_score_impl,
@@ -295,29 +299,6 @@ class QuiescenceParams:
     line_history: tuple[str, ...] = ()
     legal_moves: tuple[Move, ...] | None = None
 
-
-def get_legal_moves(board: Board) -> list[Move]:
-    """Get all legal moves for the side to move."""
-
-    return [
-        Move(start=start, end=end, promotion=promotion)
-        for start, end, promotion in board.get_legal_moves()
-    ]
-
-
-def _make_copy_with_move(board: Board, move: Move) -> Board:
-    """Create a new board state after making a move."""
-
-    simulated = shallow_clone_board(board)
-    if not simulated.apply_legal_move(
-        move.start,
-        move.end,
-        promotion=move.promotion,
-    ):
-        raise RuntimeError("Simulated move failed legality check")
-    return simulated
-
-
 def _check_tt_cache(
     board: Board,
     params: MinimaxParams,
@@ -374,13 +355,6 @@ def _store_tt_cache(
     existing = context.transposition_table.get(key)
     if existing is None or params.depth >= existing.depth:
         context.transposition_table[key] = new_entry
-
-
-def shallow_clone_board(board: Board) -> Board:
-    """Create a search clone of the board."""
-
-    return board.clone()
-
 
 def _record_search_node(context: Optional[SearchContext]) -> None:
     """Increment node counters when diagnostics are enabled."""
