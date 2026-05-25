@@ -568,3 +568,10 @@ Quality:
 - Added shared repetition-safe position hashing in `chess_game/chess/position_utils.py` and expanded `chess_game/chess/board/game_state.py` so the engine now recognizes threefold/fivefold repetition, fifty-move/seventy-five-move draws, and insufficient-material draws.
 - Refactored `Board` to track halfmove/fullmove state through metadata, updated cloning to preserve that state, and wired both `chess_game/main.py` and `chess_game/self_play.py` to record positions and stop on the new terminal rules.
 - Added regression coverage in `tests/test_draw_rules.py` and extended clone/CLI tests so the draw-state bookkeeping and user-facing termination behavior stay enforced.
+
+## 2026-05-25T22:58:03Z - GPT-5.4 - STRATEGY5 planning created
+- Added `docs/STRATEGY5_TOOD.md`, a comprehensive implementation tracker focused on the next quality pass: anti-repetition behavior, anti-shuffle discipline, technical conversion, defensive endgame technique, opening discipline, passed-pawn urgency, and transcript-driven review.
+
+## 2026-05-25T23:14:31Z - GPT-5.4 - STRATEGY5 Task 0 baseline completed
+- Updated `docs/STRATEGY5_TODO.md` to complete Task 0 and recorded the post-STRATEGY4 baseline from `tmp/selfplay_w3b3_20260525T212702Z.txt`.
+- The baseline artifact identifies the key reproduced failures for the next pass: White's early `a2a4`, repeated rook shuffles, Black's conversion drift after achieving the easier game, Black's late defensive oscillation, and White's final failure to promote the `b7` passer instead of repeating.
