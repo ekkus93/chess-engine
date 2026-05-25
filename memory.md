@@ -10,6 +10,10 @@
 - Tightened `chess_game/chess/ai_move_ordering.py` and `chess_game/chess/ai_search_helpers.py` so low-value rook/king reversals are penalized before formal repetition, especially in simple winning endgames, without suppressing genuinely necessary drawing lines.
 - Added `tests/test_ai_strategy5_regressions.py`, updated `docs/STRATEGY5_TODO.md` to close Tasks 1 and 2, and revalidated the full repository green with `pylint chess_game` and `python -m pytest tests -q` (`507 passed`).
 
+## 2026-05-25T23:27:50Z - GPT-5.4 - LINT FIX3 Task 6 tracker closure
+- Updated `docs/LINT_FIX3_TODO.md` to mark Task 6 complete because `chess_game/chess/board/move_validation.py` is already structurally clean in the current repository state.
+- Confirmed the repo-wide validation target remains satisfied at `pylint chess_game` = `10.00/10` and `python -m pytest tests -q` = `507 passed`.
+
 ## 2026-05-23T06:59:16Z - GPT-5.4 - STRATEGY4 Task 5 structure-recognition slice
 - Added `chess_game/chess/structure_recognition.py` so the engine can group positions by open center, closed center, IQP, hanging pawns, opposite-side castling, and rook endgames with outside/protected passers.
 - Wired `chess_game/chess/ai_move_ordering.py` to reward open-file occupation in open centers, piece maneuvers and useful breaks in closed centers, blockade squares against IQP/hanging-pawn targets, and minority-attack preparation in the right queenside structures.

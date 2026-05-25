@@ -72,19 +72,21 @@ All 189 tests pass, mypy is clean. Remaining issues are structural pylint warnin
 
 ---
 
-## Task 6: `chess_game/chess/board/move_validation.py` — too-many-return-statements & too-many-locals
+## Task 6: `chess_game/chess/board/move_validation.py` — too-many-return-statements & too-many-locals ✅ DONE
 
-### Subtask 6.1: `_get_pseudo_legal_moves` — too-many-return-statements (8/6)
+### Subtask 6.1: `_get_pseudo_legal_moves` — too-many-return-statements (8/6) ✅ DONE
 - Build a list of candidate moves across all pieces, then return once at the end
 - Or extract per-piece move generation into helpers: `_get_piece_moves(piece, square)`, returning a list
 
-### Subtask 6.2: `_is_legal_move_for_piece` — too-many-locals (16/15)
+### Subtask 6.2: `_is_legal_move_for_piece` — too-many-locals (16/15) ✅ DONE
 - Extract board clone + move attempt into `_try_move_on_clone(board, from_sq, to_sq, promotion)`
 - Extract check verification into `_would_leave_own_king_in_check(cloned, moving_color)`
 
-### Subtask 6.3: `_get_piece_pseudo_legal_moves` — too-many-return-statements (7/6)
+### Subtask 6.3: `_get_piece_pseudo_legal_moves` — too-many-return-statements (7/6) ✅ DONE
 - Dispatch piece types via a dictionary mapping `PieceType -> handler_function`
 - Single return at the end of the method
+
+Phase note: Task 6 is complete in the current codebase. `chess_game/chess/board/move_validation.py` no longer emits the structural pylint warnings tracked here, and the repository is currently green at `pylint chess_game` = `10.00/10` and `python -m pytest tests -q` = `507 passed`.
 
 ---
 
