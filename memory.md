@@ -50,6 +50,11 @@
 - Added direct coverage in `tests/test_ai_search.py` for both new triggers and kept the strategic extension gate depth-limited to preserve practical search speed.
 - Revalidated full repository quality (`pylint chess_game`, `python -m pytest tests -q`), then marked the corresponding Task 7.1 bullets complete in `docs/STRATEGY4_TODO.md`.
 
+## 2026-05-25T08:20:30Z - GPT-5.3-Codex - STRATEGY4 Task 7.1 completion
+- Completed the final Task 7.1 selective-extension bullet by adding an only-move prophylaxis trigger for unique non-capturing back-rank stabilizers in pressured king-safety positions.
+- Added explicit regression coverage in `tests/test_ai_search.py` and kept the extension bounded so depth benchmarks and full-suite runtime remained within existing limits.
+- Revalidated the repository green with `pylint chess_game` and `python -m pytest tests -q`, and updated `docs/STRATEGY4_TODO.md` to mark all of Task 7.1 complete.
+
 ## 2026-05-23T06:35:25Z - GPT-5.4 - STRATEGY4 Task 4 first threat-recognition slice
 - Added `chess_game/chess/opponent_plans.py` so quiet ordering can compare enemy near-term plan pressure before and after a move, including invasion lines, knight jumps, central pawn breaks, checking resources, and passed-pawn pushes.
 - Wired that plan-pressure delta into `chess_game/chess/ai_move_ordering.py` and added a new prophylaxis regression in `tests/test_ai_defensive_strategy.py` proving that stopping an enemy central break outranks quiet rook improvement.

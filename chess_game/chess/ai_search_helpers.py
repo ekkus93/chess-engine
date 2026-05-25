@@ -383,6 +383,12 @@ def selective_extension_bonus(
             child_board,
             moving_color,
         )
+        or _is_only_move_prophylaxis_extension(
+            board,
+            move,
+            child_board,
+            moving_color,
+        )
         or _is_favorable_simplification_extension(
             board,
             move,
@@ -486,6 +492,44 @@ def _significant_king_profile_change(
         or before.invasion_lines != after.invasion_lines
         or before.back_rank_weak != after.back_rank_weak
     )
+
+
+def _is_only_move_prophylaxis_extension(
+    board: Board,
+    move: Move,
+    child_board: Board,
+    moving_color: Color,
+) -> bool:
+    if not _is_back_rank_stabilizer(board, move, child_board, moving_color):
+        return False
+    stabilizer_count = 0
+    for start, end, promotion in board.get_legal_moves():
+        candidate = Move(start=start, end=end, promotion=promotion)
+        candidate_board = board.clone()
+        if not candidate_board.apply_legal_move(start, end, promotion=promotion):
+            continue
+        if _is_back_rank_stabilizer(board, candidate, candidate_board, moving_color):
+            stabilizer_count += 1
+            if stabilizer_count > 1:
+                return False
+    return stabilizer_count == 1
+
+
+def _is_back_rank_stabilizer(
+    board: Board,
+    move: Move,
+    child_board: Board,
+    moving_color: Color,
+) -> bool:
+    if is_capture_move(board, move):
+        return False
+    before = king_defense_profile(board, moving_color)
+    after = king_defense_profile(child_board, moving_color)
+    if before.danger < DANGEROUS_KING_PRESSURE_THRESHOLD - 1:
+        return False
+    if not before.back_rank_weak or after.back_rank_weak:
+        return False
+    return after.safe_king_moves > before.safe_king_moves or after.danger < before.danger
 
 
 def _is_favorable_simplification_extension(
