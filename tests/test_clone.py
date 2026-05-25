@@ -62,7 +62,7 @@ def test_board_clone_pieces_are_independent() -> None:
 
 
 def test_board_clone_preserves_all_state() -> None:
-    """TS6.2: Clone preserves turn, en_passant_target, and castling rights."""
+    """TS6.2: Clone preserves turn, en_passant_target, castling, and clocks."""
     original = Board()
     original.turn = Color.BLACK
     original.en_passant_target = sq("d5")  # d5
@@ -70,6 +70,8 @@ def test_board_clone_preserves_all_state() -> None:
     original.castling_rights.black_queenside = False
     original.castling_rights.white_queenside = True
     original.castling_rights.black_kingside = True
+    original.halfmove_clock = 42
+    original.fullmove_number = 18
 
     cloned = original.clone()
 
@@ -79,6 +81,8 @@ def test_board_clone_preserves_all_state() -> None:
     assert cloned.castling_rights.white_queenside is True
     assert cloned.castling_rights.black_kingside is True
     assert cloned.castling_rights.black_queenside is False
+    assert cloned.halfmove_clock == 42
+    assert cloned.fullmove_number == 18
 
 
 def test_board_clone_moves_on_clone_independent() -> None:

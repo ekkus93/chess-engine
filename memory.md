@@ -560,3 +560,11 @@ Quality:
 - Inspected `docs/STRATEGY4_TODO.md` Task 9 against current endgame code in `chess_game/chess/endgame_evaluation.py`, `chess_game/chess/ai_move_ordering.py`, and the existing regressions in `tests/test_ai_quality.py`/`tests/test_ai_search.py`.
 - Current coverage is already solid for king activation, rook-behind-own-passer, king cutoff, simplification when ahead, and basic counterplay reduction; the weakest gaps are explicit rook-endgame defense heuristics (correct side/behind enemy passer), checking-distance/Lucena-style setup guidance, and stronger demotion of flashy checks when quiet conversion moves improve placement more safely.
 - Quick probes confirmed the existing targeted endgame tests pass, but also showed a likely remaining gap: in a simple winning rook ending the engine still favored a rook-sideways pressure move over calmer conversion moves, and in a worse rook ending the best move remained active checking rather than a clearly defensive setup.
+
+## 2026-05-25T21:07:59Z - GPT-5.4 - Self-play must follow normal chess rules
+- User clarified that self-play games should not use special-case harness rules or bypass normal chess rules; future self-play runs should respect standard draw and termination rules instead of forcing mate-or-stalemate-only continuations.
+
+## 2026-05-25T21:21:07Z - GPT-5.4 - Draw-rule enforcement added
+- Added shared repetition-safe position hashing in `chess_game/chess/position_utils.py` and expanded `chess_game/chess/board/game_state.py` so the engine now recognizes threefold/fivefold repetition, fifty-move/seventy-five-move draws, and insufficient-material draws.
+- Refactored `Board` to track halfmove/fullmove state through metadata, updated cloning to preserve that state, and wired both `chess_game/main.py` and `chess_game/self_play.py` to record positions and stop on the new terminal rules.
+- Added regression coverage in `tests/test_draw_rules.py` and extended clone/CLI tests so the draw-state bookkeeping and user-facing termination behavior stay enforced.

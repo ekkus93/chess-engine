@@ -85,7 +85,10 @@ class TestGameOverMessage:
 
         board = MagicMock()
         board.turn = Color.BLACK
-        with patch("chess_game.main.is_checkmate", return_value=True):
+        with patch(
+            "chess_game.main.terminal_message",
+            return_value="Checkmate! White wins.",
+        ):
             msg = _game_over_message(board)
         assert msg is not None
         assert "Checkmate" in msg
@@ -96,7 +99,10 @@ class TestGameOverMessage:
 
         board = MagicMock()
         board.turn = Color.WHITE
-        with patch("chess_game.main.is_checkmate", return_value=True):
+        with patch(
+            "chess_game.main.terminal_message",
+            return_value="Checkmate! Black wins.",
+        ):
             msg = _game_over_message(board)
         assert msg is not None
         assert "Checkmate" in msg
@@ -106,9 +112,11 @@ class TestGameOverMessage:
         from chess_game.main import _game_over_message
 
         board = MagicMock()
-        with patch("chess_game.main.is_checkmate", return_value=False):
-            with patch("chess_game.main.is_stalemate", return_value=True):
-                msg = _game_over_message(board)
+        with patch(
+            "chess_game.main.terminal_message",
+            return_value="Stalemate! The game is a draw.",
+        ):
+            msg = _game_over_message(board)
         assert msg is not None
         assert "Stalemate" in msg or "draw" in (msg or "").lower()
 
@@ -116,9 +124,8 @@ class TestGameOverMessage:
         from chess_game.main import _game_over_message
 
         board = MagicMock()
-        with patch("chess_game.main.is_checkmate", return_value=False):
-            with patch("chess_game.main.is_stalemate", return_value=False):
-                msg = _game_over_message(board)
+        with patch("chess_game.main.terminal_message", return_value=None):
+            msg = _game_over_message(board)
         assert msg is None
 
 
@@ -156,7 +163,10 @@ class TestGameLoop:
         # Simulate one move then checkmate detected.
         with patch("chess_game.main.Board"), \
              patch("builtins.input", side_effect=["e2e4"]), \
-             patch("chess_game.main.is_checkmate", return_value=True):
+             patch(
+                 "chess_game.main.terminal_message",
+                 return_value="Checkmate! Black wins.",
+             ):
             # make_move returns True once, then _game_over_message will end loop.
             board_mock.make_move.return_value = True
             _game_loop(board_mock)

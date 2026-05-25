@@ -373,7 +373,7 @@ class LegalMove:
 - `turn` — Color (WHITE or BLACK)
 - `castling_rights` — CastlingRights dataclass with 4 boolean fields
 - `en_passant_target` — Optional[ConstantSquare]
-- `halfmove_clock` and `fullmove_number` — not yet implemented
+- `halfmove_clock` and `fullmove_number` — tracked on `Board` for draw-state enforcement
 
 **Castling rights** — stored explicitly in a CastlingRights dataclass:
 - `white_kingside: bool`

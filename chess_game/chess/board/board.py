@@ -8,7 +8,14 @@ from __future__ import annotations
 from typing import List, Optional, Tuple
 
 from chess_game.chess.constants import Color
-from chess_game.chess.types import PieceType, Piece, CastlingRights, BoardValidators
+from chess_game.chess.types import (
+    PieceType,
+    Piece,
+    CastlingRights,
+    BoardValidators,
+    GameMetadata,
+    MoveCounters,
+)
 from chess_game.chess.board.move_validation import MoveValidator
 from chess_game.chess.board.move_execution import MoveExecutor
 from chess_game.chess.board.castling import (
@@ -86,13 +93,19 @@ class Board:
         turn: Color whose turn it is
         en_passant_target: Optional en passant square
         castling_rights: CastlingRights tracking castling availability
+        halfmove_clock: Ply count since the last pawn move or capture
+        fullmove_number: Full move number starting at 1 and incrementing after Black
     """
+
+    en_passant_target: Optional[ConstantSquare]
+    castling_rights: CastlingRights
+    halfmove_clock: int
+    fullmove_number: int
 
     def __init__(self) -> None:
         self.board: List[List[Optional[Piece]]] = self._create_board()
         self.turn = Color.WHITE
-        self.en_passant_target: Optional[ConstantSquare] = None
-        self.castling_rights = CastlingRights()
+        self._state = GameMetadata()
         self._validators: BoardValidators
         self._move_history: List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]] = []
 
@@ -112,6 +125,31 @@ class Board:
     def piece_move_checker(self) -> PieceMoveChecker:
         """Access to piece-specific move validation."""
         return self._validators.piece_move_checker
+
+    def __getattr__(self, name: str) -> object:
+        """Expose move-counter fields through the historical Board API."""
+
+        if name == "en_passant_target":
+            return self._state.en_passant_target
+        if name == "castling_rights":
+            return self._state.castling_rights
+        if name in {"halfmove_clock", "fullmove_number"}:
+            return getattr(self._state.move_counters, name)
+        raise AttributeError(f"{type(self).__name__!s} has no attribute {name!r}")
+
+    def __setattr__(self, name: str, value: object) -> None:
+        """Route move-counter writes to the shared MoveCounters state."""
+
+        if name == "en_passant_target" and "_state" in self.__dict__:
+            self._state.en_passant_target = value
+            return
+        if name == "castling_rights" and "_state" in self.__dict__:
+            self._state.castling_rights = value
+            return
+        if name in {"halfmove_clock", "fullmove_number"} and "_state" in self.__dict__:
+            setattr(self._state.move_counters, name, value)
+            return
+        super().__setattr__(name, value)
 
     # ---- board accessors ----
 
@@ -386,12 +424,18 @@ class Board:
             for row in self.board
         ]
         cloned.turn = self.turn
-        cloned.en_passant_target = self.en_passant_target
-        cloned.castling_rights = CastlingRights(
-            white_kingside=self.castling_rights.white_kingside,
-            white_queenside=self.castling_rights.white_queenside,
-            black_kingside=self.castling_rights.black_kingside,
-            black_queenside=self.castling_rights.black_queenside,
+        cloned.__dict__["_state"] = GameMetadata(
+            en_passant_target=self.en_passant_target,
+            castling_rights=CastlingRights(
+                white_kingside=self.castling_rights.white_kingside,
+                white_queenside=self.castling_rights.white_queenside,
+                black_kingside=self.castling_rights.black_kingside,
+                black_queenside=self.castling_rights.black_queenside,
+            ),
+            move_counters=MoveCounters(
+                halfmove_clock=self.halfmove_clock,
+                fullmove_number=self._state.move_counters.fullmove_number,
+            ),
         )
         cloned.__dict__["_move_history"] = self._move_history_copy()
         cloned.init_validators()
@@ -516,6 +560,8 @@ class Board:
             start_piece = self.get_piece(start_pos)
         if start_piece is None:
             return False
+        moved_by_black = self.turn == Color.BLACK
+        is_capture = self._is_capture_move(start_pos, end_pos, start_piece)
 
         success = self._validators.move_executor.execute_move(
             start_pos, end_pos, promotion, start_piece
@@ -531,8 +577,38 @@ class Board:
         self._validators.en_passant_validator.set_en_passant_target_if_valid(
             start_pos, end_pos, start_piece
         )
+        self._update_move_counters(start_piece, is_capture, moved_by_black)
         self.turn = Color.BLACK if self.turn == Color.WHITE else Color.WHITE
         return True
+
+    def _is_capture_move(
+        self,
+        start_pos: ConstantSquare,
+        end_pos: ConstantSquare,
+        start_piece: Piece,
+    ) -> bool:
+        """Return whether the move captures material, including en passant."""
+
+        return self.get_piece(end_pos) is not None or (
+            start_piece.kind == PieceType.PAWN
+            and self.en_passant_target == end_pos
+            and start_pos.col != end_pos.col
+        )
+
+    def _update_move_counters(
+        self,
+        start_piece: Piece,
+        is_capture: bool,
+        moved_by_black: bool,
+    ) -> None:
+        """Update halfmove and fullmove counters after a legal move."""
+
+        if start_piece.kind == PieceType.PAWN or is_capture:
+            self.halfmove_clock = 0
+        else:
+            self.halfmove_clock += 1
+        if moved_by_black:
+            self._state.move_counters.fullmove_number += 1
 
     def _update_castling_rights(
         self,

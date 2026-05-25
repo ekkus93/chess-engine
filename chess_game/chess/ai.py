@@ -40,7 +40,6 @@ from chess_game.chess.ai_search_helpers import (
     search_position_counts as _search_position_counts,
     update_alpha_beta as _update_alpha_beta,
 )
-from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.evaluation import (
     MATERIAL_VALUES,
     evaluate,
@@ -52,6 +51,7 @@ from chess_game.chess.evaluation_tables import (
     VOLUNTARY_REPETITION_PENALTY,
 )
 from chess_game.chess.move import Move
+from chess_game.chess.position_utils import position_key as _shared_position_key
 from chess_game.chess.strategy_utils import is_capture_move as _is_capture_move
 from chess_game.chess.types import Color, LegalMove, PieceType
 
@@ -907,39 +907,7 @@ def search_root_depth(
 def position_key(board: Board) -> str:
     """Generate a full position key including turn, castling rights, and en passant."""
 
-    pieces = []
-    for row in board.board:
-        for piece in row:
-            if piece is None:
-                pieces.append(".")
-            else:
-                color_char = "w" if piece.color == Color.WHITE else "b"
-                kind_char = {
-                    PieceType.PAWN: "p",
-                    PieceType.KNIGHT: "n",
-                    PieceType.BISHOP: "b",
-                    PieceType.ROOK: "r",
-                    PieceType.QUEEN: "q",
-                    PieceType.KING: "k",
-                }[piece.kind]
-                pieces.append(f"{color_char}{kind_char}")
-    turn_char = "w" if board.turn == Color.WHITE else "b"
-    castling = ""
-    if board.castling_rights.white_kingside:
-        castling += "K"
-    if board.castling_rights.white_queenside:
-        castling += "Q"
-    if board.castling_rights.black_kingside:
-        castling += "k"
-    if board.castling_rights.black_queenside:
-        castling += "q"
-    ep_target = (
-        "-"
-        if board.en_passant_target is None
-        else index_to_algebraic(board.en_passant_target)
-    )
-    castling = castling or "-"
-    return "".join(pieces) + "|" + turn_char + "|" + castling + "|" + ep_target
+    return _shared_position_key(board)
 
 
 def _position_key(board: Board) -> str:

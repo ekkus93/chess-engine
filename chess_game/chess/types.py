@@ -1,6 +1,6 @@
 """Chess piece and move data types."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Optional
 
 from chess_game.chess.constants import (
@@ -60,6 +60,23 @@ class CastlingRights:
     white_queenside: bool = True
     black_kingside: bool = True
     black_queenside: bool = True
+
+
+@dataclass
+class MoveCounters:
+    """Tracks halfmove and fullmove counts for rule enforcement."""
+
+    halfmove_clock: int = 0
+    fullmove_number: int = 1
+
+
+@dataclass
+class GameMetadata:
+    """Mutable board metadata that is separate from piece placement."""
+
+    en_passant_target: Optional[ConstantSquare] = None
+    castling_rights: CastlingRights = field(default_factory=CastlingRights)
+    move_counters: MoveCounters = field(default_factory=MoveCounters)
 
 
 @dataclass

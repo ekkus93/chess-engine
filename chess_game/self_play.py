@@ -7,9 +7,9 @@ import signal
 import sys
 from typing import Optional
 
-from chess_game.chess.ai import get_best_move, position_key
+from chess_game.chess.ai import get_best_move
 from chess_game.chess.board import Board
-from chess_game.chess.board.game_state import is_checkmate, is_stalemate
+from chess_game.chess.board.game_state import record_position, terminal_message
 from chess_game.chess.constants import ConstantSquare
 from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.types import Color, PieceType
@@ -89,25 +89,6 @@ def _print_terminal_position(message: str, board: Board) -> None:
     board.display()
 
 
-def _terminal_message(
-    board: Board,
-    move_number: int,
-    position_counts: dict[str, int],
-) -> Optional[str]:
-    """Return a terminal message if the game is already over."""
-
-    key = position_key(board)
-    position_counts[key] = position_counts.get(key, 0) + 1
-    if position_counts[key] >= 3:
-        return f"Draw on move {move_number} (threefold repetition)."
-    if is_checkmate(board):
-        winner = "Black" if board.turn == Color.WHITE else "White"
-        return f"Checkmate on move {move_number}. {winner} wins."
-    if is_stalemate(board):
-        return f"Stalemate on move {move_number}. The game is a draw."
-    return None
-
-
 def _pick_self_play_move(
     board: Board,
     base_depth: int,
@@ -152,12 +133,13 @@ def run_self_play(
     move_number = 1
     position_counts: dict[str, int] = {}
     per_move_timeout: Optional[int] = None
+    record_position(board, position_counts)
 
     while move_number <= max_moves:
-        terminal_message = _terminal_message(board, move_number, position_counts)
-        if terminal_message is not None:
+        game_over = terminal_message(board, position_counts)
+        if game_over is not None:
             if verbose:
-                _print_terminal_position(terminal_message, board)
+                _print_terminal_position(f"{game_over} On move {move_number}.", board)
             return
 
         base_depth = depth_white if board.turn == Color.WHITE else depth_black
@@ -177,6 +159,7 @@ def run_self_play(
 
         side = "White" if board.turn == Color.WHITE else "Black"
         board.make_move(best.start, best.end, promotion=best.promotion)
+        record_position(board, position_counts)
         if verbose:
             _print_played_move(board, move_number, side, best)
         move_number += 1
