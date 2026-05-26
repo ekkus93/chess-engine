@@ -24,6 +24,17 @@ def iter_color_pieces(board: Board, color: Color):
             yield piece, row, col
 
 
+def legal_move_count(board: Board, color: Color) -> int:
+    """Return the total number of legal moves for one side."""
+
+    temp_board = board.clone()
+    temp_board.turn = color
+    return sum(
+        len(temp_board.get_legal_moves(piece.square))
+        for piece, _, _ in iter_color_pieces(temp_board, color)
+    )
+
+
 def iter_king_squares(board: Board):
     """Yield king squares as color, square pairs."""
 

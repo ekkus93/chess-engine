@@ -2,6 +2,7 @@
 
 from chess_game.chess import ai
 from chess_game.chess.ai import get_best_move, get_evaluation_breakdown
+from chess_game.chess.ai_search_helpers import root_stability_adjustment
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.types import Color, LegalMove, PieceType
 from tests.helpers import sq
@@ -194,6 +195,64 @@ def _task3_queen_escort_board() -> Board:
     )
 
 
+def _task5_h5_threat_board() -> Board:
+    return _board_from_moves(
+        [
+            ("b1", "c3"),
+            ("e7", "e5"),
+            ("g1", "f3"),
+            ("b8", "c6"),
+            ("c3", "e4"),
+            ("d7", "d5"),
+            ("e4", "g5"),
+            ("e5", "e4"),
+            ("g5", "e4"),
+            ("c8", "f5"),
+            ("e4", "c3"),
+            ("f8", "c5"),
+            ("g2", "g3"),
+            ("g8", "f6"),
+            ("d2", "d4"),
+            ("c6", "d4"),
+            ("f3", "d4"),
+            ("f5", "d7"),
+            ("c1", "g5"),
+            ("e8", "g8"),
+            ("c3", "d5"),
+        ]
+    )
+
+
+def _task5_passer_response_board() -> Board:
+    return _build_board(
+        [
+            ("g2", Color.WHITE, PieceType.KING),
+            ("d4", Color.WHITE, PieceType.QUEEN),
+            ("g1", Color.WHITE, PieceType.ROOK),
+            ("a2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g7", Color.BLACK, PieceType.KING),
+            ("b8", Color.BLACK, PieceType.ROOK),
+            ("b2", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+
+def _task5_back_rank_threat_board() -> Board:
+    return _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("h1", Color.WHITE, PieceType.ROOK),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("a2", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("h8", Color.BLACK, PieceType.KING),
+            ("h4", Color.BLACK, PieceType.QUEEN),
+        ]
+    )
+
+
 def test_strategy7_order_prefers_capturing_b7_passer_over_a5() -> None:
     """The defending side should tie its rook to the passer instead of drifting on the wing."""
 
@@ -336,3 +395,59 @@ def test_strategy7_search_rejects_bh3_in_winning_conversion_position() -> None:
         LegalMove(start=sq("d3"), end=sq("g3")),
         LegalMove(start=sq("h1"), end=sq("g1")),
     ]
+
+
+def test_strategy7_order_prefers_c6_over_h5_when_white_threat_is_urgent() -> None:
+    """Black should answer White's d5 threat before another speculative h-pawn lunge."""
+
+    board = _task5_h5_threat_board()
+    answer_threat = ai.Move(start=sq("c7"), end=sq("c6"))
+    side_pawn = ai.Move(start=sq("h7"), end=sq("h5"))
+
+    assert _move_order_score(board, answer_threat, None) > _move_order_score(board, side_pawn, None)
+
+
+def test_strategy7_order_prefers_luft_over_harmless_check_under_back_rank_threat() -> None:
+    """Quiet ordering should fix mate squares before rewarding a decorative queen check."""
+
+    board = _task5_back_rank_threat_board()
+    luft = ai.Move(start=sq("g2"), end=sq("g3"))
+    harmless_check = ai.Move(start=sq("d1"), end=sq("h5"))
+
+    assert _move_order_score(board, luft, None) > _move_order_score(board, harmless_check, None)
+
+
+def test_strategy7_root_prefers_contesting_promotion_square_over_side_pawn_push() -> None:
+    """Root tie-breaks should answer the enemy passer before a wing pawn push."""
+
+    board = _task5_passer_response_board()
+    contest = ai.Move(start=sq("g1"), end=sq("b1"))
+    side_pawn = ai.Move(start=sq("a2"), end=sq("a3"))
+    contest_child = board.clone()
+    side_pawn_child = board.clone()
+
+    assert contest_child.apply_legal_move(contest.start, contest.end) is True
+    assert side_pawn_child.apply_legal_move(side_pawn.start, side_pawn.end) is True
+    assert root_stability_adjustment(board, contest, contest_child) > root_stability_adjustment(
+        board,
+        side_pawn,
+        side_pawn_child,
+    )
+
+
+def test_strategy7_root_prefers_queen_trade_when_ahead_over_speculative_pressure() -> None:
+    """Root tie-breaks should keep preferring simplification over speculative queen drift."""
+
+    board = _task3_queen_trade_board()
+    trade = ai.Move(start=sq("d4"), end=sq("d8"))
+    speculative = ai.Move(start=sq("d4"), end=sq("h4"))
+    trade_child = board.clone()
+    speculative_child = board.clone()
+
+    assert trade_child.apply_legal_move(trade.start, trade.end) is True
+    assert speculative_child.apply_legal_move(speculative.start, speculative.end) is True
+    assert root_stability_adjustment(board, trade, trade_child) > root_stability_adjustment(
+        board,
+        speculative,
+        speculative_child,
+    )

@@ -27,6 +27,7 @@ from chess_game.chess.opponent_plans import opponent_plan_profile
 from chess_game.chess.passer_race_guidance import passer_race_extension_bonus
 from chess_game.chess.pawn_structure_evaluation import evaluate_pawn_structure
 from chess_game.chess.structure_recognition import structure_plan_bonus
+from chess_game.chess.threat_awareness import threat_response_root_bonus
 from chess_game.chess.tactical_transition_guidance import tactical_transition_root_bonus
 from chess_game.chess.strategy_utils import is_capture_move, king_coordinates
 from chess_game.chess.types import Color, LegalMove, PieceType
@@ -734,6 +735,7 @@ def _strategic_root_bonus(
     score += _opening_root_bonus(board, move, moving_kind)
     score += heavy_piece_defense_root_bonus(board, child_board, moving_color)
     score += winning_conversion_root_bonus(board, child_board, moving_color)
+    score += threat_response_root_bonus(board, move, child_board, moving_color)
     score += tactical_transition_root_bonus(board, move, child_board, moving_color)
     score += _plan_continuity_bonus(
         board,

@@ -265,37 +265,37 @@ Phase note:
 
 ## 5.1 Add transcript-driven threat-ordering regressions
 
-- [ ] Add tests where the engine should prefer moves that answer the opponent’s most urgent threat.
-- [ ] Cover cases such as:
-  - [ ] stopping a passer over making a harmless threat
-  - [ ] defending mate squares over pushing a side pawn
-  - [ ] forcing queen trade when ahead over speculative pressure
+- [x] Add tests where the engine should prefer moves that answer the opponent’s most urgent threat.
+- [x] Cover cases such as:
+  - [x] stopping a passer over making a harmless threat
+  - [x] defending mate squares over pushing a side pawn
+  - [x] forcing queen trade when ahead over speculative pressure
 
 ## 5.2 Audit current move-ordering hot paths
 
-- [ ] Review `ai_move_ordering.py`, `ai_search_helpers.py`, and related guidance modules for overlap.
-- [ ] Identify which threat-aware signals are cheap enough for hot-path ordering and which belong only in evaluation / root bonuses.
-- [ ] Save the audit under `tmp/`.
+- [x] Review `ai_move_ordering.py`, `ai_search_helpers.py`, and related guidance modules for overlap.
+- [x] Identify which threat-aware signals are cheap enough for hot-path ordering and which belong only in evaluation / root bonuses.
+- [x] Save the audit under `tmp/`.
 
 ## 5.3 Add practical threat signals to quiet ordering
 
-- [ ] Score moves for:
-  - [ ] reducing enemy checking resources
-  - [ ] contesting promotion squares
-  - [ ] increasing king flight squares
-  - [ ] forcing the opponent into narrower reply sets
+- [x] Score moves for:
+  - [x] reducing enemy checking resources
+  - [x] contesting promotion squares
+  - [x] increasing king flight squares
+  - [x] forcing the opponent into narrower reply sets
 
 ## 5.4 Add root-level threat-aware tie-breaks
 
-- [ ] When root scores are near-equal, prefer moves that:
-  - [ ] answer the clearest enemy threat
-  - [ ] create forcing simplification
-  - [ ] lower tactical volatility when ahead
-  - [ ] maximize practical resistance when worse
+- [x] When root scores are near-equal, prefer moves that:
+  - [x] answer the clearest enemy threat
+  - [x] create forcing simplification
+  - [x] lower tactical volatility when ahead
+  - [x] maximize practical resistance when worse
 
 Phase note:
 
-- [ ] Task 5 complete note
+- [x] Task 5 is complete. The audit artifact lives in `tmp/strategy7_task5_audit.txt`, the review transcript lives in `tmp/strategy7_task5_w3b3_20260526T230210Z.txt`, and the review note lives in `tmp/strategy7_task5_review.txt`. This phase added `chess_game/chess/threat_awareness.py`, wired threat-response bonuses into `ai_move_ordering.py` and `ai_search_helpers.py`, and added shared reply-count support in `strategy_utils.py` so near-equal depth-3 choices can prefer stopping passers, creating luft, contesting promotion squares, and simplifying when ahead. The old `...h5`, `Bh3`, and `...Qa6` transcript drifts did not recur in the Task 5 review game, but the game still devolved into a slow heavy-piece ending with `...g5g4`, `...g4g3`, and White rook drift around `Rb1`/`Ra1`, which now become Task 6 follow-up targets instead of blocking this phase.
 
 ---
 

@@ -35,6 +35,7 @@ from chess_game.chess.piece_coordination import (
 from chess_game.chess.rook_endgame_guidance import non_king_piece_kinds, rook_endgame_order_bonus
 from chess_game.chess.structure_recognition import structure_plan_bonus
 from chess_game.chess.strategy_utils import center_distance, is_capture_move, path_clear_between
+from chess_game.chess.threat_awareness import threat_response_order_bonus
 from chess_game.chess.tactical_transition_guidance import tactical_transition_order_bonus
 from chess_game.chess.types import Color, PieceType
 
@@ -114,6 +115,7 @@ def quiet_strategy_order_score(board: Board, move: Move) -> int:
     score += heavy_piece_defense_order_bonus(board, piece.color, piece.kind, move)
     score += defensive_endgame_order_bonus(board, piece.color, piece.kind, move)
     score += passer_race_order_bonus(board, piece.color, piece.kind, move)
+    score += threat_response_order_bonus(board, piece.color, piece.kind, move)
     score += tactical_transition_order_bonus(board, move)
     score += _piece_coordination_bonus(board, piece.color, piece.kind, move)
     score += structure_plan_bonus(board, piece.color, piece.kind, move)
