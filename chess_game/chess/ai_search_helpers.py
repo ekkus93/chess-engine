@@ -18,6 +18,7 @@ from chess_game.chess.defensive_priorities import (
 )
 from chess_game.chess.move import Move
 from chess_game.chess.opponent_plans import opponent_plan_profile
+from chess_game.chess.passer_race_guidance import passer_race_extension_bonus
 from chess_game.chess.pawn_structure_evaluation import evaluate_pawn_structure
 from chess_game.chess.structure_recognition import structure_plan_bonus
 from chess_game.chess.strategy_utils import is_capture_move, king_coordinates
@@ -397,6 +398,12 @@ def selective_extension_bonus(
             moving_color,
         )
         or _is_favorable_simplification_extension(
+            board,
+            move,
+            child_board,
+            moving_color,
+        )
+        or passer_race_extension_bonus(
             board,
             move,
             child_board,

@@ -1,5 +1,10 @@
 # Chess Engine Project Memory
 
+## 2026-05-26T03:57:02Z - GPT-5.4 - STRATEGY5 Task 7 passer-race slice
+- Added `chess_game/chess/passer_race_guidance.py` so quiet ordering and selective extensions can react to true promotion-race targets such as outside passers, connected/protected passers, near-promotion pushes, and enemy promotion-square threats without bleeding into unrelated quiet positions.
+- Reused shared heavy-piece support and material helpers from `strategy_utils.py`, then narrowed the new passer guidance so it stays race-specific and does not override earlier conversion or king-safety priorities.
+- Expanded `tests/test_ai_endgame_strategy.py` and `tests/test_ai_search.py`, marked Task 7 complete in `docs/STRATEGY5_TODO.md`, and revalidated the full repo green with `pylint chess_game` and `python -m pytest tests -q` (`521 passed`).
+
 ## 2026-05-26T03:37:52Z - GPT-5.4 - STRATEGY5 Task 6 defensive-endgame slice
 - Added `chess_game/chess/defensive_endgame_guidance.py` so simple worse-side endgames now score purposeful checking, critical-square king routes, direct blockade geometry, and pressure on the enemy passer instead of treating all quiet defensive activity alike.
 - Moved shared material and non-king-piece helpers into `chess_game/chess/strategy_utils.py`, then reused them from both conversion and defensive guidance to keep the new endgame heuristics lint-clean.

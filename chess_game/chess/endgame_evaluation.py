@@ -25,6 +25,7 @@ from chess_game.chess.evaluation_tables import (
 )
 from chess_game.chess.rook_endgame_guidance import rook_endgame_evaluation_score
 from chess_game.chess.rook_endgame_guidance import rook_positions
+
 from chess_game.chess.strategy_utils import (
     center_distance,
     is_passed_pawn,

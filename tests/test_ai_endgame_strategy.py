@@ -257,3 +257,72 @@ def test_quiet_move_order_prefers_draw_zone_over_side_pawn_chase_when_worse() ->
         chase,
         None,
     )
+
+
+def test_quiet_move_order_prefers_passer_escort_over_cosmetic_check_in_rook_race() -> None:
+    """An advanced passer should be escorted before giving a low-value rook check."""
+
+    board = _build_board(
+        [
+            ("f4", Color.WHITE, PieceType.KING),
+            ("h1", Color.WHITE, PieceType.ROOK),
+            ("d6", Color.WHITE, PieceType.PAWN),
+            ("g7", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.ROOK),
+        ]
+    )
+
+    escort = ai.Move(start=sq("f4"), end=sq("e5"))
+    cosmetic_check = ai.Move(start=sq("h1"), end=sq("h7"))
+
+    assert _move_order_score(board, escort, None) > _move_order_score(
+        board,
+        cosmetic_check,
+        None,
+    )
+
+
+def test_quiet_move_order_prefers_stopping_enemy_passer_before_rook_lift() -> None:
+    """Enemy promotion-square control should outrank a cosmetic rook lift."""
+
+    board = _build_board(
+        [
+            ("g3", Color.WHITE, PieceType.KING),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("a5", Color.WHITE, PieceType.PAWN),
+            ("g7", Color.BLACK, PieceType.KING),
+            ("d3", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+    stopper = ai.Move(start=sq("a1"), end=sq("d1"))
+    cosmetic_lift = ai.Move(start=sq("a1"), end=sq("a3"))
+
+    assert _move_order_score(board, stopper, None) > _move_order_score(
+        board,
+        cosmetic_lift,
+        None,
+    )
+
+
+def test_quiet_move_order_prefers_direct_outside_passer_push_over_slow_king_drift() -> None:
+    """A ready outside passer should be pushed before a slower king shuffle."""
+
+    board = _build_board(
+        [
+            ("e5", Color.WHITE, PieceType.KING),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("a5", Color.WHITE, PieceType.PAWN),
+            ("g7", Color.BLACK, PieceType.KING),
+            ("h8", Color.BLACK, PieceType.ROOK),
+        ]
+    )
+
+    direct_push = ai.Move(start=sq("a5"), end=sq("a6"))
+    king_drift = ai.Move(start=sq("e5"), end=sq("d5"))
+
+    assert _move_order_score(board, direct_push, None) > _move_order_score(
+        board,
+        king_drift,
+        None,
+    )

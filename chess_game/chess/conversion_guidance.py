@@ -6,13 +6,13 @@ from chess_game.chess.board.game_state import is_in_check
 from chess_game.chess.move import Move
 from chess_game.chess.constants import get_square_constant
 from chess_game.chess.strategy_utils import (
+    heavy_piece_file_support_rows,
     is_advanced_passer,
     iter_color_pieces,
     materially_ahead_color,
     non_king_piece_kinds,
     opposite_color,
     passed_pawns_for_color,
-    path_clear_between,
 )
 from chess_game.chess.types import Color, PieceType
 
@@ -142,11 +142,7 @@ def _passer_support_score(
     for pawn_row, pawn_col in own_passers:
         if not is_advanced_passer(color, pawn_row):
             continue
-        for piece, row, col in iter_color_pieces(board, color):
-            if piece.kind not in {PieceType.ROOK, PieceType.QUEEN} or col != pawn_col:
-                continue
-            if not path_clear_between(board, (row, col), (pawn_row, pawn_col)):
-                continue
+        for row in heavy_piece_file_support_rows(board, color, (pawn_row, pawn_col)):
             if _is_behind_pawn(color, row, pawn_row):
                 score += _PASSER_SUPPORT_BONUS
     return score

@@ -362,44 +362,46 @@ Phase note: Task 6 is complete. This pass adds `chess_game/chess/defensive_endga
 
 ## 7.1 Review current passer handling
 
-- [ ] Audit evaluation and move ordering for:
-  - [ ] advanced passers
-  - [ ] protected passers
-  - [ ] outside passers
-  - [ ] connected passers
-  - [ ] enemy passer danger
+- [x] Audit evaluation and move ordering for:
+  - [x] advanced passers
+  - [x] protected passers
+  - [x] outside passers
+  - [x] connected passers
+  - [x] enemy passer danger
 
 ## 7.2 Increase urgency around critical promotion races
 
-- [ ] Reward moves that:
-  - [ ] support an advanced passer
-  - [ ] clear the promotion path
-  - [ ] force king support into the critical zone
-  - [ ] trade off the best blocker
+- [x] Reward moves that:
+  - [x] support an advanced passer
+  - [x] clear the promotion path
+  - [x] force king support into the critical zone
+  - [x] trade off the best blocker
 
 ## 7.3 Penalize ignoring enemy passer danger
 
-- [ ] Penalize moves that:
-  - [ ] give side checks while an enemy passer runs
-  - [ ] abandon promotion squares
-  - [ ] improve activity but lose the race
-  - [ ] choose repetition over direct passer suppression when still better
+- [x] Penalize moves that:
+  - [x] give side checks while an enemy passer runs
+  - [x] abandon promotion squares
+  - [x] improve activity but lose the race
+  - [x] choose repetition over direct passer suppression when still better
 
 ## 7.4 Consider selective search extensions for passer races
 
-- [ ] Evaluate whether to add or retune extensions around:
-  - [ ] advanced passer pushes
-  - [ ] near-promotion positions
-  - [ ] king-entry races
-  - [ ] forced simplifications into pawn endings
+- [x] Evaluate whether to add or retune extensions around:
+  - [x] advanced passer pushes
+  - [x] near-promotion positions
+  - [x] king-entry races
+  - [x] forced simplifications into pawn endings
 
 ## 7.5 Add passer-race regressions
 
-- [ ] Add tests where the engine should:
-  - [ ] escort its passer instead of checking
-  - [ ] stop the enemy passer before making a cosmetic move
-  - [ ] choose the correct rook/king square in a promotion race
-  - [ ] convert outside-passer positions more directly
+- [x] Add tests where the engine should:
+  - [x] escort its passer instead of checking
+  - [x] stop the enemy passer before making a cosmetic move
+  - [x] choose the correct rook/king square in a promotion race
+  - [x] convert outside-passer positions more directly
+
+Phase note: Task 7 is complete. The static passer base from `pawn_structure_evaluation.py`, `rook_endgame_guidance.py`, and `endgame_evaluation.py` already covered raw passed-pawn value, rook-behind-passer play, and promotion-square control; this phase adds `chess_game/chess/passer_race_guidance.py` so quiet ordering and selective extensions react only to true race targets such as outside passers, connected/protected passers, near-promotion pawns, and enemy promotion-square threats. The new regressions in `tests/test_ai_endgame_strategy.py` and `tests/test_ai_search.py` close the missing urgency cases by forcing direct passer support, enemy-passer suppression, outside-passer directness, and one bounded near-promotion extension without reviving harmless-check or over-broad endgame noise.
 
 ---
 

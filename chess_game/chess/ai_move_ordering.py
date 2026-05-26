@@ -21,6 +21,7 @@ from chess_game.chess.opening_move_ordering import (
     undeveloped_minor_count as _opening_undeveloped_minor_count,
 )
 from chess_game.chess.opponent_plans import opponent_plan_profile
+from chess_game.chess.passer_race_guidance import passer_race_order_bonus
 from chess_game.chess.piece_coordination import (
     bishop_coordination_bonus,
     improves_worst_piece,
@@ -107,6 +108,7 @@ def quiet_strategy_order_score(board: Board, move: Move) -> int:
     score += _pawn_bonus(board, piece.color, piece.kind, move)
     score += winning_conversion_order_bonus(board, piece.color, piece.kind, move)
     score += defensive_endgame_order_bonus(board, piece.color, piece.kind, move)
+    score += passer_race_order_bonus(board, piece.color, piece.kind, move)
     score += _piece_coordination_bonus(board, piece.color, piece.kind, move)
     score += structure_plan_bonus(board, piece.color, piece.kind, move)
     score += rook_endgame_order_bonus(board, piece.color, piece.kind, move)

@@ -150,6 +150,25 @@ def path_clear_between(
     return True
 
 
+def heavy_piece_file_support_rows(
+    board: Board,
+    color: Color,
+    pawn: tuple[int, int],
+) -> list[int]:
+    """Return heavy-piece rows that support a pawn from the same file."""
+
+    pawn_row, pawn_col = pawn
+    return [
+        row
+        for piece, row, col in iter_color_pieces(board, color)
+        if (
+            piece.kind in {PieceType.ROOK, PieceType.QUEEN}
+            and col == pawn_col
+            and path_clear_between(board, (row, col), (pawn_row, pawn_col))
+        )
+    ]
+
+
 def is_capture_move(board: Board, move: Move) -> bool:
     """Return True for regular captures and en passant."""
 

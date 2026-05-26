@@ -508,6 +508,25 @@ def test_selective_extension_bonus_triggers_for_only_move_prophylaxis() -> None:
     assert selective_extension_bonus(board, move, child_board, extension_budget=1) == 1
 
 
+def test_selective_extension_bonus_triggers_for_near_promotion_passer_push() -> None:
+    """A near-promotion passed-pawn push should get one extra ply in simple races."""
+
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("e5"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("a1"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(sq("a6"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("g7"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("h8"), create_piece(Color.BLACK, PieceType.ROOK))
+    board.turn = Color.WHITE
+
+    move = Move(start=sq("a6"), end=sq("a7"))
+    child_board = board.clone()
+
+    assert child_board.apply_legal_move(move.start, move.end) is True
+    assert selective_extension_bonus(board, move, child_board, extension_budget=1) == 1
+
+
 def test_search_records_selective_extension_diagnostics() -> None:
     """Search diagnostics should record when a bounded extension is applied."""
 
