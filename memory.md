@@ -1,5 +1,9 @@
 # Chess Engine Project Memory
 
+## 2026-05-26T15:17:23Z - GPT-5.4 - STRATEGY6 Task 8 final acceptance
+- Closed `docs/STRATEGY6_TODO.md` Task 8 with a fresh bounded acceptance transcript in `tmp/strategy6_task8_w3b3.txt` plus the final review note in `tmp/strategy6_task8_review.txt`. The strongest measurable improvements versus the baseline and Task 7 review were that the old move-15 `Nf3h4` drift became `d2d4`, the earlier rook sidesteps and `...Nh6` opening detour disappeared, and castling happened sooner on both sides.
+- Revalidated the final STRATEGY6 repository state at `pylint chess_game` (`10.00/10`), `python -m pytest tests -q` (`544 passed`), and `python -m pytest tests/test_ai.py tests/test_ai_quality.py tests/test_ai_search.py tests/test_alpha_beta_pruning.py -q` (`120 passed`). The remaining play is still imperfect, but the final acceptance game was clearly more principled and practical than the earlier STRATEGY6 review sample.
+
 ## 2026-05-26T14:52:43Z - GPT-5.4 - STRATEGY6 Task 7 review-coverage phase
 - Finished `docs/STRATEGY6_TODO.md` Task 7 by generating the first bounded STRATEGY6 review transcript (`tmp/strategy6_task7_w3b3.txt`) and distilling the main misses into `tmp/strategy6_task7_review.txt`. The review showed that the old rook-shuffle and rim-knight themes were mostly reduced, but the engine could still drift into early wing-piece adventures and slower-than-necessary conversion choices.
 - Added new STRATEGY6 regressions for the review-game `Nf3h4` opening drift, the later `Bh3` king-safety delay, and the clean conversion capture over the harmless rook shuffle, while tightening `opening_move_ordering.py` so the opening review line no longer prefers `Nf3h4`.

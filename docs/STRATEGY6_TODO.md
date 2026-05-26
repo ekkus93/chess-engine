@@ -370,14 +370,14 @@ Phase note: Task 7 is complete. The fresh bounded review transcript in `tmp/stra
 
 ## 8.1 Validation
 
-- [ ] Run:
+- [x] Run:
 
   ```bash
   pylint chess_game
   python -m pytest tests -q
   ```
 
-- [ ] Run targeted AI validation:
+- [x] Run targeted AI validation:
 
   ```bash
   python -m pytest tests/test_ai.py tests/test_ai_quality.py tests/test_ai_search.py tests/test_alpha_beta_pruning.py -q
@@ -385,16 +385,18 @@ Phase note: Task 7 is complete. The fresh bounded review transcript in `tmp/stra
 
 ## 8.2 Self-play review
 
-- [ ] Save a fresh self-play transcript under `tmp/`.
-- [ ] Confirm the reviewed game shows measurable improvement in:
-  - [ ] opening discipline
-  - [ ] castling / king-safety timing
-  - [ ] reduced low-value rook drift
-  - [ ] fewer unjustified flank pawn pushes
-  - [ ] cleaner practical conversion
+- [x] Save a fresh self-play transcript under `tmp/`.
+- [x] Confirm the reviewed game shows measurable improvement in:
+  - [x] opening discipline
+  - [x] castling / king-safety timing
+  - [x] reduced low-value rook drift
+  - [x] fewer unjustified flank pawn pushes
+  - [x] cleaner practical conversion
 
 ## 8.3 Closeout
 
-- [ ] Update this file with completed statuses and notes.
-- [ ] Commit only after lint and tests pass.
-- [ ] Push to `origin/master`.
+- [x] Update this file with completed statuses and notes.
+- [x] Commit only after lint and tests pass.
+- [x] Push to `origin/master`.
+
+Phase note: Task 8 is complete. The final bounded acceptance transcript lives in `tmp/strategy6_task8_w3b3.txt`, and the acceptance review lives in `tmp/strategy6_task8_review.txt`. Compared with both the STRATEGY6 baseline and the Task 7 review game, the fresh game showed measurable improvement: the old move-15 `Nf3h4` drift was replaced by the central break `d2d4`, neither side made the earlier low-value rook sidesteps, Black castled on move 20 and White castled on move 29 instead of delaying all the way to move 37, and the worst early flank-play themes (`Rc1`, `h4`, `b4`, `...Nh6`) did not recur. The game still is not pristine chess, but the remaining pawn pushes happened later and the winning side converted more directly through forcing captures (`...Bxf6`, `...Qxd5`, `...Qxh3`) rather than the earlier harmless rook shuffles, which satisfies the STRATEGY6 acceptance bar.
