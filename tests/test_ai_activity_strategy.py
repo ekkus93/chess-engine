@@ -326,3 +326,35 @@ def test_quiet_move_order_prefers_knight_maneuver_to_outpost_over_queen_drift() 
         queen_drift,
         None,
     )
+
+
+def test_quiet_move_order_prefers_king_improvement_over_recycled_pressure() -> None:
+    """A useful king tuck should beat a repeated pressure move with no new plan."""
+
+    board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d2", Color.WHITE, PieceType.QUEEN),
+            ("d1", Color.WHITE, PieceType.ROOK),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("c4", Color.WHITE, PieceType.BISHOP),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("f2", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+            ("d7", Color.BLACK, PieceType.ROOK),
+            ("g7", Color.BLACK, PieceType.PAWN),
+            ("h7", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+    king_improvement = ai.Move(start=sq("g1"), end=sq("f1"))
+    recycled_pressure = ai.Move(start=sq("d2"), end=sq("h6"))
+
+    assert _move_order_score(board, king_improvement, None) > _move_order_score(
+        board,
+        recycled_pressure,
+        None,
+    )

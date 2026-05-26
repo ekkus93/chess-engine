@@ -236,35 +236,37 @@ Phase note: Task 3 is complete. The opening-discipline pass now lives in `chess_
 
 ## 4.1 Revisit “worst piece improvement” after STRATEGY4
 
-- [ ] Review whether the current worst-piece model still misses:
-  - [ ] trapped or inactive rooks
-  - [ ] bishops lacking diagonals
-  - [ ] knights with no route to useful squares
-  - [ ] queens over-pressing instead of coordinating
+- [x] Review whether the current worst-piece model still misses:
+  - [x] trapped or inactive rooks
+  - [x] bishops lacking diagonals
+  - [x] knights with no route to useful squares
+  - [x] queens over-pressing instead of coordinating
 
 ## 4.2 Reward plan-consistent improvement
 
-- [ ] Reward moves that:
-  - [ ] improve the least useful piece
-  - [ ] reinforce the main file/diagonal of play
-  - [ ] support the intended pawn break
-  - [ ] prepare conversion instead of preserving static pressure
+- [x] Reward moves that:
+  - [x] improve the least useful piece
+  - [x] reinforce the main file/diagonal of play
+  - [x] support the intended pawn break
+  - [x] prepare conversion instead of preserving static pressure
 
 ## 4.3 Penalize “activity with no plan”
 
-- [ ] Penalize moves that:
-  - [ ] attack a square twice without increasing real threats
-  - [ ] relocate a piece to an equally useless square
-  - [ ] preserve pressure but worsen coordination
-  - [ ] create harmless threats while neglecting the only real plan
+- [x] Penalize moves that:
+  - [x] attack a square twice without increasing real threats
+  - [x] relocate a piece to an equally useless square
+  - [x] preserve pressure but worsen coordination
+  - [x] create harmless threats while neglecting the only real plan
 
 ## 4.4 Add quiet-plan regressions
 
-- [ ] Add tests where the engine should choose:
-  - [ ] improving the worst rook over a harmless check
-  - [ ] king improvement over repeated pressure
-  - [ ] restraining the opponent before pushing its own plan
-  - [ ] activation tied to the pawn structure instead of free-form drifting
+- [x] Add tests where the engine should choose:
+  - [x] improving the worst rook over a harmless check
+  - [x] king improvement over repeated pressure
+  - [x] restraining the opponent before pushing its own plan
+  - [x] activation tied to the pawn structure instead of free-form drifting
+
+Phase note: Task 4 is complete. The quiet-plan stack from STRATEGY4 already covered most of this phase through `piece_coordination.py`, `structure_recognition.py`, opponent-plan pressure, and the existing regression suites for worst-rook improvement, rook reconnection, bishop long-diagonal reroutes, knight outpost maneuvers, and restraint before wing expansion. This Task 4 pass closes the remaining explicit gap by adding a quiet king-refinement bonus in `ai_move_ordering.py` and a direct regression proving useful king improvement beats recycled pressure. The overall result is that plan-consistent quiet moves now have explicit coverage across activity, structure, and prophylaxis instead of only being implied by earlier strategy phases.
 
 ---
 

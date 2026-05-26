@@ -42,6 +42,7 @@ QUIET_LUFT_BONUS = 16
 QUIET_WORST_PIECE_BONUS = 18
 QUIET_BLOCKADE_BONUS = 28
 QUIET_MAJOR_TRADE_OFFER_BONUS = 26
+QUIET_KING_REFINEMENT_BONUS = 10
 QUIET_USEFUL_CHECK_BONUS = 34
 QUIET_URGENT_LUFT_BONUS = 24
 QUIET_CONTEST_ATTACK_FILE_BONUS = 44
@@ -152,6 +153,8 @@ def _king_move_bonus(board: Board, kind: PieceType, move: Move) -> int:
         score += QUIET_CASTLING_BONUS
     if kind == PieceType.KING and _is_heavy_piece_endgame(board):
         score += _king_centralization_bonus(move)
+    if kind == PieceType.KING and not _is_heavy_piece_endgame(board):
+        score += _king_refinement_bonus(board, move)
     return score
 
 
@@ -406,6 +409,29 @@ def _piece_coordination_bonus(
     if kind == PieceType.QUEEN:
         return queen_coordination_bonus(board, color, move)
     return 0
+
+
+def _king_refinement_bonus(board: Board, move: Move) -> int:
+    """Reward quiet king improvements that tighten safety in stable middlegames."""
+
+    if king_needs_shelter(board, board.turn):
+        return 0
+    child_board = board.clone()
+    if not child_board.apply_legal_move(move.start, move.end, promotion=move.promotion):
+        return 0
+    before = king_defense_profile(board, board.turn)
+    after = king_defense_profile(child_board, board.turn)
+    score = max(0, before.invasion_lines - after.invasion_lines) * QUIET_KING_REFINEMENT_BONUS
+    score += max(0, after.king_zone_defenders - before.king_zone_defenders) * (
+        QUIET_KING_REFINEMENT_BONUS // 2
+    )
+    score += max(0, after.safe_king_moves - before.safe_king_moves) * (
+        QUIET_KING_REFINEMENT_BONUS // 2
+    )
+    if before.back_rank_weak and not after.back_rank_weak:
+        score += QUIET_KING_REFINEMENT_BONUS * 2
+    score -= max(0, after.danger - before.danger) * QUIET_KING_REFINEMENT_BONUS
+    return score
 
 
 def _offers_major_piece_trade(board: Board, move: Move) -> bool:
