@@ -69,6 +69,58 @@ def _task5_transition_board() -> Board:
     )
 
 
+def _task6_conversion_board() -> Board:
+    return _board_from_moves(
+        [
+            ("g1", "f3"),
+            ("d7", "d5"),
+            ("b1", "c3"),
+            ("b8", "c6"),
+            ("b2", "b3"),
+            ("d5", "d4"),
+            ("c3", "e4"),
+            ("e7", "e5"),
+            ("c1", "b2"),
+            ("b7", "b6"),
+            ("a1", "c1"),
+            ("f8", "e7"),
+            ("g2", "g3"),
+            ("g8", "h6"),
+            ("h2", "h4"),
+            ("e8", "g8"),
+            ("f1", "g2"),
+            ("f7", "f5"),
+            ("g2", "h3"),
+            ("f5", "e4"),
+            ("f3", "d4"),
+            ("c6", "d4"),
+            ("h3", "g2"),
+            ("c8", "f5"),
+            ("c2", "c3"),
+            ("d4", "b5"),
+            ("b3", "b4"),
+            ("h6", "f7"),
+            ("d1", "b3"),
+            ("a7", "a5"),
+            ("a2", "a4"),
+            ("b5", "a7"),
+            ("e1", "g1"),
+            ("d8", "d2"),
+            ("c1", "c2"),
+            ("d2", "c2"),
+            ("b3", "c2"),
+            ("a5", "b4"),
+            ("c3", "b4"),
+            ("h7", "h5"),
+            ("c2", "c7"),
+            ("a7", "c8"),
+            ("b2", "e5"),
+            ("e7", "b4"),
+            ("e5", "d4"),
+        ]
+    )
+
+
 def test_strategy6_order_prefers_development_over_early_rc1_from_transcript() -> None:
     """The opening should score a normal kingside setup above the move-11 rook drift."""
 
@@ -389,3 +441,52 @@ def test_strategy6_search_rejects_h5_when_simpler_transition_exists() -> None:
     best_move = get_best_move(board, depth=3)
 
     assert best_move != LegalMove(start=sq("h7"), end=sq("h5"))
+
+
+def test_strategy6_search_prefers_knight_redeployment_that_tightens_conversion() -> None:
+    """Black should reroute the knight cleanly instead of drifting in the winning phase."""
+
+    board = _task6_conversion_board()
+    board.make_move(sq("g8"), sq("h8"))
+    board.make_move(sq("c7"), sq("f4"))
+
+    assert get_best_move(board, depth=3) == LegalMove(start=sq("c8"), end=sq("d6"))
+
+
+def test_strategy6_search_prefers_clean_rook_capture_during_conversion() -> None:
+    """The winning side should cash the queenside pawn instead of maneuvering harmlessly."""
+
+    board = _task6_conversion_board()
+    for start, end in [
+        ("g8", "h8"),
+        ("c7", "f4"),
+        ("c8", "d6"),
+        ("f1", "a1"),
+        ("f5", "g4"),
+        ("a1", "a2"),
+        ("b6", "b5"),
+        ("g2", "e4"),
+        ("d6", "e4"),
+        ("f4", "e4"),
+    ]:
+        board.make_move(sq(start), sq(end))
+
+    assert get_best_move(board, depth=3) == LegalMove(start=sq("a8"), end=sq("a4"))
+
+
+def test_strategy6_depth3_prefers_queen_trade_in_won_ending() -> None:
+    """Depth-3 search should still simplify into a clearly won queenless ending."""
+
+    board = Board()
+    board.clear_board()
+    for square, color, kind in [
+        ("g3", Color.WHITE, PieceType.KING),
+        ("d4", Color.WHITE, PieceType.QUEEN),
+        ("a1", Color.WHITE, PieceType.ROOK),
+        ("g7", Color.BLACK, PieceType.KING),
+        ("d7", Color.BLACK, PieceType.QUEEN),
+    ]:
+        board.set_piece(sq(square), create_piece(color, kind))
+    board.turn = Color.WHITE
+
+    assert get_best_move(board, depth=3) == LegalMove(start=sq("d4"), end=sq("d7"))

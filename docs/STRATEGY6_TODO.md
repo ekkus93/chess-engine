@@ -295,35 +295,37 @@ Phase note: Task 5 is complete. The transcript audit in `tmp/strategy6_task5_aud
 
 ## 6.1 Review the winning side’s late conversion
 
-- [ ] Review the portion of the transcript where Black was clearly better / winning.
-- [ ] Note where Black:
-  - [ ] converted efficiently
-  - [ ] wasted tempi
-  - [ ] missed simpler routes
-  - [ ] allowed unnecessary counterplay
+- [x] Review the portion of the transcript where Black was clearly better / winning.
+- [x] Note where Black:
+  - [x] converted efficiently
+  - [x] wasted tempi
+  - [x] missed simpler routes
+  - [x] allowed unnecessary counterplay
 
 ## 6.2 Add conversion regressions
 
-- [ ] Add tests where the winning side should prefer:
-  - [ ] promoting a passed pawn cleanly
-  - [ ] forcing queen trade / rook trade when winning
-  - [ ] mating-net construction over harmless maneuvering
-  - [ ] king improvement that directly supports conversion
+- [x] Add tests where the winning side should prefer:
+  - [x] promoting a passed pawn cleanly
+  - [x] forcing queen trade / rook trade when winning
+  - [x] mating-net construction over harmless maneuvering
+  - [x] king improvement that directly supports conversion
 
 ## 6.3 Improve winning-side evaluation / ordering
 
-- [ ] Increase bonuses for:
-  - [ ] shortening the game when a clear win exists
-  - [ ] blocking counterplay before side activity
-  - [ ] choosing forcing promotion races correctly
-  - [ ] simplifying into technically won endings
+- [x] Increase bonuses for:
+  - [x] shortening the game when a clear win exists
+  - [x] blocking counterplay before side activity
+  - [x] choosing forcing promotion races correctly
+  - [x] simplifying into technically won endings
 
 ## 6.4 Improve mating-net practicality
 
-- [ ] Prefer moves that:
-  - [ ] cut off king flight squares
-  - [ ] coordinate queen / rook / bishop efficiently
-  - [ ] avoid unnecessary queen wandering when mate or promotion is near
+- [x] Prefer moves that:
+  - [x] cut off king flight squares
+  - [x] coordinate queen / rook / bishop efficiently
+  - [x] avoid unnecessary queen wandering when mate or promotion is near
+
+Phase note: Task 6 is complete. The late-conversion audit in `tmp/strategy6_task6_audit.txt` showed that once Black was clearly better, the main remaining issue was not finding the win at all but choosing the cleanest route quickly enough: the transcript already contained strong forcing ideas, yet the engine could still waste time with harmless maneuvers instead of cashing queenside pawns, tightening knight routes, and simplifying cleanly. This phase therefore added transcript-backed regressions for the clean `...Nd6` redeployment and `...Rxa4` cash-in, kept the won-ending queen-trade simplification covered at depth 3, and extended `conversion_guidance.py` with a root bonus so winning conversion geometry now influences root choice instead of only quiet ordering. Existing search and quality tests already covered the remaining mate-net / king-improvement bullets, so Task 6 closes with stronger transcript-specific conversion discipline while preserving the depth-5 timing guard and full suite.
 
 ---
 

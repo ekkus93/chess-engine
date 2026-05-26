@@ -19,6 +19,7 @@ from chess_game.chess.types import Color, PieceType
 _MAX_NON_KING_PIECES = 5
 _EVAL_SCALE = 3
 _ORDER_SCALE = 4
+_ROOT_SCALE = 6
 _CHECK_DRIFT_PENALTY = 28
 _KING_ACTIVATION_BONUS = 10
 _DEFENDER_PRESSURE_BONUS = 12
@@ -69,6 +70,24 @@ def winning_conversion_order_bonus(
         if after <= before:
             bonus -= _CHECK_DRIFT_PENALTY
     return bonus
+
+
+def winning_conversion_root_bonus(
+    board: Board,
+    child_board: Board,
+    color: Color,
+) -> int:
+    """Return a root-only bonus for cleaner winning conversion choices."""
+
+    if (
+        color != _leading_color(board)
+        or not _is_simple_conversion_endgame(board)
+        or not _has_meaningful_counterplay(board, color)
+    ):
+        return 0
+    before = _conversion_side_score(board, color)
+    after = _conversion_side_score(child_board, color)
+    return (after - before) * _ROOT_SCALE
 
 
 def _conversion_side_score(board: Board, color: Color) -> int:

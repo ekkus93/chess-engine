@@ -1,5 +1,10 @@
 # Chess Engine Project Memory
 
+## 2026-05-26T13:44:09Z - GPT-5.4 - STRATEGY6 Task 6 conversion phase
+- Finished `docs/STRATEGY6_TODO.md` Task 6 after auditing the late winning phase of the STRATEGY6 transcript. The main lesson was that the engine already recognized many winning ideas, but root choice still needed stronger conversion guidance so clearly better positions cash in queenside pawns, simplify, and shorten the game more reliably.
+- Added `tmp/strategy6_task6_audit.txt`, expanded `tests/test_ai_strategy6_regressions.py` with transcript-backed `...Nd6` / `...Rxa4` conversion checks plus a depth-3 queen-trade simplification regression, and extended `chess_game/chess/conversion_guidance.py` with `winning_conversion_root_bonus()` so `ai_search_helpers.py` can use conversion geometry in root tie-breaks.
+- Revalidated the repository green with `pylint chess_game`, `python -m pytest tests -q` (`541 passed`), and `python -m pytest tests/test_ai.py tests/test_ai_quality.py tests/test_ai_search.py tests/test_alpha_beta_pruning.py -q` (`120 passed`).
+
 ## 2026-05-26T13:19:13Z - GPT-5.4 - STRATEGY6 Task 5 tactical-transition phase
 - Finished `docs/STRATEGY6_TODO.md` Task 5 after auditing the transcript segment around `...f5`, `...fxe4`, the `d4` exchanges, and the later queen-trade / infiltration window. The main finding was that the central forcing sequence itself was acceptable, but deeper search could still drift into flashy castled-shell pawn pushes such as `...g5` / `...h5` instead of cleaner transition moves.
 - Added `tmp/strategy6_task5_audit.txt`, expanded `tests/test_ai_strategy6_regressions.py` with regressions for the clean `...c6d4` recapture, safer `...Bf5` / `...Nb5d6` transition choices, and rejecting `...h5` after White castles, then extracted `chess_game/chess/tactical_transition_guidance.py` so evaluation, quiet ordering, and root tie-breaks share the same tactical-transition heuristics.

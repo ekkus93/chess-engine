@@ -10,6 +10,7 @@ from chess_game.chess.ai_repetition_patterns import (
 )
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_in_check
+from chess_game.chess.conversion_guidance import winning_conversion_root_bonus
 from chess_game.chess.defensive_priorities import (
     DANGEROUS_KING_PRESSURE_THRESHOLD,
     king_defense_profile,
@@ -689,6 +690,7 @@ def _strategic_root_bonus(
     score = _pawn_structure_root_bonus(board, move, child_board)
     score += _practical_options_bonus(board, child_board, moving_color)
     score += _opening_root_bonus(board, move, moving_kind)
+    score += winning_conversion_root_bonus(board, child_board, moving_color)
     score += tactical_transition_root_bonus(board, move, child_board, moving_color)
     score += _plan_continuity_bonus(
         board,
