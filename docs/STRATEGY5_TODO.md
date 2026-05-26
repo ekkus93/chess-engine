@@ -274,46 +274,48 @@ Phase note: Task 4 is complete. The quiet-plan stack from STRATEGY4 already cove
 
 ## 5.1 Audit the latest conversion failure patterns
 
-- [ ] Review the transcript sections where Black had the easier game.
-- [ ] Identify missing conversion ideas such as:
-  - [ ] king activation
-  - [ ] king cutoff
-  - [ ] rook behind passer
-  - [ ] reducing checking distance
-  - [ ] simplification into easier technical wins
+- [x] Review the transcript sections where Black had the easier game.
+- [x] Identify missing conversion ideas such as:
+  - [x] king activation
+  - [x] king cutoff
+  - [x] rook behind passer
+  - [x] reducing checking distance
+  - [x] simplification into easier technical wins
 
 ## 5.2 Improve conversion evaluation terms
 
-- [ ] Add or strengthen evaluation for:
-  - [ ] king escort of passers
-  - [ ] rook/queen support from behind the passer
-  - [ ] cutting off the defender king
-  - [ ] forcing simplification when clearly favorable
-  - [ ] zugzwang-style waiting improvement in simple endings
+- [x] Add or strengthen evaluation for:
+  - [x] king escort of passers
+  - [x] rook/queen support from behind the passer
+  - [x] cutting off the defender king
+  - [x] forcing simplification when clearly favorable
+  - [x] zugzwang-style waiting improvement in simple endings
 
 ## 5.3 Demote flashy but unproductive checks
 
-- [ ] Penalize checking moves when they:
-  - [ ] do not improve conversion geometry
-  - [ ] allow repetition
-  - [ ] lose king opposition / cutoff progress
-  - [ ] reset progress without gaining material
+- [x] Penalize checking moves when they:
+  - [x] do not improve conversion geometry
+  - [x] allow repetition
+  - [x] lose king opposition / cutoff progress
+  - [x] reset progress without gaining material
 
 ## 5.4 Reward counterplay suppression before pawn racing
 
-- [ ] Reward moves that:
-  - [ ] stop the enemy passed pawn first
-  - [ ] reduce checking resources
-  - [ ] exchange the enemy’s most active defender
-  - [ ] secure promotion squares before advancing
+- [x] Reward moves that:
+  - [x] stop the enemy passed pawn first
+  - [x] reduce checking resources
+  - [x] exchange the enemy’s most active defender
+  - [x] secure promotion squares before advancing
 
 ## 5.5 Add conversion regressions
 
-- [ ] Add tests where the engine should:
-  - [ ] simplify a winning rook ending
-  - [ ] centralize the king before repeating checks
-  - [ ] choose cutoff/escort over harmless checking
-  - [ ] convert a better queen/rook ending without repetition drift
+- [x] Add tests where the engine should:
+  - [x] simplify a winning rook ending
+  - [x] centralize the king before repeating checks
+  - [x] choose cutoff/escort over harmless checking
+  - [x] convert a better queen/rook ending without repetition drift
+
+Phase note: Task 5 is complete. The conversion pass audited the easier-game transcript segments, then added a shared `conversion_guidance.py` layer so simple materially winning heavy-piece endings can reward king activation, defender cutoff, seventh-rank pressure, passer support, and counterplay suppression in both evaluation and quiet ordering. This phase also reuses shared passed-pawn helpers from `strategy_utils.py`, keeps flashy checks expensive when they do not improve the conversion geometry, and adds direct regressions proving the engine now prefers active king improvement, cutoff/support, and practical rook-endgame conversion over harmless checking drift.
 
 ---
 

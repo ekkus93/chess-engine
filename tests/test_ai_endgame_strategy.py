@@ -115,3 +115,81 @@ def test_quiet_move_order_prefers_file_defense_when_worse_over_side_check() -> N
         side_check,
         None,
     )
+
+
+def test_progress_breakdown_rewards_active_king_in_simple_winning_heavy_piece_endgame() -> None:
+    """Winning conversion scoring should prefer an active king over a passive one."""
+
+    active_board = _build_board(
+        [
+            ("f5", Color.WHITE, PieceType.KING),
+            ("d4", Color.WHITE, PieceType.QUEEN),
+            ("a4", Color.WHITE, PieceType.ROOK),
+            ("d5", Color.WHITE, PieceType.PAWN),
+            ("g7", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.ROOK),
+        ]
+    )
+    passive_board = _build_board(
+        [
+            ("g2", Color.WHITE, PieceType.KING),
+            ("d4", Color.WHITE, PieceType.QUEEN),
+            ("a4", Color.WHITE, PieceType.ROOK),
+            ("d5", Color.WHITE, PieceType.PAWN),
+            ("g7", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.ROOK),
+        ]
+    )
+
+    assert (
+        get_evaluation_breakdown(active_board)["progress"]
+        > get_evaluation_breakdown(passive_board)["progress"]
+    )
+
+
+def test_quiet_move_order_prefers_king_activation_over_harmless_check_in_winning_ending() -> None:
+    """A winning side should improve king geometry before a loose check."""
+
+    board = _build_board(
+        [
+            ("g4", Color.WHITE, PieceType.KING),
+            ("d4", Color.WHITE, PieceType.QUEEN),
+            ("a4", Color.WHITE, PieceType.ROOK),
+            ("d5", Color.WHITE, PieceType.PAWN),
+            ("g7", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.ROOK),
+        ]
+    )
+
+    king_activation = ai.Move(start=sq("g4"), end=sq("f5"))
+    harmless_check = ai.Move(start=sq("d4"), end=sq("h4"))
+
+    assert _move_order_score(board, king_activation, None) > _move_order_score(
+        board,
+        harmless_check,
+        None,
+    )
+
+
+def test_quiet_move_order_prefers_cutoff_support_over_harmless_check_in_winning_ending() -> None:
+    """The winning side should reinforce the passer file before drifting into checks."""
+
+    board = _build_board(
+        [
+            ("f4", Color.WHITE, PieceType.KING),
+            ("d4", Color.WHITE, PieceType.QUEEN),
+            ("a4", Color.WHITE, PieceType.ROOK),
+            ("d6", Color.WHITE, PieceType.PAWN),
+            ("g7", Color.BLACK, PieceType.KING),
+            ("a8", Color.BLACK, PieceType.ROOK),
+        ]
+    )
+
+    support_move = ai.Move(start=sq("a4"), end=sq("d4"))
+    harmless_check = ai.Move(start=sq("d4"), end=sq("h4"))
+
+    assert _move_order_score(board, support_move, None) > _move_order_score(
+        board,
+        harmless_check,
+        None,
+    )

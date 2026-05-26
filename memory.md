@@ -1,5 +1,10 @@
 # Chess Engine Project Memory
 
+## 2026-05-26T03:00:37Z - GPT-5.4 - STRATEGY5 Task 5 conversion-completion slice
+- Added `chess_game/chess/conversion_guidance.py` so simple materially winning heavy-piece endings now share conversion scoring for king activation, seventh-rank pressure, passer support, defender cutoff, and counterplay suppression across evaluation and quiet ordering.
+- Moved shared passed-pawn helpers into `chess_game/chess/strategy_utils.py`, reused them from both `conversion_guidance.py` and `rook_endgame_guidance.py`, and avoided new duplicate-code lint while keeping the endgame guidance modules consistent.
+- Expanded `tests/test_ai_endgame_strategy.py`, marked Task 5 complete in `docs/STRATEGY5_TODO.md`, and revalidated the full repo green with `pylint chess_game` and `python -m pytest tests -q` (`514 passed`).
+
 ## 2026-05-23T06:47:50Z - GPT-5.4 - STRATEGY4 Task 4 completion
 - Finished `docs/STRATEGY4_TODO.md` Task 4: quiet ordering now uses `chess_game/chess/opponent_plans.py` to score enemy near-term plan pressure, and the remaining prophylaxis bullets were reconciled against the existing STRATEGY3/4 regression coverage.
 - Tightened `chess_game/chess/ai_move_ordering.py` so opponent-plan assessment only runs for moves that can materially affect prophylaxis, restoring the depth-5 search benchmark while keeping the new break-stopping behavior.

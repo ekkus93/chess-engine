@@ -69,6 +69,32 @@ def is_passed_pawn(
     return True
 
 
+def passed_pawns_for_color(board: Board, color: Color) -> list[tuple[int, int]]:
+    """Return coordinates for one side's passed pawns."""
+
+    own_pawns = [
+        (row, col)
+        for piece, row, col in iter_color_pieces(board, color)
+        if piece.kind == PieceType.PAWN
+    ]
+    enemy_pawns = [
+        (row, col)
+        for piece, row, col in iter_color_pieces(board, opposite_color(color))
+        if piece.kind == PieceType.PAWN
+    ]
+    return [
+        (row, col)
+        for row, col in own_pawns
+        if is_passed_pawn(color, row, col, enemy_pawns)
+    ]
+
+
+def is_advanced_passer(color: Color, row: int) -> bool:
+    """Return True when a passed pawn has reached an advanced rank."""
+
+    return row <= 3 if color == Color.WHITE else row >= 4
+
+
 def path_clear_between(
     board: Board,
     start: tuple[int, int],
@@ -128,3 +154,9 @@ def scale_signed(value: int, factor: int) -> int:
 
     sign = 1 if value >= 0 else -1
     return sign * ((abs(value) * factor) // 100)
+
+
+def opposite_color(color: Color) -> Color:
+    """Return the opposite color."""
+
+    return Color.BLACK if color == Color.WHITE else Color.WHITE

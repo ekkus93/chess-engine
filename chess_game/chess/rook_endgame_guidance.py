@@ -4,7 +4,13 @@ from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_in_check
 from chess_game.chess.move import Move
 from chess_game.chess.structure_recognition import structure_profile
-from chess_game.chess.strategy_utils import is_passed_pawn, iter_color_pieces, path_clear_between
+from chess_game.chess.strategy_utils import (
+    is_advanced_passer,
+    iter_color_pieces,
+    opposite_color,
+    passed_pawns_for_color,
+    path_clear_between,
+)
 from chess_game.chess.types import Color, PieceType
 
 _ROOK_BEHIND_OWN_PASSER_BONUS = 18
@@ -62,9 +68,9 @@ def _rook_endgame_side_score(board: Board, color: Color) -> int:
     rooks = rook_positions(board, color)
     if not rooks:
         return 0
-    own_passers = _passed_pawns_for_color(board, color)
+    own_passers = passed_pawns_for_color(board, color)
     enemy_color = _opponent(color)
-    enemy_passers = _passed_pawns_for_color(board, enemy_color)
+    enemy_passers = passed_pawns_for_color(board, enemy_color)
     if not own_passers and not enemy_passers:
         return 0
     score = 0
@@ -87,7 +93,7 @@ def _rook_passer_alignment_score(
     rook_row, rook_col = rook
     score = 0
     for pawn_row, pawn_col in own_passers:
-        if not _is_advanced_passer(color, pawn_row) or rook_col != pawn_col:
+        if not is_advanced_passer(color, pawn_row) or rook_col != pawn_col:
             continue
         if not path_clear_between(board, rook, (pawn_row, pawn_col)):
             continue
@@ -108,7 +114,7 @@ def _rook_defensive_alignment_score(
     score = 0
     for pawn_row, pawn_col in enemy_passers:
         enemy_color = _opponent(color)
-        if not _is_advanced_passer(enemy_color, pawn_row) or rook_col != pawn_col:
+        if not is_advanced_passer(enemy_color, pawn_row) or rook_col != pawn_col:
             continue
         if not path_clear_between(board, rook, (pawn_row, pawn_col)):
             continue
@@ -132,7 +138,7 @@ def _king_support_score(board: Board, color: Color, own_passers: list[tuple[int,
     enemy_position = (int(enemy_king.row), int(enemy_king.col))
     score = 0
     for pawn_row, pawn_col in own_passers:
-        if not _is_advanced_passer(color, pawn_row):
+        if not is_advanced_passer(color, pawn_row):
             continue
         own_distance = _king_distance(own_position, (pawn_row, pawn_col))
         enemy_distance = _king_distance(enemy_position, (pawn_row, pawn_col))
@@ -177,24 +183,6 @@ def _rook_is_passive(
     return rook_col not in advanced_files and rook_row in {0, 7}
 
 
-def _passed_pawns_for_color(board: Board, color: Color) -> list[tuple[int, int]]:
-    own_pawns = [
-        (row, col)
-        for piece, row, col in iter_color_pieces(board, color)
-        if piece.kind == PieceType.PAWN
-    ]
-    enemy_pawns = [
-        (row, col)
-        for piece, row, col in iter_color_pieces(board, _opponent(color))
-        if piece.kind == PieceType.PAWN
-    ]
-    return [
-        (row, col)
-        for row, col in own_pawns
-        if is_passed_pawn(color, row, col, enemy_pawns)
-    ]
-
-
 def _is_relevant_rook_endgame(board: Board) -> bool:
     non_king_pieces = non_king_piece_kinds(board)
     if not non_king_pieces or any(
@@ -202,10 +190,6 @@ def _is_relevant_rook_endgame(board: Board) -> bool:
     ):
         return False
     return any(kind == PieceType.ROOK for kind in non_king_pieces)
-
-
-def _is_advanced_passer(color: Color, row: int) -> bool:
-    return row <= 3 if color == Color.WHITE else row >= 4
 
 
 def _is_behind_pawn(color: Color, rook_row: int, pawn_row: int) -> bool:
@@ -229,7 +213,7 @@ def _move_checks_opponent(board: Board, color: Color) -> bool:
 
 
 def _move_targets_enemy_passer_file(board: Board, color: Color, move: Move) -> bool:
-    enemy_passers = _passed_pawns_for_color(board, _opponent(color))
+    enemy_passers = passed_pawns_for_color(board, _opponent(color))
     return any(int(move.end.col) == pawn_col for _, pawn_col in enemy_passers)
 
 
@@ -269,4 +253,4 @@ def simple_material_balance(board: Board, color: Color) -> int:
 
 
 def _opponent(color: Color) -> Color:
-    return Color.BLACK if color == Color.WHITE else Color.WHITE
+    return opposite_color(color)

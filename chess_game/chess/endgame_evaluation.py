@@ -1,6 +1,7 @@
 """Helpers for endgame technique and conversion scoring."""
 
 from chess_game.chess.board import Board
+from chess_game.chess.conversion_guidance import winning_conversion_evaluation_score
 from chess_game.chess.evaluation_tables import (
     ACTIVE_KING_ENDGAME_BONUS,
     BLOCKADED_PASSED_PAWN_BONUS,
@@ -86,6 +87,7 @@ def evaluate_progress(board: Board, endgame_phase: int) -> int:
     bonus += _enemy_king_box_score(board, leading_color)
     bonus += _counterplay_reduction_score(board, leading_color)
     bonus += _heavy_piece_activity_score(board, leading_color)
+    bonus += abs(winning_conversion_evaluation_score(board))
     phase_scale = max(40, 40 + endgame_phase)
     return _color_sign(leading_color) * ((bonus * phase_scale) // 100)
 
