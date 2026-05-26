@@ -1,0 +1,472 @@
+# STRATEGY7 TODO
+
+## Goal
+
+Make the engine play **stronger practical chess in unstable middlegames and heavy-piece endings** by improving:
+
+- **losing-side defense and threat containment**
+- **winning-side conversion discipline**
+- **threat-aware move ordering and root choice**
+- **queen-and-rook ending coordination**
+- **defensive king safety after castling**
+- **passed-pawn race judgment**
+- **anti-drift behavior in won or lost positions**
+- **transcript-driven review coverage for recurring practical failures**
+
+This pass should build on `docs/STRATEGY1_TODO.md` through `docs/STRATEGY6_TODO.md`, not replace them. The latest self-play game in `tmp/selfplay_w3b3_20260526T154110Z.txt` shows that the engine now opens more coherently than before, but it still plays **messy heavy-piece middlegames, weak defense once under pressure, and inefficient conversions that depend on the opponent cooperating**.
+
+---
+
+## Scope rules
+
+- Keep legal move generation and board-rule correctness unchanged unless a new regression exposes a direct bug.
+- Preserve the public `Board` API where possible.
+- Prefer structural evaluation, move ordering, selective search, and review-loop improvements over hard-coded move bans.
+- Do not fake stronger play with randomness.
+- Do not weaken tactical correctness just to get cleaner-looking strategic play.
+- Define every strategic improvement through targeted tests and transcript-backed positions.
+- Every major phase must end with:
+
+  ```bash
+  pylint chess_game
+  python -m pytest tests -q
+  ```
+
+- For AI-heavy phases, also run:
+
+  ```bash
+  python -m pytest tests/test_ai.py tests/test_ai_quality.py tests/test_ai_search.py tests/test_alpha_beta_pruning.py -q
+  ```
+
+- For phases that materially change strategic behavior, also save and review at least one self-play game under `tmp/`.
+
+---
+
+# Task 0: Re-establish the post-STRATEGY6 baseline
+
+## 0.1 Review the latest self-play game
+
+- [x] Review `tmp/selfplay_w3b3_20260526T154110Z.txt`.
+- [x] Record:
+  - [x] final result
+  - [x] move count
+  - [x] first clearly good practical choice by the winning side
+  - [x] first clearly avoidable defensive error by the losing side
+  - [x] first point where a passed pawn became the dominant strategic feature
+  - [x] first point where king safety and piece coordination diverged
+  - [x] first point where the position demanded threat containment more than general activity
+  - [x] first point where the losing side still had a better defensive plan than the engine chose
+
+## 0.2 Extract concrete bad-move examples
+
+- [x] Create a baseline artifact under `tmp/` summarizing the game’s worst decisions.
+- [x] Include at least:
+  - [x] Black’s flank pawn loosening after castling (`...h5`, `...h4`) when central and defensive tasks remained
+  - [x] White’s decorative bishop drift (`Bh3`) before the position was stabilized
+  - [x] Black’s later queen / bishop drift that failed to contain White’s passer
+  - [x] a moment where Black should have prioritized stopping promotion over side activity
+  - [x] a moment where White had a cleaner forcing conversion than the move played
+
+## 0.3 Build transcript-backed positions
+
+- [x] Reconstruct hand-built test positions for:
+  - [x] losing-side defense against an outside passed pawn
+  - [x] queen-and-rook coordination with mating threats on both sides
+  - [x] forcing queen trade when materially ahead
+  - [x] choosing blockade / checking defense over decorative activity
+  - [x] avoiding a low-value rook or bishop shuffle in a practically urgent position
+- [x] Record current `evaluate()` and `get_best_move()` behavior for each.
+
+## 0.4 Define success metrics for STRATEGY7
+
+- [x] Decide practical success criteria such as:
+  - [x] fewer losing-side collapses once one passer becomes dangerous
+  - [x] more consistent threat containment before side play
+  - [x] cleaner queen-and-rook conversion when ahead
+  - [x] fewer low-value shuffles in clearly won or clearly worse positions
+  - [x] stronger defensive coordination around king safety and promotion squares
+
+Phase note: Task 0 is complete. The current baseline artifact lives in `tmp/strategy7_baseline_positions.txt`. The key reproduced failures are Black's shell-loosening `...h5` / `...h4`, White's decorative `Bh3`, and Black's later queen / bishop drift away from passer containment once White's outside pawn became the dominant feature. The transcript-backed probes show that the current depth-3 engine still recommends `a7a5`, `d6a6`, `f1h3`, and `h8g7` in the new STRATEGY7 baseline positions, which gives the next defensive-resource and conversion phases precise practical targets.
+
+---
+
+# Task 1: Add transcript-driven defensive-resource regressions
+
+## 1.1 Add “stop the passer first” regressions
+
+- [ ] Add tests where the engine should prefer stopping or blockading an enemy passer over irrelevant checks or side play.
+- [ ] Cover cases such as:
+  - [ ] occupying the promotion square or its approach square
+  - [ ] forcing the passer behind a blockade
+  - [ ] tying a rook or queen to the passer instead of chasing side pawns
+
+## 1.2 Add threat-containment regressions
+
+- [ ] Add tests where the worse side should neutralize immediate mate / promotion threats before pursuing vague activity.
+- [ ] Cover cases such as:
+  - [ ] defending a back-rank or diagonal mating square
+  - [ ] preventing a queen-plus-rook invasion on the seventh or eighth rank
+  - [ ] preferring a checking or interposing move that reduces danger
+
+## 1.3 Add “best practical defense” regressions
+
+- [ ] Add tests where the worse side should choose the line that maximizes resistance even if static evaluation remains poor.
+- [ ] Cover cases such as:
+  - [ ] perpetual-check tries
+  - [ ] queen trade avoidance when the resulting ending is immediately lost
+  - [ ] rook activity behind enemy passers rather than passive waiting
+
+## 1.4 Add anti-panic regressions for the defending side
+
+- [ ] Add tests where the engine should reject decorative or irrelevant defensive moves.
+- [ ] Cover cases such as:
+  - [ ] bishop shuffles that do not change the threat picture
+  - [ ] queen moves with no new check, blockade, or trade threat
+  - [ ] rook sidesteps that do not attack the passer or improve king safety
+
+Phase note:
+
+- [ ] Task 1 complete note
+
+---
+
+# Task 2: Improve losing-side defense and threat containment
+
+## 2.1 Audit current defensive guidance
+
+- [ ] Review the existing STRATEGY5/6 endgame, conversion, and passer-race helpers.
+- [ ] Identify where current logic already helps defense and where it still overvalues generic activity.
+- [ ] Save the audit under `tmp/`.
+
+## 2.2 Strengthen evaluation for practical defense
+
+- [ ] Add or tighten heuristics for:
+  - [ ] enemy passer proximity to promotion
+  - [ ] whether the defending rook/queen is behind, beside, or in front of the passer
+  - [ ] king distance to critical promotion / blockade squares
+  - [ ] immediate mating-net danger around the king
+  - [ ] whether a defending piece is overloaded between king safety and promotion control
+
+## 2.3 Strengthen quiet move ordering for defense
+
+- [ ] Prefer candidate moves that:
+  - [ ] reduce immediate promotion danger
+  - [ ] increase checking resources
+  - [ ] contest key files / ranks near the king or passer
+  - [ ] force simplifying defensive resources when appropriate
+- [ ] Demote quiet moves that:
+  - [ ] preserve no new defensive resource
+  - [ ] ignore the most dangerous enemy threat
+  - [ ] drift away from the main theater
+
+## 2.4 Strengthen root tie-break behavior for defense
+
+- [ ] Ensure near-equal root moves prefer the line with the best practical resistance.
+- [ ] Reward:
+  - [ ] forcing checks
+  - [ ] blockade / trade opportunities
+  - [ ] moves that reduce the opponent’s safe promotion path
+
+Phase note:
+
+- [ ] Task 2 complete note
+
+---
+
+# Task 3: Add transcript-driven winning-conversion regressions
+
+## 3.1 Add “simplify when clearly winning” regressions
+
+- [ ] Add tests where the engine should trade into a clearly won heavy-piece ending instead of preserving unnecessary complexity.
+- [ ] Cover cases such as:
+  - [ ] queen trade into a won rook ending
+  - [ ] rook trade into a trivially winning queen ending
+  - [ ] piece trade that leaves an unstoppable passer
+
+## 3.2 Add “push the main passer” regressions
+
+- [ ] Add tests where the engine should prioritize the strongest passed pawn over harmless side activity.
+- [ ] Cover cases such as:
+  - [ ] outside passed pawn support
+  - [ ] rook behind passer
+  - [ ] queen escort toward promotion
+
+## 3.3 Add “remove counterplay first” regressions
+
+- [ ] Add tests where the winning side should neutralize the opponent’s only practical resource before drifting.
+- [ ] Cover cases such as:
+  - [ ] removing checking resources
+  - [ ] covering perpetual squares
+  - [ ] restricting enemy king approach to the passer
+
+## 3.4 Add anti-drift regressions for the winning side
+
+- [ ] Add tests where the engine should reject low-value shuffles while ahead.
+- [ ] Cover cases such as:
+  - [ ] queen moves with no mate, trade, or passer support
+  - [ ] rook moves that do not improve file/rank pressure
+  - [ ] bishop / king maneuvers that slow promotion without improving safety
+
+Phase note:
+
+- [ ] Task 3 complete note
+
+---
+
+# Task 4: Improve winning-side conversion discipline
+
+## 4.1 Audit current conversion guidance
+
+- [ ] Review the existing conversion, defensive-endgame, and passer-race modules against the new transcript.
+- [ ] Identify where the engine already converts correctly and where root choice still drifts.
+- [ ] Save the audit under `tmp/`.
+
+## 4.2 Strengthen evaluation for practical conversion
+
+- [ ] Add or tighten heuristics for:
+  - [ ] forcing trade quality when ahead
+  - [ ] king activation behind the main passer
+  - [ ] rook / queen support of promotion squares
+  - [ ] suppression of enemy checking counterplay
+  - [ ] avoiding unnecessary pawn grabs away from the main winning plan
+
+## 4.3 Strengthen quiet move ordering for conversion
+
+- [ ] Prefer:
+  - [ ] forcing captures that remove counterplay
+  - [ ] trade offers that simplify into known wins
+  - [ ] moves that improve passer support or king cut-off
+- [ ] Demote:
+  - [ ] harmless side checks
+  - [ ] lateral rook shuffles without new pressure
+  - [ ] queen drift that does not improve mate or promotion chances
+
+## 4.4 Strengthen root tie-break behavior for conversion
+
+- [ ] Ensure near-equal root choices prefer the most forcing practical win.
+- [ ] Reward:
+  - [ ] shorter route to promotion
+  - [ ] lower counterplay exposure
+  - [ ] cleaner transition into technically won endgames
+
+Phase note:
+
+- [ ] Task 4 complete note
+
+---
+
+# Task 5: Improve threat-aware move ordering and root choice
+
+## 5.1 Add transcript-driven threat-ordering regressions
+
+- [ ] Add tests where the engine should prefer moves that answer the opponent’s most urgent threat.
+- [ ] Cover cases such as:
+  - [ ] stopping a passer over making a harmless threat
+  - [ ] defending mate squares over pushing a side pawn
+  - [ ] forcing queen trade when ahead over speculative pressure
+
+## 5.2 Audit current move-ordering hot paths
+
+- [ ] Review `ai_move_ordering.py`, `ai_search_helpers.py`, and related guidance modules for overlap.
+- [ ] Identify which threat-aware signals are cheap enough for hot-path ordering and which belong only in evaluation / root bonuses.
+- [ ] Save the audit under `tmp/`.
+
+## 5.3 Add practical threat signals to quiet ordering
+
+- [ ] Score moves for:
+  - [ ] reducing enemy checking resources
+  - [ ] contesting promotion squares
+  - [ ] increasing king flight squares
+  - [ ] forcing the opponent into narrower reply sets
+
+## 5.4 Add root-level threat-aware tie-breaks
+
+- [ ] When root scores are near-equal, prefer moves that:
+  - [ ] answer the clearest enemy threat
+  - [ ] create forcing simplification
+  - [ ] lower tactical volatility when ahead
+  - [ ] maximize practical resistance when worse
+
+Phase note:
+
+- [ ] Task 5 complete note
+
+---
+
+# Task 6: Add queen-and-rook ending guidance
+
+## 6.1 Add transcript-driven heavy-piece ending regressions
+
+- [ ] Add tests for queen-and-rook / queen-only practical endings exposed by the latest game.
+- [ ] Cover cases such as:
+  - [ ] rook behind passer
+  - [ ] queen escort toward promotion
+  - [ ] defending king shelter against repeated checks
+  - [ ] queen trade into a clearly won or clearly holdable ending
+
+## 6.2 Audit current heavy-piece logic
+
+- [ ] Review whether existing endgame helpers already recognize these structures.
+- [ ] Identify gaps specific to queen-and-rook coordination and king shelter.
+- [ ] Save the audit under `tmp/`.
+
+## 6.3 Add evaluation guidance for heavy-piece endings
+
+- [ ] Add or tighten heuristics for:
+  - [ ] rook placement behind own or enemy passers
+  - [ ] queen proximity to promotion and checking squares
+  - [ ] king shelter quality against queen checks
+  - [ ] whether heavy pieces are coordinated or stepping on each other
+
+## 6.4 Add quiet-order / root bonuses for heavy-piece practicality
+
+- [ ] Prefer moves that:
+  - [ ] improve queen-rook coordination
+  - [ ] threaten promotion or forced checks
+  - [ ] reduce the opponent’s checking net
+- [ ] Demote moves that:
+  - [ ] split queen and rook away from the main theater
+  - [ ] abandon promotion support
+  - [ ] allow easy perpetual or perpetual-like checking sequences
+
+Phase note:
+
+- [ ] Task 6 complete note
+
+---
+
+# Task 7: Strengthen passed-pawn race judgment
+
+## 7.1 Add passed-pawn race regressions
+
+- [ ] Add tests where the engine should correctly identify:
+  - [ ] unstoppable passers
+  - [ ] only-blockadable passers
+  - [ ] queen escort beats side counterplay
+  - [ ] wrong-side activity loses the race immediately
+
+## 7.2 Audit existing passer-race guidance
+
+- [ ] Review how `passer_race_guidance.py`, conversion guidance, and defensive guidance interact.
+- [ ] Identify missing features from the new transcript.
+- [ ] Save the audit under `tmp/`.
+
+## 7.3 Tighten passer-race evaluation
+
+- [ ] Add or refine scoring for:
+  - [ ] tempo-to-promotion differences
+  - [ ] critical-square ownership
+  - [ ] defender tied down to stopping promotion
+  - [ ] whether checks help or hurt the race
+
+## 7.4 Tighten passer-race ordering and root choice
+
+- [ ] Prefer moves that:
+  - [ ] create or preserve unstoppable promotion
+  - [ ] force the defender into passivity
+  - [ ] stop the opponent’s only rival race
+
+Phase note:
+
+- [ ] Task 7 complete note
+
+---
+
+# Task 8: Add anti-drift guidance in clearly won or clearly worse positions
+
+## 8.1 Add anti-drift regressions
+
+- [ ] Add tests where the engine should reject low-value activity in practical endings.
+- [ ] Cover cases such as:
+  - [ ] queen drift with no check / trade / promotion support
+  - [ ] bishop shuffles that do not affect king safety or passers
+  - [ ] rook moves that do not improve activity, blockade, or support
+  - [ ] pawn pushes that do not improve promotion, king shelter, or mating pressure
+
+## 8.2 Audit overlap with prior anti-repetition / quiet-plan logic
+
+- [ ] Review whether current anti-repetition and plan-quality logic already covers parts of this behavior.
+- [ ] Isolate only the remaining anti-drift gaps.
+- [ ] Save the audit under `tmp/`.
+
+## 8.3 Add practicality scoring
+
+- [ ] Reward moves that:
+  - [ ] change the threat picture
+  - [ ] simplify into clearer wins or holds
+  - [ ] improve promotion geometry
+  - [ ] improve king safety materially
+- [ ] Penalize moves that:
+  - [ ] only look active
+  - [ ] repeat pressure without progress
+  - [ ] walk away from the main strategic theater
+
+Phase note:
+
+- [ ] Task 8 complete note
+
+---
+
+# Task 9: Review-loop expansion for STRATEGY7
+
+## 9.1 Play fresh bounded review games
+
+- [ ] Save at least one new depth-3 vs depth-3 self-play transcript under `tmp/`.
+- [ ] If runtime is practical, also save one deeper review game.
+
+## 9.2 Record fresh practical misses
+
+- [ ] Create a STRATEGY7 review artifact under `tmp/`.
+- [ ] For each major miss, record:
+  - [ ] move chosen
+  - [ ] better human move
+  - [ ] why the human move is better
+  - [ ] whether the miss was primarily evaluation, ordering, root choice, or search-depth related
+
+## 9.3 Promote the worst new misses to regressions
+
+- [ ] Add targeted tests for the worst recurring new errors.
+- [ ] Update the strategy plan if the review reveals an unplanned new theme.
+
+Phase note:
+
+- [ ] Task 9 complete note
+
+---
+
+# Task 10: Final acceptance for STRATEGY7
+
+## 10.1 Validation
+
+- [ ] Run:
+
+  ```bash
+  pylint chess_game
+  python -m pytest tests -q
+  ```
+
+- [ ] Run targeted AI validation:
+
+  ```bash
+  python -m pytest tests/test_ai.py tests/test_ai_quality.py tests/test_ai_search.py tests/test_alpha_beta_pruning.py -q
+  ```
+
+## 10.2 Self-play review
+
+- [ ] Save a fresh self-play transcript under `tmp/`.
+- [ ] Confirm the reviewed game shows measurable improvement in:
+  - [ ] losing-side defensive resistance
+  - [ ] cleaner winning conversion
+  - [ ] fewer low-value heavy-piece shuffles
+  - [ ] better passed-pawn race judgment
+  - [ ] more coherent queen-and-rook coordination
+
+## 10.3 Closeout
+
+- [ ] Update this file with completed statuses and notes.
+- [ ] Commit only after lint and tests pass.
+- [ ] Push to `origin/master`.
+
+Phase note:
+
+- [ ] Task 10 complete note

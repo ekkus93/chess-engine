@@ -1,5 +1,13 @@
 # Chess Engine Project Memory
 
+## 2026-05-26T17:51:33Z - GPT-5.4 - STRATEGY7 planning baseline
+- Added `docs/STRATEGY7_TODO.md`, a new detailed tracker based on the latest depth-3 self-play game `tmp/selfplay_w3b3_20260526T154110Z.txt`. The new plan shifts focus away from opening cleanup and toward losing-side defense, practical threat containment, heavy-piece coordination, passed-pawn races, and cleaner conversion.
+- The STRATEGY7 task list specifically targets the latest transcript’s practical failures: Black's weak defense against White's passer, flank loosening and drift in the heavy-piece phase, and both sides' tendency to spend tempi on low-value queen, rook, and bishop maneuvers instead of forcing wins or best resistance.
+
+## 2026-05-26T18:07:39Z - GPT-5.4 - STRATEGY7 Task 0 baseline closure
+- Closed STRATEGY7 Task 0 by creating `tmp/strategy7_baseline_positions.txt`, which records the latest depth-3 self-play baseline, the first practical defensive and conversion failures, and five transcript-backed probe positions with current `evaluate()` / `get_best_move()` outputs.
+- Updated `docs/STRATEGY7_TODO.md` to mark all Task 0 checklist items complete and recorded that the current depth-3 engine still recommends `a7a5`, `d6a6`, `f1h3`, and `h8g7` in the new baseline positions, while the simplified queen-trade probe already prefers the clean trade.
+
 ## 2026-05-26T15:17:23Z - GPT-5.4 - STRATEGY6 Task 8 final acceptance
 - Closed `docs/STRATEGY6_TODO.md` Task 8 with a fresh bounded acceptance transcript in `tmp/strategy6_task8_w3b3.txt` plus the final review note in `tmp/strategy6_task8_review.txt`. The strongest measurable improvements versus the baseline and Task 7 review were that the old move-15 `Nf3h4` drift became `d2d4`, the earlier rook sidesteps and `...Nh6` opening detour disappeared, and castling happened sooner on both sides.
 - Revalidated the final STRATEGY6 repository state at `pylint chess_game` (`10.00/10`), `python -m pytest tests -q` (`544 passed`), and `python -m pytest tests/test_ai.py tests/test_ai_quality.py tests/test_ai_search.py tests/test_alpha_beta_pruning.py -q` (`120 passed`). The remaining play is still imperfect, but the final acceptance game was clearly more principled and practical than the earlier STRATEGY6 review sample.

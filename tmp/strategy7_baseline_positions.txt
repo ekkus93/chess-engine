@@ -1,0 +1,73 @@
+# STRATEGY7 baseline positions
+
+Source game: `tmp/selfplay_w3b3_20260526T154110Z.txt`
+
+## Game summary
+
+- Result: White won by checkmate.
+- Move count: 90 plies.
+- First clearly good practical choice by the winning side: `15. d2d4`, which challenged the center instead of drifting on the wing.
+- First clearly avoidable defensive error by the losing side: `22. ...h5` (`h7h5`) after castling, when Black still needed central and queenside defensive coordination.
+- First point where a passed pawn became the dominant strategic feature: `41. d5c6`, because White created the c-pawn runner that immediately became the later `b7` passer after `43. c6b7`.
+- First point where king safety and piece coordination diverged: `22. ...h5`, when Black loosened the castled shell while the queenside and central defensive jobs were still unresolved.
+- First point where the position demanded threat containment more than general activity: `46. ...a5`, after White had already planted the passer on `b7` and Black needed to organize around promotion and mating threats.
+- First point where the losing side still had a better defensive plan than the engine chose: `46. ...a5`; Black needed queen-and-rook coordination around the b-file and checking lanes instead of side-pawn play.
+
+## Concrete bad-move examples from the transcript
+
+1. Black's flank loosening after castling with urgent defensive work still pending: `22. ...h5` and later `28. ...h4`
+2. White's decorative bishop drift before the position was stabilized: `37. Bh3` (`f1h3`)
+3. Black's later queen / bishop drift that failed to contain White's passer: `50. ...Qa6` (`d6a6`) followed by bishop/queen wandering away from the b-file fight
+4. A point where Black should have prioritized stopping promotion over side activity: `46. ...a5`
+5. A point where White still had room for a cleaner forcing conversion than the move played: the heavy-piece phase after `59. Qh8`, where White was winning but still needed several extra maneuvers before the final mating net
+
+## Transcript-backed probe positions
+
+`evaluate()` scores are the current raw engine scores from the reconstructed positions, with positive meaning White is better and negative meaning Black is better. `get_best_move()` was probed at depth 3.
+
+### 1. Losing-side defense against an outside passed pawn
+
+- Reconstructed from the transcript through `45. Qb3`
+- Side to move: Black
+- Theme: stop the `b7` passer before drifting elsewhere
+- Current `evaluate()`: `2206`
+- Current `get_best_move()`: `a7a5`
+
+### 2. Queen-and-rook coordination with mating / promotion threats on both sides
+
+- Reconstructed from the transcript through `49. Rf1`
+- Side to move: Black
+- Theme: heavy-piece coordination while White threatens promotion and mating ideas
+- Current `evaluate()`: `2231`
+- Current `get_best_move()`: `d6a6`
+
+### 3. Avoiding a low-value bishop shuffle in a practically urgent position
+
+- Reconstructed from the transcript through `36. ...Kh8`
+- Side to move: White
+- Theme: stabilize and convert instead of drifting with the bishop
+- Current `evaluate()`: `1822`
+- Current `get_best_move()`: `f1h3`
+
+### 4. Choosing blockade / coordinated defense over decorative activity
+
+- Reconstructed from the transcript through `53. Qh5`
+- Side to move: Black
+- Theme: defend against the passer and mating net instead of making a cosmetic king move
+- Current `evaluate()`: `2271`
+- Current `get_best_move()`: `h8g7`
+
+### 5. Forcing queen trade when materially ahead
+
+- Transcript-inspired heavy-piece ending with White queen, rook, and outside passer against Black queen and rook
+- Side to move: White
+- Current `evaluate()`: `592`
+- Current `get_best_move()`: `d4d7`
+
+## STRATEGY7 success metrics
+
+- Fewer losing-side collapses once an outside passer reaches the sixth or seventh rank
+- More consistent threat containment before flank or side-pawn play
+- Cleaner queen-and-rook conversion when materially ahead
+- Fewer low-value bishop, rook, and queen shuffles in clearly winning or clearly worse positions
+- Stronger defensive coordination around king safety, checking lanes, and promotion squares
