@@ -136,42 +136,44 @@ Task 1 is complete. The new `tests/test_ai_strategy7_regressions.py` file now pi
 
 ## 2.1 Audit current defensive guidance
 
-- [ ] Review the existing STRATEGY5/6 endgame, conversion, and passer-race helpers.
-- [ ] Identify where current logic already helps defense and where it still overvalues generic activity.
-- [ ] Save the audit under `tmp/`.
+- [x] Review the existing STRATEGY5/6 endgame, conversion, and passer-race helpers.
+- [x] Identify where current logic already helps defense and where it still overvalues generic activity.
+- [x] Save the audit under `tmp/`.
 
 ## 2.2 Strengthen evaluation for practical defense
 
-- [ ] Add or tighten heuristics for:
-  - [ ] enemy passer proximity to promotion
-  - [ ] whether the defending rook/queen is behind, beside, or in front of the passer
-  - [ ] king distance to critical promotion / blockade squares
-  - [ ] immediate mating-net danger around the king
-  - [ ] whether a defending piece is overloaded between king safety and promotion control
+- [x] Add or tighten heuristics for:
+  - [x] enemy passer proximity to promotion
+  - [x] whether the defending rook/queen is behind, beside, or in front of the passer
+  - [x] king distance to critical promotion / blockade squares
+  - [x] immediate mating-net danger around the king
+  - [x] whether a defending piece is overloaded between king safety and promotion control
 
 ## 2.3 Strengthen quiet move ordering for defense
 
-- [ ] Prefer candidate moves that:
-  - [ ] reduce immediate promotion danger
-  - [ ] increase checking resources
-  - [ ] contest key files / ranks near the king or passer
-  - [ ] force simplifying defensive resources when appropriate
-- [ ] Demote quiet moves that:
-  - [ ] preserve no new defensive resource
-  - [ ] ignore the most dangerous enemy threat
-  - [ ] drift away from the main theater
+- [x] Prefer candidate moves that:
+  - [x] reduce immediate promotion danger
+  - [x] increase checking resources
+  - [x] contest key files / ranks near the king or passer
+  - [x] force simplifying defensive resources when appropriate
+- [x] Demote quiet moves that:
+  - [x] preserve no new defensive resource
+  - [x] ignore the most dangerous enemy threat
+  - [x] drift away from the main theater
 
 ## 2.4 Strengthen root tie-break behavior for defense
 
-- [ ] Ensure near-equal root moves prefer the line with the best practical resistance.
-- [ ] Reward:
-  - [ ] forcing checks
-  - [ ] blockade / trade opportunities
-  - [ ] moves that reduce the opponent’s safe promotion path
+- [x] Ensure near-equal root moves prefer the line with the best practical resistance.
+- [x] Reward:
+  - [x] forcing checks
+  - [x] blockade / trade opportunities
+  - [x] moves that reduce the opponent’s safe promotion path
 
 Phase note:
 
-- [ ] Task 2 complete note
+- [x] Task 2 complete note
+
+Task 2 is complete. The audit artifact lives in `tmp/strategy7_task2_audit.txt`, and the heavy-piece containment layer now scores front/behind/beside heavy-piece geometry, support for attacked key defenders, immediate mating-net pressure from real heavy-piece channels, and retained checking / trade resources for the worse side. `ai_move_ordering.py` now also feeds the same containment logic into quiet ordering, `tests/test_ai_strategy7_regressions.py` now proves that the later heavy-piece probe rejects the old `...Qa6` drift and prefers covering overloaded defenders, and the phase self-play review in `tmp/strategy7_task2_review.txt` shows that Black still lost but resisted until move 126 while handling the later passer fight with `...Qd6`, `...Qd5`, and `...f5` instead of repeating the old `...Qa6` / `...Kg7` defensive drift.
 
 ---
 

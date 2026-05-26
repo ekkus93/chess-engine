@@ -1,0 +1,30 @@
+# STRATEGY7 Task 2 review
+
+Source transcript: `tmp/strategy7_task2_w3b3_20260526T193154Z.txt`
+
+## Result
+
+- White won by checkmate on move 126.
+
+## Main Task 2 defensive takeaway
+
+- The later heavy-piece defense no longer followed the old STRATEGY7 baseline drift of `...Qa6` and a cosmetic king shuffle.
+- After White created the `b7` passer, Black instead chose the more central defensive sequence:
+  - `...Qd6`
+  - `...Qd5`
+  - `...f5`
+  - active bishop participation (`...Bxg7`) in the same defensive phase
+- That is still not enough to save the game, but it is a more practical resistance plan than the old `...Qa6` / `...Kg7` style drift from the baseline artifact.
+
+## What still did not improve in this phase
+
+- The opening / early middlegame still repeated out-of-scope STRATEGY7 problems:
+  - Black still played the old shell-loosening `...h5`
+  - White still used the decorative `Bh3` maneuver before the position was fully stabilized
+- Those misses belong to later STRATEGY7 conversion / anti-drift cleanup rather than this losing-side defense phase.
+
+## Practical summary
+
+- Task 2 successfully improved later losing-side heavy-piece resistance.
+- The engine now defends the passer fight with more central and resource-conscious moves.
+- The overall game is still strategically messy, so later STRATEGY7 tasks remain necessary.

@@ -1,7 +1,7 @@
 """Transcript-driven regressions for STRATEGY7 practical defense cleanup."""
 
 from chess_game.chess import ai
-from chess_game.chess.ai import get_best_move
+from chess_game.chess.ai import get_best_move, get_evaluation_breakdown
 from chess_game.chess.board import Board
 from chess_game.chess.types import LegalMove
 from tests.helpers import sq
@@ -117,3 +117,25 @@ def test_strategy7_order_prefers_queen_reinforcement_over_a5_panic() -> None:
     side_play = ai.Move(start=sq("a7"), end=sq("a5"))
 
     assert _move_order_score(board, reinforce, None) > _move_order_score(board, side_play, None)
+
+
+def test_strategy7_search_rejects_qa6_in_later_heavy_piece_defense() -> None:
+    """Later heavy-piece defense should no longer drift into the old Qa6 side line."""
+
+    board = _task1_heavy_piece_threat_board()
+
+    assert get_best_move(board, depth=3) != LegalMove(start=sq("d6"), end=sq("a6"))
+
+
+def test_strategy7_breakdown_prefers_covering_key_defenders_over_qa6_drift() -> None:
+    """Containment should reward covering overloaded defenders over the old queen drift."""
+
+    drift_board = _task1_heavy_piece_threat_board()
+    support_board = drift_board.clone()
+    support_board.make_move(sq("d6"), sq("d7"))
+    drift_board.make_move(sq("d6"), sq("a6"))
+
+    assert (
+        get_evaluation_breakdown(support_board)["defensive_containment"]
+        < get_evaluation_breakdown(drift_board)["defensive_containment"]
+    )
