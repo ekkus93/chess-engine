@@ -1,0 +1,69 @@
+# STRATEGY6 baseline positions
+
+Source game: `tmp/self_play_w3b3.txt`
+
+## Game summary
+
+- Result: Black won by checkmate.
+- Move count: 109 plies.
+- First clearly dubious White opening move: `11. Rc1` (`a1c1`) before castling or finishing development.
+- First clearly dubious Black opening move: `14. ...Nh6` (`g8h6`) instead of central knight development.
+- First point where White's king safety lag became serious: `15. h4` (`h2h4`) while White was still uncastled and undeveloped.
+- First point where Black obtained the easier practical game: `22. ...Nxd4` (`c6d4`), after which White still had king-safety and coordination debt.
+- First point where White still had a better human plan than the engine chose: `15. h4`; normal development and castling were still available.
+- First point where the winning side began converting inefficiently: `56. ...Ra4` (`a8a4`), where Black started side-rook activity instead of the cleanest simplification/conversion path.
+
+## Concrete bad-move examples from the transcript
+
+1. White's early rook drift before king safety: `11. Rc1`
+2. White's premature flank pawn expansion: `15. h4`
+3. Black's rim-knight development mistake: `14. ...Nh6`
+4. White's late practical collapse after active queen play: after `48. ...Nd6`, White's activity no longer compensated for Black's easier game
+5. Black's inefficient but ultimately successful final conversion: the game was still winning, but the conversion drift started to show around `56. ...Ra4`
+
+## Transcript-backed probe positions
+
+`evaluate()` scores are the current raw engine scores from the reconstructed positions, with positive meaning White is better and negative meaning Black is better. `get_best_move()` was probed at depth 3.
+
+### 1. Early rook sidestep before castling
+
+- Reconstructed from: `1. Nf3 d5 2. Nc3 Nc6 3. b3 d4 4. Ne4 e5 5. Bb2 b6`
+- Side to move: White
+- Current `evaluate()`: `53`
+- Current `get_best_move()`: `a1c1`
+
+### 2. Premature flank pawn expansion
+
+- Reconstructed from: `1. Nf3 d5 2. Nc3 Nc6 3. b3 d4 4. Ne4 e5 5. Bb2 b6 6. Rc1 Be7 7. g3 Nh6`
+- Side to move: White
+- Current `evaluate()`: `32`
+- Current `get_best_move()`: `h2h4`
+
+### 3. Rim-knight development vs central development
+
+- Reconstructed from: `1. Nf3 d5 2. Nc3 Nc6 3. b3 d4 4. Ne4 e5 5. Bb2 b6 6. Rc1 Be7 7. g3`
+- Side to move: Black
+- Current `evaluate()`: `45`
+- Current `get_best_move()`: `g8h6`
+
+### 4. Practical simplification vs flashy continuation
+
+- Reconstructed from the transcript through `47. Qf4`
+- Side to move: Black
+- Current `evaluate()`: `-424`
+- Current `get_best_move()`: `c8d6`
+
+### 5. Winning endgame conversion / mating net potential
+
+- Reconstructed from the transcript through `95. Kh4`
+- Side to move: Black
+- Current `evaluate()`: `-4734`
+- Current `get_best_move()`: `a2a1=queen`
+
+## STRATEGY6 success metrics
+
+- Fewer early rook moves before castling or rook connection
+- Fewer premature flank pawn pushes while queens remain and king safety is unresolved
+- Fewer rim-knight opening choices when normal central development is available
+- More consistent castling and development order in fresh depth-3 self-play
+- Cleaner conversion once one side is materially or positionally winning
