@@ -409,36 +409,38 @@ Phase note: Task 7 is complete. The static passer base from `pawn_structure_eval
 
 ## 8.1 Audit selective search for quiet strategic blindness
 
-- [ ] Review where current search still prefers:
-  - [ ] stale pressure
-  - [ ] harmless checks
-  - [ ] repeated “safe” moves
-  - [ ] tactical-looking but strategically empty lines
+- [x] Review where current search still prefers:
+  - [x] stale pressure
+  - [x] harmless checks
+  - [x] repeated “safe” moves
+  - [x] tactical-looking but strategically empty lines
 
 ## 8.2 Revisit quiet move ordering
 
-- [ ] Increase quiet-order preference for moves that:
-  - [ ] improve conversion geometry
-  - [ ] reduce repetition risk
-  - [ ] activate king/rook toward the relevant theater
-  - [ ] suppress the opponent’s only counterplay
+- [x] Increase quiet-order preference for moves that:
+  - [x] improve conversion geometry
+  - [x] reduce repetition risk
+  - [x] activate king/rook toward the relevant theater
+  - [x] suppress the opponent’s only counterplay
 
 ## 8.3 Improve root move stability
 
-- [ ] Review whether aspiration / tie-break behavior is favoring loops.
-- [ ] If needed, strengthen preference for:
-  - [ ] stable progress
-  - [ ] clearer plans
-  - [ ] simpler winning lines
-  - [ ] more forcing defensive resources when behind
+- [x] Review whether aspiration / tie-break behavior is favoring loops.
+- [x] If needed, strengthen preference for:
+  - [x] stable progress
+  - [x] clearer plans
+  - [x] simpler winning lines
+  - [x] more forcing defensive resources when behind
 
 ## 8.4 Add search-regression tests
 
-- [ ] Add tests ensuring search no longer overrides clearly better quiet plans with:
-  - [ ] sterile checks
-  - [ ] same-piece shuffles
-  - [ ] premature repetition
-  - [ ] side pressure that ignores the main plan
+- [x] Add tests ensuring search no longer overrides clearly better quiet plans with:
+  - [x] sterile checks
+  - [x] same-piece shuffles
+  - [x] premature repetition
+  - [x] side pressure that ignores the main plan
+
+Phase note: Task 8 is complete. The earlier STRATEGY4/5 work already covered most of the quiet-search checklist through `ai_move_ordering.py`, `ai_repetition_patterns.py`, `conversion_guidance.py`, `defensive_endgame_guidance.py`, `passer_race_guidance.py`, and the existing search regressions for empty checks, repetition, and plan continuity. This pass closes the remaining root-choice gap in `ai_search_helpers.py` by charging root candidates that reduce the king’s safe squares, wiring the dormant practical-options bonus into the strategic root tiebreak path, and adding a direct regression proving the root comparator prefers sealing a contested attack file over a quieter sidestep that leaves the main plan unresolved.
 
 ---
 

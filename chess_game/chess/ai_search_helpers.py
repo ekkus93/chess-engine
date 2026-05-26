@@ -634,6 +634,7 @@ def _defensive_root_bonus(board: Board, child_board: Board, moving_color: Color)
     score += max(0, after.king_zone_defenders - before.king_zone_defenders) * 16
     score += max(0, after.heavy_connections - before.heavy_connections) * 12
     score += max(0, after.safe_king_moves - before.safe_king_moves) * 12
+    score -= max(0, before.safe_king_moves - after.safe_king_moves) * 24
     if before.back_rank_weak and not after.back_rank_weak:
         score += 24
     return score
@@ -682,6 +683,7 @@ def _strategic_root_bonus(
     if _is_simple_endgame(board):
         return 0
     score = _pawn_structure_root_bonus(board, move, child_board)
+    score += _practical_options_bonus(board, child_board, moving_color)
     score += _plan_continuity_bonus(
         board,
         move,

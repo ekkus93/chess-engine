@@ -1,5 +1,10 @@
 # Chess Engine Project Memory
 
+## 2026-05-26T04:06:02Z - GPT-5.4 - STRATEGY5 Task 8 quiet-search slice
+- Closed the remaining Task 8 gap by feeding the dormant practical-options root bonus into `ai_search_helpers.py` and charging root candidates that reduce safe king moves, so quiet root choices better favor sealing the main theater over sidestepping without progress.
+- Task 8 mostly audited existing coverage rather than adding broad new heuristics: the earlier anti-repetition, check-quality, conversion, defensive-endgame, and passer-race work already handled most of the quiet-search checklist.
+- Added a direct root-stability regression in `tests/test_ai_search.py`, marked Task 8 complete in `docs/STRATEGY5_TODO.md`, and revalidated the full repo green with `pylint chess_game` and `python -m pytest tests -q` (`522 passed`).
+
 ## 2026-05-26T03:57:02Z - GPT-5.4 - STRATEGY5 Task 7 passer-race slice
 - Added `chess_game/chess/passer_race_guidance.py` so quiet ordering and selective extensions can react to true promotion-race targets such as outside passers, connected/protected passers, near-promotion pushes, and enemy promotion-square threats without bleeding into unrelated quiet positions.
 - Reused shared heavy-piece support and material helpers from `strategy_utils.py`, then narrowed the new passer guidance so it stays race-specific and does not override earlier conversion or king-safety priorities.

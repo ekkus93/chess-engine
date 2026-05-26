@@ -642,6 +642,35 @@ def test_root_stability_adjustment_prefers_reducing_opponent_options() -> None:
     )
 
 
+def test_root_stability_adjustment_prefers_contesting_attack_file_over_king_sidestep() -> None:
+    """Root tie-breaks should prefer sealing the contested file over a king sidestep."""
+
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("d1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("a2"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(sq("e2"), create_piece(Color.WHITE, PieceType.QUEEN))
+    board.set_piece(sq("g2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("h2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("d8"), create_piece(Color.BLACK, PieceType.ROOK))
+    board.turn = Color.WHITE
+
+    contest_move = Move(start=sq("a2"), end=sq("d2"))
+    king_sidestep = Move(start=sq("d1"), end=sq("e1"))
+
+    contest_child = board.clone()
+    sidestep_child = board.clone()
+    assert contest_child.apply_legal_move(contest_move.start, contest_move.end) is True
+    assert sidestep_child.apply_legal_move(king_sidestep.start, king_sidestep.end) is True
+
+    assert root_stability_adjustment(
+        board,
+        contest_move,
+        contest_child,
+    ) > root_stability_adjustment(board, king_sidestep, sidestep_child)
+
+
 def test_root_stability_adjustment_prefers_plan_continuity() -> None:
     """Root tie-breaks should keep a good structural plan alive over queen drift."""
 
