@@ -13,7 +13,11 @@ from chess_game.chess.defensive_priorities import (
     king_needs_shelter,
 )
 from chess_game.chess.move import Move
-from chess_game.chess.opening_guidance import opening_guidance_bonus
+from chess_game.chess.opening_move_ordering import (
+    is_repeat_heavy_piece_move as _opening_repeat_heavy_piece_move,
+    opening_discipline_order_score,
+    undeveloped_minor_count as _opening_undeveloped_minor_count,
+)
 from chess_game.chess.opponent_plans import opponent_plan_profile
 from chess_game.chess.piece_coordination import (
     bishop_coordination_bonus,
@@ -38,13 +42,9 @@ QUIET_LUFT_BONUS = 16
 QUIET_WORST_PIECE_BONUS = 18
 QUIET_BLOCKADE_BONUS = 28
 QUIET_MAJOR_TRADE_OFFER_BONUS = 26
-QUIET_DEVELOPING_MINOR_BONUS = 26
 QUIET_USEFUL_CHECK_BONUS = 34
 QUIET_URGENT_LUFT_BONUS = 24
-QUIET_EARLY_QUEEN_SORTIE_PENALTY = 32
 QUIET_CONTEST_ATTACK_FILE_BONUS = 44
-QUIET_FLANK_RAID_PENALTY = 28
-QUIET_REPEAT_HEAVY_PIECE_PENALTY = 24
 QUIET_DANGER_RELIEF_BONUS = 52
 QUIET_ENTRY_SQUARE_BONUS = 28
 QUIET_ADD_DEFENDER_BONUS = 22
@@ -68,8 +68,6 @@ QUIET_CHECK_BREAK_DEFENDER_BONUS = 12
 QUIET_EMPTY_CHECK_PENALTY = 40
 QUIET_EASY_SHUFFLE_CHECK_PENALTY = 20
 QUIET_SELF_EXPOSING_CHECK_PENALTY = 22
-QUIET_FLANK_PAWN_POKE_PENALTY = 18
-QUIET_EARLY_ROOK_WANDER_PENALTY = 18
 
 
 @dataclass(frozen=True)
@@ -99,7 +97,8 @@ def quiet_strategy_order_score(board: Board, move: Move) -> int:
     if piece is None:
         return 0
     score = _centralization_bonus(piece.kind, move)
-    score += _opening_discipline_bonus(board, piece.kind, move)
+    score += opening_discipline_order_score(board, piece.kind, move)
+    score += _defensive_priority_bonus(board, move)
     score += _king_move_bonus(board, piece.kind, move)
     score += _heavy_piece_bonus(board, piece.kind, piece.color, move)
     score += _pawn_bonus(board, piece.color, piece.kind, move)
@@ -147,25 +146,6 @@ def _is_castling_move(move: Move) -> bool:
     return int(move.start.col) == 4 and abs(int(move.start.col) - int(move.end.col)) == 2
 
 
-def _opening_discipline_bonus(board: Board, kind: PieceType, move: Move) -> int:
-    score = 0
-    score += opening_guidance_bonus(board, board.turn, kind, move)
-    if kind in (PieceType.KNIGHT, PieceType.BISHOP) and _develops_minor_piece(move):
-        score += QUIET_DEVELOPING_MINOR_BONUS
-    if kind == PieceType.QUEEN and _is_early_queen_sortie(board, move):
-        score -= QUIET_EARLY_QUEEN_SORTIE_PENALTY
-    if kind in {PieceType.QUEEN, PieceType.ROOK} and _is_flank_raid(board, move):
-        score -= QUIET_FLANK_RAID_PENALTY
-    if kind in {PieceType.QUEEN, PieceType.ROOK} and _is_repeat_heavy_piece_move(board, kind, move):
-        score -= QUIET_REPEAT_HEAVY_PIECE_PENALTY
-    if kind == PieceType.PAWN and _is_early_flank_pawn_poke(board, move):
-        score -= QUIET_FLANK_PAWN_POKE_PENALTY
-    if kind == PieceType.ROOK and _is_early_rook_wander(board, move):
-        score -= QUIET_EARLY_ROOK_WANDER_PENALTY
-    score += _defensive_priority_bonus(board, move)
-    return score
-
-
 def _king_move_bonus(board: Board, kind: PieceType, move: Move) -> int:
     score = 0
     if kind == PieceType.KING and _is_castling_move(move):
@@ -205,86 +185,6 @@ def _pawn_bonus(board: Board, color: Color, kind: PieceType, move: Move) -> int:
         if _is_urgent_luft(board, color):
             score += QUIET_URGENT_LUFT_BONUS
     return score
-
-
-def _develops_minor_piece(move: Move) -> bool:
-    start_row = int(move.start.row)
-    end_row = int(move.end.row)
-    start_col = int(move.start.col)
-    end_col = int(move.end.col)
-    return start_row in {0, 7} and end_row not in {0, 7} and center_distance(
-        end_row, end_col
-    ) < center_distance(start_row, start_col)
-
-
-def _is_early_queen_sortie(board: Board, move: Move) -> bool:
-    undeveloped = _undeveloped_minor_count(board)
-    end_row = int(move.end.row)
-    if board.turn == Color.WHITE:
-        return undeveloped >= 2 and end_row <= 4
-    return undeveloped >= 2 and end_row >= 3
-
-
-def _undeveloped_minor_count(board: Board) -> int:
-    undeveloped = 0
-    for row_index, row in enumerate(board.board):
-        for col_index, piece in enumerate(row):
-            if piece is None or piece.color != board.turn:
-                continue
-            if piece.kind == PieceType.KNIGHT and row_index in {0, 7} and col_index in {1, 6}:
-                undeveloped += 1
-            if piece.kind == PieceType.BISHOP and row_index in {0, 7} and col_index in {2, 5}:
-                undeveloped += 1
-    return undeveloped
-
-
-def _is_flank_raid(board: Board, move: Move) -> bool:
-    if _undeveloped_minor_count(board) < 2 or not king_needs_shelter(board, board.turn):
-        return False
-    end_col = int(move.end.col)
-    end_row = int(move.end.row)
-    if end_col not in {0, 1, 6, 7}:
-        return False
-    return end_row <= 3 if board.turn == Color.WHITE else end_row >= 4
-
-
-def _is_repeat_heavy_piece_move(board: Board, kind: PieceType, move: Move) -> bool:
-    return (
-        _undeveloped_minor_count(board) >= 2
-        and king_needs_shelter(board, board.turn)
-        and not _heavy_piece_on_home_square(board.turn, kind, move.start)
-        and not _heavy_piece_on_home_square(board.turn, kind, move.end)
-    )
-
-
-def _is_early_flank_pawn_poke(board: Board, move: Move) -> bool:
-    """Return True for premature flank pawn pushes before development is complete."""
-    if _undeveloped_minor_count(board) < 2 or not king_needs_shelter(board, board.turn):
-        return False
-    end_col = int(move.end.col)
-    if end_col not in {0, 1, 6, 7}:
-        return False
-    end_row = int(move.end.row)
-    return end_row <= 4 if board.turn == Color.WHITE else end_row >= 3
-
-
-def _is_early_rook_wander(board: Board, move: Move) -> bool:
-    """Return True for rooks leaving the back rank before development and king safety."""
-    if _undeveloped_minor_count(board) < 2 or not king_needs_shelter(board, board.turn):
-        return False
-    home_row = 7 if board.turn == Color.WHITE else 0
-    return int(move.start.row) == home_row and int(move.end.row) != home_row
-
-
-def _heavy_piece_on_home_square(color: Color, kind: PieceType, square) -> bool:
-    row = int(square.row)
-    col = int(square.col)
-    if kind == PieceType.QUEEN:
-        return (row, col) == ((7, 3) if color == Color.WHITE else (0, 3))
-    if kind == PieceType.ROOK:
-        home_row = 7 if color == Color.WHITE else 0
-        return (row, col) in {(home_row, 0), (home_row, 7)}
-    return False
 
 
 def _defensive_priority_bonus(board: Board, move: Move) -> int:
@@ -822,7 +722,13 @@ def _heavy_piece_activity_bonus(
         score += QUIET_ACTIVITY_SIMPLIFY_BONUS
     if _square_has_friendly_support(child_board, color, move.end):
         score += QUIET_ACTIVITY_COORDINATION_BONUS // 2
-    if _is_repeat_heavy_piece_move(board, kind, move) and score == 0:
+    if _opening_repeat_heavy_piece_move(
+        board,
+        kind,
+        move,
+        _opening_undeveloped_minor_count(board),
+        king_needs_shelter(board, board.turn),
+    ) and score == 0:
         score -= QUIET_ACTIVITY_REPEAT_PENALTY
     if (
         _is_forward_heavy_move(board.turn, move)

@@ -85,6 +85,49 @@ def test_development_breakdown_penalizes_early_flank_pawn_poke() -> None:
     )
 
 
+def test_development_breakdown_rewards_castled_rook_connection() -> None:
+    """Opening development should reward king safety and connected central rooks."""
+
+    disciplined_board = Board()
+    disciplined_board.clear_board()
+    disciplined_board.set_piece(sq("g1"), create_piece(Color.WHITE, PieceType.KING))
+    disciplined_board.set_piece(sq("c2"), create_piece(Color.WHITE, PieceType.QUEEN))
+    disciplined_board.set_piece(sq("d1"), create_piece(Color.WHITE, PieceType.ROOK))
+    disciplined_board.set_piece(sq("f1"), create_piece(Color.WHITE, PieceType.ROOK))
+    disciplined_board.set_piece(sq("c4"), create_piece(Color.WHITE, PieceType.BISHOP))
+    disciplined_board.set_piece(sq("f3"), create_piece(Color.WHITE, PieceType.KNIGHT))
+    disciplined_board.set_piece(sq("d8"), create_piece(Color.BLACK, PieceType.QUEEN))
+    disciplined_board.set_piece(sq("a8"), create_piece(Color.BLACK, PieceType.ROOK))
+    disciplined_board.set_piece(sq("h8"), create_piece(Color.BLACK, PieceType.ROOK))
+    disciplined_board.set_piece(sq("c8"), create_piece(Color.BLACK, PieceType.BISHOP))
+    disciplined_board.set_piece(sq("f8"), create_piece(Color.BLACK, PieceType.BISHOP))
+    disciplined_board.set_piece(sq("b8"), create_piece(Color.BLACK, PieceType.KNIGHT))
+    disciplined_board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    disciplined_board.set_piece(sq("f6"), create_piece(Color.BLACK, PieceType.KNIGHT))
+
+    drift_board = Board()
+    drift_board.clear_board()
+    drift_board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
+    drift_board.set_piece(sq("h5"), create_piece(Color.WHITE, PieceType.QUEEN))
+    drift_board.set_piece(sq("a3"), create_piece(Color.WHITE, PieceType.ROOK))
+    drift_board.set_piece(sq("h1"), create_piece(Color.WHITE, PieceType.ROOK))
+    drift_board.set_piece(sq("c1"), create_piece(Color.WHITE, PieceType.BISHOP))
+    drift_board.set_piece(sq("g1"), create_piece(Color.WHITE, PieceType.KNIGHT))
+    drift_board.set_piece(sq("d8"), create_piece(Color.BLACK, PieceType.QUEEN))
+    drift_board.set_piece(sq("a8"), create_piece(Color.BLACK, PieceType.ROOK))
+    drift_board.set_piece(sq("h8"), create_piece(Color.BLACK, PieceType.ROOK))
+    drift_board.set_piece(sq("c8"), create_piece(Color.BLACK, PieceType.BISHOP))
+    drift_board.set_piece(sq("f8"), create_piece(Color.BLACK, PieceType.BISHOP))
+    drift_board.set_piece(sq("b8"), create_piece(Color.BLACK, PieceType.KNIGHT))
+    drift_board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    drift_board.set_piece(sq("f6"), create_piece(Color.BLACK, PieceType.KNIGHT))
+
+    assert (
+        get_evaluation_breakdown(disciplined_board)["development"]
+        > get_evaluation_breakdown(drift_board)["development"]
+    )
+
+
 def test_quiet_move_order_penalizes_repeated_queen_move_while_minors_sleep() -> None:
     """Once the queen is out early, moving it again should lose to development."""
 
@@ -253,3 +296,50 @@ def test_quiet_move_order_penalizes_early_rook_wander() -> None:
     rook_wander = ai.Move(start=sq("a1"), end=sq("a3"))
 
     assert _move_order_score(board, develop, None) > _move_order_score(board, rook_wander, None)
+
+
+def test_quiet_move_order_prefers_king_safety_over_rook_drift() -> None:
+    """Castling should outrank early rook drift before coordination is complete."""
+
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("d1"), create_piece(Color.WHITE, PieceType.QUEEN))
+    board.set_piece(sq("h1"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(sq("a1"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(sq("c1"), create_piece(Color.WHITE, PieceType.BISHOP))
+    board.set_piece(sq("b1"), create_piece(Color.WHITE, PieceType.KNIGHT))
+    board.set_piece(sq("f2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("g2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("h2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    board.turn = Color.WHITE
+
+    castle = ai.Move(start=sq("e1"), end=sq("g1"))
+    rook_drift = ai.Move(start=sq("h1"), end=sq("f1"))
+
+    assert _move_order_score(board, castle, None) > _move_order_score(board, rook_drift, None)
+
+
+def test_quiet_move_order_prefers_finishing_development_over_early_queen_pressure() -> None:
+    """Finishing development should outrank quiet queen pressure in the opening."""
+
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("d1"), create_piece(Color.WHITE, PieceType.QUEEN))
+    board.set_piece(sq("c1"), create_piece(Color.WHITE, PieceType.BISHOP))
+    board.set_piece(sq("f1"), create_piece(Color.WHITE, PieceType.BISHOP))
+    board.set_piece(sq("g1"), create_piece(Color.WHITE, PieceType.KNIGHT))
+    board.set_piece(sq("b1"), create_piece(Color.WHITE, PieceType.KNIGHT))
+    board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    board.turn = Color.WHITE
+
+    develop = ai.Move(start=sq("g1"), end=sq("f3"))
+    queen_pressure = ai.Move(start=sq("d1"), end=sq("h5"))
+
+    assert _move_order_score(board, develop, None) > _move_order_score(
+        board,
+        queen_pressure,
+        None,
+    )

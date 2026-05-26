@@ -3,9 +3,12 @@
 from chess_game.chess.board import Board
 from chess_game.chess.constants import ConstantSquare, get_col_constant, get_row_constant
 from chess_game.chess.evaluation_tables import (
+    CASTLED_KING_BONUS,
     CENTRAL_DUO_BONUS,
     CENTRAL_MINOR_PIECE_BONUS,
     CENTRAL_SQUARES,
+    CENTER_FILES,
+    CONNECTED_ROOKS_BONUS,
     DEFENDER_DISTANCE_PENALTY,
     EARLY_FLANK_RAID_PENALTY,
     EARLY_QUEEN_MOVE_PENALTY,
@@ -14,7 +17,7 @@ from chess_game.chess.evaluation_tables import (
     EXTENDED_CENTER_RANKS,
     MINOR_COORDINATION_BONUS,
 )
-from chess_game.chess.strategy_utils import iter_color_pieces
+from chess_game.chess.strategy_utils import iter_color_pieces, path_clear_between
 from chess_game.chess.types import Color, PieceType
 
 
@@ -86,6 +89,10 @@ def early_flank_pawn_poke_penalty(board: Board, color: Color, undeveloped: int) 
             continue
         if _flank_pawn_is_overextended(color, row):
             penalty += EARLY_FLANK_RAID_PENALTY
+            if col in {0, 7}:
+                penalty += EARLY_FLANK_RAID_PENALTY // 2
+            if col in {6, 7}:
+                penalty += EARLY_FLANK_RAID_PENALTY // 2
     return penalty
 
 
@@ -185,6 +192,71 @@ def early_shelter_pawn_push_penalty(board: Board, color: Color, undeveloped: int
     return unforced_shelter_loosening_penalty(board, color, king_square, attack_pressure) * 2
 
 
+def opening_king_safety_score(board: Board, color: Color, undeveloped: int) -> int:
+    """Reward castling on time once opening development is underway."""
+
+    king_square = board.find_king(color)
+    if king_square is None:
+        return 0
+    if not _is_castled_king(color, king_square):
+        return 0
+    if undeveloped <= 1:
+        return CASTLED_KING_BONUS
+    if undeveloped == 2:
+        return CASTLED_KING_BONUS // 2
+    return 0
+
+
+def opening_rook_connection_bonus(board: Board, color: Color, undeveloped: int) -> int:
+    """Reward connected rooks once the opening phase is nearly complete."""
+
+    if undeveloped > 1:
+        return 0
+    rooks = [
+        (row, col)
+        for piece, row, col in iter_color_pieces(board, color)
+        if piece.kind == PieceType.ROOK
+    ]
+    if len(rooks) != 2:
+        return 0
+    first, second = rooks
+    same_line = first[0] == second[0] or first[1] == second[1]
+    if not same_line or not path_clear_between(board, first, second):
+        return 0
+    return CONNECTED_ROOKS_BONUS
+
+
+def opening_central_rook_bonus(board: Board, color: Color, undeveloped: int) -> int:
+    """Reward rooks that reach central files after king safety is fixed."""
+
+    king_square = board.find_king(color)
+    if undeveloped > 1 or king_square is None or not _is_castled_king(color, king_square):
+        return 0
+    bonus = 0
+    home_row = 7 if color == Color.WHITE else 0
+    for piece, row, col in iter_color_pieces(board, color):
+        if piece.kind != PieceType.ROOK:
+            continue
+        if col in CENTER_FILES and (row != home_row or col not in {0, 7}):
+            bonus += CONNECTED_ROOKS_BONUS // 2
+    return bonus
+
+
+def opening_queen_restraint_bonus(board: Board, color: Color, undeveloped: int) -> int:
+    """Reward keeping the queen home while development and king safety lag."""
+
+    if undeveloped < 2:
+        return 0
+    home_square = ConstantSquare(
+        row=get_row_constant(7 if color == Color.WHITE else 0),
+        col=get_col_constant(3),
+    )
+    queen = board.get_piece(home_square)
+    if queen is None or queen.color != color or queen.kind != PieceType.QUEEN:
+        return 0
+    return EARLY_QUEEN_MOVE_PENALTY // 2
+
+
 def minor_on_home_square(color: Color, kind: PieceType, row: int, col: int) -> bool:
     """Return True when a minor piece still sits on its original square."""
 
@@ -256,6 +328,8 @@ def _flank_pawn_is_overextended(color: Color, row: int) -> bool:
 
 def _queen_in_enemy_half(color: Color, queen_row: int) -> bool:
     return queen_row <= 2 if color == Color.WHITE else queen_row >= 5
+
+
 
 
 def _queens_on_board(board: Board) -> bool:

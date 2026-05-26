@@ -17,9 +17,13 @@ from chess_game.chess.pawn_structure_evaluation import (
 from chess_game.chess.opening_development import (
     early_shelter_pawn_push_penalty as _early_shelter_pawn_push_penalty,
     coordinated_minor_piece_setup as _coordinated_minor_piece_setup,
+    opening_central_rook_bonus as _opening_central_rook_bonus,
     early_flank_queen_sortie_penalty as _early_flank_queen_sortie_penalty,
     early_flank_pawn_poke_penalty as _early_flank_pawn_poke_penalty,
     early_flank_raid_penalty as _early_flank_raid_penalty,
+    opening_king_safety_score as _opening_king_safety_score,
+    opening_queen_restraint_bonus as _opening_queen_restraint_bonus,
+    opening_rook_connection_bonus as _opening_rook_connection_bonus,
     early_queen_raid_penalty as _early_queen_raid_penalty,
     opening_central_control_bonus as _opening_central_control_bonus,
     opening_piece_coordination_bonus as _opening_piece_coordination_bonus,
@@ -628,6 +632,18 @@ def _evaluate_development(board: Board, middlegame_phase: int) -> int:
         development_score -= sign * undeveloped * UNDEVELOPED_MINOR_PIECE_PENALTY
         development_score += sign * _opening_central_control_bonus(board, color)
         development_score += sign * _opening_piece_coordination_bonus(
+            board,
+            color,
+            undeveloped,
+        )
+        development_score += sign * _opening_king_safety_score(board, color, undeveloped)
+        development_score += sign * _opening_rook_connection_bonus(
+            board,
+            color,
+            undeveloped,
+        )
+        development_score += sign * _opening_central_rook_bonus(board, color, undeveloped)
+        development_score += sign * _opening_queen_restraint_bonus(
             board,
             color,
             undeveloped,

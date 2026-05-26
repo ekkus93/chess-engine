@@ -189,44 +189,46 @@ Phase note: Task 2 is complete for this anti-repetition slice. The audit showed 
 
 ## 3.1 Review opening mistakes from the transcript
 
-- [ ] Identify every early move in the game that a strong human would distrust.
-- [ ] Especially review:
-  - [ ] `a2a4`
-  - [ ] repeated rook moves before coordination is finished
-  - [ ] quiet moves that neglect king safety or central control
+- [x] Identify every early move in the game that a strong human would distrust.
+- [x] Especially review:
+  - [x] `a2a4`
+  - [x] repeated rook moves before coordination is finished
+  - [x] quiet moves that neglect king safety or central control
 
 ## 3.2 Increase penalties for unjustified flank play
 
-- [ ] Penalize early flank pawn moves more sharply when they:
-  - [ ] do not fight for the center
-  - [ ] do not prepare development
-  - [ ] weaken structure
-  - [ ] create no concrete tactical gain
+- [x] Penalize early flank pawn moves more sharply when they:
+  - [x] do not fight for the center
+  - [x] do not prepare development
+  - [x] weaken structure
+  - [x] create no concrete tactical gain
 
 ## 3.3 Reward normal development and coordination more strongly
 
-- [ ] Increase bonuses for:
-  - [ ] completing minor-piece development
-  - [ ] castling on time
-  - [ ] connecting rooks
-  - [ ] central rook placement after development
-  - [ ] queen restraint in the opening
+- [x] Increase bonuses for:
+  - [x] completing minor-piece development
+  - [x] castling on time
+  - [x] connecting rooks
+  - [x] central rook placement after development
+  - [x] queen restraint in the opening
 
 ## 3.4 Penalize opening heavy-piece drift
 
-- [ ] Penalize rook and queen moves in the opening when they:
-  - [ ] repeat without improving coordination
-  - [ ] abandon a useful file or square
-  - [ ] delay king safety
-  - [ ] chase cosmetic threats
+- [x] Penalize rook and queen moves in the opening when they:
+  - [x] repeat without improving coordination
+  - [x] abandon a useful file or square
+  - [x] delay king safety
+  - [x] chase cosmetic threats
 
 ## 3.5 Add opening-discipline regressions
 
-- [ ] Add tests that prefer:
-  - [ ] normal development over flank pawn pushes
-  - [ ] king safety over rook drift
-  - [ ] central recapture / structure preservation over side activity
-  - [ ] finishing coordination before speculative pressure
+- [x] Add tests that prefer:
+  - [x] normal development over flank pawn pushes
+  - [x] king safety over rook drift
+  - [x] central recapture / structure preservation over side activity
+  - [x] finishing coordination before speculative pressure
+
+Phase note: Task 3 is complete. The opening-discipline pass now lives in `chess_game/chess/opening_move_ordering.py` and `chess_game/chess/opening_development.py`, which together tighten early flank-pawn penalties, reward on-time castling plus connected/central rook coordination, keep quiet queen drift behind normal development, and punish early rook drift such as the transcript's `Rh1-g1` sequence. Regression coverage now explicitly includes king safety over rook drift, finishing development over quiet queen pressure, central recapture over side activity, and stronger development breakdown scoring for castled connected rooks. A fresh review artifact at `tmp/strategy5_task3_w3b3.txt` already shows the opening segment avoiding the old early `a2a4` / rook-drift pattern through move 22.
 
 ---
 

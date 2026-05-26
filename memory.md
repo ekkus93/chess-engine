@@ -14,6 +14,11 @@
 - Updated `docs/LINT_FIX3_TODO.md` to mark Task 6 complete because `chess_game/chess/board/move_validation.py` is already structurally clean in the current repository state.
 - Confirmed the repo-wide validation target remains satisfied at `pylint chess_game` = `10.00/10` and `python -m pytest tests -q` = `507 passed`.
 
+## 2026-05-26T01:59:22Z - GPT-5.4 - STRATEGY5 Task 3 opening-discipline slice
+- Added `chess_game/chess/opening_move_ordering.py` so the growing opening-specific quiet-order rules stay out of `ai_move_ordering.py` while still sharing the same opening discipline behavior.
+- Tightened `chess_game/chess/opening_development.py`, `chess_game/chess/evaluation.py`, and quiet ordering so premature flank pawn lunges, early rook drift, and quiet queen wandering lose to normal development, on-time castling, connected rooks, and central rook activation.
+- Expanded `tests/test_ai_opening_strategy.py`, updated `docs/STRATEGY5_TODO.md` to close Task 3, and revalidated the repo green with `pylint chess_game` and `python -m pytest tests -q` (`510 passed`).
+
 ## 2026-05-23T06:59:16Z - GPT-5.4 - STRATEGY4 Task 5 structure-recognition slice
 - Added `chess_game/chess/structure_recognition.py` so the engine can group positions by open center, closed center, IQP, hanging pawns, opposite-side castling, and rook endgames with outside/protected passers.
 - Wired `chess_game/chess/ai_move_ordering.py` to reward open-file occupation in open centers, piece maneuvers and useful breaks in closed centers, blockade squares against IQP/hanging-pawn targets, and minority-attack preparation in the right queenside structures.
