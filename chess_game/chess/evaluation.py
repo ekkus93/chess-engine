@@ -35,6 +35,9 @@ from chess_game.chess.opening_development import (
 from chess_game.chess.tactical_transition_guidance import (
     tactical_transition_king_penalty as _tactical_transition_king_penalty,
 )
+from chess_game.chess.defensive_containment_guidance import (
+    heavy_piece_defense_evaluation_score as _heavy_piece_defense_evaluation_score,
+)
 from chess_game.chess.pieces.piece_movers import PieceMovers
 from chess_game.chess.strategy_utils import (
     file_pawn_state as _file_pawn_state,
@@ -116,6 +119,7 @@ def get_evaluation_breakdown(board: Board) -> EvaluationBreakdown:
         "conversion": _evaluate_conversion(board, endgame_phase),
         "progress": _evaluate_progress(board, endgame_phase),
         "rook_endgame": _evaluate_rook_endgames(board, endgame_phase),
+        "defensive_containment": _heavy_piece_defense_evaluation_score(board),
         "development": _evaluate_development(board, middlegame_phase),
     }
     breakdown["total"] = sum(breakdown.values())

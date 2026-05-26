@@ -94,39 +94,41 @@ Phase note: Task 0 is complete. The current baseline artifact lives in `tmp/stra
 
 ## 1.1 Add “stop the passer first” regressions
 
-- [ ] Add tests where the engine should prefer stopping or blockading an enemy passer over irrelevant checks or side play.
-- [ ] Cover cases such as:
-  - [ ] occupying the promotion square or its approach square
-  - [ ] forcing the passer behind a blockade
-  - [ ] tying a rook or queen to the passer instead of chasing side pawns
+- [x] Add tests where the engine should prefer stopping or blockading an enemy passer over irrelevant checks or side play.
+- [x] Cover cases such as:
+  - [x] occupying the promotion square or its approach square
+  - [x] forcing the passer behind a blockade
+  - [x] tying a rook or queen to the passer instead of chasing side pawns
 
 ## 1.2 Add threat-containment regressions
 
-- [ ] Add tests where the worse side should neutralize immediate mate / promotion threats before pursuing vague activity.
-- [ ] Cover cases such as:
-  - [ ] defending a back-rank or diagonal mating square
-  - [ ] preventing a queen-plus-rook invasion on the seventh or eighth rank
-  - [ ] preferring a checking or interposing move that reduces danger
+- [x] Add tests where the worse side should neutralize immediate mate / promotion threats before pursuing vague activity.
+- [x] Cover cases such as:
+  - [x] defending a back-rank or diagonal mating square
+  - [x] preventing a queen-plus-rook invasion on the seventh or eighth rank
+  - [x] preferring a checking or interposing move that reduces danger
 
 ## 1.3 Add “best practical defense” regressions
 
-- [ ] Add tests where the worse side should choose the line that maximizes resistance even if static evaluation remains poor.
-- [ ] Cover cases such as:
-  - [ ] perpetual-check tries
-  - [ ] queen trade avoidance when the resulting ending is immediately lost
-  - [ ] rook activity behind enemy passers rather than passive waiting
+- [x] Add tests where the worse side should choose the line that maximizes resistance even if static evaluation remains poor.
+- [x] Cover cases such as:
+  - [x] perpetual-check tries
+  - [x] queen trade avoidance when the resulting ending is immediately lost
+  - [x] rook activity behind enemy passers rather than passive waiting
 
 ## 1.4 Add anti-panic regressions for the defending side
 
-- [ ] Add tests where the engine should reject decorative or irrelevant defensive moves.
-- [ ] Cover cases such as:
-  - [ ] bishop shuffles that do not change the threat picture
-  - [ ] queen moves with no new check, blockade, or trade threat
-  - [ ] rook sidesteps that do not attack the passer or improve king safety
+- [x] Add tests where the engine should reject decorative or irrelevant defensive moves.
+- [x] Cover cases such as:
+  - [x] bishop shuffles that do not change the threat picture
+  - [x] queen moves with no new check, blockade, or trade threat
+  - [x] rook sidesteps that do not attack the passer or improve king safety
 
 Phase note:
 
-- [ ] Task 1 complete note
+- [x] Task 1 complete note
+
+Task 1 is complete. The new `tests/test_ai_strategy7_regressions.py` file now pins the first STRATEGY7 defensive-resource theme from the fresh baseline: once White's `b7` passer appears, Black must stay tied to the b-file instead of replaying the old `...a5` or `...Qa6` style drift. This phase also added `chess_game/chess/defensive_containment_guidance.py`, which gives the materially worse side a structural heavy-piece containment signal in evaluation plus a narrow extension/root nudge around advanced enemy passers, and the immediate result is that the old baseline `...a5` panic no longer survives depth-3 search in that first transcript position.
 
 ---
 
