@@ -1,9 +1,9 @@
-"""Transcript-driven regressions for STRATEGY7 practical defense cleanup."""
+"""Transcript-driven regressions for STRATEGY7 defense and conversion cleanup."""
 
 from chess_game.chess import ai
 from chess_game.chess.ai import get_best_move, get_evaluation_breakdown
-from chess_game.chess.board import Board
-from chess_game.chess.types import LegalMove
+from chess_game.chess.board import Board, create_piece
+from chess_game.chess.types import Color, LegalMove, PieceType
 from tests.helpers import sq
 from tests.test_ai_quality import _move_order_score
 
@@ -12,6 +12,18 @@ def _board_from_moves(moves: list[tuple[str, str]]) -> Board:
     board = Board()
     for start, end in moves:
         board.make_move(sq(start), sq(end))
+    return board
+
+
+def _build_board(
+    pieces: list[tuple[str, Color, PieceType]],
+    turn: Color = Color.WHITE,
+) -> Board:
+    board = Board()
+    board.clear_board()
+    for square, color, kind in pieces:
+        board.set_piece(sq(square), create_piece(color, kind))
+    board.turn = turn
     return board
 
 
@@ -72,6 +84,114 @@ def _task1_heavy_piece_threat_board() -> Board:
     for start, end in [("a7", "a5"), ("a2", "a4"), ("d8", "d6"), ("h1", "f1")]:
         board.make_move(sq(start), sq(end))
     return board
+
+
+def _task3_bishop_drift_board() -> Board:
+    return _board_from_moves(
+        [
+            ("b1", "c3"),
+            ("e7", "e5"),
+            ("g1", "f3"),
+            ("b8", "c6"),
+            ("c3", "e4"),
+            ("d7", "d5"),
+            ("e4", "g5"),
+            ("e5", "e4"),
+            ("g5", "e4"),
+            ("c8", "f5"),
+            ("e4", "c3"),
+            ("f8", "c5"),
+            ("g2", "g3"),
+            ("g8", "f6"),
+            ("d2", "d4"),
+            ("c6", "d4"),
+            ("f3", "d4"),
+            ("f5", "d7"),
+            ("c1", "g5"),
+            ("e8", "g8"),
+            ("c3", "d5"),
+            ("h7", "h5"),
+            ("g5", "f6"),
+            ("g7", "f6"),
+            ("e2", "e4"),
+            ("f8", "e8"),
+            ("d1", "d3"),
+            ("h5", "h4"),
+            ("e1", "c1"),
+            ("e8", "e5"),
+            ("f2", "f4"),
+            ("e5", "d5"),
+            ("e4", "d5"),
+            ("c5", "b6"),
+            ("g3", "h4"),
+            ("g8", "h8"),
+        ]
+    )
+
+
+def _task3_queen_trade_board() -> Board:
+    return _build_board(
+        [
+            ("f4", Color.WHITE, PieceType.KING),
+            ("d4", Color.WHITE, PieceType.QUEEN),
+            ("a4", Color.WHITE, PieceType.ROOK),
+            ("b7", Color.WHITE, PieceType.PAWN),
+            ("g7", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.QUEEN),
+            ("b8", Color.BLACK, PieceType.ROOK),
+        ]
+    )
+
+
+def _task3_rook_trade_board() -> Board:
+    return _build_board(
+        [
+            ("f4", Color.WHITE, PieceType.KING),
+            ("d4", Color.WHITE, PieceType.QUEEN),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("d6", Color.WHITE, PieceType.PAWN),
+            ("g7", Color.BLACK, PieceType.KING),
+            ("a8", Color.BLACK, PieceType.ROOK),
+        ]
+    )
+
+
+def _task3_piece_trade_board() -> Board:
+    return _build_board(
+        [
+            ("f4", Color.WHITE, PieceType.KING),
+            ("b1", Color.WHITE, PieceType.ROOK),
+            ("e5", Color.WHITE, PieceType.BISHOP),
+            ("b7", Color.WHITE, PieceType.PAWN),
+            ("g7", Color.BLACK, PieceType.KING),
+            ("b8", Color.BLACK, PieceType.ROOK),
+            ("d6", Color.BLACK, PieceType.BISHOP),
+        ]
+    )
+
+
+def _task3_rook_support_board() -> Board:
+    return _build_board(
+        [
+            ("f4", Color.WHITE, PieceType.KING),
+            ("h1", Color.WHITE, PieceType.ROOK),
+            ("b7", Color.WHITE, PieceType.PAWN),
+            ("g7", Color.BLACK, PieceType.KING),
+            ("b8", Color.BLACK, PieceType.ROOK),
+        ]
+    )
+
+
+def _task3_queen_escort_board() -> Board:
+    return _build_board(
+        [
+            ("f4", Color.WHITE, PieceType.KING),
+            ("d4", Color.WHITE, PieceType.QUEEN),
+            ("b7", Color.WHITE, PieceType.PAWN),
+            ("g7", Color.BLACK, PieceType.KING),
+            ("b8", Color.BLACK, PieceType.ROOK),
+        ]
+    )
 
 
 def test_strategy7_order_prefers_capturing_b7_passer_over_a5() -> None:
@@ -138,4 +258,66 @@ def test_strategy7_breakdown_prefers_covering_key_defenders_over_qa6_drift() -> 
     assert (
         get_evaluation_breakdown(support_board)["defensive_containment"]
         < get_evaluation_breakdown(drift_board)["defensive_containment"]
+    )
+
+
+def test_strategy7_search_prefers_queen_trade_in_winning_heavy_piece_probe() -> None:
+    """A clearly winning heavy-piece probe should simplify with the queen trade."""
+
+    board = _task3_queen_trade_board()
+
+    assert get_best_move(board, depth=3) == LegalMove(start=sq("d4"), end=sq("d8"))
+
+
+def test_strategy7_search_prefers_rook_trade_into_winning_queen_ending() -> None:
+    """A trivially winning queen ending should justify the immediate rook trade."""
+
+    board = _task3_rook_trade_board()
+
+    assert get_best_move(board, depth=3) == LegalMove(start=sq("a1"), end=sq("a8"))
+
+
+def test_strategy7_search_prefers_piece_trade_that_leaves_passer_decisive() -> None:
+    """The winning side should trade the last minor blocker when the passer survives."""
+
+    board = _task3_piece_trade_board()
+
+    assert get_best_move(board, depth=3) == LegalMove(start=sq("e5"), end=sq("d6"))
+
+
+def test_strategy7_order_prefers_rook_behind_outside_passer_over_idle_shuffle() -> None:
+    """The winning side should get behind the outside passer before harmless rook drift."""
+
+    board = _task3_rook_support_board()
+    support = ai.Move(start=sq("h1"), end=sq("b1"))
+    drift = ai.Move(start=sq("h1"), end=sq("g1"))
+
+    assert _move_order_score(board, support, None) > _move_order_score(board, drift, None)
+
+
+def test_strategy7_order_prefers_queen_escort_over_harmless_side_check() -> None:
+    """The winning side should escort the main passer rather than throw a side check."""
+
+    board = _task3_queen_escort_board()
+    escort = ai.Move(start=sq("d4"), end=sq("d7"))
+    side_check = ai.Move(start=sq("d4"), end=sq("h4"))
+
+    assert _move_order_score(board, escort, None) > _move_order_score(
+        board,
+        side_check,
+        None,
+    )
+
+
+def test_strategy7_order_prefers_stabilizing_bishop_move_over_bh3_drift() -> None:
+    """The winning side should stabilize before replaying the transcript's Bh3 drift."""
+
+    board = _task3_bishop_drift_board()
+    stabilize = ai.Move(start=sq("f1"), end=sq("e2"))
+    bishop_drift = ai.Move(start=sq("f1"), end=sq("h3"))
+
+    assert _move_order_score(board, stabilize, None) > _move_order_score(
+        board,
+        bishop_drift,
+        None,
     )

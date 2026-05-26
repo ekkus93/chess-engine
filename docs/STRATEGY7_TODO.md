@@ -181,39 +181,41 @@ Task 2 is complete. The audit artifact lives in `tmp/strategy7_task2_audit.txt`,
 
 ## 3.1 Add “simplify when clearly winning” regressions
 
-- [ ] Add tests where the engine should trade into a clearly won heavy-piece ending instead of preserving unnecessary complexity.
-- [ ] Cover cases such as:
-  - [ ] queen trade into a won rook ending
-  - [ ] rook trade into a trivially winning queen ending
-  - [ ] piece trade that leaves an unstoppable passer
+- [x] Add tests where the engine should trade into a clearly won heavy-piece ending instead of preserving unnecessary complexity.
+- [x] Cover cases such as:
+  - [x] queen trade into a won rook ending
+  - [x] rook trade into a trivially winning queen ending
+  - [x] piece trade that leaves an unstoppable passer
 
 ## 3.2 Add “push the main passer” regressions
 
-- [ ] Add tests where the engine should prioritize the strongest passed pawn over harmless side activity.
-- [ ] Cover cases such as:
-  - [ ] outside passed pawn support
-  - [ ] rook behind passer
-  - [ ] queen escort toward promotion
+- [x] Add tests where the engine should prioritize the strongest passed pawn over harmless side activity.
+- [x] Cover cases such as:
+  - [x] outside passed pawn support
+  - [x] rook behind passer
+  - [x] queen escort toward promotion
 
 ## 3.3 Add “remove counterplay first” regressions
 
-- [ ] Add tests where the winning side should neutralize the opponent’s only practical resource before drifting.
-- [ ] Cover cases such as:
-  - [ ] removing checking resources
-  - [ ] covering perpetual squares
-  - [ ] restricting enemy king approach to the passer
+- [x] Add tests where the winning side should neutralize the opponent’s only practical resource before drifting.
+- [x] Cover cases such as:
+  - [x] removing checking resources
+  - [x] covering perpetual squares
+  - [x] restricting enemy king approach to the passer
 
 ## 3.4 Add anti-drift regressions for the winning side
 
-- [ ] Add tests where the engine should reject low-value shuffles while ahead.
-- [ ] Cover cases such as:
-  - [ ] queen moves with no mate, trade, or passer support
-  - [ ] rook moves that do not improve file/rank pressure
-  - [ ] bishop / king maneuvers that slow promotion without improving safety
+- [x] Add tests where the engine should reject low-value shuffles while ahead.
+- [x] Cover cases such as:
+  - [x] queen moves with no mate, trade, or passer support
+  - [x] rook moves that do not improve file/rank pressure
+  - [x] bishop / king maneuvers that slow promotion without improving safety
 
 Phase note:
 
-- [ ] Task 3 complete note
+- [x] Task 3 complete note
+
+Task 3 is complete. `tests/test_ai_strategy7_regressions.py` now includes six new winning-side regressions covering the conversion themes that still mattered after Task 2: simplifying with queen or rook trades when the resulting ending is trivially won, trading the last minor blocker when that leaves the passer decisive, prioritizing rook/queen passer support over harmless side activity, and rejecting the transcript's `Bh3` drift before the position is stabilized. This phase is intentionally regression-first: the new coverage now pins the remaining STRATEGY7 conversion targets before Task 4 expands the actual conversion guidance.
 
 ---
 
