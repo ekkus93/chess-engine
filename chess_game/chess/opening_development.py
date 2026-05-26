@@ -133,7 +133,6 @@ def _opening_drift_penalties(
     if (
         undeveloped > 1
         or king_square is None
-        or _is_castled_king(color, king_square)
         or not _queens_on_board(board)
     ):
         return 0, 0, 0, 0
@@ -142,16 +141,25 @@ def _opening_drift_penalties(
     rim_knight_penalty = 0
     edge_space_grab_penalty = 0
     home_row = 7 if color == Color.WHITE else 0
+    king_col = int(king_square.col)
+    castled_king = _is_castled_king(color, king_square)
+    unsettled_central_king = king_col in {3, 4, 5}
     for piece, row, col in iter_color_pieces(board, color):
         if (
             piece.kind == PieceType.PAWN
             and col in {6, 7}
             and _flank_pawn_is_overextended(color, row)
+            and not castled_king
         ):
             kingside_pawn_penalty += EARLY_FLANK_RAID_PENALTY + EARLY_QUEEN_MOVE_PENALTY
             if col == 7:
                 kingside_pawn_penalty += EARLY_ROOK_MOVE_PENALTY
-        elif piece.kind == PieceType.ROOK and row == home_row and col not in {0, 7}:
+        elif (
+            piece.kind == PieceType.ROOK
+            and row == home_row
+            and col not in {0, 7}
+            and not castled_king
+        ):
             rook_sidestep_penalty += EARLY_ROOK_MOVE_PENALTY + EARLY_QUEEN_MOVE_PENALTY
             if col not in CENTER_FILES:
                 rook_sidestep_penalty += EARLY_ROOK_MOVE_PENALTY
@@ -163,6 +171,8 @@ def _opening_drift_penalties(
             rim_knight_penalty += (
                 KNIGHT_RIM_PENALTY + EARLY_QUEEN_MOVE_PENALTY + EARLY_FLANK_RAID_PENALTY
             )
+            if unsettled_central_king:
+                rim_knight_penalty += CASTLED_KING_BONUS
         elif (
             piece.kind == PieceType.PAWN
             and col in {0, 7}
@@ -289,6 +299,35 @@ def opening_king_safety_score(board: Board, color: Color, undeveloped: int) -> i
     if undeveloped == 2:
         return CASTLED_KING_BONUS // 2
     return 0
+
+
+def opening_king_urgency_penalty(board: Board, color: Color, undeveloped: int) -> int:
+    """Penalize delaying king safety or abandoning castling rights in the opening."""
+
+    king_square = board.find_king(color)
+    if king_square is None or _is_castled_king(color, king_square) or not _queens_on_board(board):
+        return 0
+    home_row = 7 if color == Color.WHITE else 0
+    king_row = int(king_square.row)
+    king_col = int(king_square.col)
+    if king_row != home_row:
+        return 0
+
+    penalty = 0
+    if king_col in {3, 4, 5}:
+        penalty += CASTLED_KING_BONUS // 2
+        penalty += max(undeveloped, 1) * (EARLY_QUEEN_MOVE_PENALTY // 2)
+    if king_col != 4:
+        penalty += EARLY_QUEEN_MOVE_PENALTY
+
+    castling_options = _castling_options_remaining(board, color)
+    if castling_options == 0:
+        penalty += CASTLED_KING_BONUS
+    elif castling_options == 1:
+        penalty += EARLY_ROOK_MOVE_PENALTY
+
+    penalty += _uncastled_shell_penalty(board, color, king_col)
+    return penalty
 
 
 def opening_rook_connection_bonus(board: Board, color: Color, undeveloped: int) -> int:
@@ -481,4 +520,25 @@ def _king_zone_attack_pressure(
             penalty += 10
         elif piece.kind in (PieceType.BISHOP, PieceType.KNIGHT):
             penalty += 5
+    return penalty
+
+
+def _castling_options_remaining(board: Board, color: Color) -> int:
+    rights = board.castling_rights
+    if color == Color.WHITE:
+        return int(rights.white_kingside) + int(rights.white_queenside)
+    return int(rights.black_kingside) + int(rights.black_queenside)
+
+
+def _uncastled_shell_penalty(board: Board, color: Color, king_col: int) -> int:
+    shield_row = 6 if color == Color.WHITE else 1
+    penalty = 0
+    for file_index in range(max(0, king_col - 1), min(7, king_col + 1) + 1):
+        square = ConstantSquare(
+            row=get_row_constant(shield_row),
+            col=get_col_constant(file_index),
+        )
+        pawn = board.get_piece(square)
+        if pawn is None or pawn.color != color or pawn.kind != PieceType.PAWN:
+            penalty += EARLY_FLANK_RAID_PENALTY
     return penalty

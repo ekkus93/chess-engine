@@ -18,6 +18,7 @@ from chess_game.chess.opening_development import (
     early_shelter_pawn_push_penalty as _early_shelter_pawn_push_penalty,
     coordinated_minor_piece_setup as _coordinated_minor_piece_setup,
     opening_central_rook_bonus as _opening_central_rook_bonus,
+    opening_king_urgency_penalty as _opening_king_urgency_penalty,
     early_flank_queen_sortie_penalty as _early_flank_queen_sortie_penalty,
     early_flank_pawn_poke_penalty as _early_flank_pawn_poke_penalty,
     early_flank_raid_penalty as _early_flank_raid_penalty,
@@ -638,6 +639,11 @@ def _evaluate_development(board: Board, middlegame_phase: int) -> int:
             undeveloped,
         )
         development_score += sign * _opening_king_safety_score(board, color, undeveloped)
+        development_score -= sign * _opening_king_urgency_penalty(
+            board,
+            color,
+            undeveloped,
+        )
         development_score += sign * _opening_rook_connection_bonus(
             board,
             color,

@@ -1,5 +1,10 @@
 # Chess Engine Project Memory
 
+## 2026-05-26T12:14:01Z - GPT-5.4 - STRATEGY6 Task 4 king-safety urgency phase
+- Finished `docs/STRATEGY6_TODO.md` Task 4 by tightening `opening_development.py`, `evaluation.py`, and `opening_move_ordering.py` so late-opening king safety is treated as urgent: castling now wins more clearly over slow bishop/rook/flank/king-walk play, abandoned castling rights are penalized, and pre-castling shell damage plus `...Nh6`-style rim-knight shortcuts stay visible in evaluation.
+- Updated `tests/test_ai_strategy6_regressions.py` with transcript-backed and balanced-shell regressions for castling urgency while preserving the earlier Task 3 `...Nh6` rejection at depth 3.
+- Revalidated the repository green with `pylint chess_game`, `python -m pytest tests -q` (`534 passed`), and `python -m pytest tests/test_ai.py tests/test_ai_quality.py tests/test_ai_search.py tests/test_alpha_beta_pruning.py -q` (`120 passed`).
+
 ## 2026-05-26T04:06:02Z - GPT-5.4 - STRATEGY5 Task 8 quiet-search slice
 - Closed the remaining Task 8 gap by feeding the dormant practical-options root bonus into `ai_search_helpers.py` and charging root candidates that reduce safe king moves, so quiet root choices better favor sealing the main theater over sidestepping without progress.
 - Task 8 mostly audited existing coverage rather than adding broad new heuristics: the earlier anti-repetition, check-quality, conversion, defensive-endgame, and passer-race work already handled most of the quiet-search checklist.

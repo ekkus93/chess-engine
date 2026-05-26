@@ -224,31 +224,33 @@ Phase note: Task 3 is complete. The Task 2 audit showed that the remaining `...N
 
 ## 4.1 Add regressions for delayed king safety
 
-- [ ] Add tests where the engine should castle or secure the king before slow side play.
-- [ ] Cover cases such as:
-  - [ ] uncastled king with queens on the board
-  - [ ] rook move vs castling
-  - [ ] flank pawn push vs castling
-  - [ ] quiet bishop retreat vs king safety
+- [x] Add tests where the engine should castle or secure the king before slow side play.
+- [x] Cover cases such as:
+  - [x] uncastled king with queens on the board
+  - [x] rook move vs castling
+  - [x] flank pawn push vs castling
+  - [x] quiet bishop retreat vs king safety
 
 ## 4.2 Improve evaluation-side king urgency
 
-- [ ] Increase penalties when:
-  - [ ] the king stays central while development lags
-  - [ ] castling rights are abandoned without compensation
-  - [ ] the pawn shell is loosened before safety is fixed
-  - [ ] long-range enemy pieces can exploit open files / diagonals soon
+- [x] Increase penalties when:
+  - [x] the king stays central while development lags
+  - [x] castling rights are abandoned without compensation
+  - [x] the pawn shell is loosened before safety is fixed
+  - [x] long-range enemy pieces can exploit open files / diagonals soon
 
 ## 4.3 Improve move-order king urgency
 
-- [ ] Prefer moves that:
-  - [ ] castle
-  - [ ] preserve castling rights
-  - [ ] repair shelter
-  - [ ] remove immediate pressure on the king zone
-- [ ] Demote moves that:
-  - [ ] postpone king safety without gaining a concrete tactical concession
-  - [ ] make future castling worse
+- [x] Prefer moves that:
+  - [x] castle
+  - [x] preserve castling rights
+  - [x] repair shelter
+  - [x] remove immediate pressure on the king zone
+- [x] Demote moves that:
+  - [x] postpone king safety without gaining a concrete tactical concession
+  - [x] make future castling worse
+
+Phase note: Task 4 is complete. This phase added transcript-backed and balanced-shell regressions proving that castling outranks slow bishop, rook, flank-pawn, and king-walk choices when queens remain on the board, then tightened `opening_development.py`, `evaluation.py`, and `opening_move_ordering.py` so central home-rank kings, abandoned castling rights, loosened pre-castling shelter, and even post-castling `...Nh6`-style rim-knight shortcuts stay structurally penalized. The result is that the transcript late-opening test now castles on time, the balanced-shell regressions prefer castling over `Kf1` / rook drift / bishop retreat / `h4`, and the earlier Task 3 `...Nh6` rejection remains green after the king-safety work.
 
 ---
 

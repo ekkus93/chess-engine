@@ -16,10 +16,12 @@ QUIET_EARLY_ROOK_WANDER_PENALTY = 18
 QUIET_UNCASTLED_HOME_RANK_ROOK_PENALTY = 24
 QUIET_RIM_KNIGHT_DEVELOPMENT_PENALTY = 24
 QUIET_KINGSIDE_FLANK_LUNGE_PENALTY = 24
+QUIET_OPENING_CASTLING_URGENCY_BONUS = 40
 QUIET_PREMATURE_KING_WALK_PENALTY = 20
 QUIET_FINISH_DEVELOPMENT_BONUS = 18
 QUIET_OPENING_CENTRAL_ROOK_BONUS = 18
 QUIET_EARLY_QUEEN_DRIFT_PENALTY = 16
+QUIET_UNSETTLED_RIM_KNIGHT_PENALTY = 18
 
 
 def opening_discipline_order_score(board: Board, kind: PieceType, move: Move) -> int:
@@ -50,10 +52,14 @@ def _minor_opening_discipline_score(board: Board, kind: PieceType, move: Move) -
         king_needs_shelter(board, board.turn) or unsettled_king,
     ):
         score -= QUIET_RIM_KNIGHT_DEVELOPMENT_PENALTY
+        if unsettled_king:
+            score -= QUIET_UNSETTLED_RIM_KNIGHT_PENALTY
     return score
 
 
 def _king_opening_discipline_score(board: Board, move: Move) -> int:
+    if _is_castling_move(move) and _opening_king_unsettled(board):
+        return QUIET_OPENING_CASTLING_URGENCY_BONUS
     if _is_premature_king_walk(board, move, king_needs_shelter(board, board.turn)):
         return -QUIET_PREMATURE_KING_WALK_PENALTY
     return 0
@@ -299,6 +305,12 @@ def _is_opening_central_rook_move(
         PieceType.ROOK,
         move.end,
     )
+
+
+def _is_castling_move(move: Move) -> bool:
+    """Return True for king-side or queen-side castling geometry."""
+
+    return int(move.start.col) == 4 and abs(int(move.start.col) - int(move.end.col)) == 2
 
 
 def _is_premature_king_walk(board: Board, move: Move, needs_shelter: bool) -> bool:
