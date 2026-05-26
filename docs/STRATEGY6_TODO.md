@@ -333,34 +333,36 @@ Phase note: Task 6 is complete. The late-conversion audit in `tmp/strategy6_task
 
 ## 7.1 Save new STRATEGY6 review games
 
-- [ ] Run and save at least:
-  - [ ] one depth 3 vs depth 3 review game
-  - [ ] one deeper review game if runtime is acceptable
+- [x] Run and save at least:
+  - [x] one depth 3 vs depth 3 review game
+  - [x] one deeper review game if runtime is acceptable (not runtime-feasible after the bounded depth-3 review runtime)
 
 ## 7.2 Maintain a running review artifact
 
-- [ ] Create / update a `tmp/` artifact with:
-  - [ ] move chosen
-  - [ ] better human move
-  - [ ] why it is better
-  - [ ] whether the miss is evaluation-, ordering-, search-, or conversion-driven
+- [x] Create / update a `tmp/` artifact with:
+  - [x] move chosen
+  - [x] better human move
+  - [x] why it is better
+  - [x] whether the miss is evaluation-, ordering-, search-, or conversion-driven
 
 ## 7.3 Convert new failures into regressions
 
-- [ ] After each major phase, add or update tests for:
-  - [ ] worst opening drift
-  - [ ] worst king-safety delay
-  - [ ] worst practical tactical transition
-  - [ ] worst inefficient conversion
+- [x] After each major phase, add or update tests for:
+  - [x] worst opening drift
+  - [x] worst king-safety delay
+  - [x] worst practical tactical transition
+  - [x] worst inefficient conversion
 
 ## 7.4 Keep a running quality checklist
 
-- [ ] Track whether the engine still shows:
-  - [ ] early rook shuffles before castling
-  - [ ] unjustified flank pawn pushes
-  - [ ] rim-knight development without reason
-  - [ ] practical tactical collapses after a decent opening
-  - [ ] slow winning conversion
+- [x] Track whether the engine still shows:
+  - [x] early rook shuffles before castling
+  - [x] unjustified flank pawn pushes
+  - [x] rim-knight development without reason
+  - [x] practical tactical collapses after a decent opening
+  - [x] slow winning conversion
+
+Phase note: Task 7 is complete. The fresh bounded review transcript in `tmp/strategy6_task7_w3b3.txt` and the running artifact in `tmp/strategy6_task7_review.txt` showed that the old rook-shuffle and rim-knight themes were largely improved, but new review misses still clustered around overaggressive wing-piece drifts before castling, delayed king safety after a decent opening, and a still-slower-than-necessary winning conversion. This phase therefore added new STRATEGY6 regressions for the review-game knight drift, bishop drift / king-safety delay, and the clean conversion capture over a harmless rook shuffle, while also tightening opening move ordering so the review opening no longer prefers `Nf3h4`. The result is that Task 7 now has a live review artifact, a refreshed quality checklist, and regression coverage for the worst new misses discovered by the first STRATEGY6 review game; the deeper review run was deliberately skipped because the bounded depth-3 review already made a deeper run impractical for this phase.
 
 ---
 

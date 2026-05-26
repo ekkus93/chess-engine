@@ -1,5 +1,10 @@
 # Chess Engine Project Memory
 
+## 2026-05-26T14:52:43Z - GPT-5.4 - STRATEGY6 Task 7 review-coverage phase
+- Finished `docs/STRATEGY6_TODO.md` Task 7 by generating the first bounded STRATEGY6 review transcript (`tmp/strategy6_task7_w3b3.txt`) and distilling the main misses into `tmp/strategy6_task7_review.txt`. The review showed that the old rook-shuffle and rim-knight themes were mostly reduced, but the engine could still drift into early wing-piece adventures and slower-than-necessary conversion choices.
+- Added new STRATEGY6 regressions for the review-game `Nf3h4` opening drift, the later `Bh3` king-safety delay, and the clean conversion capture over the harmless rook shuffle, while tightening `opening_move_ordering.py` so the opening review line no longer prefers `Nf3h4`.
+- Revalidated the repository green with `pylint chess_game`, `python -m pytest tests -q` (`544 passed`), and `python -m pytest tests/test_ai.py tests/test_ai_quality.py tests/test_ai_search.py tests/test_alpha_beta_pruning.py -q` (`120 passed`). The deeper review run was intentionally skipped in this phase because the bounded depth-3 review already took long enough that a deeper pass was not practical.
+
 ## 2026-05-26T13:44:09Z - GPT-5.4 - STRATEGY6 Task 6 conversion phase
 - Finished `docs/STRATEGY6_TODO.md` Task 6 after auditing the late winning phase of the STRATEGY6 transcript. The main lesson was that the engine already recognized many winning ideas, but root choice still needed stronger conversion guidance so clearly better positions cash in queenside pawns, simplify, and shorten the game more reliably.
 - Added `tmp/strategy6_task6_audit.txt`, expanded `tests/test_ai_strategy6_regressions.py` with transcript-backed `...Nd6` / `...Rxa4` conversion checks plus a depth-3 queen-trade simplification regression, and extended `chess_game/chess/conversion_guidance.py` with `winning_conversion_root_bonus()` so `ai_search_helpers.py` can use conversion geometry in root tie-breaks.

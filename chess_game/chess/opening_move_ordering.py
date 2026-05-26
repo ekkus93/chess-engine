@@ -22,6 +22,9 @@ QUIET_FINISH_DEVELOPMENT_BONUS = 18
 QUIET_OPENING_CENTRAL_ROOK_BONUS = 18
 QUIET_EARLY_QUEEN_DRIFT_PENALTY = 16
 QUIET_UNSETTLED_RIM_KNIGHT_PENALTY = 18
+QUIET_KNIGHT_WING_DRIFT_PENALTY = 18
+QUIET_BISHOP_WING_DRIFT_PENALTY = 16
+QUIET_UNSETTLED_CENTRAL_BREAK_BONUS = 24
 
 
 def opening_discipline_order_score(board: Board, kind: PieceType, move: Move) -> int:
@@ -54,6 +57,10 @@ def _minor_opening_discipline_score(board: Board, kind: PieceType, move: Move) -
         score -= QUIET_RIM_KNIGHT_DEVELOPMENT_PENALTY
         if unsettled_king:
             score -= QUIET_UNSETTLED_RIM_KNIGHT_PENALTY
+    if kind == PieceType.KNIGHT and _is_knight_wing_drift(move, unsettled_king):
+        score -= QUIET_KNIGHT_WING_DRIFT_PENALTY
+    if kind == PieceType.BISHOP and _is_bishop_wing_drift(move, unsettled_king):
+        score -= QUIET_BISHOP_WING_DRIFT_PENALTY
     return score
 
 
@@ -109,6 +116,8 @@ def _heavy_or_pawn_opening_discipline_score(board: Board, kind: PieceType, move:
         needs_shelter,
     ):
         score -= QUIET_KINGSIDE_FLANK_LUNGE_PENALTY
+    if kind == PieceType.PAWN and _is_unsettled_central_break(board, move, undeveloped):
+        score += QUIET_UNSETTLED_CENTRAL_BREAK_BONUS
     if kind == PieceType.ROOK and _is_early_rook_wander(
         board,
         move,
@@ -305,6 +314,42 @@ def _is_opening_central_rook_move(
         PieceType.ROOK,
         move.end,
     )
+
+
+def _is_knight_wing_drift(move: Move, unsettled_king: bool) -> bool:
+    if not unsettled_king or int(move.end.col) not in {0, 7}:
+        return False
+    return center_distance(int(move.end.row), int(move.end.col)) > center_distance(
+        int(move.start.row),
+        int(move.start.col),
+    )
+
+
+def _is_bishop_wing_drift(move: Move, unsettled_king: bool) -> bool:
+    if not unsettled_king or int(move.end.col) not in {0, 7}:
+        return False
+    return center_distance(int(move.end.row), int(move.end.col)) > center_distance(
+        int(move.start.row),
+        int(move.start.col),
+    )
+
+
+def _is_unsettled_central_break(board: Board, move: Move, undeveloped: int) -> bool:
+    if undeveloped == 0 or not _opening_king_unsettled(board):
+        return False
+    start_row = int(move.start.row)
+    start_col = int(move.start.col)
+    end_row = int(move.end.row)
+    end_col = int(move.end.col)
+    if board.turn == Color.WHITE:
+        return (start_row, start_col) in {(6, 3), (6, 4)} and (end_row, end_col) in {
+            (4, 3),
+            (4, 4),
+        }
+    return (start_row, start_col) in {(1, 3), (1, 4)} and (end_row, end_col) in {
+        (3, 3),
+        (3, 4),
+    }
 
 
 def _is_castling_move(move: Move) -> bool:

@@ -1,0 +1,33 @@
+STRATEGY6 Task 7 review
+=======================
+
+Reviewed transcript
+-------------------
+- File: `tmp/strategy6_task7_w3b3.txt`
+- Settings: White depth 3, Black depth 3, capped at 40 moves
+- Note: a deeper review game was not runtime-feasible in this phase because the bounded 40-move depth-3 transcript already took long enough that a deeper run would have been disproportionately expensive.
+
+Review entries
+--------------
+1. Move 15 - White chose `f3h4`
+   - Better human move: `d2d4`
+   - Why it is better: it challenges the center and keeps the kingside pieces coordinated for castling instead of drifting a developed knight to the wing.
+   - Driver: mostly search, with opening-order support already preferring the central break.
+
+2. Move 25 - White chose `f1h3`
+   - Better human move: `d2d4`
+   - Why it is better: the position still demands central stabilization and king safety; `Bh3` abandons the castling plan and leaves White tactically loose.
+   - Driver: search-driven king-safety delay; quiet ordering already scores the central break above the bishop drift.
+
+3. Move 30 - Black chose `f8e8`
+   - Better human move: `g6f5`
+   - Why it is better: Black can immediately cash the loose bishop and shorten the game instead of spending a tempo on a non-forcing rook move.
+   - Driver: conversion/search interaction.
+
+Checklist snapshot
+------------------
+- Early rook shuffles before castling: not seen in this review game
+- Unjustified flank pawn pushes: still seen (`b2b4`, `f2f4`)
+- Rim-knight development without reason: improved; not the main issue here
+- Practical tactical collapses after a decent opening: still present on White's side
+- Slow winning conversion: still present in reduced form

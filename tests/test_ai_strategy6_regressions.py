@@ -121,6 +121,27 @@ def _task6_conversion_board() -> Board:
     )
 
 
+def _task7_review_board() -> Board:
+    return _board_from_moves(
+        [
+            ("b1", "c3"),
+            ("e7", "e5"),
+            ("g1", "f3"),
+            ("b8", "c6"),
+            ("c3", "e4"),
+            ("d7", "d5"),
+            ("e4", "g5"),
+            ("e5", "e4"),
+            ("g5", "e4"),
+            ("c8", "f5"),
+            ("e4", "c3"),
+            ("f8", "c5"),
+            ("g2", "g3"),
+            ("g8", "f6"),
+        ]
+    )
+
+
 def test_strategy6_order_prefers_development_over_early_rc1_from_transcript() -> None:
     """The opening should score a normal kingside setup above the move-11 rook drift."""
 
@@ -490,3 +511,77 @@ def test_strategy6_depth3_prefers_queen_trade_in_won_ending() -> None:
     board.turn = Color.WHITE
 
     assert get_best_move(board, depth=3) == LegalMove(start=sq("d4"), end=sq("d7"))
+
+
+def test_strategy6_review_rejects_knight_wing_drift_before_castling() -> None:
+    """The review opening should keep central development ahead of Nh4 drift."""
+
+    board = _task7_review_board()
+    central_break = ai.Move(start=sq("d2"), end=sq("d4"))
+    knight_drift = ai.Move(start=sq("f3"), end=sq("h4"))
+
+    assert _move_order_score(board, central_break, None) > _move_order_score(
+        board,
+        knight_drift,
+        None,
+    )
+    assert get_best_move(board, depth=3) != LegalMove(start=sq("f3"), end=sq("h4"))
+
+
+def test_strategy6_review_rejects_bishop_wing_drift_with_uncastled_king() -> None:
+    """The review line should keep central stabilization ahead of Bh3 drift."""
+
+    board = _task7_review_board()
+    for start, end in [
+        ("f3", "h4"),
+        ("f5", "e6"),
+        ("b2", "b4"),
+        ("c6", "b4"),
+        ("a2", "a3"),
+        ("f6", "g4"),
+        ("f2", "f4"),
+        ("e8", "g8"),
+        ("h4", "g6"),
+        ("f7", "f5"),
+    ]:
+        board.make_move(sq(start), sq(end))
+    central_break = ai.Move(start=sq("d2"), end=sq("d4"))
+    bishop_drift = ai.Move(start=sq("f1"), end=sq("h3"))
+
+    assert _move_order_score(board, central_break, None) > _move_order_score(
+        board,
+        bishop_drift,
+        None,
+    )
+
+
+def test_strategy6_review_prefers_clean_conversion_capture_over_rook_shuffle() -> None:
+    """The review conversion phase should value the clean bishop capture over ...Re8."""
+
+    board = _task7_review_board()
+    for start, end in [
+        ("f3", "h4"),
+        ("f5", "e6"),
+        ("b2", "b4"),
+        ("c6", "b4"),
+        ("a2", "a3"),
+        ("f6", "g4"),
+        ("f2", "f4"),
+        ("e8", "g8"),
+        ("h4", "g6"),
+        ("f7", "f5"),
+        ("f1", "h3"),
+        ("g4", "f2"),
+        ("c3", "d5"),
+        ("h7", "g6"),
+        ("h3", "f5"),
+    ]:
+        board.make_move(sq(start), sq(end))
+    simplify = ai.Move(start=sq("g6"), end=sq("f5"))
+    rook_shuffle = ai.Move(start=sq("f8"), end=sq("e8"))
+
+    assert _move_order_score(board, simplify, None) > _move_order_score(
+        board,
+        rook_shuffle,
+        None,
+    )
