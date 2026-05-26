@@ -679,10 +679,12 @@ def _evaluate_development(board: Board, middlegame_phase: int) -> int:
             kingside_lunge_penalty,
             rook_sidestep_penalty,
             rim_knight_penalty,
+            edge_space_grab_penalty,
         ) = _opening_drift_penalties(board, color, undeveloped)
         development_score -= sign * kingside_lunge_penalty
         development_score -= sign * rook_sidestep_penalty
         development_score -= sign * rim_knight_penalty
+        development_score -= sign * edge_space_grab_penalty
     return _scale_signed(development_score, middlegame_phase)
 
 

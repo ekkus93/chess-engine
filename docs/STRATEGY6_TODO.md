@@ -130,52 +130,54 @@ Phase note: Task 1 is complete. `tests/test_ai_strategy6_regressions.py` now add
 
 ## 2.1 Audit current opening scoring
 
-- [ ] Review current opening-related terms in:
-  - [ ] `chess_game/chess/evaluation.py`
-  - [ ] `chess_game/chess/opening_development.py`
-  - [ ] `chess_game/chess/opening_guidance.py`
-  - [ ] `chess_game/chess/opening_move_ordering.py`
-- [ ] Document:
-  - [ ] which opening terms dominate too early
-  - [ ] which penalties are too weak
-  - [ ] where move-order signals and eval signals disagree
+- [x] Review current opening-related terms in:
+  - [x] `chess_game/chess/evaluation.py`
+  - [x] `chess_game/chess/opening_development.py`
+  - [x] `chess_game/chess/opening_guidance.py`
+  - [x] `chess_game/chess/opening_move_ordering.py`
+- [x] Document:
+  - [x] which opening terms dominate too early
+  - [x] which penalties are too weak
+  - [x] where move-order signals and eval signals disagree
 
 ## 2.2 Increase penalties for non-developing rook moves
 
-- [ ] Penalize home-rank rook sidesteps more precisely when:
-  - [ ] the king is uncastled
-  - [ ] minor-piece development is incomplete
-  - [ ] queens are still on the board
-  - [ ] the rook move does not improve pressure, defense, or connection
+- [x] Penalize home-rank rook sidesteps more precisely when:
+  - [x] the king is uncastled
+  - [x] minor-piece development is incomplete
+  - [x] queens are still on the board
+  - [x] the rook move does not improve pressure, defense, or connection
 
 ## 2.3 Increase penalties for premature shelter-loosening pawn moves
 
-- [ ] Penalize flank pawn pushes more sharply when they:
-  - [ ] loosen castling structure
-  - [ ] do not fight for the center
-  - [ ] do not prepare a concrete development scheme
-  - [ ] do not answer an opponent threat
+- [x] Penalize flank pawn pushes more sharply when they:
+  - [x] loosen castling structure
+  - [x] do not fight for the center
+  - [x] do not prepare a concrete development scheme
+  - [x] do not answer an opponent threat
 
 ## 2.4 Improve knight-development scoring
 
-- [ ] Reward:
-  - [ ] central knight development
-  - [ ] development that supports castling and center control
-  - [ ] development that increases practical tactical coverage
-- [ ] Penalize:
-  - [ ] rim development without concrete justification
-  - [ ] knight moves that increase coordination lag
+- [x] Reward:
+  - [x] central knight development
+  - [x] development that supports castling and center control
+  - [x] development that increases practical tactical coverage
+- [x] Penalize:
+  - [x] rim development without concrete justification
+  - [x] knight moves that increase coordination lag
 
 ## 2.5 Tighten “finish development before side play” scoring
 
-- [ ] Increase bonuses for:
-  - [ ] completing both minor pieces
-  - [ ] bishop activation before rook drift
-  - [ ] on-time castling
-  - [ ] natural central pawn support
-- [ ] Reduce credit for:
-  - [ ] one-purpose side-space grabs
-  - [ ] pretty-looking but non-forcing rook or queen placements
+- [x] Increase bonuses for:
+  - [x] completing both minor pieces
+  - [x] bishop activation before rook drift
+  - [x] on-time castling
+  - [x] natural central pawn support
+- [x] Reduce credit for:
+  - [x] one-purpose side-space grabs
+  - [x] pretty-looking but non-forcing rook or queen placements
+
+Phase note: Task 2 is complete. The audit artifact lives in `tmp/strategy6_task2_audit.txt`. The main findings were that opening-guidance pressure shut off too early in the late-opening transcript positions, flank-pawn penalties became too weak once only one minor remained undeveloped, and the remaining `...Nh6` miss had become a move-order/root-choice disagreement more than a missing static penalty. The Task 2 evaluation pass therefore tightened late-opening edge-pawn drift, unsettled kingside pawn lunges, decorative home-rank rook sidesteps, and rim-knight penalties inside `opening_development.py` / `evaluation.py`, which was enough to replace the old White fallback with `g2g3` in the baseline `Rc1` line while preserving the depth-5 timing guard.
 
 ---
 

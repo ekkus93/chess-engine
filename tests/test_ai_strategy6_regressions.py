@@ -64,6 +64,32 @@ def test_strategy6_search_rejects_early_rc1_from_transcript() -> None:
     assert get_best_move(board, depth=3) != LegalMove(start=sq("a1"), end=sq("c1"))
 
 
+def test_strategy6_search_rejects_early_a_pawn_drift_after_rook_probe() -> None:
+    """The same baseline opening should not replace Rc1 with aimless a-pawn drift."""
+
+    board = _board_from_moves(
+        [
+            ("g1", "f3"),
+            ("d7", "d5"),
+            ("b1", "c3"),
+            ("b8", "c6"),
+            ("b2", "b3"),
+            ("d5", "d4"),
+            ("c3", "e4"),
+            ("e7", "e5"),
+            ("c1", "b2"),
+            ("b7", "b6"),
+        ]
+    )
+
+    best_move = get_best_move(board, depth=3)
+
+    assert best_move not in [
+        LegalMove(start=sq("a2"), end=sq("a3")),
+        LegalMove(start=sq("a2"), end=sq("a4")),
+    ]
+
+
 def test_strategy6_order_prefers_bg2_over_h4_from_transcript() -> None:
     """The transcript position should finish kingside development before h4."""
 

@@ -83,7 +83,7 @@ def early_flank_pawn_poke_penalty(board: Board, color: Color, undeveloped: int) 
     """Penalize premature flank pawn lunges before development and castling."""
 
     king_square = board.find_king(color)
-    if undeveloped < 2 or king_square is None or _is_castled_king(color, king_square):
+    if undeveloped < 1 or king_square is None or _is_castled_king(color, king_square):
         return 0
     penalty = 0
     for piece, row, col in iter_color_pieces(board, color):
@@ -116,8 +116,18 @@ def early_rim_knight_development_penalty(board: Board, color: Color, undeveloped
     return _opening_drift_penalties(board, color, undeveloped)[2]
 
 
-def _opening_drift_penalties(board: Board, color: Color, undeveloped: int) -> tuple[int, int, int]:
-    """Return combined opening penalties for kingside lunges, rook drift, and rim knights."""
+def early_edge_space_grab_penalty(board: Board, color: Color, undeveloped: int) -> int:
+    """Penalize early a/h-pawn space grabs that do not help development or king safety."""
+
+    return _opening_drift_penalties(board, color, undeveloped)[3]
+
+
+def _opening_drift_penalties(
+    board: Board,
+    color: Color,
+    undeveloped: int,
+) -> tuple[int, int, int, int]:
+    """Return combined opening penalties for drift-heavy late-opening moves."""
 
     king_square = board.find_king(color)
     if (
@@ -126,10 +136,11 @@ def _opening_drift_penalties(board: Board, color: Color, undeveloped: int) -> tu
         or _is_castled_king(color, king_square)
         or not _queens_on_board(board)
     ):
-        return 0, 0, 0
+        return 0, 0, 0, 0
     kingside_pawn_penalty = 0
     rook_sidestep_penalty = 0
     rim_knight_penalty = 0
+    edge_space_grab_penalty = 0
     home_row = 7 if color == Color.WHITE else 0
     for piece, row, col in iter_color_pieces(board, color):
         if (
@@ -149,8 +160,24 @@ def _opening_drift_penalties(board: Board, color: Color, undeveloped: int) -> tu
             and col in {0, 7}
             and not minor_on_home_square(color, PieceType.KNIGHT, row, col)
         ):
-            rim_knight_penalty += KNIGHT_RIM_PENALTY + EARLY_QUEEN_MOVE_PENALTY
-    return kingside_pawn_penalty, rook_sidestep_penalty, rim_knight_penalty
+            rim_knight_penalty += (
+                KNIGHT_RIM_PENALTY + EARLY_QUEEN_MOVE_PENALTY + EARLY_FLANK_RAID_PENALTY
+            )
+        elif (
+            piece.kind == PieceType.PAWN
+            and col in {0, 7}
+            and (
+                _edge_space_grab(color, row)
+                or (col == 0 and _flank_pawn_is_overextended(color, row))
+            )
+        ):
+            edge_space_grab_penalty += EARLY_FLANK_RAID_PENALTY + EARLY_ROOK_MOVE_PENALTY
+    return (
+        kingside_pawn_penalty,
+        rook_sidestep_penalty,
+        rim_knight_penalty,
+        edge_space_grab_penalty,
+    )
 
 
 def early_flank_queen_sortie_penalty(board: Board, color: Color, undeveloped: int) -> int:
@@ -381,6 +408,10 @@ def _queen_on_flank_sortie(color: Color, row: int) -> bool:
 
 def _flank_pawn_is_overextended(color: Color, row: int) -> bool:
     return row <= 4 if color == Color.WHITE else row >= 3
+
+
+def _edge_space_grab(color: Color, row: int) -> bool:
+    return row == 5 if color == Color.WHITE else row == 2
 
 
 def _queen_in_enemy_half(color: Color, queen_row: int) -> bool:

@@ -24,6 +24,11 @@
 - Tightened `opening_development.py`, `opening_move_ordering.py`, and `evaluation.py` so unsettled home-rank rook sidesteps, late-opening kingside pawn lunges, and early rim-knight development are penalized structurally without breaking the depth-5 timing guard.
 - Revalidated the repository green with `pylint chess_game`, `python -m pytest tests -q` (`529 passed`), and `python -m pytest tests/test_ai.py tests/test_ai_quality.py tests/test_ai_search.py tests/test_alpha_beta_pruning.py -q` (`120 passed`).
 
+## 2026-05-26T08:45:59Z - GPT-5.4 - STRATEGY6 Task 2 opening-evaluation phase
+- Added `tmp/strategy6_task2_audit.txt` and marked `docs/STRATEGY6_TODO.md` Task 2 complete after auditing the late-opening scoring gaps exposed by the STRATEGY6 baseline.
+- Tightened `opening_development.py` and `evaluation.py` so late-opening edge-pawn drift (`a3` / `a4`), unsettled kingside pawn lunges, decorative home-rank rook sidesteps, and rim-knight development are penalized more sharply without regressing the depth-5 timing guard.
+- Revalidated the repository green with `pylint chess_game`, `python -m pytest tests -q` (`530 passed`), and `python -m pytest tests/test_ai.py tests/test_ai_quality.py tests/test_ai_search.py tests/test_alpha_beta_pruning.py -q` (`120 passed`). The remaining live `...Nh6` depth-3 miss is now explicitly documented as a Task 3 ordering/root-choice target rather than a missing evaluation term.
+
 ## 2026-05-26T03:57:02Z - GPT-5.4 - STRATEGY5 Task 7 passer-race slice
 - Added `chess_game/chess/passer_race_guidance.py` so quiet ordering and selective extensions can react to true promotion-race targets such as outside passers, connected/protected passers, near-promotion pushes, and enemy promotion-square threats without bleeding into unrelated quiet positions.
 - Reused shared heavy-piece support and material helpers from `strategy_utils.py`, then narrowed the new passer guidance so it stays race-specific and does not override earlier conversion or king-safety priorities.
