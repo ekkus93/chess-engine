@@ -17,6 +17,9 @@ from chess_game.chess.defensive_priorities import (
     king_needs_shelter,
 )
 from chess_game.chess.move import Move
+from chess_game.chess.opening_move_ordering import (
+    opening_discipline_order_score,
+)
 from chess_game.chess.opponent_plans import opponent_plan_profile
 from chess_game.chess.passer_race_guidance import passer_race_extension_bonus
 from chess_game.chess.pawn_structure_evaluation import evaluate_pawn_structure
@@ -684,6 +687,7 @@ def _strategic_root_bonus(
         return 0
     score = _pawn_structure_root_bonus(board, move, child_board)
     score += _practical_options_bonus(board, child_board, moving_color)
+    score += _opening_root_bonus(board, move, moving_kind)
     score += _plan_continuity_bonus(
         board,
         move,
@@ -692,6 +696,14 @@ def _strategic_root_bonus(
         moving_color,
     )
     return score
+
+
+def _opening_root_bonus(board: Board, move: Move, moving_kind: PieceType) -> int:
+    """Return a root-only tiebreak bonus for better opening discipline."""
+
+    if is_capture_move(board, move):
+        return 0
+    return opening_discipline_order_score(board, moving_kind, move) * 2
 
 
 def _pawn_structure_root_bonus(board: Board, move: Move, child_board: Board) -> int:

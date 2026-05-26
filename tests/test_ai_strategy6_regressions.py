@@ -176,4 +176,4 @@ def test_strategy6_prefers_central_knight_development_over_nh6_from_transcript()
         rim_development,
         None,
     )
-    assert get_best_move(board, depth=2) != LegalMove(start=sq("g8"), end=sq("h6"))
+    assert get_best_move(board, depth=3) != LegalMove(start=sq("g8"), end=sq("h6"))

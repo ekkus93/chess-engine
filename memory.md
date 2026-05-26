@@ -29,6 +29,11 @@
 - Tightened `opening_development.py` and `evaluation.py` so late-opening edge-pawn drift (`a3` / `a4`), unsettled kingside pawn lunges, decorative home-rank rook sidesteps, and rim-knight development are penalized more sharply without regressing the depth-5 timing guard.
 - Revalidated the repository green with `pylint chess_game`, `python -m pytest tests -q` (`530 passed`), and `python -m pytest tests/test_ai.py tests/test_ai_quality.py tests/test_ai_search.py tests/test_alpha_beta_pruning.py -q` (`120 passed`). The remaining live `...Nh6` depth-3 miss is now explicitly documented as a Task 3 ordering/root-choice target rather than a missing evaluation term.
 
+## 2026-05-26T08:59:50Z - GPT-5.4 - STRATEGY6 Task 3 opening-root tiebreak phase
+- Finished `docs/STRATEGY6_TODO.md` Task 3 by feeding `opening_discipline_order_score()` into the root tiebreak path in `ai_search_helpers.py`, so near-equal depth-3 opening choices keep the better development plan instead of drifting into `...Nh6`-style cosmetically active lines.
+- The STRATEGY6 regression suite now proves that the remaining Black baseline opening line rejects `...Nh6` at depth 3, while the White baseline line still rejects the earlier `Rc1` / `a`-pawn drift and `h4` mistakes.
+- Revalidated the repository green with `pylint chess_game`, `python -m pytest tests -q` (`530 passed`), and `python -m pytest tests/test_ai.py tests/test_ai_quality.py tests/test_ai_search.py tests/test_alpha_beta_pruning.py -q` (`120 passed`).
+
 ## 2026-05-26T03:57:02Z - GPT-5.4 - STRATEGY5 Task 7 passer-race slice
 - Added `chess_game/chess/passer_race_guidance.py` so quiet ordering and selective extensions can react to true promotion-race targets such as outside passers, connected/protected passers, near-promotion pushes, and enemy promotion-square threats without bleeding into unrelated quiet positions.
 - Reused shared heavy-piece support and material helpers from `strategy_utils.py`, then narrowed the new passer guidance so it stays race-specific and does not override earlier conversion or king-safety priorities.

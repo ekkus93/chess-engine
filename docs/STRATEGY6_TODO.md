@@ -185,36 +185,38 @@ Phase note: Task 2 is complete. The audit artifact lives in `tmp/strategy6_task2
 
 ## 3.1 Audit quiet opening ordering
 
-- [ ] Review how quiet move ordering currently prioritizes:
-  - [ ] minor development
-  - [ ] castling
-  - [ ] central recaptures / central support
-  - [ ] rook shifts
-  - [ ] flank pawn moves
+- [x] Review how quiet move ordering currently prioritizes:
+  - [x] minor development
+  - [x] castling
+  - [x] central recaptures / central support
+  - [x] rook shifts
+  - [x] flank pawn moves
 
 ## 3.2 Make development bundles score higher
 
-- [ ] Prefer moves that simultaneously:
-  - [ ] develop a piece
-  - [ ] improve king safety
-  - [ ] reinforce the center
-  - [ ] prepare the next natural developing move
+- [x] Prefer moves that simultaneously:
+  - [x] develop a piece
+  - [x] improve king safety
+  - [x] reinforce the center
+  - [x] prepare the next natural developing move
 
 ## 3.3 Demote low-information quiet moves
 
-- [ ] Push down quiet moves that:
-  - [ ] only gain side space
-  - [ ] do not change the main tactical or strategic question
-  - [ ] recycle pressure on the same harmless square
-  - [ ] move a rook without a forcing reason
+- [x] Push down quiet moves that:
+  - [x] only gain side space
+  - [x] do not change the main tactical or strategic question
+  - [x] recycle pressure on the same harmless square
+  - [x] move a rook without a forcing reason
 
 ## 3.4 Improve tie-break quality in simple openings
 
-- [ ] Prefer moves that:
-  - [ ] keep castling options intact
-  - [ ] preserve pawn shelter
-  - [ ] reduce future coordination debt
-  - [ ] avoid creating long-term weaknesses for one tempo of cosmetic activity
+- [x] Prefer moves that:
+  - [x] keep castling options intact
+  - [x] preserve pawn shelter
+  - [x] reduce future coordination debt
+  - [x] avoid creating long-term weaknesses for one tempo of cosmetic activity
+
+Phase note: Task 3 is complete. The Task 2 audit showed that the remaining `...Nh6` issue was no longer a missing static penalty but a root-choice disagreement once deeper search scores came back close. This phase therefore kept the existing opening move-order penalties, then fed `opening_discipline_order_score()` into the root tiebreak path in `ai_search_helpers.py`, so near-equal depth-3 opening choices now keep the healthier plan instead of drifting into cosmetically active but strategically worse moves. The result is that the late-opening White baseline now prefers `g2g3` over `a`-pawn drift, and the Black baseline line now chooses `...Be6` instead of `...Nh6`, while the depth-5 timing guard remains green.
 
 ---
 
