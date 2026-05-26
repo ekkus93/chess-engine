@@ -8,13 +8,15 @@ from chess_game.chess.evaluation_tables import (
     CENTRAL_MINOR_PIECE_BONUS,
     CENTRAL_SQUARES,
     CENTER_FILES,
+    EARLY_QUEEN_MOVE_PENALTY,
+    EARLY_ROOK_MOVE_PENALTY,
     CONNECTED_ROOKS_BONUS,
     DEFENDER_DISTANCE_PENALTY,
     EARLY_FLANK_RAID_PENALTY,
-    EARLY_QUEEN_MOVE_PENALTY,
     EARLY_QUEEN_RAID_PENALTY,
     EXTENDED_CENTER_FILES,
     EXTENDED_CENTER_RANKS,
+    KNIGHT_RIM_PENALTY,
     MINOR_COORDINATION_BONUS,
 )
 from chess_game.chess.strategy_utils import iter_color_pieces, path_clear_between
@@ -94,6 +96,61 @@ def early_flank_pawn_poke_penalty(board: Board, color: Color, undeveloped: int) 
             if col in {6, 7}:
                 penalty += EARLY_FLANK_RAID_PENALTY // 2
     return penalty
+
+
+def early_kingside_flank_lunge_penalty(board: Board, color: Color, undeveloped: int) -> int:
+    """Penalize early g/h-pawn lunges before development and castling are settled."""
+
+    return _opening_drift_penalties(board, color, undeveloped)[0]
+
+
+def early_home_rank_rook_sidestep_penalty(board: Board, color: Color, undeveloped: int) -> int:
+    """Penalize rooks drifting along the home rank before king safety is fixed."""
+
+    return _opening_drift_penalties(board, color, undeveloped)[1]
+
+
+def early_rim_knight_development_penalty(board: Board, color: Color, undeveloped: int) -> int:
+    """Penalize early knight development to the rim when central squares are available."""
+
+    return _opening_drift_penalties(board, color, undeveloped)[2]
+
+
+def _opening_drift_penalties(board: Board, color: Color, undeveloped: int) -> tuple[int, int, int]:
+    """Return combined opening penalties for kingside lunges, rook drift, and rim knights."""
+
+    king_square = board.find_king(color)
+    if (
+        undeveloped > 1
+        or king_square is None
+        or _is_castled_king(color, king_square)
+        or not _queens_on_board(board)
+    ):
+        return 0, 0, 0
+    kingside_pawn_penalty = 0
+    rook_sidestep_penalty = 0
+    rim_knight_penalty = 0
+    home_row = 7 if color == Color.WHITE else 0
+    for piece, row, col in iter_color_pieces(board, color):
+        if (
+            piece.kind == PieceType.PAWN
+            and col in {6, 7}
+            and _flank_pawn_is_overextended(color, row)
+        ):
+            kingside_pawn_penalty += EARLY_FLANK_RAID_PENALTY + EARLY_QUEEN_MOVE_PENALTY
+            if col == 7:
+                kingside_pawn_penalty += EARLY_ROOK_MOVE_PENALTY
+        elif piece.kind == PieceType.ROOK and row == home_row and col not in {0, 7}:
+            rook_sidestep_penalty += EARLY_ROOK_MOVE_PENALTY + EARLY_QUEEN_MOVE_PENALTY
+            if col not in CENTER_FILES:
+                rook_sidestep_penalty += EARLY_ROOK_MOVE_PENALTY
+        elif (
+            piece.kind == PieceType.KNIGHT
+            and col in {0, 7}
+            and not minor_on_home_square(color, PieceType.KNIGHT, row, col)
+        ):
+            rim_knight_penalty += KNIGHT_RIM_PENALTY + EARLY_QUEEN_MOVE_PENALTY
+    return kingside_pawn_penalty, rook_sidestep_penalty, rim_knight_penalty
 
 
 def early_flank_queen_sortie_penalty(board: Board, color: Color, undeveloped: int) -> int:

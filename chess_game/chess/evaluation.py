@@ -21,6 +21,7 @@ from chess_game.chess.opening_development import (
     early_flank_queen_sortie_penalty as _early_flank_queen_sortie_penalty,
     early_flank_pawn_poke_penalty as _early_flank_pawn_poke_penalty,
     early_flank_raid_penalty as _early_flank_raid_penalty,
+    _opening_drift_penalties,
     opening_king_safety_score as _opening_king_safety_score,
     opening_queen_restraint_bonus as _opening_queen_restraint_bonus,
     opening_rook_connection_bonus as _opening_rook_connection_bonus,
@@ -674,6 +675,14 @@ def _evaluate_development(board: Board, middlegame_phase: int) -> int:
             undeveloped,
         )
         development_score -= sign * _early_flank_raid_penalty(board, color, undeveloped)
+        (
+            kingside_lunge_penalty,
+            rook_sidestep_penalty,
+            rim_knight_penalty,
+        ) = _opening_drift_penalties(board, color, undeveloped)
+        development_score -= sign * kingside_lunge_penalty
+        development_score -= sign * rook_sidestep_penalty
+        development_score -= sign * rim_knight_penalty
     return _scale_signed(development_score, middlegame_phase)
 
 

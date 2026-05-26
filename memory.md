@@ -19,6 +19,11 @@
 - Updated `docs/STRATEGY6_TODO.md` to mark all Task 0 checklist items complete and recorded that the current engine still recommends the reproduced bad opening moves `a1c1`, `h2h4`, and `g8h6` from the baseline probes.
 - Revalidated the repository green after the baseline phase with `pylint chess_game` and `python -m pytest tests -q` (`524 passed`).
 
+## 2026-05-26T08:22:24Z - GPT-5.4 - STRATEGY6 Task 1 opening-regression phase
+- Added `tests/test_ai_strategy6_regressions.py` with transcript-backed coverage for the move-11 `Rc1` rook drift, the move-15 `h4` flank lunge, and the baseline `...Nh6` rim-knight choice, while `docs/STRATEGY6_TODO.md` now marks the full Task 1 regression phase complete.
+- Tightened `opening_development.py`, `opening_move_ordering.py`, and `evaluation.py` so unsettled home-rank rook sidesteps, late-opening kingside pawn lunges, and early rim-knight development are penalized structurally without breaking the depth-5 timing guard.
+- Revalidated the repository green with `pylint chess_game`, `python -m pytest tests -q` (`529 passed`), and `python -m pytest tests/test_ai.py tests/test_ai_quality.py tests/test_ai_search.py tests/test_alpha_beta_pruning.py -q` (`120 passed`).
+
 ## 2026-05-26T03:57:02Z - GPT-5.4 - STRATEGY5 Task 7 passer-race slice
 - Added `chess_game/chess/passer_race_guidance.py` so quiet ordering and selective extensions can react to true promotion-race targets such as outside passers, connected/protected passers, near-promotion pushes, and enemy promotion-square threats without bleeding into unrelated quiet positions.
 - Reused shared heavy-piece support and material helpers from `strategy_utils.py`, then narrowed the new passer guidance so it stays race-specific and does not override earlier conversion or king-safety priorities.

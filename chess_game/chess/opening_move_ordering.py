@@ -13,7 +13,9 @@ QUIET_FLANK_RAID_PENALTY = 28
 QUIET_REPEAT_HEAVY_PIECE_PENALTY = 24
 QUIET_FLANK_PAWN_POKE_PENALTY = 18
 QUIET_EARLY_ROOK_WANDER_PENALTY = 18
-QUIET_RIM_KNIGHT_DEVELOPMENT_PENALTY = 16
+QUIET_UNCASTLED_HOME_RANK_ROOK_PENALTY = 24
+QUIET_RIM_KNIGHT_DEVELOPMENT_PENALTY = 24
+QUIET_KINGSIDE_FLANK_LUNGE_PENALTY = 24
 QUIET_PREMATURE_KING_WALK_PENALTY = 20
 QUIET_FINISH_DEVELOPMENT_BONUS = 18
 QUIET_OPENING_CENTRAL_ROOK_BONUS = 18
@@ -35,6 +37,7 @@ def opening_discipline_order_score(board: Board, kind: PieceType, move: Move) ->
 
 def _minor_opening_discipline_score(board: Board, kind: PieceType, move: Move) -> int:
     undeveloped = undeveloped_minor_count(board)
+    unsettled_king = _opening_king_unsettled(board)
     score = 0
     if _develops_minor_piece(move):
         score += QUIET_DEVELOPING_MINOR_BONUS
@@ -44,7 +47,7 @@ def _minor_opening_discipline_score(board: Board, kind: PieceType, move: Move) -
         board,
         move,
         undeveloped,
-        king_needs_shelter(board, board.turn),
+        king_needs_shelter(board, board.turn) or unsettled_king,
     ):
         score -= QUIET_RIM_KNIGHT_DEVELOPMENT_PENALTY
     return score
@@ -60,7 +63,7 @@ def _heavy_or_pawn_opening_discipline_score(board: Board, kind: PieceType, move:
     if kind == PieceType.PAWN and int(move.end.col) not in {0, 1, 6, 7}:
         return 0
     undeveloped = undeveloped_minor_count(board)
-    needs_shelter = king_needs_shelter(board, board.turn)
+    needs_shelter = king_needs_shelter(board, board.turn) or _opening_king_unsettled(board)
     score = 0
     if kind == PieceType.QUEEN and _is_early_queen_sortie(board, move, undeveloped):
         score -= QUIET_EARLY_QUEEN_SORTIE_PENALTY
@@ -93,6 +96,13 @@ def _heavy_or_pawn_opening_discipline_score(board: Board, kind: PieceType, move:
         needs_shelter,
     ):
         score -= QUIET_FLANK_PAWN_POKE_PENALTY
+    if kind == PieceType.PAWN and _is_kingside_flank_lunge(
+        board,
+        move,
+        undeveloped,
+        needs_shelter,
+    ):
+        score -= QUIET_KINGSIDE_FLANK_LUNGE_PENALTY
     if kind == PieceType.ROOK and _is_early_rook_wander(
         board,
         move,
@@ -100,6 +110,13 @@ def _heavy_or_pawn_opening_discipline_score(board: Board, kind: PieceType, move:
         needs_shelter,
     ):
         score -= QUIET_EARLY_ROOK_WANDER_PENALTY
+    if kind == PieceType.ROOK and _is_uncastled_home_rank_rook_sidestep(
+        board,
+        move,
+        undeveloped,
+        needs_shelter,
+    ):
+        score -= QUIET_UNCASTLED_HOME_RANK_ROOK_PENALTY
     if kind == PieceType.ROOK and _is_opening_central_rook_move(
         board,
         move,
@@ -193,16 +210,49 @@ def _is_early_flank_pawn_poke(
     return end_row <= 4 if board.turn == Color.WHITE else end_row >= 3
 
 
+def _is_kingside_flank_lunge(
+    board: Board,
+    move: Move,
+    undeveloped: int,
+    needs_shelter: bool,
+) -> bool:
+    if undeveloped > 1 or not needs_shelter or not _queens_on_board(board):
+        return False
+    end_col = int(move.end.col)
+    if end_col not in {6, 7}:
+        return False
+    end_row = int(move.end.row)
+    return end_row <= 4 if board.turn == Color.WHITE else end_row >= 3
+
+
 def _is_early_rook_wander(
     board: Board,
     move: Move,
     undeveloped: int,
     needs_shelter: bool,
 ) -> bool:
-    if undeveloped < 2 or not needs_shelter:
+    if undeveloped < 1 or not needs_shelter:
         return False
     return heavy_piece_on_home_square(board.turn, PieceType.ROOK, move.start) and not (
         heavy_piece_on_home_square(board.turn, PieceType.ROOK, move.end)
+    )
+
+
+def _is_uncastled_home_rank_rook_sidestep(
+    board: Board,
+    move: Move,
+    undeveloped: int,
+    needs_shelter: bool,
+) -> bool:
+    if undeveloped > 1 or not needs_shelter or not _queens_on_board(board):
+        return False
+    home_row = 7 if board.turn == Color.WHITE else 0
+    end_col = int(move.end.col)
+    return (
+        int(move.start.row) == home_row
+        and int(move.end.row) == home_row
+        and heavy_piece_on_home_square(board.turn, PieceType.ROOK, move.start)
+        and end_col not in {0, 7}
     )
 
 
@@ -295,3 +345,19 @@ def _both_queens_on_board(board: Board) -> bool:
             if white_queen and black_queen:
                 return True
     return False
+
+
+def _queens_on_board(board: Board) -> bool:
+    return any(
+        piece is not None and piece.kind == PieceType.QUEEN
+        for row in board.board
+        for piece in row
+    )
+
+
+def _opening_king_unsettled(board: Board) -> bool:
+    king_square = board.find_king(board.turn)
+    if king_square is None or not _both_queens_on_board(board):
+        return False
+    home_row = 7 if board.turn == Color.WHITE else 0
+    return int(king_square.row) == home_row and int(king_square.col) == 4

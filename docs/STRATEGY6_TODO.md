@@ -92,35 +92,37 @@ Phase note: Task 0 is complete. The current baseline artifact lives in `tmp/stra
 
 ## 1.1 Add early rook-drift regressions
 
-- [ ] Add tests where the engine should reject early rook moves that do not solve a real problem.
-- [ ] Cover cases such as:
-  - [ ] `Ra1-c1` before castling
-  - [ ] `Ra1-b1` / `Rh1-g1` before coordination is complete
-  - [ ] rook sidesteps on the home rank that do not contest the center or improve safety
+- [x] Add tests where the engine should reject early rook moves that do not solve a real problem.
+- [x] Cover cases such as:
+  - [x] `Ra1-c1` before castling
+  - [x] `Ra1-b1` / `Rh1-g1` before coordination is complete
+  - [x] rook sidesteps on the home rank that do not contest the center or improve safety
 
 ## 1.2 Add premature flank-play regressions
 
-- [ ] Add tests where the engine should prefer development / castling over side pawn pushes.
-- [ ] Cover cases such as:
-  - [ ] `h2h4` before king safety is resolved
-  - [ ] `a`-pawn / `h`-pawn pushes that do not win space with a concrete follow-up
-  - [ ] kingside pawn loosening while queens and major pieces remain on the board
+- [x] Add tests where the engine should prefer development / castling over side pawn pushes.
+- [x] Cover cases such as:
+  - [x] `h2h4` before king safety is resolved
+  - [x] `a`-pawn / `h`-pawn pushes that do not win space with a concrete follow-up
+  - [x] kingside pawn loosening while queens and major pieces remain on the board
 
 ## 1.3 Add bad knight-development regressions
 
-- [ ] Add tests where the engine should prefer central development over rim development.
-- [ ] Cover cases such as:
-  - [ ] `...Nh6` vs `...Nf6`
-  - [ ] knight hops to the edge that do not support a concrete tactical idea
-  - [ ] development choices that delay castling or central control
+- [x] Add tests where the engine should prefer central development over rim development.
+- [x] Cover cases such as:
+  - [x] `...Nh6` vs `...Nf6`
+  - [x] knight hops to the edge that do not support a concrete tactical idea
+  - [x] development choices that delay castling or central control
 
 ## 1.4 Add “finish development first” regressions
 
-- [ ] Add tests where the engine should complete natural development before low-value side moves.
-- [ ] Cover cases such as:
-  - [ ] bishop development before rook drift
-  - [ ] castling before flank expansion
-  - [ ] central pawn support / recapture before decorative rook activity
+- [x] Add tests where the engine should complete natural development before low-value side moves.
+- [x] Cover cases such as:
+  - [x] bishop development before rook drift
+  - [x] castling before flank expansion
+  - [x] central pawn support / recapture before decorative rook activity
+
+Phase note: Task 1 is complete. `tests/test_ai_strategy6_regressions.py` now adds exact transcript-backed regressions for the move-11 `Rc1` rook drift, the move-15 `h4` flank lunge, and the `...Nh6` rim-knight choice, while the earlier STRATEGY5 opening suite continues to cover the companion `Ra1-b1` / `Rh1-g1`, castling-before-flank-expansion, and central-recapture-before-side-play cases. The supporting opening heuristics were tightened in `opening_development.py`, `opening_move_ordering.py`, and `evaluation.py` so those transcript positions now score home-rank rook drift, unsettled kingside pawn lunges, and early rim-knight development more harshly instead of letting rook-activity or shallow structure bonuses mask them.
 
 ---
 
