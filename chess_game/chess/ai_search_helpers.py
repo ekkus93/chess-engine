@@ -34,6 +34,8 @@ from chess_game.chess.evaluation_tables import MATERIAL_VALUES, STARTING_NON_PAW
 
 ROOT_TIEBREAK_MARGIN = 50
 ROOT_TIEBREAK_OVERRIDE = 24
+ROOT_TIEBREAK_MAX_SCORE_GAP = 96
+ROOT_TIEBREAK_WINNING_SCORE = 1000
 
 
 @dataclass(frozen=True)
@@ -95,16 +97,22 @@ def prefer_root_move(
     score_gap = child_score - selected_score
     if not is_maximizing:
         score_gap = -score_gap
+    tiebreak_gap = (
+        root_tiebreak - best_root_tiebreak
+        if is_maximizing
+        else best_root_tiebreak - root_tiebreak
+    )
     if score_gap > ROOT_TIEBREAK_MARGIN:
         return True
     if score_gap < -ROOT_TIEBREAK_MARGIN:
-        return False
-    if root_tiebreak != best_root_tiebreak:
-        tiebreak_gap = (
-            root_tiebreak - best_root_tiebreak
-            if is_maximizing
-            else best_root_tiebreak - root_tiebreak
+        return _strong_root_tiebreak_override(
+            is_maximizing,
+            child_score,
+            selected_score,
+            score_gap,
+            tiebreak_gap,
         )
+    if root_tiebreak != best_root_tiebreak:
         if score_gap > 0:
             return not (
                 -tiebreak_gap >= ROOT_TIEBREAK_OVERRIDE and -tiebreak_gap > score_gap
@@ -113,6 +121,32 @@ def prefer_root_move(
             return tiebreak_gap >= ROOT_TIEBREAK_OVERRIDE and tiebreak_gap > -score_gap
         return tiebreak_gap > 0
     return score_gap > 0
+
+
+def _strong_root_tiebreak_override(
+    is_maximizing: bool,
+    child_score: int,
+    selected_score: int,
+    score_gap: int,
+    tiebreak_gap: int,
+) -> bool:
+    if not _is_clearly_winning_choice(is_maximizing, child_score, selected_score):
+        return False
+    return (
+        tiebreak_gap >= -score_gap + ROOT_TIEBREAK_OVERRIDE
+        and -score_gap <= ROOT_TIEBREAK_MAX_SCORE_GAP
+    )
+
+
+def _is_clearly_winning_choice(
+    is_maximizing: bool,
+    child_score: int,
+    selected_score: int,
+) -> bool:
+    threshold = ROOT_TIEBREAK_WINNING_SCORE
+    if is_maximizing:
+        return child_score >= threshold and selected_score >= threshold
+    return child_score <= -threshold and selected_score <= -threshold
 
 
 def record_root_research(context: Any) -> None:

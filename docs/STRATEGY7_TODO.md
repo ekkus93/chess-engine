@@ -223,41 +223,41 @@ Task 3 is complete. `tests/test_ai_strategy7_regressions.py` now includes six ne
 
 ## 4.1 Audit current conversion guidance
 
-- [ ] Review the existing conversion, defensive-endgame, and passer-race modules against the new transcript.
-- [ ] Identify where the engine already converts correctly and where root choice still drifts.
-- [ ] Save the audit under `tmp/`.
+- [x] Review the existing conversion, defensive-endgame, and passer-race modules against the new transcript.
+- [x] Identify where the engine already converts correctly and where root choice still drifts.
+- [x] Save the audit under `tmp/`.
 
 ## 4.2 Strengthen evaluation for practical conversion
 
-- [ ] Add or tighten heuristics for:
-  - [ ] forcing trade quality when ahead
-  - [ ] king activation behind the main passer
-  - [ ] rook / queen support of promotion squares
-  - [ ] suppression of enemy checking counterplay
-  - [ ] avoiding unnecessary pawn grabs away from the main winning plan
+- [x] Add or tighten heuristics for:
+  - [x] forcing trade quality when ahead
+  - [x] king activation behind the main passer
+  - [x] rook / queen support of promotion squares
+  - [x] suppression of enemy checking counterplay
+  - [x] avoiding unnecessary pawn grabs away from the main winning plan
 
 ## 4.3 Strengthen quiet move ordering for conversion
 
-- [ ] Prefer:
-  - [ ] forcing captures that remove counterplay
-  - [ ] trade offers that simplify into known wins
-  - [ ] moves that improve passer support or king cut-off
-- [ ] Demote:
-  - [ ] harmless side checks
-  - [ ] lateral rook shuffles without new pressure
-  - [ ] queen drift that does not improve mate or promotion chances
+- [x] Prefer:
+  - [x] forcing captures that remove counterplay
+  - [x] trade offers that simplify into known wins
+  - [x] moves that improve passer support or king cut-off
+- [x] Demote:
+  - [x] harmless side checks
+  - [x] lateral rook shuffles without new pressure
+  - [x] queen drift that does not improve mate or promotion chances
 
 ## 4.4 Strengthen root tie-break behavior for conversion
 
-- [ ] Ensure near-equal root choices prefer the most forcing practical win.
-- [ ] Reward:
-  - [ ] shorter route to promotion
-  - [ ] lower counterplay exposure
-  - [ ] cleaner transition into technically won endgames
+- [x] Ensure near-equal root choices prefer the most forcing practical win.
+- [x] Reward:
+  - [x] shorter route to promotion
+  - [x] lower counterplay exposure
+  - [x] cleaner transition into technically won endgames
 
 Phase note:
 
-- [ ] Task 4 complete note
+- [x] Task 4 is complete. The audit artifact lives in `tmp/strategy7_task4_audit.txt`, the fresh self-play transcript lives in `tmp/strategy7_task4_w3b3_20260526T212046Z.txt`, and the review note lives in `tmp/strategy7_task4_review.txt`. `conversion_guidance.py` now extends beyond simple endgames into clearly winning outside-passer heavy-piece battles, but only when the winning side is not under urgent king danger; it now scores trade quality, king support behind the main passer, promotion-lane support, counterplay suppression, and anti-drift geometry, while `ai_search_helpers.py` allows a bounded root tie-break override only in clearly winning positions. The transcript-backed `Bh3` conversion drift no longer survives at depth 3, White converted the fresh review game cleanly by move 86, and the main remaining visible blemish is that Black still repeated the old `...h5` / `...h4` shell-loosening pattern before the conversion phase.
 
 ---
 

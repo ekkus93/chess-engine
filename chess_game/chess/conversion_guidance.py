@@ -1,10 +1,17 @@
-"""Shared guidance for converting materially winning simple endgames."""
+"""Shared guidance for converting materially winning endgames."""
 
-from chess_game.chess.board.attack_utils import piece_attacks_square
+from dataclasses import dataclass
+
 from chess_game.chess.board import Board
+from chess_game.chess.board.attack_utils import piece_attacks_square
 from chess_game.chess.board.game_state import is_in_check
-from chess_game.chess.move import Move
 from chess_game.chess.constants import get_square_constant
+from chess_game.chess.defensive_priorities import (
+    DANGEROUS_KING_PRESSURE_THRESHOLD,
+    king_danger_index,
+)
+from chess_game.chess.evaluation_tables import MATERIAL_VALUES
+from chess_game.chess.move import Move
 from chess_game.chess.strategy_utils import (
     heavy_piece_file_support_rows,
     is_advanced_passer,
@@ -17,30 +24,57 @@ from chess_game.chess.strategy_utils import (
 from chess_game.chess.types import Color, PieceType
 
 _MAX_NON_KING_PIECES = 5
+_MAX_HEAVY_CONVERSION_NON_KING_PIECES = 22
+_MIN_HEAVY_CONVERSION_LEAD = MATERIAL_VALUES[PieceType.BISHOP]
 _EVAL_SCALE = 3
 _ORDER_SCALE = 4
 _ROOT_SCALE = 6
 _CHECK_DRIFT_PENALTY = 28
 _KING_ACTIVATION_BONUS = 10
-_DEFENDER_PRESSURE_BONUS = 12
+_TRADE_QUALITY_BONUS = 18
 _PASSER_SUPPORT_BONUS = 10
+_PROMOTION_LANE_SUPPORT_BONUS = 12
+_PROMOTION_SQUARE_SUPPORT_BONUS = 18
 _COUNTERPLAY_SUPPRESSION_BONUS = 8
+_COUNTERPLAY_LINE_PENALTY = 10
 _KING_CUTOFF_BONUS = 10
 _ENEMY_PASSER_SUPPRESSION_BONUS = 12
 _SEVENTH_RANK_PRESSURE_BONUS = 30
+_MINOR_LANE_SUPPORT_BONUS = 12
+_MINOR_EDGE_DRIFT_PENALTY = 12
+_HEAVY_SIDE_DRIFT_PENALTY = 8
+
+
+@dataclass(frozen=True)
+class ConversionSideState:
+    """Key conversion geometry for one side."""
+
+    color: Color
+    king: tuple[int, int]
+    passers: list[tuple[int, int]]
+    heavy: list[tuple[int, int, PieceType]]
+
+
+@dataclass(frozen=True)
+class ConversionContext:
+    """Cached geometry for one side's practical conversion plan."""
+
+    color: Color
+    own: ConversionSideState
+    enemy: ConversionSideState
+    main_passer: tuple[int, int] | None
+    is_heavy_conversion: bool
 
 
 def winning_conversion_evaluation_score(board: Board) -> int:
-    """Return a signed score for simple materially winning conversion geometry."""
+    """Return a signed score for materially winning conversion geometry."""
 
-    leading_color = _leading_color(board)
-    if (
-        leading_color is None
-        or not _is_simple_conversion_endgame(board)
-        or not _has_meaningful_counterplay(board, leading_color)
-    ):
+    context = _conversion_context(board)
+    if context is None:
         return 0
-    return _color_sign(leading_color) * _conversion_side_score(board, leading_color) * _EVAL_SCALE
+    if _conversion_paused_for_king_danger(board, context):
+        return 0
+    return _color_sign(context.color) * _conversion_side_score(board, context) * _EVAL_SCALE
 
 
 def winning_conversion_order_bonus(
@@ -51,18 +85,29 @@ def winning_conversion_order_bonus(
 ) -> int:
     """Return a quiet-order bonus for clearer winning conversion plans."""
 
+    if kind not in {
+        PieceType.KING,
+        PieceType.QUEEN,
+        PieceType.ROOK,
+        PieceType.BISHOP,
+        PieceType.PAWN,
+    }:
+        return 0
+    context = _conversion_context(board)
     if (
-        kind not in {PieceType.KING, PieceType.QUEEN, PieceType.ROOK, PieceType.PAWN}
-        or color != _leading_color(board)
-        or not _is_simple_conversion_endgame(board)
-        or not _has_meaningful_counterplay(board, color)
+        context is None
+        or color != context.color
+        or _conversion_paused_for_king_danger(board, context)
     ):
         return 0
     child_board = board.clone()
     if not child_board.apply_legal_move(move.start, move.end, promotion=move.promotion):
         return 0
-    before = _conversion_side_score(board, color)
-    after = _conversion_side_score(child_board, color)
+    child_context = _conversion_context(child_board)
+    if child_context is None:
+        return 0
+    before = _conversion_side_score(board, context)
+    after = _conversion_side_score(child_board, child_context)
     bonus = (after - before) * _ORDER_SCALE
     if kind == PieceType.KING and after > before:
         bonus += _KING_ACTIVATION_BONUS
@@ -79,45 +124,80 @@ def winning_conversion_root_bonus(
 ) -> int:
     """Return a root-only bonus for cleaner winning conversion choices."""
 
+    context = _conversion_context(board)
+    child_context = _conversion_context(child_board)
     if (
-        color != _leading_color(board)
-        or not _is_simple_conversion_endgame(board)
-        or not _has_meaningful_counterplay(board, color)
+        context is None
+        or child_context is None
+        or color != context.color
+        or _conversion_paused_for_king_danger(board, context)
     ):
         return 0
-    before = _conversion_side_score(board, color)
-    after = _conversion_side_score(child_board, color)
+    before = _conversion_side_score(board, context)
+    after = _conversion_side_score(child_board, child_context)
     return (after - before) * _ROOT_SCALE
 
 
-def _conversion_side_score(board: Board, color: Color) -> int:
-    own_king = board.find_king(color)
-    enemy_color = _opponent(color)
-    enemy_king = board.find_king(enemy_color)
-    if own_king is None or enemy_king is None:
-        return 0
-    own_king_pos = (int(own_king.row), int(own_king.col))
-    enemy_king_pos = (int(enemy_king.row), int(enemy_king.col))
-    own_passers = passed_pawns_for_color(board, color)
-    enemy_passers = passed_pawns_for_color(board, enemy_color)
-    enemy_heavy = [
-        (row, col, piece.kind)
-        for piece, row, col in iter_color_pieces(board, enemy_color)
-        if piece.kind in {PieceType.ROOK, PieceType.QUEEN}
-    ]
+def _conversion_side_score(board: Board, context: ConversionContext) -> int:
     score = 0
-    score += _king_activation_score(own_king_pos, enemy_king_pos, own_passers)
-    score += _passer_support_score(board, color, own_passers)
-    score += _defender_pressure_score(board, color, enemy_heavy)
-    score += _counterplay_suppression_score(board, color, own_king_pos, own_passers)
-    score += _enemy_passer_suppression_score(board, color, enemy_passers)
-    score += _king_cutoff_score(board, color, enemy_king_pos)
-    score += _seventh_rank_pressure_score(board, color, own_passers)
+    score += _king_activation_score(context)
+    score += _passer_support_score(board, context)
+    score += _trade_quality_score(board, context)
+    score += _promotion_lane_support_score(board, context)
+    score += _minor_conversion_support_score(board, context)
+    score += _counterplay_suppression_score(board, context)
+    score += _enemy_passer_suppression_score(context)
+    score += _king_cutoff_score(context)
+    score += _seventh_rank_pressure_score(context)
     return score
 
 
 def _leading_color(board: Board) -> Color | None:
     return materially_ahead_color(board)
+
+
+def _conversion_context(board: Board) -> ConversionContext | None:
+    color = _leading_color(board)
+    if color is None:
+        return None
+    enemy_color = _opponent(color)
+    own_king = board.find_king(color)
+    enemy_king = board.find_king(enemy_color)
+    if own_king is None or enemy_king is None:
+        return None
+    own_passers = passed_pawns_for_color(board, color)
+    enemy_passers = passed_pawns_for_color(board, enemy_color)
+    own_heavy = _heavy_piece_positions(board, color)
+    enemy_heavy = _heavy_piece_positions(board, enemy_color)
+    main_passer = _main_passer(color, own_passers)
+    if not _has_meaningful_counterplay(enemy_heavy, enemy_passers):
+        return None
+    is_heavy_conversion = _is_heavy_conversion_battle(
+        board,
+        color,
+        main_passer,
+        own_heavy,
+        enemy_heavy,
+    )
+    if not (_is_simple_conversion_endgame(board) or is_heavy_conversion):
+        return None
+    return ConversionContext(
+        color=color,
+        own=ConversionSideState(
+            color=color,
+            king=(int(own_king.row), int(own_king.col)),
+            passers=own_passers,
+            heavy=own_heavy,
+        ),
+        enemy=ConversionSideState(
+            color=enemy_color,
+            king=(int(enemy_king.row), int(enemy_king.col)),
+            passers=enemy_passers,
+            heavy=enemy_heavy,
+        ),
+        main_passer=main_passer,
+        is_heavy_conversion=is_heavy_conversion,
+    )
 
 
 def _is_simple_conversion_endgame(board: Board) -> bool:
@@ -128,135 +208,191 @@ def _is_simple_conversion_endgame(board: Board) -> bool:
     )
 
 
-def _has_meaningful_counterplay(board: Board, color: Color) -> bool:
-    enemy_color = _opponent(color)
-    enemy_heavy = any(
-        piece.kind in {PieceType.ROOK, PieceType.QUEEN}
-        for piece, _, _ in iter_color_pieces(board, enemy_color)
+def _is_heavy_conversion_battle(
+    board: Board,
+    color: Color,
+    main_passer: tuple[int, int] | None,
+    own_heavy: list[tuple[int, int, PieceType]],
+    enemy_heavy: list[tuple[int, int, PieceType]],
+) -> bool:
+    if not _has_heavy_conversion_passer(color, main_passer):
+        return False
+    if not own_heavy or not enemy_heavy:
+        return False
+    if _material_lead(board, color) < _MIN_HEAVY_CONVERSION_LEAD:
+        return False
+    return len(non_king_piece_kinds(board)) <= _MAX_HEAVY_CONVERSION_NON_KING_PIECES
+
+
+def _has_meaningful_counterplay(
+    enemy_heavy: list[tuple[int, int, PieceType]],
+    enemy_passers: list[tuple[int, int]],
+) -> bool:
+    return bool(enemy_heavy or enemy_passers)
+
+
+def _is_heavy_conversion_passer(color: Color, row: int) -> bool:
+    return row <= 4 if color == Color.WHITE else row >= 3
+
+
+def _has_heavy_conversion_passer(
+    color: Color,
+    main_passer: tuple[int, int] | None,
+) -> bool:
+    return (
+        main_passer is not None
+        and _is_heavy_conversion_passer(color, main_passer[0])
+        and _is_outside_passer(main_passer[1])
     )
-    return enemy_heavy or bool(passed_pawns_for_color(board, enemy_color))
 
 
-def _king_activation_score(
-    own_king: tuple[int, int],
-    enemy_king: tuple[int, int],
-    own_passers: list[tuple[int, int]],
-) -> int:
-    if own_passers:
-        nearest = min(_king_distance(own_king, pawn) for pawn in own_passers)
-        enemy_nearest = min(_king_distance(enemy_king, pawn) for pawn in own_passers)
+def _conversion_paused_for_king_danger(
+    board: Board,
+    context: ConversionContext,
+) -> bool:
+    return (
+        king_danger_index(board, context.color) >= DANGEROUS_KING_PRESSURE_THRESHOLD
+        or (context.is_heavy_conversion and board.turn != context.color)
+    )
+
+
+def _king_activation_score(context: ConversionContext) -> int:
+    if context.own.passers:
+        nearest = min(_king_distance(context.own.king, pawn) for pawn in context.own.passers)
+        enemy_nearest = min(
+            _king_distance(context.enemy.king, pawn)
+            for pawn in context.own.passers
+        )
         score = max(0, 8 - nearest) * _KING_ACTIVATION_BONUS
         if nearest + 1 < enemy_nearest:
             score += _KING_ACTIVATION_BONUS
+        if (
+            context.main_passer is not None
+            and _king_is_behind_main_passer(
+                context.color,
+                context.own.king,
+                context.main_passer,
+            )
+        ):
+            score += _KING_ACTIVATION_BONUS
         return score
-    return max(0, 8 - _king_distance(own_king, enemy_king)) * (_KING_ACTIVATION_BONUS // 2)
+    return max(0, 8 - _king_distance(context.own.king, context.enemy.king)) * (
+        _KING_ACTIVATION_BONUS // 2
+    )
 
 
-def _passer_support_score(
-    board: Board,
-    color: Color,
-    own_passers: list[tuple[int, int]],
-) -> int:
+def _passer_support_score(board: Board, context: ConversionContext) -> int:
     score = 0
-    for pawn_row, pawn_col in own_passers:
-        if not is_advanced_passer(color, pawn_row):
+    for pawn_row, pawn_col in context.own.passers:
+        if not is_advanced_passer(context.color, pawn_row):
             continue
-        for row in heavy_piece_file_support_rows(board, color, (pawn_row, pawn_col)):
-            if _is_behind_pawn(color, row, pawn_row):
+        for row in heavy_piece_file_support_rows(board, context.color, (pawn_row, pawn_col)):
+            if _is_behind_pawn(context.color, row, pawn_row):
                 score += _PASSER_SUPPORT_BONUS
     return score
 
 
-def _defender_pressure_score(
-    board: Board,
-    color: Color,
-    enemy_heavy: list[tuple[int, int, PieceType]],
-) -> int:
+def _trade_quality_score(board: Board, context: ConversionContext) -> int:
     score = 0
-    for piece, _, _ in iter_color_pieces(board, color):
+    for piece, _, _ in iter_color_pieces(board, context.color):
         if piece.kind not in {PieceType.ROOK, PieceType.QUEEN}:
             continue
-        for row, col, _ in enemy_heavy:
+        for row, col, _ in context.enemy.heavy:
             if piece_attacks_square(
                 piece,
                 piece.square,
                 _square_tuple_to_constant(row, col),
                 board,
             ):
-                score += _DEFENDER_PRESSURE_BONUS
+                score += _TRADE_QUALITY_BONUS
     return score
 
 
-def _counterplay_suppression_score(
-    board: Board,
-    color: Color,
-    own_king: tuple[int, int],
-    own_passers: list[tuple[int, int]],
-) -> int:
-    enemy_color = _opponent(color)
+def _promotion_lane_support_score(board: Board, context: ConversionContext) -> int:
+    lane_squares = _conversion_lane_squares(context)
+    if not lane_squares:
+        return 0
     score = 0
-    for piece, row, col in iter_color_pieces(board, enemy_color):
+    promotion_square = lane_squares[-1]
+    for piece, _, _ in iter_color_pieces(board, context.color):
+        if piece.kind not in {PieceType.ROOK, PieceType.QUEEN, PieceType.BISHOP}:
+            continue
+        for square in lane_squares[:-1]:
+            if piece_attacks_square(piece, piece.square, _square_tuple_to_constant(*square), board):
+                score += _PROMOTION_LANE_SUPPORT_BONUS
+        if piece_attacks_square(
+            piece,
+            piece.square,
+            _square_tuple_to_constant(*promotion_square),
+            board,
+        ):
+            score += _PROMOTION_SQUARE_SUPPORT_BONUS
+    return score
+
+
+def _minor_conversion_support_score(board: Board, context: ConversionContext) -> int:
+    lane_squares = _conversion_lane_squares(context)
+    if not lane_squares:
+        return 0
+    score = 0
+    for piece, row, col in iter_color_pieces(board, context.color):
+        if piece.kind not in {PieceType.BISHOP, PieceType.KNIGHT}:
+            continue
+        supports_lane = any(
+            piece_attacks_square(piece, piece.square, _square_tuple_to_constant(*square), board)
+            for square in lane_squares
+        )
+        if supports_lane:
+            score += _MINOR_LANE_SUPPORT_BONUS
+            continue
+        if row in {0, 7} or col in {0, 7}:
+            score -= _MINOR_EDGE_DRIFT_PENALTY
+    return score
+
+
+def _counterplay_suppression_score(board: Board, context: ConversionContext) -> int:
+    score = 0
+    own_passer_file = None if context.main_passer is None else context.main_passer[1]
+    for piece, row, col in iter_color_pieces(board, context.enemy.color):
         if piece.kind not in {PieceType.ROOK, PieceType.QUEEN}:
             continue
-        if row == own_king[0] or col == own_king[1]:
+        if row == context.own.king[0] or col == context.own.king[1]:
             score -= _COUNTERPLAY_SUPPRESSION_BONUS
-        if any(col == pawn_col for _, pawn_col in own_passers):
-            score -= _COUNTERPLAY_SUPPRESSION_BONUS
-    return score
+        if own_passer_file is not None and col == own_passer_file:
+            score -= _COUNTERPLAY_SUPPRESSION_BONUS + _COUNTERPLAY_LINE_PENALTY
+    return score - _heavy_side_drift_penalty(context)
 
 
-def _enemy_passer_suppression_score(
-    board: Board,
-    color: Color,
-    enemy_passers: list[tuple[int, int]],
-) -> int:
+def _enemy_passer_suppression_score(context: ConversionContext) -> int:
     score = 0
-    own_king = board.find_king(color)
-    if own_king is None:
-        return 0
-    own_king_pos = (int(own_king.row), int(own_king.col))
-    enemy_color = _opponent(color)
-    for pawn_row, pawn_col in enemy_passers:
-        block_row = pawn_row + (-1 if enemy_color == Color.WHITE else 1)
-        block_square = (block_row, pawn_col)
-        if own_king_pos == block_square:
+    for pawn_row, pawn_col in context.enemy.passers:
+        block_row = pawn_row + (-1 if context.enemy.color == Color.WHITE else 1)
+        if context.own.king == (block_row, pawn_col):
             score += _ENEMY_PASSER_SUPPRESSION_BONUS
-        for piece, row, col in iter_color_pieces(board, color):
-            if piece.kind not in {PieceType.ROOK, PieceType.QUEEN}:
-                continue
+        for row, col, _ in context.own.heavy:
             if col == pawn_col and abs(row - pawn_row) >= 1:
                 score += _ENEMY_PASSER_SUPPRESSION_BONUS // 2
     return score
 
 
-def _king_cutoff_score(
-    board: Board,
-    color: Color,
-    enemy_king: tuple[int, int],
-) -> int:
+def _king_cutoff_score(context: ConversionContext) -> int:
     score = 0
-    for piece, row, col in iter_color_pieces(board, color):
-        if piece.kind not in {PieceType.ROOK, PieceType.QUEEN}:
-            continue
-        if row == enemy_king[0] and abs(col - enemy_king[1]) >= 2:
+    for row, col, _ in context.own.heavy:
+        if row == context.enemy.king[0] and abs(col - context.enemy.king[1]) >= 2:
             score += _KING_CUTOFF_BONUS
-        if col == enemy_king[1] and abs(row - enemy_king[0]) >= 2:
+        if col == context.enemy.king[1] and abs(row - context.enemy.king[0]) >= 2:
             score += _KING_CUTOFF_BONUS
     return score
 
 
-def _seventh_rank_pressure_score(
-    board: Board,
-    color: Color,
-    own_passers: list[tuple[int, int]],
-) -> int:
-    if not any(is_advanced_passer(color, pawn_row) for pawn_row, _ in own_passers):
+def _seventh_rank_pressure_score(context: ConversionContext) -> int:
+    if not any(is_advanced_passer(context.color, pawn_row) for pawn_row, _ in context.own.passers):
         return 0
-    target_row = 1 if color == Color.WHITE else 6
+    target_row = 1 if context.color == Color.WHITE else 6
     return sum(
         _SEVENTH_RANK_PRESSURE_BONUS
-        for piece, row, _ in iter_color_pieces(board, color)
-        if piece.kind in {PieceType.ROOK, PieceType.QUEEN} and row == target_row
+        for row, _, _ in context.own.heavy
+        if row == target_row
     )
 
 
@@ -264,12 +400,99 @@ def _is_behind_pawn(color: Color, piece_row: int, pawn_row: int) -> bool:
     return piece_row > pawn_row if color == Color.WHITE else piece_row < pawn_row
 
 
+def _king_is_behind_main_passer(
+    color: Color,
+    own_king: tuple[int, int],
+    main_passer: tuple[int, int],
+) -> bool:
+    pawn_row, pawn_col = main_passer
+    row_ok = own_king[0] >= pawn_row if color == Color.WHITE else own_king[0] <= pawn_row
+    return row_ok and abs(own_king[1] - pawn_col) <= 1
+
+
 def _move_checks_opponent(board: Board, color: Color) -> bool:
     return is_in_check(board, _opponent(color))
 
 
+def _heavy_piece_positions(
+    board: Board,
+    color: Color,
+) -> list[tuple[int, int, PieceType]]:
+    return [
+        (row, col, piece.kind)
+        for piece, row, col in iter_color_pieces(board, color)
+        if piece.kind in {PieceType.ROOK, PieceType.QUEEN}
+    ]
+
+
+def _main_passer(
+    color: Color,
+    passers: list[tuple[int, int]],
+) -> tuple[int, int] | None:
+    if not passers:
+        return None
+    return min(
+        passers,
+        key=lambda pawn: (
+            _promotion_distance(color, pawn[0]),
+            -_outside_file_bonus(pawn[1]),
+        ),
+    )
+
+
+def _conversion_lane_squares(context: ConversionContext) -> list[tuple[int, int]]:
+    if context.main_passer is None:
+        return []
+    pawn_row, pawn_col = context.main_passer
+    direction = -1 if context.color == Color.WHITE else 1
+    promotion_row = 0 if context.color == Color.WHITE else 7
+    squares: list[tuple[int, int]] = []
+    current_row = pawn_row + direction
+    while 0 <= current_row < 8:
+        squares.append((current_row, pawn_col))
+        if current_row == promotion_row:
+            break
+        current_row += direction
+    return squares
+
+
+def _heavy_side_drift_penalty(context: ConversionContext) -> int:
+    if context.main_passer is None:
+        return 0
+    _, pawn_col = context.main_passer
+    return sum(
+        _HEAVY_SIDE_DRIFT_PENALTY
+        for _, col, _ in context.own.heavy
+        if abs(col - pawn_col) >= 4
+    )
+
+
+def _material_lead(board: Board, color: Color) -> int:
+    own_material = 0
+    enemy_material = 0
+    for piece, _, _ in iter_color_pieces(board, color):
+        if piece.kind != PieceType.KING:
+            own_material += MATERIAL_VALUES[piece.kind]
+    for piece, _, _ in iter_color_pieces(board, _opponent(color)):
+        if piece.kind != PieceType.KING:
+            enemy_material += MATERIAL_VALUES[piece.kind]
+    return own_material - enemy_material
+
+
 def _square_tuple_to_constant(row: int, col: int):
     return get_square_constant(row, col)
+
+
+def _promotion_distance(color: Color, row: int) -> int:
+    return row if color == Color.WHITE else 7 - row
+
+
+def _outside_file_bonus(col: int) -> int:
+    return max(col, 7 - col)
+
+
+def _is_outside_passer(col: int) -> bool:
+    return col in {0, 1, 6, 7}
 
 
 def _king_distance(first: tuple[int, int], second: tuple[int, int]) -> int:

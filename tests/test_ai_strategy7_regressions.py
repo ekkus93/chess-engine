@@ -321,3 +321,18 @@ def test_strategy7_order_prefers_stabilizing_bishop_move_over_bh3_drift() -> Non
         bishop_drift,
         None,
     )
+
+
+def test_strategy7_search_rejects_bh3_in_winning_conversion_position() -> None:
+    """The winning side should stop replaying the transcript's decorative Bh3 drift."""
+
+    board = _task3_bishop_drift_board()
+    best_move = get_best_move(board, depth=3)
+
+    assert best_move != LegalMove(start=sq("f1"), end=sq("h3"))
+    assert best_move in [
+        LegalMove(start=sq("f1"), end=sq("e2")),
+        LegalMove(start=sq("f1"), end=sq("g2")),
+        LegalMove(start=sq("d3"), end=sq("g3")),
+        LegalMove(start=sq("h1"), end=sq("g1")),
+    ]
