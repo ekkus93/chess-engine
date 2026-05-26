@@ -4,7 +4,7 @@ from chess_game.chess.board import Board
 from chess_game.chess.defensive_priorities import king_needs_shelter
 from chess_game.chess.move import Move
 from chess_game.chess.opening_guidance import opening_guidance_bonus
-from chess_game.chess.strategy_utils import center_distance
+from chess_game.chess.strategy_utils import both_queens_on_board, center_distance
 from chess_game.chess.types import Color, PieceType
 
 QUIET_DEVELOPING_MINOR_BONUS = 30
@@ -320,7 +320,7 @@ def _is_premature_king_walk(board: Board, move: Move, needs_shelter: bool) -> bo
         or abs(int(move.end.col) - int(move.start.col)) != 1
     ):
         return False
-    return _both_queens_on_board(board)
+    return both_queens_on_board(board)
 
 
 def heavy_piece_on_home_square(color: Color, kind: PieceType, square) -> bool:
@@ -343,22 +343,6 @@ def _home_knight_square(color: Color, square) -> bool:
     return (row, col) in {(home_row, 1), (home_row, 6)}
 
 
-def _both_queens_on_board(board: Board) -> bool:
-    white_queen = False
-    black_queen = False
-    for row in board.board:
-        for piece in row:
-            if piece is None or piece.kind != PieceType.QUEEN:
-                continue
-            if piece.color == Color.WHITE:
-                white_queen = True
-            else:
-                black_queen = True
-            if white_queen and black_queen:
-                return True
-    return False
-
-
 def _queens_on_board(board: Board) -> bool:
     return any(
         piece is not None and piece.kind == PieceType.QUEEN
@@ -369,7 +353,7 @@ def _queens_on_board(board: Board) -> bool:
 
 def _opening_king_unsettled(board: Board) -> bool:
     king_square = board.find_king(board.turn)
-    if king_square is None or not _both_queens_on_board(board):
+    if king_square is None or not both_queens_on_board(board):
         return False
     home_row = 7 if board.turn == Color.WHITE else 0
     return int(king_square.row) == home_row and int(king_square.col) == 4

@@ -42,6 +42,33 @@ def _task4_castling_board() -> Board:
     return board
 
 
+def _task5_transition_board() -> Board:
+    return _board_from_moves(
+        [
+            ("g1", "f3"),
+            ("d7", "d5"),
+            ("b1", "c3"),
+            ("b8", "c6"),
+            ("b2", "b3"),
+            ("d5", "d4"),
+            ("c3", "e4"),
+            ("e7", "e5"),
+            ("c1", "b2"),
+            ("b7", "b6"),
+            ("a1", "c1"),
+            ("f8", "e7"),
+            ("g2", "g3"),
+            ("g8", "h6"),
+            ("h2", "h4"),
+            ("e8", "g8"),
+            ("f1", "g2"),
+            ("f7", "f5"),
+            ("g2", "h3"),
+            ("f5", "e4"),
+        ]
+    )
+
+
 def test_strategy6_order_prefers_development_over_early_rc1_from_transcript() -> None:
     """The opening should score a normal kingside setup above the move-11 rook drift."""
 
@@ -294,3 +321,71 @@ def test_strategy6_evaluation_penalizes_abandoned_castling_rights_without_compen
     assert get_evaluation_breakdown(intact_board)["development"] > get_evaluation_breakdown(
         lost_rights_board
     )["development"]
+
+
+def test_strategy6_search_prefers_clean_central_recapture_in_transition() -> None:
+    """Black should complete the central recapture instead of drifting after ...fxe4."""
+
+    board = _task5_transition_board()
+    board.make_move(sq("f3"), sq("d4"))
+
+    assert get_best_move(board, depth=3) == LegalMove(start=sq("c6"), end=sq("d4"))
+
+
+def test_strategy6_search_keeps_king_safer_than_g_pawn_lunge_in_transition() -> None:
+    """The tactical transition should keep development pressure before a kingside pawn lunge."""
+
+    board = _task5_transition_board()
+    board.make_move(sq("f3"), sq("d4"))
+    board.make_move(sq("c6"), sq("d4"))
+    board.make_move(sq("h3"), sq("g2"))
+
+    assert get_best_move(board, depth=3) == LegalMove(start=sq("c8"), end=sq("f5"))
+
+
+def test_strategy6_search_prefers_clearer_knight_route_over_na7_in_transition() -> None:
+    """The winning knight should head for d6 instead of retreating to the rim."""
+
+    board = _task5_transition_board()
+    for start, end in [
+        ("f3", "d4"),
+        ("c6", "d4"),
+        ("h3", "g2"),
+        ("c8", "f5"),
+        ("c2", "c3"),
+        ("d4", "b5"),
+        ("b3", "b4"),
+        ("h6", "f7"),
+        ("d1", "b3"),
+        ("a7", "a5"),
+        ("a2", "a4"),
+    ]:
+        board.make_move(sq(start), sq(end))
+
+    assert get_best_move(board, depth=3) == LegalMove(start=sq("b5"), end=sq("d6"))
+
+
+def test_strategy6_search_rejects_h5_when_simpler_transition_exists() -> None:
+    """Black should not loosen the castled shell with ...h5 when cleaner moves exist."""
+
+    board = _task5_transition_board()
+    for start, end in [
+        ("f3", "d4"),
+        ("c6", "d4"),
+        ("h3", "g2"),
+        ("c8", "f5"),
+        ("c2", "c3"),
+        ("d4", "b5"),
+        ("b3", "b4"),
+        ("h6", "f7"),
+        ("d1", "b3"),
+        ("a7", "a5"),
+        ("a2", "a4"),
+        ("b5", "d6"),
+        ("e1", "g1"),
+    ]:
+        board.make_move(sq(start), sq(end))
+
+    best_move = get_best_move(board, depth=3)
+
+    assert best_move != LegalMove(start=sq("h7"), end=sq("h5"))

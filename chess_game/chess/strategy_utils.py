@@ -1,9 +1,9 @@
 """Shared helpers for strategic evaluation and move ordering."""
 
 from chess_game.chess.board import Board
+from chess_game.chess.constants import ConstantSquare, get_col_constant, get_row_constant
 from chess_game.chess.evaluation_tables import MATERIAL_VALUES
 from chess_game.chess.move import Move
-from chess_game.chess.constants import ConstantSquare
 from chess_game.chess.types import Color, PieceType
 
 
@@ -39,6 +39,76 @@ def king_coordinates(board: Board, color: Color) -> tuple[int, int] | None:
     if king_square is None:
         return None
     return int(king_square.row), int(king_square.col)
+
+
+def is_castled_king(color: Color, square: ConstantSquare) -> bool:
+    """Return True when a king occupies a standard castled square."""
+
+    row = int(square.row)
+    col = int(square.col)
+    return (color == Color.WHITE and row == 7 and col in {2, 6}) or (
+        color == Color.BLACK and row == 0 and col in {2, 6}
+    )
+
+
+def both_queens_on_board(board: Board) -> bool:
+    """Return True when both sides still have their queens."""
+
+    white_queen = False
+    black_queen = False
+    for row in board.board:
+        for piece in row:
+            if piece is None or piece.kind != PieceType.QUEEN:
+                continue
+            if piece.color == Color.WHITE:
+                white_queen = True
+            else:
+                black_queen = True
+            if white_queen and black_queen:
+                return True
+    return False
+
+
+def exposed_shield_files(board: Board, color: Color, king_col: int) -> list[int]:
+    """Return king-adjacent files missing both the home and advanced shield pawn."""
+
+    exposed_files: list[int] = []
+    for file_index in _king_shield_files(king_col):
+        has_home_pawn, has_advanced_pawn = shield_pawn_support_state(board, color, file_index)
+        if has_home_pawn or has_advanced_pawn:
+            continue
+        exposed_files.append(file_index)
+    return exposed_files
+
+
+def shield_pawn_support_state(board: Board, color: Color, file_index: int) -> tuple[bool, bool]:
+    """Return whether a file still has its home or one-step-advanced shield pawn."""
+
+    shield_row = 6 if color == Color.WHITE else 1
+    advance_row = shield_row - 1 if color == Color.WHITE else shield_row + 1
+    home_square = ConstantSquare(
+        row=get_row_constant(shield_row),
+        col=get_col_constant(file_index),
+    )
+    advanced_square = ConstantSquare(
+        row=get_row_constant(advance_row),
+        col=get_col_constant(file_index),
+    )
+    home_pawn = board.get_piece(home_square)
+    advanced_pawn = board.get_piece(advanced_square)
+    has_home_pawn = (
+        home_pawn is not None and home_pawn.color == color and home_pawn.kind == PieceType.PAWN
+    )
+    has_advanced_pawn = (
+        advanced_pawn is not None
+        and advanced_pawn.color == color
+        and advanced_pawn.kind == PieceType.PAWN
+    )
+    return has_home_pawn, has_advanced_pawn
+
+
+def _king_shield_files(king_col: int) -> range:
+    return range(max(0, king_col - 1), min(7, king_col + 1) + 1)
 
 
 def center_distance(row: int, col: int) -> int:

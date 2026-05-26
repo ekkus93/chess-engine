@@ -1,5 +1,10 @@
 # Chess Engine Project Memory
 
+## 2026-05-26T13:19:13Z - GPT-5.4 - STRATEGY6 Task 5 tactical-transition phase
+- Finished `docs/STRATEGY6_TODO.md` Task 5 after auditing the transcript segment around `...f5`, `...fxe4`, the `d4` exchanges, and the later queen-trade / infiltration window. The main finding was that the central forcing sequence itself was acceptable, but deeper search could still drift into flashy castled-shell pawn pushes such as `...g5` / `...h5` instead of cleaner transition moves.
+- Added `tmp/strategy6_task5_audit.txt`, expanded `tests/test_ai_strategy6_regressions.py` with regressions for the clean `...c6d4` recapture, safer `...Bf5` / `...Nb5d6` transition choices, and rejecting `...h5` after White castles, then extracted `chess_game/chess/tactical_transition_guidance.py` so evaluation, quiet ordering, and root tie-breaks share the same tactical-transition heuristics.
+- Revalidated the repository green with `pylint chess_game`, `python -m pytest tests -q` (`538 passed`), and `python -m pytest tests/test_ai.py tests/test_ai_quality.py tests/test_ai_search.py tests/test_alpha_beta_pruning.py -q` (`120 passed`).
+
 ## 2026-05-26T12:14:01Z - GPT-5.4 - STRATEGY6 Task 4 king-safety urgency phase
 - Finished `docs/STRATEGY6_TODO.md` Task 4 by tightening `opening_development.py`, `evaluation.py`, and `opening_move_ordering.py` so late-opening king safety is treated as urgent: castling now wins more clearly over slow bishop/rook/flank/king-walk play, abandoned castling rights are penalized, and pre-castling shell damage plus `...Nh6`-style rim-knight shortcuts stay visible in evaluation.
 - Updated `tests/test_ai_strategy6_regressions.py` with transcript-backed and balanced-shell regressions for castling urgency while preserving the earlier Task 3 `...Nh6` rejection at depth 3.

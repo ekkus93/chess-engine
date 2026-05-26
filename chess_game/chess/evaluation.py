@@ -32,6 +32,9 @@ from chess_game.chess.opening_development import (
     unforced_shelter_loosening_penalty as _unforced_shelter_loosening_penalty,
     undeveloped_minor_piece_count as _undeveloped_minor_piece_count,
 )
+from chess_game.chess.tactical_transition_guidance import (
+    tactical_transition_king_penalty as _tactical_transition_king_penalty,
+)
 from chess_game.chess.pieces.piece_movers import PieceMovers
 from chess_game.chess.strategy_utils import (
     file_pawn_state as _file_pawn_state,
@@ -212,6 +215,7 @@ def _evaluate_king_safety(board: Board, middlegame_phase: int) -> int:
             king_square,
             attack_pressure,
         )
+        color_score -= _tactical_transition_king_penalty(board, color)
         color_score -= attack_pressure
         color_score -= _back_rank_tension(board, color, king_square)
         if _is_exposed_central_king(king_square):

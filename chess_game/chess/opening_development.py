@@ -19,7 +19,11 @@ from chess_game.chess.evaluation_tables import (
     KNIGHT_RIM_PENALTY,
     MINOR_COORDINATION_BONUS,
 )
-from chess_game.chess.strategy_utils import iter_color_pieces, path_clear_between
+from chess_game.chess.strategy_utils import (
+    iter_color_pieces,
+    path_clear_between,
+    shield_pawn_support_state,
+)
 from chess_game.chess.types import Color, PieceType
 
 
@@ -251,27 +255,12 @@ def unforced_shelter_loosening_penalty(
     if not _is_castled_king(color, square) or not _queens_on_board(board) or attack_pressure > 0:
         return 0
     king_col = int(square.col)
-    shield_row = 6 if color == Color.WHITE else 1
-    advance_row = shield_row - 1 if color == Color.WHITE else shield_row + 1
     penalty = 0
     for file_index in range(max(0, king_col - 1), min(7, king_col + 1) + 1):
-        home_square = ConstantSquare(
-            row=get_row_constant(shield_row),
-            col=get_col_constant(file_index),
-        )
-        home_pawn = board.get_piece(home_square)
-        if home_pawn is not None and home_pawn.color == color and home_pawn.kind == PieceType.PAWN:
+        has_home_pawn, has_advanced_pawn = shield_pawn_support_state(board, color, file_index)
+        if has_home_pawn:
             continue
-        advanced_square = ConstantSquare(
-            row=get_row_constant(advance_row),
-            col=get_col_constant(file_index),
-        )
-        advanced_pawn = board.get_piece(advanced_square)
-        if (
-            advanced_pawn is not None
-            and advanced_pawn.color == color
-            and advanced_pawn.kind == PieceType.PAWN
-        ):
+        if has_advanced_pawn:
             penalty += EARLY_FLANK_RAID_PENALTY
     return penalty
 

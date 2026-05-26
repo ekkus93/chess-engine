@@ -258,34 +258,36 @@ Phase note: Task 4 is complete. This phase added transcript-backed and balanced-
 
 ## 5.1 Review the critical tactical transition in the transcript
 
-- [ ] Audit the phase around:
-  - [ ] `...f5`
-  - [ ] `...fxe4`
-  - [ ] the knight exchanges on `d4`
-  - [ ] the queen trade / infiltration sequence
+- [x] Audit the phase around:
+  - [x] `...f5`
+  - [x] `...fxe4`
+  - [x] the knight exchanges on `d4`
+  - [x] the queen trade / infiltration sequence
 
 ## 5.2 Add regressions for practical tactical choices
 
-- [ ] Add tests where the engine should prefer:
-  - [ ] clean central recaptures
-  - [ ] safe simplification into a better structure
-  - [ ] tactical lines that keep the king safer
-  - [ ] tactical wins that preserve conversion clarity
+- [x] Add tests where the engine should prefer:
+  - [x] clean central recaptures
+  - [x] safe simplification into a better structure
+  - [x] tactical lines that keep the king safer
+  - [x] tactical wins that preserve conversion clarity
 
 ## 5.3 Reduce flashy-but-fragile continuations
 
-- [ ] Demote tactical choices that:
-  - [ ] win a tempo but worsen king safety
-  - [ ] preserve material equality while losing structure and coordination
-  - [ ] chase a piece instead of fixing the main weakness
-  - [ ] create practical counterplay for no compensation
+- [x] Demote tactical choices that:
+  - [x] win a tempo but worsen king safety
+  - [x] preserve material equality while losing structure and coordination
+  - [x] chase a piece instead of fixing the main weakness
+  - [x] create practical counterplay for no compensation
 
 ## 5.4 Improve tactical transition scoring if needed
 
-- [ ] If current logic is too scattered, extract a shared helper/module for:
-  - [ ] practical simplification bonuses
-  - [ ] king-safe tactical transition bonuses
-  - [ ] “win the right pawn / piece, not just any active move” tie-breaks
+- [x] If current logic is too scattered, extract a shared helper/module for:
+  - [x] practical simplification bonuses
+  - [x] king-safe tactical transition bonuses
+  - [x] “win the right pawn / piece, not just any active move” tie-breaks
+
+Phase note: Task 5 is complete. The transcript audit in `tmp/strategy6_task5_audit.txt` showed that the central sequence itself (`...f5`, `...fxe4`, `...cxd4`) was mostly fine, but deeper search could drift into flashy castled-shell pawn pushes like `...g5` / `...h5` instead of cleaner tactical transitions such as `...Bf5`, `...Nd6`, or immediate simplification. This phase therefore added transcript-backed regressions for the clean central recapture, safer development over kingside pawn lunges, the clearer `...Nd6` conversion route, and rejecting `...h5` once White has castled, then extracted `tactical_transition_guidance.py` so quiet ordering, root tie-breaks, and evaluation share the same tactical-transition heuristics. The result is that depth-3 search now keeps the cleaner tactical route through this phase of the transcript while preserving the depth-5 timing guard and full test suite.
 
 ---
 
