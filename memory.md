@@ -5,6 +5,11 @@
 - Task 8 mostly audited existing coverage rather than adding broad new heuristics: the earlier anti-repetition, check-quality, conversion, defensive-endgame, and passer-race work already handled most of the quiet-search checklist.
 - Added a direct root-stability regression in `tests/test_ai_search.py`, marked Task 8 complete in `docs/STRATEGY5_TODO.md`, and revalidated the full repo green with `pylint chess_game` and `python -m pytest tests -q` (`522 passed`).
 
+## 2026-05-26T05:35:29Z - GPT-5.4 - STRATEGY5 Tasks 9-10 review-loop closeout
+- Added transcript-driven regressions in `tests/test_ai_review_loop.py` for the fresh STRATEGY5 review misses, then tightened opening move ordering and early rook-sidestep evaluation so the engine stops preferring the worst early `Rb1`/`...Nh6` practical choices from the review loop.
+- Saved the Task 9/10 review artifacts under `tmp/strategy5_task9_review.txt`, `tmp/strategy5_task10_w3b3.txt`, and `tmp/strategy5_task10_review.txt`, documenting that the final bounded transcript improved the opening sequence (`b3`/`Bb2` replaced the earlier move-9 rook shuffle) while a later `Rb1` remains the clearest follow-up blemish.
+- Closed `docs/STRATEGY5_TODO.md` Tasks 9 and 10 and revalidated the final repository state at `pylint chess_game`, `python -m pytest tests -q` (`524 passed`), and `python -m pytest tests/test_ai.py tests/test_ai_quality.py tests/test_ai_search.py tests/test_alpha_beta_pruning.py -q` (`120 passed`).
+
 ## 2026-05-26T03:57:02Z - GPT-5.4 - STRATEGY5 Task 7 passer-race slice
 - Added `chess_game/chess/passer_race_guidance.py` so quiet ordering and selective extensions can react to true promotion-race targets such as outside passers, connected/protected passers, near-promotion pushes, and enemy promotion-square threats without bleeding into unrelated quiet positions.
 - Reused shared heavy-piece support and material helpers from `strategy_utils.py`, then narrowed the new passer guidance so it stays race-specific and does not override earlier conversion or king-safety priorities.

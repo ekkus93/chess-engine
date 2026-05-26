@@ -6,9 +6,9 @@ from chess_game.chess.opening_development import undeveloped_minor_piece_count
 from chess_game.chess.types import Color, PieceType
 
 OPENING_GUIDANCE_BONUSES = {
-    PieceType.PAWN: 14,
-    PieceType.KNIGHT: 18,
-    PieceType.BISHOP: 12,
+    PieceType.PAWN: 18,
+    PieceType.KNIGHT: 26,
+    PieceType.BISHOP: 18,
 }
 
 _OPENING_GUIDANCE_PATTERNS = {
@@ -65,8 +65,6 @@ def opening_guidance_bonus(
 ) -> int:
     """Return a small fixed bonus for classical early developing moves."""
 
-    if not _opening_guidance_active(board, color):
-        return 0
     patterns = _OPENING_GUIDANCE_PATTERNS[color].get(kind)
     if patterns is None:
         return 0
@@ -75,6 +73,8 @@ def opening_guidance_bonus(
         (int(move.end.row), int(move.end.col)),
     )
     if geometry not in patterns:
+        return 0
+    if not _opening_guidance_active(board, color):
         return 0
     return OPENING_GUIDANCE_BONUSES[kind]
 

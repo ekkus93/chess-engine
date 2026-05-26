@@ -663,6 +663,11 @@ def _evaluate_development(board: Board, middlegame_phase: int) -> int:
         development_score -= sign * _early_queen_raid_penalty(board, color, undeveloped)
         if undeveloped >= 2 and _rook_left_home_square_early(board, color):
             development_score -= sign * EARLY_ROOK_MOVE_PENALTY
+        development_score -= sign * _rook_home_rank_sidestep_penalty(
+            board,
+            color,
+            undeveloped,
+        )
         development_score -= sign * _early_flank_pawn_poke_penalty(
             board,
             color,
@@ -688,6 +693,21 @@ def _rook_left_home_square_early(board: Board, color: Color) -> bool:
     return rooks_on_home < 2 and (
         king_square is None or not _is_castled_king(color, king_square)
     )
+
+
+def _rook_home_rank_sidestep_penalty(board: Board, color: Color, undeveloped: int) -> int:
+    if undeveloped < 1:
+        return 0
+    home_row = 7 if color == Color.WHITE else 0
+    king_square = _find_king(board, color)
+    if king_square is None or _is_castled_king(color, king_square):
+        return 0
+    sidestep_squares = {(home_row, 1), (home_row, 6)}
+    penalty = 0
+    for square in sidestep_squares:
+        if _piece_on_square(board, color, PieceType.ROOK, square):
+            penalty += EARLY_ROOK_MOVE_PENALTY + EARLY_QUEEN_MOVE_PENALTY
+    return penalty
 
 
 def _piece_on_square(
