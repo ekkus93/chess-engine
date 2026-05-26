@@ -7,6 +7,7 @@ from chess_game.chess.structure_recognition import structure_profile
 from chess_game.chess.strategy_utils import (
     is_advanced_passer,
     iter_color_pieces,
+    non_king_piece_kinds,
     opposite_color,
     passed_pawns_for_color,
     path_clear_between,
@@ -225,18 +226,6 @@ def rook_positions(board: Board, color: Color) -> list[tuple[int, int]]:
         for piece, row, col in iter_color_pieces(board, color)
         if piece.kind == PieceType.ROOK
     ]
-
-
-def non_king_piece_kinds(board: Board) -> list[PieceType]:
-    """Return the non-king piece kinds currently on the board."""
-
-    return [
-        piece.kind
-        for row in board.board
-        for piece in row
-        if piece is not None and piece.kind != PieceType.KING
-    ]
-
 
 def simple_material_balance(board: Board, color: Color) -> int:
     """Return a simple rook+pawn material balance from the given side's view."""

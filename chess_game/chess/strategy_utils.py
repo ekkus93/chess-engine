@@ -1,6 +1,7 @@
 """Shared helpers for strategic evaluation and move ordering."""
 
 from chess_game.chess.board import Board
+from chess_game.chess.evaluation_tables import MATERIAL_VALUES
 from chess_game.chess.move import Move
 from chess_game.chess.constants import ConstantSquare
 from chess_game.chess.types import Color, PieceType
@@ -93,6 +94,41 @@ def is_advanced_passer(color: Color, row: int) -> bool:
     """Return True when a passed pawn has reached an advanced rank."""
 
     return row <= 3 if color == Color.WHITE else row >= 4
+
+
+def non_king_piece_kinds(board: Board) -> list[PieceType]:
+    """Return the non-king piece kinds currently on the board."""
+
+    return [
+        piece.kind
+        for row in board.board
+        for piece in row
+        if piece is not None and piece.kind != PieceType.KING
+    ]
+
+
+def materially_ahead_color(board: Board) -> Color | None:
+    """Return the side with a non-king material lead, or None when equal."""
+
+    material = {Color.WHITE: 0, Color.BLACK: 0}
+    for row in board.board:
+        for piece in row:
+            if piece is None or piece.kind == PieceType.KING:
+                continue
+            material[piece.color] += MATERIAL_VALUES[piece.kind]
+    lead = material[Color.WHITE] - material[Color.BLACK]
+    if lead == 0:
+        return None
+    return Color.WHITE if lead > 0 else Color.BLACK
+
+
+def materially_behind_color(board: Board) -> Color | None:
+    """Return the side that is behind in non-king material, or None when equal."""
+
+    leading_color = materially_ahead_color(board)
+    if leading_color is None:
+        return None
+    return opposite_color(leading_color)
 
 
 def path_clear_between(

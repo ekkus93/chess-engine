@@ -1,5 +1,10 @@
 # Chess Engine Project Memory
 
+## 2026-05-26T03:37:52Z - GPT-5.4 - STRATEGY5 Task 6 defensive-endgame slice
+- Added `chess_game/chess/defensive_endgame_guidance.py` so simple worse-side endgames now score purposeful checking, critical-square king routes, direct blockade geometry, and pressure on the enemy passer instead of treating all quiet defensive activity alike.
+- Moved shared material and non-king-piece helpers into `chess_game/chess/strategy_utils.py`, then reused them from both conversion and defensive guidance to keep the new endgame heuristics lint-clean.
+- Expanded `tests/test_ai_endgame_strategy.py`, marked Task 6 complete in `docs/STRATEGY5_TODO.md`, and revalidated the full repo green with `pylint chess_game` and `python -m pytest tests -q` (`517 passed`).
+
 ## 2026-05-26T03:00:37Z - GPT-5.4 - STRATEGY5 Task 5 conversion-completion slice
 - Added `chess_game/chess/conversion_guidance.py` so simple materially winning heavy-piece endings now share conversion scoring for king activation, seventh-rank pressure, passer support, defender cutoff, and counterplay suppression across evaluation and quiet ordering.
 - Moved shared passed-pawn helpers into `chess_game/chess/strategy_utils.py`, reused them from both `conversion_guidance.py` and `rook_endgame_guidance.py`, and avoided new duplicate-code lint while keeping the endgame guidance modules consistent.

@@ -2,6 +2,7 @@
 
 from chess_game.chess.board import Board
 from chess_game.chess.conversion_guidance import winning_conversion_evaluation_score
+from chess_game.chess.defensive_endgame_guidance import defensive_endgame_evaluation_score
 from chess_game.chess.evaluation_tables import (
     ACTIVE_KING_ENDGAME_BONUS,
     BLOCKADED_PASSED_PAWN_BONUS,
@@ -44,6 +45,7 @@ def evaluate_endgame_technique(board: Board, endgame_phase: int) -> int:
     score = _active_king_score(board, endgame_phase)
     score += _blockaded_passed_pawn_score(board, endgame_phase)
     score += _mating_material_score(board)
+    score += scale_signed(defensive_endgame_evaluation_score(board), endgame_phase)
     return score
 
 

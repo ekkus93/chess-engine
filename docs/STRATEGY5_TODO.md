@@ -323,36 +323,38 @@ Phase note: Task 5 is complete. The conversion pass audited the easier-game tran
 
 ## 6.1 Separate “drawing method” from “random activity”
 
-- [ ] Reward defensive moves that:
-  - [ ] establish checking distance that actually matters
-  - [ ] reach a fortress-like setup
-  - [ ] attack the enemy pawn base
-  - [ ] approach opposition or critical squares
-  - [ ] force the stronger side to spend tempi
+- [x] Reward defensive moves that:
+  - [x] establish checking distance that actually matters
+  - [x] reach a fortress-like setup
+  - [x] attack the enemy pawn base
+  - [x] approach opposition or critical squares
+  - [x] force the stronger side to spend tempi
 
 ## 6.2 Penalize fake counterplay when worse
 
-- [ ] Penalize defensive moves that:
-  - [ ] give checks but worsen king placement
-  - [ ] abandon the only blockade square
-  - [ ] chase side pawns instead of stopping the main passer
-  - [ ] drift into losing geometry under the guise of activity
+- [x] Penalize defensive moves that:
+  - [x] give checks but worsen king placement
+  - [x] abandon the only blockade square
+  - [x] chase side pawns instead of stopping the main passer
+  - [x] drift into losing geometry under the guise of activity
 
 ## 6.3 Improve drawing-resource recognition
 
-- [ ] Add recognition for:
-  - [ ] perpetual-check resources
-  - [ ] blockading the passer from the correct side
-  - [ ] checking from the side vs rear when appropriate
-  - [ ] sacrificing into known drawn structures when justified
+- [x] Add recognition for:
+  - [x] perpetual-check resources
+  - [x] blockading the passer from the correct side
+  - [x] checking from the side vs rear when appropriate
+  - [x] sacrificing into known drawn structures when justified
 
 ## 6.4 Add defensive regressions
 
-- [ ] Add tests where the engine should:
-  - [ ] hold with purposeful checking instead of random shuffling
-  - [ ] occupy the correct blockade square
-  - [ ] head for the draw zone with king/rook instead of chasing pawns
-  - [ ] repeat only when it is truly the best defense
+- [x] Add tests where the engine should:
+  - [x] hold with purposeful checking instead of random shuffling
+  - [x] occupy the correct blockade square
+  - [x] head for the draw zone with king/rook instead of chasing pawns
+  - [x] repeat only when it is truly the best defense
+
+Phase note: Task 6 is complete. This pass adds `chess_game/chess/defensive_endgame_guidance.py` so the worse side in simple endgames can explicitly value critical-square king routes, real checking distance, passer pressure, and direct blockade geometry instead of generic activity. The new regressions in `tests/test_ai_endgame_strategy.py` close the missing king-route and draw-zone cases, while the existing worse-side file-defense and anti-repetition coverage from Task 5 still carries the “repeat only when it is truly best defense” requirement for positions where empty checking drift should lose to a real drawing setup.
 
 ---
 

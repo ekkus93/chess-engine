@@ -193,3 +193,67 @@ def test_quiet_move_order_prefers_cutoff_support_over_harmless_check_in_winning_
         harmless_check,
         None,
     )
+
+
+def test_search_prefers_purposeful_checking_over_idle_shuffle_when_worse() -> None:
+    """The worse side should use a checking resource that forces real tempi."""
+
+    board = _build_board(
+        [
+            ("g5", Color.WHITE, PieceType.KING),
+            ("e1", Color.WHITE, PieceType.ROOK),
+            ("d6", Color.WHITE, PieceType.PAWN),
+            ("g7", Color.BLACK, PieceType.KING),
+            ("a8", Color.BLACK, PieceType.ROOK),
+        ],
+        turn=Color.BLACK,
+    )
+
+    assert get_best_move(board, depth=1) == LegalMove(start=sq("a8"), end=sq("a5"))
+
+
+def test_quiet_move_order_prefers_critical_square_approach_in_pawn_ending() -> None:
+    """The defender king should head toward the block square instead of corner drifting."""
+
+    board = _build_board(
+        [
+            ("e5", Color.WHITE, PieceType.KING),
+            ("d6", Color.WHITE, PieceType.PAWN),
+            ("g7", Color.BLACK, PieceType.KING),
+        ],
+        turn=Color.BLACK,
+    )
+
+    approach = ai.Move(start=sq("g7"), end=sq("f7"))
+    drift = ai.Move(start=sq("g7"), end=sq("h8"))
+
+    assert _move_order_score(board, approach, None) > _move_order_score(
+        board,
+        drift,
+        None,
+    )
+
+
+def test_quiet_move_order_prefers_draw_zone_over_side_pawn_chase_when_worse() -> None:
+    """The worse side should approach the draw zone before chasing irrelevant pawns."""
+
+    board = _build_board(
+        [
+            ("e5", Color.WHITE, PieceType.KING),
+            ("d6", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("h1", Color.WHITE, PieceType.ROOK),
+            ("g7", Color.BLACK, PieceType.KING),
+            ("a8", Color.BLACK, PieceType.ROOK),
+        ],
+        turn=Color.BLACK,
+    )
+
+    approach = ai.Move(start=sq("g7"), end=sq("f7"))
+    chase = ai.Move(start=sq("a8"), end=sq("a2"))
+
+    assert _move_order_score(board, approach, None) > _move_order_score(
+        board,
+        chase,
+        None,
+    )

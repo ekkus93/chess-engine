@@ -3,12 +3,13 @@
 from chess_game.chess.board.attack_utils import piece_attacks_square
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_in_check
-from chess_game.chess.evaluation_tables import MATERIAL_VALUES
 from chess_game.chess.move import Move
 from chess_game.chess.constants import get_square_constant
 from chess_game.chess.strategy_utils import (
     is_advanced_passer,
     iter_color_pieces,
+    materially_ahead_color,
+    non_king_piece_kinds,
     opposite_color,
     passed_pawns_for_color,
     path_clear_between,
@@ -97,25 +98,11 @@ def _conversion_side_score(board: Board, color: Color) -> int:
 
 
 def _leading_color(board: Board) -> Color | None:
-    material = {Color.WHITE: 0, Color.BLACK: 0}
-    for row in board.board:
-        for piece in row:
-            if piece is None or piece.kind == PieceType.KING:
-                continue
-            material[piece.color] += MATERIAL_VALUES[piece.kind]
-    lead = material[Color.WHITE] - material[Color.BLACK]
-    if lead == 0:
-        return None
-    return Color.WHITE if lead > 0 else Color.BLACK
+    return materially_ahead_color(board)
 
 
 def _is_simple_conversion_endgame(board: Board) -> bool:
-    non_king_pieces = [
-        piece.kind
-        for row in board.board
-        for piece in row
-        if piece is not None and piece.kind != PieceType.KING
-    ]
+    non_king_pieces = non_king_piece_kinds(board)
     return (
         len(non_king_pieces) <= _MAX_NON_KING_PIECES
         and any(kind in {PieceType.ROOK, PieceType.QUEEN} for kind in non_king_pieces)

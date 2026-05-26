@@ -7,6 +7,7 @@ from chess_game.chess.ai_repetition_patterns import quiet_cycle_penalty
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_checkmate, is_in_check
 from chess_game.chess.conversion_guidance import winning_conversion_order_bonus
+from chess_game.chess.defensive_endgame_guidance import defensive_endgame_order_bonus
 from chess_game.chess.defensive_priorities import (
     DANGEROUS_KING_PRESSURE_THRESHOLD,
     king_defense_profile,
@@ -105,6 +106,7 @@ def quiet_strategy_order_score(board: Board, move: Move) -> int:
     score += _heavy_piece_bonus(board, piece.kind, piece.color, move)
     score += _pawn_bonus(board, piece.color, piece.kind, move)
     score += winning_conversion_order_bonus(board, piece.color, piece.kind, move)
+    score += defensive_endgame_order_bonus(board, piece.color, piece.kind, move)
     score += _piece_coordination_bonus(board, piece.color, piece.kind, move)
     score += structure_plan_bonus(board, piece.color, piece.kind, move)
     score += rook_endgame_order_bonus(board, piece.color, piece.kind, move)
