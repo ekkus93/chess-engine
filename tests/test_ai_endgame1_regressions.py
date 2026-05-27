@@ -1,7 +1,7 @@
 """Transcript-backed regressions for ENDGAME1 simple-endgame cleanup."""
 
 from chess_game.chess import ai
-from chess_game.chess.ai import get_best_move, position_key
+from chess_game.chess.ai import get_best_move, get_evaluation_breakdown, position_key
 from chess_game.chess.ai_search_helpers import RepetitionPolicy, repetition_score
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.move import Move
@@ -72,6 +72,82 @@ def _task1_queen_conversion_board() -> Board:
             ("c6", Color.WHITE, PieceType.KING),
             ("e7", Color.WHITE, PieceType.QUEEN),
             ("a8", Color.BLACK, PieceType.KING),
+        ]
+    )
+
+
+def _task2_escort_far_board() -> Board:
+    return _build_board(
+        [
+            ("c2", Color.WHITE, PieceType.KING),
+            ("h4", Color.WHITE, PieceType.PAWN),
+            ("c6", Color.BLACK, PieceType.KING),
+        ]
+    )
+
+
+def _task2_escort_near_board() -> Board:
+    return _build_board(
+        [
+            ("g3", Color.WHITE, PieceType.KING),
+            ("h4", Color.WHITE, PieceType.PAWN),
+            ("c6", Color.BLACK, PieceType.KING),
+        ]
+    )
+
+
+def _task2_blockade_far_board() -> Board:
+    return _build_board(
+        [
+            ("h2", Color.WHITE, PieceType.KING),
+            ("d3", Color.WHITE, PieceType.BISHOP),
+            ("c6", Color.BLACK, PieceType.KING),
+            ("a7", Color.BLACK, PieceType.PAWN),
+            ("d4", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+
+def _task2_blockade_near_board() -> Board:
+    return _build_board(
+        [
+            ("g3", Color.WHITE, PieceType.KING),
+            ("d3", Color.WHITE, PieceType.BISHOP),
+            ("c6", Color.BLACK, PieceType.KING),
+            ("a7", Color.BLACK, PieceType.PAWN),
+            ("d4", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+
+def _task2_opposition_good_board() -> Board:
+    return _build_board(
+        [
+            ("c3", Color.WHITE, PieceType.KING),
+            ("c4", Color.WHITE, PieceType.PAWN),
+            ("c5", Color.BLACK, PieceType.KING),
+        ]
+    )
+
+
+def _task2_opposition_bad_board() -> Board:
+    return _build_board(
+        [
+            ("b2", Color.WHITE, PieceType.KING),
+            ("c4", Color.WHITE, PieceType.PAWN),
+            ("c5", Color.BLACK, PieceType.KING),
+        ]
+    )
+
+
+def _task2_king_lead_board() -> Board:
+    return _build_board(
+        [
+            ("c2", Color.WHITE, PieceType.KING),
+            ("e2", Color.WHITE, PieceType.BISHOP),
+            ("h4", Color.WHITE, PieceType.PAWN),
+            ("c6", Color.BLACK, PieceType.KING),
+            ("a5", Color.BLACK, PieceType.PAWN),
         ]
     )
 
@@ -173,3 +249,51 @@ def test_endgame1_repetition_score_favors_worse_side_draw() -> None:
             penalty=32,
         ),
     ) > 0
+
+
+def test_endgame1_king_activation_breakdown_prefers_king_near_own_passer() -> None:
+    """The king-activation breakdown should reward escort geometry."""
+
+    far_board = _task2_escort_far_board()
+    near_board = _task2_escort_near_board()
+
+    assert get_evaluation_breakdown(near_board)["king_activation"] > get_evaluation_breakdown(
+        far_board
+    )["king_activation"]
+
+
+def test_endgame1_king_activation_breakdown_prefers_king_near_enemy_blockade_square() -> None:
+    """The breakdown should reward reaching the blockade theater sooner."""
+
+    far_board = _task2_blockade_far_board()
+    near_board = _task2_blockade_near_board()
+
+    assert get_evaluation_breakdown(near_board)["king_activation"] > get_evaluation_breakdown(
+        far_board
+    )["king_activation"]
+
+
+def test_endgame1_king_activation_breakdown_rewards_opposition_geometry() -> None:
+    """Opposition-like king geometry should be visible in the endgame breakdown."""
+
+    good_board = _task2_opposition_good_board()
+    bad_board = _task2_opposition_bad_board()
+
+    assert get_evaluation_breakdown(good_board)["king_activation"] > get_evaluation_breakdown(
+        bad_board
+    )["king_activation"]
+
+
+def test_endgame1_prefers_king_step_when_king_should_lead() -> None:
+    """A king-led ending should keep king activation ahead of bishop drift."""
+
+    board = _task2_king_lead_board()
+    king_step = Move(start=sq("c2"), end=sq("d3"))
+    bishop_drift = Move(start=sq("e2"), end=sq("d3"))
+
+    assert _move_order_score(board, king_step, None) > _move_order_score(
+        board,
+        bishop_drift,
+        None,
+    )
+    assert get_best_move(board, depth=3).start == sq("c2")

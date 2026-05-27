@@ -28,6 +28,13 @@ _BISHOP_FOCUS_BONUS = 8
 _ROOT_SCALE = 5
 _ROOT_KING_ACTIVITY_BONUS = 16
 _ROOT_PASSIVE_PIECE_PENALTY = 28
+_EVAL_KING_FOCUS = 2
+_EVAL_KING_CENTER = 1
+_EVAL_KING_BLOCKADE = 3
+_EVAL_KING_ESCORT = 2
+_EVAL_BISHOP_FOCUS = 1
+_OPPOSITION_BONUS = 8
+_KING_CUTOFF_BONUS = 6
 
 
 @dataclass(frozen=True)
@@ -49,6 +56,8 @@ def simple_endgame_order_bonus(
 ) -> int:
     """Return a quiet-order bonus for practical king-led endgame play."""
 
+    if kind not in {PieceType.KING, PieceType.BISHOP}:
+        return 0
     context = _simple_endgame_context(board, color)
     if context is None:
         return 0
@@ -68,7 +77,7 @@ def simple_endgame_root_bonus(
     """Return a root bonus for low-material moves that improve the real plan."""
 
     piece = board.get_piece(move.start)
-    if piece is None:
+    if piece is None or piece.kind not in {PieceType.KING, PieceType.BISHOP}:
         return 0
     context = _simple_endgame_context(board, color)
     if context is None:
@@ -82,6 +91,22 @@ def simple_endgame_root_bonus(
     elif piece.kind != PieceType.KING and _king_is_passive(board, context):
         bonus -= _ROOT_PASSIVE_PIECE_PENALTY
     return bonus
+
+
+def simple_endgame_evaluation_score(board: Board) -> int:
+    """Return low-material king-geometry bonuses for both sides."""
+
+    total = 0
+    for color in (Color.WHITE, Color.BLACK):
+        context = _simple_endgame_context(board, color)
+        if context is None:
+            continue
+        color_score = _evaluation_side_score(board, context)
+        color_score += _opposition_score(board, context)
+        color_score += _king_cutoff_score(board, context)
+        sign = 1 if color == Color.WHITE else -1
+        total += sign * color_score
+    return total
 
 
 def _simple_endgame_context(board: Board, color: Color) -> SimpleEndgameContext | None:
@@ -106,6 +131,8 @@ def _simple_endgame_context(board: Board, color: Color) -> SimpleEndgameContext 
     own_passer = most_advanced_passer(color, passed_pawns_for_color(board, color))
     enemy_color = opposite_color(color)
     enemy_passer = most_advanced_passer(enemy_color, passed_pawns_for_color(board, enemy_color))
+    if own_passer is None and enemy_passer is None:
+        return None
     focus = _focus_square(board, color, own_passer, enemy_passer)
     if focus is None:
         return None
@@ -191,11 +218,74 @@ def _side_score(board: Board, context: SimpleEndgameContext) -> int:
     return score
 
 
+def _evaluation_side_score(board: Board, context: SimpleEndgameContext) -> int:
+    own_king = king_coordinates(board, context.color)
+    if own_king is None:
+        return 0
+    score = max(0, 8 - _distance(own_king, context.focus)) * _EVAL_KING_FOCUS
+    score += max(0, 4 - center_distance(*own_king)) * _EVAL_KING_CENTER
+    if context.enemy_passer is not None:
+        block_square = _block_square(opposite_color(context.color), context.enemy_passer)
+        score += max(0, 6 - _distance(own_king, block_square)) * _EVAL_KING_BLOCKADE
+    if context.own_passer is not None:
+        score += max(0, 5 - _distance(own_king, context.own_passer)) * _EVAL_KING_ESCORT
+    for piece, row, col in iter_color_pieces(board, context.color):
+        if piece.kind == PieceType.BISHOP and _same_diagonal((row, col), context.focus):
+            score += _EVAL_BISHOP_FOCUS
+    return score
+
+
+def _opposition_score(board: Board, context: SimpleEndgameContext) -> int:
+    score = 0
+    if _has_minor_pieces(board):
+        return score
+    own_king = king_coordinates(board, context.color)
+    enemy_king = king_coordinates(board, opposite_color(context.color))
+    if own_king is None or enemy_king is None:
+        return score
+    if own_king[0] == enemy_king[0]:
+        gap = abs(own_king[1] - enemy_king[1])
+    elif own_king[1] == enemy_king[1]:
+        gap = abs(own_king[0] - enemy_king[0])
+    else:
+        gap = 0
+    if gap == 2:
+        own_focus = _distance(own_king, context.focus)
+        enemy_focus = _distance(enemy_king, context.focus)
+        if own_focus <= enemy_focus:
+            score = _OPPOSITION_BONUS
+        else:
+            score = -_OPPOSITION_BONUS
+    return score
+
+
+def _king_cutoff_score(board: Board, context: SimpleEndgameContext) -> int:
+    own_king = king_coordinates(board, context.color)
+    enemy_king = king_coordinates(board, opposite_color(context.color))
+    if own_king is None or enemy_king is None:
+        return 0
+    if own_king[0] == enemy_king[0] and abs(own_king[1] - enemy_king[1]) >= 2:
+        if abs(context.focus[1] - enemy_king[1]) > abs(context.focus[1] - own_king[1]):
+            return _KING_CUTOFF_BONUS
+    if own_king[1] == enemy_king[1] and abs(own_king[0] - enemy_king[0]) >= 2:
+        if abs(context.focus[0] - enemy_king[0]) > abs(context.focus[0] - own_king[0]):
+            return _KING_CUTOFF_BONUS
+    return 0
+
+
 def _king_is_passive(board: Board, context: SimpleEndgameContext) -> bool:
     own_king = king_coordinates(board, context.color)
     if own_king is None:
         return False
     return _distance(own_king, context.focus) >= 4
+
+
+def _has_minor_pieces(board: Board) -> bool:
+    for row in board.board:
+        for piece in row:
+            if piece is not None and piece.kind in {PieceType.BISHOP, PieceType.KNIGHT}:
+                return True
+    return False
 
 
 def _block_square(color: Color, pawn: tuple[int, int]) -> tuple[int, int]:

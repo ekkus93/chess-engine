@@ -127,32 +127,32 @@ Phase note:
 
 ## 2.1 Audit current king-activity scoring
 
-- [ ] Review existing evaluation helpers that already reward king centralization, shelter, and endgame activity.
-- [ ] Identify where current logic is too weak once queens or heavy pieces leave the board.
-- [ ] Save the audit under `tmp/`.
+- [x] Review existing evaluation helpers that already reward king centralization, shelter, and endgame activity.
+- [x] Identify where current logic is too weak once queens or heavy pieces leave the board.
+- [x] Save the audit under `tmp/`.
 
 ## 2.2 Add king-activation evaluation guidance
 
-- [ ] Add or tighten heuristics for:
-  - [ ] distance to center in low-material endings
-  - [ ] distance to own passer and enemy passer
-  - [ ] distance to promotion and blockade squares
-  - [ ] opposition-like geometry in king-and-pawn style structures
-  - [ ] king cut-off opportunities against the enemy king
+- [x] Add or tighten heuristics for:
+  - [x] distance to center in low-material endings
+  - [x] distance to own passer and enemy passer
+  - [x] distance to promotion and blockade squares
+  - [x] opposition-like geometry in king-and-pawn style structures
+  - [x] king cut-off opportunities against the enemy king
 
 ## 2.3 Add king-activation ordering and root bonuses
 
-- [ ] Prefer moves that:
-  - [ ] step the king toward critical files, ranks, and entry squares
-  - [ ] escort or attack the main passer
-  - [ ] gain opposition or restrict enemy king entry
-- [ ] Demote moves that:
-  - [ ] keep the king frozen without tactical justification
-  - [ ] move pieces instead of activating the king when the king should lead
+- [x] Prefer moves that:
+  - [x] step the king toward critical files, ranks, and entry squares
+  - [x] escort or attack the main passer
+  - [x] gain opposition or restrict enemy king entry
+- [x] Demote moves that:
+  - [x] keep the king frozen without tactical justification
+  - [x] move pieces instead of activating the king when the king should lead
 
 Phase note:
 
-- [ ] Task 2 complete note
+- [x] Task 2 is complete. The audit artifact lives in `tmp/endgame1_task2_audit.txt`. This phase extended `chess_game/chess/simple_endgame_guidance.py` with a dedicated `king_activation` evaluation component for true late endgames, covering king escort distance to own passers, blockade distance to enemy passers, opposition-like geometry, and simple king cut-off patterns, while keeping the heavier search hooks narrowly limited to king and bishop moves. `tests/test_ai_endgame1_regressions.py` now exposes these king-geometry improvements directly through the evaluation breakdown, and the final validation is green at `pylint chess_game` (`10.00/10`), `python -m pytest tests -q` (`587 passed`), and `python -m pytest tests/test_ai.py tests/test_ai_quality.py tests/test_ai_search.py tests/test_alpha_beta_pruning.py -q` (`120 passed`).
 
 ---
 

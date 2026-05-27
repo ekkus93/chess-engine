@@ -43,6 +43,7 @@ from chess_game.chess.defensive_containment_guidance import (
 )
 from chess_game.chess.pieces.piece_movers import PieceMovers
 from chess_game.chess.review_loop_guidance import review_loop_evaluation_score
+from chess_game.chess.simple_endgame_guidance import simple_endgame_evaluation_score
 from chess_game.chess.strategy_utils import (
     file_pawn_state as _file_pawn_state,
     iter_king_squares as _iter_king_squares,
@@ -126,6 +127,9 @@ def get_evaluation_breakdown(board: Board) -> EvaluationBreakdown:
         "heavy_piece_endgame": _evaluate_heavy_piece_endgames(board, endgame_phase),
         "passer_race": _evaluate_passer_races(board, endgame_phase),
         "defensive_containment": _heavy_piece_defense_evaluation_score(board),
+        "king_activation": (
+            simple_endgame_evaluation_score(board) if endgame_phase >= 70 else 0
+        ),
         "review_loop": review_loop_evaluation_score(board),
         "development": _evaluate_development(board, middlegame_phase),
     }
