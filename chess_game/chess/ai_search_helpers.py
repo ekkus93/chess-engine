@@ -33,6 +33,7 @@ from chess_game.chess.passer_race_guidance import (
 from chess_game.chess.pawn_structure_evaluation import evaluate_pawn_structure
 from chess_game.chess.review_loop_guidance import review_loop_root_bonus
 from chess_game.chess.structure_recognition import structure_plan_bonus
+from chess_game.chess.simple_endgame_guidance import simple_endgame_root_bonus
 from chess_game.chess.threat_awareness import threat_response_root_bonus
 from chess_game.chess.tactical_transition_guidance import tactical_transition_root_bonus
 from chess_game.chess.strategy_utils import is_capture_move, king_coordinates
@@ -735,6 +736,7 @@ def _strategic_root_bonus(
     score = heavy_piece_endgame_root_bonus(board, move, child_board, moving_color)
     score += passer_race_root_bonus(board, move, child_board, moving_color)
     score += anti_drift_root_bonus(board, move, child_board, moving_color)
+    score += simple_endgame_root_bonus(board, move, child_board, moving_color)
     score += review_loop_root_bonus(board, child_board, moving_color)
     if king_danger_index(board, moving_color) >= DANGEROUS_KING_PRESSURE_THRESHOLD:
         return score

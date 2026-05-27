@@ -98,28 +98,28 @@ Phase note:
 
 ## 1.1 Add low-value repetition regressions
 
-- [ ] Add tests where the engine should reject repeating piece loops that do not improve evaluation or practical winning chances.
-- [ ] Cover cases such as:
-  - [ ] bishop triangles with no new target
-  - [ ] rook shuffles with no file gain or checking net
-  - [ ] queen checks that do not improve repetition, mate, or promotion geometry
+- [x] Add tests where the engine should reject repeating piece loops that do not improve evaluation or practical winning chances.
+- [x] Cover cases such as:
+  - [x] bishop triangles with no new target
+  - [x] rook shuffles with no file gain or checking net
+  - [x] queen checks that do not improve repetition, mate, or promotion geometry
 
 ## 1.2 Add “change the position” regressions
 
-- [ ] Add tests where the engine should prefer moves that alter the practical state of the ending.
-- [ ] Cover cases such as:
-  - [ ] king step toward critical squares over piece drift
-  - [ ] pawn break or passer support over harmless maneuvering
-  - [ ] simplification over decorative pressure
+- [x] Add tests where the engine should prefer moves that alter the practical state of the ending.
+- [x] Cover cases such as:
+  - [x] king step toward critical squares over piece drift
+  - [x] pawn break or passer support over harmless maneuvering
+  - [x] simplification over decorative pressure
 
 ## 1.3 Add result-aware repetition regressions
 
-- [ ] Add tests where the better side should avoid repetition.
-- [ ] Add tests where the worse side should seek repetition when it preserves a draw or best resistance.
+- [x] Add tests where the better side should avoid repetition.
+- [x] Add tests where the worse side should seek repetition when it preserves a draw or best resistance.
 
 Phase note:
 
-- [ ] Task 1 complete note
+- [x] Task 1 is complete. The new `tests/test_ai_endgame1_regressions.py` file now locks in the late bishop-loop and passive-king problems from the fresh endgame baseline, plus endgame-specific repetition and conversion sanity checks. This phase added `chess_game/chess/simple_endgame_guidance.py`, which feeds quiet ordering and root choice only in low-material endings with no queens or rooks so the search now prefers immediate king activation over bishop-loop drift and passive king retreats like `Kg1`. Phase validation is green at `pylint chess_game` (`10.00/10`), `python -m pytest tests -q` (`583 passed`), and `python -m pytest tests/test_ai.py tests/test_ai_quality.py tests/test_ai_search.py tests/test_alpha_beta_pruning.py -q` (`120 passed`).
 
 ---
 
