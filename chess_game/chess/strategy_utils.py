@@ -186,6 +186,26 @@ def passed_pawns_for_color(board: Board, color: Color) -> list[tuple[int, int]]:
     ]
 
 
+def pawn_path_to_promotion_is_clear(
+    board: Board,
+    color: Color,
+    pawn: tuple[int, int],
+) -> bool:
+    """Return True when a pawn's file is clear all the way to promotion."""
+
+    row, col = pawn
+    promotion_row = 0 if color == Color.WHITE else 7
+    if row == promotion_row:
+        return True
+    step = -1 if color == Color.WHITE else 1
+    current_row = row + step
+    while current_row != promotion_row + step:
+        if board.board[current_row][col] is not None:
+            return False
+        current_row += step
+    return True
+
+
 def most_advanced_passer(
     color: Color,
     passers: list[tuple[int, int]],

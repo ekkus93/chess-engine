@@ -160,39 +160,39 @@ Phase note:
 
 ## 3.1 Add deeper passed-pawn race regressions
 
-- [ ] Add tests where the engine must correctly choose between racing, blockading, checking, and simplifying.
-- [ ] Cover cases such as:
-  - [ ] one tempo from promotion versus side activity
-  - [ ] king catches the passer only with immediate activation
-  - [ ] bishop or rook must stop the passer instead of chasing counterplay
-  - [ ] pushing the wrong pawn loses immediately
+- [x] Add tests where the engine must correctly choose between racing, blockading, checking, and simplifying.
+- [x] Cover cases such as:
+  - [x] one tempo from promotion versus side activity
+  - [x] king catches the passer only with immediate activation
+  - [x] bishop or rook must stop the passer instead of chasing counterplay
+  - [x] pushing the wrong pawn loses immediately
 
 ## 3.2 Audit current race logic in simplified endings
 
-- [ ] Review `passer_race_guidance.py`, endgame evaluation helpers, and any root tiebreak logic that already reasons about promotion races.
-- [ ] Identify where current logic works in heavy-piece endings but still misses cleaner low-material races.
-- [ ] Save the audit under `tmp/`.
+- [x] Review `passer_race_guidance.py`, endgame evaluation helpers, and any root tiebreak logic that already reasons about promotion races.
+- [x] Identify where current logic works in heavy-piece endings but still misses cleaner low-material races.
+- [x] Save the audit under `tmp/`.
 
 ## 3.3 Tighten evaluation for race-critical positions
 
-- [ ] Add or refine scoring for:
-  - [ ] true tempo-to-promotion differences
-  - [ ] whether the king or minor piece controls the critical squares
-  - [ ] whether a defender is tied down to a promotion square
-  - [ ] whether checks help the race or only waste tempi
-  - [ ] whether simplification preserves or kills the winning race
+- [x] Add or refine scoring for:
+  - [x] true tempo-to-promotion differences
+  - [x] whether the king or minor piece controls the critical squares
+  - [x] whether a defender is tied down to a promotion square
+  - [x] whether checks help the race or only waste tempi
+  - [x] whether simplification preserves or kills the winning race
 
 ## 3.4 Tighten race-aware ordering and root choice
 
-- [ ] Prefer moves that:
-  - [ ] create or preserve an unstoppable passer
-  - [ ] remove the opponent's only rival race
-  - [ ] improve escort geometry instead of cosmetic threats
-- [ ] Demote flashy checks or maneuvers that do not improve the race.
+- [x] Prefer moves that:
+  - [x] create or preserve an unstoppable passer
+  - [x] remove the opponent's only rival race
+  - [x] improve escort geometry instead of cosmetic threats
+- [x] Demote flashy checks or maneuvers that do not improve the race.
 
 Phase note:
 
-- [ ] Task 3 complete note
+- [x] Task 3 is complete. The audit artifact lives in `tmp/endgame1_task3_audit.txt`. This phase added `chess_game/chess/low_material_race_guidance.py` as a narrow low-material race layer for no-queen / no-rook endings, and wired it into `endgame_evaluation.py`, `ai_move_ordering.py`, and `ai_search_helpers.py` without touching the shared heavy-piece passer-race path. `tests/test_ai_endgame1_regressions.py` now covers one-tempo promotion pushes, immediate king activation in pawn races, bishop blockade of a near-promotion passer, and rejection of the wrong pawn push, while final validation is green at `pylint chess_game` (`10.00/10`), `python -m pytest tests -q` (`592 passed`), and `python -m pytest tests/test_ai.py tests/test_ai_quality.py tests/test_ai_search.py tests/test_alpha_beta_pruning.py -q` (`120 passed`).
 
 ---
 

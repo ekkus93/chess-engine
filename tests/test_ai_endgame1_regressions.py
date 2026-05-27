@@ -152,6 +152,52 @@ def _task2_king_lead_board() -> Board:
     )
 
 
+def _task3_one_tempo_board() -> Board:
+    return _build_board(
+        [
+            ("f4", Color.WHITE, PieceType.KING),
+            ("g6", Color.WHITE, PieceType.PAWN),
+            ("c6", Color.BLACK, PieceType.KING),
+            ("a5", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+
+def _task3_bishop_stop_board() -> Board:
+    return _build_board(
+        [
+            ("a3", Color.WHITE, PieceType.KING),
+            ("g6", Color.WHITE, PieceType.PAWN),
+            ("b1", Color.BLACK, PieceType.KING),
+            ("b2", Color.BLACK, PieceType.BISHOP),
+        ],
+        turn=Color.BLACK,
+    )
+
+
+def _task3_wrong_pawn_board() -> Board:
+    return _build_board(
+        [
+            ("a3", Color.WHITE, PieceType.KING),
+            ("a5", Color.WHITE, PieceType.PAWN),
+            ("h6", Color.WHITE, PieceType.PAWN),
+            ("e5", Color.BLACK, PieceType.KING),
+            ("a4", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+
+def _task3_immediate_activation_board() -> Board:
+    return _build_board(
+        [
+            ("d2", Color.WHITE, PieceType.KING),
+            ("h5", Color.WHITE, PieceType.PAWN),
+            ("f6", Color.BLACK, PieceType.KING),
+            ("a4", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+
 def test_endgame1_rejects_bishop_loop_drift() -> None:
     """The late bishop loop should yield to immediate king activation."""
 
@@ -297,3 +343,55 @@ def test_endgame1_prefers_king_step_when_king_should_lead() -> None:
         None,
     )
     assert get_best_move(board, depth=3).start == sq("c2")
+
+
+def test_endgame1_search_prefers_one_tempo_pawn_push_over_side_activity() -> None:
+    """A passer one tempo from promotion should outrank king-side activity."""
+
+    board = _task3_one_tempo_board()
+
+    assert get_best_move(board, depth=3) == LegalMove(start=sq("g6"), end=sq("g7"))
+
+
+def test_endgame1_order_prefers_one_tempo_pawn_push_over_side_activity() -> None:
+    """Near-promotion passer pushes should outrank unrelated king moves in the race."""
+
+    board = _task3_one_tempo_board()
+
+    assert _move_order_score(board, Move(start=sq("g6"), end=sq("g7")), None) > _move_order_score(
+        board,
+        Move(start=sq("f4"), end=sq("e4")),
+        None,
+    )
+
+
+def test_endgame1_order_prefers_immediate_king_activation_in_pawn_race() -> None:
+    """King activation should outrank retreating away from the race."""
+
+    board = _task3_immediate_activation_board()
+
+    assert _move_order_score(board, Move(start=sq("d2"), end=sq("e3")), None) > _move_order_score(
+        board,
+        Move(start=sq("d2"), end=sq("e1")),
+        None,
+    )
+
+
+def test_endgame1_search_prefers_bishop_blockade_over_counterplay_chase() -> None:
+    """A minor piece should stop the passer when only the blockade move holds."""
+
+    board = _task3_bishop_stop_board()
+
+    assert get_best_move(board, depth=3) == LegalMove(start=sq("b2"), end=sq("g7"))
+
+
+def test_endgame1_order_prefers_main_race_pawn_over_wrong_pawn_push() -> None:
+    """Among two passers, the nearer promotion push should outrank the side pawn."""
+
+    board = _task3_wrong_pawn_board()
+
+    assert _move_order_score(board, Move(start=sq("h6"), end=sq("h7")), None) > _move_order_score(
+        board,
+        Move(start=sq("a5"), end=sq("a6")),
+        None,
+    )

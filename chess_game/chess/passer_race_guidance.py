@@ -10,6 +10,7 @@ from chess_game.chess.strategy_utils import (
     iter_color_pieces,
     king_coordinates,
     opposite_color,
+    pawn_path_to_promotion_is_clear,
     pawn_supports_square,
     passed_pawns_for_color,
 )
@@ -168,7 +169,7 @@ def _own_passer_score(
         score += _CONNECTED_PASSER_BONUS
     if _is_outside_passer(col):
         score += _OUTSIDE_PASSER_BONUS
-    if _path_to_promotion_is_clear(board, color, pawn):
+    if pawn_path_to_promotion_is_clear(board, color, pawn):
         score += _CLEAR_PATH_BONUS
     score += _king_support_score(board, color, pawn)
     score += _heavy_piece_support_score(board, color, pawn)
@@ -188,7 +189,7 @@ def _enemy_passer_danger_score(
     enemy_color = _opponent(color)
     row, _ = enemy_pawn
     score = _promotion_progress(enemy_color, row) * _ENEMY_PASSER_DANGER_BONUS
-    if _path_to_promotion_is_clear(board, enemy_color, enemy_pawn):
+    if pawn_path_to_promotion_is_clear(board, enemy_color, enemy_pawn):
         score += _CLEAR_PATH_BONUS
     if not _controls_promotion_square(board, color, enemy_pawn):
         score += _PROMOTION_SQUARE_PENALTY
@@ -243,24 +244,6 @@ def _is_connected_passer(
         other_col != col and abs(other_col - col) == 1 and abs(other_row - row) <= 1
         for other_row, other_col in own_passers
     )
-
-
-def _path_to_promotion_is_clear(
-    board: Board,
-    color: Color,
-    pawn: tuple[int, int],
-) -> bool:
-    row, col = pawn
-    promotion_row = 0 if color == Color.WHITE else 7
-    if row == promotion_row:
-        return True
-    step = -1 if color == Color.WHITE else 1
-    current_row = row + step
-    while current_row != promotion_row + step:
-        if board.board[current_row][col] is not None:
-            return False
-        current_row += step
-    return True
 
 
 def _controls_promotion_square(
@@ -458,7 +441,7 @@ def _unstoppable_passer_score(
     color: Color,
     pawn: tuple[int, int],
 ) -> int:
-    if not _path_to_promotion_is_clear(board, color, pawn):
+    if not pawn_path_to_promotion_is_clear(board, color, pawn):
         return 0
     enemy_king = king_coordinates(board, _opponent(color))
     if enemy_king is None or _enemy_heavy_stops_pawn(board, color, pawn):
