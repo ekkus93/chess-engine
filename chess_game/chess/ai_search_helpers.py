@@ -13,6 +13,7 @@ from chess_game.chess.board.game_state import is_in_check
 from chess_game.chess.conversion_guidance import winning_conversion_root_bonus
 from chess_game.chess.defensive_containment_guidance import heavy_piece_defense_root_bonus
 from chess_game.chess.defensive_containment_guidance import heavy_piece_defense_extension_bonus
+from chess_game.chess.heavy_piece_endgame_guidance import heavy_piece_endgame_root_bonus
 from chess_game.chess.defensive_priorities import (
     DANGEROUS_KING_PRESSURE_THRESHOLD,
     king_defense_profile,
@@ -726,11 +727,12 @@ def _strategic_root_bonus(
     moving_kind: PieceType,
     moving_color: Color,
 ) -> int:
+    score = heavy_piece_endgame_root_bonus(board, move, child_board, moving_color)
     if king_danger_index(board, moving_color) >= DANGEROUS_KING_PRESSURE_THRESHOLD:
-        return 0
+        return score
     if _is_simple_endgame(board):
-        return 0
-    score = _pawn_structure_root_bonus(board, move, child_board)
+        return score
+    score += _pawn_structure_root_bonus(board, move, child_board)
     score += _practical_options_bonus(board, child_board, moving_color)
     score += _opening_root_bonus(board, move, moving_kind)
     score += heavy_piece_defense_root_bonus(board, child_board, moving_color)

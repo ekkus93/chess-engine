@@ -303,41 +303,41 @@ Phase note:
 
 ## 6.1 Add transcript-driven heavy-piece ending regressions
 
-- [ ] Add tests for queen-and-rook / queen-only practical endings exposed by the latest game.
-- [ ] Cover cases such as:
-  - [ ] rook behind passer
-  - [ ] queen escort toward promotion
-  - [ ] defending king shelter against repeated checks
-  - [ ] queen trade into a clearly won or clearly holdable ending
+- [x] Add tests for queen-and-rook / queen-only practical endings exposed by the latest game.
+- [x] Cover cases such as:
+  - [x] rook behind passer
+  - [x] queen escort toward promotion
+  - [x] defending king shelter against repeated checks
+  - [x] queen trade into a clearly won or clearly holdable ending
 
 ## 6.2 Audit current heavy-piece logic
 
-- [ ] Review whether existing endgame helpers already recognize these structures.
-- [ ] Identify gaps specific to queen-and-rook coordination and king shelter.
-- [ ] Save the audit under `tmp/`.
+- [x] Review whether existing endgame helpers already recognize these structures.
+- [x] Identify gaps specific to queen-and-rook coordination and king shelter.
+- [x] Save the audit under `tmp/`.
 
 ## 6.3 Add evaluation guidance for heavy-piece endings
 
-- [ ] Add or tighten heuristics for:
-  - [ ] rook placement behind own or enemy passers
-  - [ ] queen proximity to promotion and checking squares
-  - [ ] king shelter quality against queen checks
-  - [ ] whether heavy pieces are coordinated or stepping on each other
+- [x] Add or tighten heuristics for:
+  - [x] rook placement behind own or enemy passers
+  - [x] queen proximity to promotion and checking squares
+  - [x] king shelter quality against queen checks
+  - [x] whether heavy pieces are coordinated or stepping on each other
 
 ## 6.4 Add quiet-order / root bonuses for heavy-piece practicality
 
-- [ ] Prefer moves that:
-  - [ ] improve queen-rook coordination
-  - [ ] threaten promotion or forced checks
-  - [ ] reduce the opponent’s checking net
-- [ ] Demote moves that:
-  - [ ] split queen and rook away from the main theater
-  - [ ] abandon promotion support
-  - [ ] allow easy perpetual or perpetual-like checking sequences
+- [x] Prefer moves that:
+  - [x] improve queen-rook coordination
+  - [x] threaten promotion or forced checks
+  - [x] reduce the opponent’s checking net
+- [x] Demote moves that:
+  - [x] split queen and rook away from the main theater
+  - [x] abandon promotion support
+  - [x] allow easy perpetual or perpetual-like checking sequences
 
 Phase note:
 
-- [ ] Task 6 complete note
+- [x] Task 6 is complete. The audit artifact lives in `tmp/strategy7_task6_audit.txt`, the seeded late-phase review transcript lives in `tmp/strategy7_task6_seeded_w3b3_20260527T012900Z.txt`, and the review note lives in `tmp/strategy7_task6_review.txt`. This phase added `chess_game/chess/heavy_piece_endgame_guidance.py`, wired narrow heavy-piece signals into evaluation, quiet ordering, and root tie-breaks, and expanded `tests/test_ai_strategy7_regressions.py` with transcript-backed coverage for rook-behind-passer geometry, queen escort, king shelter, and queen-trade simplification. The seeded continuation still replayed the first `Qg5` / `...Rc6` / `...Rh4` / `...b5` sequence from the Task 5 late ending, but after that the new layer kept the heavy pieces more coordinated with `Re7-e8`, `Rf2`, `...Kg7`, and `...Rd4-d7` instead of drifting farther from the main theater, so the remaining follow-up now shifts to passed-pawn race judgment rather than missing queen-and-rook structure awareness.
 
 ---
 

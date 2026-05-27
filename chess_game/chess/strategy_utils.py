@@ -171,6 +171,19 @@ def passed_pawns_for_color(board: Board, color: Color) -> list[tuple[int, int]]:
     ]
 
 
+def most_advanced_passer(
+    color: Color,
+    passers: list[tuple[int, int]],
+) -> tuple[int, int] | None:
+    """Return the passer closest to promotion for one side."""
+
+    if not passers:
+        return None
+    if color == Color.WHITE:
+        return min(passers, key=lambda pawn: pawn[0])
+    return max(passers, key=lambda pawn: pawn[0])
+
+
 def is_advanced_passer(color: Color, row: int) -> bool:
     """Return True when a passed pawn has reached an advanced rank."""
 

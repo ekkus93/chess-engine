@@ -253,6 +253,67 @@ def _task5_back_rank_threat_board() -> Board:
     )
 
 
+def _task6_rook_behind_passer_board() -> Board:
+    return _build_board(
+        [
+            ("g2", Color.WHITE, PieceType.KING),
+            ("d4", Color.WHITE, PieceType.QUEEN),
+            ("h1", Color.WHITE, PieceType.ROOK),
+            ("b6", Color.WHITE, PieceType.PAWN),
+            ("g7", Color.BLACK, PieceType.KING),
+            ("f7", Color.BLACK, PieceType.QUEEN),
+            ("a8", Color.BLACK, PieceType.ROOK),
+        ]
+    )
+
+
+def _task6_queen_escort_board() -> Board:
+    return _build_board(
+        [
+            ("g2", Color.WHITE, PieceType.KING),
+            ("d4", Color.WHITE, PieceType.QUEEN),
+            ("d1", Color.WHITE, PieceType.ROOK),
+            ("b7", Color.WHITE, PieceType.PAWN),
+            ("g7", Color.BLACK, PieceType.KING),
+            ("f7", Color.BLACK, PieceType.QUEEN),
+            ("b8", Color.BLACK, PieceType.ROOK),
+        ]
+    )
+
+
+def _task6_king_shelter_board() -> Board:
+    return _build_board(
+        [
+            ("g2", Color.WHITE, PieceType.KING),
+            ("d7", Color.WHITE, PieceType.QUEEN),
+            ("f6", Color.WHITE, PieceType.ROOK),
+            ("c2", Color.WHITE, PieceType.PAWN),
+            ("d2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("h4", Color.BLACK, PieceType.ROOK),
+            ("b5", Color.BLACK, PieceType.PAWN),
+        ],
+        turn=Color.BLACK,
+    )
+
+
+def _task6_holdable_queen_trade_board() -> Board:
+    return _build_board(
+        [
+            ("g2", Color.WHITE, PieceType.KING),
+            ("d7", Color.WHITE, PieceType.QUEEN),
+            ("f6", Color.WHITE, PieceType.ROOK),
+            ("c2", Color.WHITE, PieceType.PAWN),
+            ("d2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("h4", Color.BLACK, PieceType.ROOK),
+            ("b5", Color.BLACK, PieceType.PAWN),
+            ("e7", Color.BLACK, PieceType.QUEEN),
+        ],
+        turn=Color.BLACK,
+    )
+
+
 def test_strategy7_order_prefers_capturing_b7_passer_over_a5() -> None:
     """The defending side should tie its rook to the passer instead of drifting on the wing."""
 
@@ -451,3 +512,62 @@ def test_strategy7_root_prefers_queen_trade_when_ahead_over_speculative_pressure
         speculative,
         speculative_child,
     )
+
+
+def test_strategy7_root_prefers_rook_behind_passer_in_heavy_piece_ending() -> None:
+    """Root tie-breaks should favor getting the rook behind the passer over queen drift."""
+
+    board = _task6_rook_behind_passer_board()
+    support = ai.Move(start=sq("h1"), end=sq("b1"))
+    drift = ai.Move(start=sq("d4"), end=sq("e4"))
+    support_child = board.clone()
+    drift_child = board.clone()
+
+    assert support_child.apply_legal_move(support.start, support.end) is True
+    assert drift_child.apply_legal_move(drift.start, drift.end) is True
+    assert root_stability_adjustment(board, support, support_child) > root_stability_adjustment(
+        board,
+        drift,
+        drift_child,
+    )
+
+
+def test_strategy7_root_prefers_queen_escort_toward_promotion_in_heavy_piece_ending() -> None:
+    """Root tie-breaks should favor queen escort over harmless rook drift."""
+
+    board = _task6_queen_escort_board()
+    escort = ai.Move(start=sq("d4"), end=sq("d7"))
+    drift = ai.Move(start=sq("d1"), end=sq("f1"))
+    escort_child = board.clone()
+    drift_child = board.clone()
+
+    assert escort_child.apply_legal_move(escort.start, escort.end) is True
+    assert drift_child.apply_legal_move(drift.start, drift.end) is True
+    assert root_stability_adjustment(board, escort, escort_child) > root_stability_adjustment(
+        board,
+        drift,
+        drift_child,
+    )
+
+
+def test_strategy7_eval_defends_king_shelter_before_side_pawn_push() -> None:
+    """Heavy-piece evaluation should rate shelter repair above a side-pawn push."""
+
+    board = _task6_king_shelter_board()
+    shelter_child = board.clone()
+    side_pawn_child = board.clone()
+
+    assert shelter_child.apply_legal_move(sq("g8"), sq("h8")) is True
+    assert side_pawn_child.apply_legal_move(sq("b5"), sq("b4")) is True
+    assert (
+        get_evaluation_breakdown(shelter_child)["heavy_piece_endgame"]
+        < get_evaluation_breakdown(side_pawn_child)["heavy_piece_endgame"]
+    )
+
+
+def test_strategy7_search_prefers_queen_trade_into_holdable_heavy_piece_ending() -> None:
+    """The worse side should still simplify into the holdable queenless ending."""
+
+    board = _task6_holdable_queen_trade_board()
+
+    assert get_best_move(board, depth=3) == LegalMove(start=sq("e7"), end=sq("d7"))

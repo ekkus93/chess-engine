@@ -3,6 +3,9 @@
 from chess_game.chess.board import Board
 from chess_game.chess.conversion_guidance import winning_conversion_evaluation_score
 from chess_game.chess.defensive_endgame_guidance import defensive_endgame_evaluation_score
+from chess_game.chess.heavy_piece_endgame_guidance import (
+    heavy_piece_endgame_evaluation_score,
+)
 from chess_game.chess.evaluation_tables import (
     ACTIVE_KING_ENDGAME_BONUS,
     BLOCKADED_PASSED_PAWN_BONUS,
@@ -101,6 +104,14 @@ def evaluate_rook_endgames(board: Board, endgame_phase: int) -> int:
     if endgame_phase == 0:
         return 0
     return scale_signed(rook_endgame_evaluation_score(board), endgame_phase)
+
+
+def evaluate_heavy_piece_endgames(board: Board, endgame_phase: int) -> int:
+    """Return queen-and-rook ending guidance bonuses."""
+
+    if endgame_phase == 0:
+        return 0
+    return scale_signed(heavy_piece_endgame_evaluation_score(board), endgame_phase)
 
 
 def _collect_pawn_positions(board: Board) -> dict[Color, list[tuple[int, int]]]:

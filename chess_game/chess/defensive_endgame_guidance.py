@@ -8,6 +8,7 @@ from chess_game.chess.move import Move
 from chess_game.chess.strategy_utils import (
     iter_color_pieces,
     materially_behind_color,
+    most_advanced_passer,
     non_king_piece_kinds,
     opposite_color,
     passed_pawns_for_color,
@@ -174,12 +175,7 @@ def _purposeful_check_score(
 
 
 def _most_dangerous_passer(board: Board, color: Color) -> tuple[int, int] | None:
-    passers = passed_pawns_for_color(board, color)
-    if not passers:
-        return None
-    if color == Color.WHITE:
-        return min(passers, key=lambda pawn: pawn[0])
-    return max(passers, key=lambda pawn: pawn[0])
+    return most_advanced_passer(color, passed_pawns_for_color(board, color))
 
 
 def _is_relevant_defensive_endgame(board: Board, color: Color) -> bool:
