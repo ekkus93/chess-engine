@@ -382,34 +382,34 @@ Phase note:
 
 ## 8.1 Add anti-drift regressions
 
-- [ ] Add tests where the engine should reject low-value activity in practical endings.
-- [ ] Cover cases such as:
-  - [ ] queen drift with no check / trade / promotion support
-  - [ ] bishop shuffles that do not affect king safety or passers
-  - [ ] rook moves that do not improve activity, blockade, or support
-  - [ ] pawn pushes that do not improve promotion, king shelter, or mating pressure
+- [x] Add tests where the engine should reject low-value activity in practical endings.
+- [x] Cover cases such as:
+  - [x] queen drift with no check / trade / promotion support
+  - [x] bishop shuffles that do not affect king safety or passers
+  - [x] rook moves that do not improve activity, blockade, or support
+  - [x] pawn pushes that do not improve promotion, king shelter, or mating pressure
 
 ## 8.2 Audit overlap with prior anti-repetition / quiet-plan logic
 
-- [ ] Review whether current anti-repetition and plan-quality logic already covers parts of this behavior.
-- [ ] Isolate only the remaining anti-drift gaps.
-- [ ] Save the audit under `tmp/`.
+- [x] Review whether current anti-repetition and plan-quality logic already covers parts of this behavior.
+- [x] Isolate only the remaining anti-drift gaps.
+- [x] Save the audit under `tmp/`.
 
 ## 8.3 Add practicality scoring
 
-- [ ] Reward moves that:
-  - [ ] change the threat picture
-  - [ ] simplify into clearer wins or holds
-  - [ ] improve promotion geometry
-  - [ ] improve king safety materially
-- [ ] Penalize moves that:
-  - [ ] only look active
-  - [ ] repeat pressure without progress
-  - [ ] walk away from the main strategic theater
+- [x] Reward moves that:
+  - [x] change the threat picture
+  - [x] simplify into clearer wins or holds
+  - [x] improve promotion geometry
+  - [x] improve king safety materially
+- [x] Penalize moves that:
+  - [x] only look active
+  - [x] repeat pressure without progress
+  - [x] walk away from the main strategic theater
 
 Phase note:
 
-- [ ] Task 8 complete note
+- [x] Added `chess_game/chess/anti_drift_guidance.py` and wired its narrow anti-drift root tiebreak into `ai_search_helpers.py`, while `tests/test_ai_strategy7_regressions.py` now covers queen, bishop, rook, and pawn low-value drift in single-advanced-passer heavy-piece endings. The Task 8 audit remains in `tmp/strategy7_task8_audit.txt`, and final validation is green at `pylint chess_game` (`10.00/10`), `python -m pytest tests -q` (`573 passed`), and `python -m pytest tests/test_ai.py tests/test_ai_quality.py tests/test_ai_search.py tests/test_alpha_beta_pruning.py -q` (`120 passed`).
 
 ---
 

@@ -362,6 +362,34 @@ def _task7_wrong_side_activity_board() -> Board:
     )
 
 
+def _task8_queen_drift_board() -> Board:
+    return _build_board(
+        [
+            ("g2", Color.WHITE, PieceType.KING),
+            ("d4", Color.WHITE, PieceType.QUEEN),
+            ("e2", Color.WHITE, PieceType.BISHOP),
+            ("e1", Color.WHITE, PieceType.ROOK),
+            ("b7", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("a4", Color.BLACK, PieceType.ROOK),
+        ]
+    )
+
+
+def _task8_pawn_drift_board() -> Board:
+    return _build_board(
+        [
+            ("g2", Color.WHITE, PieceType.KING),
+            ("d4", Color.WHITE, PieceType.QUEEN),
+            ("e1", Color.WHITE, PieceType.ROOK),
+            ("b7", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("a4", Color.BLACK, PieceType.ROOK),
+        ]
+    )
+
+
 def test_strategy7_order_prefers_capturing_b7_passer_over_a5() -> None:
     """The defending side should tie its rook to the passer instead of drifting on the wing."""
 
@@ -668,3 +696,79 @@ def test_strategy7_search_prefers_stopping_enemy_race_over_wrong_side_check() ->
     board = _task7_wrong_side_activity_board()
 
     assert get_best_move(board, depth=3) == LegalMove(start=sq("e5"), end=sq("b8"))
+
+
+def test_strategy7_order_prefers_queen_support_over_idle_queen_drift() -> None:
+    """Clearly won endings should reject queen moves that change nothing."""
+
+    board = _task8_queen_drift_board()
+    support = ai.Move(start=sq("d4"), end=sq("d7"))
+    drift = ai.Move(start=sq("d4"), end=sq("e5"))
+    support_child = board.clone()
+    drift_child = board.clone()
+
+    assert support_child.apply_legal_move(support.start, support.end) is True
+    assert drift_child.apply_legal_move(drift.start, drift.end) is True
+    assert root_stability_adjustment(board, support, support_child) > root_stability_adjustment(
+        board,
+        drift,
+        drift_child,
+    )
+
+
+def test_strategy7_order_prefers_bishop_support_over_bishop_shuffle() -> None:
+    """A bishop should support the main passer instead of shuffling away from it."""
+
+    board = _task8_queen_drift_board()
+    support = ai.Move(start=sq("e2"), end=sq("d3"))
+    shuffle = ai.Move(start=sq("e2"), end=sq("f1"))
+    support_child = board.clone()
+    shuffle_child = board.clone()
+
+    assert support_child.apply_legal_move(support.start, support.end) is True
+    assert shuffle_child.apply_legal_move(shuffle.start, shuffle.end) is True
+    assert root_stability_adjustment(board, support, support_child) > root_stability_adjustment(
+        board,
+        shuffle,
+        shuffle_child,
+    )
+
+
+def test_strategy7_order_prefers_rook_support_over_rook_drift() -> None:
+    """A rook should stay tied to the winning passer instead of sliding sideways."""
+
+    board = _task8_queen_drift_board()
+    support = ai.Move(start=sq("e1"), end=sq("b1"))
+    drift = ai.Move(start=sq("e1"), end=sq("f1"))
+    support_child = board.clone()
+    drift_child = board.clone()
+
+    assert support_child.apply_legal_move(support.start, support.end) is True
+    assert drift_child.apply_legal_move(drift.start, drift.end) is True
+    assert root_stability_adjustment(board, support, support_child) > root_stability_adjustment(
+        board,
+        drift,
+        drift_child,
+    )
+
+
+def test_strategy7_order_prefers_main_passer_push_over_side_pawn_drift() -> None:
+    """A side pawn push should lose to the ready outside passer in a practical ending."""
+
+    board = _task8_pawn_drift_board()
+    direct_push = ai.Move(start=sq("b7"), end=sq("b8"), promotion=PieceType.QUEEN)
+    side_push = ai.Move(start=sq("h2"), end=sq("h3"))
+    direct_child = board.clone()
+    side_child = board.clone()
+
+    assert direct_child.apply_legal_move(
+        direct_push.start,
+        direct_push.end,
+        promotion=direct_push.promotion,
+    ) is True
+    assert side_child.apply_legal_move(side_push.start, side_push.end) is True
+    assert root_stability_adjustment(board, direct_push, direct_child) > root_stability_adjustment(
+        board,
+        side_push,
+        side_child,
+    )

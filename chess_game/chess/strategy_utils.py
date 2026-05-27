@@ -225,6 +225,19 @@ def materially_behind_color(board: Board) -> Color | None:
     return opposite_color(leading_color)
 
 
+def non_king_material_lead(board: Board, color: Color) -> int:
+    """Return this side's signed non-king material lead."""
+
+    material = {Color.WHITE: 0, Color.BLACK: 0}
+    for row in board.board:
+        for piece in row:
+            if piece is None or piece.kind == PieceType.KING:
+                continue
+            material[piece.color] += MATERIAL_VALUES[piece.kind]
+    lead = material[Color.WHITE] - material[Color.BLACK]
+    return lead if color == Color.WHITE else -lead
+
+
 def path_clear_between(
     board: Board,
     start: tuple[int, int],

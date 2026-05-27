@@ -8,6 +8,7 @@ from chess_game.chess.ai_repetition_patterns import (
     move_undoes_last_own_move,
     root_cycle_penalty,
 )
+from chess_game.chess.anti_drift_guidance import anti_drift_root_bonus
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_in_check
 from chess_game.chess.conversion_guidance import winning_conversion_root_bonus
@@ -732,6 +733,7 @@ def _strategic_root_bonus(
 ) -> int:
     score = heavy_piece_endgame_root_bonus(board, move, child_board, moving_color)
     score += passer_race_root_bonus(board, move, child_board, moving_color)
+    score += anti_drift_root_bonus(board, move, child_board, moving_color)
     if king_danger_index(board, moving_color) >= DANGEROUS_KING_PRESSURE_THRESHOLD:
         return score
     if _is_simple_endgame(board):
