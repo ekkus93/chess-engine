@@ -9,15 +9,15 @@ from chess_game.chess.strategy_utils import (
     heavy_piece_file_support_rows,
     iter_color_pieces,
     king_coordinates,
-    non_king_piece_kinds,
     opposite_color,
     passed_pawns_for_color,
 )
 from chess_game.chess.types import Color, PieceType
 
 _MAX_NON_KING_PIECES = 5
-_EVAL_SCALE = 3
+_EVAL_SCALE = 2
 _ORDER_SCALE = 4
+_ROOT_SCALE = 5
 _PASSER_PROGRESS_BONUS = 20
 _PROTECTED_PASSER_BONUS = 12
 _CONNECTED_PASSER_BONUS = 14
@@ -33,12 +33,19 @@ _DIRECT_PUSH_BONUS = 12
 _HIGH_PRIORITY_PUSH_BONUS = 72
 _ESCORT_BONUS = 16
 _COSMETIC_CHECK_PENALTY = 96
+_RACE_TEMPO_BONUS = 12
+_UNSTOPPABLE_PASSER_BONUS = 28
+_TIED_DOWN_DEFENDER_BONUS = 12
+_ACTIVE_ENEMY_HEAVY_PENALTY = 48
+_PROMOTION_RESOLUTION_BONUS = 120
+_CHECK_DISRUPTION_PENALTY = 96
+_ALLOWED_RACE_KINDS = {PieceType.QUEEN, PieceType.ROOK, PieceType.PAWN}
 
 
 def passer_race_evaluation_score(board: Board) -> int:
     """Return a signed score for passed-pawn urgency in simple endgames."""
 
-    if not _is_relevant_passer_race(board):
+    if not _is_relevant_passer_race_evaluation(board):
         return 0
     return (
         _passer_race_side_score(board, Color.WHITE)
@@ -71,6 +78,33 @@ def passer_race_order_bonus(
         bonus += _ESCORT_BONUS
     if (
         kind in {PieceType.ROOK, PieceType.QUEEN}
+        and _move_checks_opponent(child_board, color)
+        and after <= before
+        and _has_relevant_race_targets(board, color)
+    ):
+        bonus -= _COSMETIC_CHECK_PENALTY
+    return bonus
+
+
+def passer_race_root_bonus(
+    board: Board,
+    move: Move,
+    child_board: Board,
+    color: Color,
+) -> int:
+    """Return a root-only bonus for clearer passed-pawn race choices."""
+
+    if not _is_relevant_passer_race(board):
+        return 0
+    piece = board.get_piece(move.start)
+    if move.promotion is not None and piece is not None and piece.kind == PieceType.PAWN:
+        return _PROMOTION_RESOLUTION_BONUS
+    before = _relative_race_score(board, color)
+    after = _relative_race_score(child_board, color)
+    bonus = (after - before) * _ROOT_SCALE
+    if (
+        piece is not None
+        and piece.kind in {PieceType.ROOK, PieceType.QUEEN}
         and _move_checks_opponent(child_board, color)
         and after <= before
         and _has_relevant_race_targets(board, color)
@@ -112,6 +146,13 @@ def _passer_race_side_score(board: Board, color: Color) -> int:
     return score
 
 
+def _relative_race_score(board: Board, color: Color) -> int:
+    return _passer_race_side_score(board, color) - _passer_race_side_score(
+        board,
+        _opponent(color),
+    )
+
+
 def _own_passer_score(
     board: Board,
     color: Color,
@@ -130,6 +171,11 @@ def _own_passer_score(
         score += _CLEAR_PATH_BONUS
     score += _king_support_score(board, color, pawn)
     score += _heavy_piece_support_score(board, color, pawn)
+    score += _race_tempo_score(board, color, pawn)
+    score += _unstoppable_passer_score(board, color, pawn)
+    score += _defender_tied_down_score(board, color, pawn)
+    score -= _enemy_heavy_counterplay_penalty(board, color, pawn)
+    score -= _check_disruption_penalty(board, color, pawn)
     return score
 
 
@@ -301,13 +347,36 @@ def _move_directly_stops_enemy_near_promotion_pawn(
 
 
 def _is_relevant_passer_race(board: Board) -> bool:
-    non_king_pieces = non_king_piece_kinds(board)
-    if len(non_king_pieces) > _MAX_NON_KING_PIECES:
+    if not _passes_material_gate(board):
         return False
-    return _has_relevant_race_targets(board, Color.WHITE) or _has_relevant_race_targets(
-        board,
-        Color.BLACK,
+    return (
+        _has_race_critical_passer(board, Color.WHITE)
+        and _has_meaningful_enemy_counterplay(board, Color.WHITE)
+    ) or (
+        _has_race_critical_passer(board, Color.BLACK)
+        and _has_meaningful_enemy_counterplay(board, Color.BLACK)
     )
+
+
+def _is_relevant_passer_race_evaluation(board: Board) -> bool:
+    return _is_relevant_passer_race(board) and (
+        _has_immediate_race_pressure(board, Color.WHITE)
+        or _has_immediate_race_pressure(board, Color.BLACK)
+    )
+
+
+def _passes_material_gate(board: Board) -> bool:
+    non_king_count = 0
+    for row in board.board:
+        for piece in row:
+            if piece is None or piece.kind == PieceType.KING:
+                continue
+            if piece.kind not in _ALLOWED_RACE_KINDS:
+                return False
+            non_king_count += 1
+            if non_king_count > _MAX_NON_KING_PIECES:
+                return False
+    return True
 
 
 def _high_priority_push_bonus(board: Board, color: Color, move: Move) -> int:
@@ -333,6 +402,169 @@ def _is_high_priority_passer(
         or _is_protected_passer(board, color, pawn)
         or _is_connected_passer(pawn, own_passers)
     )
+
+
+def _has_race_critical_passer(board: Board, color: Color) -> bool:
+    own_passers = passed_pawns_for_color(board, color)
+    return any(
+        _is_high_priority_passer(board, color, pawn, own_passers)
+        and _is_race_critical_progress(color, pawn[0])
+        for pawn in own_passers
+    )
+
+
+def _has_meaningful_enemy_counterplay(board: Board, color: Color) -> bool:
+    enemy_color = _opponent(color)
+    return bool(passed_pawns_for_color(board, enemy_color)) or any(
+        piece.kind in {PieceType.ROOK, PieceType.QUEEN}
+        for piece, _, _ in iter_color_pieces(board, enemy_color)
+    )
+
+
+def _has_immediate_race_pressure(board: Board, color: Color) -> bool:
+    own_passers = passed_pawns_for_color(board, color)
+    enemy_has_passer = bool(passed_pawns_for_color(board, _opponent(color)))
+    return any(
+        _is_high_priority_passer(board, color, pawn, own_passers)
+        and _is_race_critical_progress(color, pawn[0])
+        and _is_immediate_race_passer(board, color, pawn, enemy_has_passer)
+        for pawn in own_passers
+    )
+
+
+def _is_immediate_race_passer(
+    board: Board,
+    color: Color,
+    pawn: tuple[int, int],
+    enemy_has_passer: bool,
+) -> bool:
+    if enemy_has_passer:
+        return True
+    if _promotion_pushes_remaining(color, pawn[0]) <= 1:
+        return True
+    if _defender_tied_down_score(board, color, pawn) > 0:
+        return True
+    own_king = king_coordinates(board, color)
+    return own_king is not None and _king_distance(own_king, pawn) <= 4
+
+
+def _is_race_critical_progress(color: Color, row: int) -> bool:
+    return _promotion_progress(color, row) >= 4
+
+
+def _race_tempo_score(board: Board, color: Color, pawn: tuple[int, int]) -> int:
+    own_tempo = _promotion_pushes_remaining(color, pawn[0])
+    enemy_fastest = _fastest_promotion_tempo(board, _opponent(color))
+    if enemy_fastest is None:
+        return _RACE_TEMPO_BONUS
+    margin = max(-2, min(2, enemy_fastest - own_tempo))
+    return margin * _RACE_TEMPO_BONUS
+
+
+def _unstoppable_passer_score(
+    board: Board,
+    color: Color,
+    pawn: tuple[int, int],
+) -> int:
+    if not _path_to_promotion_is_clear(board, color, pawn):
+        return 0
+    enemy_king = king_coordinates(board, _opponent(color))
+    if enemy_king is None or _enemy_heavy_stops_pawn(board, color, pawn):
+        return 0
+    own_tempo = _promotion_pushes_remaining(color, pawn[0])
+    promotion_square = _promotion_square(color, pawn[1])
+    block_square = _block_square(color, pawn)
+    enemy_stop_tempo = min(
+        _king_distance(enemy_king, promotion_square),
+        _king_distance(enemy_king, block_square),
+    )
+    if own_tempo < enemy_stop_tempo:
+        return _UNSTOPPABLE_PASSER_BONUS
+    return 0
+
+
+def _defender_tied_down_score(
+    board: Board,
+    color: Color,
+    pawn: tuple[int, int],
+) -> int:
+    enemy_color = _opponent(color)
+    block_row, block_col = _block_square(color, pawn)
+    promotion_row, promotion_col = _promotion_square(color, pawn[1])
+    score = 0
+    block_occupant = board.board[block_row][block_col] if 0 <= block_row < 8 else None
+    promotion_occupant = board.board[promotion_row][promotion_col]
+    if block_occupant is not None and block_occupant.color == enemy_color:
+        score += _TIED_DOWN_DEFENDER_BONUS
+    if promotion_occupant is not None and promotion_occupant.color == enemy_color:
+        score += _TIED_DOWN_DEFENDER_BONUS
+    return score
+
+
+def _enemy_heavy_stops_pawn(board: Board, color: Color, pawn: tuple[int, int]) -> bool:
+    enemy_color = _opponent(color)
+    promotion_square = _square_tuple_to_constant(*_promotion_square(color, pawn[1]))
+    block_row, block_col = _block_square(color, pawn)
+    block_square = (
+        None
+        if not 0 <= block_row < 8
+        else _square_tuple_to_constant(block_row, block_col)
+    )
+    for piece, _, _ in iter_color_pieces(board, enemy_color):
+        if piece.kind not in {PieceType.ROOK, PieceType.QUEEN}:
+            continue
+        if piece_attacks_square(piece, piece.square, promotion_square, board):
+            return True
+        if (
+            block_square is not None
+            and piece_attacks_square(piece, piece.square, block_square, board)
+        ):
+            return True
+    return False
+
+
+def _enemy_heavy_counterplay_penalty(
+    board: Board,
+    color: Color,
+    pawn: tuple[int, int],
+) -> int:
+    enemy_heavy = [
+        piece
+        for piece, _, _ in iter_color_pieces(board, _opponent(color))
+        if piece.kind in {PieceType.ROOK, PieceType.QUEEN}
+    ]
+    if not enemy_heavy or _promotion_pushes_remaining(color, pawn[0]) <= 1:
+        return 0
+    if _unstoppable_passer_score(board, color, pawn) > 0:
+        return 0
+    if _defender_tied_down_score(board, color, pawn) > 0:
+        return 0
+    return len(enemy_heavy) * _ACTIVE_ENEMY_HEAVY_PENALTY
+
+
+def _check_disruption_penalty(
+    board: Board,
+    color: Color,
+    pawn: tuple[int, int],
+) -> int:
+    if not is_in_check(board, color) or _promotion_pushes_remaining(color, pawn[0]) <= 1:
+        return 0
+    return _CHECK_DISRUPTION_PENALTY
+
+
+def _fastest_promotion_tempo(board: Board, color: Color) -> int | None:
+    own_passers = passed_pawns_for_color(board, color)
+    tempos = [
+        _promotion_pushes_remaining(color, row)
+        for row, col in own_passers
+        if _is_high_priority_passer(board, color, (row, col), own_passers)
+        and _is_race_critical_progress(color, row)
+    ]
+    return min(tempos, default=None)
+
+
+def _promotion_pushes_remaining(color: Color, row: int) -> int:
+    return row if color == Color.WHITE else 7 - row
 
 
 def _promotion_progress(color: Color, row: int) -> int:

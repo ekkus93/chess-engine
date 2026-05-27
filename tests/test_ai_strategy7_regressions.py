@@ -314,6 +314,54 @@ def _task6_holdable_queen_trade_board() -> Board:
     )
 
 
+def _task7_unstoppable_passer_board() -> Board:
+    return _build_board(
+        [
+            ("g5", Color.WHITE, PieceType.KING),
+            ("d4", Color.WHITE, PieceType.QUEEN),
+            ("b6", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("h8", Color.BLACK, PieceType.ROOK),
+        ]
+    )
+
+
+def _task7_only_blockadable_board() -> Board:
+    return _build_board(
+        [
+            ("g5", Color.WHITE, PieceType.KING),
+            ("b6", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("a8", Color.BLACK, PieceType.ROOK),
+        ],
+        turn=Color.BLACK,
+    )
+
+
+def _task7_queen_escort_race_board() -> Board:
+    return _build_board(
+        [
+            ("g2", Color.WHITE, PieceType.KING),
+            ("d4", Color.WHITE, PieceType.QUEEN),
+            ("b6", Color.WHITE, PieceType.PAWN),
+            ("g7", Color.BLACK, PieceType.KING),
+            ("b8", Color.BLACK, PieceType.ROOK),
+        ]
+    )
+
+
+def _task7_wrong_side_activity_board() -> Board:
+    return _build_board(
+        [
+            ("g5", Color.WHITE, PieceType.KING),
+            ("b7", Color.WHITE, PieceType.PAWN),
+            ("g7", Color.BLACK, PieceType.KING),
+            ("e5", Color.BLACK, PieceType.QUEEN),
+        ],
+        turn=Color.BLACK,
+    )
+
+
 def test_strategy7_order_prefers_capturing_b7_passer_over_a5() -> None:
     """The defending side should tie its rook to the passer instead of drifting on the wing."""
 
@@ -571,3 +619,52 @@ def test_strategy7_search_prefers_queen_trade_into_holdable_heavy_piece_ending()
     board = _task6_holdable_queen_trade_board()
 
     assert get_best_move(board, depth=3) == LegalMove(start=sq("e7"), end=sq("d7"))
+
+
+def test_strategy7_eval_rewards_creating_unstoppable_passer() -> None:
+    """Passed-pawn race evaluation should value the push that wins the tempo race."""
+
+    board = _task7_unstoppable_passer_board()
+    push_child = board.clone()
+    side_check_child = board.clone()
+
+    assert push_child.apply_legal_move(sq("b6"), sq("b7")) is True
+    assert side_check_child.apply_legal_move(sq("d4"), sq("e5")) is True
+    assert (
+        get_evaluation_breakdown(push_child)["passer_race"]
+        > get_evaluation_breakdown(side_check_child)["passer_race"]
+    )
+
+
+def test_strategy7_search_prefers_only_blockade_move_in_passer_race() -> None:
+    """When the passer can only be stopped by a blockade, search should find it."""
+
+    board = _task7_only_blockadable_board()
+
+    assert get_best_move(board, depth=3) == LegalMove(start=sq("a8"), end=sq("b8"))
+
+
+def test_strategy7_root_prefers_queen_escort_when_it_wins_the_race() -> None:
+    """Root tie-breaks should favor escorting the pawn over a decorative queen move."""
+
+    board = _task7_queen_escort_race_board()
+    escort = ai.Move(start=sq("d4"), end=sq("b2"))
+    drift = ai.Move(start=sq("d4"), end=sq("e5"))
+    escort_child = board.clone()
+    drift_child = board.clone()
+
+    assert escort_child.apply_legal_move(escort.start, escort.end) is True
+    assert drift_child.apply_legal_move(drift.start, drift.end) is True
+    assert root_stability_adjustment(board, escort, escort_child) > root_stability_adjustment(
+        board,
+        drift,
+        drift_child,
+    )
+
+
+def test_strategy7_search_prefers_stopping_enemy_race_over_wrong_side_check() -> None:
+    """Search should stop the b-pawn race instead of spending a move on a flashy check."""
+
+    board = _task7_wrong_side_activity_board()
+
+    assert get_best_move(board, depth=3) == LegalMove(start=sq("e5"), end=sq("b8"))

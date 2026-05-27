@@ -345,36 +345,36 @@ Phase note:
 
 ## 7.1 Add passed-pawn race regressions
 
-- [ ] Add tests where the engine should correctly identify:
-  - [ ] unstoppable passers
-  - [ ] only-blockadable passers
-  - [ ] queen escort beats side counterplay
-  - [ ] wrong-side activity loses the race immediately
+- [x] Add tests where the engine should correctly identify:
+  - [x] unstoppable passers
+  - [x] only-blockadable passers
+  - [x] queen escort beats side counterplay
+  - [x] wrong-side activity loses the race immediately
 
 ## 7.2 Audit existing passer-race guidance
 
-- [ ] Review how `passer_race_guidance.py`, conversion guidance, and defensive guidance interact.
-- [ ] Identify missing features from the new transcript.
-- [ ] Save the audit under `tmp/`.
+- [x] Review how `passer_race_guidance.py`, conversion guidance, and defensive guidance interact.
+- [x] Identify missing features from the new transcript.
+- [x] Save the audit under `tmp/`.
 
 ## 7.3 Tighten passer-race evaluation
 
-- [ ] Add or refine scoring for:
-  - [ ] tempo-to-promotion differences
-  - [ ] critical-square ownership
-  - [ ] defender tied down to stopping promotion
-  - [ ] whether checks help or hurt the race
+- [x] Add or refine scoring for:
+  - [x] tempo-to-promotion differences
+  - [x] critical-square ownership
+  - [x] defender tied down to stopping promotion
+  - [x] whether checks help or hurt the race
 
 ## 7.4 Tighten passer-race ordering and root choice
 
-- [ ] Prefer moves that:
-  - [ ] create or preserve unstoppable promotion
-  - [ ] force the defender into passivity
-  - [ ] stop the opponent’s only rival race
+- [x] Prefer moves that:
+  - [x] create or preserve unstoppable promotion
+  - [x] force the defender into passivity
+  - [x] stop the opponent’s only rival race
 
 Phase note:
 
-- [ ] Task 7 complete note
+- [x] Task 7 is complete. The audit artifact lives in `tmp/strategy7_task7_audit.txt`. This phase expanded `tests/test_ai_strategy7_regressions.py` with four passed-pawn race probes for unstoppable promotion, only-blockadable defense, queen escort, and rejecting wrong-side activity, then promoted passer-race judgment from quiet-order/extension-only logic into full evaluation and root choice. `passer_race_guidance.py` now scores direct promotion-tempo differences, king access to critical squares, simple “tied-down defender” geometry, and root-level penalties for flashy checks that do not improve the race, while `endgame_evaluation.py`, `evaluation.py`, and `ai_search_helpers.py` now expose those race signals to the actual search. The remaining repeated line from the Task 6 seeded review is no longer just a generic heavy-piece coordination issue; it is now explicitly treated as a race-quality question with the passer front and center.
 
 ---
 

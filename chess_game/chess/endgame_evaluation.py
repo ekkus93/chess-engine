@@ -6,6 +6,7 @@ from chess_game.chess.defensive_endgame_guidance import defensive_endgame_evalua
 from chess_game.chess.heavy_piece_endgame_guidance import (
     heavy_piece_endgame_evaluation_score,
 )
+from chess_game.chess.passer_race_guidance import passer_race_evaluation_score
 from chess_game.chess.evaluation_tables import (
     ACTIVE_KING_ENDGAME_BONUS,
     BLOCKADED_PASSED_PAWN_BONUS,
@@ -112,6 +113,14 @@ def evaluate_heavy_piece_endgames(board: Board, endgame_phase: int) -> int:
     if endgame_phase == 0:
         return 0
     return scale_signed(heavy_piece_endgame_evaluation_score(board), endgame_phase)
+
+
+def evaluate_passer_races(board: Board, endgame_phase: int) -> int:
+    """Return passed-pawn race bonuses."""
+
+    if endgame_phase < 60:
+        return 0
+    return scale_signed(passer_race_evaluation_score(board), endgame_phase)
 
 
 def _collect_pawn_positions(board: Board) -> dict[Color, list[tuple[int, int]]]:

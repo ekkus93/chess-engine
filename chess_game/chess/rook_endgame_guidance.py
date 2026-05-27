@@ -1,6 +1,7 @@
 """Shared rook-endgame guidance for evaluation and move ordering."""
 
 from chess_game.chess.board import Board
+from chess_game.chess.board.attack_utils import piece_attacks_square
 from chess_game.chess.board.game_state import is_in_check
 from chess_game.chess.move import Move
 from chess_game.chess.structure_recognition import structure_profile
@@ -20,8 +21,10 @@ _ROOK_IN_FRONT_OF_ENEMY_PASSER_BONUS = 24
 _ROOK_IN_FRONT_OF_PASSER_PENALTY = 16
 _KING_SUPPORTS_PASSER_BONUS = 12
 _OUTSIDE_PASSER_ACTIVITY_BONUS = 10
+_READY_OUTSIDE_PASSER_PUSH_BONUS = 8
 _PASSIVE_ROOK_PENALTY = 10
 _WORSE_SIDE_CHECK_DRIFT_PENALTY = 48
+_LOOSE_WINNING_CHECK_PENALTY = 120
 _ORDER_SCORE_SCALE = 4
 
 
@@ -62,6 +65,8 @@ def rook_endgame_order_bonus(
         and not _move_targets_enemy_passer_file(board, color, move)
     ):
         bonus -= _WORSE_SIDE_CHECK_DRIFT_PENALTY
+    if kind == PieceType.PAWN and _is_ready_outside_passer_push(board, color, move):
+        bonus += _READY_OUTSIDE_PASSER_PUSH_BONUS
     return bonus
 
 
@@ -80,6 +85,7 @@ def _rook_endgame_side_score(board: Board, color: Color) -> int:
         score += _rook_defensive_alignment_score(board, color, rook, enemy_passers)
         if _rook_is_passive(rook, own_passers, enemy_passers):
             score -= _PASSIVE_ROOK_PENALTY
+        score -= _loose_winning_check_penalty(board, color, rook, own_passers)
     score += _king_support_score(board, color, own_passers)
     score += _outside_passer_activity_score(board, color, rooks)
     return score
@@ -184,6 +190,35 @@ def _rook_is_passive(
     return rook_col not in advanced_files and rook_row in {0, 7}
 
 
+def _loose_winning_check_penalty(
+    board: Board,
+    color: Color,
+    rook: tuple[int, int],
+    own_passers: list[tuple[int, int]],
+) -> int:
+    penalty = 0
+    own_king = board.find_king(color)
+    enemy_king = board.find_king(_opponent(color))
+    rook_piece = board.board[rook[0]][rook[1]]
+    ready_for_check_test = (
+        own_passers
+        and not _is_materially_down(board, color)
+        and own_king is not None
+        and enemy_king is not None
+    )
+    rook_gives_check = (
+        rook_piece is not None
+        and rook_piece.kind == PieceType.ROOK
+        and piece_attacks_square(rook_piece, rook_piece.square, enemy_king, board)
+    )
+    if ready_for_check_test and rook_gives_check:
+        main_passer = _main_passer(color, own_passers)
+        own_king_pos = (int(own_king.row), int(own_king.col))
+        if _king_distance(own_king_pos, main_passer) > 4 and rook[1] != main_passer[1]:
+            penalty = _LOOSE_WINNING_CHECK_PENALTY
+    return penalty
+
+
 def _is_relevant_rook_endgame(board: Board) -> bool:
     non_king_pieces = non_king_piece_kinds(board)
     if not non_king_pieces or any(
@@ -191,6 +226,12 @@ def _is_relevant_rook_endgame(board: Board) -> bool:
     ):
         return False
     return any(kind == PieceType.ROOK for kind in non_king_pieces)
+
+
+def _main_passer(color: Color, own_passers: list[tuple[int, int]]) -> tuple[int, int]:
+    if color == Color.WHITE:
+        return min(own_passers)
+    return max(own_passers)
 
 
 def _is_behind_pawn(color: Color, rook_row: int, pawn_row: int) -> bool:
@@ -216,6 +257,16 @@ def _move_checks_opponent(board: Board, color: Color) -> bool:
 def _move_targets_enemy_passer_file(board: Board, color: Color, move: Move) -> bool:
     enemy_passers = passed_pawns_for_color(board, _opponent(color))
     return any(int(move.end.col) == pawn_col for _, pawn_col in enemy_passers)
+
+
+def _is_ready_outside_passer_push(board: Board, color: Color, move: Move) -> bool:
+    start = (int(move.start.row), int(move.start.col))
+    end = (int(move.end.row), int(move.end.col))
+    if end[1] != start[1] or start not in passed_pawns_for_color(board, color):
+        return False
+    if end[1] not in {0, 1, 6, 7}:
+        return False
+    return is_advanced_passer(color, end[0])
 
 
 def rook_positions(board: Board, color: Color) -> list[tuple[int, int]]:
