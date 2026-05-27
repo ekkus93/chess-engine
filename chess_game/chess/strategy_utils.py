@@ -80,6 +80,21 @@ def both_queens_on_board(board: Board) -> bool:
     return False
 
 
+def pawn_supports_square(board: Board, color: Color, row: int, col: int) -> bool:
+    """Return True when a same-color pawn supports a square diagonally from behind."""
+
+    support_row = row + 1 if color == Color.WHITE else row - 1
+    if not 0 <= support_row < 8:
+        return False
+    for support_col in (col - 1, col + 1):
+        if not 0 <= support_col < 8:
+            continue
+        piece = board.board[support_row][support_col]
+        if piece is not None and piece.color == color and piece.kind == PieceType.PAWN:
+            return True
+    return False
+
+
 def exposed_shield_files(board: Board, color: Color, king_col: int) -> list[int]:
     """Return king-adjacent files missing both the home and advanced shield pawn."""
 

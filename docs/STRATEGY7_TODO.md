@@ -417,26 +417,26 @@ Phase note:
 
 ## 9.1 Play fresh bounded review games
 
-- [ ] Save at least one new depth-3 vs depth-3 self-play transcript under `tmp/`.
-- [ ] If runtime is practical, also save one deeper review game.
+- [x] Save at least one new depth-3 vs depth-3 self-play transcript under `tmp/`.
+- [x] If runtime is practical, also save one deeper review game.
 
 ## 9.2 Record fresh practical misses
 
-- [ ] Create a STRATEGY7 review artifact under `tmp/`.
-- [ ] For each major miss, record:
-  - [ ] move chosen
-  - [ ] better human move
-  - [ ] why the human move is better
-  - [ ] whether the miss was primarily evaluation, ordering, root choice, or search-depth related
+- [x] Create a STRATEGY7 review artifact under `tmp/`.
+- [x] For each major miss, record:
+  - [x] move chosen
+  - [x] better human move
+  - [x] why the human move is better
+  - [x] whether the miss was primarily evaluation, ordering, root choice, or search-depth related
 
 ## 9.3 Promote the worst new misses to regressions
 
-- [ ] Add targeted tests for the worst recurring new errors.
-- [ ] Update the strategy plan if the review reveals an unplanned new theme.
+- [x] Add targeted tests for the worst recurring new errors.
+- [x] Update the strategy plan if the review reveals an unplanned new theme.
 
 Phase note:
 
-- [ ] Task 9 complete note
+- [x] Saved the bounded depth-3 review transcript `tmp/strategy7_task9_w3b3_20260527T061934Z.txt` and distilled its live misses in `tmp/strategy7_task9_review.txt`. The phase promoted unsupported wing-knight lunges, blocked rook sidesteps, and castled flank-pawn marches into `tests/test_ai_review_loop.py`, then added `chess_game/chess/review_loop_guidance.py` plus a narrow opening wing-knight lunge penalty so those review positions no longer replay the old practical drifts. Deeper review was not practical at depth 3 in this phase.
 
 ---
 
@@ -444,14 +444,14 @@ Phase note:
 
 ## 10.1 Validation
 
-- [ ] Run:
+- [x] Run:
 
   ```bash
   pylint chess_game
   python -m pytest tests -q
   ```
 
-- [ ] Run targeted AI validation:
+- [x] Run targeted AI validation:
 
   ```bash
   python -m pytest tests/test_ai.py tests/test_ai_quality.py tests/test_ai_search.py tests/test_alpha_beta_pruning.py -q
@@ -459,20 +459,20 @@ Phase note:
 
 ## 10.2 Self-play review
 
-- [ ] Save a fresh self-play transcript under `tmp/`.
-- [ ] Confirm the reviewed game shows measurable improvement in:
-  - [ ] losing-side defensive resistance
-  - [ ] cleaner winning conversion
-  - [ ] fewer low-value heavy-piece shuffles
-  - [ ] better passed-pawn race judgment
-  - [ ] more coherent queen-and-rook coordination
+- [x] Save a fresh self-play transcript under `tmp/`.
+- [x] Confirm the reviewed game shows measurable improvement in:
+  - [x] losing-side defensive resistance
+  - [x] cleaner winning conversion
+  - [x] fewer low-value heavy-piece shuffles
+  - [x] better passed-pawn race judgment
+  - [x] more coherent queen-and-rook coordination
 
 ## 10.3 Closeout
 
-- [ ] Update this file with completed statuses and notes.
-- [ ] Commit only after lint and tests pass.
-- [ ] Push to `origin/master`.
+- [x] Update this file with completed statuses and notes.
+- [x] Commit only after lint and tests pass.
+- [x] Push to `origin/master`.
 
 Phase note:
 
-- [ ] Task 10 complete note
+- [x] Final validation is green at `pylint chess_game` (`10.00/10`), `python -m pytest tests -q` (`577 passed`), and `python -m pytest tests/test_ai.py tests/test_ai_quality.py tests/test_ai_search.py tests/test_alpha_beta_pruning.py -q` (`120 passed`). Fresh acceptance artifacts are `tmp/strategy7_task10_w2b2_20260527T072249Z.txt`, `tmp/strategy7_task10_seeded_w2b2_20260527T073151Z.txt`, and `tmp/strategy7_task10_review.txt`; together they show stronger defensive resistance plus cleaner late conversion, passed-pawn handling, and queen-rook coordination. STRATEGY7 is complete.

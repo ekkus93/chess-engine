@@ -20,8 +20,10 @@ from chess_game.chess.evaluation_tables import (
     MINOR_COORDINATION_BONUS,
 )
 from chess_game.chess.strategy_utils import (
+    both_queens_on_board,
     iter_color_pieces,
     path_clear_between,
+    pawn_supports_square,
     shield_pawn_support_state,
 )
 from chess_game.chess.types import Color, PieceType
@@ -369,6 +371,28 @@ def opening_queen_restraint_bonus(board: Board, color: Color, undeveloped: int) 
     return EARLY_QUEEN_MOVE_PENALTY // 2
 
 
+def opening_wing_knight_lunge_penalty(board: Board, color: Color, undeveloped: int) -> int:
+    """Penalize unsupported early knight lunges toward the enemy wing."""
+
+    king_square = board.find_king(color)
+    if (
+        undeveloped < 1
+        or king_square is None
+        or int(king_square.row) != (7 if color == Color.WHITE else 0)
+        or int(king_square.col) != 4
+        or not both_queens_on_board(board)
+    ):
+        return 0
+    penalty = 0
+    for piece, row, col in iter_color_pieces(board, color):
+        if piece.kind != PieceType.KNIGHT or not _is_wing_knight_lunge(color, row, col):
+            continue
+        if pawn_supports_square(board, color, row, col):
+            continue
+        penalty += KNIGHT_RIM_PENALTY + EARLY_FLANK_RAID_PENALTY
+    return penalty
+
+
 def minor_on_home_square(color: Color, kind: PieceType, row: int, col: int) -> bool:
     """Return True when a minor piece still sits on its original square."""
 
@@ -415,6 +439,10 @@ def undeveloped_minor_piece_count(board: Board, color: Color) -> int:
         ):
             undeveloped += 1
     return undeveloped
+
+
+def _is_wing_knight_lunge(color: Color, row: int, col: int) -> bool:
+    return col in {1, 6} and (row <= 3 if color == Color.WHITE else row >= 4)
 
 
 def _is_castled_king(color: Color, square: ConstantSquare) -> bool:

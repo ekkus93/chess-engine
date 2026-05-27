@@ -25,6 +25,7 @@ QUIET_UNSETTLED_RIM_KNIGHT_PENALTY = 18
 QUIET_KNIGHT_WING_DRIFT_PENALTY = 18
 QUIET_BISHOP_WING_DRIFT_PENALTY = 16
 QUIET_UNSETTLED_CENTRAL_BREAK_BONUS = 24
+QUIET_KNIGHT_FLANK_LUNGE_PENALTY = 26
 
 
 def opening_discipline_order_score(board: Board, kind: PieceType, move: Move) -> int:
@@ -59,6 +60,13 @@ def _minor_opening_discipline_score(board: Board, kind: PieceType, move: Move) -
             score -= QUIET_UNSETTLED_RIM_KNIGHT_PENALTY
     if kind == PieceType.KNIGHT and _is_knight_wing_drift(move, unsettled_king):
         score -= QUIET_KNIGHT_WING_DRIFT_PENALTY
+    if kind == PieceType.KNIGHT and _is_knight_flank_lunge(
+        board,
+        move,
+        undeveloped,
+        unsettled_king,
+    ):
+        score -= QUIET_KNIGHT_FLANK_LUNGE_PENALTY
     if kind == PieceType.BISHOP and _is_bishop_wing_drift(move, unsettled_king):
         score -= QUIET_BISHOP_WING_DRIFT_PENALTY
     return score
@@ -320,6 +328,25 @@ def _is_knight_wing_drift(move: Move, unsettled_king: bool) -> bool:
     if not unsettled_king or int(move.end.col) not in {0, 7}:
         return False
     return center_distance(int(move.end.row), int(move.end.col)) > center_distance(
+        int(move.start.row),
+        int(move.start.col),
+    )
+
+
+def _is_knight_flank_lunge(
+    board: Board,
+    move: Move,
+    undeveloped: int,
+    unsettled_king: bool,
+) -> bool:
+    if undeveloped < 1 or not unsettled_king or int(move.end.col) not in {1, 6}:
+        return False
+    end_row = int(move.end.row)
+    if board.turn == Color.WHITE and end_row > 3:
+        return False
+    if board.turn == Color.BLACK and end_row < 4:
+        return False
+    return center_distance(end_row, int(move.end.col)) > center_distance(
         int(move.start.row),
         int(move.start.col),
     )

@@ -24,6 +24,7 @@ from chess_game.chess.opening_development import (
     early_flank_queen_sortie_penalty as _early_flank_queen_sortie_penalty,
     early_flank_pawn_poke_penalty as _early_flank_pawn_poke_penalty,
     early_flank_raid_penalty as _early_flank_raid_penalty,
+    opening_wing_knight_lunge_penalty as _opening_wing_knight_lunge_penalty,
     _opening_drift_penalties,
     opening_king_safety_score as _opening_king_safety_score,
     opening_queen_restraint_bonus as _opening_queen_restraint_bonus,
@@ -41,6 +42,7 @@ from chess_game.chess.defensive_containment_guidance import (
     heavy_piece_defense_evaluation_score as _heavy_piece_defense_evaluation_score,
 )
 from chess_game.chess.pieces.piece_movers import PieceMovers
+from chess_game.chess.review_loop_guidance import review_loop_evaluation_score
 from chess_game.chess.strategy_utils import (
     file_pawn_state as _file_pawn_state,
     iter_king_squares as _iter_king_squares,
@@ -124,6 +126,7 @@ def get_evaluation_breakdown(board: Board) -> EvaluationBreakdown:
         "heavy_piece_endgame": _evaluate_heavy_piece_endgames(board, endgame_phase),
         "passer_race": _evaluate_passer_races(board, endgame_phase),
         "defensive_containment": _heavy_piece_defense_evaluation_score(board),
+        "review_loop": review_loop_evaluation_score(board),
         "development": _evaluate_development(board, middlegame_phase),
     }
     breakdown["total"] = sum(breakdown.values())
@@ -693,6 +696,11 @@ def _evaluate_development(board: Board, middlegame_phase: int) -> int:
             undeveloped,
         )
         development_score -= sign * _early_flank_raid_penalty(board, color, undeveloped)
+        development_score -= sign * _opening_wing_knight_lunge_penalty(
+            board,
+            color,
+            undeveloped,
+        )
         (
             kingside_lunge_penalty,
             rook_sidestep_penalty,

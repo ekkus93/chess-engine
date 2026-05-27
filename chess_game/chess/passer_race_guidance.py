@@ -10,6 +10,7 @@ from chess_game.chess.strategy_utils import (
     iter_color_pieces,
     king_coordinates,
     opposite_color,
+    pawn_supports_square,
     passed_pawns_for_color,
 )
 from chess_game.chess.types import Color, PieceType
@@ -230,16 +231,7 @@ def _heavy_piece_support_score(
 
 def _is_protected_passer(board: Board, color: Color, pawn: tuple[int, int]) -> bool:
     row, col = pawn
-    support_row = row + 1 if color == Color.WHITE else row - 1
-    if not 0 <= support_row < 8:
-        return False
-    for support_col in (col - 1, col + 1):
-        if not 0 <= support_col < 8:
-            continue
-        piece = board.board[support_row][support_col]
-        if piece is not None and piece.color == color and piece.kind == PieceType.PAWN:
-            return True
-    return False
+    return pawn_supports_square(board, color, row, col)
 
 
 def _is_connected_passer(
