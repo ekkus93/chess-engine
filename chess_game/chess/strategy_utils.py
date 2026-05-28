@@ -236,6 +236,26 @@ def non_king_piece_kinds(board: Board) -> list[PieceType]:
     ]
 
 
+def non_king_piece_count_at_most(
+    board: Board,
+    maximum: int,
+    allowed_kinds: set[PieceType] | None = None,
+) -> bool:
+    """Return True when the board has at most `maximum` non-king pieces."""
+
+    non_king_count = 0
+    for row in board.board:
+        for piece in row:
+            if piece is None or piece.kind == PieceType.KING:
+                continue
+            if allowed_kinds is not None and piece.kind not in allowed_kinds:
+                return False
+            non_king_count += 1
+            if non_king_count > maximum:
+                return False
+    return True
+
+
 def materially_ahead_color(board: Board) -> Color | None:
     """Return the side with a non-king material lead, or None when equal."""
 

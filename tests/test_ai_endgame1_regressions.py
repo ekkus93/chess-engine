@@ -198,6 +198,53 @@ def _task3_immediate_activation_board() -> Board:
     )
 
 
+def _task4_king_activity_board() -> Board:
+    return _build_board(
+        [
+            ("b2", Color.WHITE, PieceType.KING),
+            ("c4", Color.WHITE, PieceType.BISHOP),
+            ("h4", Color.WHITE, PieceType.PAWN),
+            ("b6", Color.BLACK, PieceType.KING),
+            ("a5", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+
+def _task4_trade_minor_board() -> Board:
+    return _build_board(
+        [
+            ("c4", Color.WHITE, PieceType.KING),
+            ("e5", Color.WHITE, PieceType.BISHOP),
+            ("h4", Color.WHITE, PieceType.PAWN),
+            ("e7", Color.BLACK, PieceType.KING),
+            ("d6", Color.BLACK, PieceType.BISHOP),
+        ]
+    )
+
+
+def _task4_support_main_passer_board() -> Board:
+    return _build_board(
+        [
+            ("c3", Color.WHITE, PieceType.KING),
+            ("d3", Color.WHITE, PieceType.BISHOP),
+            ("h5", Color.WHITE, PieceType.PAWN),
+            ("a5", Color.WHITE, PieceType.PAWN),
+            ("d6", Color.BLACK, PieceType.KING),
+        ]
+    )
+
+
+def _task4_cutoff_before_race_board() -> Board:
+    return _build_board(
+        [
+            ("d4", Color.WHITE, PieceType.KING),
+            ("a5", Color.WHITE, PieceType.ROOK),
+            ("g6", Color.WHITE, PieceType.PAWN),
+            ("e7", Color.BLACK, PieceType.KING),
+        ]
+    )
+
+
 def test_endgame1_rejects_bishop_loop_drift() -> None:
     """The late bishop loop should yield to immediate king activation."""
 
@@ -395,3 +442,35 @@ def test_endgame1_order_prefers_main_race_pawn_over_wrong_pawn_push() -> None:
         Move(start=sq("a5"), end=sq("a6")),
         None,
     )
+
+
+def test_endgame1_search_prefers_king_activity_before_pawn_drift_in_winning_endgame() -> None:
+    """The better side should activate the king before spending a tempo on pawn drift."""
+
+    board = _task4_king_activity_board()
+
+    assert get_best_move(board, depth=3).start == sq("b2")
+
+
+def test_endgame1_search_prefers_trading_into_trivial_king_and_pawn_win() -> None:
+    """A clean bishop trade should outrank a slower winning conversion."""
+
+    board = _task4_trade_minor_board()
+
+    assert get_best_move(board, depth=3) == LegalMove(start=sq("e5"), end=sq("d6"))
+
+
+def test_endgame1_search_prefers_supporting_main_passer_over_side_pawn_push() -> None:
+    """The winning side should push the main passer before the side pawn."""
+
+    board = _task4_support_main_passer_board()
+
+    assert get_best_move(board, depth=3) == LegalMove(start=sq("h5"), end=sq("h6"))
+
+
+def test_endgame1_search_prefers_cutoff_before_starting_pawn_race() -> None:
+    """A rook cutoff should come before the immediate pawn race when it kills counterplay."""
+
+    board = _task4_cutoff_before_race_board()
+
+    assert get_best_move(board, depth=3).start == sq("a5")

@@ -17,6 +17,7 @@ from chess_game.chess.strategy_utils import (
     is_advanced_passer,
     iter_color_pieces,
     materially_ahead_color,
+    non_king_piece_count_at_most,
     non_king_piece_kinds,
     opposite_color,
     passed_pawns_for_color,
@@ -43,6 +44,14 @@ _SEVENTH_RANK_PRESSURE_BONUS = 30
 _MINOR_LANE_SUPPORT_BONUS = 12
 _MINOR_EDGE_DRIFT_PENALTY = 12
 _HEAVY_SIDE_DRIFT_PENALTY = 8
+_LOW_MATERIAL_KING_LEAD_BONUS = 14
+_LOW_MATERIAL_MAIN_PASSER_BONUS = 24
+_LOW_MATERIAL_PROMOTION_BONUS = 96
+_LOW_MATERIAL_MISSED_PROMOTION_PENALTY = 120
+_LOW_MATERIAL_SIDE_PAWN_PENALTY = 18
+_LOW_MATERIAL_PREMATURE_PUSH_PENALTY = 64
+_LOW_MATERIAL_TRADE_BONUS = 240
+_LOW_MATERIAL_CUTOFF_BONUS = 42
 
 
 @dataclass(frozen=True)
@@ -64,11 +73,25 @@ class ConversionContext:
     enemy: ConversionSideState
     main_passer: tuple[int, int] | None
     is_heavy_conversion: bool
+    is_low_material_conversion: bool
+
+
+@dataclass(frozen=True)
+class LowMaterialMovePlan:
+    """Context needed to score one low-material conversion move."""
+
+    board: Board
+    move: Move
+    child_board: Board
+    context: ConversionContext
+    child_context: ConversionContext
 
 
 def winning_conversion_evaluation_score(board: Board) -> int:
     """Return a signed score for materially winning conversion geometry."""
 
+    if not _can_have_conversion_shape(board):
+        return 0
     context = _conversion_context(board)
     if context is None:
         return 0
@@ -93,6 +116,8 @@ def winning_conversion_order_bonus(
         PieceType.PAWN,
     }:
         return 0
+    if not _can_have_conversion_shape(board):
+        return 0
     context = _conversion_context(board)
     if (
         context is None
@@ -111,6 +136,17 @@ def winning_conversion_order_bonus(
     bonus = (after - before) * _ORDER_SCALE
     if kind == PieceType.KING and after > before:
         bonus += _KING_ACTIVATION_BONUS
+    bonus += _low_material_move_bonus(
+        LowMaterialMovePlan(
+            board=board,
+            move=move,
+            child_board=child_board,
+            context=context,
+            child_context=child_context,
+        ),
+        kind,
+        scale=1,
+    )
     if kind in {PieceType.ROOK, PieceType.QUEEN} and _move_checks_opponent(child_board, color):
         if after <= before:
             bonus -= _CHECK_DRIFT_PENALTY
@@ -119,11 +155,47 @@ def winning_conversion_order_bonus(
 
 def winning_conversion_root_bonus(
     board: Board,
+    move: Move,
     child_board: Board,
     color: Color,
 ) -> int:
     """Return a root-only bonus for cleaner winning conversion choices."""
 
+    return _conversion_root_bonus(
+        board,
+        move,
+        child_board,
+        color,
+        low_material_only=False,
+    )
+
+
+def low_material_conversion_root_bonus(
+    board: Board,
+    move: Move,
+    child_board: Board,
+    color: Color,
+) -> int:
+    """Return a root-only bonus for low-material conversion choices."""
+
+    return _conversion_root_bonus(
+        board,
+        move,
+        child_board,
+        color,
+        low_material_only=True,
+    )
+
+
+def _conversion_root_bonus(
+    board: Board,
+    move: Move,
+    child_board: Board,
+    color: Color,
+    low_material_only: bool,
+) -> int:
+    if not _can_have_conversion_shape(board):
+        return 0
     context = _conversion_context(board)
     child_context = _conversion_context(child_board)
     if (
@@ -133,9 +205,25 @@ def winning_conversion_root_bonus(
         or _conversion_paused_for_king_danger(board, context)
     ):
         return 0
+    if low_material_only and not context.is_low_material_conversion:
+        return 0
     before = _conversion_side_score(board, context)
     after = _conversion_side_score(child_board, child_context)
-    return (after - before) * _ROOT_SCALE
+    bonus = (after - before) * _ROOT_SCALE
+    piece = board.get_piece(move.start)
+    if piece is None:
+        return bonus
+    return bonus + _low_material_move_bonus(
+        LowMaterialMovePlan(
+            board=board,
+            move=move,
+            child_board=child_board,
+            context=context,
+            child_context=child_context,
+        ),
+        piece.kind,
+        scale=2,
+    )
 
 
 def _conversion_side_score(board: Board, context: ConversionContext) -> int:
@@ -149,7 +237,13 @@ def _conversion_side_score(board: Board, context: ConversionContext) -> int:
     score += _enemy_passer_suppression_score(context)
     score += _king_cutoff_score(context)
     score += _seventh_rank_pressure_score(context)
+    if context.is_low_material_conversion:
+        score += _low_material_conversion_score(board, context)
     return score
+
+
+def _can_have_conversion_shape(board: Board) -> bool:
+    return non_king_piece_count_at_most(board, _MAX_HEAVY_CONVERSION_NON_KING_PIECES)
 
 
 def _leading_color(board: Board) -> Color | None:
@@ -169,9 +263,8 @@ def _conversion_context(board: Board) -> ConversionContext | None:
     enemy_passers = passed_pawns_for_color(board, enemy_color)
     own_heavy = _heavy_piece_positions(board, color)
     enemy_heavy = _heavy_piece_positions(board, enemy_color)
-    main_passer = _main_passer(color, own_passers)
-    if not _has_meaningful_counterplay(enemy_heavy, enemy_passers):
-        return None
+    enemy_king_coords = (int(enemy_king.row), int(enemy_king.col))
+    main_passer = _main_passer(color, own_passers, enemy_king_coords)
     is_heavy_conversion = _is_heavy_conversion_battle(
         board,
         color,
@@ -179,7 +272,22 @@ def _conversion_context(board: Board) -> ConversionContext | None:
         own_heavy,
         enemy_heavy,
     )
-    if not (_is_simple_conversion_endgame(board) or is_heavy_conversion):
+    is_low_material_conversion = _is_low_material_conversion_endgame(
+        board,
+        color,
+        main_passer,
+        enemy_heavy,
+    )
+    if not (
+        _is_simple_conversion_endgame(board)
+        or is_heavy_conversion
+        or is_low_material_conversion
+    ):
+        return None
+    if not (
+        _has_meaningful_counterplay(enemy_heavy, enemy_passers)
+        or is_low_material_conversion
+    ):
         return None
     return ConversionContext(
         color=color,
@@ -197,6 +305,7 @@ def _conversion_context(board: Board) -> ConversionContext | None:
         ),
         main_passer=main_passer,
         is_heavy_conversion=is_heavy_conversion,
+        is_low_material_conversion=is_low_material_conversion,
     )
 
 
@@ -206,6 +315,26 @@ def _is_simple_conversion_endgame(board: Board) -> bool:
         len(non_king_pieces) <= _MAX_NON_KING_PIECES
         and any(kind in {PieceType.ROOK, PieceType.QUEEN} for kind in non_king_pieces)
     )
+
+
+def _is_low_material_conversion_endgame(
+    board: Board,
+    color: Color,
+    main_passer: tuple[int, int] | None,
+    enemy_heavy: list[tuple[int, int, PieceType]],
+) -> bool:
+    non_king_pieces = non_king_piece_kinds(board)
+    if len(non_king_pieces) > _MAX_NON_KING_PIECES:
+        return False
+    if any(kind == PieceType.QUEEN for kind in non_king_pieces):
+        return False
+    if enemy_heavy:
+        return False
+    if _material_lead(board, color) < MATERIAL_VALUES[PieceType.PAWN]:
+        return False
+    if main_passer is None:
+        return False
+    return _promotion_distance(color, main_passer[0]) <= 4
 
 
 def _is_heavy_conversion_battle(
@@ -385,6 +514,57 @@ def _king_cutoff_score(context: ConversionContext) -> int:
     return score
 
 
+def _low_material_conversion_score(board: Board, context: ConversionContext) -> int:
+    if context.main_passer is None:
+        return 0
+    score = _low_material_king_lead_score(context)
+    score += _low_material_main_passer_score(context)
+    score += _low_material_rook_cutoff_score(context)
+    score += _low_material_minor_support_score(board, context)
+    return score
+
+
+def _low_material_king_lead_score(context: ConversionContext) -> int:
+    if context.main_passer is None:
+        return 0
+    own_distance = _king_distance(context.own.king, context.main_passer)
+    enemy_distance = _king_distance(context.enemy.king, context.main_passer)
+    return max(0, enemy_distance - own_distance) * _LOW_MATERIAL_KING_LEAD_BONUS
+
+
+def _low_material_main_passer_score(context: ConversionContext) -> int:
+    if context.main_passer is None:
+        return 0
+    return (
+        8 - _promotion_distance(context.color, context.main_passer[0])
+    ) * _LOW_MATERIAL_MAIN_PASSER_BONUS
+
+
+def _low_material_rook_cutoff_score(context: ConversionContext) -> int:
+    return sum(
+        _LOW_MATERIAL_CUTOFF_BONUS
+        for row, col, kind in context.own.heavy
+        if kind == PieceType.ROOK and _rook_cuts_off_enemy_king(row, col, context)
+    )
+
+
+def _low_material_minor_support_score(board: Board, context: ConversionContext) -> int:
+    if context.main_passer is None:
+        return 0
+    score = 0
+    for piece, _, _ in iter_color_pieces(board, context.color):
+        if piece.kind != PieceType.BISHOP:
+            continue
+        if piece_attacks_square(
+            piece,
+            piece.square,
+            _square_tuple_to_constant(*context.main_passer),
+            board,
+        ):
+            score += _MINOR_LANE_SUPPORT_BONUS
+    return score
+
+
 def _seventh_rank_pressure_score(context: ConversionContext) -> int:
     if not any(is_advanced_passer(context.color, pawn_row) for pawn_row, _ in context.own.passers):
         return 0
@@ -428,6 +608,7 @@ def _heavy_piece_positions(
 def _main_passer(
     color: Color,
     passers: list[tuple[int, int]],
+    enemy_king: tuple[int, int] | None = None,
 ) -> tuple[int, int] | None:
     if not passers:
         return None
@@ -436,6 +617,7 @@ def _main_passer(
         key=lambda pawn: (
             _promotion_distance(color, pawn[0]),
             -_outside_file_bonus(pawn[1]),
+            0 if enemy_king is None else -_king_distance(enemy_king, pawn),
         ),
     )
 
@@ -505,3 +687,126 @@ def _color_sign(color: Color) -> int:
 
 def _opponent(color: Color) -> Color:
     return opposite_color(color)
+
+
+def _low_material_move_bonus(
+    plan: LowMaterialMovePlan,
+    kind: PieceType,
+    scale: int,
+) -> int:
+    if not plan.context.is_low_material_conversion or plan.context.main_passer is None:
+        return 0
+    bonus = 0
+    if _immediate_main_passer_promotion_available(plan.context):
+        if _is_main_passer_promotion_move(plan.move, plan.context):
+            bonus += _LOW_MATERIAL_PROMOTION_BONUS * scale
+        else:
+            bonus -= _LOW_MATERIAL_MISSED_PROMOTION_PENALTY * scale
+    if kind == PieceType.KING:
+        bonus += _king_lead_move_bonus(plan.context, plan.child_context) * scale
+    if kind == PieceType.PAWN:
+        bonus += _main_passer_move_bonus(plan.move, plan.context, plan.child_context) * scale
+    if kind == PieceType.ROOK and _rook_move_creates_cutoff(plan.move, plan.child_context):
+        bonus += _LOW_MATERIAL_CUTOFF_BONUS * scale
+    if _trades_into_trivial_win(
+        plan.board,
+        plan.child_board,
+        plan.context,
+        plan.move,
+    ):
+        bonus += _LOW_MATERIAL_TRADE_BONUS * scale
+    return bonus
+
+
+def _king_lead_move_bonus(
+    context: ConversionContext,
+    child_context: ConversionContext,
+) -> int:
+    if context.main_passer is None or child_context.main_passer is None:
+        return 0
+    before = _king_distance(context.own.king, context.main_passer)
+    after = _king_distance(child_context.own.king, child_context.main_passer)
+    if after >= before:
+        return 0
+    return (before - after) * _LOW_MATERIAL_KING_LEAD_BONUS
+
+
+def _main_passer_move_bonus(
+    move: Move,
+    context: ConversionContext,
+    child_context: ConversionContext,
+) -> int:
+    start = (int(move.start.row), int(move.start.col))
+    end = (int(move.end.row), int(move.end.col))
+    if context.main_passer == start and move.promotion is not None:
+        return 0
+    if child_context.main_passer == end:
+        if context.enemy.passers and _premature_main_passer_push(context):
+            return -_LOW_MATERIAL_PREMATURE_PUSH_PENALTY
+        return _LOW_MATERIAL_MAIN_PASSER_BONUS
+    if context.main_passer is not None and context.main_passer != start:
+        return -_LOW_MATERIAL_SIDE_PAWN_PENALTY
+    return 0
+
+
+def _rook_move_creates_cutoff(move: Move, context: ConversionContext) -> bool:
+    row = int(move.end.row)
+    col = int(move.end.col)
+    return _rook_cuts_off_enemy_king(row, col, context)
+
+
+def _rook_cuts_off_enemy_king(row: int, col: int, context: ConversionContext) -> bool:
+    return (
+        col == context.enemy.king[1] and abs(row - context.enemy.king[0]) >= 2
+    ) or (
+        row == context.enemy.king[0] and abs(col - context.enemy.king[1]) >= 2
+    )
+
+
+def _trades_into_trivial_win(
+    board: Board,
+    child_board: Board,
+    context: ConversionContext,
+    move: Move,
+) -> bool:
+    captured = board.get_piece(move.end)
+    if captured is None or captured.color != context.enemy.color or captured.kind == PieceType.KING:
+        return False
+    return (
+        _non_king_piece_count(board, context.enemy.color) > 0
+        and _non_king_piece_count(child_board, context.enemy.color) == 0
+        and context.main_passer is not None
+    )
+
+
+def _premature_main_passer_push(context: ConversionContext) -> bool:
+    if context.main_passer is None:
+        return False
+    return _king_distance(context.own.king, context.main_passer) > _king_distance(
+        context.enemy.king,
+        context.main_passer,
+    )
+
+
+def _non_king_piece_count(board: Board, color: Color) -> int:
+    return sum(
+        1
+        for piece, _, _ in iter_color_pieces(board, color)
+        if piece.kind != PieceType.KING
+    )
+
+
+def _immediate_main_passer_promotion_available(context: ConversionContext) -> bool:
+    if context.main_passer is None:
+        return False
+    return _promotion_distance(context.color, context.main_passer[0]) == 1
+
+
+def _is_main_passer_promotion_move(
+    move: Move,
+    context: ConversionContext,
+) -> bool:
+    return (
+        context.main_passer == (int(move.start.row), int(move.start.col))
+        and move.promotion is not None
+    )

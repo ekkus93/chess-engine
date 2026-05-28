@@ -12,6 +12,7 @@ from chess_game.chess.anti_drift_guidance import anti_drift_root_bonus
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_in_check
 from chess_game.chess.conversion_guidance import winning_conversion_root_bonus
+from chess_game.chess.conversion_guidance import low_material_conversion_root_bonus
 from chess_game.chess.defensive_containment_guidance import heavy_piece_defense_root_bonus
 from chess_game.chess.defensive_containment_guidance import heavy_piece_defense_extension_bonus
 from chess_game.chess.heavy_piece_endgame_guidance import heavy_piece_endgame_root_bonus
@@ -740,6 +741,7 @@ def _strategic_root_bonus(
     score += passer_race_root_bonus(board, move, child_board, moving_color)
     score += anti_drift_root_bonus(board, move, child_board, moving_color)
     score += simple_endgame_root_bonus(board, move, child_board, moving_color)
+    score += low_material_conversion_root_bonus(board, move, child_board, moving_color)
     score += review_loop_root_bonus(board, child_board, moving_color)
     if king_danger_index(board, moving_color) >= DANGEROUS_KING_PRESSURE_THRESHOLD:
         return score
@@ -749,7 +751,7 @@ def _strategic_root_bonus(
     score += _practical_options_bonus(board, child_board, moving_color)
     score += _opening_root_bonus(board, move, moving_kind)
     score += heavy_piece_defense_root_bonus(board, child_board, moving_color)
-    score += winning_conversion_root_bonus(board, child_board, moving_color)
+    score += winning_conversion_root_bonus(board, move, child_board, moving_color)
     score += threat_response_root_bonus(board, move, child_board, moving_color)
     score += tactical_transition_root_bonus(board, move, child_board, moving_color)
     score += _plan_continuity_bonus(

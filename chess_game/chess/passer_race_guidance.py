@@ -9,6 +9,7 @@ from chess_game.chess.strategy_utils import (
     heavy_piece_file_support_rows,
     iter_color_pieces,
     king_coordinates,
+    non_king_piece_count_at_most,
     opposite_color,
     pawn_path_to_promotion_is_clear,
     pawn_supports_square,
@@ -341,17 +342,11 @@ def _is_relevant_passer_race_evaluation(board: Board) -> bool:
 
 
 def _passes_material_gate(board: Board) -> bool:
-    non_king_count = 0
-    for row in board.board:
-        for piece in row:
-            if piece is None or piece.kind == PieceType.KING:
-                continue
-            if piece.kind not in _ALLOWED_RACE_KINDS:
-                return False
-            non_king_count += 1
-            if non_king_count > _MAX_NON_KING_PIECES:
-                return False
-    return True
+    return non_king_piece_count_at_most(
+        board,
+        _MAX_NON_KING_PIECES,
+        allowed_kinds=_ALLOWED_RACE_KINDS,
+    )
 
 
 def _high_priority_push_bonus(board: Board, color: Color, move: Move) -> int:

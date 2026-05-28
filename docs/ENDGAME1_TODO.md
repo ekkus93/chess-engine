@@ -200,38 +200,38 @@ Phase note:
 
 ## 4.1 Add winning-conversion endgame regressions
 
-- [ ] Add tests where the better side should convert with the cleanest practical plan.
-- [ ] Cover cases such as:
-  - [ ] force king activity before piece drift
-  - [ ] trade into a trivially won king-and-pawn or minor-piece ending
-  - [ ] support the main passer instead of grabbing side pawns
-  - [ ] cut off the enemy king before starting a pawn race
+- [x] Add tests where the better side should convert with the cleanest practical plan.
+- [x] Cover cases such as:
+  - [x] force king activity before piece drift
+  - [x] trade into a trivially won king-and-pawn or minor-piece ending
+  - [x] support the main passer instead of grabbing side pawns
+  - [x] cut off the enemy king before starting a pawn race
 
 ## 4.2 Audit current conversion guidance in low-material positions
 
-- [ ] Review existing conversion modules against the new low-material positions.
-- [ ] Identify where heavy-piece conversion logic does not carry over cleanly once only bishops, rooks, or kings and pawns remain.
-- [ ] Save the audit under `tmp/`.
+- [x] Review existing conversion modules against the new low-material positions.
+- [x] Identify where heavy-piece conversion logic does not carry over cleanly once only bishops, rooks, or kings and pawns remain.
+- [x] Save the audit under `tmp/`.
 
 ## 4.3 Add endgame conversion evaluation guidance
 
-- [ ] Add or tighten heuristics for:
-  - [ ] king lead toward promotion squares
-  - [ ] forcing simplification quality
-  - [ ] cut-off value against the defending king
-  - [ ] outside-passer support versus side-pawn greed
-  - [ ] avoiding repeated moves when one clean plan is available
+- [x] Add or tighten heuristics for:
+  - [x] king lead toward promotion squares
+  - [x] forcing simplification quality
+  - [x] cut-off value against the defending king
+  - [x] outside-passer support versus side-pawn greed
+  - [x] avoiding repeated moves when one clean plan is available
 
 ## 4.4 Add conversion ordering and root tie-breaks
 
-- [ ] Ensure near-equal root choices prefer:
-  - [ ] the shortest practical route to promotion
-  - [ ] the lowest counterplay exposure
-  - [ ] the cleanest simplification into a known win
+- [x] Ensure near-equal root choices prefer:
+  - [x] the shortest practical route to promotion
+  - [x] the lowest counterplay exposure
+  - [x] the cleanest simplification into a known win
 
 Phase note:
 
-- [ ] Task 4 complete note
+- [x] Task 4 is complete. The audit artifact lives in `tmp/endgame1_task4_audit.txt`, the bounded depth-3 self-play transcript lives in `tmp/endgame1_task4_w3b3_20260527T235532Z.txt`, and the review note lives in `tmp/endgame1_task4_review.txt`. `conversion_guidance.py` now has a dedicated low-material conversion mode for queenless winning endings, covering king lead toward the main passer, last-piece trades, rook cutoffs, immediate-promotion urgency, and main-passer-over-side-pawn discipline, while `ai_search_helpers.py` now applies the low-material conversion root tiebreak before the simple-endgame early return without re-biasing broader heavy-piece conversion choices. Final validation is green at `pylint chess_game` (`10.00/10`), `python -m pytest tests -q` (`596 passed`), and `python -m pytest tests/test_ai.py tests/test_ai_quality.py tests/test_ai_search.py tests/test_alpha_beta_pruning.py -q` (`120 passed`).
 
 ---
 
