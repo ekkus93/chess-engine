@@ -302,6 +302,76 @@ def _task5_avoid_bad_trade_board() -> Board:
     )
 
 
+def _task6_correct_bishop_color_board() -> Board:
+    return _build_board(
+        [
+            ("g6", Color.WHITE, PieceType.KING),
+            ("c3", Color.WHITE, PieceType.BISHOP),
+            ("h6", Color.WHITE, PieceType.PAWN),
+            ("h8", Color.BLACK, PieceType.KING),
+        ]
+    )
+
+
+def _task6_wrong_bishop_color_board() -> Board:
+    return _build_board(
+        [
+            ("g6", Color.WHITE, PieceType.KING),
+            ("g2", Color.WHITE, PieceType.BISHOP),
+            ("h6", Color.WHITE, PieceType.PAWN),
+            ("h8", Color.BLACK, PieceType.KING),
+        ]
+    )
+
+
+def _task6_bishop_coordination_good_board() -> Board:
+    return _build_board(
+        [
+            ("f4", Color.WHITE, PieceType.KING),
+            ("d2", Color.WHITE, PieceType.BISHOP),
+            ("h5", Color.WHITE, PieceType.PAWN),
+            ("c5", Color.BLACK, PieceType.KING),
+            ("a5", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+
+def _task6_bishop_coordination_bad_board() -> Board:
+    return _build_board(
+        [
+            ("f4", Color.WHITE, PieceType.KING),
+            ("a2", Color.WHITE, PieceType.BISHOP),
+            ("h5", Color.WHITE, PieceType.PAWN),
+            ("c5", Color.BLACK, PieceType.KING),
+            ("a5", Color.BLACK, PieceType.PAWN),
+        ]
+    )
+
+
+def _task6_rook_behind_passer_board() -> Board:
+    return _build_board(
+        [
+            ("e3", Color.WHITE, PieceType.KING),
+            ("h1", Color.WHITE, PieceType.ROOK),
+            ("h5", Color.WHITE, PieceType.PAWN),
+            ("d6", Color.BLACK, PieceType.KING),
+            ("a6", Color.BLACK, PieceType.BISHOP),
+        ]
+    )
+
+
+def _task6_rook_side_drift_board() -> Board:
+    return _build_board(
+        [
+            ("e3", Color.WHITE, PieceType.KING),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("h5", Color.WHITE, PieceType.PAWN),
+            ("d6", Color.BLACK, PieceType.KING),
+            ("a6", Color.BLACK, PieceType.BISHOP),
+        ]
+    )
+
+
 def test_endgame1_rejects_bishop_loop_drift() -> None:
     """The late bishop loop should yield to immediate king activation."""
 
@@ -625,4 +695,77 @@ def test_endgame1_root_discourages_bad_rook_trade_into_lost_pawn_race() -> None:
         board,
         bad_trade,
         trade_child,
+    )
+
+
+def test_endgame1_low_material_coordination_prefers_correct_bishop_complex() -> None:
+    """The sparse-ending breakdown should reward the bishop complex that supports promotion."""
+
+    good_board = _task6_correct_bishop_color_board()
+    bad_board = _task6_wrong_bishop_color_board()
+
+    assert (
+        get_evaluation_breakdown(good_board)["low_material_coordination"]
+        > get_evaluation_breakdown(bad_board)["low_material_coordination"]
+    )
+
+
+def test_endgame1_low_material_coordination_prefers_bishop_king_theater_coordination() -> None:
+    """The bishop should score higher when it stays coordinated with the king near the outside passer."""
+
+    good_board = _task6_bishop_coordination_good_board()
+    bad_board = _task6_bishop_coordination_bad_board()
+
+    assert (
+        get_evaluation_breakdown(good_board)["low_material_coordination"]
+        > get_evaluation_breakdown(bad_board)["low_material_coordination"]
+    )
+
+
+def test_endgame1_low_material_coordination_rewards_rook_behind_passer_in_rook_light_endgame() -> None:
+    """Reduced-material rook play should reward staying behind the main passer file."""
+
+    behind_board = _task6_rook_behind_passer_board()
+    drift_board = _task6_rook_side_drift_board()
+
+    assert (
+        get_evaluation_breakdown(behind_board)["low_material_coordination"]
+        > get_evaluation_breakdown(drift_board)["low_material_coordination"]
+    )
+
+
+def test_endgame1_order_prefers_bishop_staying_with_promotion_theater_over_central_drift() -> None:
+    """Quiet ordering should prefer bishop coordination with the passer theater over aimless drift."""
+
+    board = _task6_correct_bishop_color_board()
+    coordinated_bishop = Move(start=sq("c3"), end=sq("g7"))
+    central_drift = Move(start=sq("c3"), end=sq("e5"))
+
+    assert _move_order_score(board, coordinated_bishop, None) > _move_order_score(
+        board,
+        central_drift,
+        None,
+    )
+
+
+def test_endgame1_root_prefers_bishop_staying_with_promotion_theater_over_central_drift() -> None:
+    """Root tie-breaks should keep the bishop tied to the promotion theater."""
+
+    board = _task6_correct_bishop_color_board()
+    coordinated_bishop = Move(start=sq("c3"), end=sq("g7"))
+    central_drift = Move(start=sq("c3"), end=sq("e5"))
+    coordinated_child = board.clone()
+    drift_child = board.clone()
+
+    assert coordinated_child.apply_legal_move(coordinated_bishop.start, coordinated_bishop.end) is True
+    assert drift_child.apply_legal_move(central_drift.start, central_drift.end) is True
+
+    assert _root_stability_adjustment(
+        board,
+        coordinated_bishop,
+        coordinated_child,
+    ) > _root_stability_adjustment(
+        board,
+        central_drift,
+        drift_child,
     )

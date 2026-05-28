@@ -279,37 +279,37 @@ Phase note:
 
 ## 6.1 Add bishop-ending regressions
 
-- [ ] Add tests for practical bishop endings and bishop-plus-pawns structures.
-- [ ] Cover cases such as:
-  - [ ] bishop on the correct color complex for the pawn race
-  - [ ] wrong bishop drift away from the promotion theater
-  - [ ] bishop plus king coordination against an outside passer
-  - [ ] bishop triangulation that wastes tempi
+- [x] Add tests for practical bishop endings and bishop-plus-pawns structures.
+- [x] Cover cases such as:
+  - [x] bishop on the correct color complex for the pawn race
+  - [x] wrong bishop drift away from the promotion theater
+  - [x] bishop plus king coordination against an outside passer
+  - [x] bishop triangulation that wastes tempi
 
 ## 6.2 Audit current low-material piece guidance
 
-- [ ] Review how current move ordering and evaluation handle bishop-only, rook-light, and king-and-pawn-adjacent endings.
-- [ ] Identify piece-specific gaps exposed by the current bishop-loop self-play sequence.
-- [ ] Save the audit under `tmp/`.
+- [x] Review how current move ordering and evaluation handle bishop-only, rook-light, and king-and-pawn-adjacent endings.
+- [x] Identify piece-specific gaps exposed by the current bishop-loop self-play sequence.
+- [x] Save the audit under `tmp/`.
 
 ## 6.3 Add piece-specific endgame evaluation guidance
 
-- [ ] Add or tighten heuristics for:
-  - [ ] bishop mobility relative to relevant pawn color complexes
-  - [ ] bishop control of promotion and blockade squares
-  - [ ] rook activity behind passers in reduced material
-  - [ ] king-plus-piece coordination around the main theater
+- [x] Add or tighten heuristics for:
+  - [x] bishop mobility relative to relevant pawn color complexes
+  - [x] bishop control of promotion and blockade squares
+  - [x] rook activity behind passers in reduced material
+  - [x] king-plus-piece coordination around the main theater
 
 ## 6.4 Add piece-specific ordering and root bonuses
 
-- [ ] Prefer moves that:
-  - [ ] keep the bishop or rook aligned with the critical pawn structure
-  - [ ] increase coordination with the king
-  - [ ] avoid repeating aimless diagonals or files
+- [x] Prefer moves that:
+  - [x] keep the bishop or rook aligned with the critical pawn structure
+  - [x] increase coordination with the king
+  - [x] avoid repeating aimless diagonals or files
 
 Phase note:
 
-- [ ] Task 6 complete note
+- [x] Task 6 complete note: Added `low_material_coordination_guidance.py`, recorded the overlap audit in `tmp/endgame1_task6_audit.txt`, and expanded ENDGAME1 regressions to cover correct bishop complexes, bishop-king coordination, rook-light passer alignment, and anti-drift bishop ordering/root behavior.
 
 ---
 

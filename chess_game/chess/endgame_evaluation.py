@@ -6,6 +6,9 @@ from chess_game.chess.defensive_endgame_guidance import defensive_endgame_evalua
 from chess_game.chess.heavy_piece_endgame_guidance import (
     heavy_piece_endgame_evaluation_score,
 )
+from chess_game.chess.low_material_coordination_guidance import (
+    low_material_coordination_evaluation_score,
+)
 from chess_game.chess.low_material_race_guidance import low_material_race_evaluation_score
 from chess_game.chess.passer_race_guidance import passer_race_evaluation_score
 from chess_game.chess.evaluation_tables import (
@@ -124,6 +127,14 @@ def evaluate_passer_races(board: Board, endgame_phase: int) -> int:
     score = passer_race_evaluation_score(board)
     score += low_material_race_evaluation_score(board)
     return scale_signed(score, endgame_phase)
+
+
+def evaluate_low_material_coordination(board: Board, endgame_phase: int) -> int:
+    """Return piece-specific sparse-endgame coordination bonuses."""
+
+    if endgame_phase < 60:
+        return 0
+    return scale_signed(low_material_coordination_evaluation_score(board), endgame_phase)
 
 
 def _collect_pawn_positions(board: Board) -> dict[Color, list[tuple[int, int]]]:

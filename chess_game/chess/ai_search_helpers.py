@@ -37,6 +37,9 @@ from chess_game.chess.passer_race_guidance import (
 from chess_game.chess.pawn_structure_evaluation import evaluate_pawn_structure
 from chess_game.chess.review_loop_guidance import review_loop_root_bonus
 from chess_game.chess.structure_recognition import structure_plan_bonus
+from chess_game.chess.low_material_coordination_guidance import (
+    low_material_coordination_root_bonus,
+)
 from chess_game.chess.simple_endgame_guidance import simple_endgame_root_bonus
 from chess_game.chess.threat_awareness import threat_response_root_bonus
 from chess_game.chess.tactical_transition_guidance import tactical_transition_root_bonus
@@ -738,6 +741,7 @@ def _strategic_root_bonus(
     moving_color: Color,
 ) -> int:
     score = heavy_piece_endgame_root_bonus(board, move, child_board, moving_color)
+    score += low_material_coordination_root_bonus(board, move, child_board, moving_color)
     score += low_material_race_root_bonus(board, move, child_board, moving_color)
     score += passer_race_root_bonus(board, move, child_board, moving_color)
     score += anti_drift_root_bonus(board, move, child_board, moving_color)

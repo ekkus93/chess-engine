@@ -9,6 +9,7 @@ from chess_game.chess.endgame_evaluation import (
     evaluate_conversion as _evaluate_conversion,
     evaluate_endgame_technique as _evaluate_endgame_technique,
     evaluate_heavy_piece_endgames as _evaluate_heavy_piece_endgames,
+    evaluate_low_material_coordination as _evaluate_low_material_coordination,
     evaluate_passer_races as _evaluate_passer_races,
     evaluate_progress as _evaluate_progress,
     evaluate_rook_endgames as _evaluate_rook_endgames,
@@ -127,6 +128,10 @@ def get_evaluation_breakdown(board: Board) -> EvaluationBreakdown:
         "rook_endgame": _evaluate_rook_endgames(board, endgame_phase),
         "heavy_piece_endgame": _evaluate_heavy_piece_endgames(board, endgame_phase),
         "passer_race": _evaluate_passer_races(board, endgame_phase),
+        "low_material_coordination": _evaluate_low_material_coordination(
+            board,
+            endgame_phase,
+        ),
         "defensive_containment": _heavy_piece_defense_evaluation_score(board),
         "king_activation": (
             simple_endgame_evaluation_score(board) if endgame_phase >= 70 else 0

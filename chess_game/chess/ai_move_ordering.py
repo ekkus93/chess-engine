@@ -14,6 +14,9 @@ from chess_game.chess.defensive_containment_guidance import (
 from chess_game.chess.defensive_endgame_guidance import defensive_endgame_order_bonus
 from chess_game.chess.heavy_piece_endgame_guidance import heavy_piece_endgame_order_bonus
 from chess_game.chess.low_material_race_guidance import low_material_race_order_bonus
+from chess_game.chess.low_material_coordination_guidance import (
+    low_material_coordination_order_bonus,
+)
 from chess_game.chess.simple_endgame_guidance import simple_endgame_order_bonus
 from chess_game.chess.defensive_priorities import (
     DANGEROUS_KING_PRESSURE_THRESHOLD,
@@ -142,6 +145,7 @@ def quiet_strategy_order_score(
         score += heavy_piece_defense_order_bonus(board, piece.color, piece.kind, move)
         score += heavy_piece_endgame_order_bonus(board, piece.color, piece.kind, move)
         score += simple_endgame_order_bonus(board, piece.color, piece.kind, move)
+        score += low_material_coordination_order_bonus(board, piece.color, piece.kind, move)
         score += low_material_race_order_bonus(board, piece.color, piece.kind, move)
         score += defensive_endgame_order_bonus(board, piece.color, piece.kind, move)
         score += passer_race_order_bonus(board, piece.color, piece.kind, move)
