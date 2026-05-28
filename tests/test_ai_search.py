@@ -19,7 +19,7 @@ from chess_game.chess.ai_search_helpers import root_stability_adjustment, select
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.board.game_state import is_checkmate
 from chess_game.chess.move import Move
-from chess_game.chess.types import Color, LegalMove, PieceType
+from chess_game.chess.types import Color, PieceType
 from tests.helpers import (
     make_mate_in_one_white_position,
     make_search_context,

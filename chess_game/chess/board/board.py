@@ -141,9 +141,13 @@ class Board:
         """Route move-counter writes to the shared MoveCounters state."""
 
         if name == "en_passant_target" and "_state" in self.__dict__:
+            if value is not None and not isinstance(value, ConstantSquare):
+                raise TypeError("en_passant_target must be a ConstantSquare or None")
             self._state.en_passant_target = value
             return
         if name == "castling_rights" and "_state" in self.__dict__:
+            if not isinstance(value, CastlingRights):
+                raise TypeError("castling_rights must be a CastlingRights instance")
             self._state.castling_rights = value
             return
         if name in {"halfmove_clock", "fullmove_number"} and "_state" in self.__dict__:

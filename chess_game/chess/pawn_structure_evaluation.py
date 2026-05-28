@@ -65,7 +65,10 @@ def evaluate_pawn_structure(board: Board, endgame_phase: int) -> int:
 def collect_pawn_positions(board: Board) -> dict[Color, list[tuple[int, int]]]:
     """Return pawn coordinates for both colors."""
 
-    pawn_positions = {Color.WHITE: [], Color.BLACK: []}
+    pawn_positions: dict[Color, list[tuple[int, int]]] = {
+        Color.WHITE: [],
+        Color.BLACK: [],
+    }
     for row_index, row in enumerate(board.board):
         for col_index, piece in enumerate(row):
             if piece is not None and piece.kind == PieceType.PAWN:

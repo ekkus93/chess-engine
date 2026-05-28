@@ -16,7 +16,10 @@ from chess_game.chess.ai_board_utils import (
     clone_with_move as _make_copy_with_move,
     get_legal_moves,
 )
-from chess_game.chess.ai_move_ordering import quiet_strategy_order_score
+from chess_game.chess.ai_move_ordering import (
+    make_quiet_order_context,
+    quiet_strategy_order_score,
+)
 from chess_game.chess.ai_quiescence_helpers import (
     _quiescence_capture_score as _quiescence_capture_score_impl,
     _quiescence_check_score as _quiescence_check_score_impl,
@@ -758,8 +761,9 @@ def _order_moves(
 ) -> list[Move]:
     """Sort moves for better pruning order."""
 
+    quiet_order_context = make_quiet_order_context(board)
     scored_moves = [
-        (_move_order_score(board, move, params), move)
+        (_move_order_score(board, move, params, quiet_order_context), move)
         for move in legal_moves
     ]
     scored_moves.sort(key=lambda item: item[0], reverse=True)
@@ -770,6 +774,7 @@ def _move_order_score(
     board: Board,
     move: Move,
     params: Optional[MinimaxParams],
+    quiet_order_context=None,
 ) -> int:
     """Return a move-ordering score.
 
@@ -785,7 +790,7 @@ def _move_order_score(
         + _promotion_order_score(move)
     )
     if not _is_capture_move(board, move) and move.promotion is None:
-        score += quiet_strategy_order_score(board, move)
+        score += quiet_strategy_order_score(board, move, quiet_order_context)
     context = None if params is None else params.context
     if context is None:
         return score

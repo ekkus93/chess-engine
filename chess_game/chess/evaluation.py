@@ -1,6 +1,7 @@
 """Position evaluation tables and strategic heuristics for the chess AI."""
 
 from __future__ import annotations
+from collections.abc import Iterator
 
 from chess_game.chess.board import Board
 from chess_game.chess.constants import ConstantSquare, get_col_constant, get_row_constant
@@ -147,7 +148,7 @@ def _evaluate_material_and_piece_square(board: Board) -> tuple[int, int]:
     return material_score, piece_square_score
 
 
-def _iter_board_pieces(board: Board):
+def _iter_board_pieces(board: Board) -> Iterator[tuple[Piece, int, int]]:
     for row_index, row in enumerate(board.board):
         for col_index, piece in enumerate(row):
             if piece is not None:
@@ -271,7 +272,11 @@ def _middlegame_phase(board: Board) -> int:
 
 def _find_king(board: Board, color: Color) -> ConstantSquare | None:
     for piece, _, _ in _iter_board_pieces(board):
-        if piece.color == color and piece.kind == PieceType.KING:
+        if (
+            piece.color == color
+            and piece.kind == PieceType.KING
+            and isinstance(piece.square, ConstantSquare)
+        ):
             return piece.square
     return None
 

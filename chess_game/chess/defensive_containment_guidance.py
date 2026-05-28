@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from chess_game.chess.board import Board
 from chess_game.chess.board.attack_utils import piece_attacks_square
 from chess_game.chess.board.game_state import is_in_check
-from chess_game.chess.constants import get_square_constant
+from chess_game.chess.constants import ConstantSquare, get_square_constant
 from chess_game.chess.move import Move
 from chess_game.chess.opponent_plans import opponent_plan_profile
 from chess_game.chess.strategy_utils import (
@@ -43,8 +43,8 @@ class ContainmentContext:
 
     enemy_color: Color
     dangerous_pawn: tuple[int, int]
-    pawn_square: object
-    promotion_square: object
+    pawn_square: ConstantSquare
+    promotion_square: ConstantSquare
     block_square: tuple[int, int]
 
 

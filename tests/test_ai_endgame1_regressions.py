@@ -1,7 +1,12 @@
 """Transcript-backed regressions for ENDGAME1 simple-endgame cleanup."""
 
 from chess_game.chess import ai
-from chess_game.chess.ai import get_best_move, get_evaluation_breakdown, position_key
+from chess_game.chess.ai import (
+    _root_stability_adjustment,
+    get_best_move,
+    get_evaluation_breakdown,
+    position_key,
+)
 from chess_game.chess.ai_search_helpers import RepetitionPolicy, repetition_score
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.move import Move
@@ -245,6 +250,58 @@ def _task4_cutoff_before_race_board() -> Board:
     )
 
 
+def _task5_blockade_board() -> Board:
+    return _build_board(
+        [
+            ("b6", Color.WHITE, PieceType.KING),
+            ("a6", Color.WHITE, PieceType.PAWN),
+            ("f1", Color.WHITE, PieceType.BISHOP),
+            ("b8", Color.BLACK, PieceType.KING),
+            ("c6", Color.BLACK, PieceType.BISHOP),
+        ],
+        turn=Color.BLACK,
+    )
+
+
+def _task5_active_king_defense_board() -> Board:
+    return _build_board(
+        [
+            ("d5", Color.WHITE, PieceType.KING),
+            ("g5", Color.WHITE, PieceType.PAWN),
+            ("c4", Color.WHITE, PieceType.BISHOP),
+            ("e7", Color.BLACK, PieceType.KING),
+            ("d6", Color.BLACK, PieceType.BISHOP),
+        ],
+        turn=Color.BLACK,
+    )
+
+
+def _task5_checking_hold_board() -> Board:
+    return _build_board(
+        [
+            ("f4", Color.WHITE, PieceType.KING),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("d5", Color.WHITE, PieceType.PAWN),
+            ("f7", Color.BLACK, PieceType.KING),
+            ("g8", Color.BLACK, PieceType.ROOK),
+        ],
+        turn=Color.BLACK,
+    )
+
+
+def _task5_avoid_bad_trade_board() -> Board:
+    return _build_board(
+        [
+            ("c4", Color.WHITE, PieceType.KING),
+            ("d4", Color.WHITE, PieceType.ROOK),
+            ("g5", Color.WHITE, PieceType.PAWN),
+            ("g7", Color.BLACK, PieceType.KING),
+            ("d8", Color.BLACK, PieceType.ROOK),
+        ],
+        turn=Color.BLACK,
+    )
+
+
 def test_endgame1_rejects_bishop_loop_drift() -> None:
     """The late bishop loop should yield to immediate king activation."""
 
@@ -474,3 +531,64 @@ def test_endgame1_search_prefers_cutoff_before_starting_pawn_race() -> None:
     board = _task4_cutoff_before_race_board()
 
     assert get_best_move(board, depth=3).start == sq("a5")
+
+
+def test_endgame1_order_prefers_blockade_over_bishop_drift_when_worse() -> None:
+    """The defender should keep the rook-pawn blockade instead of drifting the bishop away."""
+
+    board = _task5_blockade_board()
+    blockade = Move(start=sq("c6"), end=sq("a8"))
+    drift = Move(start=sq("c6"), end=sq("e4"))
+
+    assert _move_order_score(board, blockade, None) > _move_order_score(board, drift, None)
+
+
+def test_endgame1_order_prefers_active_king_defense_over_bishop_shuffle() -> None:
+    """The worse side should activate the king instead of spending a tempo on bishop drift."""
+
+    board = _task5_active_king_defense_board()
+    active_king = Move(start=sq("e7"), end=sq("f7"))
+    bishop_shuffle = Move(start=sq("d6"), end=sq("f4"))
+
+    assert _move_order_score(board, active_king, None) > _move_order_score(
+        board,
+        bishop_shuffle,
+        None,
+    )
+
+
+def test_endgame1_order_prefers_checking_hold_over_passive_king_move() -> None:
+    """A live checking resource should beat passive king defense when worse."""
+
+    board = _task5_checking_hold_board()
+    checking_hold = Move(start=sq("g8"), end=sq("g4"))
+    passive_king = Move(start=sq("f7"), end=sq("e7"))
+
+    assert _move_order_score(board, checking_hold, None) > _move_order_score(
+        board,
+        passive_king,
+        None,
+    )
+
+
+def test_endgame1_root_discourages_bad_rook_trade_into_lost_pawn_race() -> None:
+    """Root tie-breaks should demote a rook trade that collapses into a lost pawn race."""
+
+    board = _task5_avoid_bad_trade_board()
+    keep_rook = Move(start=sq("d8"), end=sq("g8"))
+    bad_trade = Move(start=sq("d8"), end=sq("d4"))
+    keep_child = board.clone()
+    trade_child = board.clone()
+
+    assert keep_child.apply_legal_move(keep_rook.start, keep_rook.end) is True
+    assert trade_child.apply_legal_move(bad_trade.start, bad_trade.end) is True
+
+    assert _root_stability_adjustment(
+        board,
+        keep_rook,
+        keep_child,
+    ) < _root_stability_adjustment(
+        board,
+        bad_trade,
+        trade_child,
+    )

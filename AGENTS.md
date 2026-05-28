@@ -55,18 +55,18 @@ Reference: `THE_PLAN.md` and `docs/coordinate_system.md`.
 
 ## Build, Test, Lint
 
+- Lint:
+  - `python -m ruff check chess_game tests`
+  - `python -m mypy chess_game/`
+  - `python -m pylint chess_game/`
 - Run all tests:
   - `python -m pytest tests/ -q`
 - Verbose:
   - `python -m pytest tests/ -v`
 - Coverage:
   - `python -m pytest tests/ --cov=chess_game`
-- Lint (if used):
-  - `pylint chess_game/`
 - Format:
   - `black chess_game/`
-- Type check:
-  - `mypy chess_game/`
 - All changes must keep existing tests passing (unless intentionally updating them).
 
 ## Coding Guidelines
@@ -121,5 +121,4 @@ When modifying code:
 ## 2024-06-01T12:00:00Z - GPT-5.4 - User prefers concise responses
 - User has expressed a preference for concise, to-the-point answers without unnecessary elaboration.
 ```
-
 

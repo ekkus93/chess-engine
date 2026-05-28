@@ -197,25 +197,23 @@ def _loose_winning_check_penalty(
     own_passers: list[tuple[int, int]],
 ) -> int:
     penalty = 0
+    if not own_passers or _is_materially_down(board, color):
+        return penalty
+
     own_king = board.find_king(color)
     enemy_king = board.find_king(_opponent(color))
     rook_piece = board.board[rook[0]][rook[1]]
-    ready_for_check_test = (
-        own_passers
-        and not _is_materially_down(board, color)
-        and own_king is not None
-        and enemy_king is not None
-    )
-    rook_gives_check = (
-        rook_piece is not None
-        and rook_piece.kind == PieceType.ROOK
-        and piece_attacks_square(rook_piece, rook_piece.square, enemy_king, board)
-    )
-    if ready_for_check_test and rook_gives_check:
-        main_passer = _main_passer(color, own_passers)
-        own_king_pos = (int(own_king.row), int(own_king.col))
-        if _king_distance(own_king_pos, main_passer) > 4 and rook[1] != main_passer[1]:
-            penalty = _LOOSE_WINNING_CHECK_PENALTY
+    if own_king is None or enemy_king is None:
+        return penalty
+    if rook_piece is None or rook_piece.kind != PieceType.ROOK or rook_piece.square is None:
+        return penalty
+    if not piece_attacks_square(rook_piece, rook_piece.square, enemy_king, board):
+        return penalty
+
+    main_passer = _main_passer(color, own_passers)
+    own_king_pos = (int(own_king.row), int(own_king.col))
+    if _king_distance(own_king_pos, main_passer) > 4 and rook[1] != main_passer[1]:
+        penalty = _LOOSE_WINNING_CHECK_PENALTY
     return penalty
 
 

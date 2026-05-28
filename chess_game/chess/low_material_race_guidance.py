@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from chess_game.chess.board import Board
 from chess_game.chess.board.attack_utils import piece_attacks_square
-from chess_game.chess.constants import get_square_constant
+from chess_game.chess.constants import ConstantSquare, get_square_constant
 from chess_game.chess.move import Move
 from chess_game.chess.strategy_utils import (
     iter_color_pieces,
@@ -235,7 +235,7 @@ def _stops_enemy_passer(
         block_square,
     }:
         return True
-    return piece_attacks_square(moved_piece, moved_piece.square, promotion_square, board)
+    return piece_attacks_square(moved_piece, move.end, promotion_square, board)
 
 
 def _king_activation_bonus(
@@ -335,7 +335,7 @@ def _block_square(color: Color, pawn: tuple[int, int]) -> tuple[int, int]:
     return (row - 1, col) if color == Color.WHITE else (row + 1, col)
 
 
-def _square_to_constant(row: int, col: int):
+def _square_to_constant(row: int, col: int) -> ConstantSquare:
     return get_square_constant(row, col)
 
 

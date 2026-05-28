@@ -72,6 +72,16 @@ python -m pytest tests/ --cov=chess_game
 > This silences a `PytestExperimentalApiWarning` from auto-loaded third-party plugins at the source.
 > Do not remove it unless plugins are updated.
 
+## Linting and type checking
+
+```bash
+python -m ruff check chess_game tests
+python -m mypy chess_game
+python -m pylint chess_game
+```
+
+CI runs the same lint sequence before the test suite.
+
 ## Project structure
 
 ```

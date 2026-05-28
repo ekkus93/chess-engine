@@ -1,6 +1,7 @@
 """Helpers for discouraging low-value repetition and quiet shuffling."""
 
 from __future__ import annotations
+from typing import cast
 
 from chess_game.chess.board import Board
 from chess_game.chess.move import Move
@@ -73,5 +74,5 @@ def _last_own_move(board: Board) -> tuple[object, object, PieceType | None] | No
 def _move_history(board: Board) -> list[tuple[object, object, PieceType | None]]:
     history_copy = getattr(board, "_move_history_copy", None)
     if callable(history_copy):
-        return history_copy()
+        return cast(list[tuple[object, object, PieceType | None]], history_copy())
     return []

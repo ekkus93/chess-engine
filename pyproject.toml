@@ -11,6 +11,17 @@ dependencies = [
 
 [project.optional-dependencies]
 test = ["pytest"]
+lint = [
+    "mypy",
+    "pylint",
+    "ruff",
+]
+dev = [
+    "mypy",
+    "pylint",
+    "pytest",
+    "ruff",
+]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
@@ -18,3 +29,14 @@ addopts = "-v"
 markers = [
     "slow: marks tests as slow (deselect with 'not slow')",
 ]
+
+[tool.ruff]
+target-version = "py311"
+
+[tool.ruff.lint]
+extend-ignore = ["E741"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["chess_game"]
+warn_unused_configs = true

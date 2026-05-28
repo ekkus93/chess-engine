@@ -144,16 +144,12 @@ def _pawn_row(board: Board, color: Color, col: int) -> int | None:
 
 
 def _most_advanced_pawn_row(board: Board, color: Color, cols: set[int]) -> int | None:
-    rows = [
-        row
-        for row in range(8)
-        for col in cols
-        if (
-            board.board[row][col] is not None
-            and board.board[row][col].color == color
-            and board.board[row][col].kind == PieceType.PAWN
-        )
-    ]
+    rows: list[int] = []
+    for row in range(8):
+        for col in cols:
+            piece = board.board[row][col]
+            if piece is not None and piece.color == color and piece.kind == PieceType.PAWN:
+                rows.append(row)
     if not rows:
         return None
     return min(rows) if color == Color.WHITE else max(rows)

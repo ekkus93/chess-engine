@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from chess_game.chess.board import Board
 from chess_game.chess.board.attack_utils import piece_attacks_square
+from chess_game.chess.constants import ConstantSquare
 from chess_game.chess.defensive_priorities import (
     DANGEROUS_KING_PRESSURE_THRESHOLD,
     king_danger_index,
@@ -240,19 +241,32 @@ def _on_long_diagonal(row: int, col: int) -> bool:
     return row == col or row + col == 7
 
 
-def square_has_friendly_support(board: Board, color: Color, target_square) -> bool:
+def square_has_friendly_support(
+    board: Board,
+    color: Color,
+    target_square: ConstantSquare,
+) -> bool:
     """Return True when a friendly piece already protects the target square."""
 
     for row in board.board:
         for piece in row:
             if piece is None or piece.color != color or piece.square == target_square:
                 continue
-            if piece_attacks_square(piece, piece.square, target_square, board):
+            if piece.square is not None and piece_attacks_square(
+                piece,
+                piece.square,
+                target_square,
+                board,
+            ):
                 return True
     return False
 
 
-def _supported_friendly_piece_count(board: Board, color: Color, queen_square) -> int:
+def _supported_friendly_piece_count(
+    board: Board,
+    color: Color,
+    queen_square: ConstantSquare,
+) -> int:
     queen = board.get_piece(queen_square)
     if queen is None:
         return 0
@@ -263,6 +277,7 @@ def _supported_friendly_piece_count(board: Board, color: Color, queen_square) ->
                 piece is None
                 or piece.color != color
                 or piece.square == queen_square
+                or piece.square is None
                 or piece.kind == PieceType.PAWN
             ):
                 continue

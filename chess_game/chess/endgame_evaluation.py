@@ -127,7 +127,10 @@ def evaluate_passer_races(board: Board, endgame_phase: int) -> int:
 
 
 def _collect_pawn_positions(board: Board) -> dict[Color, list[tuple[int, int]]]:
-    positions = {Color.WHITE: [], Color.BLACK: []}
+    positions: dict[Color, list[tuple[int, int]]] = {
+        Color.WHITE: [],
+        Color.BLACK: [],
+    }
     for piece, row, col in iter_board_pieces(board):
         if piece.kind == PieceType.PAWN:
             positions[piece.color].append((row, col))

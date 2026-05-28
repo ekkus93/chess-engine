@@ -151,6 +151,8 @@ def _side_score(board: Board, context: DriftContext) -> int:
 
 
 def _piece_focus_score(board: Board, context: DriftContext) -> int:
+    if context.focus is None:
+        return 0
     score = 0
     for piece, row, col in iter_color_pieces(board, context.color):
         if piece.kind == PieceType.KING:
