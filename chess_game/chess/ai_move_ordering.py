@@ -14,6 +14,7 @@ from chess_game.chess.defensive_containment_guidance import (
 from chess_game.chess.defensive_endgame_guidance import defensive_endgame_order_bonus
 from chess_game.chess.heavy_piece_endgame_guidance import heavy_piece_endgame_order_bonus
 from chess_game.chess.low_material_race_guidance import low_material_race_order_bonus
+from chess_game.chess.endgame_choice_guidance import endgame_choice_order_bonus
 from chess_game.chess.low_material_coordination_guidance import (
     low_material_coordination_order_bonus,
 )
@@ -141,6 +142,7 @@ def quiet_strategy_order_score(
     score += _heavy_piece_bonus(board, piece.kind, piece.color, move)
     score += _pawn_bonus(board, piece.color, piece.kind, move)
     if quiet_context.endgame_order_position:
+        score += endgame_choice_order_bonus(board, piece.color, piece.kind, move)
         score += winning_conversion_order_bonus(board, piece.color, piece.kind, move)
         score += heavy_piece_defense_order_bonus(board, piece.color, piece.kind, move)
         score += heavy_piece_endgame_order_bonus(board, piece.color, piece.kind, move)

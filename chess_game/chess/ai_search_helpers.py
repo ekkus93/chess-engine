@@ -37,6 +37,7 @@ from chess_game.chess.passer_race_guidance import (
 from chess_game.chess.pawn_structure_evaluation import evaluate_pawn_structure
 from chess_game.chess.review_loop_guidance import review_loop_root_bonus
 from chess_game.chess.structure_recognition import structure_plan_bonus
+from chess_game.chess.endgame_choice_guidance import endgame_choice_root_bonus
 from chess_game.chess.low_material_coordination_guidance import (
     low_material_coordination_root_bonus,
 )
@@ -230,16 +231,16 @@ def repetition_score(
 
     if position_occurrence_count(board, context, line_history, policy.position_key) < 3:
         return None
-    evaluation = policy.evaluate(board)
-    penalty = _repetition_penalty(policy, evaluation, policy.progress(board))
-    if evaluation >= policy.threshold:
+    practical_evaluation = _side_to_move_score(board, policy.evaluate(board))
+    practical_progress = _side_to_move_score(board, policy.progress(board))
+    penalty = _repetition_penalty(policy, practical_evaluation, practical_progress)
+    if practical_evaluation >= policy.threshold:
         return -penalty
-    if evaluation <= -policy.threshold:
+    if practical_evaluation <= -policy.threshold:
         return penalty
-    progress = policy.progress(board)
-    if progress >= policy.progress_threshold:
+    if practical_progress >= policy.progress_threshold:
         return -penalty
-    if progress <= -policy.progress_threshold:
+    if practical_progress <= -policy.progress_threshold:
         return penalty
     return 0
 
@@ -388,6 +389,10 @@ def root_stability_adjustment(
     if signed_bonus == 0:
         return 0
     return signed_bonus if moving_color == Color.WHITE else -signed_bonus
+
+
+def _side_to_move_score(board: Board, score: int) -> int:
+    return score if board.turn == Color.WHITE else -score
 
 
 def selective_extension_bonus(
@@ -741,6 +746,7 @@ def _strategic_root_bonus(
     moving_color: Color,
 ) -> int:
     score = heavy_piece_endgame_root_bonus(board, move, child_board, moving_color)
+    score += endgame_choice_root_bonus(board, move, child_board, moving_color)
     score += low_material_coordination_root_bonus(board, move, child_board, moving_color)
     score += low_material_race_root_bonus(board, move, child_board, moving_color)
     score += passer_race_root_bonus(board, move, child_board, moving_color)

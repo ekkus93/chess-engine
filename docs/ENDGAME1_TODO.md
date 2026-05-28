@@ -317,30 +317,30 @@ Phase note:
 
 ## 7.1 Audit current endgame hot paths
 
-- [ ] Review `ai_move_ordering.py`, `ai_search_helpers.py`, and any repetition-aware logic with an endgame-only lens.
-- [ ] Identify which signals are cheap enough for hot-path ordering and which belong only in evaluation or root tie-breaks.
-- [ ] Save the audit under `tmp/`.
+- [x] Review `ai_move_ordering.py`, `ai_search_helpers.py`, and any repetition-aware logic with an endgame-only lens.
+- [x] Identify which signals are cheap enough for hot-path ordering and which belong only in evaluation or root tie-breaks.
+- [x] Save the audit under `tmp/`.
 
 ## 7.2 Add endgame-specific quiet-order signals
 
-- [ ] Score moves for:
-  - [ ] king activation
-  - [ ] passer support or blockade
-  - [ ] cut-off geometry
-  - [ ] meaningful simplification
-  - [ ] entering or avoiding repetition based on practical result
+- [x] Score moves for:
+  - [x] king activation
+  - [x] passer support or blockade
+  - [x] cut-off geometry
+  - [x] meaningful simplification
+  - [x] entering or avoiding repetition based on practical result
 
 ## 7.3 Add endgame-specific root tie-break behavior
 
-- [ ] When root scores are near-equal, prefer moves that:
-  - [ ] improve the best practical result
-  - [ ] reduce low-value repetition if the side is better
-  - [ ] preserve repetition if the side is worse and that is the best hold
-  - [ ] narrow the opponent's useful replies
+- [x] When root scores are near-equal, prefer moves that:
+  - [x] improve the best practical result
+  - [x] reduce low-value repetition if the side is better
+  - [x] preserve repetition if the side is worse and that is the best hold
+  - [x] narrow the opponent's useful replies
 
 Phase note:
 
-- [ ] Task 7 complete note
+- [x] Task 7 complete note: Added `endgame_choice_guidance.py`, fixed repetition scoring to use side-to-move perspective, recorded the audit in `tmp/endgame1_task7_audit.txt`, and expanded ENDGAME1 regressions to cover worse-side repetition holds plus endgame cutoff/order/root behavior.
 
 ---
 

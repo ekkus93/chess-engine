@@ -372,6 +372,30 @@ def _task6_rook_side_drift_board() -> Board:
     )
 
 
+def _task7_worse_repetition_rook_board() -> Board:
+    return _build_board(
+        [
+            ("f4", Color.WHITE, PieceType.KING),
+            ("a1", Color.WHITE, PieceType.ROOK),
+            ("d5", Color.WHITE, PieceType.PAWN),
+            ("f7", Color.BLACK, PieceType.KING),
+            ("g8", Color.BLACK, PieceType.ROOK),
+        ],
+        turn=Color.BLACK,
+    )
+
+
+def _task7_better_repetition_board() -> Board:
+    return _build_board(
+        [
+            ("g3", Color.WHITE, PieceType.KING),
+            ("c3", Color.WHITE, PieceType.BISHOP),
+            ("h6", Color.WHITE, PieceType.PAWN),
+            ("h8", Color.BLACK, PieceType.KING),
+        ]
+    )
+
+
 def test_endgame1_rejects_bishop_loop_drift() -> None:
     """The late bishop loop should yield to immediate king activation."""
 
@@ -768,4 +792,85 @@ def test_endgame1_root_prefers_bishop_staying_with_promotion_theater_over_centra
         board,
         central_drift,
         drift_child,
+    )
+
+
+def test_endgame1_repetition_score_favors_worse_side_draw_from_side_to_move_perspective() -> None:
+    """Repeated endgame holds should score as attractive when the side to move is behind."""
+
+    board = _task7_worse_repetition_rook_board()
+    key = position_key(board)
+
+    assert repetition_score(
+        board,
+        None,
+        (key, key, key),
+        RepetitionPolicy(
+            position_key=position_key,
+            evaluate=ai.evaluate,
+            progress=lambda _board: 0,
+            threshold=120,
+            progress_threshold=24,
+            penalty=32,
+        ),
+    ) > 0
+
+
+def test_endgame1_order_prefers_rook_cutoff_over_sideways_drift_in_endgame() -> None:
+    """Endgame ordering should recognize rook cutoff geometry over sideways rook drift."""
+
+    board = _task4_cutoff_before_race_board()
+    cutoff = Move(start=sq("a5"), end=sq("a7"))
+    sideways = Move(start=sq("a5"), end=sq("c5"))
+
+    assert _move_order_score(board, cutoff, None) > _move_order_score(
+        board,
+        sideways,
+        None,
+    )
+
+
+def test_endgame1_root_prefers_cutoff_that_narrows_endgame_replies() -> None:
+    """Endgame root tie-breaks should reward cutoff moves that reduce the defender's options."""
+
+    board = _task4_cutoff_before_race_board()
+    cutoff = Move(start=sq("a5"), end=sq("a7"))
+    sideways = Move(start=sq("a5"), end=sq("c5"))
+    cutoff_child = board.clone()
+    sideways_child = board.clone()
+
+    assert cutoff_child.apply_legal_move(cutoff.start, cutoff.end) is True
+    assert sideways_child.apply_legal_move(sideways.start, sideways.end) is True
+
+    assert _root_stability_adjustment(
+        board,
+        cutoff,
+        cutoff_child,
+    ) > _root_stability_adjustment(
+        board,
+        sideways,
+        sideways_child,
+    )
+
+
+def test_endgame1_root_penalizes_better_side_repeated_endgame_drift() -> None:
+    """Repeated endgame shuffles should lose the root tie-break when the moving side is better."""
+
+    board = _task7_better_repetition_board()
+    repeated_drift = Move(start=sq("c3"), end=sq("b2"))
+    progress = Move(start=sq("g3"), end=sq("g4"))
+    repeated_child = board.clone()
+    progress_child = board.clone()
+
+    assert repeated_child.apply_legal_move(repeated_drift.start, repeated_drift.end) is True
+    assert progress_child.apply_legal_move(progress.start, progress.end) is True
+
+    assert _root_stability_adjustment(
+        board,
+        progress,
+        progress_child,
+    ) > _root_stability_adjustment(
+        board,
+        repeated_drift,
+        repeated_child,
     )
