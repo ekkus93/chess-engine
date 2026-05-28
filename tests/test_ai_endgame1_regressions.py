@@ -557,6 +557,40 @@ def test_endgame1_order_prefers_active_king_defense_over_bishop_shuffle() -> Non
     )
 
 
+def test_endgame1_eval_prefers_blockade_hold_over_bishop_drift_when_worse() -> None:
+    """Static defense guidance should score the blockade hold as the better practical resistance."""
+
+    board = _task5_blockade_board()
+    blockade_child = board.clone()
+    drift_child = board.clone()
+
+    assert blockade_child.apply_legal_move(sq("c6"), sq("a8")) is True
+    assert drift_child.apply_legal_move(sq("c6"), sq("e4")) is True
+
+    assert ai.evaluate(blockade_child) < ai.evaluate(drift_child)
+    assert (
+        get_evaluation_breakdown(blockade_child)["endgame_technique"]
+        < get_evaluation_breakdown(drift_child)["endgame_technique"]
+    )
+
+
+def test_endgame1_eval_prefers_active_king_defense_over_bishop_shuffle_when_worse() -> None:
+    """Static defense guidance should reward the active king hold over bishop shuffling."""
+
+    board = _task5_active_king_defense_board()
+    active_king_child = board.clone()
+    bishop_shuffle_child = board.clone()
+
+    assert active_king_child.apply_legal_move(sq("e7"), sq("f7")) is True
+    assert bishop_shuffle_child.apply_legal_move(sq("d6"), sq("f4")) is True
+
+    assert ai.evaluate(active_king_child) < ai.evaluate(bishop_shuffle_child)
+    assert (
+        get_evaluation_breakdown(active_king_child)["endgame_technique"]
+        < get_evaluation_breakdown(bishop_shuffle_child)["endgame_technique"]
+    )
+
+
 def test_endgame1_order_prefers_checking_hold_over_passive_king_move() -> None:
     """A live checking resource should beat passive king defense when worse."""
 

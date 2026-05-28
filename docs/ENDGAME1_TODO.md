@@ -239,39 +239,39 @@ Phase note:
 
 ## 5.1 Add drawing-technique regressions
 
-- [ ] Add tests where the worse side should choose the strongest practical hold.
-- [ ] Cover cases such as:
-  - [ ] blockade over side activity
-  - [ ] active king defense over passive piece shuffling
-  - [ ] repetition or checking resource that holds
-  - [ ] avoiding losing trades into dead-lost pawn races
+- [x] Add tests where the worse side should choose the strongest practical hold.
+- [x] Cover cases such as:
+  - [x] blockade over side activity
+  - [x] active king defense over passive piece shuffling
+  - [x] repetition or checking resource that holds
+  - [x] avoiding losing trades into dead-lost pawn races
 
 ## 5.2 Audit current defensive guidance in low-material endings
 
-- [ ] Review defensive-containment and endgame guidance modules for overlap and gaps.
-- [ ] Identify where current logic still overvalues vague activity when the only real task is holding the draw or maximizing resistance.
-- [ ] Save the audit under `tmp/`.
+- [x] Review defensive-containment and endgame guidance modules for overlap and gaps.
+- [x] Identify where current logic still overvalues vague activity when the only real task is holding the draw or maximizing resistance.
+- [x] Save the audit under `tmp/`.
 
 ## 5.3 Add endgame defensive evaluation guidance
 
-- [ ] Add or tighten heuristics for:
-  - [ ] practical blockade quality
-  - [ ] king proximity to key defensive squares
-  - [ ] whether the defending bishop/rook attacks the correct side of the pawn chain
-  - [ ] whether simplification increases or decreases drawing chances
-  - [ ] whether a piece is tied to the only drawing resource
+- [x] Add or tighten heuristics for:
+  - [x] practical blockade quality
+  - [x] king proximity to key defensive squares
+  - [x] whether the defending bishop/rook attacks the correct side of the pawn chain
+  - [x] whether simplification increases or decreases drawing chances
+  - [x] whether a piece is tied to the only drawing resource
 
 ## 5.4 Add defensive ordering and root tie-breaks
 
-- [ ] Prefer moves that:
-  - [ ] preserve the only drawing zone
-  - [ ] force the stronger side to prove technique
-  - [ ] keep the defending king active
-- [ ] Demote passive waiting and pretty moves that concede the key squares.
+- [x] Prefer moves that:
+  - [x] preserve the only drawing zone
+  - [x] force the stronger side to prove technique
+  - [x] keep the defending king active
+- [x] Demote passive waiting and pretty moves that concede the key squares.
 
 Phase note:
 
-- [ ] Task 5 complete note
+- [x] Task 5 complete note: Added the Task 5 audit and new defensive regressions, then reviewed `tmp/endgame1_task5_w3b3_20260528T073725Z.txt` in `tmp/endgame1_task5_review.txt`; the worse side resisted through the 150-move bound, while bishop-ending coordination remains the next clear gap.
 
 ---
 
