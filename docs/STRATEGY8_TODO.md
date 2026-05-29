@@ -224,29 +224,31 @@ This pass should build on `docs/STRATEGY7_TODO.md` and `docs/ENDGAME1_TODO.md`, 
 
 ## 5.1 Build consistency matrix for key motifs
 
-- [ ] Create `tmp/strategy8_consistency_audit.txt`.
-- [ ] For each motif, verify alignment between evaluation, quiet ordering, and root tie-break:
-  - [ ] development/castling
-  - [ ] king safety
-  - [ ] conversion discipline
-  - [ ] passer urgency
-  - [ ] anti-drift
+- [x] Create `tmp/strategy8_consistency_audit.txt`.
+- [x] For each motif, verify alignment between evaluation, quiet ordering, and root tie-break:
+  - [x] development/castling
+  - [x] king safety
+  - [x] conversion discipline
+  - [x] passer urgency
+  - [x] anti-drift
 
 ## 5.2 Resolve contradictory incentives
 
-- [ ] Fix cases where evaluation rewards a plan but ordering/root demotes it (or vice versa).
-- [ ] Keep fixes narrow and motif-gated to avoid regressions in unrelated phases.
+- [x] Fix cases where evaluation rewards a plan but ordering/root demotes it (or vice versa).
+- [x] Keep fixes narrow and motif-gated to avoid regressions in unrelated phases.
 
 ## 5.3 Add targeted consistency regressions
 
-- [ ] Add tests proving same strategic preference survives:
-  - [ ] static eval probe
-  - [ ] best-move choice at practical depth
-  - [ ] root tie-break among near-equal candidates
+- [x] Add tests proving same strategic preference survives:
+  - [x] static eval probe
+  - [x] best-move choice at practical depth
+  - [x] root tie-break among near-equal candidates
 
 ## 5.4 Phase note
 
-- [ ] Task 5 complete note
+- [x] Task 5 complete note
+  - Added consistency audit artifact at `tmp/strategy8_consistency_audit.txt` with aligned eval/order/root snapshots for opening, king-safety, and endgame motifs.
+  - Added STRATEGY8 consistency regression in `tests/test_ai_strategy8_regressions.py` validating aligned static eval, move ordering, and root best move for a king-safety motif.
 
 ---
 

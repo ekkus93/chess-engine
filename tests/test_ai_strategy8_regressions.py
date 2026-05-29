@@ -143,3 +143,36 @@ def test_strategy8_endgame_plan_continuity_prefers_passer_file_support() -> None
     switch = ai.Move(start=sq("a4"), end=sq("h4"))
 
     assert _move_order_score(board, support, None) > _move_order_score(board, switch, None)
+
+
+def test_strategy8_consistency_king_safety_aligns_eval_order_and_root_choice() -> None:
+    """King-safety motif should align static eval, ordering, and root best move."""
+
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("g1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("d1"), create_piece(Color.WHITE, PieceType.QUEEN))
+    board.set_piece(sq("h1"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(sq("g2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("h2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("h8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("g4"), create_piece(Color.BLACK, PieceType.QUEEN))
+    board.set_piece(sq("e8"), create_piece(Color.BLACK, PieceType.ROOK))
+    board.set_piece(sq("h5"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.turn = Color.WHITE
+
+    preferred = ai.Move(start=sq("d1"), end=sq("g4"))
+    alternate = ai.Move(start=sq("d1"), end=sq("a4"))
+
+    preferred_board = board.clone()
+    preferred_board.make_move(preferred.start, preferred.end)
+    alternate_board = board.clone()
+    alternate_board.make_move(alternate.start, alternate.end)
+
+    assert ai.evaluate(preferred_board) > ai.evaluate(alternate_board)
+    assert _move_order_score(board, preferred, None) > _move_order_score(
+        board,
+        alternate,
+        None,
+    )
+    assert get_best_move(board, depth=1) == LegalMove(start=sq("d1"), end=sq("g4"))
