@@ -157,31 +157,33 @@ This pass should build on `docs/STRATEGY7_TODO.md` and `docs/ENDGAME1_TODO.md`, 
 
 ## 3.1 Add conversion regressions for "cleanest win"
 
-- [ ] Add tests where winning side should choose practical simplification over drift.
-- [ ] Cover:
-  - [ ] favorable queen trades
-  - [ ] favorable rook trades
-  - [ ] eliminating opponent counterplay before side-pawn grabs
-  - [ ] forcing king cut-off before pawn race
+- [x] Add tests where winning side should choose practical simplification over drift.
+- [x] Cover:
+  - [x] favorable queen trades
+  - [x] favorable rook trades
+  - [x] eliminating opponent counterplay before side-pawn grabs
+  - [x] forcing king cut-off before pawn race
 
 ## 3.2 Expand conversion heuristics
 
-- [ ] Audit `conversion_guidance.py` and downstream root tie-break hooks.
-- [ ] Add/tighten scoring for:
-  - [ ] conversion speed with safety preserved
-  - [ ] counterplay suppression priority
-  - [ ] main-passer support over secondary objectives
-  - [ ] avoiding perpetual-check risk while ahead
+- [x] Audit `conversion_guidance.py` and downstream root tie-break hooks.
+- [x] Add/tighten scoring for:
+  - [x] conversion speed with safety preserved
+  - [x] counterplay suppression priority
+  - [x] main-passer support over secondary objectives
+  - [x] avoiding perpetual-check risk while ahead
 
 ## 3.3 Add anti-drift rules for clearly better side
 
-- [ ] Demote repeated checks with no net gain.
-- [ ] Demote piece shuffles that do not improve mate, trade, or passer outcomes.
-- [ ] Prefer progress moves that change practical result.
+- [x] Demote repeated checks with no net gain.
+- [x] Demote piece shuffles that do not improve mate, trade, or passer outcomes.
+- [x] Prefer progress moves that change practical result.
 
 ## 3.4 Phase note
 
-- [ ] Task 3 complete note
+- [x] Task 3 complete note
+  - Added STRATEGY8 conversion regression coverage in `tests/test_ai_strategy8_regressions.py` for simplification-vs-drift choice.
+  - Tightened conversion anti-drift penalties in `conversion_guidance.py` to increase preference for practical conversion progress while ahead.
 
 ---
 

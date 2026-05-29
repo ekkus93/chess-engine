@@ -103,3 +103,25 @@ def test_strategy8_search_demotes_flank_poke_when_castling_is_available() -> Non
     best_move = get_best_move(board, depth=2)
 
     assert best_move != LegalMove(start=sq("a2"), end=sq("a4"))
+
+
+def test_strategy8_conversion_prefers_simplification_over_side_activity() -> None:
+    """When clearly ahead, practical simplification should beat side drift."""
+
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("g1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("d1"), create_piece(Color.WHITE, PieceType.QUEEN))
+    board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(sq("g2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("d8"), create_piece(Color.BLACK, PieceType.QUEEN))
+    board.set_piece(sq("a8"), create_piece(Color.BLACK, PieceType.ROOK))
+    board.set_piece(sq("g7"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.turn = Color.WHITE
+
+    simplify = ai.Move(start=sq("d1"), end=sq("d8"))
+    drift = ai.Move(start=sq("g2"), end=sq("g4"))
+
+    assert _move_order_score(board, simplify, None) > _move_order_score(board, drift, None)
+    assert get_best_move(board, depth=2) == LegalMove(start=sq("d1"), end=sq("d8"))
