@@ -37,6 +37,7 @@ _WORSE_SIDE_REPEAT_BONUS = 64
 _MOVE_CUTOFF_BONUS = 96
 _ROOT_CUTOFF_BONUS = 120
 _WORSE_SIDE_BAD_SIMPLIFICATION_PENALTY = 220
+_BETTER_SIDE_THEATER_SWITCH_PENALTY = 28
 
 
 @dataclass(frozen=True)
@@ -69,6 +70,7 @@ def endgame_choice_order_bonus(
     bonus = (_side_score(child_board, next_context) - _side_score(board, context)) * _ORDER_SCALE
     bonus += _repeat_adjustment(context.practical_score, board, move)
     bonus += _direct_cutoff_bonus(board, child_board, move, context, next_context)
+    bonus -= _theater_switch_penalty(move, context)
     if kind == PieceType.KING:
         bonus += _king_move_bonus(context, next_context)
     return bonus
@@ -95,6 +97,7 @@ def endgame_choice_root_bonus(
     bonus += _direct_cutoff_bonus(board, child_board, move, context, next_context) * (
         _ROOT_CUTOFF_BONUS // max(_MOVE_CUTOFF_BONUS, 1)
     )
+    bonus -= _theater_switch_penalty(move, context)
     if (
         is_capture_move(board, move)
         and context.practical_score <= -_PRACTICAL_REPEAT_THRESHOLD
@@ -287,6 +290,18 @@ def _king_move_bonus(
     before = _king_focus_score(context)
     after = _king_focus_score(next_context)
     return max(0, after - before)
+
+
+def _theater_switch_penalty(move: Move, context: EndgameChoiceContext) -> int:
+    if context.practical_score < _PRACTICAL_REPEAT_THRESHOLD or context.own_passer is None:
+        return 0
+    start_file_distance = abs(int(move.start.col) - context.own_passer[1])
+    end_file_distance = abs(int(move.end.col) - context.own_passer[1])
+    if end_file_distance <= start_file_distance:
+        return 0
+    if end_file_distance == start_file_distance + 1:
+        return _BETTER_SIDE_THEATER_SWITCH_PENALTY // 2
+    return _BETTER_SIDE_THEATER_SWITCH_PENALTY
 
 
 def _child_board_for_move(board: Board, move: Move) -> Board | None:

@@ -191,30 +191,32 @@ This pass should build on `docs/STRATEGY7_TODO.md` and `docs/ENDGAME1_TODO.md`, 
 
 ## 4.1 Add endgame-plan regressions
 
-- [ ] Add tests where engine should follow coherent plan in simplified positions.
-- [ ] Cover:
-  - [ ] king centralization over passive waiting
-  - [ ] supporting main passer over side play
-  - [ ] choosing simplification when it preserves winning race
-  - [ ] avoiding non-forcing checks that lose tempi
+- [x] Add tests where engine should follow coherent plan in simplified positions.
+- [x] Cover:
+  - [x] king centralization over passive waiting
+  - [x] supporting main passer over side play
+  - [x] choosing simplification when it preserves winning race
+  - [x] avoiding non-forcing checks that lose tempi
 
 ## 4.2 Tighten endgame plan guidance integration
 
-- [ ] Audit interactions among:
-  - [ ] `simple_endgame_guidance.py`
-  - [ ] `low_material_race_guidance.py`
-  - [ ] `low_material_coordination_guidance.py`
-  - [ ] `endgame_choice_guidance.py`
-- [ ] Remove conflicts that produce mixed or oscillating plan signals.
+- [x] Audit interactions among:
+  - [x] `simple_endgame_guidance.py`
+  - [x] `low_material_race_guidance.py`
+  - [x] `low_material_coordination_guidance.py`
+  - [x] `endgame_choice_guidance.py`
+- [x] Remove conflicts that produce mixed or oscillating plan signals.
 
 ## 4.3 Add root-choice preference for coherent plan continuity
 
-- [ ] In near-equal endgame roots, prefer moves that continue strongest existing plan.
-- [ ] Avoid root choices that switch theaters without tactical justification.
+- [x] In near-equal endgame roots, prefer moves that continue strongest existing plan.
+- [x] Avoid root choices that switch theaters without tactical justification.
 
 ## 4.4 Phase note
 
-- [ ] Task 4 complete note
+- [x] Task 4 complete note
+  - Added STRATEGY8 endgame coherence regression in `tests/test_ai_strategy8_regressions.py` to prefer passer-file support over theater switching.
+  - Tightened `endgame_choice_guidance.py` with a practical theater-switch penalty when clearly better and already committed to a passer plan.
 
 ---
 

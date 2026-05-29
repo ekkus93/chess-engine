@@ -125,3 +125,21 @@ def test_strategy8_conversion_prefers_simplification_over_side_activity() -> Non
 
     assert _move_order_score(board, simplify, None) > _move_order_score(board, drift, None)
     assert get_best_move(board, depth=2) == LegalMove(start=sq("d1"), end=sq("d8"))
+
+
+def test_strategy8_endgame_plan_continuity_prefers_passer_file_support() -> None:
+    """In winning sparse endgames, support moves should beat theater switches."""
+
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("f4"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("a4"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(sq("d6"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("g7"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("a8"), create_piece(Color.BLACK, PieceType.ROOK))
+    board.turn = Color.WHITE
+
+    support = ai.Move(start=sq("a4"), end=sq("d4"))
+    switch = ai.Move(start=sq("a4"), end=sq("h4"))
+
+    assert _move_order_score(board, support, None) > _move_order_score(board, switch, None)
