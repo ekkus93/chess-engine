@@ -44,6 +44,7 @@ _SEVENTH_RANK_PRESSURE_BONUS = 30
 _MINOR_LANE_SUPPORT_BONUS = 12
 _MINOR_EDGE_DRIFT_PENALTY = 12
 _HEAVY_SIDE_DRIFT_PENALTY = 12
+_BETTER_SIDE_PLAN_SWITCH_PENALTY = 24
 _LOW_MATERIAL_KING_LEAD_BONUS = 14
 _LOW_MATERIAL_MAIN_PASSER_BONUS = 24
 _LOW_MATERIAL_PROMOTION_BONUS = 96
@@ -213,6 +214,7 @@ def _conversion_root_bonus(
     piece = board.get_piece(move.start)
     if piece is None:
         return bonus
+    bonus -= _better_side_plan_switch_penalty(board, piece.kind, move, context)
     return bonus + _low_material_move_bonus(
         LowMaterialMovePlan(
             board=board,
@@ -224,6 +226,25 @@ def _conversion_root_bonus(
         piece.kind,
         scale=2,
     )
+
+
+def _better_side_plan_switch_penalty(
+    board: Board,
+    kind: PieceType,
+    move: Move,
+    context: ConversionContext,
+) -> int:
+    if context.main_passer is None or kind not in {
+        PieceType.BISHOP,
+        PieceType.ROOK,
+        PieceType.QUEEN,
+    }:
+        return 0
+    if _material_lead(board, context.color) < _MIN_HEAVY_CONVERSION_LEAD:
+        return 0
+    start_distance = abs(int(move.start.col) - context.main_passer[1])
+    end_distance = abs(int(move.end.col) - context.main_passer[1])
+    return _BETTER_SIDE_PLAN_SWITCH_PENALTY if end_distance > start_distance else 0
 
 
 def _conversion_side_score(board: Board, context: ConversionContext) -> int:

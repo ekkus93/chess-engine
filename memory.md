@@ -763,3 +763,8 @@ Quality:
 ## 2026-05-29T15:16:24Z - GPT-5.3-Codex - STRATEGY8 TODO plan created
 - Added `docs/STRATEGY8_TODO.md` with a comprehensive, implementation-ready strategy roadmap based on the latest depth-3 self-play review. The plan targets opening development/castling discipline, king safety in heavy-piece phases, cleaner winning conversion, coherent endgame planning, and consistency between evaluation, move ordering, and root tie-break logic.
 - The new plan is structured as Tasks 0-8 with detailed subtasks, transcript-backed regression requirements, phase-by-phase lint/test gates (`ruff`, `mypy`, `pylint`, `pytest`), and explicit acceptance criteria including full depth-3 self-play termination artifacts.
+
+## 2026-05-29T20:10:31Z - GPT-5.3-Codex - STRATEGY8 Tasks 6-8 completed
+- Closed STRATEGY8 Task 6 by committing/pushing `bec2edb`, keeping the anti-oscillation selective-search changes and repetition-policy regressions in place.
+- Closed STRATEGY8 Task 7 with fresh review artifacts (`tmp/strategy8_task7_balanced_d3d3_20260529T194726Z.txt`, `tmp/strategy8_task7_seeded_from_ply85_20260529T194726Z.txt`, `tmp/strategy8_review.txt`), and added deterministic regressions in `tests/test_ai_strategy8_regressions.py` for opening redeploy penalties, high-danger root tie-break behavior, conversion plan-switch penalties, and stronger endgame theater-switch penalties.
+- Closed STRATEGY8 Task 8 with acceptance artifacts (`tmp/strategy8_task8_acceptance_20260529T200953Z.txt`, `tmp/strategy8_task8_acceptance_review.txt`) and a full green validation gate (`ruff`, `mypy`, `pylint`, full `pytest`, and targeted AI test subset).

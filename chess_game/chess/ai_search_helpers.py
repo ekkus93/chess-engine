@@ -760,7 +760,7 @@ def _strategic_root_bonus(
     score += low_material_conversion_root_bonus(board, move, child_board, moving_color)
     score += review_loop_root_bonus(board, child_board, moving_color)
     if king_danger_index(board, moving_color) >= DANGEROUS_KING_PRESSURE_THRESHOLD:
-        return score
+        return score + _high_danger_root_bonus(board, move, child_board, moving_color)
     if _is_simple_endgame(board):
         return score
     score += _pawn_structure_root_bonus(board, move, child_board)
@@ -785,7 +785,21 @@ def _opening_root_bonus(board: Board, move: Move, moving_kind: PieceType) -> int
 
     if is_capture_move(board, move):
         return 0
-    return opening_discipline_order_score(board, moving_kind, move) * 3
+    return opening_discipline_order_score(board, moving_kind, move) * 4
+
+
+def _high_danger_root_bonus(
+    board: Board,
+    move: Move,
+    child_board: Board,
+    moving_color: Color,
+) -> int:
+    """Keep defense-first tie-breaks active when the moving king is under pressure."""
+
+    score = heavy_piece_defense_root_bonus(board, child_board, moving_color)
+    score += threat_response_root_bonus(board, move, child_board, moving_color)
+    score += tactical_transition_root_bonus(board, move, child_board, moving_color)
+    return score
 
 
 def _pawn_structure_root_bonus(board: Board, move: Move, child_board: Board) -> int:

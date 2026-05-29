@@ -283,27 +283,33 @@ This pass should build on `docs/STRATEGY7_TODO.md` and `docs/ENDGAME1_TODO.md`, 
 
 ## 7.1 Generate fresh STRATEGY8 review games
 
-- [ ] Save at least two fresh transcripts under `tmp/`:
-  - [ ] one balanced depth-3 self-play game
-  - [ ] one seeded continuation from a problematic baseline position
+- [x] Save at least two fresh transcripts under `tmp/`:
+  - [x] one balanced depth-3 self-play game
+  - [x] one seeded continuation from a problematic baseline position
 
 ## 7.2 Extract new practical misses
 
-- [ ] Create `tmp/strategy8_review.txt`.
-- [ ] Record first recurring misses in:
-  - [ ] opening discipline
-  - [ ] king safety
-  - [ ] conversion discipline
-  - [ ] endgame plan coherence
+- [x] Create `tmp/strategy8_review.txt`.
+- [x] Record first recurring misses in:
+  - [x] opening discipline
+  - [x] king safety
+  - [x] conversion discipline
+  - [x] endgame plan coherence
 
 ## 7.3 Promote misses to regression tests
 
-- [ ] Add/extend STRATEGY8-focused regression tests in appropriate test modules.
-- [ ] Ensure each miss has at least one deterministic test that fails before fix and passes after.
+- [x] Add/extend STRATEGY8-focused regression tests in appropriate test modules.
+- [x] Ensure each miss has at least one deterministic test that fails before fix and passes after.
 
 ## 7.4 Phase note
 
-- [ ] Task 7 complete note
+- [x] Task 7 complete note
+  - Added fresh review artifacts under `tmp/`:
+    - `strategy8_task7_balanced_d3d3_20260529T194726Z.txt`
+    - `strategy8_task7_seeded_from_ply85_20260529T194726Z.txt`
+    - `strategy8_review.txt`
+  - Promoted transcript misses into deterministic regressions in `tests/test_ai_strategy8_regressions.py` for opening redeploy penalty strength, danger-mode root tie-breaks, conversion plan switching, and endgame theater-switch penalties.
+  - Implemented structural fixes in `ai_search_helpers.py`, `conversion_guidance.py`, and `endgame_choice_guidance.py`.
 
 ---
 
@@ -311,24 +317,29 @@ This pass should build on `docs/STRATEGY7_TODO.md` and `docs/ENDGAME1_TODO.md`, 
 
 ## 8.1 Full validation gate
 
-- [ ] Run and pass:
-  - [ ] `python -m ruff check chess_game tests`
-  - [ ] `python -m mypy chess_game`
-  - [ ] `python -m pylint chess_game`
-  - [ ] `python -m pytest tests -q`
-  - [ ] `python -m pytest tests/test_ai.py tests/test_ai_quality.py tests/test_ai_search.py tests/test_alpha_beta_pruning.py -q`
+- [x] Run and pass:
+  - [x] `python -m ruff check chess_game tests`
+  - [x] `python -m mypy chess_game`
+  - [x] `python -m pylint chess_game`
+  - [x] `python -m pytest tests -q`
+  - [x] `python -m pytest tests/test_ai.py tests/test_ai_quality.py tests/test_ai_search.py tests/test_alpha_beta_pruning.py -q`
 
 ## 8.2 Acceptance self-play
 
-- [ ] Run at least one full depth-3 vs depth-3 self-play to natural termination.
-- [ ] Save transcript in `tmp/strategy8_task8_acceptance_*.txt`.
-- [ ] Verify practical improvements against Task 0 success criteria.
+- [x] Run at least one full depth-3 vs depth-3 self-play to natural termination.
+- [x] Save transcript in `tmp/strategy8_task8_acceptance_*.txt`.
+- [x] Verify practical improvements against Task 0 success criteria.
 
 ## 8.3 Document final outcome
 
-- [ ] Update this file with completion notes per task.
-- [ ] Summarize residual weaknesses and recommended STRATEGY9 candidates.
+- [x] Update this file with completion notes per task.
+- [x] Summarize residual weaknesses and recommended STRATEGY9 candidates.
 
 ## 8.4 Phase note
 
-- [ ] Task 8 complete note
+- [x] Task 8 complete note
+  - Completed full Task 8 validation gate (ruff, mypy, pylint, full pytest, targeted AI pytest set) with all checks passing.
+  - Added acceptance artifacts:
+    - `tmp/strategy8_task8_acceptance_20260529T200953Z.txt`
+    - `tmp/strategy8_task8_acceptance_review.txt`
+  - Documented remaining weaknesses and STRATEGY9 candidates in the acceptance review artifact.
