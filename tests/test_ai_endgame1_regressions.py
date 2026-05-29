@@ -874,3 +874,40 @@ def test_endgame1_root_penalizes_better_side_repeated_endgame_drift() -> None:
         repeated_drift,
         repeated_child,
     )
+
+
+def test_endgame1_seeded_task7_order_prefers_promotion_prep_over_bishop_detour() -> None:
+    """Seeded continuation should prioritize immediate promotion progress over bishop reroutes."""
+
+    board = _task7_better_repetition_board()
+    promotion_prep = Move(start=sq("h6"), end=sq("h7"))
+    bishop_detour = Move(start=sq("c3"), end=sq("e5"))
+
+    assert _move_order_score(board, promotion_prep, None) > _move_order_score(
+        board,
+        bishop_detour,
+        None,
+    )
+
+
+def test_endgame1_seeded_task7_root_prefers_promotion_prep_over_bishop_detour() -> None:
+    """Root tie-breaks should keep the promoted-pawn plan ahead of bishop detours."""
+
+    board = _task7_better_repetition_board()
+    promotion_prep = Move(start=sq("h6"), end=sq("h7"))
+    bishop_detour = Move(start=sq("c3"), end=sq("e5"))
+    promotion_child = board.clone()
+    bishop_child = board.clone()
+
+    assert promotion_child.apply_legal_move(promotion_prep.start, promotion_prep.end) is True
+    assert bishop_child.apply_legal_move(bishop_detour.start, bishop_detour.end) is True
+
+    assert _root_stability_adjustment(
+        board,
+        promotion_prep,
+        promotion_child,
+    ) > _root_stability_adjustment(
+        board,
+        bishop_detour,
+        bishop_child,
+    )

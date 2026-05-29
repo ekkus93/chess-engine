@@ -208,6 +208,10 @@
 ## 2026-05-23T07:39:44Z - GPT-5.4 - STRATEGY4 Task 6 non-root ordering complete
 - Added explicit Task 6 regressions proving that shelter-loosening h-pawn pushes and middlegame king drifts stay behind normal coordinated improvement in move ordering.
 - Marked STRATEGY4 Task 6.1, 6.2, and 6.4 complete in `docs/STRATEGY4_TODO.md`, using the new regressions plus existing prophylaxis, worst-piece, anti-shuffle, speculative-check, and structure-plan coverage from prior phases.
+
+## 2026-05-28T19:47:26Z - GPT-5.4 - LINT FIX3 current handoff
+- Current session context supersedes the older 2026-05-25 LINT FIX3 closure note: Task 6 in `chess_game/chess/board/move_validation.py` is the active remaining structural pylint work.
+- The live handoff names `_get_pseudo_legal_moves`, `_is_legal_move_for_piece`, and `_get_piece_pseudo_legal_moves` as the remaining Task 6 refactor targets, with follow-up validation expected via `pylint` and `pytest` and tracker updates in `docs/LINT_FIX3_TODO.md`.
 - Revalidated the full repo green with `pylint chess_game` and `python -m pytest tests -q` (`470 passed`) before moving on to the remaining Task 6 root tie-break work.
 
 ## 2026-05-23T08:25:20Z - GPT-5.4 - STRATEGY4 Task 6 root tie-break completion
