@@ -759,3 +759,7 @@ Quality:
 ## 2026-05-25T23:14:31Z - GPT-5.4 - STRATEGY5 Task 0 baseline completed
 - Updated `docs/STRATEGY5_TODO.md` to complete Task 0 and recorded the post-STRATEGY4 baseline from `tmp/selfplay_w3b3_20260525T212702Z.txt`.
 - The baseline artifact identifies the key reproduced failures for the next pass: White's early `a2a4`, repeated rook shuffles, Black's conversion drift after achieving the easier game, Black's late defensive oscillation, and White's final failure to promote the `b7` passer instead of repeating.
+
+## 2026-05-29T15:16:24Z - GPT-5.3-Codex - STRATEGY8 TODO plan created
+- Added `docs/STRATEGY8_TODO.md` with a comprehensive, implementation-ready strategy roadmap based on the latest depth-3 self-play review. The plan targets opening development/castling discipline, king safety in heavy-piece phases, cleaner winning conversion, coherent endgame planning, and consistency between evaluation, move ordering, and root tie-break logic.
+- The new plan is structured as Tasks 0-8 with detailed subtasks, transcript-backed regression requirements, phase-by-phase lint/test gates (`ruff`, `mypy`, `pylint`, `pytest`), and explicit acceptance criteria including full depth-3 self-play termination artifacts.
