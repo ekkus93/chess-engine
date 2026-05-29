@@ -175,3 +175,54 @@ def test_quiet_move_order_prefers_stopping_pawn_break_before_rook_improvement() 
         improve_rook,
         None,
     )
+
+
+def test_strategy8_order_prefers_luft_when_queen_and_rook_battery_is_forming() -> None:
+    """King shelter fixes should beat side activity under heavy-piece battery pressure."""
+
+    board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("f1", Color.WHITE, PieceType.ROOK),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("h8", Color.BLACK, PieceType.KING),
+            ("g4", Color.BLACK, PieceType.QUEEN),
+            ("e8", Color.BLACK, PieceType.ROOK),
+        ],
+        Color.WHITE,
+    )
+
+    luft = ai.Move(start=sq("g2"), end=sq("g3"))
+    side_play = ai.Move(start=sq("d1"), end=sq("a4"))
+
+    assert _move_order_score(board, luft, None) > _move_order_score(board, side_play, None)
+
+
+def test_strategy8_search_prefers_king_zone_defense_over_side_activity() -> None:
+    """Depth-1 defensive choice should reinforce king safety before side play."""
+
+    board = _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("h1", Color.WHITE, PieceType.ROOK),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("h8", Color.BLACK, PieceType.KING),
+            ("g4", Color.BLACK, PieceType.QUEEN),
+            ("e8", Color.BLACK, PieceType.ROOK),
+            ("h5", Color.BLACK, PieceType.PAWN),
+        ],
+        Color.WHITE,
+    )
+
+    best_move = get_best_move(board, depth=1)
+
+    assert best_move in [
+        LegalMove(start=sq("d1"), end=sq("g4")),
+        LegalMove(start=sq("g2"), end=sq("g3")),
+        LegalMove(start=sq("h2"), end=sq("h3")),
+        LegalMove(start=sq("h1"), end=sq("e1")),
+    ]

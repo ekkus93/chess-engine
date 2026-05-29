@@ -726,7 +726,7 @@ def _attacking_root_bonus(
     danger_gain = max(0, after.danger - before.danger)
     invasion_gain = max(0, after.invasion_lines - before.invasion_lines)
     score = danger_gain * 16
-    score += invasion_gain * 18
+    score += invasion_gain * 22
     if (
         is_in_check(child_board, enemy_color)
         and after.danger >= DANGEROUS_KING_PRESSURE_THRESHOLD

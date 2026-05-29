@@ -123,30 +123,33 @@ This pass should build on `docs/STRATEGY7_TODO.md` and `docs/ENDGAME1_TODO.md`, 
 
 ## 2.1 Add king-safety regressions from transcript motifs
 
-- [ ] Add tests where side must prioritize king shelter over side activity.
-- [ ] Cover:
-  - [ ] preventing immediate file/diagonal invasion
-  - [ ] creating luft before speculative activity
-  - [ ] defending mating-net squares before pawn grabs
+- [x] Add tests where side must prioritize king shelter over side activity.
+- [x] Cover:
+  - [x] preventing immediate file/diagonal invasion
+  - [x] creating luft before speculative activity
+  - [x] defending mating-net squares before pawn grabs
 
 ## 2.2 Expand safety evaluation signals
 
-- [ ] Audit king-safety scoring in `evaluation.py` and supporting guidance modules.
-- [ ] Add/tighten heuristics for:
-  - [ ] open/semi-open file pressure near king
-  - [ ] queen+rook battery lines against king zone
-  - [ ] overloaded defenders around king and promotion lanes
-  - [ ] unsafe king walks when tactical pressure is active
+- [x] Audit king-safety scoring in `evaluation.py` and supporting guidance modules.
+- [x] Add/tighten heuristics for:
+  - [x] open/semi-open file pressure near king
+  - [x] queen+rook battery lines against king zone
+  - [x] overloaded defenders around king and promotion lanes
+  - [x] unsafe king walks when tactical pressure is active
 
 ## 2.3 Strengthen safety-aware ordering and root behavior
 
-- [ ] Boost moves that directly reduce king danger.
-- [ ] Demote moves that ignore top threats.
-- [ ] In near-equal roots, prefer plans with lower king-exposure risk.
+- [x] Boost moves that directly reduce king danger.
+- [x] Demote moves that ignore top threats.
+- [x] In near-equal roots, prefer plans with lower king-exposure risk.
 
 ## 2.4 Phase note
 
-- [ ] Task 2 complete note
+- [x] Task 2 complete note
+  - Added STRATEGY8 king-safety regressions in `tests/test_ai_defensive_strategy.py` for luft/defensive-priority behavior under queen+rook pressure.
+  - Strengthened heavy-piece danger profiling in `defensive_priorities.py` and increased defense response weights in `threat_awareness.py` and `ai_search_helpers.py`.
+  - Tightened activation gates for new heavy-invasion danger terms to preserve search speed and pre-existing strategy regressions.
 
 ---
 

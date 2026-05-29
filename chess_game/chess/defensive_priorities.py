@@ -46,22 +46,83 @@ def king_danger_index(board: Board, color: Color) -> int:
         return 0
     king_row, king_col = king_position
     enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
+    danger = _king_base_danger(board, color, king_row, king_col)
+    enemy_queen_count, enemy_rook_count, proximity_danger, line_danger = _enemy_heavy_pressure(
+        board,
+        enemy_color,
+        king_row,
+        king_col,
+    )
+    danger += proximity_danger + line_danger
+    danger += _heavy_invasion_adjustment(
+        board,
+        color,
+        enemy_queen_count,
+        enemy_rook_count,
+        danger,
+    )
+    return danger
+
+
+def _king_base_danger(
+    board: Board,
+    color: Color,
+    king_row: int,
+    king_col: int,
+) -> int:
     danger = 0
     if _king_lacks_luft(board, color, king_row):
         danger += 1
     if _is_central_king(king_row, king_col) and _queens_remain(board):
         danger += 1
+    return danger
+
+
+def _enemy_heavy_pressure(
+    board: Board,
+    enemy_color: Color,
+    king_row: int,
+    king_col: int,
+) -> tuple[int, int, int, int]:
+    enemy_queen_count = 0
+    enemy_rook_count = 0
+    proximity_danger = 0
+    line_danger = 0
     for piece, row_index, col_index in iter_color_pieces(board, enemy_color):
+        if piece.kind == PieceType.QUEEN:
+            enemy_queen_count += 1
+        if piece.kind == PieceType.ROOK:
+            enemy_rook_count += 1
         if piece.kind in {PieceType.ROOK, PieceType.QUEEN} and (
             row_index == king_row or col_index == king_col
         ):
             if path_clear_between(board, (row_index, col_index), (king_row, king_col)):
-                danger += 2
+                line_danger += 2
         distance = max(abs(row_index - king_row), abs(col_index - king_col))
         if piece.kind == PieceType.QUEEN and distance <= 3:
-            danger += 2
+            proximity_danger += 2
         if piece.kind == PieceType.ROOK and distance <= 3:
-            danger += 1
+            proximity_danger += 1
+    return enemy_queen_count, enemy_rook_count, proximity_danger, line_danger
+
+
+def _heavy_invasion_adjustment(
+    board: Board,
+    color: Color,
+    enemy_queen_count: int,
+    enemy_rook_count: int,
+    current_danger: int,
+) -> int:
+    if enemy_queen_count == 0 or enemy_rook_count == 0 or current_danger < 3:
+        return 0
+    danger = 0
+    invasion_lines = open_heavy_invasion_lines(board, color)
+    if invasion_lines >= 2:
+        danger += 2
+    if invasion_lines > 0 and enemy_queen_count > 0 and enemy_rook_count > 0:
+        danger += 1
+    if king_needs_shelter(board, color) and enemy_queen_count + enemy_rook_count >= 2:
+        danger += 1
     return danger
 
 
