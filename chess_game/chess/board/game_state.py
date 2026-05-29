@@ -84,6 +84,31 @@ def is_insufficient_material(board: "Board") -> bool:
     return _same_color_bishops_only(non_kings)
 
 
+def is_dead_position(board: "Board") -> bool:
+    """Check whether no legal sequence can ever lead to checkmate."""
+
+    pieces = [piece for row in board.board for piece in row if piece is not None]
+    non_kings = [piece for piece in pieces if piece.kind != PieceType.KING]
+    if not non_kings:
+        return True
+    if any(
+        piece.kind in {PieceType.PAWN, PieceType.ROOK, PieceType.QUEEN}
+        for piece in non_kings
+    ):
+        return False
+
+    bishops = [piece for piece in non_kings if piece.kind == PieceType.BISHOP]
+    knights = [piece for piece in non_kings if piece.kind == PieceType.KNIGHT]
+
+    if not bishops:
+        return len(knights) <= 2
+    if not knights:
+        if len(bishops) == 1:
+            return True
+        return _same_color_bishops_only(bishops)
+    return False
+
+
 def terminal_message(
     board: "Board",
     position_counts: Optional[dict[str, int]] = None,
@@ -120,17 +145,20 @@ def _draw_message(
 ) -> Optional[str]:
     """Return the first matching draw-state message, if any."""
 
+    message: Optional[str] = None
     if position_counts is not None and is_fivefold_repetition(board, position_counts):
-        return "Draw by fivefold repetition."
-    if is_seventy_five_move_rule(board):
-        return "Draw by seventy-five-move rule."
-    if position_counts is not None and is_threefold_repetition(board, position_counts):
-        return "Draw by threefold repetition."
-    if is_fifty_move_rule(board):
-        return "Draw by fifty-move rule."
-    if is_insufficient_material(board):
-        return "Draw by insufficient material."
-    return None
+        message = "Draw by fivefold repetition."
+    elif is_seventy_five_move_rule(board):
+        message = "Draw by seventy-five-move rule."
+    elif position_counts is not None and is_threefold_repetition(board, position_counts):
+        message = "Draw by threefold repetition."
+    elif is_fifty_move_rule(board):
+        message = "Draw by fifty-move rule."
+    elif is_insufficient_material(board):
+        message = "Draw by insufficient material."
+    elif is_dead_position(board):
+        message = "Draw by dead position."
+    return message
 
 
 def _two_minor_pieces_are_insufficient(pieces: list[Piece]) -> bool:

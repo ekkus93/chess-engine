@@ -6,6 +6,7 @@ from chess_game.chess.board import Board, create_piece
 from chess_game.chess.board.game_state import (
     is_fifty_move_rule,
     is_fivefold_repetition,
+    is_dead_position,
     is_insufficient_material,
     is_seventy_five_move_rule,
     is_threefold_repetition,
@@ -100,3 +101,16 @@ def test_insufficient_material_detects_basic_dead_positions() -> None:
     opposite_sides_minor.set_piece(sq("c1"), create_piece(Color.WHITE, PieceType.BISHOP))
     opposite_sides_minor.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KNIGHT))
     assert is_insufficient_material(opposite_sides_minor)
+
+
+def test_dead_position_detects_knight_only_draws() -> None:
+    """Pure knight endings should be treated as dead positions when mate is impossible."""
+
+    knight_pair = Board()
+    knight_pair.clear_board()
+    knight_pair.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
+    knight_pair.set_piece(sq("e8"), create_piece(Color.BLACK, PieceType.KING))
+    knight_pair.set_piece(sq("c3"), create_piece(Color.WHITE, PieceType.KNIGHT))
+    knight_pair.set_piece(sq("f3"), create_piece(Color.WHITE, PieceType.KNIGHT))
+    assert is_dead_position(knight_pair)
+    assert terminal_message(knight_pair) == "Draw by dead position."
