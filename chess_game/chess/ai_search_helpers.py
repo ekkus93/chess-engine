@@ -781,7 +781,7 @@ def _opening_root_bonus(board: Board, move: Move, moving_kind: PieceType) -> int
 
     if is_capture_move(board, move):
         return 0
-    return opening_discipline_order_score(board, moving_kind, move) * 2
+    return opening_discipline_order_score(board, moving_kind, move) * 3
 
 
 def _pawn_structure_root_bonus(board: Board, move: Move, child_board: Board) -> int:

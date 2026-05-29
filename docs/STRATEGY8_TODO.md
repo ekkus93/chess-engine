@@ -89,30 +89,33 @@ This pass should build on `docs/STRATEGY7_TODO.md` and `docs/ENDGAME1_TODO.md`, 
 
 ## 1.1 Add opening-discipline regressions
 
-- [ ] Add tests where engine should prefer development over repeated piece maneuvers.
-- [ ] Cover:
-  - [ ] avoiding same-piece move repetition before broad development
-  - [ ] developing minor pieces before early queen drift
-  - [ ] castling sooner when central files are opening
+- [x] Add tests where engine should prefer development over repeated piece maneuvers.
+- [x] Cover:
+  - [x] avoiding same-piece move repetition before broad development
+  - [x] developing minor pieces before early queen drift
+  - [x] castling sooner when central files are opening
 
 ## 1.2 Add anti-tempo-loss heuristics
 
-- [ ] Audit current opening guidance and identify missing tempo-loss penalties.
-- [ ] Add/adjust scoring for:
-  - [ ] undeveloped back-rank minors
-  - [ ] repeated non-forcing minor-piece cycles
-  - [ ] queen development without tactical reason
-  - [ ] king still in center after castling windows open
+- [x] Audit current opening guidance and identify missing tempo-loss penalties.
+- [x] Add/adjust scoring for:
+  - [x] undeveloped back-rank minors
+  - [x] repeated non-forcing minor-piece cycles
+  - [x] queen development without tactical reason
+  - [x] king still in center after castling windows open
 
 ## 1.3 Add opening move-order/root tie-break nudges
 
-- [ ] Prefer quiet moves that improve development and king safety.
-- [ ] Demote quiet moves that repeat with no tactical gain.
-- [ ] Ensure near-equal roots pick development+castling coherent plans.
+- [x] Prefer quiet moves that improve development and king safety.
+- [x] Demote quiet moves that repeat with no tactical gain.
+- [x] Ensure near-equal roots pick development+castling coherent plans.
 
 ## 1.4 Phase note
 
-- [ ] Task 1 complete note
+- [x] Task 1 complete note
+  - Added `tests/test_ai_strategy8_regressions.py` for transcript-backed opening discipline checks.
+  - Tuned `opening_move_ordering.py` to demote follow-up quiet queen redeploys and minor-piece retreats while king safety/development is unsettled.
+  - Increased opening root tiebreak weight in `ai_search_helpers.py` so near-equal roots more strongly favor development/castling coherence.
 
 ---
 

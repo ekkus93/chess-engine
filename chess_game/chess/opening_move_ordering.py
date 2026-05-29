@@ -21,11 +21,13 @@ QUIET_PREMATURE_KING_WALK_PENALTY = 20
 QUIET_FINISH_DEVELOPMENT_BONUS = 18
 QUIET_OPENING_CENTRAL_ROOK_BONUS = 18
 QUIET_EARLY_QUEEN_DRIFT_PENALTY = 16
+QUIET_EARLY_QUEEN_REDEPLOY_PENALTY = 14
 QUIET_UNSETTLED_RIM_KNIGHT_PENALTY = 18
 QUIET_KNIGHT_WING_DRIFT_PENALTY = 18
 QUIET_BISHOP_WING_DRIFT_PENALTY = 16
 QUIET_UNSETTLED_CENTRAL_BREAK_BONUS = 24
 QUIET_KNIGHT_FLANK_LUNGE_PENALTY = 26
+QUIET_MINOR_RETREAT_PENALTY = 20
 
 
 def opening_discipline_order_score(board: Board, kind: PieceType, move: Move) -> int:
@@ -67,6 +69,8 @@ def _minor_opening_discipline_score(board: Board, kind: PieceType, move: Move) -
         unsettled_king,
     ):
         score -= QUIET_KNIGHT_FLANK_LUNGE_PENALTY
+    if _is_minor_retreat_before_settling(board, move, undeveloped, unsettled_king):
+        score -= QUIET_MINOR_RETREAT_PENALTY
     if kind == PieceType.BISHOP and _is_bishop_wing_drift(move, unsettled_king):
         score -= QUIET_BISHOP_WING_DRIFT_PENALTY
     return score
@@ -95,6 +99,13 @@ def _heavy_or_pawn_opening_discipline_score(board: Board, kind: PieceType, move:
         needs_shelter,
     ):
         score -= QUIET_EARLY_QUEEN_DRIFT_PENALTY
+    if kind == PieceType.QUEEN and _is_followup_queen_redeploy(
+        board,
+        move,
+        undeveloped,
+        needs_shelter,
+    ):
+        score -= QUIET_EARLY_QUEEN_REDEPLOY_PENALTY
     if kind in {PieceType.QUEEN, PieceType.ROOK} and _is_flank_raid(
         board,
         move,
@@ -359,6 +370,35 @@ def _is_bishop_wing_drift(move: Move, unsettled_king: bool) -> bool:
         int(move.start.row),
         int(move.start.col),
     )
+
+
+def _is_followup_queen_redeploy(
+    board: Board,
+    move: Move,
+    undeveloped: int,
+    needs_shelter: bool,
+) -> bool:
+    if undeveloped < 2 or not needs_shelter:
+        return False
+    if heavy_piece_on_home_square(board.turn, PieceType.QUEEN, move.start):
+        return False
+    if heavy_piece_on_home_square(board.turn, PieceType.QUEEN, move.end):
+        return int(move.start.col) not in {3, 4}
+    return True
+
+
+def _is_minor_retreat_before_settling(
+    board: Board,
+    move: Move,
+    undeveloped: int,
+    unsettled_king: bool,
+) -> bool:
+    if undeveloped < 1 or not unsettled_king:
+        return False
+    home_row = 7 if board.turn == Color.WHITE else 0
+    start_row = int(move.start.row)
+    end_row = int(move.end.row)
+    return start_row != home_row and end_row == home_row
 
 
 def _is_unsettled_central_break(board: Board, move: Move, undeveloped: int) -> bool:
