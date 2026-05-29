@@ -256,23 +256,26 @@ This pass should build on `docs/STRATEGY7_TODO.md` and `docs/ENDGAME1_TODO.md`, 
 
 ## 6.1 Add practical anti-oscillation regressions
 
-- [ ] Add tests where engine should avoid harmless repetition while better.
-- [ ] Add tests where engine should allow repetition while worse if it preserves best result.
+- [x] Add tests where engine should avoid harmless repetition while better.
+- [x] Add tests where engine should allow repetition while worse if it preserves best result.
 
 ## 6.2 Tune selective-search hooks for practical priorities
 
-- [ ] Audit selective extensions/reductions tied to checks, passers, and king threats.
-- [ ] Ensure forcing defensive/conversion lines are not pruned away too aggressively.
-- [ ] Avoid widening search in non-critical decorative lines.
+- [x] Audit selective extensions/reductions tied to checks, passers, and king threats.
+- [x] Ensure forcing defensive/conversion lines are not pruned away too aggressively.
+- [x] Avoid widening search in non-critical decorative lines.
 
 ## 6.3 Validate no timing regressions in depth-critical tests
 
-- [ ] Run existing timing-sensitive AI tests.
-- [ ] If needed, narrow heuristic activation gates rather than removing strategic logic.
+- [x] Run existing timing-sensitive AI tests.
+- [x] If needed, narrow heuristic activation gates rather than removing strategic logic.
 
 ## 6.4 Phase note
 
-- [ ] Task 6 complete note
+- [x] Task 6 complete note
+  - Added anti-oscillation regression coverage in `tests/test_ai_strategy8_regressions.py` for repetition policy behavior (better side penalized, worse side repetition tolerated).
+  - Tuned `ai_search_helpers.py` selective extension gating to avoid decorating undo/repetition moves with extra depth unless they are genuinely forcing/critical.
+  - Confirmed no timing regressions on depth-critical search tests during the full Task 6 validation gate.
 
 ---
 

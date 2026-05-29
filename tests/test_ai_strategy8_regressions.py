@@ -1,7 +1,10 @@
 """Transcript-driven regressions for STRATEGY8 opening discipline priorities."""
 
+from types import SimpleNamespace
+
 from chess_game.chess import ai
 from chess_game.chess.ai import _move_order_score, get_best_move
+from chess_game.chess.ai_search_helpers import RepetitionPolicy, repetition_score
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.types import Color, LegalMove, PieceType
 from tests.helpers import sq
@@ -176,3 +179,39 @@ def test_strategy8_consistency_king_safety_aligns_eval_order_and_root_choice() -
         None,
     )
     assert get_best_move(board, depth=1) == LegalMove(start=sq("d1"), end=sq("g4"))
+
+
+def test_strategy8_repetition_policy_penalizes_better_side_more_than_worse_side() -> None:
+    """Better side should avoid repetition while worse side may accept it."""
+
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("e8"), create_piece(Color.BLACK, PieceType.KING))
+    board.turn = Color.WHITE
+
+    key = "kings-only"
+    winning_policy = RepetitionPolicy(
+        position_key=lambda _: key,
+        evaluate=lambda _: 420,
+        progress=lambda _: 0,
+        threshold=300,
+        progress_threshold=120,
+        penalty=90,
+    )
+    losing_policy = RepetitionPolicy(
+        position_key=lambda _: key,
+        evaluate=lambda _: -420,
+        progress=lambda _: 0,
+        threshold=300,
+        progress_threshold=120,
+        penalty=90,
+    )
+    context = SimpleNamespace(position_counts={key: 3})
+
+    winning_repeat = repetition_score(board, context, tuple(), winning_policy)
+    losing_repeat = repetition_score(board, context, tuple(), losing_policy)
+
+    assert winning_repeat is not None and losing_repeat is not None
+    assert winning_repeat < 0
+    assert losing_repeat > 0

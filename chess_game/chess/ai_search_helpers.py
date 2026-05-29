@@ -433,6 +433,8 @@ def selective_extension_bonus(
         moving_piece.kind,
         enemy_color,
     )
+    if forcing_attack and move_undoes_last_own_move(board, move):
+        forcing_attack = False
     strategic_extension = allow_strategic_extensions and (
         _is_central_prophylaxis_extension(
             board,
@@ -477,6 +479,8 @@ def selective_extension_bonus(
             moving_color,
         )
     )
+    if strategic_extension and move_undoes_last_own_move(board, move):
+        strategic_extension = False
     if forced_extension or forcing_attack or strategic_extension:
         bonus = 1
     return bonus
