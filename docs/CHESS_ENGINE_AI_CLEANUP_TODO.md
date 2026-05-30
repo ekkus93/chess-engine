@@ -18,9 +18,9 @@ Do not broaden this patch into evaluation tuning or new chess features.
 
 ---
 
-## Task 0: Establish baseline
+## Task 0: Establish baseline [x]
 
-### 0.1 Run targeted baseline commands
+### 0.1 Run targeted baseline commands [x]
 
 Run these from the repo root:
 
@@ -43,7 +43,12 @@ python -m pytest tests/test_ai_quality.py -q
 
 Record current results and durations.
 
-### 0.2 Measure default non-slow runtime
+Result:
+- rules subset: 190 passed (0.55s wall)
+- alpha-beta pruning: 6 passed (8.26s wall)
+- ai_quality: 52 passed (7.23s wall)
+
+### 0.2 Measure default non-slow runtime [x]
 
 Run:
 
@@ -53,7 +58,11 @@ python -m pytest tests -q -m "not slow" --durations=25
 
 If this times out or takes too long, capture the slowest tests from partial output or run narrower groups with `--durations=25`.
 
-### 0.3 Add this handoff doc
+Result:
+- non-slow suite: 664 passed, 4 deselected in 10:06 wall
+- dominant cost centers: strategy6/strategy7/review_loop deep-search tests
+
+### 0.3 Add this handoff doc [x]
 
 Copy this file into:
 
@@ -69,9 +78,9 @@ docs/CHESS_ENGINE_AI_CLEANUP_SPEC.md
 
 ---
 
-## Task 1: Make the default test suite fast
+## Task 1: Make the default test suite fast [x]
 
-### 1.1 Identify expensive tests
+### 1.1 Identify expensive tests [x]
 
 Use:
 
@@ -96,7 +105,7 @@ Find non-slow tests that do any of the following:
 - expensive exact-move search assertions,
 - long minimax/alpha-beta runs.
 
-### 1.2 Mark expensive tests as slow
+### 1.2 Mark expensive tests as slow [x]
 
 For expensive tests, add:
 
@@ -114,7 +123,7 @@ or apply a module/class-level marker if the whole file is benchmark-like:
 pytestmark = pytest.mark.slow
 ```
 
-### 1.3 Keep fast correctness tests in the default suite
+### 1.3 Keep fast correctness tests in the default suite [x]
 
 Do **not** mark all AI tests slow. Keep fast tests for:
 
@@ -126,7 +135,7 @@ Do **not** mark all AI tests slow. Keep fast tests for:
 - promotion identity in move ordering,
 - alpha-beta vs no-prune at shallow depth.
 
-### 1.4 Verify non-slow suite
+### 1.4 Verify non-slow suite [x]
 
 Run:
 
@@ -136,11 +145,18 @@ python -m pytest tests -q -m "not slow" --durations=25
 
 Acceptance: it completes in a practical amount of time and reports all passing tests.
 
+Result:
+- added module-level `pytestmark = pytest.mark.slow` in:
+  - `tests/test_ai_strategy6_regressions.py`
+  - `tests/test_ai_strategy7_regressions.py`
+  - `tests/test_ai_review_loop.py`
+- non-slow suite now: 607 passed, 61 deselected in 1:31 wall (<= 3 minute target)
+
 ---
 
-## Task 2: Remove or expose the hidden depth-5 starting-position shortcut
+## Task 2: Remove or expose the hidden depth-5 starting-position shortcut [x]
 
-### 2.1 Locate the shortcut
+### 2.1 Locate the shortcut [x]
 
 Search:
 
@@ -155,7 +171,7 @@ if depth >= 5 and _is_initial_position(board):
     return _preferred_starting_move(legal_moves)
 ```
 
-### 2.2 Preferred fix: remove the shortcut from `get_best_move`
+### 2.2 Preferred fix: remove the shortcut from `get_best_move` [x]
 
 Remove the hidden bypass from `get_best_move()`.
 
@@ -170,7 +186,7 @@ must either:
 - actually search depth 5, or
 - be covered only by slow/manual tests because it is expensive.
 
-### 2.3 Alternative acceptable fix: make opening-book behavior explicit
+### 2.3 Alternative acceptable fix: make opening-book behavior explicit [x] (not used)
 
 If you keep the shortcut, it must be explicit and disabled by default:
 
@@ -183,17 +199,22 @@ Only when `use_opening_book=True` may the engine use `_preferred_starting_move(.
 
 Do **not** leave hidden default behavior.
 
-### 2.4 Update tests
+### 2.4 Update tests [x]
 
 If any test expects depth-5 starting search to return instantly, change it.
 
 Tests must not claim real depth-5 search happened if the opening shortcut bypassed search.
 
+Result:
+- removed hidden `depth >= 5` initial-position bypass from `get_best_move()`
+- deleted `_is_initial_position()` and `_preferred_starting_move()`
+- depth-5 tests now exercise real search behavior and remain marked `slow`
+
 ---
 
-## Task 3: Fix the broken depth-5 node-count test
+## Task 3: Fix the broken depth-5 node-count test [x]
 
-### 3.1 Locate node-count tests
+### 3.1 Locate node-count tests [x]
 
 Search:
 
@@ -212,7 +233,7 @@ assert nodes[0] < 500_000
 
 This is invalid if `nodes` is not the counter used by the search.
 
-### 3.2 Use `SearchStats`
+### 3.2 Use `SearchStats` [x]
 
 Prefer:
 
@@ -226,7 +247,7 @@ assert stats.nodes < SOME_LIMIT
 
 Use the repo's actual context/stats construction helpers.
 
-### 3.3 Mark depth-5 node tests slow
+### 3.3 Mark depth-5 node tests slow [x]
 
 Any real depth-5 node-count test should be marked:
 
@@ -236,15 +257,20 @@ Any real depth-5 node-count test should be marked:
 
 Do not include real depth-5 search in the default fast suite.
 
-### 3.4 Avoid fake assertions
+### 3.4 Avoid fake assertions [x]
 
 Delete or rewrite any assertion that always passes because it checks an unconnected counter.
 
+Result:
+- replaced unconnected `nodes = [0]` depth-5 assertion with `SearchStats`-backed assertion
+- removed obsolete `make_params_with_nodes()` helper
+- retained depth-5 tests as `slow`
+
 ---
 
-## Task 4: Fix TT root score/move mismatch
+## Task 4: Fix TT root score/move mismatch [x]
 
-### 4.1 Inspect root tie-break logic
+### 4.1 Inspect root tie-break logic [x]
 
 Search in `chess_game/chess/ai.py`:
 
@@ -258,7 +284,7 @@ Look for logic where:
 - root tie-breaks select a different near-equal move,
 - TT stores `best_score` with the tie-break-selected move.
 
-### 4.2 Separate search best move from returned root-selected move
+### 4.2 Separate search best move from returned root-selected move [x]
 
 In the search loop, track separate values:
 
@@ -279,13 +305,13 @@ Rules:
 - TT stores `search_best_score` and `search_best_move`.
 - `get_best_move()` returns `root_selected_move` when root tie-breaks apply.
 
-### 4.3 Store TT entries consistently
+### 4.3 Store TT entries consistently [x]
 
 Ensure `_store_tt_cache(...)` receives the move that produced the stored score.
 
 If the code stores only once per searched node, keep that. Do not reintroduce duplicate TT stores.
 
-### 4.4 Add a regression test if practical
+### 4.4 Add a regression test if practical [x]
 
 Construct or mock a small position/helper case where root tie-break selection can choose a near-equal move.
 
@@ -296,11 +322,16 @@ Test the invariant directly if easier:
 
 Do not write a brittle exact-move strategic test if a cleaner unit test is possible.
 
+Result:
+- `_search_move_loop()` now tracks `search_best_score/search_best_move` separately from root tie-break selection
+- TT stores score+move pair from searched child, while root may still return a tie-break selected move
+- added invariant regression test in `tests/test_ai_search.py`
+
 ---
 
-## Task 5: Clean up misleading alpha-beta pruning tests
+## Task 5: Clean up misleading alpha-beta pruning tests [x]
 
-### 5.1 Find misleading tests
+### 5.1 Find misleading tests [x]
 
 Search:
 
@@ -312,7 +343,7 @@ Known issue:
 
 A test comparing tight-window alpha-beta vs wide-window alpha-beta is not a valid "with pruning vs without pruning" test.
 
-### 5.2 Remove or rename misleading tests
+### 5.2 Remove or rename misleading tests [x]
 
 If a test compares:
 
@@ -329,7 +360,7 @@ then either:
 
 Do not call it "without pruning."
 
-### 5.3 Keep true no-prune comparison
+### 5.3 Keep true no-prune comparison [x]
 
 Keep or add a shallow test comparing:
 
@@ -349,11 +380,16 @@ alpha_beta_nodes < no_prune_nodes
 
 Do not use depth 5 for this test.
 
+Result:
+- renamed misleading `test_alpha_beta_pruning_fewer_nodes_than_without_pruning` to
+  `test_alpha_beta_tight_window_visits_no_more_nodes_than_wide_window`
+- kept true no-prune vs alpha-beta node tests in `tests/test_alpha_beta_pruning.py`
+
 ---
 
-## Task 6: Keep AI architecture from expanding in this patch
+## Task 6: Keep AI architecture from expanding in this patch [x]
 
-### 6.1 Do not add heuristic modules
+### 6.1 Do not add heuristic modules [x]
 
 Do not add new modules such as:
 
@@ -363,7 +399,7 @@ new_endgame_guidance.py
 new_opening_heuristic.py
 ```
 
-### 6.2 Do not tune evaluation
+### 6.2 Do not tune evaluation [x]
 
 Do not change:
 
@@ -374,7 +410,7 @@ Do not change:
 - passed-pawn scores,
 - mobility scores.
 
-### 6.3 Avoid brittle exact-move strategic tests
+### 6.3 Avoid brittle exact-move strategic tests [x]
 
 Do not add new tests that force a single exact strategic move unless the position has a clear tactical/chess-rule reason.
 
@@ -390,9 +426,9 @@ move count is lower with alpha-beta than no-prune
 
 ---
 
-## Task 7: Remove generated/cache files
+## Task 7: Remove generated/cache files [x]
 
-### 7.1 Remove generated files
+### 7.1 Remove generated files [x]
 
 Run:
 
@@ -402,7 +438,7 @@ find . -type d -name ".pytest_cache" -prune -exec rm -rf {} +
 find . -type f -name "*.pyc" -delete
 ```
 
-### 7.2 Verify `.gitignore`
+### 7.2 Verify `.gitignore` [x]
 
 Ensure `.gitignore` includes:
 
@@ -412,7 +448,7 @@ __pycache__/
 .pytest_cache/
 ```
 
-### 7.3 Verify cleanup
+### 7.3 Verify cleanup [x]
 
 Run:
 
@@ -422,11 +458,16 @@ find . \( -type d -name "__pycache__" -o -type d -name ".pytest_cache" -o -type 
 
 Expected: no output.
 
+Result:
+- removed `__pycache__/`, `.pytest_cache/`, and `*.pyc` artifacts from repo tree
+- updated `.gitignore` to include `*.py[cod]`
+- verification command returns no output
+
 ---
 
-## Task 8: Fix small test helper issues
+## Task 8: Fix small test helper issues [x]
 
-### 8.1 Fix or delete backwards `index_to_str`
+### 8.1 Fix or delete backwards `index_to_str` [x]
 
 Search:
 
@@ -449,7 +490,7 @@ Or replace it with the existing engine helper:
 from chess_game.chess.coords import index_to_algebraic
 ```
 
-### 8.2 Prefer existing coordinate helpers
+### 8.2 Prefer existing coordinate helpers [x]
 
 Use:
 
@@ -460,11 +501,14 @@ index_to_algebraic(square)
 
 instead of ad-hoc coordinate conversions.
 
+Result:
+- `tests/test_ai_search.py` now uses `index_to_algebraic()` via `index_to_str()`
+
 ---
 
-## Task 9: Update `memory.md` only if useful
+## Task 9: Update `memory.md` only if useful [x]
 
-### 9.1 Do not paste long narratives
+### 9.1 Do not paste long narratives [x]
 
 If updating `memory.md`, keep it short.
 
@@ -477,7 +521,7 @@ Current AI cleanup state:
 - Do not add new heuristics/evaluation tuning in this pass.
 ```
 
-### 9.2 Mark stale old notes
+### 9.2 Mark stale old notes [x]
 
 If old memory entries are misleading, add a short top note:
 
@@ -489,9 +533,9 @@ Do not spend time rewriting the whole file.
 
 ---
 
-## Task 10: Verification
+## Task 10: Verification [x]
 
-### 10.1 Fast default suite
+### 10.1 Fast default suite [x]
 
 Run:
 
@@ -505,7 +549,7 @@ Required:
 - completes in a practical amount of time,
 - slowest tests are reasonable for default CI.
 
-### 10.2 Rules subset
+### 10.2 Rules subset [x]
 
 Run:
 
@@ -515,7 +559,7 @@ python -m pytest tests/test_board_api.py tests/test_piece_moves.py tests/test_ca
 
 Required: pass.
 
-### 10.3 AI targeted tests
+### 10.3 AI targeted tests [x]
 
 Run:
 
@@ -528,7 +572,7 @@ Required: pass.
 
 If `test_ai_quality.py` remains slow but acceptable, document its runtime. If it is too slow for default CI, mark expensive tests inside it as slow.
 
-### 10.4 Slow tests
+### 10.4 Slow tests [x]
 
 Run manually when desired:
 
@@ -538,7 +582,7 @@ python -m pytest tests -q -m "slow" --durations=25
 
 These may be expensive. They should not block normal fast iteration unless project policy requires full slow-suite validation.
 
-### 10.5 Final generated-file check
+### 10.5 Final generated-file check [x]
 
 Run:
 
@@ -548,19 +592,26 @@ find . \( -type d -name "__pycache__" -o -type d -name ".pytest_cache" -o -type 
 
 Required: no output.
 
+Result:
+- `not slow`: 608 passed, 61 deselected in 1:29 wall (<= 3 minute target)
+- rules subset: 190 passed
+- targeted AI suites: alpha-beta (6 passed), ai_quality (52 passed)
+- slow suite: 61 passed, 608 deselected (manual/extended path)
+- final generated-file check: no output
+
 ---
 
 ## Acceptance checklist
 
 The patch is complete only when:
 
-- [ ] `python -m pytest tests -q -m "not slow"` completes and passes.
-- [ ] Expensive AI/search/strategy tests are marked `slow`.
-- [ ] Hidden depth-5 starting-position shortcut is removed or made explicit and disabled by default.
-- [ ] Depth-5 node-count test uses the real search counter or is removed/marked slow.
-- [ ] TT stores a best move that corresponds to the stored score.
-- [ ] Misleading alpha-beta tests are removed or renamed.
-- [ ] A true no-prune vs alpha-beta test remains.
-- [ ] No new heuristics or evaluation tuning were added.
-- [ ] Generated/cache files are removed from the repo tree.
-- [ ] `.gitignore` protects against generated files returning.
+- [x] `python -m pytest tests -q -m "not slow"` completes and passes.
+- [x] Expensive AI/search/strategy tests are marked `slow`.
+- [x] Hidden depth-5 starting-position shortcut is removed or made explicit and disabled by default.
+- [x] Depth-5 node-count test uses the real search counter or is removed/marked slow.
+- [x] TT stores a best move that corresponds to the stored score.
+- [x] Misleading alpha-beta tests are removed or renamed.
+- [x] A true no-prune vs alpha-beta test remains.
+- [x] No new heuristics or evaluation tuning were added.
+- [x] Generated/cache files are removed from the repo tree.
+- [x] `.gitignore` protects against generated files returning.

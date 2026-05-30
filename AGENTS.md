@@ -59,8 +59,10 @@ Reference: `THE_PLAN.md` and `docs/coordinate_system.md`.
   - `python -m ruff check chess_game tests`
   - `python -m mypy chess_game/`
   - `python -m pylint chess_game/`
-- Run all tests:
-  - `python -m pytest tests/ -q`
+- Run default fast tests:
+  - `python -m pytest tests/ -q -m "not slow"`
+- Run slow tests:
+  - `python -m pytest tests/ -q -m "slow"`
 - Verbose:
   - `python -m pytest tests/ -v`
 - Coverage:
@@ -121,4 +123,3 @@ When modifying code:
 ## 2024-06-01T12:00:00Z - GPT-5.4 - User prefers concise responses
 - User has expressed a preference for concise, to-the-point answers without unnecessary elaboration.
 ```
-

@@ -1,5 +1,7 @@
 """Transcript-driven regressions for STRATEGY7 defense and conversion cleanup."""
 
+import pytest
+
 from chess_game.chess import ai
 from chess_game.chess.ai import get_best_move, get_evaluation_breakdown
 from chess_game.chess.ai_search_helpers import root_stability_adjustment
@@ -7,6 +9,8 @@ from chess_game.chess.board import Board, create_piece
 from chess_game.chess.types import Color, LegalMove, PieceType
 from tests.helpers import sq
 from tests.test_ai_quality import _move_order_score
+
+pytestmark = pytest.mark.slow
 
 
 def _board_from_moves(moves: list[tuple[str, str]]) -> Board:

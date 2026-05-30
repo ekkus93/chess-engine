@@ -466,23 +466,24 @@ def _search_move_loop(
 ) -> tuple[int, Optional[LegalMove]]:
     """Search one ply of child moves with alpha-beta pruning."""
 
-    is_root = len(params.line_history) == 1
-    best_score = -INF if params.is_maximizing else INF
+    search_best_score = -INF if params.is_maximizing else INF
+    search_best_move: Optional[LegalMove] = None
     selected_score = -INF if params.is_maximizing else INF
     best_root_tiebreak = -INF if params.is_maximizing else INF
-    best_move: Optional[LegalMove] = None
+    root_selected_move: Optional[LegalMove] = None
     alpha = params.alpha
     beta = params.beta
 
     for move in ordered_moves:
         child_score, root_tiebreak = _evaluate_child_move(board, move, params, alpha, beta)
         if (
-            child_score > best_score
+            child_score > search_best_score
             if params.is_maximizing
-            else child_score < best_score
+            else child_score < search_best_score
         ):
-            best_score = child_score
-        if is_root:
+            search_best_score = child_score
+            search_best_move = LegalMove(move.start, move.end, move.promotion)
+        if len(params.line_history) == 1:
             replace_selected_move = _prefer_root_move(
                 params.is_maximizing,
                 child_score,
@@ -496,13 +497,13 @@ def _search_move_loop(
                 if params.is_maximizing
                 else child_score < selected_score
             )
-        if best_move is None or replace_selected_move:
+        if root_selected_move is None or replace_selected_move:
             selected_score = child_score
             best_root_tiebreak = root_tiebreak
-            best_move = LegalMove(move.start, move.end, move.promotion)
+            root_selected_move = LegalMove(move.start, move.end, move.promotion)
         alpha, beta, cutoff = _update_alpha_beta(
             params.is_maximizing,
-            best_score,
+            search_best_score,
             alpha,
             beta,
         )
@@ -510,8 +511,17 @@ def _search_move_loop(
             _record_cutoff(params.context, move)
             break
 
-    _store_tt_cache(board, params, best_score, best_move, (params.alpha, params.beta))
-    return (best_score, best_move)
+    _store_tt_cache(
+        board,
+        params,
+        search_best_score,
+        search_best_move,
+        (params.alpha, params.beta),
+    )
+    return (
+        search_best_score,
+        root_selected_move if len(params.line_history) == 1 else search_best_move,
+    )
 
 
 def _evaluate_child_move(
@@ -833,8 +843,6 @@ def get_best_move(
     legal_moves = get_legal_moves(board)
     if not legal_moves:
         return None
-    if depth >= 5 and _is_initial_position(board):
-        return _preferred_starting_move(legal_moves)
 
     context = SearchContext(
         transposition_table={},
@@ -863,35 +871,6 @@ def get_best_move(
         best_move = move
         _trim_killer_moves(context)
     return best_move
-
-
-def _is_initial_position(board: Board) -> bool:
-    """Return True when the board is the untouched starting position."""
-
-    return position_key(board) == position_key(Board())
-
-
-def _preferred_starting_move(legal_moves: list[Move]) -> Optional[LegalMove]:
-    """Pick a fast, principled opening move without deep search at game start."""
-
-    for move in legal_moves:
-        if (
-            int(move.start.row) == 6
-            and int(move.start.col) == 4
-            and int(move.end.row) == 4
-            and int(move.end.col) == 4
-        ):
-            return LegalMove(move.start, move.end, move.promotion)
-    for move in legal_moves:
-        if (
-            int(move.start.row) == 6
-            and int(move.start.col) == 3
-            and int(move.end.row) == 4
-            and int(move.end.col) == 3
-        ):
-            return LegalMove(move.start, move.end, move.promotion)
-    first_move = legal_moves[0]
-    return LegalMove(first_move.start, first_move.end, first_move.promotion)
 
 
 def _trim_killer_moves(context: SearchContext) -> None:

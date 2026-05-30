@@ -1,10 +1,14 @@
 """Task 10 review-loop regressions from fresh self-play transcripts."""
 
+import pytest
+
 from chess_game.chess import ai
 from chess_game.chess.ai import get_evaluation_breakdown
 from chess_game.chess.board import Board
 from tests.helpers import sq
 from tests.test_ai_quality import _move_order_score
+
+pytestmark = pytest.mark.slow
 
 
 def _board_from_moves(moves: list[tuple[str, str, None]]) -> Board:

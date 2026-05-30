@@ -815,3 +815,8 @@ Quality:
 - Added `tests/test_ai_strategy12_regressions.py` with forced-win, pawn-race tempo, and king-centralization regressions; final suite now runs 668 tests.
 - Updated `docs/STRATEGY12_TODO.md` to completed task/subtask states and produced STRATEGY12 artifacts in `tmp/` including baseline analysis, sample positions, acceptance game logs, and acceptance summary.
 - Final validation stayed green: `ruff`, `mypy`, `pylint` 10.00/10, and full `pytest tests/ -q` (668 passed). Changes were committed as `bd84205` and pushed to `origin/master`.
+
+## 2026-05-30T20:04:01Z - GPT-5.3-Codex - AI cleanup scope lock
+
+- Current AI cleanup focuses on slow-test segregation, hidden depth-5 opening shortcut removal, node-count test correctness, TT root score/move consistency, and pruning-test naming clarity.
+- This pass avoids adding new heuristics or evaluation tuning; it is strictly cleanup and correctness hygiene.

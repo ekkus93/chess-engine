@@ -53,13 +53,19 @@ Invalid or illegal moves print an error and prompt again. The board is displayed
 ## Running the tests
 
 ```bash
-python -m pytest tests/ -q
+python -m pytest tests/ -q -m "not slow"
 ```
 
 Verbose output:
 
 ```bash
-python -m pytest tests/ -v
+python -m pytest tests/ -v -m "not slow"
+```
+
+Run the slow suite separately:
+
+```bash
+python -m pytest tests/ -q -m "slow"
 ```
 
 With coverage:
