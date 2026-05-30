@@ -35,6 +35,8 @@ _EVAL_KING_ESCORT = 2
 _EVAL_BISHOP_FOCUS = 1
 _OPPOSITION_BONUS = 8
 _KING_CUTOFF_BONUS = 6
+_AGGRESSIVE_PROMOTION_KING_BONUS = 14
+_AGGRESSIVE_PROMOTION_KING_EVAL = 2
 
 
 @dataclass(frozen=True)
@@ -64,7 +66,7 @@ def simple_endgame_order_bonus(
     start = (int(move.start.row), int(move.start.col))
     end = (int(move.end.row), int(move.end.col))
     if kind == PieceType.KING:
-        return _king_order_bonus(start, end, context)
+        return _king_order_bonus(board, start, end, context)
     return _piece_order_bonus(board, start, end, kind, context)
 
 
@@ -165,6 +167,7 @@ def _focus_square(
 
 
 def _king_order_bonus(
+    board: Board,
     start: tuple[int, int],
     end: tuple[int, int],
     context: SimpleEndgameContext,
@@ -181,6 +184,12 @@ def _king_order_bonus(
             max(0, _distance(start, context.own_passer) - _distance(end, context.own_passer))
             * _KING_ESCORT_BONUS
         )
+        if _is_aggressive_king_context(board, context):
+            promotion_square = _promotion_square(context.color, context.own_passer[1])
+            score += (
+                max(0, _distance(start, promotion_square) - _distance(end, promotion_square))
+                * _AGGRESSIVE_PROMOTION_KING_BONUS
+            )
     return score
 
 
@@ -212,6 +221,7 @@ def _side_score(board: Board, context: SimpleEndgameContext) -> int:
         score += max(0, 8 - _distance(own_king, block_square)) * _KING_BLOCKADE_BONUS
     if context.own_passer is not None:
         score += max(0, 8 - _distance(own_king, context.own_passer)) * _KING_ESCORT_BONUS
+        score += _king_proximity_bonus_aggressive(board, context.color, context)
     for piece, row, col in iter_color_pieces(board, context.color):
         if piece.kind == PieceType.BISHOP and _same_diagonal((row, col), context.focus):
             score += _BISHOP_FOCUS_BONUS
@@ -229,6 +239,12 @@ def _evaluation_side_score(board: Board, context: SimpleEndgameContext) -> int:
         score += max(0, 6 - _distance(own_king, block_square)) * _EVAL_KING_BLOCKADE
     if context.own_passer is not None:
         score += max(0, 5 - _distance(own_king, context.own_passer)) * _EVAL_KING_ESCORT
+        score += _king_proximity_bonus_aggressive(
+            board,
+            context.color,
+            context,
+            scale=_AGGRESSIVE_PROMOTION_KING_EVAL,
+        )
     for piece, row, col in iter_color_pieces(board, context.color):
         if piece.kind == PieceType.BISHOP and _same_diagonal((row, col), context.focus):
             score += _EVAL_BISHOP_FOCUS
@@ -286,6 +302,53 @@ def _has_minor_pieces(board: Board) -> bool:
             if piece is not None and piece.kind in {PieceType.BISHOP, PieceType.KNIGHT}:
                 return True
     return False
+
+
+def _king_proximity_to_promotion_square(
+    board: Board,
+    side: Color,
+    pawn_position: tuple[int, int],
+) -> int:
+    own_king = king_coordinates(board, side)
+    if own_king is None:
+        return 0
+    promotion_square = _promotion_square(side, pawn_position[1])
+    return max(0, 7 - _distance(own_king, promotion_square))
+
+
+def _king_proximity_bonus_aggressive(
+    board: Board,
+    side: Color,
+    material_context: SimpleEndgameContext,
+    scale: int = 1,
+) -> int:
+    if not _is_aggressive_king_context(board, material_context):
+        return 0
+    if material_context.own_passer is None:
+        return 0
+    proximity = _king_proximity_to_promotion_square(
+        board,
+        side,
+        material_context.own_passer,
+    )
+    return proximity * _AGGRESSIVE_PROMOTION_KING_BONUS * scale
+
+
+def _is_aggressive_king_context(board: Board, context: SimpleEndgameContext) -> bool:
+    if context.own_passer is None:
+        return False
+    return (
+        _piece_count(board, context.color) <= 3
+        and _piece_count(board, opposite_color(context.color)) <= 3
+    )
+
+
+def _piece_count(board: Board, color: Color) -> int:
+    return sum(1 for _ in iter_color_pieces(board, color))
+
+
+def _promotion_square(color: Color, col: int) -> tuple[int, int]:
+    return (0, col) if color == Color.WHITE else (7, col)
 
 
 def _block_square(color: Color, pawn: tuple[int, int]) -> tuple[int, int]:

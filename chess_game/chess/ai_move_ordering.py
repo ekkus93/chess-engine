@@ -35,6 +35,7 @@ from chess_game.chess.opening_move_ordering import (
 )
 from chess_game.chess.opponent_plans import OpponentPlanProfile, opponent_plan_profile
 from chess_game.chess.passer_race_guidance import passer_race_order_bonus
+from chess_game.chess.pawn_race_move_ordering import pawn_race_move_bonus
 from chess_game.chess.piece_coordination import (
     bishop_coordination_bonus,
     improves_worst_piece,
@@ -157,6 +158,7 @@ def quiet_strategy_order_score(
         score += low_material_race_order_bonus(board, piece.color, piece.kind, move)
         score += defensive_endgame_order_bonus(board, piece.color, piece.kind, move)
         score += passer_race_order_bonus(board, piece.color, piece.kind, move)
+        score += pawn_race_move_bonus(board, move, piece.color)
     score += threat_response_order_bonus(board, piece.color, piece.kind, move)
     score += tactical_transition_order_bonus(board, move)
     score += _piece_coordination_bonus(board, piece.color, piece.kind, move)

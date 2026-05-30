@@ -11,14 +11,17 @@ from chess_game.chess.ai_repetition_patterns import (
 from chess_game.chess.anti_drift_guidance import anti_drift_root_bonus
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_in_check
-from chess_game.chess.conversion_guidance import winning_conversion_root_bonus
-from chess_game.chess.conversion_guidance import low_material_conversion_root_bonus
-from chess_game.chess.defensive_containment_guidance import heavy_piece_defense_root_bonus
-from chess_game.chess.defensive_containment_guidance import heavy_piece_defense_extension_bonus
+from chess_game.chess.conversion_guidance import (
+    low_material_conversion_root_bonus,
+    winning_conversion_root_bonus,
+)
+from chess_game.chess.defensive_containment_guidance import (
+    heavy_piece_defense_extension_bonus,
+    heavy_piece_defense_root_bonus,
+)
 from chess_game.chess.defensive_endgame_guidance import defensive_endgame_root_bonus
 from chess_game.chess.heavy_piece_endgame_guidance import heavy_piece_endgame_root_bonus
 from chess_game.chess.low_material_race_guidance import low_material_race_root_bonus
-
 from chess_game.chess.defensive_priorities import (
     DANGEROUS_KING_PRESSURE_THRESHOLD,
     king_defense_profile,
@@ -40,12 +43,11 @@ from chess_game.chess.pawn_structure_evaluation import evaluate_pawn_structure
 from chess_game.chess.review_loop_guidance import review_loop_root_bonus
 from chess_game.chess.structure_recognition import structure_plan_bonus
 from chess_game.chess.endgame_choice_guidance import endgame_choice_root_bonus
-from chess_game.chess.low_material_coordination_guidance import (
-    low_material_coordination_root_bonus,
-)
+from chess_game.chess.low_material_coordination_guidance import low_material_coordination_root_bonus
 from chess_game.chess.simple_endgame_guidance import simple_endgame_root_bonus
 from chess_game.chess.threat_awareness import threat_response_root_bonus
 from chess_game.chess.tactical_transition_guidance import tactical_transition_root_bonus
+from chess_game.chess.forced_win_guidance import forced_win_root_bonus
 from chess_game.chess.strategy_utils import (
     is_capture_move,
     king_coordinates,
@@ -55,12 +57,9 @@ from chess_game.chess.strategy_utils import (
 from chess_game.chess.types import Color, LegalMove, PieceType
 from chess_game.chess.evaluation_tables import MATERIAL_VALUES, STARTING_NON_PAWN_MATERIAL
 
-ROOT_TIEBREAK_MARGIN = 50
-ROOT_TIEBREAK_OVERRIDE = 24
-ROOT_TIEBREAK_MAX_SCORE_GAP = 96
-ROOT_TIEBREAK_WINNING_SCORE = 1000
-_PAWN_STRUCTURE_CHANGE_ROOT_BONUS = 18
-_OPENING_CENTRAL_PAWN_ROOT_BONUS = 14
+ROOT_TIEBREAK_MARGIN, ROOT_TIEBREAK_OVERRIDE = 50, 24
+ROOT_TIEBREAK_MAX_SCORE_GAP, ROOT_TIEBREAK_WINNING_SCORE = 96, 1000
+_PAWN_STRUCTURE_CHANGE_ROOT_BONUS, _OPENING_CENTRAL_PAWN_ROOT_BONUS = 18, 14
 _MOVE1_CENTRAL_PAWN_BONUS = 320
 
 
@@ -769,6 +768,7 @@ def _strategic_root_bonus(
     score += simple_endgame_root_bonus(board, move, child_board, moving_color)
     score += defensive_endgame_root_bonus(board, move, child_board, moving_color)
     score += low_material_conversion_root_bonus(board, move, child_board, moving_color)
+    score += forced_win_root_bonus(board, move, child_board, moving_color)
     score += review_loop_root_bonus(board, child_board, moving_color)
     if king_danger_index(board, moving_color) >= DANGEROUS_KING_PRESSURE_THRESHOLD:
         return score + _high_danger_root_bonus(board, move, child_board, moving_color)

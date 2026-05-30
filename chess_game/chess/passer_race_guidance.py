@@ -42,6 +42,7 @@ _TIED_DOWN_DEFENDER_BONUS = 12
 _ACTIVE_ENEMY_HEAVY_PENALTY = 48
 _PROMOTION_RESOLUTION_BONUS = 120
 _CHECK_DISRUPTION_PENALTY = 96
+_EXPLICIT_TEMPO_MARGIN_BONUS = 10
 _ALLOWED_RACE_KINDS = {PieceType.QUEEN, PieceType.ROOK, PieceType.PAWN}
 
 
@@ -54,6 +55,18 @@ def passer_race_evaluation_score(board: Board) -> int:
         _passer_race_side_score(board, Color.WHITE)
         - _passer_race_side_score(board, Color.BLACK)
     ) * _EVAL_SCALE
+
+
+def explicit_pawn_race_tempo(board: Board) -> tuple[int | None, int | None]:
+    """Return side-to-move-adjusted promotion tempos for white and black."""
+
+    return _explicit_pawn_race_tempo(board)
+
+
+def is_pawn_race_tempo_position(board: Board) -> bool:
+    """Return True for pawn-only races where tempo calculation is decisive."""
+
+    return _is_pawn_race_tempo_position(board)
 
 
 def passer_race_order_bonus(
@@ -429,12 +442,19 @@ def _is_race_critical_progress(color: Color, row: int) -> bool:
 
 
 def _race_tempo_score(board: Board, color: Color, pawn: tuple[int, int]) -> int:
-    own_tempo = _promotion_pushes_remaining(color, pawn[0])
+    own_tempo = _promotion_tempo_ply(board, color, pawn[0])
     enemy_fastest = _fastest_promotion_tempo(board, _opponent(color))
     if enemy_fastest is None:
         return _RACE_TEMPO_BONUS
     margin = max(-2, min(2, enemy_fastest - own_tempo))
-    return margin * _RACE_TEMPO_BONUS
+    score = margin * _RACE_TEMPO_BONUS
+    white_tempo, black_tempo = _explicit_pawn_race_tempo(board)
+    own_explicit = white_tempo if color == Color.WHITE else black_tempo
+    enemy_explicit = black_tempo if color == Color.WHITE else white_tempo
+    if own_explicit is not None and enemy_explicit is not None:
+        explicit_margin = max(-2, min(2, enemy_explicit - own_explicit))
+        score += explicit_margin * _EXPLICIT_TEMPO_MARGIN_BONUS
+    return score
 
 
 def _unstoppable_passer_score(
@@ -531,12 +551,48 @@ def _check_disruption_penalty(
 def _fastest_promotion_tempo(board: Board, color: Color) -> int | None:
     own_passers = passed_pawns_for_color(board, color)
     tempos = [
-        _promotion_pushes_remaining(color, row)
+        _promotion_tempo_ply(board, color, row)
         for row, col in own_passers
         if _is_high_priority_passer(board, color, (row, col), own_passers)
         and _is_race_critical_progress(color, row)
     ]
     return min(tempos, default=None)
+
+
+def _explicit_pawn_race_tempo(board: Board) -> tuple[int | None, int | None]:
+    return (
+        _fastest_promotion_tempo_for_side(board, Color.WHITE),
+        _fastest_promotion_tempo_for_side(board, Color.BLACK),
+    )
+
+
+def _fastest_promotion_tempo_for_side(board: Board, color: Color) -> int | None:
+    passers = passed_pawns_for_color(board, color)
+    tempos = [_promotion_tempo_ply(board, color, row) for row, _ in passers]
+    return min(tempos, default=None)
+
+
+def _promotion_tempo_ply(board: Board, color: Color, row: int) -> int:
+    pushes = _promotion_pushes_remaining(color, row)
+    if pushes <= 0:
+        return 0
+    return pushes * 2 - (1 if board.turn == color else 0)
+
+
+def _is_pawn_race_tempo_position(board: Board) -> bool:
+    if not passed_pawns_for_color(board, Color.WHITE):
+        return False
+    if not passed_pawns_for_color(board, Color.BLACK):
+        return False
+    non_king = [
+        piece.kind
+        for row in board.board
+        for piece in row
+        if piece is not None and piece.kind != PieceType.KING
+    ]
+    if not non_king or len(non_king) > 6:
+        return False
+    return all(kind == PieceType.PAWN for kind in non_king)
 
 
 def _promotion_pushes_remaining(color: Color, row: int) -> int:
