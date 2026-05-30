@@ -808,3 +808,10 @@ Quality:
 - Added move-1 central pawn preference via stronger root bonus and preserved existing strategy behaviors by keeping conservative root override conditions; opening self-play now starts with `e2e4`.
 - Added advantage-preservation quiet penalty, anti-queen-trade root penalty (with capture exemption), and new endgame conversion bonuses for R+pawns vs B+K and R+B vs R with draw-safe/material guards.
 - Ran full validation gates successfully (`ruff`, `mypy`, `pylint` 10.00/10, and full `pytest` 651 passing) and generated acceptance artifacts: `tmp/strategy11_acceptance.txt` and `tmp/strategy11_review.txt`.
+
+## 2026-05-30T16:38:06Z - GPT-5.3-Codex - STRATEGY12 implementation completed
+
+- Implemented STRATEGY12 across `forced_win_guidance.py`, `passer_race_guidance.py`, `simple_endgame_guidance.py`, and new `pawn_race_move_ordering.py`, with integration into `ai_search_helpers.py` and `ai_move_ordering.py`.
+- Added `tests/test_ai_strategy12_regressions.py` with forced-win, pawn-race tempo, and king-centralization regressions; final suite now runs 668 tests.
+- Updated `docs/STRATEGY12_TODO.md` to completed task/subtask states and produced STRATEGY12 artifacts in `tmp/` including baseline analysis, sample positions, acceptance game logs, and acceptance summary.
+- Final validation stayed green: `ruff`, `mypy`, `pylint` 10.00/10, and full `pytest tests/ -q` (668 passed). Changes were committed as `bd84205` and pushed to `origin/master`.
