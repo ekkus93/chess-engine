@@ -14,13 +14,13 @@ This is a test-infrastructure cleanup pass, not a chess-strength or search-engin
 
 ### 0.1 Add handoff docs
 
-- [ ] Copy this TODO into:
+- [x] Copy this TODO into:
 
   ```text
   docs/CHESS_ENGINE_AI_TEST_RUNTIME_FIX_TODO.md
   ```
 
-- [ ] Copy the companion spec into:
+- [x] Copy the companion spec into:
 
   ```text
   docs/CHESS_ENGINE_AI_TEST_RUNTIME_FIX_SPEC.md
@@ -40,7 +40,7 @@ Expected from latest review:
 190 passed
 ```
 
-- [ ] Record result and runtime.
+- [x] Record result and runtime.
 
 ### 0.3 Run targeted AI suites
 
@@ -58,7 +58,7 @@ test_alpha_beta_pruning.py: 6 passed, roughly 13s
 test_ai_quality.py: 52 passed, roughly 11s
 ```
 
-- [ ] Record result and runtime.
+- [x] Record result and runtime.
 
 ### 0.4 Run current non-slow suite
 
@@ -68,10 +68,10 @@ Run:
 python -m pytest tests -q -m "not slow" --durations=25
 ```
 
-- [ ] Record whether it completes.
-- [ ] Record runtime.
-- [ ] Record slowest tests from `--durations=25`.
-- [ ] If it times out, run narrower files as described in Task 1.
+- [x] Record whether it completes.
+- [x] Record runtime.
+- [x] Record slowest tests from `--durations=25`.
+- [x] If it times out, run narrower files as described in Task 1.
 
 ---
 
@@ -87,10 +87,10 @@ python -m pytest tests/test_ai_search.py -q --durations=25
 python -m pytest tests/test_ai_strategy5_regressions.py -q --durations=25
 ```
 
-- [ ] Record runtimes.
-- [ ] Record tests taking more than approximately 1 second.
-- [ ] Record tests using depth 3+ search.
-- [ ] Record tests using transcript-style exact move assertions.
+- [x] Record runtimes.
+- [x] Record tests taking more than approximately 1 second.
+- [x] Record tests using depth 3+ search.
+- [x] Record tests using transcript-style exact move assertions.
 
 ### 1.2 Search for depth-heavy tests
 
@@ -102,10 +102,10 @@ grep -R "depth=3\|depth=4\|depth=5\|white_depth\|black_depth\|get_best_move" -n 
 
 Review matches in AI/search/strategy tests.
 
-- [ ] Identify depth-4/depth-5 tests.
-- [ ] Identify depth-3 tests on complex positions.
-- [ ] Identify self-play tests.
-- [ ] Identify exact-move strategic regression tests.
+- [x] Identify depth-4/depth-5 tests.
+- [x] Identify depth-3 tests on complex positions.
+- [x] Identify self-play tests.
+- [x] Identify exact-move strategic regression tests.
 
 ### 1.3 Search current slow markings
 
@@ -115,8 +115,8 @@ Run:
 grep -R "pytest.mark.slow\|pytestmark = pytest.mark.slow" -n tests
 ```
 
-- [ ] Confirm which AI files are already marked slow.
-- [ ] Identify inconsistent files of the same category that are not marked slow.
+- [x] Confirm which AI files are already marked slow.
+- [x] Identify inconsistent files of the same category that are not marked slow.
 
 ---
 
@@ -352,9 +352,9 @@ at shallow depth.
 
 If a tight-window vs wide-window test is slow or confusing:
 
-- [ ] rename it to clearly describe aspiration/window behavior, or
-- [ ] mark it slow, or
-- [ ] remove it if redundant.
+- [x] rename it to clearly describe aspiration/window behavior, or
+- [x] mark it slow, or
+- [x] remove it if redundant.
 
 Do not spend much time here unless it affects runtime or clarity.
 
@@ -368,9 +368,9 @@ Run:
 grep -R "_is_initial_position\|_preferred_starting_move\|depth >= 5" -n chess_game tests
 ```
 
-- [ ] Confirm no hidden `get_best_move()` shortcut was reintroduced.
-- [ ] If any match exists, inspect it.
-- [ ] Do not re-add the old starting-position shortcut.
+- [x] Confirm no hidden `get_best_move()` shortcut was reintroduced.
+- [x] If any match exists, inspect it.
+- [x] Do not re-add the old starting-position shortcut.
 
 ---
 
@@ -447,10 +447,10 @@ python -m pytest tests -q -m "not slow" --durations=25
 
 Required:
 
-- [ ] passes,
-- [ ] completes in a practical time,
-- [ ] preferably under 2 minutes,
-- [ ] hard target under 3 minutes.
+- [x] passes,
+- [x] completes in a practical time,
+- [x] preferably under 2 minutes,
+- [x] hard target under 3 minutes.
 
 Record result and top slowest tests.
 
@@ -464,7 +464,7 @@ python -m pytest tests/test_board_api.py tests/test_piece_moves.py tests/test_ca
 
 Required:
 
-- [ ] passes.
+- [x] passes.
 
 ### 10.3 Targeted AI suites
 
@@ -477,8 +477,8 @@ python -m pytest tests/test_ai_quality.py -q --durations=15
 
 Required:
 
-- [ ] pass.
-- [ ] If these remain in the default non-slow suite, their runtime must be acceptable.
+- [x] pass.
+- [x] If these remain in the default non-slow suite, their runtime must be acceptable.
 
 ### 10.4 Slow suite
 
@@ -490,9 +490,9 @@ python -m pytest tests -q -m "slow" --durations=25
 
 Required:
 
-- [ ] record result,
-- [ ] record runtime,
-- [ ] slow suite may be expensive but should be runnable manually.
+- [x] record result,
+- [x] record runtime,
+- [x] slow suite may be expensive but should be runnable manually.
 
 ### 10.5 Marker consistency check
 
@@ -511,13 +511,13 @@ Confirm slow and non-slow split looks sane.
 
 The patch is complete only when:
 
-- [ ] `tests/test_ai_endgame1_regressions.py` has been marked slow or split appropriately.
-- [ ] Expensive tests in `tests/test_ai_search.py` have been marked slow or rewritten cheaply.
-- [ ] `tests/test_ai_strategy5_regressions.py` has been reviewed and marked slow if appropriate.
-- [ ] Comparable strategy/transcript regression files are classified consistently.
-- [ ] Fast AI correctness tests remain non-slow.
-- [ ] `python -m pytest tests -q -m "not slow" --durations=25` passes and completes under the target runtime.
-- [ ] Slow tests are available via `python -m pytest tests -q -m "slow"`.
-- [ ] Hidden depth-5 starting-position shortcut was not reintroduced.
-- [ ] No evaluation/search/TT behavior was changed for runtime reasons.
-- [ ] `memory.md` is updated only briefly, if at all.
+- [x] `tests/test_ai_endgame1_regressions.py` has been marked slow or split appropriately.
+- [x] Expensive tests in `tests/test_ai_search.py` have been marked slow or rewritten cheaply.
+- [x] `tests/test_ai_strategy5_regressions.py` has been reviewed and marked slow if appropriate.
+- [x] Comparable strategy/transcript regression files are classified consistently.
+- [x] Fast AI correctness tests remain non-slow.
+- [x] `python -m pytest tests -q -m "not slow" --durations=25` passes and completes under the target runtime.
+- [x] Slow tests are available via `python -m pytest tests -q -m "slow"`.
+- [x] Hidden depth-5 starting-position shortcut was not reintroduced.
+- [x] No evaluation/search/TT behavior was changed for runtime reasons.
+- [x] `memory.md` is updated only briefly, if at all.

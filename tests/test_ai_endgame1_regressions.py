@@ -1,5 +1,7 @@
 """Transcript-backed regressions for ENDGAME1 simple-endgame cleanup."""
 
+import pytest
+
 from chess_game.chess import ai
 from chess_game.chess.ai import (
     _root_stability_adjustment,
@@ -13,6 +15,9 @@ from chess_game.chess.move import Move
 from chess_game.chess.types import Color, LegalMove, PieceType
 from tests.helpers import sq
 from tests.test_ai_quality import _move_order_score
+
+
+pytestmark = pytest.mark.slow
 
 
 def _build_board(

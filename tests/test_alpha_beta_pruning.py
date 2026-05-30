@@ -2,6 +2,8 @@
 
 import time
 
+import pytest
+
 from chess_game import self_play
 from chess_game.self_play import run_self_play
 from chess_game.chess.ai import SearchStats, minimax, minimax_no_prune
@@ -25,6 +27,7 @@ def test_depth_2_search_completes():
     assert elapsed < 20, "Depth-2 search should complete within 20 seconds"
 
 
+@pytest.mark.slow
 def test_depth_3_nodes_within_reasonable_limit():
     """Depth-3 search nodes should be within some reasonable limit (no combinatorial explosion)."""
     board = Board()
@@ -107,6 +110,7 @@ def test_alpha_beta_cutoffs_occurred():
     assert stats.cutoffs > 0, "Alpha-beta should trigger cutoffs at depth 3"
 
 
+@pytest.mark.slow
 def test_self_play_depth_3_terminates():
     """Self-play with depth 3 should terminate for a single move quickly."""
     start = time.monotonic()

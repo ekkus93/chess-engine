@@ -2,6 +2,8 @@
 
 from types import SimpleNamespace
 
+import pytest
+
 from chess_game.chess import ai
 from chess_game.chess.ai import _move_order_score, get_best_move
 from chess_game.chess.ai_search_helpers import (
@@ -88,6 +90,7 @@ def test_strategy8_order_penalizes_minor_retreat_before_king_is_settled() -> Non
     assert _move_order_score(board, develop, None) > _move_order_score(board, retreat, None)
 
 
+@pytest.mark.slow
 def test_strategy8_search_demotes_flank_poke_when_castling_is_available() -> None:
     """Near-equal opening roots should not prefer an aimless flank poke."""
 
@@ -118,6 +121,7 @@ def test_strategy8_search_demotes_flank_poke_when_castling_is_available() -> Non
     assert best_move != LegalMove(start=sq("a2"), end=sq("a4"))
 
 
+@pytest.mark.slow
 def test_strategy8_conversion_prefers_simplification_over_side_activity() -> None:
     """When clearly ahead, practical simplification should beat side drift."""
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from chess_game.chess import ai
 from chess_game.chess.ai import (
     INF,
@@ -212,6 +214,7 @@ def test_position_key_distinguishes_en_passant_targets() -> None:
     assert position_key(board_a) != position_key(board_b)
 
 
+@pytest.mark.slow
 def test_iterative_deepening_matches_full_width_root_result() -> None:
     """Iterative deepening should agree with the full-width root result on a simple tactic."""
 
@@ -411,6 +414,7 @@ def test_quiescence_tactical_score_prefers_structural_capture_followup() -> None
     assert structural_score > 0
 
 
+@pytest.mark.slow
 def test_simple_quality_benchmark_prefers_hanging_rook_capture() -> None:
     """The search should take an obvious hanging rook in a simple benchmark."""
 
@@ -799,6 +803,7 @@ def test_quiet_move_order_prefers_contesting_attack_file_over_side_pawn_push() -
     )
 
 
+@pytest.mark.slow
 def test_search_prefers_luft_over_empty_check_under_back_rank_pressure() -> None:
     """Under back-rank pressure, the search should prefer luft over a harmless queen check."""
 

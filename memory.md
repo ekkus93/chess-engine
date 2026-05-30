@@ -1,5 +1,12 @@
 # Chess Engine Project Memory
 
+Older entries below are historical and may describe resolved bugs.
+
+## 2026-05-30T22:18:02Z - GPT-5.4 - AI test-runtime cleanup
+- Expensive AI regression and benchmark tests were reclassified so `python -m pytest tests -q -m "not slow"` stays practical again.
+- `tests/test_ai_endgame1_regressions.py` and `tests/test_ai_strategy5_regressions.py` now use module-level `pytestmark = pytest.mark.slow`; expensive depth-3/benchmark tests in `tests/test_ai_search.py`, `tests/test_ai_quality.py`, `tests/test_ai_strategy8_regressions.py`, and `tests/test_alpha_beta_pruning.py` were also marked slow.
+- Default suite now finishes in 15.80s, slow suite runs explicitly with `-m "slow"` in 12:49, and lint remains green (`ruff`, `mypy`, `pylint 10.00/10`).
+
 ## 2026-05-26T17:51:33Z - GPT-5.4 - STRATEGY7 planning baseline
 - Added `docs/STRATEGY7_TODO.md`, a new detailed tracker based on the latest depth-3 self-play game `tmp/selfplay_w3b3_20260526T154110Z.txt`. The new plan shifts focus away from opening cleanup and toward losing-side defense, practical threat containment, heavy-piece coordination, passed-pawn races, and cleaner conversion.
 - The STRATEGY7 task list specifically targets the latest transcript’s practical failures: Black's weak defense against White's passer, flank loosening and drift in the heavy-piece phase, and both sides' tendency to spend tempi on low-value queen, rook, and bishop maneuvers instead of forcing wins or best resistance.

@@ -1089,6 +1089,7 @@ def test_depth_5_nodes_within_reasonable_limit():
 # ─── Task 7.4: Search-level regressions ──────────────────────────────────────
 
 
+@pytest.mark.slow
 def test_search_sees_prophylactic_line_is_best() -> None:
     """Depth-3 search should capture a piece that immediately enables a check threat.
 
@@ -1116,6 +1117,7 @@ def test_search_sees_prophylactic_line_is_best() -> None:
     assert move.end == sq("d4"), "Prophylactic Qxd4 should eliminate the Nf3+ fork threat"
 
 
+@pytest.mark.slow
 def test_search_prefers_clean_simplifying_line_over_repeated_checking() -> None:
     """Depth-3 search should win a free rook rather than give a harmless check.
 
@@ -1146,6 +1148,7 @@ def test_search_prefers_clean_simplifying_line_over_repeated_checking() -> None:
     assert move.end == sq("d8"), "Should capture the free rook (clean simplification)"
 
 
+@pytest.mark.slow
 def test_search_rejects_material_win_that_opens_fatal_counterplay() -> None:
     """Depth-3 search should not capture a pawn that costs a rook via back-rank tactic.
 
@@ -1175,6 +1178,7 @@ def test_search_rejects_material_win_that_opens_fatal_counterplay() -> None:
     assert move.end != sq("d7"), "Should not grab the pawn that opens the e1 back-rank counter"
 
 
+@pytest.mark.slow
 def test_search_goes_deeper_in_structure_changing_defensive_moments() -> None:
     """Engine should log selective extensions when a shelter-restoring capture is available.
 
