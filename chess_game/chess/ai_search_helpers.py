@@ -28,6 +28,7 @@ from chess_game.chess.defensive_priorities import (
 from chess_game.chess.move import Move
 from chess_game.chess.opening_move_ordering import (
     opening_discipline_order_score,
+    undeveloped_minor_count,
 )
 from chess_game.chess.opening_guidance import opening_guidance_bonus
 from chess_game.chess.opponent_plans import opponent_plan_profile
@@ -60,6 +61,7 @@ ROOT_TIEBREAK_MAX_SCORE_GAP = 96
 ROOT_TIEBREAK_WINNING_SCORE = 1000
 _PAWN_STRUCTURE_CHANGE_ROOT_BONUS = 18
 _OPENING_CENTRAL_PAWN_ROOT_BONUS = 14
+_MOVE1_CENTRAL_PAWN_BONUS = 320
 
 
 @dataclass(frozen=True)
@@ -830,6 +832,8 @@ def _opening_central_pawn_root_bonus(
         return 0
     if opening_guidance_bonus(board, board.turn, moving_kind, move) == 0:
         return 0
+    if undeveloped_minor_count(board) == 4:
+        return _MOVE1_CENTRAL_PAWN_BONUS
     return _OPENING_CENTRAL_PAWN_ROOT_BONUS
 
 
@@ -850,6 +854,8 @@ def _high_danger_root_bonus(
 def _pawn_structure_root_bonus(board: Board, move: Move, child_board: Board) -> int:
     moving_piece = board.get_piece(move.start)
     if moving_piece is None or moving_piece.kind != PieceType.PAWN:
+        return 0
+    if undeveloped_minor_count(board) == 4:
         return 0
     endgame_phase = _endgame_phase(board)
     before = evaluate_pawn_structure(board, endgame_phase)
@@ -988,7 +994,6 @@ def _is_heavy_piece_invasion(
     enemy_color: Color,
 ) -> bool:
     """Return True when a rook or queen reaches the enemy back-rank zone."""
-
     if moving_kind not in {PieceType.ROOK, PieceType.QUEEN}:
         return False
     enemy_back_rank_zone = {0, 1} if enemy_color == Color.BLACK else {6, 7}

@@ -15,6 +15,7 @@ from chess_game.chess.move import Move
 from chess_game.chess.strategy_utils import (
     heavy_piece_file_support_rows,
     is_advanced_passer,
+    is_capture_move,
     iter_color_pieces,
     materially_ahead_color,
     non_king_piece_count_at_most,
@@ -47,6 +48,8 @@ _MINOR_LANE_SUPPORT_BONUS = 12
 _MINOR_EDGE_DRIFT_PENALTY = 12
 _HEAVY_SIDE_DRIFT_PENALTY = 12
 _BETTER_SIDE_PLAN_SWITCH_PENALTY = 24
+_ANTI_QUEEN_TRADE_PENALTY = 50
+_ANTI_QUEEN_TRADE_MIN_LEAD = 400  # 4 pawns
 _LOW_MATERIAL_KING_LEAD_BONUS = 14
 _LOW_MATERIAL_MAIN_PASSER_BONUS = 24
 _LOW_MATERIAL_PROMOTION_BONUS = 96
@@ -237,6 +240,7 @@ def _conversion_root_bonus(
         return bonus
     bonus += _main_passer_root_bonus(board, move, piece.kind, context)
     bonus -= _better_side_plan_switch_penalty(board, piece.kind, move, context)
+    bonus -= _anti_queen_trade_root_penalty(board, move, piece.kind, context.color)
     return bonus + _low_material_move_bonus(
         LowMaterialMovePlan(
             board=board,
@@ -248,6 +252,26 @@ def _conversion_root_bonus(
         piece.kind,
         scale=2,
     )
+
+
+def _anti_queen_trade_root_penalty(
+    board: Board,
+    move: Move,
+    kind: PieceType,
+    color: Color,
+) -> int:
+    """Penalize queen moves to squares attacked by enemy pieces when clearly ahead."""
+    if kind != PieceType.QUEEN:
+        return 0
+    if is_capture_move(board, move):
+        return 0
+    if _material_lead(board, color) < _ANTI_QUEEN_TRADE_MIN_LEAD:
+        return 0
+    enemy_color = _opponent(color)
+    for enemy_piece, _, _ in iter_color_pieces(board, enemy_color):
+        if piece_attacks_square(enemy_piece, enemy_piece.square, move.end, board):
+            return _ANTI_QUEEN_TRADE_PENALTY
+    return 0
 
 
 def _main_passer_root_bonus(

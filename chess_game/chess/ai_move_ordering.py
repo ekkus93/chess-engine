@@ -26,6 +26,7 @@ from chess_game.chess.defensive_priorities import (
     king_danger_index,
     king_needs_shelter,
 )
+from chess_game.chess.evaluation_tables import MATERIAL_VALUES
 from chess_game.chess.move import Move
 from chess_game.chess.opening_move_ordering import (
     is_repeat_heavy_piece_move as _opening_repeat_heavy_piece_move,
@@ -46,6 +47,8 @@ from chess_game.chess.structure_recognition import structure_plan_bonus
 from chess_game.chess.strategy_utils import (
     center_distance,
     is_capture_move,
+    iter_color_pieces,
+    non_king_material_lead,
     non_king_piece_count_at_most,
     path_clear_between,
 )
@@ -92,6 +95,8 @@ QUIET_EMPTY_CHECK_PENALTY = 40
 QUIET_EASY_SHUFFLE_CHECK_PENALTY = 20
 QUIET_SELF_EXPOSING_CHECK_PENALTY = 22
 ENDGAME_ORDER_MAX_NON_KING_PIECES = 8
+_ADVANTAGE_PRESERVATION_HANGING_PENALTY = 30
+_ADVANTAGE_PRESERVATION_MIN_LEAD = 400  # 4 pawns
 
 
 @dataclass(frozen=True)
@@ -115,6 +120,7 @@ class QuietOrderContext:
     opponent_plan: OpponentPlanProfile
     endgame_order_position: bool
     heavy_piece_endgame: bool
+    material_lead: int
 
 
 def quiet_strategy_order_score(
@@ -161,6 +167,7 @@ def quiet_strategy_order_score(
     if improves_worst_piece(board, move):
         score += QUIET_WORST_PIECE_BONUS
     score += _check_quality_bonus(board, piece.kind, move)
+    score -= _advantage_preservation_penalty(board, piece, move, quiet_context)
     return score
 
 
@@ -172,7 +179,29 @@ def make_quiet_order_context(board: Board) -> QuietOrderContext:
         opponent_plan=opponent_plan_profile(board, board.turn),
         endgame_order_position=_is_endgame_order_position(board),
         heavy_piece_endgame=_is_heavy_piece_endgame(board),
+        material_lead=non_king_material_lead(board, board.turn),
     )
+
+
+def _advantage_preservation_penalty(
+    board: Board,
+    piece,
+    move: Move,
+    context: QuietOrderContext,
+) -> int:
+    """Return a penalty when a clearly-winning side drops a piece to a cheap attacker."""
+    if context.material_lead < _ADVANTAGE_PRESERVATION_MIN_LEAD:
+        return 0
+    if piece.kind in (PieceType.PAWN, PieceType.KING):
+        return 0
+    own_value = MATERIAL_VALUES.get(piece.kind, 0)
+    enemy_color = Color.BLACK if piece.color == Color.WHITE else Color.WHITE
+    for enemy_piece, _, _ in iter_color_pieces(board, enemy_color):
+        if MATERIAL_VALUES.get(enemy_piece.kind, 0) >= own_value:
+            continue
+        if piece_attacks_square(enemy_piece, enemy_piece.square, move.end, board):
+            return _ADVANTAGE_PRESERVATION_HANGING_PENALTY
+    return 0
 
 
 def _centralization_bonus(kind: PieceType, move: Move) -> int:

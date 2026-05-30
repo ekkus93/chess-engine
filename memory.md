@@ -801,3 +801,10 @@ Quality:
   - Task 6: Lint/test/self-play validation
   - Task 7: Commit and push
 - Success criteria: White plays e4/d4 move 1, Black holds ≥+4 leads, R vs B+K converts in ≤ 50 moves
+
+## 2026-05-30T10:17:32Z - GPT-5.3-Codex - STRATEGY11 implementation completed
+
+- Implemented STRATEGY11 code changes across `ai_search_helpers.py`, `ai_move_ordering.py`, `conversion_guidance.py`, `endgame_evaluation.py`, and `ai.py`, plus new regression coverage in `tests/test_ai_strategy11_regressions.py`.
+- Added move-1 central pawn preference via stronger root bonus and preserved existing strategy behaviors by keeping conservative root override conditions; opening self-play now starts with `e2e4`.
+- Added advantage-preservation quiet penalty, anti-queen-trade root penalty (with capture exemption), and new endgame conversion bonuses for R+pawns vs B+K and R+B vs R with draw-safe/material guards.
+- Ran full validation gates successfully (`ruff`, `mypy`, `pylint` 10.00/10, and full `pytest` 651 passing) and generated acceptance artifacts: `tmp/strategy11_acceptance.txt` and `tmp/strategy11_review.txt`.

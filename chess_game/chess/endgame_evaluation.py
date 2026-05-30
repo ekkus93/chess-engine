@@ -104,6 +104,8 @@ def evaluate_progress(board: Board, endgame_phase: int) -> int:
     bonus += _heavy_endgame_king_activity_bonus(board, leading_color)
     bonus += _passed_pawn_advancement_progress(board, leading_color)
     bonus += abs(winning_conversion_evaluation_score(board))
+    bonus += _rook_vs_bishop_king_conversion_bonus(board, leading_color)
+    bonus += _rook_bishop_vs_rook_conversion_bonus(board, leading_color)
     phase_scale = max(40, 40 + endgame_phase)
     return _color_sign(leading_color) * ((bonus * phase_scale) // 100)
 
@@ -484,6 +486,20 @@ def _total_non_pawn_material(board: Board) -> int:
     return total
 
 
+def _has_bishop(board: Board, color: Color) -> bool:
+    return any(
+        piece.kind == PieceType.BISHOP
+        for piece, _, _ in iter_color_pieces(board, color)
+    )
+
+
+def _has_pawn(board: Board, color: Color) -> bool:
+    return any(
+        piece.kind == PieceType.PAWN
+        for piece, _, _ in iter_color_pieces(board, color)
+    )
+
+
 def _has_queen(board: Board, color: Color) -> bool:
     return any(
         piece.kind == PieceType.QUEEN
@@ -522,6 +538,71 @@ def _material_lead(board: Board, color: Color) -> int:
 
 def _color_sign(color: Color) -> int:
     return 1 if color == Color.WHITE else -1
+
+
+_ROOK_VS_BISHOP_KING_BONUS = 30
+_ROOK_BISHOP_VS_ROOK_BONUS = 25
+
+
+def _is_rook_vs_bishop_king_endgame(board: Board, leading_color: Color) -> bool:
+    """Return True when leading side has rook+pawns and enemy has bishop+king only."""
+    enemy_color = _opponent(leading_color)
+    if _has_queen(board, leading_color) or _has_queen(board, enemy_color):
+        return False
+    if not _has_rook(board, leading_color) or _has_rook(board, enemy_color):
+        return False
+    if _has_bishop(board, leading_color) or not _has_bishop(board, enemy_color):
+        return False
+    return _has_pawn(board, leading_color)
+
+
+def _is_rook_bishop_vs_rook_endgame(board: Board, leading_color: Color) -> bool:
+    """Return True when leading side has rook+bishop and enemy has rook+king only."""
+    enemy_color = _opponent(leading_color)
+    if _has_queen(board, leading_color) or _has_queen(board, enemy_color):
+        return False
+    if not _has_rook(board, leading_color) or not _has_rook(board, enemy_color):
+        return False
+    return _has_bishop(board, leading_color) and not _has_bishop(board, enemy_color)
+
+
+def _rook_vs_bishop_king_conversion_bonus(board: Board, leading_color: Color) -> int:
+    """Bonus when winning side has rook+pawns vs bishop+king.
+
+    Pure R vs B+K (no pawns) is a theoretical draw, so we gate on pawn presence.
+    """
+    if not _is_rook_vs_bishop_king_endgame(board, leading_color):
+        return 0
+    if _material_lead(board, leading_color) < MATERIAL_VALUES[PieceType.PAWN]:
+        return 0
+    enemy_king = _find_king(board, _opponent(leading_color))
+    if enemy_king is None:
+        return 0
+    edge_dist = min(
+        int(enemy_king.row),
+        7 - int(enemy_king.row),
+        int(enemy_king.col),
+        7 - int(enemy_king.col),
+    )
+    return _ROOK_VS_BISHOP_KING_BONUS + (3 - edge_dist) * 5
+
+
+def _rook_bishop_vs_rook_conversion_bonus(board: Board, leading_color: Color) -> int:
+    """Bonus when winning side has rook+bishop vs bare rook."""
+    if not _is_rook_bishop_vs_rook_endgame(board, leading_color):
+        return 0
+    if _material_lead(board, leading_color) < MATERIAL_VALUES[PieceType.PAWN]:
+        return 0
+    enemy_king = _find_king(board, _opponent(leading_color))
+    if enemy_king is None:
+        return 0
+    edge_dist = min(
+        int(enemy_king.row),
+        7 - int(enemy_king.row),
+        int(enemy_king.col),
+        7 - int(enemy_king.col),
+    )
+    return _ROOK_BISHOP_VS_ROOK_BONUS + (3 - edge_dist) * 4
 
 
 def _opponent(color: Color) -> Color:
