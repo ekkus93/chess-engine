@@ -29,6 +29,7 @@ from chess_game.chess.move import Move
 from chess_game.chess.opening_move_ordering import (
     opening_discipline_order_score,
 )
+from chess_game.chess.opening_guidance import opening_guidance_bonus
 from chess_game.chess.opponent_plans import opponent_plan_profile
 from chess_game.chess.passer_race_guidance import (
     passer_race_extension_bonus,
@@ -44,7 +45,12 @@ from chess_game.chess.low_material_coordination_guidance import (
 from chess_game.chess.simple_endgame_guidance import simple_endgame_root_bonus
 from chess_game.chess.threat_awareness import threat_response_root_bonus
 from chess_game.chess.tactical_transition_guidance import tactical_transition_root_bonus
-from chess_game.chess.strategy_utils import is_capture_move, king_coordinates
+from chess_game.chess.strategy_utils import (
+    is_capture_move,
+    king_coordinates,
+    non_king_material_lead,
+    passed_pawns_for_color,
+)
 from chess_game.chess.types import Color, LegalMove, PieceType
 from chess_game.chess.evaluation_tables import MATERIAL_VALUES, STARTING_NON_PAWN_MATERIAL
 
@@ -52,6 +58,8 @@ ROOT_TIEBREAK_MARGIN = 50
 ROOT_TIEBREAK_OVERRIDE = 24
 ROOT_TIEBREAK_MAX_SCORE_GAP = 96
 ROOT_TIEBREAK_WINNING_SCORE = 1000
+_PAWN_STRUCTURE_CHANGE_ROOT_BONUS = 18
+_OPENING_CENTRAL_PAWN_ROOT_BONUS = 14
 
 
 @dataclass(frozen=True)
@@ -255,7 +263,8 @@ def _repetition_penalty(
         abs(progress) // max(policy.progress_threshold, 1),
         1,
     )
-    capped_scale = min(scale, 5)
+    cap = 8 if evaluation >= policy.threshold * 2 else 5
+    capped_scale = min(scale, cap)
     return policy.penalty * capped_scale
 
 
@@ -763,6 +772,7 @@ def _strategic_root_bonus(
         return score + _high_danger_root_bonus(board, move, child_board, moving_color)
     if _is_simple_endgame(board):
         return score
+    score += _pawn_structure_change_root_bonus(board, move, moving_color)
     score += _pawn_structure_root_bonus(board, move, child_board)
     score += _practical_options_bonus(board, child_board, moving_color)
     score += _opening_root_bonus(board, move, moving_kind)
@@ -780,12 +790,47 @@ def _strategic_root_bonus(
     return score
 
 
+def _pawn_structure_change_root_bonus(
+    board: Board,
+    move: Move,
+    moving_color: Color,
+) -> int:
+    if non_king_material_lead(board, moving_color) < MATERIAL_VALUES[PieceType.ROOK]:
+        return 0
+    moving_piece = board.get_piece(move.start)
+    if moving_piece is not None and moving_piece.kind == PieceType.PAWN:
+        own_passers = passed_pawns_for_color(board, moving_color)
+        start_square = (int(move.start.row), int(move.start.col))
+        if start_square in own_passers:
+            return _PAWN_STRUCTURE_CHANGE_ROOT_BONUS
+        return _PAWN_STRUCTURE_CHANGE_ROOT_BONUS // 2
+    if is_capture_move(board, move):
+        return _PAWN_STRUCTURE_CHANGE_ROOT_BONUS
+    return 0
+
+
 def _opening_root_bonus(board: Board, move: Move, moving_kind: PieceType) -> int:
     """Return a root-only tiebreak bonus for better opening discipline."""
 
     if is_capture_move(board, move):
         return 0
-    return opening_discipline_order_score(board, moving_kind, move) * 4
+    score = opening_discipline_order_score(board, moving_kind, move) * 4
+    score += _opening_central_pawn_root_bonus(board, move, moving_kind)
+    return score
+
+
+def _opening_central_pawn_root_bonus(
+    board: Board,
+    move: Move,
+    moving_kind: PieceType,
+) -> int:
+    if moving_kind != PieceType.PAWN:
+        return 0
+    if int(move.start.col) not in {3, 4} or int(move.end.col) not in {3, 4}:
+        return 0
+    if opening_guidance_bonus(board, board.turn, moving_kind, move) == 0:
+        return 0
+    return _OPENING_CENTRAL_PAWN_ROOT_BONUS
 
 
 def _high_danger_root_bonus(

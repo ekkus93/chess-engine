@@ -45,6 +45,8 @@ from chess_game.chess.strategy_utils import (
 )
 from chess_game.chess.types import Color, PieceType
 
+_HEAVY_ENDGAME_KING_ACTIVITY_BONUS_PER_STEP = 4
+
 
 def evaluate_endgame_technique(board: Board, endgame_phase: int) -> int:
     """Return endgame-technique bonuses such as king activity and mating method."""
@@ -52,6 +54,7 @@ def evaluate_endgame_technique(board: Board, endgame_phase: int) -> int:
     if endgame_phase == 0:
         return 0
     score = _active_king_score(board, endgame_phase)
+    score += _heavy_endgame_king_activity_score(board, endgame_phase)
     score += _blockaded_passed_pawn_score(board, endgame_phase)
     score += _mating_material_score(board)
     score += scale_signed(defensive_endgame_evaluation_score(board), endgame_phase)
@@ -98,6 +101,8 @@ def evaluate_progress(board: Board, endgame_phase: int) -> int:
     bonus += _enemy_king_box_score(board, leading_color)
     bonus += _counterplay_reduction_score(board, leading_color)
     bonus += _heavy_piece_activity_score(board, leading_color)
+    bonus += _heavy_endgame_king_activity_bonus(board, leading_color)
+    bonus += _passed_pawn_advancement_progress(board, leading_color)
     bonus += abs(winning_conversion_evaluation_score(board))
     phase_scale = max(40, 40 + endgame_phase)
     return _color_sign(leading_color) * ((bonus * phase_scale) // 100)
@@ -184,6 +189,43 @@ def _active_king_score(board: Board, endgame_phase: int) -> int:
     return scale_signed(score, endgame_phase)
 
 
+def _heavy_endgame_king_activity_score(board: Board, endgame_phase: int) -> int:
+    material_without_kings = _material_without_kings(board)
+    lead = material_without_kings[Color.WHITE] - material_without_kings[Color.BLACK]
+    if lead == 0:
+        return 0
+    leading_color = Color.WHITE if lead > 0 else Color.BLACK
+    bonus = _heavy_endgame_king_activity_bonus(board, leading_color)
+    return _color_sign(leading_color) * ((bonus * endgame_phase) // 100)
+
+
+def _heavy_endgame_king_activity_bonus(board: Board, color: Color) -> int:
+    if _has_queen(board, Color.WHITE) or _has_queen(board, Color.BLACK):
+        return 0
+    if _rook_count(board, Color.WHITE) + _rook_count(board, Color.BLACK) == 0:
+        return 0
+    if _rook_count(board, Color.WHITE) > 1 and _rook_count(board, Color.BLACK) > 1:
+        return 0
+    if _material_lead(board, color) < MATERIAL_VALUES[PieceType.BISHOP]:
+        return 0
+    king_square = _find_king(board, color)
+    if king_square is None:
+        return 0
+    distance = _distance_to_center(int(king_square.row), int(king_square.col))
+    return max(0, 20 - distance * _HEAVY_ENDGAME_KING_ACTIVITY_BONUS_PER_STEP)
+
+
+def _passed_pawn_advancement_progress(board: Board, color: Color) -> int:
+    if _material_lead(board, color) < MATERIAL_VALUES[PieceType.ROOK]:
+        return 0
+    bonus = 0
+    for row, _ in _passed_pawns_for_color(board, color):
+        advancement = (6 - row) if color == Color.WHITE else (row - 1)
+        if advancement > 0:
+            bonus += advancement * 6
+    return bonus
+
+
 def _blockaded_passed_pawn_score(board: Board, endgame_phase: int) -> int:
     pawn_positions = _collect_pawn_positions(board)
     score = 0
@@ -251,6 +293,14 @@ def _basic_mating_endgame(board: Board, color: Color) -> str | None:
 
 def _distance_to_edge(row: int, col: int) -> int:
     return min(row, col, 7 - row, 7 - col)
+
+
+def _distance_to_center(row: int, col: int) -> int:
+    return min(
+        abs(row - center_row) + abs(col - center_col)
+        for center_row in (3, 4)
+        for center_col in (3, 4)
+    )
 
 
 def _heavy_piece_coordination(board: Board, color: Color) -> bool:
@@ -446,6 +496,28 @@ def _has_rook(board: Board, color: Color) -> bool:
         piece.kind == PieceType.ROOK
         for piece, _, _ in iter_color_pieces(board, color)
     )
+
+
+def _rook_count(board: Board, color: Color) -> int:
+    return sum(
+        1
+        for piece, _, _ in iter_color_pieces(board, color)
+        if piece.kind == PieceType.ROOK
+    )
+
+
+def _material_lead(board: Board, color: Color) -> int:
+    own_material = 0
+    enemy_material = 0
+    enemy = _opponent(color)
+    for piece, _, _ in iter_board_pieces(board):
+        if piece.kind == PieceType.KING:
+            continue
+        if piece.color == color:
+            own_material += MATERIAL_VALUES[piece.kind]
+        elif piece.color == enemy:
+            enemy_material += MATERIAL_VALUES[piece.kind]
+    return own_material - enemy_material
 
 
 def _color_sign(color: Color) -> int:

@@ -9,7 +9,7 @@ from chess_game.chess.strategy_utils import (
     heavy_piece_file_support_rows,
     iter_color_pieces,
     king_coordinates,
-    non_king_piece_count_at_most,
+    non_king_piece_kinds,
     opposite_color,
     pawn_path_to_promotion_is_clear,
     pawn_supports_square,
@@ -17,7 +17,7 @@ from chess_game.chess.strategy_utils import (
 )
 from chess_game.chess.types import Color, PieceType
 
-_MAX_NON_KING_PIECES = 5
+_MAX_NON_KING_PIECES = 10
 _EVAL_SCALE = 2
 _ORDER_SCALE = 4
 _ROOT_SCALE = 5
@@ -342,11 +342,17 @@ def _is_relevant_passer_race_evaluation(board: Board) -> bool:
 
 
 def _passes_material_gate(board: Board) -> bool:
-    return non_king_piece_count_at_most(
-        board,
-        _MAX_NON_KING_PIECES,
-        allowed_kinds=_ALLOWED_RACE_KINDS,
+    non_king_kinds = non_king_piece_kinds(board)
+    qualifying_piece_count = sum(
+        1
+        for kind in non_king_kinds
+        if kind in _ALLOWED_RACE_KINDS
     )
+    has_heavy_piece = any(
+        kind in {PieceType.ROOK, PieceType.QUEEN}
+        for kind in non_king_kinds
+    )
+    return has_heavy_piece and qualifying_piece_count <= _MAX_NON_KING_PIECES
 
 
 def _high_priority_push_bonus(board: Board, color: Color, move: Move) -> int:

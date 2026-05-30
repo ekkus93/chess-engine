@@ -28,6 +28,7 @@ QUIET_BISHOP_WING_DRIFT_PENALTY = 16
 QUIET_UNSETTLED_CENTRAL_BREAK_BONUS = 24
 QUIET_KNIGHT_FLANK_LUNGE_PENALTY = 26
 QUIET_MINOR_RETREAT_PENALTY = 20
+QUIET_REPEATED_MINOR_PIECE_PENALTY = 22
 
 
 def opening_discipline_order_score(board: Board, kind: PieceType, move: Move) -> int:
@@ -71,6 +72,8 @@ def _minor_opening_discipline_score(board: Board, kind: PieceType, move: Move) -
         score -= QUIET_KNIGHT_FLANK_LUNGE_PENALTY
     if _is_minor_retreat_before_settling(board, move, undeveloped, unsettled_king):
         score -= QUIET_MINOR_RETREAT_PENALTY
+    if _is_repeated_minor_piece_move(board, kind, move, undeveloped, unsettled_king):
+        score -= QUIET_REPEATED_MINOR_PIECE_PENALTY
     if kind == PieceType.BISHOP and _is_bishop_wing_drift(move, unsettled_king):
         score -= QUIET_BISHOP_WING_DRIFT_PENALTY
     return score
@@ -399,6 +402,25 @@ def _is_minor_retreat_before_settling(
     start_row = int(move.start.row)
     end_row = int(move.end.row)
     return start_row != home_row and end_row == home_row
+
+
+def _is_repeated_minor_piece_move(
+    board: Board,
+    kind: PieceType,
+    move: Move,
+    undeveloped: int,
+    unsettled_king: bool,
+) -> bool:
+    if kind not in {PieceType.KNIGHT, PieceType.BISHOP}:
+        return False
+    if undeveloped < 2 or not unsettled_king:
+        return False
+    if board.get_piece(move.end) is not None:
+        return False
+    home_row = 7 if board.turn == Color.WHITE else 0
+    start_row = int(move.start.row)
+    end_row = int(move.end.row)
+    return home_row not in {start_row, end_row}
 
 
 def _is_unsettled_central_break(board: Board, move: Move, undeveloped: int) -> bool:

@@ -768,3 +768,36 @@ Quality:
 - Closed STRATEGY8 Task 6 by committing/pushing `bec2edb`, keeping the anti-oscillation selective-search changes and repetition-policy regressions in place.
 - Closed STRATEGY8 Task 7 with fresh review artifacts (`tmp/strategy8_task7_balanced_d3d3_20260529T194726Z.txt`, `tmp/strategy8_task7_seeded_from_ply85_20260529T194726Z.txt`, `tmp/strategy8_review.txt`), and added deterministic regressions in `tests/test_ai_strategy8_regressions.py` for opening redeploy penalties, high-danger root tie-break behavior, conversion plan-switch penalties, and stronger endgame theater-switch penalties.
 - Closed STRATEGY8 Task 8 with acceptance artifacts (`tmp/strategy8_task8_acceptance_20260529T200953Z.txt`, `tmp/strategy8_task8_acceptance_review.txt`) and a full green validation gate (`ruff`, `mypy`, `pylint`, full `pytest`, and targeted AI test subset).
+
+## 2026-05-29T21:31:11Z - Claude Sonnet 4.6 - STRATEGY9 TODO created
+
+- Ran depth-3 vs depth-3 self-play game; Black won in 129 moves (too slow).
+- Root causes identified: passer-race gate too tight (5 pieces), no direct passer-push bonus, rook-shuffle repetition not caught, king inactive in rich endgames, White's opening knight tour not penalised.
+- Created docs/STRATEGY9_TODO.md with 7 tasks:
+  - Task 0: Baseline documentation
+  - Task 1: Expand passer-race guidance gate from 5→10 non-king pieces
+  - Task 2: Direct main-passer advance bonus in conversion_guidance.py
+  - Task 3: Strengthen anti-drift/repetition deterrent in winning positions
+  - Task 4: King activation in piece-heavy endgames (no rooks/queen gate bypass)
+  - Task 5: Penalise repeated minor-piece moves in opening (knight tour fix)
+  - Task 6: Lint, tests, self-play validation (target ≤ 90 moves)
+  - Task 7: Commit and push
+- Success criteria: game length ≤ 90 moves, White plays centre pawn in first 5 moves, pylint 10.00/10
+
+## 2026-05-30T06:54:45Z - Claude Sonnet 4.6 - STRATEGY11 TODO created
+
+- Analysed depth-3 vs depth-3 self-play from STRATEGY10 (White wins move 214, `tmp/strategy10_acceptance.txt`).
+- Three root causes identified:
+  1. Black walked into a 5-point tactic at move 71 (was +7, fell to +2), then queens traded at move 79 leaving +1.
+  2. White still played Nc3 on move 1 — STRATEGY10 central-pawn bonus fires too late.
+  3. After move 111, White had R vs B+K but took 90 moves to convert. Black had R+B vs R around moves 100-111 and failed to convert.
+- Created `docs/STRATEGY11_TODO.md` with 7 tasks:
+  - Task 0: Baseline fixtures (move-71/79/111 positions + move-1 probe)
+  - Task 1: Move-1 discipline — `_move1_central_pawn_bonus()` in ai_search_helpers.py
+  - Task 2: Advantage preservation — `_advantage_preservation_quiet_penalty()` in ai_move_ordering.py (fires when ahead ≥ +4)
+  - Task 3: Anti-queen-trade root penalty when ahead ≥ +4 in conversion_guidance.py
+  - Task 4: R vs B+K endgame technique in endgame_evaluation.py
+  - Task 5: R+B vs R coordination in endgame_evaluation.py
+  - Task 6: Lint/test/self-play validation
+  - Task 7: Commit and push
+- Success criteria: White plays e4/d4 move 1, Black holds ≥+4 leads, R vs B+K converts in ≤ 50 moves

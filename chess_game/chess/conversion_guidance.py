@@ -32,6 +32,8 @@ _ORDER_SCALE = 4
 _ROOT_SCALE = 6
 _CHECK_DRIFT_PENALTY = 36
 _KING_ACTIVATION_BONUS = 10
+_PASSER_ADVANCE_BONUS = 30
+_MAIN_PASSER_ROOT_BONUS = 34
 _TRADE_QUALITY_BONUS = 18
 _PASSER_SUPPORT_BONUS = 10
 _PROMOTION_LANE_SUPPORT_BONUS = 12
@@ -148,10 +150,29 @@ def winning_conversion_order_bonus(
         kind,
         scale=1,
     )
+    bonus += _passer_advance_bonus(board, move, context)
     if kind in {PieceType.ROOK, PieceType.QUEEN} and _move_checks_opponent(child_board, color):
         if after <= before:
             bonus -= _CHECK_DRIFT_PENALTY
     return bonus
+
+
+def _passer_advance_bonus(
+    board: Board,
+    move: Move,
+    context: ConversionContext,
+) -> int:
+    if context.main_passer is None:
+        return 0
+    if not context.own.heavy and not context.enemy.heavy:
+        return 0
+    piece = board.get_piece(move.start)
+    if piece is None or piece.kind != PieceType.PAWN:
+        return 0
+    start_square = (int(move.start.row), int(move.start.col))
+    if start_square != context.main_passer:
+        return 0
+    return _PASSER_ADVANCE_BONUS
 
 
 def winning_conversion_root_bonus(
@@ -214,6 +235,7 @@ def _conversion_root_bonus(
     piece = board.get_piece(move.start)
     if piece is None:
         return bonus
+    bonus += _main_passer_root_bonus(board, move, piece.kind, context)
     bonus -= _better_side_plan_switch_penalty(board, piece.kind, move, context)
     return bonus + _low_material_move_bonus(
         LowMaterialMovePlan(
@@ -226,6 +248,25 @@ def _conversion_root_bonus(
         piece.kind,
         scale=2,
     )
+
+
+def _main_passer_root_bonus(
+    board: Board,
+    move: Move,
+    kind: PieceType,
+    context: ConversionContext,
+) -> int:
+    if context.main_passer is None or kind != PieceType.PAWN:
+        return 0
+    if (int(move.start.row), int(move.start.col)) != context.main_passer:
+        return 0
+    start_distance = _promotion_distance(context.color, int(move.start.row))
+    end_distance = _promotion_distance(context.color, int(move.end.row))
+    if end_distance >= start_distance:
+        return 0
+    if board.get_piece(move.start) is None:
+        return 0
+    return _MAIN_PASSER_ROOT_BONUS + (start_distance - end_distance) * 8
 
 
 def _better_side_plan_switch_penalty(
