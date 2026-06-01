@@ -854,3 +854,9 @@ Quality:
 - Reviewed `docs/CHESS_ENGINE_OPENING_BOOK_FINAL_FIX_SPEC.md` and `docs/CHESS_ENGINE_OPENING_BOOK_FINAL_FIX_TODO.md` without implementing changes.
 - Verified current code still matches the spec’s listed outstanding gaps: missing KG Declined `g1f3` and Falkbeer `e4d5` continuations in bundled JSON, permissive candidate guards in `tests/test_opening_book.py`, non-dict JSON coercion to `{}` in `load_opening_book_data()`, and CLI precedence mismatch where `--opening-book` is loaded even when `--no-opening-book` is set.
 - User requested clarification-first workflow for this phase (no code yet), so next step is resolving ambiguities before implementation.
+
+## 2026-06-01T20:42:31Z - GPT-5.3-Codex - replies5 decisions locked
+
+- Read `docs/replies5.md` and captured final decisions for the opening-book final-fix pass.
+- Locked policy decisions: `--no-opening-book` wins over `--opening-book`; Falkbeer continuation `e4d5` is required; required-candidate tests should assert inclusion (not exact set equality).
+- Locked testing/documentation decisions: loader tests should assert `OpeningBookError` plus stable message fragment (e.g., `JSON object`), prefer function-level/monkeypatch CLI tests over subprocess when practical, and mark Task 0 copy-doc subtasks complete because final-fix docs already exist.

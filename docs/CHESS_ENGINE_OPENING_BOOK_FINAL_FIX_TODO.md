@@ -475,7 +475,7 @@ Run:
 python -m json.tool chess_game/chess/data/opening_book.json >/dev/null
 ```
 
-- [ ] Passes.
+- [x] Passes.
 
 ### 8.2 Opening-book tests
 
@@ -485,8 +485,8 @@ Run:
 python -m pytest tests/test_opening_book.py -q --durations=20
 ```
 
-- [ ] Passes.
-- [ ] Record runtime.
+- [x] Passes.
+- [x] Record runtime. (35 passed in 3.09s)
 
 ### 8.3 Rules subset
 
@@ -496,7 +496,7 @@ Run:
 python -m pytest tests/test_board_api.py tests/test_piece_moves.py tests/test_castling.py tests/test_en_passant.py tests/test_promotion.py tests/test_promotion_validation.py tests/test_promotion_move_generation.py tests/test_check_checkmate_stalemate.py tests/test_legal_moves.py -q
 ```
 
-- [ ] Passes.
+- [x] Passes.
 
 ### 8.4 Targeted AI tests
 
@@ -506,7 +506,7 @@ Run:
 python -m pytest tests/test_alpha_beta_pruning.py tests/test_ai_quality.py -q --durations=15
 ```
 
-- [ ] Passes.
+- [x] Passes.
 
 ### 8.5 Fast non-slow suite
 
@@ -516,10 +516,10 @@ Run:
 python -m pytest tests -q -m "not slow" --durations=25
 ```
 
-- [ ] Passes or failure is understood.
-- [ ] Record selected/deselected counts.
-- [ ] Record runtime.
-- [ ] Record slowest tests.
+- [x] Passes.
+- [x] Record selected/deselected counts. (607 selected, 113 deselected)
+- [x] Record runtime. (18.30s)
+- [x] Record slowest tests. (Top: `test_alpha_beta_cutoffs_occurred` 2.06s)
 
 If this command does not complete in a practical time, identify slow non-slow strategy tests and mark appropriate ones `slow`.
 
@@ -533,8 +533,8 @@ Run:
 python -m chess_game.self_play --no-opening-book --opening-book /no/such/file --max-moves 1
 ```
 
-- [ ] Does not fail because of missing custom book path.
-- [ ] Uses opening book disabled behavior.
+- [x] Does not fail because of missing custom book path.
+- [x] Uses opening book disabled behavior.
 
 ---
 
@@ -581,17 +581,17 @@ legal move generation
 
 ### 9.3 Final checklist
 
-- [ ] King's Gambit Declined Classical includes `g1f3`.
-- [ ] Falkbeer includes `e4d5` or omission is documented.
-- [ ] Required candidate tests assert exact moves.
-- [ ] No permissive `if candidates` guard hides required missing moves.
-- [ ] Unknown position returns exactly `None`.
-- [ ] Candidate legality is checked by actual legal move identity.
-- [ ] Non-dict JSON raises `OpeningBookError` in loader/file-path path.
-- [ ] CLI `--no-opening-book` prevents loading invalid custom path.
-- [ ] Documentation matches implementation.
-- [ ] Opening-book tests pass.
-- [ ] Rules subset passes.
-- [ ] Targeted AI tests pass.
-- [ ] Non-slow suite result is captured.
-- [ ] No search/eval/TT behavior changed.
+- [x] King's Gambit Declined Classical includes `g1f3`.
+- [x] Falkbeer includes `e4d5`.
+- [x] Required candidate tests assert exact required moves by inclusion.
+- [x] No permissive `if candidates` guard hides required missing moves.
+- [x] Unknown position returns exactly `None`.
+- [x] Candidate legality is checked by actual legal move identity.
+- [x] Non-dict JSON raises `OpeningBookError` in loader/file-path path.
+- [x] CLI `--no-opening-book` prevents loading invalid custom path.
+- [x] Documentation matches implementation.
+- [x] Opening-book tests pass.
+- [x] Rules subset passes.
+- [x] Targeted AI tests pass.
+- [x] Non-slow suite result is captured.
+- [x] No search/eval/TT behavior changed.
