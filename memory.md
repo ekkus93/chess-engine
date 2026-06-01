@@ -836,3 +836,15 @@ Quality:
 
 - Current AI cleanup focuses on slow-test segregation, hidden depth-5 opening shortcut removal, node-count test correctness, TT root score/move consistency, and pruning-test naming clarity.
 - This pass avoids adding new heuristics or evaluation tuning; it is strictly cleanup and correctness hygiene.
+
+## 2026-06-01T18:59:22Z - GPT-5.3-Codex - Self-play pylint 10/10 restoration
+
+- Fixed `chess_game/self_play.py` structural pylint warnings (`too-many-arguments`) by removing the 6-argument `_pick_self_play_move(...)` wrapper and reducing `run_self_play(...)` to `(depth_white, depth_black, options)`.
+- Preserved behavior by continuing to route move selection through `_MoveSelectionParams` and `_get_best_move_with_timeout(...)`, and by constructing `_SelfPlayOptions` in CLI `main()`.
+- Updated in-repo call sites and tests (`tests/test_alpha_beta_pruning.py`) to pass `_SelfPlayOptions(...)`; validation is green with `pylint chess_game/self_play.py` at 10.00/10, changed-file `ruff`/`mypy` passing, and non-slow pytest passing (`604 passed, 113 deselected`).
+
+## 2026-06-01T19:46:06Z - GPT-5.3-Codex - AI lint warnings eliminated
+
+- Refactored `chess_game/chess/ai.py` `get_best_move()` to remove pylint structural warnings by reducing argument pressure via keyword parsing helper and extracting iterative-deepening loop logic into `_iterative_deepening_best_move(...)`.
+- Kept behavior-compatible keyword support for `stats`, `use_opening_book`, and `opening_book`, including strict error handling for unexpected keywords/types.
+- Final validation is green: full lint stack (`ruff`, `mypy`, `pylint`) passes with `pylint chess_game/` at 10.00/10, and full test suite passes (`717 passed`).

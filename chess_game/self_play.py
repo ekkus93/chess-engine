@@ -14,7 +14,7 @@ from chess_game.chess.board.game_state import record_position, terminal_message
 from chess_game.chess.constants import ConstantSquare
 from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.opening_book import OpeningBook, OpeningBookError
-from chess_game.chess.types import Color, PieceType
+from chess_game.chess.types import Color, LegalMove, PieceType
 
 # Increase recursion limit for deep search
 sys.setrecursionlimit(5000)
@@ -62,7 +62,7 @@ def _move_to_algebraic(
     return base
 
 
-def _get_best_move_with_timeout(params: _MoveSelectionParams) -> object:
+def _get_best_move_with_timeout(params: _MoveSelectionParams) -> Optional[LegalMove]:
     """Run get_best_move with a POSIX alarm-based timeout.
 
     If timeout is None, search runs to completion at the requested depth.
@@ -120,27 +120,6 @@ def _print_terminal_position(message: str, board: Board) -> None:
     board.display()
 
 
-def _pick_self_play_move(
-    board: Board,
-    base_depth: int,
-    *,
-    timeout: Optional[int] = None,
-    position_counts: Optional[dict[str, int]] = None,
-    use_opening_book: bool = True,
-    opening_book: Optional[OpeningBook] = None,
-):
-    """Choose a move at the exact requested depth."""
-    params = _MoveSelectionParams(
-        board=board,
-        depth=base_depth,
-        timeout=timeout,
-        position_counts=position_counts,
-        use_opening_book=use_opening_book,
-        opening_book=opening_book,
-    )
-    return _get_best_move_with_timeout(params)
-
-
 def _print_played_move(board: Board, move_number: int, side: str, best_move) -> None:
     """Print the chosen move and resulting position."""
 
@@ -167,16 +146,17 @@ def _run_self_play_internal(
         options: Configuration options for the game.
     """
 
-    def _pick_move(board: Board, base_depth: int) -> object:
+    def _pick_move(board: Board, base_depth: int) -> Optional[LegalMove]:
         """Helper to pick a move with current game context."""
-        return _pick_self_play_move(
-            board,
-            base_depth,
+        params = _MoveSelectionParams(
+            board=board,
+            depth=base_depth,
             timeout=None,
             position_counts=position_counts,
             use_opening_book=options.use_opening_book,
             opening_book=options.opening_book,
         )
+        return _get_best_move_with_timeout(params)
 
     board = Board()
     if options.verbose:
@@ -217,30 +197,17 @@ def _run_self_play_internal(
 def run_self_play(
     depth_white: int = 2,
     depth_black: int = 2,
-    max_moves: int = 1000,
-    *,
-    verbose: bool = True,
-    use_opening_book: bool = True,
-    opening_book: Optional[OpeningBook] = None,
+    options: Optional[_SelfPlayOptions] = None,
 ) -> None:
     """Run a self-play game with the AI playing both sides.
 
     Args:
         depth_white: Search depth for White.
         depth_black: Search depth for Black.
-        max_moves: Maximum moves before stopping.
-        verbose: If True, print moves and board; else silent.
-        use_opening_book: If True, use the opening book for move selection.
-        opening_book: Optional OpeningBook instance. If None and use_opening_book is True,
-                      the bundled opening book will be used.
+        options: Optional self-play configuration. If omitted, default options are used.
     """
-    options = _SelfPlayOptions(
-        max_moves=max_moves,
-        verbose=verbose,
-        use_opening_book=use_opening_book,
-        opening_book=opening_book,
-    )
-    _run_self_play_internal(depth_white, depth_black, options)
+    effective_options = options or _SelfPlayOptions()
+    _run_self_play_internal(depth_white, depth_black, effective_options)
 
 
 def main():
@@ -296,13 +263,16 @@ def main():
             print(f"Error loading opening book from {args.opening_book}: {exc}", file=sys.stderr)
             sys.exit(1)
 
-    run_self_play(
-        depth_white=args.white_depth,
-        depth_black=args.black_depth,
+    options = _SelfPlayOptions(
         max_moves=args.max_moves,
         verbose=True,
         use_opening_book=not args.no_opening_book,
         opening_book=opening_book,
+    )
+    run_self_play(
+        depth_white=args.white_depth,
+        depth_black=args.black_depth,
+        options=options,
     )
 
 

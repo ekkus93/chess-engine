@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
+from typing import Optional, cast
 
 import sys
 import time
@@ -818,75 +818,54 @@ def _move_order_score(
 
 def _capture_order_score(board: Board, move: Move) -> int:
     """Return capture ordering score using the shared capture-order helper."""
-
     return _shared_capture_order_score(board, move, _make_copy_with_move)
 
 
 def _tt_best_move(board: Board, context: SearchContext) -> Optional[LegalMove]:
     """Return the TT move for the current board if one exists."""
-
     if context.transposition_table is None:
         return None
     entry = context.transposition_table.get(position_key(board))
     return None if entry is None else entry.best_move
 
 
-def get_best_move(
+def _resolve_get_best_move_kwargs(
+    stats: Optional[SearchStats],
+    kwargs: dict[str, object],
+) -> tuple[Optional[SearchStats], bool, Optional[OpeningBook]]:
+    """Parse keyword options for get_best_move()."""
+    stats_obj = kwargs.pop("stats", stats)  # Backward-compatible override
+    use_opening_book_obj = kwargs.pop("use_opening_book", True)
+    opening_book_obj = kwargs.pop("opening_book", None)
+    if kwargs:
+        unknown_key = next(iter(kwargs))
+        raise TypeError(f"get_best_move() got an unexpected keyword argument {unknown_key!r}")
+    if stats_obj is not None and not isinstance(stats_obj, SearchStats):
+        raise TypeError("get_best_move() expected 'stats' to be SearchStats or None")
+    if not isinstance(use_opening_book_obj, bool):
+        raise TypeError("get_best_move() expected 'use_opening_book' to be bool")
+    if opening_book_obj is not None and not isinstance(opening_book_obj, OpeningBook):
+        raise TypeError("get_best_move() expected 'opening_book' to be OpeningBook or None")
+    return (
+        cast(Optional[SearchStats], stats_obj),
+        use_opening_book_obj,
+        cast(Optional[OpeningBook], opening_book_obj),
+    )
+
+
+def _iterative_deepening_best_move(
     board: Board,
     depth: int,
-    stats: Optional[SearchStats] = None,
-    position_counts: Optional[dict[str, int]] = None,
-    *,
-    use_opening_book: bool = True,
-    opening_book: Optional[OpeningBook] = None,
+    is_maximizing: bool,
+    context: SearchContext,
 ) -> Optional[LegalMove]:
-    """Get the best move for the current position at given search depth.
-
-    Args:
-        board: The current board position.
-        depth: Search depth (must be >= 1).
-        stats: Optional SearchStats object for tracking search statistics.
-        position_counts: Optional position occurrence counts for repetition tracking.
-        use_opening_book: Whether to check the opening book before searching (default True).
-        opening_book: Optional OpeningBook instance. If None and use_opening_book is True,
-                      the bundled opening book will be used.
-
-    Returns:
-        The best move found, or None if no legal moves exist.
-    """
-
-    if depth < 1:
-        raise ValueError("depth must be >= 1")
-    legal_moves = get_legal_moves(board)
-    if not legal_moves:
-        return None
-
-    # Check opening book before search if enabled
-    if use_opening_book:
-        book = opening_book or get_bundled_opening_book()
-        book_move = book.find_book_move(board)
-        if book_move is not None:
-            return book_move
-
-    context = SearchContext(
-        transposition_table={},
-        stats=stats,
-        killer_moves=[],
-        position_counts=_search_position_counts(board, position_counts, _shared_position_key),
-    )
     best_move: Optional[LegalMove] = None
     previous_score = 0
-    is_maximizing = board.turn == Color.WHITE
-
     for current_depth in range(1, depth + 1):
         context.last_best_move = best_move
         depth_start = time.monotonic()
         score, move = _search_root_depth(
-            board,
-            current_depth,
-            is_maximizing,
-            previous_score,
-            context,
+            board, current_depth, is_maximizing, previous_score, context
         )
         _record_depth_timing(context, current_depth, time.monotonic() - depth_start)
         if move is None:
@@ -897,9 +876,37 @@ def get_best_move(
     return best_move
 
 
+def get_best_move(
+    board: Board,
+    depth: int,
+    stats: Optional[SearchStats] = None,
+    position_counts: Optional[dict[str, int]] = None,
+    **kwargs: object,
+) -> Optional[LegalMove]:
+    """Get the best move for the current position at the requested depth."""
+    stats, use_opening_book, opening_book = _resolve_get_best_move_kwargs(stats, dict(kwargs))
+    if depth < 1:
+        raise ValueError("depth must be >= 1")
+    legal_moves = get_legal_moves(board)
+    if not legal_moves:
+        return None
+    if use_opening_book:
+        book = opening_book or get_bundled_opening_book()
+        book_move = book.find_book_move(board)
+        if book_move is not None:
+            return book_move
+    context = SearchContext(
+        transposition_table={},
+        stats=stats,
+        killer_moves=[],
+        position_counts=_search_position_counts(board, position_counts, _shared_position_key),
+    )
+    is_maximizing = board.turn == Color.WHITE
+    return _iterative_deepening_best_move(board, depth, is_maximizing, context)
+
+
 def _trim_killer_moves(context: SearchContext) -> None:
     """Keep the killer-move list small and recent."""
-
     if context.killer_moves is not None and len(context.killer_moves) > 4:
         context.killer_moves[:] = context.killer_moves[-4:]
 
@@ -912,7 +919,6 @@ def _search_root_depth(
     context: SearchContext,
 ) -> tuple[int, Optional[LegalMove]]:
     """Search one iterative-deepening layer, rerunning on aspiration failure."""
-
     alpha, beta = _initial_root_window(depth, previous_score, ASPIRATION_WINDOW, INF)
     while True:
         score, move = minimax(

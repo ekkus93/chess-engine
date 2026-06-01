@@ -5,7 +5,7 @@ import time
 import pytest
 
 from chess_game import self_play
-from chess_game.self_play import run_self_play
+from chess_game.self_play import _SelfPlayOptions, run_self_play
 from chess_game.chess.ai import SearchStats, minimax, minimax_no_prune
 from chess_game.chess.board import Board
 from chess_game.chess.types import Color, LegalMove
@@ -117,8 +117,7 @@ def test_self_play_depth_3_terminates():
     run_self_play(
         depth_white=3,
         depth_black=3,
-        max_moves=1,
-        verbose=False,
+        options=_SelfPlayOptions(max_moves=1, verbose=False),
     )
     elapsed = time.monotonic() - start
 
@@ -148,8 +147,7 @@ def test_self_play_honors_requested_depth(monkeypatch):
     run_self_play(
         depth_white=7,
         depth_black=7,
-        max_moves=2,
-        verbose=False,
+        options=_SelfPlayOptions(max_moves=2, verbose=False),
     )
 
     assert requested_depths == [7, 7]
