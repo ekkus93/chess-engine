@@ -2,6 +2,15 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-01T07:41:22Z - GPT-5.3-Codex - STRATEGY13 completion status
+- STRATEGY13 implementation work is complete through Task 7 acceptance artifacts, including `tmp/strategy13_w3b3_game_1_20260601T061236Z.txt`, `tmp/strategy13_w3b3_game_2_20260601T063613Z.txt`, `tmp/strategy13_w3b3_game_3_20260601T070003Z.txt`, and `tmp/strategy13_acceptance_summary.txt`.
+- Final repository gate is green after STRATEGY13 changes: `ruff`, `mypy`, `pylint` (10.00/10), and full pytest (`684 passed`).
+- Acceptance comparison in `tmp/strategy13_acceptance_summary.txt` reports no median game-length reduction vs STRATEGY12 baseline (155) and a longer heuristic conversion span (56 vs 44 baseline), even though anti-drift motifs are reduced in the measured final window.
+
+## 2026-06-01T03:58:43Z - GPT-5.3-Codex - STRATEGY13 planning
+- Added `docs/STRATEGY13_TODO.md`, a new comprehensive task tracker focused on conversion quality and defensive practicality after the full depth-3 self-play game `tmp/selfplay_w3b3_full_20260530T230721Z.txt`.
+- STRATEGY13 priorities are: faster winning-side conversion (especially Black), stronger anti-drift while ahead, better losing-side practical defense (especially White), clearer counterplay/passers prioritization, and earlier phase-transition discipline into endgame plans.
+
 ## 2026-05-30T22:18:02Z - GPT-5.4 - AI test-runtime cleanup
 - Expensive AI regression and benchmark tests were reclassified so `python -m pytest tests -q -m "not slow"` stays practical again.
 - `tests/test_ai_endgame1_regressions.py` and `tests/test_ai_strategy5_regressions.py` now use module-level `pytestmark = pytest.mark.slow`; expensive depth-3/benchmark tests in `tests/test_ai_search.py`, `tests/test_ai_quality.py`, `tests/test_ai_strategy8_regressions.py`, and `tests/test_alpha_beta_pruning.py` were also marked slow.

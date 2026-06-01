@@ -52,6 +52,7 @@ from chess_game.chess.strategy_utils import (
     is_capture_move,
     king_coordinates,
     non_king_material_lead,
+    non_king_piece_kinds,
     passed_pawns_for_color,
 )
 from chess_game.chess.types import Color, LegalMove, PieceType
@@ -816,11 +817,11 @@ def _opening_root_bonus(board: Board, move: Move, moving_kind: PieceType) -> int
 
     if is_capture_move(board, move):
         return 0
+    if len(non_king_piece_kinds(board)) <= 10:
+        return 0
     score = opening_discipline_order_score(board, moving_kind, move) * 4
     score += _opening_central_pawn_root_bonus(board, move, moving_kind)
     return score
-
-
 def _opening_central_pawn_root_bonus(
     board: Board,
     move: Move,
@@ -835,8 +836,6 @@ def _opening_central_pawn_root_bonus(
     if undeveloped_minor_count(board) == 4:
         return _MOVE1_CENTRAL_PAWN_BONUS
     return _OPENING_CENTRAL_PAWN_ROOT_BONUS
-
-
 def _high_danger_root_bonus(
     board: Board,
     move: Move,
@@ -849,8 +848,6 @@ def _high_danger_root_bonus(
     score += threat_response_root_bonus(board, move, child_board, moving_color)
     score += tactical_transition_root_bonus(board, move, child_board, moving_color)
     return score
-
-
 def _pawn_structure_root_bonus(board: Board, move: Move, child_board: Board) -> int:
     moving_piece = board.get_piece(move.start)
     if moving_piece is None or moving_piece.kind != PieceType.PAWN:
@@ -864,8 +861,6 @@ def _pawn_structure_root_bonus(board: Board, move: Move, child_board: Board) -> 
     if delta == 0:
         return 0
     return delta * 8
-
-
 def _practical_options_bonus(board: Board, child_board: Board, moving_color: Color) -> int:
     before_pressure = opponent_plan_profile(board, moving_color).pressure
     after_pressure = opponent_plan_profile(child_board, moving_color).pressure

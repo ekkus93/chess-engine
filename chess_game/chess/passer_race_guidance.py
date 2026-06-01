@@ -9,6 +9,7 @@ from chess_game.chess.strategy_utils import (
     heavy_piece_file_support_rows,
     iter_color_pieces,
     king_coordinates,
+    materially_behind_color,
     non_king_piece_kinds,
     opposite_color,
     pawn_path_to_promotion_is_clear,
@@ -43,6 +44,8 @@ _ACTIVE_ENEMY_HEAVY_PENALTY = 48
 _PROMOTION_RESOLUTION_BONUS = 120
 _CHECK_DISRUPTION_PENALTY = 96
 _EXPLICIT_TEMPO_MARGIN_BONUS = 10
+_LOSING_SIDE_IRRELEVANT_ACTIVITY_PENALTY = 88
+_LOSING_SIDE_BAD_RACE_PENALTY = 180
 _ALLOWED_RACE_KINDS = {PieceType.QUEEN, PieceType.ROOK, PieceType.PAWN}
 
 
@@ -99,6 +102,8 @@ def passer_race_order_bonus(
         and _has_relevant_race_targets(board, color)
     ):
         bonus -= _COSMETIC_CHECK_PENALTY
+    bonus -= _losing_side_urgent_defense_penalty(board, child_board, color, move)
+    bonus -= _losing_side_bad_race_penalty(board, color, kind, move)
     return bonus
 
 
@@ -126,6 +131,9 @@ def passer_race_root_bonus(
         and _has_relevant_race_targets(board, color)
     ):
         bonus -= _COSMETIC_CHECK_PENALTY
+    bonus -= _losing_side_urgent_defense_penalty(board, child_board, color, move)
+    if piece is not None:
+        bonus -= _losing_side_bad_race_penalty(board, color, piece.kind, move)
     return bonus
 
 
@@ -299,6 +307,57 @@ def _has_relevant_race_targets(board: Board, color: Color) -> bool:
         _is_high_priority_passer(board, _opponent(color), pawn, enemy_passers)
         for pawn in enemy_passers
     )
+
+
+def _losing_side_urgent_defense_penalty(
+    board: Board,
+    child_board: Board,
+    color: Color,
+    move: Move,
+) -> int:
+    if materially_behind_color(board) != color:
+        return 0
+    enemy_color = _opponent(color)
+    enemy_passers = passed_pawns_for_color(board, enemy_color)
+    if not enemy_passers:
+        return 0
+    dangerous = max(enemy_passers, key=lambda pawn: _promotion_progress(enemy_color, pawn[0]))
+    if _promotion_progress(enemy_color, dangerous[0]) < 6:
+        return 0
+    start_distance = abs(int(move.start.col) - dangerous[1])
+    end_distance = abs(int(move.end.col) - dangerous[1])
+    if end_distance <= start_distance:
+        return 0
+    if _passer_race_side_score(child_board, color) > _passer_race_side_score(board, color):
+        return 0
+    return _LOSING_SIDE_IRRELEVANT_ACTIVITY_PENALTY
+
+
+def _losing_side_bad_race_penalty(
+    board: Board,
+    color: Color,
+    piece_kind: PieceType,
+    move: Move,
+) -> int:
+    if materially_behind_color(board) != color or piece_kind != PieceType.PAWN:
+        return 0
+    enemy_color = _opponent(color)
+    enemy_passers = passed_pawns_for_color(board, enemy_color)
+    if enemy_passers:
+        dangerous = max(enemy_passers, key=lambda pawn: _promotion_progress(enemy_color, pawn[0]))
+        if (
+            _promotion_progress(enemy_color, dangerous[0]) >= 6
+            and abs(int(move.end.col) - dangerous[1]) >= 2
+        ):
+            return _LOSING_SIDE_BAD_RACE_PENALTY
+    white_tempo, black_tempo = _explicit_pawn_race_tempo(board)
+    if white_tempo is None or black_tempo is None:
+        return 0
+    own_tempo = white_tempo if color == Color.WHITE else black_tempo
+    enemy_tempo = black_tempo if color == Color.WHITE else white_tempo
+    if own_tempo <= enemy_tempo:
+        return 0
+    return _LOSING_SIDE_BAD_RACE_PENALTY
 
 
 def _is_near_promotion_passer_push(board: Board, move: Move, color: Color) -> bool:

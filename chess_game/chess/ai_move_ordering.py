@@ -8,6 +8,7 @@ from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_checkmate, is_in_check
 from chess_game.chess.constants import ConstantSquare
 from chess_game.chess.conversion_guidance import winning_conversion_order_bonus
+from chess_game.chess.anti_drift_guidance import anti_drift_order_bonus
 from chess_game.chess.defensive_containment_guidance import (
     heavy_piece_defense_order_bonus,
 )
@@ -158,6 +159,7 @@ def quiet_strategy_order_score(
         score += low_material_race_order_bonus(board, piece.color, piece.kind, move)
         score += defensive_endgame_order_bonus(board, piece.color, piece.kind, move)
         score += passer_race_order_bonus(board, piece.color, piece.kind, move)
+        score += anti_drift_order_bonus(board, piece.color, piece.kind, move)
         score += pawn_race_move_bonus(board, move, piece.color)
     score += threat_response_order_bonus(board, piece.color, piece.kind, move)
     score += tactical_transition_order_bonus(board, move)

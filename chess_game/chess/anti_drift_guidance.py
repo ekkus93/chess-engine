@@ -3,10 +3,13 @@
 from dataclasses import dataclass
 
 from chess_game.chess.board import Board
+from chess_game.chess.ai_repetition_patterns import move_undoes_last_own_move
+from chess_game.chess.board.game_state import is_in_check
 from chess_game.chess.defensive_priorities import king_danger_index
 from chess_game.chess.move import Move
 from chess_game.chess.strategy_utils import (
     is_advanced_passer,
+    is_capture_move,
     iter_color_pieces,
     king_coordinates,
     materially_ahead_color,
@@ -36,6 +39,8 @@ _QUEEN_DRIFT_PENALTY = 20
 _BISHOP_DRIFT_PENALTY = 16
 _ROOK_DRIFT_PENALTY = 18
 _PAWN_DRIFT_PENALTY = 18
+_WINNING_UNDO_ORDER_PENALTY = 32
+_WINNING_UNDO_ROOT_PENALTY = 72
 
 
 @dataclass(frozen=True)
@@ -61,7 +66,8 @@ def anti_drift_order_bonus(
     context = _drift_context(board, color)
     if context is None:
         return 0
-    return _static_order_bonus(move, kind, context)
+    bonus = _static_order_bonus(move, kind, context)
+    return bonus - _winning_undo_penalty(board, move, context, _WINNING_UNDO_ORDER_PENALTY)
 
 
 def anti_drift_root_bonus(
@@ -83,6 +89,7 @@ def anti_drift_root_bonus(
     bonus = (after - before) * _ROOT_SCALE
     bonus += _trade_or_relief_bonus(board, child_board, context) * 2
     bonus += _static_order_bonus(move, piece.kind, context)
+    bonus -= _winning_root_undo_penalty(board, child_board, move, context)
     return bonus + _drift_adjustment(
         child_board,
         move,
@@ -90,6 +97,36 @@ def anti_drift_root_bonus(
         context,
         after > before,
     )
+
+
+def _winning_undo_penalty(
+    board: Board,
+    move: Move,
+    context: DriftContext,
+    penalty: int,
+) -> int:
+    if context.mode != "won":
+        return 0
+    if move.promotion is not None or is_capture_move(board, move):
+        return 0
+    if not move_undoes_last_own_move(board, move):
+        return 0
+    return penalty
+
+
+def _winning_root_undo_penalty(
+    board: Board,
+    child_board: Board,
+    move: Move,
+    context: DriftContext,
+) -> int:
+    penalty = _winning_undo_penalty(board, move, context, _WINNING_UNDO_ROOT_PENALTY)
+    if penalty == 0:
+        return 0
+    enemy_color = opposite_color(context.color)
+    if is_in_check(child_board, enemy_color):
+        return 0
+    return penalty
 
 
 def _drift_context(board: Board, color: Color) -> DriftContext | None:

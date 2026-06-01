@@ -6,6 +6,8 @@ from dataclasses import dataclass
 
 from chess_game.chess.ai_repetition_patterns import move_undoes_last_own_move
 from chess_game.chess.board import Board
+from chess_game.chess.board.attack_utils import piece_attacks_square
+from chess_game.chess.constants import get_square_constant
 from chess_game.chess.move import Move
 from chess_game.chess.strategy_utils import (
     both_queens_on_board,
@@ -38,6 +40,8 @@ _MOVE_CUTOFF_BONUS = 96
 _ROOT_CUTOFF_BONUS = 120
 _WORSE_SIDE_BAD_SIMPLIFICATION_PENALTY = 220
 _BETTER_SIDE_THEATER_SWITCH_PENALTY = 36
+_WORSE_SIDE_URGENCY_FACTOR = 12
+_CHECKING_RESOURCE_SCORE = 14
 
 
 @dataclass(frozen=True)
@@ -97,6 +101,11 @@ def endgame_choice_root_bonus(
     bonus += _direct_cutoff_bonus(board, child_board, move, context, next_context) * (
         _ROOT_CUTOFF_BONUS // max(_MOVE_CUTOFF_BONUS, 1)
     )
+    if (
+        context.practical_score <= -_PRACTICAL_REPEAT_THRESHOLD
+        and _side_score(child_board, next_context) > _side_score(board, context)
+    ):
+        bonus += _SIMPLIFICATION_SCORE
     bonus -= _theater_switch_penalty(move, context)
     if (
         is_capture_move(board, move)
@@ -152,6 +161,8 @@ def _side_score(board: Board, context: EndgameChoiceContext) -> int:
     score += _passer_support_score(board, context)
     score += _passer_blockade_score(board, context)
     score += _cutoff_score(board, context)
+    score += _defense_urgency_score(context)
+    score += _checking_resource_score(board, context)
     return score
 
 
@@ -277,8 +288,43 @@ def _repeat_adjustment(practical_score: int, board: Board, move: Move) -> int:
     if practical_score >= _PRACTICAL_REPEAT_THRESHOLD:
         return -_BETTER_SIDE_REPEAT_PENALTY
     if practical_score <= -_PRACTICAL_REPEAT_THRESHOLD:
-        return _WORSE_SIDE_REPEAT_BONUS
+        return -_WORSE_SIDE_REPEAT_BONUS
     return 0
+
+
+def _defense_urgency_score(context: EndgameChoiceContext) -> int:
+    if context.practical_score >= 0 or context.enemy_passer is None:
+        return 0
+    if context.own_king is None:
+        return -_WORSE_SIDE_URGENCY_FACTOR
+    enemy_color = opposite_color(context.color)
+    block_square = _block_square(enemy_color, context.enemy_passer)
+    if 0 <= block_square[0] < 8:
+        own_distance = _manhattan_distance(context.own_king, block_square)
+    else:
+        own_distance = _manhattan_distance(context.own_king, context.enemy_passer)
+    enemy_promo_distance = _promotion_distance(enemy_color, context.enemy_passer[0])
+    urgency_penalty = max(0, 7 - enemy_promo_distance) * _WORSE_SIDE_URGENCY_FACTOR
+    king_response_bonus = max(0, 6 - own_distance) * (_WORSE_SIDE_URGENCY_FACTOR // 2)
+    return king_response_bonus - urgency_penalty
+
+
+def _checking_resource_score(board: Board, context: EndgameChoiceContext) -> int:
+    if context.practical_score >= 0 or context.enemy_king is None:
+        return 0
+    enemy_king_constant = _square_tuple_to_constant(*context.enemy_king)
+    score = 0
+    for piece, row, col in iter_color_pieces(board, context.color):
+        if piece.kind not in {PieceType.QUEEN, PieceType.ROOK, PieceType.BISHOP}:
+            continue
+        if piece_attacks_square(
+            piece,
+            get_square_constant(row, col),
+            enemy_king_constant,
+            board,
+        ):
+            score += _CHECKING_RESOURCE_SCORE
+    return min(score, _CHECKING_RESOURCE_SCORE * 2)
 
 
 def _king_move_bonus(
@@ -329,6 +375,10 @@ def _manhattan_distance(first: tuple[int, int], second: tuple[int, int]) -> int:
     return abs(first[0] - second[0]) + abs(first[1] - second[1])
 
 
+def _promotion_distance(color: Color, row: int) -> int:
+    return row if color == Color.WHITE else 7 - row
+
+
 def _same_diagonal(first: tuple[int, int], second: tuple[int, int]) -> bool:
     return abs(first[0] - second[0]) == abs(first[1] - second[1])
 
@@ -340,3 +390,7 @@ def _rook_cuts_enemy_king(
 ) -> bool:
     same_line = rook_square[0] == enemy_king[0] or rook_square[1] == enemy_king[1]
     return same_line and path_clear_between(board, rook_square, enemy_king)
+
+
+def _square_tuple_to_constant(row: int, col: int):
+    return get_square_constant(row, col)

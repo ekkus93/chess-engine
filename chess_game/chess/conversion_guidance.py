@@ -58,6 +58,8 @@ _LOW_MATERIAL_SIDE_PAWN_PENALTY = 18
 _LOW_MATERIAL_PREMATURE_PUSH_PENALTY = 64
 _LOW_MATERIAL_TRADE_BONUS = 240
 _LOW_MATERIAL_CUTOFF_BONUS = 42
+_CONVERSION_DISTANCE_PRESSURE_BONUS = 12
+_TRIVIAL_CONVERSION_TRANSITION_BONUS = 54
 
 
 @dataclass(frozen=True)
@@ -139,7 +141,10 @@ def winning_conversion_order_bonus(
         return 0
     before = _conversion_side_score(board, context)
     after = _conversion_side_score(child_board, child_context)
+    pressure_before = _conversion_distance_pressure_score(board, context)
+    pressure_after = _conversion_distance_pressure_score(child_board, child_context)
     bonus = (after - before) * _ORDER_SCALE
+    bonus += (pressure_after - pressure_before) * (_ORDER_SCALE // 2)
     if kind == PieceType.KING and after > before:
         bonus += _KING_ACTIVATION_BONUS
     bonus += _low_material_move_bonus(
@@ -234,13 +239,22 @@ def _conversion_root_bonus(
         return 0
     before = _conversion_side_score(board, context)
     after = _conversion_side_score(child_board, child_context)
+    pressure_before = _conversion_distance_pressure_score(board, context)
+    pressure_after = _conversion_distance_pressure_score(child_board, child_context)
     bonus = (after - before) * _ROOT_SCALE
+    bonus += (pressure_after - pressure_before) * (_ROOT_SCALE // 2)
     piece = board.get_piece(move.start)
     if piece is None:
         return bonus
     bonus += _main_passer_root_bonus(board, move, piece.kind, context)
     bonus -= _better_side_plan_switch_penalty(board, piece.kind, move, context)
     bonus -= _anti_queen_trade_root_penalty(board, move, piece.kind, context.color)
+    bonus += _trivial_conversion_transition_bonus(
+        board,
+        child_board,
+        context,
+        child_context,
+    )
     return bonus + _low_material_move_bonus(
         LowMaterialMovePlan(
             board=board,
@@ -325,6 +339,40 @@ def _conversion_side_score(board: Board, context: ConversionContext) -> int:
     score += _seventh_rank_pressure_score(context)
     if context.is_low_material_conversion:
         score += _low_material_conversion_score(board, context)
+    return score
+
+
+def _conversion_distance_pressure_score(board: Board, context: ConversionContext) -> int:
+    if context.main_passer is None:
+        return 0
+    pawn_row, pawn_col = context.main_passer
+    promotion_square = (
+        (0, pawn_col) if context.color == Color.WHITE else (7, pawn_col)
+    )
+    block_square = (
+        (pawn_row - 1, pawn_col) if context.color == Color.WHITE else (pawn_row + 1, pawn_col)
+    )
+    score = (8 - _promotion_distance(context.color, pawn_row)) * _CONVERSION_DISTANCE_PRESSURE_BONUS
+    enemy_to_promo = _king_distance(context.enemy.king, promotion_square)
+    own_to_promo = _king_distance(context.own.king, promotion_square)
+    enemy_to_block = (
+        _king_distance(context.enemy.king, block_square)
+        if 0 <= block_square[0] < 8
+        else enemy_to_promo
+    )
+    own_to_block = (
+        _king_distance(context.own.king, block_square)
+        if 0 <= block_square[0] < 8
+        else own_to_promo
+    )
+    score += max(0, enemy_to_promo - own_to_promo) * (_CONVERSION_DISTANCE_PRESSURE_BONUS // 2)
+    score += max(0, enemy_to_block - own_to_block) * (_CONVERSION_DISTANCE_PRESSURE_BONUS // 2)
+    promotion_constant = _square_tuple_to_constant(*promotion_square)
+    for piece, _, _ in iter_color_pieces(board, context.color):
+        if piece.kind not in {PieceType.ROOK, PieceType.QUEEN, PieceType.BISHOP}:
+            continue
+        if piece_attacks_square(piece, piece.square, promotion_constant, board):
+            score += _CONVERSION_DISTANCE_PRESSURE_BONUS
     return score
 
 
@@ -802,6 +850,27 @@ def _low_material_move_bonus(
     ):
         bonus += _LOW_MATERIAL_TRADE_BONUS * scale
     return bonus
+
+
+def _trivial_conversion_transition_bonus(
+    board: Board,
+    child_board: Board,
+    context: ConversionContext,
+    child_context: ConversionContext,
+) -> int:
+    if context.color != child_context.color:
+        return 0
+    if not context.is_heavy_conversion:
+        return 0
+    before_pieces = len(non_king_piece_kinds(board))
+    after_pieces = len(non_king_piece_kinds(child_board))
+    if after_pieces >= before_pieces:
+        return 0
+    if not child_context.is_low_material_conversion:
+        return 0
+    if _material_lead(child_board, context.color) < MATERIAL_VALUES[PieceType.PAWN]:
+        return 0
+    return _TRIVIAL_CONVERSION_TRANSITION_BONUS + (before_pieces - after_pieces) * 8
 
 
 def _king_lead_move_bonus(
