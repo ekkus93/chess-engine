@@ -644,22 +644,33 @@ to make tests faster.
 
 Update `docs/OPENING_BOOK.md` or equivalent with:
 
-- [ ] `side="white"` indexes only White-to-move book moves.
-- [ ] `side="black"` indexes only Black-to-move book moves.
-- [ ] `side="both"` indexes both.
-- [ ] Bundled book errors fail loudly.
-- [ ] Unknown positions fall back to search.
+- [x] `side="white"` indexes only White-to-move book moves.
+- [x] `side="black"` indexes only Black-to-move book moves.
+- [x] `side="both"` indexes both.
+- [x] Bundled book errors fail loudly.
+- [x] Unknown positions fall back to search.
+
+**Added Sections:**
+- Side-Aware Indexing: Details of side field behavior
+- Error Handling: Exceptions and error propagation
+- Unknown Positions and Fallback: Behavior when move not found in book
 
 ### 8.2 Update CLI docs/status
 
 Document either:
 
-- [ ] `--opening-book path` usage, if implemented, or
+- [x] `--opening-book path` usage, if implemented, or
 - [ ] custom book path intentionally deferred.
+
+**Added Sections:**
+- CLI Usage: Examples of self-play with/without book and custom book path
+- Combined Flags: Behavior when multiple flags are specified
 
 ### 8.3 Keep docs concise
 
 Do not paste the full implementation or all test details into README.
+
+- [x] **Verified**: Added concise sections without full implementation details
 
 ---
 

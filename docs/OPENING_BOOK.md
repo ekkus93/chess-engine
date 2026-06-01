@@ -176,3 +176,73 @@ Tests cover:
 - Deterministic selection
 - Integration with `get_best_move()`
 - Content verification (openings, defenses, King's Gambit family)
+
+## Side-Aware Indexing
+
+The `side` field controls which positions index moves from each line:
+
+- **`side="white"`**: Indexes moves only when it's White to move. Black defenses in these lines are skipped.
+- **`side="black"`**: Indexes moves only when it's Black to move. White moves in these lines are applied but not indexed.
+- **`side="both"`**: Indexes all plies in the line, regardless of whose turn it is.
+
+This ensures that Black defense lines don't pollute White's opening book and vice versa.
+
+**Example**:
+- A `side="black"` Sicilian Defense line has moves `["e2e4", "c7c5", ...]`
+  - `e2e4` is applied but NOT indexed (it's White's move)
+  - `c7c5` and subsequent Black moves ARE indexed
+
+## Error Handling
+
+The opening book is strict about correctness:
+
+- **Invalid JSON**: `OpeningBookError` is raised with details
+- **Unsupported format version**: `OpeningBookError` is raised
+- **Unsupported selection policy**: `OpeningBookError` is raised (only `"highest_weight"` is supported)
+- **Illegal moves**: `OpeningBookError` is raised with the invalid move details
+- **Missing or invalid required fields**: `OpeningBookError` is raised with field details
+
+Errors fail loudly and clearly to ensure data integrity. They propagate to the calling layer (typically the CLI) where they can be handled appropriately.
+
+## Unknown Positions and Fallback
+
+When `find_book_move()` is called for a position not in the book:
+
+- `None` is returned
+- The AI falls back to regular minimax search
+- No silent fallback or default move is performed
+
+This ensures the AI always uses the best available move-selection strategy.
+
+## CLI Usage
+
+### Self-Play with Opening Book
+
+By default, self-play uses the bundled opening book:
+
+```bash
+python -m chess_game.self_play --white-depth 3 --black-depth 3
+```
+
+### Disable Opening Book
+
+To run self-play without the opening book:
+
+```bash
+python -m chess_game.self_play --no-opening-book --white-depth 3 --black-depth 3
+```
+
+### Custom Opening Book
+
+To use a custom opening book JSON file:
+
+```bash
+python -m chess_game.self_play --opening-book /path/to/my_book.json --white-depth 3 --black-depth 3
+```
+
+The custom book is loaded at startup. If the file is invalid or contains illegal moves, the error is reported to stderr and the program exits.
+
+### Combined Flags
+
+If both `--opening-book` and `--no-opening-book` are specified, `--no-opening-book` takes precedence (the opening book is disabled).
+
