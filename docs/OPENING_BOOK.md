@@ -139,8 +139,8 @@ The bundled opening book includes:
 - King's Gambit Accepted: Bishop's Gambit
 - King's Gambit Accepted: Classical Defense
 - King's Gambit Accepted: Fischer Defense
-- King's Gambit Declined: Classical
-- King's Gambit Declined: Falkbeer Countergambit
+- King's Gambit Declined: Classical (`e2e4 e7e5 f2f4 f8c5 g1f3`)
+- King's Gambit Declined: Falkbeer Countergambit (`e2e4 e7e5 f2f4 d7d5 e4d5`)
 
 ### Black Defenses (10+)
 - Sicilian Defense
@@ -197,6 +197,7 @@ This ensures that Black defense lines don't pollute White's opening book and vic
 The opening book is strict about correctness:
 
 - **Invalid JSON**: `OpeningBookError` is raised with details
+- **Non-object top-level JSON**: `OpeningBookError` is raised (`opening_book.json` must be a JSON object)
 - **Unsupported format version**: `OpeningBookError` is raised
 - **Unsupported selection policy**: `OpeningBookError` is raised (only `"highest_weight"` is supported)
 - **Illegal moves**: `OpeningBookError` is raised with the invalid move details
@@ -244,5 +245,4 @@ The custom book is loaded at startup. If the file is invalid or contains illegal
 
 ### Combined Flags
 
-If both `--opening-book` and `--no-opening-book` are specified, `--no-opening-book` takes precedence (the opening book is disabled).
-
+If both `--opening-book` and `--no-opening-book` are specified, `--no-opening-book` takes precedence. The custom path is ignored and not loaded.

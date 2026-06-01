@@ -14,13 +14,13 @@ This is not a search-engine patch. Do not change minimax, alpha-beta, TT, evalua
 
 ### 0.1 Copy docs
 
-- [ ] Copy this TODO into:
+- [x] Copy this TODO into:
 
   ```text
   docs/CHESS_ENGINE_OPENING_BOOK_FINAL_FIX_TODO.md
   ```
 
-- [ ] Copy the companion spec into:
+- [x] Copy the companion spec into:
 
   ```text
   docs/CHESS_ENGINE_OPENING_BOOK_FINAL_FIX_SPEC.md
@@ -34,8 +34,8 @@ Run:
 python -m pytest tests/test_opening_book.py -q --durations=20
 ```
 
-- [ ] Record result.
-- [ ] Record runtime.
+- [x] Record result. (33 passed)
+- [x] Record runtime. (2.22s)
 
 ### 0.3 Run JSON syntax check
 
@@ -45,7 +45,7 @@ Run:
 python -m json.tool chess_game/chess/data/opening_book.json >/dev/null
 ```
 
-- [ ] Confirm it passes.
+- [x] Confirm it passes.
 
 ---
 
@@ -89,7 +89,7 @@ e2e4 e7e5 f2f4 f8c5
 
 White to move. `g1f3` must be legal.
 
-- [ ] Confirm bundled book validates after this JSON change.
+- [x] Confirm bundled book validates after this JSON change.
 
 ---
 
@@ -117,7 +117,7 @@ If you choose not to add `e4d5`, update docs with a clear reason.
 
 Preferred outcome:
 
-- [ ] Add `e4d5`.
+- [x] Add `e4d5`.
 
 ---
 
@@ -140,8 +140,8 @@ def apply_moves(board: Board, *moves: str) -> None:
         assert board.make_move(move.start, move.end, move.promotion)
 ```
 
-- [ ] All opening-position tests must use explicit moves.
-- [ ] Do not use first-legal-move setup for specific openings.
+- [x] All opening-position tests use explicit moves.
+- [x] Do not use first-legal-move setup for specific openings.
 
 ### 3.2 Add or verify move-to-text helper
 
@@ -177,7 +177,7 @@ candidate_texts = {move_to_text(c.move) for c in book.candidates_for(board)}
 assert "c7c5" in candidate_texts
 ```
 
-- [ ] Test fails if `c7c5` is absent.
+- [x] Test fails if `c7c5` is absent.
 
 ### 3.4 Strengthen King's Gambit root test
 
@@ -187,7 +187,7 @@ Add or update a test:
 after e2e4 e7e5, candidates include f2f4
 ```
 
-- [ ] Test fails if `f2f4` is absent.
+- [x] Test fails if `f2f4` is absent.
 
 ### 3.5 Strengthen King's Gambit Accepted test
 
@@ -197,7 +197,7 @@ Add or update a test:
 after e2e4 e7e5 f2f4 e5f4, candidates include g1f3
 ```
 
-- [ ] Test fails if `g1f3` is absent.
+- [x] Test fails if `g1f3` is absent.
 
 ### 3.6 Strengthen King's Gambit Declined Classical test
 
@@ -207,8 +207,8 @@ Add or update a test:
 after e2e4 e7e5 f2f4 f8c5, candidates include g1f3
 ```
 
-- [ ] Test fails if `g1f3` is absent.
-- [ ] Remove any `if len(candidates) > 0:` guard from this test.
+- [x] Test fails if `g1f3` is absent.
+- [x] Removed permissive guard from this test.
 
 ### 3.7 Add Falkbeer continuation test
 
@@ -218,7 +218,7 @@ If Task 2 adds `e4d5`, add or update a test:
 after e2e4 e7e5 f2f4 d7d5, candidates include e4d5
 ```
 
-- [ ] Test fails if `e4d5` is absent.
+- [x] Test fails if `e4d5` is absent.
 
 ### 3.8 Remove permissive required-candidate guards
 
@@ -275,7 +275,7 @@ a2a3 h7h6 a3a4 h6h5
 
 or another awkward sequence outside the book.
 
-- [ ] Confirm `find_book_move(board) is None`.
+- [x] Confirm `find_book_move(board) is None`.
 
 ### 4.3 Candidates are legal
 
@@ -293,10 +293,10 @@ end
 promotion
 ```
 
-- [ ] Starting position checked.
-- [ ] After `e2e4` checked.
-- [ ] After `e2e4 e7e5` checked.
-- [ ] After one King's Gambit accepted position checked.
+- [x] Starting position checked.
+- [x] After `e2e4` checked.
+- [x] After `e2e4 e7e5` checked.
+- [x] After one King's Gambit accepted position checked.
 
 ---
 
@@ -362,7 +362,7 @@ with pytest.raises(OpeningBookError):
     load_opening_book_data(path)
 ```
 
-- [ ] Both tests pass.
+- [x] Both tests pass.
 
 ---
 
@@ -420,8 +420,8 @@ python -m chess_game.self_play --no-opening-book --opening-book /no/such/file --
 
 Expected:
 
-- [ ] Does not fail due to missing `/no/such/file`.
-- [ ] Runs with opening book disabled.
+- [x] Does not fail due to missing `/no/such/file`.
+- [x] Runs with opening book disabled.
 
 If there is an existing CLI test helper, use it. If CLI tests are not present, add a minimal subprocess or function-level test.
 
@@ -447,19 +447,19 @@ as needed.
 
 ### 7.1 King's Gambit docs
 
-- [ ] Mention King's Gambit Declined Classical includes `g1f3`.
-- [ ] Mention Falkbeer includes `e4d5` if added.
+- [x] Mention King's Gambit Declined Classical includes `g1f3`.
+- [x] Mention Falkbeer includes `e4d5`.
 
 ### 7.2 Loader behavior docs
 
-- [ ] State that JSON must be a top-level object.
-- [ ] State that non-object JSON raises `OpeningBookError`.
+- [x] State that JSON must be a top-level object.
+- [x] State that non-object JSON raises `OpeningBookError`.
 
 ### 7.3 CLI docs
 
-- [ ] Confirm `--no-opening-book` disables the book.
-- [ ] Confirm `--opening-book PATH` loads a custom JSON book.
-- [ ] Confirm combined flag behavior.
+- [x] Confirm `--no-opening-book` disables the book.
+- [x] Confirm `--opening-book PATH` loads a custom JSON book.
+- [x] Confirm combined flag behavior.
 
 Keep the docs concise.
 

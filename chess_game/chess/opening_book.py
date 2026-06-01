@@ -65,20 +65,24 @@ def load_opening_book_data(path: Optional[Path | str] = None) -> dict:
             book_json = resources.files("chess_game.chess").joinpath("data/opening_book.json")
             with book_json.open("r", encoding="utf-8") as f:
                 data = json.load(f)
-                return data if isinstance(data, dict) else {}
-        except Exception as e:
+        except json.JSONDecodeError as e:
+            raise OpeningBookError(f"Invalid JSON in bundled opening book: {e}") from e
+        except OSError as e:
             raise OpeningBookError(f"Failed to load bundled opening book: {e}") from e
     else:
         # Load from provided file path
+        path_obj = Path(path) if isinstance(path, str) else path
         try:
-            path_obj = Path(path) if isinstance(path, str) else path
-            with open(path_obj, "r", encoding="utf-8") as f:
+            with path_obj.open("r", encoding="utf-8") as f:
                 data = json.load(f)
-                return data if isinstance(data, dict) else {}
         except json.JSONDecodeError as e:
-            raise OpeningBookError(f"Invalid JSON in opening book file {path}: {e}") from e
-        except Exception as e:
-            raise OpeningBookError(f"Failed to load opening book from {path}: {e}") from e
+            raise OpeningBookError(f"Invalid JSON in opening book file {path_obj}: {e}") from e
+        except OSError as e:
+            raise OpeningBookError(f"Failed to load opening book from {path_obj}: {e}") from e
+
+    if not isinstance(data, dict):
+        raise OpeningBookError("Opening book data must be a JSON object")
+    return data
 
 
 def parse_opening_lines(data: Mapping[str, object]) -> list[OpeningLine]:

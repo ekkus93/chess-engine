@@ -118,7 +118,7 @@
       "name": "King's Gambit Declined: Classical",
       "side": "white",
       "eco": "C33",
-      "moves": ["e2e4", "e7e5", "f2f4", "f8c5"],
+      "moves": ["e2e4", "e7e5", "f2f4", "f8c5", "g1f3"],
       "weight": 55,
       "tags": ["white", "open-game", "gambit", "declined"]
     },
@@ -126,7 +126,7 @@
       "name": "King's Gambit Declined: Falkbeer Countergambit",
       "side": "white",
       "eco": "C31",
-      "moves": ["e2e4", "e7e5", "f2f4", "d7d5"],
+      "moves": ["e2e4", "e7e5", "f2f4", "d7d5", "e4d5"],
       "weight": 40,
       "tags": ["white", "open-game", "gambit", "declined"]
     },

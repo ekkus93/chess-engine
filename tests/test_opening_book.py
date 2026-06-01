@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from chess_game.chess.board import Board
+from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.move import parse_move_notation
 from chess_game.chess.opening_book import (
     OpeningBook,
@@ -15,6 +16,7 @@ from chess_game.chess.opening_book import (
     parse_opening_lines,
     load_opening_book_data,
 )
+from chess_game.chess.types import LegalMove
 
 
 def apply_moves(board: Board, *moves: str) -> None:
@@ -23,6 +25,28 @@ def apply_moves(board: Board, *moves: str) -> None:
         move = parse_move_notation(move_text)
         result = board.make_move(move.start, move.end, move.promotion)
         assert result, f"Failed to apply move: {move_text}"
+
+
+def move_to_text(move: LegalMove) -> str:
+    """Convert a legal move to coordinate notation with promotion suffix."""
+    promotion_suffix = ""
+    if move.promotion is not None:
+        promotion_suffix = move.promotion.name.lower()[0]
+    return f"{index_to_algebraic(move.start)}{index_to_algebraic(move.end)}{promotion_suffix}"
+
+
+def _move_identity(move: LegalMove) -> tuple[int, int, object]:
+    """Return move identity as (start, end, promotion)."""
+    return move.start, move.end, move.promotion
+
+
+def _generated_move_identity(move: object) -> tuple[int, int, object]:
+    """Return generated legal move identity from tuple or LegalMove."""
+    if isinstance(move, tuple):
+        return move[0], move[1], move[2]
+    if isinstance(move, LegalMove):
+        return _move_identity(move)
+    raise AssertionError(f"Unexpected legal move type: {type(move).__name__}")
 
 
 class TestOpeningBookLoad:
@@ -193,26 +217,18 @@ class TestOpeningBookLookup:
         book = OpeningBook.bundled()
         board = Board()
         apply_moves(board, "e2e4")
-        
-        # Now check if book has a Black move
-        move = book.find_book_move(board)
-        if move is not None:
-            assert hasattr(move, 'start')
-            assert hasattr(move, 'end')
+
+        candidate_texts = {move_to_text(candidate.move) for candidate in book.candidates_for(board)}
+        assert "c7c5" in candidate_texts
 
     def test_kings_gambit_root_candidates(self):
         """Test King's Gambit root and candidacy."""
         book = OpeningBook.bundled()
         board = Board()
         apply_moves(board, "e2e4", "e7e5")
-        
-        candidates = book.candidates_for(board)
-        # Should have candidates after e2e4 e7e5
-        if len(candidates) > 0:
-            for c in candidates:
-                assert hasattr(c, 'move')
-                assert hasattr(c.move, 'start')
-                assert hasattr(c.move, 'end')
+
+        candidate_texts = {move_to_text(candidate.move) for candidate in book.candidates_for(board)}
+        assert "f2f4" in candidate_texts
 
     def test_candidates_returns_legal_moves_only(self):
         """Test that candidates are valid LegalMove objects."""
@@ -284,49 +300,52 @@ class TestOpeningBookLookup:
         book = OpeningBook.bundled()
         board = Board()
         apply_moves(board, "e2e4", "e7e5", "f2f4", "e5f4")
-        
-        candidates = book.candidates_for(board)
-        # After KG Accepted, should have g1f3 candidate
-        if len(candidates) > 0:
-            assert any(hasattr(c, 'move') for c in candidates)
+
+        candidate_texts = {move_to_text(candidate.move) for candidate in book.candidates_for(board)}
+        assert "g1f3" in candidate_texts
 
     def test_king_gambit_declined_classical_continuation(self):
         """Test King's Gambit Declined Classical continuation."""
         book = OpeningBook.bundled()
         board = Board()
         apply_moves(board, "e2e4", "e7e5", "f2f4", "f8c5")
-        
-        candidates = book.candidates_for(board)
-        # After KG Declined, should have g1f3 candidate
-        if len(candidates) > 0:
-            assert any(hasattr(c, 'move') for c in candidates)
+
+        candidate_texts = {move_to_text(candidate.move) for candidate in book.candidates_for(board)}
+        assert "g1f3" in candidate_texts
+
+    def test_king_gambit_declined_falkbeer_continuation(self):
+        """Test Falkbeer Countergambit continuation includes e4d5."""
+        book = OpeningBook.bundled()
+        board = Board()
+        apply_moves(board, "e2e4", "e7e5", "f2f4", "d7d5")
+
+        candidate_texts = {move_to_text(candidate.move) for candidate in book.candidates_for(board)}
+        assert "e4d5" in candidate_texts
 
     def test_unknown_position_returns_none(self):
         """Test that unknown positions return exactly None, not empty list."""
         book = OpeningBook.bundled()
         board = Board()
-        # Play unusual moves to get outside the book
-        apply_moves(board, "a2a3")
-        apply_moves(board, "a7a6")
-        apply_moves(board, "a3a4")
-        
-        move = book.find_book_move(board)
-        assert move is None, "Unknown position should return None exactly"
+        apply_moves(board, "a2a3", "h7h6", "a3a4", "h6h5")
+        assert book.find_book_move(board) is None
 
     def test_all_candidates_are_legal_moves(self):
         """Test that all candidates are verified legal moves."""
         book = OpeningBook.bundled()
-        board = Board()
-        apply_moves(board, "e2e4", "e7e5")
-        
-        candidates = book.candidates_for(board)
-        legal_moves = board.get_legal_moves()
-        legal_move_identities = {(m[0], m[1], m[2]) for m in legal_moves}
-        
-        for candidate in candidates:
-            candidate_identity = (candidate.move.start, candidate.move.end, candidate.move.promotion)
-            assert candidate_identity in legal_move_identities, \
-                f"Candidate {candidate.name} move {candidate_identity} not legal"
+        sampled_positions = [
+            (),
+            ("e2e4",),
+            ("e2e4", "e7e5"),
+            ("e2e4", "e7e5", "f2f4", "e5f4"),
+        ]
+
+        for sequence in sampled_positions:
+            board = Board()
+            apply_moves(board, *sequence)
+            candidates = book.candidates_for(board)
+            legal_move_identities = {_generated_move_identity(move) for move in board.get_legal_moves()}
+            candidate_move_identities = {_move_identity(candidate.move) for candidate in candidates}
+            assert candidate_move_identities.issubset(legal_move_identities)
 
 
 class TestOpeningBookIntegration:
@@ -404,10 +423,19 @@ class TestOpeningBookContent:
 class TestOpeningBookSchemaValidation:
     """Tests for schema validation and error handling."""
 
-    def test_non_dict_json_raises_error(self):
-        """Test that non-object JSON raises OpeningBookError."""
-        with pytest.raises(OpeningBookError, match="must be a JSON object"):
-            parse_opening_lines([])  # Array instead of object
+    def test_non_dict_json_array_loader_raises_error(self, tmp_path: Path):
+        """Test that array JSON raises OpeningBookError through file loader."""
+        path = tmp_path / "book_array.json"
+        path.write_text("[]", encoding="utf-8")
+        with pytest.raises(OpeningBookError, match="JSON object"):
+            load_opening_book_data(path)
+
+    def test_non_dict_json_string_loader_raises_error(self, tmp_path: Path):
+        """Test that string JSON raises OpeningBookError through from_file."""
+        path = tmp_path / "book_string.json"
+        path.write_text('"not an object"', encoding="utf-8")
+        with pytest.raises(OpeningBookError, match="JSON object"):
+            OpeningBook.from_file(path)
 
     def test_unsupported_selection_value_raises_error(self):
         """Test that unsupported selection value raises error."""

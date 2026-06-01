@@ -256,10 +256,10 @@ def main():
 
     # Handle opening book loading
     opening_book: Optional[OpeningBook] = None
-    if args.opening_book:
+    if not args.no_opening_book and args.opening_book:
         try:
             opening_book = OpeningBook.from_file(args.opening_book)
-        except (FileNotFoundError, OpeningBookError) as exc:
+        except OpeningBookError as exc:
             print(f"Error loading opening book from {args.opening_book}: {exc}", file=sys.stderr)
             sys.exit(1)
 
