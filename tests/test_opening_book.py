@@ -145,7 +145,7 @@ class TestOpeningBookLoad:
                 }
             ],
         }
-        with pytest.raises(OpeningBookError, match="'moves' must be non-empty"):
+        with pytest.raises(OpeningBookError, match="'moves' must be a non-empty list"):
             parse_opening_lines(data)
 
     def test_parse_opening_lines_non_positive_weight(self):

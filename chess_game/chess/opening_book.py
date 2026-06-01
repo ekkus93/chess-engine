@@ -2,7 +2,7 @@
 
 The opening book is loaded from a JSON file and indexed by position key.
 Moves are validated during load to ensure they are legal.
-Lookup is deterministic: highest weight wins, with tie-breaking by line_index, ply_index, and move string.
+Lookup is deterministic: highest weight wins, with line index tie-breaking.
 """
 
 from __future__ import annotations
@@ -14,19 +14,18 @@ from importlib import resources
 from pathlib import Path
 from typing import TYPE_CHECKING, Mapping, Optional
 
+from chess_game.chess.board import Board
 from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.move import parse_move_notation
 from chess_game.chess.position_utils import position_key
 from chess_game.chess.types import LegalMove
 
 if TYPE_CHECKING:
-    from chess_game.chess.board import Board
+    pass
 
 
 class OpeningBookError(ValueError):
     """Error loading or validating opening book."""
-
-    pass
 
 
 @dataclass(frozen=True)
@@ -101,68 +100,88 @@ def parse_opening_lines(data: Mapping[str, object]) -> list[OpeningLine]:
         raise OpeningBookError("'lines' must be non-empty")
 
     opening_lines: list[OpeningLine] = []
-
     for line_index, line_data in enumerate(lines_data):
-        if not isinstance(line_data, dict):
-            raise OpeningBookError(f"Line at index {line_index} must be a JSON object")
-
-        # Validate required fields
-        name = line_data.get("name")
-        if not isinstance(name, str) or not name:
-            raise OpeningBookError(f"Line at index {line_index}: 'name' must be a non-empty string")
-
-        side = line_data.get("side")
-        if side not in ("white", "black", "both"):
-            raise OpeningBookError(
-                f"Line at index {line_index} ({name!r}): 'side' must be 'white', 'black', or 'both', got {side!r}"
-            )
-
-        moves_data = line_data.get("moves")
-        if not isinstance(moves_data, list):
-            raise OpeningBookError(f"Line at index {line_index} ({name!r}): 'moves' must be a list")
-
-        if not moves_data:
-            raise OpeningBookError(f"Line at index {line_index} ({name!r}): 'moves' must be non-empty")
-
-        for move in moves_data:
-            if not isinstance(move, str):
-                raise OpeningBookError(
-                    f"Line at index {line_index} ({name!r}): all moves must be strings, got {type(move).__name__}"
-                )
-
-        weight = line_data.get("weight")
-        if not isinstance(weight, int) or weight <= 0:
-            raise OpeningBookError(
-                f"Line at index {line_index} ({name!r}): 'weight' must be a positive integer, got {weight!r}"
-            )
-
-        # Validate optional fields
-        eco = line_data.get("eco")
-        if eco is not None and not isinstance(eco, str):
-            raise OpeningBookError(f"Line at index {line_index} ({name!r}): 'eco' must be a string or null")
-
-        tags_data = line_data.get("tags", [])
-        if not isinstance(tags_data, list):
-            raise OpeningBookError(f"Line at index {line_index} ({name!r}): 'tags' must be a list")
-
-        for tag in tags_data:
-            if not isinstance(tag, str):
-                raise OpeningBookError(
-                    f"Line at index {line_index} ({name!r}): all tags must be strings, got {type(tag).__name__}"
-                )
-
-        opening_lines.append(
-            OpeningLine(
-                name=name,
-                side=side,
-                eco=eco,
-                moves=tuple(moves_data),
-                weight=weight,
-                tags=tuple(tags_data),
-            )
-        )
+        line = _validate_line(line_index, line_data)
+        opening_lines.append(line)
 
     return opening_lines
+
+
+def _validate_line(line_index: int, line_data: object) -> OpeningLine:
+    """Validate and build a single opening line."""
+    if not isinstance(line_data, dict):
+        raise OpeningBookError(f"Line at index {line_index} must be a JSON object")
+
+    # Validate required fields
+    name = line_data.get("name")
+    if not isinstance(name, str) or not name:
+        raise OpeningBookError(f"Line at index {line_index}: 'name' must be a non-empty string")
+
+    side = line_data.get("side")
+    if side not in ("white", "black", "both"):
+        msg = (
+            f"Line at index {line_index} ({name!r}): 'side' must be "
+            f"'white', 'black', or 'both', got {side!r}"
+        )
+        raise OpeningBookError(msg)
+
+    moves_data = line_data.get("moves")
+    if not isinstance(moves_data, list) or not moves_data:
+        msg = (
+            f"Line at index {line_index} ({name!r}): "
+            "'moves' must be a non-empty list"
+        )
+        raise OpeningBookError(msg)
+
+    for move in moves_data:
+        if not isinstance(move, str):
+            msg = (
+                f"Line at index {line_index} ({name!r}): all moves must be "
+                f"strings, got {type(move).__name__}"
+            )
+            raise OpeningBookError(msg)
+
+    weight = line_data.get("weight")
+    if not isinstance(weight, int) or weight <= 0:
+        msg = (
+            f"Line at index {line_index} ({name!r}): 'weight' must be "
+            f"a positive integer, got {weight!r}"
+        )
+        raise OpeningBookError(msg)
+
+    # Validate optional fields
+    eco = line_data.get("eco")
+    if eco is not None and not isinstance(eco, str):
+        msg = (
+            f"Line at index {line_index} ({name!r}): "
+            "'eco' must be a string or null"
+        )
+        raise OpeningBookError(msg)
+
+    tags_data = line_data.get("tags", [])
+    if not isinstance(tags_data, list):
+        msg = (
+            f"Line at index {line_index} ({name!r}): "
+            "'tags' must be a list"
+        )
+        raise OpeningBookError(msg)
+
+    for tag in tags_data:
+        if not isinstance(tag, str):
+            msg = (
+                f"Line at index {line_index} ({name!r}): all tags must be "
+                f"strings, got {type(tag).__name__}"
+            )
+            raise OpeningBookError(msg)
+
+    return OpeningLine(
+        name=name,
+        side=side,
+        eco=eco,
+        moves=tuple(moves_data),
+        weight=weight,
+        tags=tuple(tags_data),
+    )
 
 
 class OpeningBook:
@@ -212,8 +231,6 @@ class OpeningBook:
         For each line, replay moves from the initial board and index
         BookMove candidates by position key.
         """
-        from chess_game.chess.board import Board
-
         for line_index, line in enumerate(self.lines):
             board = Board()
 
@@ -306,8 +323,6 @@ class OpeningBook:
 
         # Sort by: weight (desc), line_index (asc), ply_index (asc), move string (asc)
         def sort_key(candidate: BookMove) -> tuple:
-            from chess_game.chess.coords import index_to_algebraic
-
             start_alg = index_to_algebraic(candidate.move.start)
             end_alg = index_to_algebraic(candidate.move.end)
             move_str = f"{start_alg}{end_alg}"

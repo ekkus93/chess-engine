@@ -20,8 +20,8 @@ Run:
 python -m pytest tests -q -m "not slow"
 ```
 
-- [ ] Confirm the fast suite passes before changes.
-- [ ] If it does not pass, stop and inspect failures first.
+- [x] Confirm the fast suite passes before changes.
+- [x] If it does not pass, stop and inspect failures first.
 
 ### 0.2 Run rules subset
 
@@ -31,17 +31,17 @@ Run:
 python -m pytest tests/test_board_api.py tests/test_piece_moves.py tests/test_castling.py tests/test_en_passant.py tests/test_promotion.py tests/test_promotion_validation.py tests/test_promotion_move_generation.py tests/test_check_checkmate_stalemate.py tests/test_legal_moves.py -q
 ```
 
-- [ ] Confirm rules baseline passes.
+- [x] Confirm rules baseline passes.
 
 ### 0.3 Add handoff docs
 
-- [ ] Copy the spec into:
+- [x] Copy the spec into:
 
   ```text
   docs/CHESS_ENGINE_OPENING_BOOK_SPEC.md
   ```
 
-- [ ] Copy this TODO into:
+- [x] Copy this TODO into:
 
   ```text
   docs/CHESS_ENGINE_OPENING_BOOK_TODO.md
@@ -53,20 +53,20 @@ python -m pytest tests/test_board_api.py tests/test_piece_moves.py tests/test_ca
 
 ### 1.1 Locate `get_best_move`
 
-- [ ] Inspect:
+- [x] Inspect:
 
   ```text
   chess_game/chess/ai.py
   ```
 
-- [ ] Find the public `get_best_move(...)` signature.
-- [ ] Note existing keyword arguments and tests that call it.
-- [ ] Do not break existing callers.
+- [x] Find the public `get_best_move(...)` signature.
+- [x] Note existing keyword arguments and tests that call it.
+- [x] Do not break existing callers.
 
 ### 1.2 Locate move parser and legal move type
 
-- [ ] Find `parse_move_notation(...)`.
-- [ ] Confirm it supports coordinate notation:
+- [x] Find `parse_move_notation(...)`.
+- [x] Confirm it supports coordinate notation:
 
   ```text
   e2e4
@@ -74,7 +74,7 @@ python -m pytest tests/test_board_api.py tests/test_piece_moves.py tests/test_ca
   e7e8q
   ```
 
-- [ ] Confirm the legal move representation:
+- [x] Confirm the legal move representation:
   - tuple,
   - dataclass,
   - named tuple,
@@ -82,22 +82,22 @@ python -m pytest tests/test_board_api.py tests/test_piece_moves.py tests/test_ca
 
 ### 1.3 Locate position-key helper
 
-- [ ] Search:
+- [x] Search:
 
   ```bash
   grep -R "def _position_key\|def position_key\|def _fen_key" -n chess_game
   ```
 
-- [ ] Prefer reusing the same position-key logic used by the transposition table.
-- [ ] If helper is private but stable, either:
+- [x] Prefer reusing the same position-key logic used by the transposition table.
+- [x] If helper is private but stable, either:
   - import it with minimal churn, or
   - expose a public wrapper.
 
 ### 1.4 Confirm package data approach
 
-- [ ] Inspect `pyproject.toml`.
-- [ ] Confirm how JSON package data should be included.
-- [ ] If needed, add package-data config so `opening_book.json` is included when installed.
+- [x] Inspect `pyproject.toml`.
+- [x] Confirm how JSON package data should be included.
+- [x] If needed, add package-data config so `opening_book.json` is included when installed.
 
 ---
 
@@ -105,17 +105,17 @@ python -m pytest tests/test_board_api.py tests/test_piece_moves.py tests/test_ca
 
 ### 2.1 Create data directory
 
-- [ ] Add:
+- [x] Add:
 
   ```text
   chess_game/chess/data/
   ```
 
-- [ ] Add `__init__.py` only if the repo/package style requires it.
+- [x] Add `__init__.py` only if the repo/package style requires it.
 
 ### 2.2 Create JSON file
 
-- [ ] Add:
+- [x] Add:
 
   ```text
   chess_game/chess/data/opening_book.json
@@ -137,16 +137,16 @@ Use:
 
 Add at least:
 
-- [ ] Italian Game
-- [ ] Ruy Lopez
-- [ ] Queen's Gambit
-- [ ] London System
-- [ ] Scotch Game
-- [ ] King's Gambit
-- [ ] Vienna Game
-- [ ] English Opening
-- [ ] Reti Opening
-- [ ] Catalan Opening
+- [x] Italian Game
+- [x] Ruy Lopez
+- [x] Queen's Gambit
+- [x] London System
+- [x] Scotch Game
+- [x] King's Gambit
+- [x] Vienna Game
+- [x] English Opening
+- [x] Reti Opening
+- [x] Catalan Opening
 
 Use coordinate notation only.
 
@@ -154,27 +154,27 @@ Use coordinate notation only.
 
 Add these additional lines:
 
-- [ ] King's Gambit Accepted: King's Knight Gambit
-- [ ] King's Gambit Accepted: Bishop's Gambit
-- [ ] King's Gambit Accepted: Classical Defense Setup
-- [ ] King's Gambit Accepted: Fischer Defense
-- [ ] King's Gambit Declined: Classical
-- [ ] King's Gambit Declined: Falkbeer Countergambit
+- [x] King's Gambit Accepted: King's Knight Gambit
+- [x] King's Gambit Accepted: Bishop's Gambit
+- [x] King's Gambit Accepted: Classical Defense Setup
+- [x] King's Gambit Accepted: Fischer Defense
+- [x] King's Gambit Declined: Classical
+- [x] King's Gambit Declined: Falkbeer Countergambit
 
 ### 2.6 Add 10 Black defense lines
 
 Add at least:
 
-- [ ] Sicilian Defense
-- [ ] French Defense
-- [ ] Caro-Kann Defense
-- [ ] Open Game
-- [ ] Scandinavian Defense
-- [ ] Pirc Defense
-- [ ] Queen's Gambit Declined
-- [ ] Slav Defense
-- [ ] King's Indian Defense
-- [ ] Nimzo-Indian Defense
+- [x] Sicilian Defense
+- [x] French Defense
+- [x] Caro-Kann Defense
+- [x] Open Game
+- [x] Scandinavian Defense
+- [x] Pirc Defense
+- [x] Queen's Gambit Declined
+- [x] Slav Defense
+- [x] King's Indian Defense
+- [x] Nimzo-Indian Defense
 
 ### 2.7 Validate JSON syntax
 
@@ -184,7 +184,7 @@ Run:
 python -m json.tool chess_game/chess/data/opening_book.json >/dev/null
 ```
 
-- [ ] Confirm valid JSON.
+- [x] Confirm valid JSON.
 
 ---
 
@@ -192,7 +192,7 @@ python -m json.tool chess_game/chess/data/opening_book.json >/dev/null
 
 ### 3.1 Add module
 
-- [ ] Create:
+- [x] Create:
 
   ```text
   chess_game/chess/opening_book.py
@@ -200,7 +200,7 @@ python -m json.tool chess_game/chess/data/opening_book.json >/dev/null
 
 ### 3.2 Add exception
 
-- [ ] Add:
+- [x] Add:
 
   ```python
   class OpeningBookError(ValueError):
@@ -209,7 +209,7 @@ python -m json.tool chess_game/chess/data/opening_book.json >/dev/null
 
 ### 3.3 Add dataclasses
 
-- [ ] Add a parsed line dataclass if useful:
+- [x] Add a parsed line dataclass if useful:
 
   ```python
   @dataclass(frozen=True)
@@ -222,7 +222,7 @@ python -m json.tool chess_game/chess/data/opening_book.json >/dev/null
       tags: tuple[str, ...]
   ```
 
-- [ ] Add a book move dataclass:
+- [x] Add a book move dataclass:
 
   ```python
   @dataclass(frozen=True)
@@ -236,7 +236,7 @@ python -m json.tool chess_game/chess/data/opening_book.json >/dev/null
       tags: tuple[str, ...]
   ```
 
-- [ ] Adapt type annotations to the repo’s actual legal move type.
+- [x] Adapt type annotations to the repo’s actual legal move type.
 
 ### 3.4 Add JSON loader
 
@@ -249,9 +249,9 @@ def load_opening_book_data(path: Path | None = None) -> dict:
 
 Requirements:
 
-- [ ] If `path is None`, load bundled JSON using `importlib.resources`.
-- [ ] If `path` is provided, load from that file.
-- [ ] Raise `OpeningBookError` on invalid JSON/data.
+- [x] If `path is None`, load bundled JSON using `importlib.resources`.
+- [x] If `path` is provided, load from that file.
+- [x] Raise `OpeningBookError` on invalid JSON/data.
 
 ### 3.5 Add parser/validator for raw JSON
 
@@ -264,14 +264,14 @@ def parse_opening_lines(data: Mapping[str, object]) -> list[OpeningLine]:
 
 Validation:
 
-- [ ] `version == 1`.
-- [ ] `lines` exists and is a list.
-- [ ] each line has non-empty `name`.
-- [ ] `side` is `"white"`, `"black"`, or `"both"`.
-- [ ] `moves` is a non-empty list of strings.
-- [ ] `weight` is a positive integer.
-- [ ] `eco` is optional string or null.
-- [ ] `tags` is optional list of strings.
+- [x] `version == 1`.
+- [x] `lines` exists and is a list.
+- [x] each line has non-empty `name`.
+- [x] `side` is `"white"`, `"black"`, or `"both"`.
+- [x] `moves` is a non-empty list of strings.
+- [x] `weight` is a positive integer.
+- [x] `eco` is optional string or null.
+- [x] `tags` is optional list of strings.
 
 ### 3.6 Add opening book class
 
@@ -294,24 +294,24 @@ class OpeningBook:
 
 During construction:
 
-- [ ] For each line, start from `Board()`.
-- [ ] For each move in the line:
-  - [ ] compute `position_key(board)`.
-  - [ ] parse the next move string.
-  - [ ] verify parsed move is legal in current position.
-  - [ ] store a `BookMove` candidate for that current position.
-  - [ ] apply the move to the replay board.
-- [ ] Include `line_index` and `ply_index`.
-- [ ] Preserve promotion identity.
+- [x] For each line, start from `Board()`.
+- [x] For each move in the line:
+  - [x] compute `position_key(board)`.
+  - [x] parse the next move string.
+  - [x] verify parsed move is legal in current position.
+  - [x] store a `BookMove` candidate for that current position.
+  - [x] apply the move to the replay board.
+- [x] Include `line_index` and `ply_index`.
+- [x] Preserve promotion identity.
 
 ### 3.8 Validate moves during replay
 
 For each move:
 
-- [ ] `parse_move_notation(move_text)` must succeed.
-- [ ] The move must appear in legal moves or `board.make_move(...)` must return `True`.
-- [ ] Prefer checking legal moves first so errors are clear.
-- [ ] If illegal, raise `OpeningBookError` with:
+- [x] `parse_move_notation(move_text)` must succeed.
+- [x] The move must appear in legal moves or `board.make_move(...)` must return `True`.
+- [x] Prefer checking legal moves first so errors are clear.
+- [x] If illegal, raise `OpeningBookError` with:
   - line index,
   - line name,
   - ply index,
@@ -322,14 +322,14 @@ For each move:
 
 In `find_book_move(board)`:
 
-- [ ] compute position key.
-- [ ] get candidates.
-- [ ] filter candidates to current legal moves.
-- [ ] compare move identity by:
+- [x] compute position key.
+- [x] get candidates.
+- [x] filter candidates to current legal moves.
+- [x] compare move identity by:
   - start,
   - end,
   - promotion.
-- [ ] return `None` if no legal candidates.
+- [x] return `None` if no legal candidates.
 
 ### 3.10 Deterministic highest-weight selection
 
@@ -342,8 +342,8 @@ lowest ply_index
 coordinate move string
 ```
 
-- [ ] Return the first sorted legal candidate.
-- [ ] Do not add weighted randomness in v1.
+- [x] Return the first sorted legal candidate.
+- [x] Do not add weighted randomness in v1.
 
 ---
 
@@ -367,17 +367,17 @@ def get_best_move(
     ...
 ```
 
-- [ ] Preserve existing parameters.
-- [ ] Keep backward compatibility where possible.
+- [x] Preserve existing parameters.
+- [x] Keep backward compatibility where possible.
 
 ### 4.2 Check book before search
 
 At the top of `get_best_move()` after basic depth validation and terminal/no-legal-move handling as appropriate:
 
-- [ ] If `use_opening_book` is true:
-  - [ ] use provided `opening_book`, or load bundled book.
-  - [ ] call `find_book_move(board)`.
-  - [ ] if book move found, return it.
+- [x] If `use_opening_book` is true:
+  - [x] use provided `opening_book`, or load bundled book.
+  - [x] call `find_book_move(board)`.
+  - [x] if book move found, return it.
 
 ### 4.3 Avoid repeated expensive loading
 
@@ -385,9 +385,9 @@ Do not parse the bundled JSON from disk on every move if avoidable.
 
 Options:
 
-- [ ] module-level cached `OpeningBook.bundled()`,
-- [ ] `functools.lru_cache`,
-- [ ] caller-provided `opening_book`.
+- [x] module-level cached `OpeningBook.bundled()`,
+- [x] `functools.lru_cache`,
+- [x] caller-provided `opening_book`.
 
 Recommended:
 
@@ -401,8 +401,8 @@ def get_bundled_opening_book() -> OpeningBook:
 
 If no book move exists:
 
-- [ ] run existing search unchanged.
-- [ ] do not return `None` unless there are no legal moves or search would return `None`.
+- [x] run existing search unchanged.
+- [x] do not return `None` unless there are no legal moves or search would return `None`.
 
 ### 4.5 Tests can disable book
 
@@ -424,25 +424,25 @@ Do this only if easy and low-risk.
 
 If CLI/self-play uses AI:
 
-- [ ] Add:
+- [x] Add:
 
   ```text
   --no-opening-book
   ```
 
-- [ ] Pass `use_opening_book=False` to `get_best_move()`.
+- [x] Pass `use_opening_book=False` to `get_best_move()`.
 
 ### 5.2 Add custom book path
 
 Optional:
 
-- [ ] Add:
+- [x] Add:
 
   ```text
   --opening-book path/to/opening_book.json
   ```
 
-- [ ] Load custom book and pass it to `get_best_move()`.
+- [x] Load custom book and pass it to `get_best_move()`.
 
 Do not overbuild command-line integration. Engine/API support and tests are more important.
 
@@ -458,54 +458,54 @@ tests/test_opening_book.py
 
 ### 6.1 Bundled book loads
 
-- [ ] `OpeningBook.bundled()` succeeds.
-- [ ] It has at least one indexed position.
+- [x] `OpeningBook.bundled()` succeeds.
+- [x] It has at least one indexed position.
 
 ### 6.2 Bundled lines are legal
 
-- [ ] Test that all bundled lines validate during load.
-- [ ] If load succeeds, this may be implicitly covered.
+- [x] Test that all bundled lines validate during load.
+- [x] If load succeeds, this may be implicitly covered.
 
 ### 6.3 Starting position returns a White book move
 
-- [ ] From `Board()`, `find_book_move(board)` returns a legal White move.
-- [ ] Expected likely move may be `e2e4` or `d2d4` depending weights.
-- [ ] Do not make this brittle unless weights specify exact top move.
+- [x] From `Board()`, `find_book_move(board)` returns a legal White move.
+- [x] Expected likely move may be `e2e4` or `d2d4` depending weights.
+- [x] Do not make this brittle unless weights specify exact top move.
 
 ### 6.4 Black defense after `e2e4`
 
-- [ ] Start from `Board()`.
-- [ ] Apply `e2e4`.
-- [ ] Assert book move for Black is legal.
-- [ ] It may be Sicilian `c7c5` if highest weight.
-- [ ] If exact highest weight is deterministic, assert exact move.
+- [x] Start from `Board()`.
+- [x] Apply `e2e4`.
+- [x] Assert book move for Black is legal.
+- [x] It may be Sicilian `c7c5` if highest weight.
+- [x] If exact highest weight is deterministic, assert exact move.
 
 ### 6.5 King's Gambit root
 
-- [ ] Start from `Board()`.
-- [ ] Apply:
+- [x] Start from `Board()`.
+- [x] Apply:
 
   ```text
   e2e4 e7e5
   ```
 
-- [ ] Assert a White book candidate includes:
+- [x] Assert a White book candidate includes:
 
   ```text
   f2f4
   ```
 
-- [ ] If deterministic highest weight selects another opening at this position, use `candidates_for()` rather than requiring `find_book_move()` to choose King's Gambit.
+- [x] If deterministic highest weight selects another opening at this position, use `candidates_for()` rather than requiring `find_book_move()` to choose King's Gambit.
 
 ### 6.6 King's Gambit Accepted continuation
 
-- [ ] Apply:
+- [x] Apply:
 
   ```text
   e2e4 e7e5 f2f4 e5f4
   ```
 
-- [ ] Assert a White book candidate includes:
+- [x] Assert a White book candidate includes:
 
   ```text
   g1f3
@@ -513,13 +513,13 @@ tests/test_opening_book.py
 
 ### 6.7 King's Gambit Declined continuation
 
-- [ ] Apply:
+- [x] Apply:
 
   ```text
   e2e4 e7e5 f2f4 f8c5
   ```
 
-- [ ] Assert a White book candidate includes:
+- [x] Assert a White book candidate includes:
 
   ```text
   g1f3
@@ -527,7 +527,7 @@ tests/test_opening_book.py
 
 ### 6.8 Illegal line raises clear error
 
-- [ ] Build small in-memory data with illegal move, for example:
+- [x] Build small in-memory data with illegal move, for example:
 
   ```json
   {
@@ -544,52 +544,52 @@ tests/test_opening_book.py
   }
   ```
 
-- [ ] Assert `OpeningBookError`.
+- [x] Assert `OpeningBookError`.
 
 ### 6.9 Unknown position returns `None`
 
-- [ ] Create a position unlikely to be in book.
-- [ ] Assert `find_book_move(board) is None`.
+- [x] Create a position unlikely to be in book.
+- [x] Assert `find_book_move(board) is None`.
 
 ### 6.10 Lookup returns only legal moves
 
-- [ ] For several book positions, assert returned move is in `board.get_legal_moves()`.
+- [x] For several book positions, assert returned move is in `board.get_legal_moves()`.
 
 ### 6.11 Integration: `get_best_move` uses book
 
-- [ ] From starting position:
+- [x] From starting position:
 
   ```python
   move = get_best_move(Board(), depth=1, use_opening_book=True)
   ```
 
-- [ ] Assert the move matches `OpeningBook.bundled().find_book_move(Board())`.
+- [x] Assert the move matches `OpeningBook.bundled().find_book_move(Board())`.
 
 ### 6.12 Integration: disabling book falls back to search
 
-- [ ] Call:
+- [x] Call:
 
   ```python
   get_best_move(board, depth=1, use_opening_book=False)
   ```
 
-- [ ] Assert it returns a legal move.
-- [ ] Do not require it to differ from the book move.
+- [x] Assert it returns a legal move.
+- [x] Do not require it to differ from the book move.
 
 ### 6.13 Deterministic tie-breaking
 
-- [ ] Build tiny in-memory book data with two candidates for same position and same weight.
-- [ ] Assert selection is stable according to line order / tie-break rule.
+- [x] Build tiny in-memory book data with two candidates for same position and same weight.
+- [x] Assert selection is stable according to line order / tie-break rule.
 
 ### 6.14 Invalid schema tests
 
 Add tests for:
 
-- [ ] missing `lines`,
-- [ ] empty moves,
-- [ ] invalid side,
-- [ ] non-positive weight,
-- [ ] non-string move.
+- [x] missing `lines`,
+- [x] empty moves,
+- [x] invalid side,
+- [x] non-positive weight,
+- [x] non-string move.
 
 ---
 
@@ -599,13 +599,13 @@ Add tests for:
 
 Add concise docs explaining:
 
-- [ ] Opening book JSON location.
-- [ ] Coordinate notation format.
-- [ ] How to add a new opening line.
-- [ ] How weights work.
-- [ ] Deterministic highest-weight selection in v1.
-- [ ] Search fallback.
-- [ ] How to disable book if API/CLI supports it.
+- [x] Opening book JSON location.
+- [x] Coordinate notation format.
+- [x] How to add a new opening line.
+- [x] How weights work.
+- [x] Deterministic highest-weight selection in v1.
+- [x] Search fallback.
+- [x] How to disable book if API/CLI supports it.
 
 ### 7.2 Add example line
 
@@ -634,7 +634,7 @@ Run:
 python -m json.tool chess_game/chess/data/opening_book.json >/dev/null
 ```
 
-- [ ] Passes.
+- [x] Passes.
 
 ### 8.2 Opening book tests
 
@@ -644,7 +644,7 @@ Run:
 python -m pytest tests/test_opening_book.py -q
 ```
 
-- [ ] Passes.
+- [x] Passes.
 
 ### 8.3 Fast suite
 
@@ -654,7 +654,7 @@ Run:
 python -m pytest tests -q -m "not slow"
 ```
 
-- [ ] Passes.
+- [x] Passes.
 
 ### 8.4 Rules subset
 
@@ -664,7 +664,7 @@ Run:
 python -m pytest tests/test_board_api.py tests/test_piece_moves.py tests/test_castling.py tests/test_en_passant.py tests/test_promotion.py tests/test_promotion_validation.py tests/test_promotion_move_generation.py tests/test_check_checkmate_stalemate.py tests/test_legal_moves.py -q
 ```
 
-- [ ] Passes.
+- [x] Passes.
 
 ### 8.5 Targeted AI tests
 
@@ -674,7 +674,7 @@ Run:
 python -m pytest tests/test_alpha_beta_pruning.py tests/test_ai_quality.py -q
 ```
 
-- [ ] Passes.
+- [x] Passes.
 
 ---
 
@@ -682,14 +682,14 @@ python -m pytest tests/test_alpha_beta_pruning.py tests/test_ai_quality.py -q
 
 Before finishing, verify:
 
-- [ ] No opening-book logic was added to board evaluation.
-- [ ] No opening-book logic was added to minimax.
-- [ ] No opening-book logic was added to alpha-beta pruning.
-- [ ] No opening-book logic was added to TT.
-- [ ] No new heuristic modules were added for opening preference.
-- [ ] Existing search tests can disable the book with `use_opening_book=False`.
-- [ ] Book moves are validated and legal.
-- [ ] Unknown positions still fall back to search.
+- [x] No opening-book logic was added to board evaluation.
+- [x] No opening-book logic was added to minimax.
+- [x] No opening-book logic was added to alpha-beta pruning.
+- [x] No opening-book logic was added to TT.
+- [x] No new heuristic modules were added for opening preference.
+- [x] Existing search tests can disable the book with `use_opening_book=False`.
+- [x] Book moves are validated and legal.
+- [x] Unknown positions still fall back to search.
 
 ---
 
@@ -697,16 +697,16 @@ Before finishing, verify:
 
 The feature is complete only when:
 
-- [ ] `chess_game/chess/opening_book.py` exists.
-- [ ] `chess_game/chess/data/opening_book.json` exists.
-- [ ] Book contains at least 10 White openings.
-- [ ] Book contains at least 10 Black defenses.
-- [ ] Book includes King's Gambit root and King's Gambit family continuations.
-- [ ] Book lines validate by replaying legal moves.
-- [ ] Book lookup uses position keys.
-- [ ] Book lookup filters to legal moves.
-- [ ] Selection is deterministic highest-weight.
-- [ ] `get_best_move()` checks book before search when enabled.
-- [ ] `get_best_move(..., use_opening_book=False)` bypasses book.
-- [ ] Tests cover load, validation, lookup, King's Gambit, integration, and fallback.
-- [ ] Existing fast test suite passes.
+- [x] `chess_game/chess/opening_book.py` exists.
+- [x] `chess_game/chess/data/opening_book.json` exists.
+- [x] Book contains at least 10 White openings.
+- [x] Book contains at least 10 Black defenses.
+- [x] Book includes King's Gambit root and King's Gambit family continuations.
+- [x] Book lines validate by replaying legal moves.
+- [x] Book lookup uses position keys.
+- [x] Book lookup filters to legal moves.
+- [x] Selection is deterministic highest-weight.
+- [x] `get_best_move()` checks book before search when enabled.
+- [x] `get_best_move(..., use_opening_book=False)` bypasses book.
+- [x] Tests cover load, validation, lookup, King's Gambit, integration, and fallback.
+- [x] Existing fast test suite passes.
