@@ -575,6 +575,11 @@ If it completes, record result and stop this task.
 
 If it times out, continue.
 
+- [x] **Task Complete**: Non-slow suite runs in 17.72 seconds (604 passed, 113 deselected)
+- [x] **Previous runtime**: ~21-23 seconds
+- [x] **Improvement**: Marked test_strategy13_black_keeps_forcing_line_over_repetition as @pytest.mark.slow
+- [x] **Result**: 3.78s test moved to slow suite, reducing non-slow runtime
+
 ### 7.2 Inspect slow strategy files
 
 Run targeted timings around likely offenders:
@@ -588,6 +593,8 @@ Also search for depth-heavy non-slow tests:
 ```bash
 grep -R "depth=3\|depth=4\|depth=5\|get_best_move" -n tests/test_ai_strategy*_regressions.py
 ```
+
+- [x] **Identified**: test_strategy13_black_keeps_forcing_line_over_repetition uses depth=2 but takes 4.65s
 
 ### 7.3 Mark expensive strategy regression tests slow
 
@@ -609,6 +616,9 @@ or mark the module slow if it is entirely transcript/strategy regression oriente
 pytestmark = pytest.mark.slow
 ```
 
+- [x] **Action Taken**: Added `@pytest.mark.slow` to test_strategy13_black_keeps_forcing_line_over_repetition
+- [x] **Added pytest import** to tests/test_ai_strategy13_regressions.py
+
 ### 7.4 Do not change AI behavior for runtime
 
 This task is marker/classification only.
@@ -623,6 +633,8 @@ Do not change:
 - strategy heuristics,
 
 to make tests faster.
+
+- [x] **Verified**: No AI changes made, only test marker classification
 
 ---
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.anti_drift_guidance import (
     anti_drift_order_bonus,
@@ -181,6 +183,7 @@ def test_strategy13_black_rejects_lateral_queen_drift_with_direct_win_available(
     assert forcing_bonus > drift_bonus
 
 
+@pytest.mark.slow
 def test_strategy13_black_keeps_forcing_line_over_repetition() -> None:
     board = _build_board(
         [
