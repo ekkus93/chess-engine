@@ -848,3 +848,9 @@ Quality:
 - Refactored `chess_game/chess/ai.py` `get_best_move()` to remove pylint structural warnings by reducing argument pressure via keyword parsing helper and extracting iterative-deepening loop logic into `_iterative_deepening_best_move(...)`.
 - Kept behavior-compatible keyword support for `stats`, `use_opening_book`, and `opening_book`, including strict error handling for unexpected keywords/types.
 - Final validation is green: full lint stack (`ruff`, `mypy`, `pylint`) passes with `pylint chess_game/` at 10.00/10, and full test suite passes (`717 passed`).
+
+## 2026-06-01T20:25:57Z - GPT-5.3-Codex - Opening-book final-fix review findings
+
+- Reviewed `docs/CHESS_ENGINE_OPENING_BOOK_FINAL_FIX_SPEC.md` and `docs/CHESS_ENGINE_OPENING_BOOK_FINAL_FIX_TODO.md` without implementing changes.
+- Verified current code still matches the spec’s listed outstanding gaps: missing KG Declined `g1f3` and Falkbeer `e4d5` continuations in bundled JSON, permissive candidate guards in `tests/test_opening_book.py`, non-dict JSON coercion to `{}` in `load_opening_book_data()`, and CLI precedence mismatch where `--opening-book` is loaded even when `--no-opening-book` is set.
+- User requested clarification-first workflow for this phase (no code yet), so next step is resolving ambiguities before implementation.
