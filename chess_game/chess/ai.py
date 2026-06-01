@@ -863,14 +863,10 @@ def get_best_move(
 
     # Check opening book before search if enabled
     if use_opening_book:
-        try:
-            book = opening_book or get_bundled_opening_book()
-            book_move = book.find_book_move(board)
-            if book_move is not None:
-                return book_move
-        except Exception:
-            # If book lookup fails, fall back to search
-            pass
+        book = opening_book or get_bundled_opening_book()
+        book_move = book.find_book_move(board)
+        if book_move is not None:
+            return book_move
 
     context = SearchContext(
         transposition_table={},

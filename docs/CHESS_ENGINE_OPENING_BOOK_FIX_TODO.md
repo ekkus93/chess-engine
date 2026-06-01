@@ -375,6 +375,9 @@ or:
 "not an object"
 ```
 
+- [x] Validated in `parse_opening_lines()` - checks `isinstance(data, dict)`
+- [x] Test added: `test_non_dict_json_raises_error`
+
 ### 4.2 Unsupported selection value
 
 Validate:
@@ -398,6 +401,9 @@ Expected:
 ```python
 OpeningBookError
 ```
+
+- [x] Validation added in `parse_opening_lines()` - checks `selection == "highest_weight"`
+- [x] Test added: `test_unsupported_selection_value_raises_error`
 
 ### 4.3 Non-string move
 
@@ -424,17 +430,22 @@ Expected:
 OpeningBookError
 ```
 
+- [x] Validation already in `_validate_move()` - checks `isinstance(move_str, str)`
+- [x] Test added: `test_non_string_move_raises_error`
+
 ### 4.4 Keep existing schema tests passing
 
 Existing tests for:
 
-- [ ] missing `lines`,
-- [ ] empty moves,
-- [ ] invalid side,
-- [ ] non-positive weight,
-- [ ] illegal move,
+- [x] missing `lines`,
+- [x] empty moves,
+- [x] invalid side,
+- [x] non-positive weight,
+- [x] illegal move,
 
 must still pass.
+
+- [x] All existing validation tests pass
 
 ---
 

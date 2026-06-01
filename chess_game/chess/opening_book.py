@@ -18,7 +18,7 @@ from chess_game.chess.board import Board
 from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.move import parse_move_notation
 from chess_game.chess.position_utils import position_key
-from chess_game.chess.types import LegalMove
+from chess_game.chess.types import Color, LegalMove
 
 if TYPE_CHECKING:
     pass
@@ -90,6 +90,13 @@ def parse_opening_lines(data: Mapping[str, object]) -> list[OpeningLine]:
     version = data.get("version")
     if version != 1:
         raise OpeningBookError(f"Expected version 1, got {version}")
+
+    # Validate selection
+    selection = data.get("selection")
+    if selection != "highest_weight":
+        raise OpeningBookError(
+            f"'selection' must be 'highest_weight', got {selection!r}"
+        )
 
     # Validate lines
     lines_data = data.get("lines")
@@ -225,6 +232,16 @@ class OpeningBook:
             return move
         return None, None, None
 
+    def _should_index_line_move(self, line: OpeningLine, board: Board) -> bool:
+        """Check if this line's move should be indexed for current board position."""
+        if line.side == "both":
+            return True
+        if line.side == "white":
+            return board.turn == Color.WHITE
+        if line.side == "black":
+            return board.turn == Color.BLACK
+        return False
+
     def _build_index(self) -> None:
         """Build position index by replaying all opening lines.
 
@@ -270,7 +287,7 @@ class OpeningBook:
                         f"move not in legal moves for position"
                     )
 
-                # Store book move candidate
+                # Store book move candidate only if side matches current position
                 book_move = BookMove(
                     move=legal_move,
                     name=line.name,
@@ -281,10 +298,10 @@ class OpeningBook:
                     tags=line.tags,
                 )
 
-                if pos_key not in self._position_index:
-                    self._position_index[pos_key] = []
-
-                self._position_index[pos_key].append(book_move)
+                if self._should_index_line_move(line, board):
+                    if pos_key not in self._position_index:
+                        self._position_index[pos_key] = []
+                    self._position_index[pos_key].append(book_move)
 
                 # Apply move to replay board
                 board.make_move(legal_move.start, legal_move.end, legal_move.promotion)
@@ -325,7 +342,10 @@ class OpeningBook:
         def sort_key(candidate: BookMove) -> tuple:
             start_alg = index_to_algebraic(candidate.move.start)
             end_alg = index_to_algebraic(candidate.move.end)
-            move_str = f"{start_alg}{end_alg}"
+            promotion_suffix = ""
+            if candidate.move.promotion is not None:
+                promotion_suffix = candidate.move.promotion.name.lower()[0]
+            move_str = f"{start_alg}{end_alg}{promotion_suffix}"
             return (-candidate.weight, candidate.line_index, candidate.ply_index, move_str)
 
         sorted_candidates = sorted(candidates, key=sort_key)

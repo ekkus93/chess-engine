@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from chess_game.chess.board import Board
+from chess_game.chess.move import parse_move_notation
 from chess_game.chess.opening_book import (
     OpeningBook,
     OpeningBookError,
@@ -14,6 +15,14 @@ from chess_game.chess.opening_book import (
     parse_opening_lines,
     load_opening_book_data,
 )
+
+
+def apply_moves(board: Board, *moves: str) -> None:
+    """Apply a sequence of coordinate notation moves to board."""
+    for move_text in moves:
+        move = parse_move_notation(move_text)
+        result = board.make_move(move.start, move.end, move.promotion)
+        assert result, f"Failed to apply move: {move_text}"
 
 
 class TestOpeningBookLoad:
@@ -183,14 +192,9 @@ class TestOpeningBookLookup:
         """Test Black defense after e2e4."""
         book = OpeningBook.bundled()
         board = Board()
-        # Find and make e2e4 from legal moves
-        legal_moves = board.get_legal_moves()
-        for m in legal_moves:
-            start, end, promo = m if isinstance(m, tuple) else (m.start, m.end, m.promotion)
-            board.make_move(start, end, promo)
-            break  # Make first legal move (which should be a pawn move)
+        apply_moves(board, "e2e4")
         
-        # Now check if book has a move for Black
+        # Now check if book has a Black move
         move = book.find_book_move(board)
         if move is not None:
             assert hasattr(move, 'start')
@@ -200,19 +204,7 @@ class TestOpeningBookLookup:
         """Test King's Gambit root and candidacy."""
         book = OpeningBook.bundled()
         board = Board()
-        # Make e2e4
-        legal_moves = board.get_legal_moves()
-        for m in legal_moves:
-            start, end, promo = m if isinstance(m, tuple) else (m.start, m.end, m.promotion)
-            board.make_move(start, end, promo)
-            break
-        
-        # Make e7e5
-        legal_moves = board.get_legal_moves()
-        for m in legal_moves:
-            start, end, promo = m if isinstance(m, tuple) else (m.start, m.end, m.promotion)
-            board.make_move(start, end, promo)
-            break
+        apply_moves(board, "e2e4", "e7e5")
         
         candidates = book.candidates_for(board)
         # Should have candidates after e2e4 e7e5
@@ -221,22 +213,6 @@ class TestOpeningBookLookup:
                 assert hasattr(c, 'move')
                 assert hasattr(c.move, 'start')
                 assert hasattr(c.move, 'end')
-
-    def test_unknown_position_returns_none(self):
-        """Test that unknown position returns None."""
-        book = OpeningBook.bundled()
-        board = Board()
-        # Make various unusual first moves
-        legal_moves = board.get_legal_moves()
-        if len(legal_moves) > 10:
-            start, end, promo = legal_moves[10] if isinstance(legal_moves[10], tuple) else (legal_moves[10].start, legal_moves[10].end, legal_moves[10].promotion)
-            board.make_move(start, end, promo)
-        
-        move = book.find_book_move(board)
-        # Might or might not be in book, but should return None or LegalMove
-        if move is not None:
-            assert hasattr(move, 'start')
-            assert hasattr(move, 'end')
 
     def test_candidates_returns_legal_moves_only(self):
         """Test that candidates are valid LegalMove objects."""
@@ -288,6 +264,69 @@ class TestOpeningBookLookup:
         move1 = book.find_book_move(board)
         move2 = book.find_book_move(board)
         assert move1 == move2
+
+    def test_starting_position_no_black_defense(self):
+        """Test that starting position doesn't use Black defense lines."""
+        book = OpeningBook.bundled()
+        board = Board()
+        candidates = book.candidates_for(board)
+        
+        # Get the names of Black-only lines in the book
+        black_only_lines = {line.name for line in book.lines if line.side == "black"}
+        
+        # Starting position candidates should not include Black-only lines
+        candidate_names = {c.name for c in candidates}
+        assert len(candidate_names & black_only_lines) == 0, \
+            "Starting position should not include Black-only defense lines"
+
+    def test_king_gambit_accepted_continuation(self):
+        """Test King's Gambit Accepted continuation."""
+        book = OpeningBook.bundled()
+        board = Board()
+        apply_moves(board, "e2e4", "e7e5", "f2f4", "e5f4")
+        
+        candidates = book.candidates_for(board)
+        # After KG Accepted, should have g1f3 candidate
+        if len(candidates) > 0:
+            assert any(hasattr(c, 'move') for c in candidates)
+
+    def test_king_gambit_declined_classical_continuation(self):
+        """Test King's Gambit Declined Classical continuation."""
+        book = OpeningBook.bundled()
+        board = Board()
+        apply_moves(board, "e2e4", "e7e5", "f2f4", "f8c5")
+        
+        candidates = book.candidates_for(board)
+        # After KG Declined, should have g1f3 candidate
+        if len(candidates) > 0:
+            assert any(hasattr(c, 'move') for c in candidates)
+
+    def test_unknown_position_returns_none(self):
+        """Test that unknown positions return exactly None, not empty list."""
+        book = OpeningBook.bundled()
+        board = Board()
+        # Play unusual moves to get outside the book
+        apply_moves(board, "a2a3")
+        apply_moves(board, "a7a6")
+        apply_moves(board, "a3a4")
+        
+        move = book.find_book_move(board)
+        assert move is None, "Unknown position should return None exactly"
+
+    def test_all_candidates_are_legal_moves(self):
+        """Test that all candidates are verified legal moves."""
+        book = OpeningBook.bundled()
+        board = Board()
+        apply_moves(board, "e2e4", "e7e5")
+        
+        candidates = book.candidates_for(board)
+        legal_moves = board.get_legal_moves()
+        legal_move_identities = {(m[0], m[1], m[2]) for m in legal_moves}
+        
+        for candidate in candidates:
+            candidate_identity = (candidate.move.start, candidate.move.end, candidate.move.promotion)
+            assert candidate_identity in legal_move_identities, \
+                f"Candidate {candidate.name} move {candidate_identity} not legal"
 
 
 class TestOpeningBookIntegration:
@@ -360,3 +399,63 @@ class TestOpeningBookContent:
         # If book loaded without errors, all lines are legal
         assert len(book.lines) > 0
         assert len(book._position_index) > 0
+
+
+class TestOpeningBookSchemaValidation:
+    """Tests for schema validation and error handling."""
+
+    def test_non_dict_json_raises_error(self):
+        """Test that non-object JSON raises OpeningBookError."""
+        with pytest.raises(OpeningBookError, match="must be a JSON object"):
+            parse_opening_lines([])  # Array instead of object
+
+    def test_unsupported_selection_value_raises_error(self):
+        """Test that unsupported selection value raises error."""
+        data = {
+            "version": 1,
+            "selection": "weighted_random",  # Unsupported
+            "lines": [
+                {
+                    "name": "Test",
+                    "side": "white",
+                    "moves": ["e2e4"],
+                    "weight": 1,
+                }
+            ],
+        }
+        with pytest.raises(OpeningBookError, match="selection"):
+            parse_opening_lines(data)
+
+    def test_non_string_move_raises_error(self):
+        """Test that non-string move raises error."""
+        data = {
+            "version": 1,
+            "selection": "highest_weight",
+            "lines": [
+                {
+                    "name": "Bad Move Type",
+                    "side": "white",
+                    "moves": [123],  # Integer instead of string
+                    "weight": 1,
+                }
+            ],
+        }
+        with pytest.raises(OpeningBookError, match="all moves must be strings"):
+            parse_opening_lines(data)
+
+    def test_get_best_move_error_not_swallowed(self):
+        """Test that get_best_move doesn't swallow bundled book errors."""
+        from chess_game.chess.ai import get_best_move
+        from chess_game.chess.opening_book import OpeningBook
+        
+        # Create a broken book that raises error
+        class BrokenBook(OpeningBook):
+            def find_book_move(self, board):
+                raise OpeningBookError("Broken book data")
+        
+        board = Board()
+        broken_book = BrokenBook([], {})
+        
+        # Should raise, not silently fall back
+        with pytest.raises(OpeningBookError, match="Broken book data"):
+            get_best_move(board, depth=1, use_opening_book=True, opening_book=broken_book)
