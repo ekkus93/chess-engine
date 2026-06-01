@@ -2,6 +2,10 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-01T23:24:15Z - GPT-5.4 mini - AI test-runtime hygiene
+- `get_best_move()` now uses `book_options: Optional[BestMoveOptions]` for opening-book control instead of `**kwargs`.
+- The repo no longer forces global `pytest -v`; slow AI regressions are marked with `pytest.mark.slow`, and generated `tmp/` artifacts are removed/ignored.
+
 ## 2026-06-01T07:41:22Z - GPT-5.3-Codex - STRATEGY13 completion status
 - STRATEGY13 implementation work is complete through Task 7 acceptance artifacts, including `tmp/strategy13_w3b3_game_1_20260601T061236Z.txt`, `tmp/strategy13_w3b3_game_2_20260601T063613Z.txt`, `tmp/strategy13_w3b3_game_3_20260601T070003Z.txt`, and `tmp/strategy13_acceptance_summary.txt`.
 - Final repository gate is green after STRATEGY13 changes: `ruff`, `mypy`, `pylint` (10.00/10), and full pytest (`684 passed`).

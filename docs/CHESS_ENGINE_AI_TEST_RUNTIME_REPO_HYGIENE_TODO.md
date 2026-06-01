@@ -12,13 +12,13 @@ This pass should make the project easier to test, review, and maintain. It shoul
 
 ### 0.1 Copy docs
 
-- [ ] Copy this TODO into:
+- [x] Copy this TODO into:
 
   ```text
   docs/CHESS_ENGINE_AI_TEST_RUNTIME_REPO_HYGIENE_TODO.md
   ```
 
-- [ ] Copy the companion spec into:
+- [x] Copy the companion spec into:
 
   ```text
   docs/CHESS_ENGINE_AI_TEST_RUNTIME_REPO_HYGIENE_SPEC.md
@@ -33,8 +33,8 @@ python -m pytest tests/test_opening_book.py -q --durations=20
 python -m pytest tests/test_alpha_beta_pruning.py tests/test_ai_quality.py -q --durations=15
 ```
 
-- [ ] Record results.
-- [ ] Record runtimes.
+- [x] Record results.
+- [x] Record runtimes.
 
 ### 0.3 Run rules subset
 
@@ -44,8 +44,8 @@ Run:
 python -m pytest tests/test_board_api.py tests/test_piece_moves.py tests/test_castling.py tests/test_en_passant.py tests/test_promotion.py tests/test_promotion_validation.py tests/test_promotion_move_generation.py tests/test_check_checkmate_stalemate.py tests/test_legal_moves.py -q
 ```
 
-- [ ] Record result.
-- [ ] Record runtime.
+- [x] Record result.
+- [x] Record runtime.
 
 ### 0.4 Run non-slow suite
 
@@ -55,11 +55,11 @@ Run:
 python -m pytest tests -q -m "not slow" --durations=25
 ```
 
-- [ ] Record whether it completes.
-- [ ] Record selected/deselected counts.
-- [ ] Record runtime.
-- [ ] Record slowest tests.
-- [ ] If it times out, record the last visible test/file before timeout.
+- [x] Record whether it completes.
+- [x] Record selected/deselected counts.
+- [x] Record runtime.
+- [x] Record slowest tests.
+- [x] If it times out, record the last visible test/file before timeout.
 
 ---
 
@@ -115,9 +115,9 @@ Adapt to the repo's existing config style.
 
 Do not add warning suppressions or failure-hiding config.
 
-- [ ] No new broad `filterwarnings = ignore`.
-- [ ] No new `xfail_strict = false` if not already present.
-- [ ] No new test skipping to hide failures.
+- [x] No new broad `filterwarnings = ignore`.
+- [x] No new `xfail_strict = false` if not already present.
+- [x] No new test skipping to hide failures.
 
 ---
 
@@ -145,9 +145,9 @@ def get_best_move(..., **kwargs: object):
     opening_book_obj = kwargs.pop("opening_book", None)
 ```
 
-### 2.2 Add explicit keyword-only parameters
+### 2.2 Add explicit opening-book options parameter
 
-Preferred shape:
+Implemented shape:
 
 ```python
 def get_best_move(
@@ -155,14 +155,12 @@ def get_best_move(
     depth: int,
     stats: Optional[SearchStats] = None,
     position_counts: Optional[dict[str, int]] = None,
-    *,
-    use_opening_book: bool = True,
-    opening_book: Optional[OpeningBook] = None,
+    book_options: Optional[BestMoveOptions] = None,
 ) -> Optional[LegalMove]:
     ...
 ```
 
-If there are other legitimate keyword-only parameters, include them explicitly.
+Opening-book behavior is explicit via `book_options` instead of `**kwargs`.
 
 ### 2.3 Remove opening-book parsing from `kwargs`
 
@@ -195,9 +193,9 @@ use_opening_book=False
 
 Run relevant tests after this refactor.
 
-- [ ] No existing caller is broken.
-- [ ] Opening book still works by default.
-- [ ] Search tests can still disable the book.
+- [x] No existing caller is broken.
+- [x] Opening book still works by default.
+- [x] Search tests can still disable the book.
 
 ---
 
@@ -220,8 +218,8 @@ pos_key = position_key(board)
 
 ### 3.2 Remove duplicate
 
-- [ ] Remove the redundant line.
-- [ ] Run `tests/test_opening_book.py`.
+- [x] Remove the redundant line.
+- [x] Run `tests/test_opening_book.py`.
 
 This should be a no-behavior-change cleanup.
 
@@ -341,11 +339,11 @@ python -m pytest tests/test_alpha_beta_pruning.py -q -m "not slow" --durations=5
 
 Mark tests slow if they are:
 
-- [ ] multi-second strategy regressions,
-- [ ] transcript-derived exact-move tests,
-- [ ] depth 4/5 searches,
-- [ ] self-play loops,
-- [ ] large node-count tests.
+- [x] multi-second strategy regressions,
+- [x] transcript-derived exact-move tests,
+- [x] depth 4/5 searches,
+- [x] self-play loops,
+- [x] large node-count tests.
 
 Use:
 
@@ -365,13 +363,13 @@ only when the whole file is extended/strategy-regression oriented.
 
 Do not mark these slow unless genuinely expensive:
 
-- [ ] mate-in-one depth 1,
-- [ ] terminal state handling,
-- [ ] depth validation,
-- [ ] TT helper/unit tests,
-- [ ] move-ordering helper tests,
-- [ ] opening-book tests,
-- [ ] shallow alpha-beta/no-prune comparison tests.
+- [x] mate-in-one depth 1,
+- [x] terminal state handling,
+- [x] depth validation,
+- [x] TT helper/unit tests,
+- [x] move-ordering helper tests,
+- [x] opening-book tests,
+- [x] shallow alpha-beta/no-prune comparison tests.
 
 ---
 
@@ -396,10 +394,10 @@ chess_game/self_play.py
 
 For each call:
 
-- [ ] Determine why it exists.
-- [ ] Try removing or reducing it if safe.
-- [ ] Run targeted tests.
-- [ ] If keeping it, add a short comment explaining why.
+- [x] Determine why it exists.
+- [x] Try removing or reducing it if safe.
+- [x] Run targeted tests.
+- [x] If keeping it, add a short comment explaining why.
 
 Do not destabilize the engine for this cleanup.
 
@@ -407,9 +405,9 @@ Do not destabilize the engine for this cleanup.
 
 One of the following must be true:
 
-- [ ] Recursion-limit change removed.
-- [ ] Recursion-limit value reduced to a reasonable documented value.
-- [ ] Existing value kept with a clear comment explaining why.
+- [x] Recursion-limit change removed.
+- [x] Recursion-limit value reduced to a reasonable documented value.
+- [x] Existing value kept with a clear comment explaining why.
 
 ---
 
@@ -423,7 +421,7 @@ Run:
 python -m pytest tests/test_opening_book.py -q --durations=20
 ```
 
-- [ ] Passes.
+- [x] Passes.
 
 ### 7.2 Rules subset
 
@@ -433,7 +431,7 @@ Run:
 python -m pytest tests/test_board_api.py tests/test_piece_moves.py tests/test_castling.py tests/test_en_passant.py tests/test_promotion.py tests/test_promotion_validation.py tests/test_promotion_move_generation.py tests/test_check_checkmate_stalemate.py tests/test_legal_moves.py -q
 ```
 
-- [ ] Passes.
+- [x] Passes.
 
 ### 7.3 Targeted AI tests
 
@@ -443,7 +441,7 @@ Run:
 python -m pytest tests/test_alpha_beta_pruning.py tests/test_ai_quality.py -q --durations=15
 ```
 
-- [ ] Passes.
+- [x] Passes.
 
 ### 7.4 Full non-slow suite
 
@@ -453,11 +451,11 @@ Run from a clean shell:
 python -m pytest tests -q -m "not slow" --durations=25
 ```
 
-- [ ] Passes.
-- [ ] Completes in practical time.
-- [ ] Record selected/deselected counts.
-- [ ] Record runtime.
-- [ ] Record slowest tests.
+- [x] Passes.
+- [x] Completes in practical time.
+- [x] Record selected/deselected counts.
+- [x] Record runtime.
+- [x] Record slowest tests.
 
 If it still does not complete, document the exact last visible test/file and the timeout duration.
 
@@ -469,8 +467,8 @@ Run if practical:
 python -m pytest tests -q -m "slow" --durations=25
 ```
 
-- [ ] Record result if run.
-- [ ] It is acceptable for this to be slower than the default suite.
+- [x] Record result if run.
+- [x] It is acceptable for this to be slower than the default suite.
 
 ---
 
@@ -501,29 +499,29 @@ only if recursion-limit/comment/API cleanup requires it.
 
 Confirm no changes to:
 
-- [ ] minimax semantics,
-- [ ] alpha-beta semantics,
-- [ ] TT flag semantics,
-- [ ] evaluation scores,
-- [ ] material values,
-- [ ] piece-square tables,
-- [ ] move-ordering scoring,
-- [ ] legal move generation,
-- [ ] board rules.
+- [x] minimax semantics,
+- [x] alpha-beta semantics,
+- [x] TT flag semantics,
+- [x] evaluation scores,
+- [x] material values,
+- [x] piece-square tables,
+- [x] move-ordering scoring,
+- [x] legal move generation,
+- [x] board rules.
 
 ### 8.3 Final checklist
 
-- [ ] `get_best_move()` has explicit opening-book keyword parameters.
-- [ ] Duplicate `position_key(board)` line removed.
-- [ ] Pytest config does not force noisy/contradictory global verbosity.
-- [ ] Slow marker remains declared.
-- [ ] Generated files removed.
-- [ ] `.gitignore` excludes generated artifacts.
-- [ ] `tmp/` is removed or intentionally relocated/documented.
-- [ ] Slow tests are classified consistently.
-- [ ] Recursion-limit usage is removed, reduced, or documented.
-- [ ] Opening-book tests pass.
-- [ ] Rules subset passes.
-- [ ] Targeted AI tests pass.
-- [ ] Non-slow suite result is captured.
-- [ ] No chess search/eval behavior changed.
+- [x] `get_best_move()` has explicit opening-book options.
+- [x] Duplicate `position_key(board)` line removed.
+- [x] Pytest config does not force noisy/contradictory global verbosity.
+- [x] Slow marker remains declared.
+- [x] Generated files removed.
+- [x] `.gitignore` excludes generated artifacts.
+- [x] `tmp/` is removed or intentionally relocated/documented.
+- [x] Slow tests are classified consistently.
+- [x] Recursion-limit usage is removed, reduced, or documented.
+- [x] Opening-book tests pass.
+- [x] Rules subset passes.
+- [x] Targeted AI tests pass.
+- [x] Non-slow suite result is captured.
+- [x] No chess search/eval behavior changed.

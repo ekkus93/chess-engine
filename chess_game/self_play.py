@@ -8,17 +8,13 @@ import sys
 from dataclasses import dataclass
 from typing import Optional
 
-from chess_game.chess.ai import get_best_move
+from chess_game.chess.ai import BestMoveOptions, get_best_move
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import record_position, terminal_message
 from chess_game.chess.constants import ConstantSquare
 from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.opening_book import OpeningBook, OpeningBookError
 from chess_game.chess.types import Color, LegalMove, PieceType
-
-# Increase recursion limit for deep search
-sys.setrecursionlimit(5000)
-
 
 @dataclass
 class _MoveSelectionParams:
@@ -73,8 +69,10 @@ def _get_best_move_with_timeout(params: _MoveSelectionParams) -> Optional[LegalM
             params.board,
             depth=params.depth,
             position_counts=params.position_counts,
-            use_opening_book=params.use_opening_book,
-            opening_book=params.opening_book,
+            book_options=BestMoveOptions(
+                use_opening_book=params.use_opening_book,
+                opening_book=params.opening_book,
+            ),
         )
 
     class _SearchTimeout(Exception):
@@ -91,8 +89,10 @@ def _get_best_move_with_timeout(params: _MoveSelectionParams) -> Optional[LegalM
             params.board,
             depth=params.depth,
             position_counts=params.position_counts,
-            use_opening_book=params.use_opening_book,
-            opening_book=params.opening_book,
+            book_options=BestMoveOptions(
+                use_opening_book=params.use_opening_book,
+                opening_book=params.opening_book,
+            ),
         )
     except _SearchTimeout:
         best = None

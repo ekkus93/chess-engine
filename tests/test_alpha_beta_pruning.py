@@ -66,6 +66,7 @@ def get_best_move(board: Board, depth: int):
     return move
 
 
+@pytest.mark.slow
 def test_alpha_beta_prunes_fewer_nodes_than_no_prune():
     """Alpha-beta minimax should explore fewer nodes than pure minimax on the same position."""
     board = Board()
@@ -92,6 +93,7 @@ def test_alpha_beta_prunes_fewer_nodes_than_no_prune():
     assert nodes_ab[0] < nodes_nop[0], "Alpha-beta should prune nodes compared to pure minimax"
 
 
+@pytest.mark.slow
 def test_alpha_beta_cutoffs_occurred():
     """Alpha-beta search should record cutoffs at moderate depth."""
     board = Board()
@@ -132,12 +134,10 @@ def test_self_play_honors_requested_depth(monkeypatch):
         board: Board,
         depth: int,
         position_counts=None,
-        use_opening_book=True,
-        opening_book=None,
+        book_options=None,
     ):
         _ = position_counts
-        _ = use_opening_book
-        _ = opening_book
+        _ = book_options
         requested_depths.append(depth)
         start, end, promotion = board.get_legal_moves()[0]
         return LegalMove(start, end, promotion)

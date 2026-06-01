@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from chess_game.chess.ai import BestMoveOptions, get_best_move
 from chess_game.chess.board import Board
 from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.move import parse_move_notation
@@ -353,11 +354,9 @@ class TestOpeningBookIntegration:
 
     def test_get_best_move_uses_book(self):
         """Test that get_best_move uses the opening book."""
-        from chess_game.chess.ai import get_best_move
-
         board = Board()
         # With book enabled
-        move_with_book = get_best_move(board, depth=1, use_opening_book=True)
+        move_with_book = get_best_move(board, depth=1, book_options=BestMoveOptions())
         # Get book move for comparison
         book = get_bundled_opening_book()
         book_move = book.find_book_move(board)
@@ -366,11 +365,13 @@ class TestOpeningBookIntegration:
 
     def test_get_best_move_without_book(self):
         """Test that get_best_move can disable the book."""
-        from chess_game.chess.ai import get_best_move
-
         board = Board()
         # Should return a legal move
-        move = get_best_move(board, depth=1, use_opening_book=False)
+        move = get_best_move(
+            board,
+            depth=1,
+            book_options=BestMoveOptions(use_opening_book=False),
+        )
         assert move is not None
         # Check that move components are valid ConstantSquare objects
         assert hasattr(move, 'start')
@@ -379,11 +380,13 @@ class TestOpeningBookIntegration:
 
     def test_get_best_move_with_custom_book(self):
         """Test passing a custom opening book."""
-        from chess_game.chess.ai import get_best_move
-
         board = Board()
         custom_book = get_bundled_opening_book()
-        move = get_best_move(board, depth=1, use_opening_book=True, opening_book=custom_book)
+        move = get_best_move(
+            board,
+            depth=1,
+            book_options=BestMoveOptions(opening_book=custom_book),
+        )
         assert move is not None
         # Check that move has valid attributes
         assert hasattr(move, 'start')
@@ -473,17 +476,20 @@ class TestOpeningBookSchemaValidation:
 
     def test_get_best_move_error_not_swallowed(self):
         """Test that get_best_move doesn't swallow bundled book errors."""
-        from chess_game.chess.ai import get_best_move
         from chess_game.chess.opening_book import OpeningBook
-        
+
         # Create a broken book that raises error
         class BrokenBook(OpeningBook):
             def find_book_move(self, board):
                 raise OpeningBookError("Broken book data")
-        
+
         board = Board()
         broken_book = BrokenBook([], {})
-        
+
         # Should raise, not silently fall back
         with pytest.raises(OpeningBookError, match="Broken book data"):
-            get_best_move(board, depth=1, use_opening_book=True, opening_book=broken_book)
+            get_best_move(
+                board,
+                depth=1,
+                book_options=BestMoveOptions(opening_book=broken_book),
+            )

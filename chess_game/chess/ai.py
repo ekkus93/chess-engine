@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, cast
+from typing import Optional
 
-import sys
 import time
 
 from chess_game.chess.board import Board
@@ -54,12 +53,11 @@ from chess_game.chess.evaluation_tables import (
     VOLUNTARY_REPETITION_PENALTY,
 )
 from chess_game.chess.move import Move
-from chess_game.chess.opening_book import get_bundled_opening_book, OpeningBook
+from chess_game.chess.opening_book import OpeningBook, get_bundled_opening_book
 from chess_game.chess.position_utils import position_key as _shared_position_key
 from chess_game.chess.strategy_utils import is_capture_move as _is_capture_move
 from chess_game.chess.types import Color, LegalMove, PieceType
 
-sys.setrecursionlimit(50000)
 INF = 10_000_000
 MATE_SCORE = 100_000
 ASPIRATION_WINDOW = 150
@@ -264,6 +262,14 @@ class SearchStats:
         if self.diagnostics.tt.tt_depth_uses == 0:
             return 0.0
         return self.diagnostics.tt.tt_depth_sum / self.diagnostics.tt.tt_depth_uses
+
+
+@dataclass(frozen=True)
+class BestMoveOptions:
+    """Options that control opening-book lookup in get_best_move()."""
+
+    use_opening_book: bool = True
+    opening_book: OpeningBook | None = None
 
 
 @dataclass
@@ -829,30 +835,6 @@ def _tt_best_move(board: Board, context: SearchContext) -> Optional[LegalMove]:
     return None if entry is None else entry.best_move
 
 
-def _resolve_get_best_move_kwargs(
-    stats: Optional[SearchStats],
-    kwargs: dict[str, object],
-) -> tuple[Optional[SearchStats], bool, Optional[OpeningBook]]:
-    """Parse keyword options for get_best_move()."""
-    stats_obj = kwargs.pop("stats", stats)  # Backward-compatible override
-    use_opening_book_obj = kwargs.pop("use_opening_book", True)
-    opening_book_obj = kwargs.pop("opening_book", None)
-    if kwargs:
-        unknown_key = next(iter(kwargs))
-        raise TypeError(f"get_best_move() got an unexpected keyword argument {unknown_key!r}")
-    if stats_obj is not None and not isinstance(stats_obj, SearchStats):
-        raise TypeError("get_best_move() expected 'stats' to be SearchStats or None")
-    if not isinstance(use_opening_book_obj, bool):
-        raise TypeError("get_best_move() expected 'use_opening_book' to be bool")
-    if opening_book_obj is not None and not isinstance(opening_book_obj, OpeningBook):
-        raise TypeError("get_best_move() expected 'opening_book' to be OpeningBook or None")
-    return (
-        cast(Optional[SearchStats], stats_obj),
-        use_opening_book_obj,
-        cast(Optional[OpeningBook], opening_book_obj),
-    )
-
-
 def _iterative_deepening_best_move(
     board: Board,
     depth: int,
@@ -881,17 +863,17 @@ def get_best_move(
     depth: int,
     stats: Optional[SearchStats] = None,
     position_counts: Optional[dict[str, int]] = None,
-    **kwargs: object,
+    book_options: Optional[BestMoveOptions] = None,
 ) -> Optional[LegalMove]:
     """Get the best move for the current position at the requested depth."""
-    stats, use_opening_book, opening_book = _resolve_get_best_move_kwargs(stats, dict(kwargs))
     if depth < 1:
         raise ValueError("depth must be >= 1")
     legal_moves = get_legal_moves(board)
     if not legal_moves:
         return None
-    if use_opening_book:
-        book = opening_book or get_bundled_opening_book()
+    options = book_options or BestMoveOptions()
+    if options.use_opening_book:
+        book = options.opening_book or get_bundled_opening_book()
         book_move = book.find_book_move(board)
         if book_move is not None:
             return book_move
