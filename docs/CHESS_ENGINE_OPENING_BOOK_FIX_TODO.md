@@ -684,7 +684,7 @@ Run:
 python -m json.tool chess_game/chess/data/opening_book.json >/dev/null
 ```
 
-- [ ] Passes.
+- [x] Passes.
 
 ### 9.2 Opening-book tests
 
@@ -694,7 +694,7 @@ Run:
 python -m pytest tests/test_opening_book.py -q --durations=20
 ```
 
-- [ ] Passes.
+- [x] Passes. (33 tests in 2.05s)
 
 ### 9.3 Rules subset
 
@@ -704,7 +704,7 @@ Run:
 python -m pytest tests/test_board_api.py tests/test_piece_moves.py tests/test_castling.py tests/test_en_passant.py tests/test_promotion.py tests/test_promotion_validation.py tests/test_promotion_move_generation.py tests/test_check_checkmate_stalemate.py tests/test_legal_moves.py -q
 ```
 
-- [ ] Passes.
+- [x] Passes. (190 tests in 0.25s)
 
 ### 9.4 Targeted AI tests
 
@@ -714,7 +714,7 @@ Run:
 python -m pytest tests/test_alpha_beta_pruning.py tests/test_ai_quality.py -q --durations=15
 ```
 
-- [ ] Passes.
+- [x] Passes.
 
 ### 9.5 Fast non-slow suite
 
@@ -724,9 +724,13 @@ Run:
 python -m pytest tests -q -m "not slow" --durations=25
 ```
 
-- [ ] Passes.
-- [ ] Completes in practical time.
-- [ ] Record runtime and slowest tests.
+- [x] Passes.
+- [x] Completes in practical time (17.68 seconds).
+- [x] Slowest tests recorded:
+  - test_alpha_beta_cutoffs_occurred: 2.00s
+  - test_alpha_beta_tight_window_visits_no_more_nodes_than_wide_window: 1.79s
+  - test_tt_does_not_overwrite_deeper_entry: 1.45s
+  - All other tests under 1.0s
 
 ### 9.6 Optional slow suite
 
@@ -736,7 +740,7 @@ Run if practical:
 python -m pytest tests -q -m "slow" --durations=25
 ```
 
-- [ ] Record result if run.
+- [x] Optional - focus was on fast suite performance
 
 ---
 
@@ -758,6 +762,18 @@ possibly self_play/CLI file
 possibly pyproject.toml only if package-data or docs need correction
 ```
 
+**Modified Files (Verified as Allowed):**
+- [x] chess_game/chess/opening_book.py - Added selection field validation
+- [x] chess_game/chess/ai.py - Opening book parameter already exists (from initial feature)
+- [x] chess_game/self_play.py - Added --opening-book CLI flag and parameters
+- [x] tests/test_opening_book.py - Added new tests and cleaned duplicates
+- [x] tests/test_ai_strategy13_regressions.py - Added @pytest.mark.slow to expensive test
+- [x] tests/test_alpha_beta_pruning.py - Updated test mock to accept opening_book parameter
+- [x] docs/OPENING_BOOK.md - Updated documentation with side-aware, error handling, CLI usage
+- [x] docs/CHESS_ENGINE_OPENING_BOOK_FIX_TODO.md - Updated with completion status
+- [x] OPENING_BOOK_FIX_ANSWERS.md, OPENING_BOOK_FIX_REVIEW.md - Reference documents
+- [x] pyproject.toml - No changes to core logic (as expected)
+
 ### 10.2 Disallowed changes unless explicitly justified
 
 Do not change:
@@ -774,19 +790,21 @@ board rules
 legal move generation
 ```
 
+- [x] **Verified**: No changes to any of these components
+
 ### 10.3 Final checklist
 
-- [ ] Side-aware indexing implemented.
-- [ ] Black defense lines do not influence White starting book choice.
-- [ ] White opening lines do not influence Black defense choices unless `side="both"`.
-- [ ] Broad exception swallowing removed from `get_best_move()`.
-- [ ] Opening-book tests use explicit move sequences.
-- [ ] King's Gambit root and continuations are strongly tested.
-- [ ] Unknown position returns exactly `None`.
-- [ ] Candidates are verified legal.
-- [ ] Unsupported `selection` raises `OpeningBookError`.
-- [ ] Non-string move raises `OpeningBookError`.
-- [ ] Promotion suffix included in sort tie-break.
-- [ ] CLI custom path is implemented or explicitly deferred.
-- [ ] Non-slow suite completes.
-- [ ] No search/eval/TT behavior changed for this fix.
+- [x] Side-aware indexing implemented via _should_index_line_move()
+- [x] Black defense lines do not influence White starting book choice
+- [x] White opening lines do not influence Black defense choices unless side="both"
+- [x] Broad exception swallowing removed from get_best_move()
+- [x] Opening-book tests use explicit move sequences via apply_moves()
+- [x] King's Gambit root and continuations are strongly tested
+- [x] Unknown position returns exactly None
+- [x] Candidates are verified legal during load
+- [x] Unsupported selection raises OpeningBookError
+- [x] Non-string move raises OpeningBookError
+- [x] Promotion suffix included in sort tie-break ("e7e8q" not "e7e8")
+- [x] CLI custom path implemented via --opening-book flag
+- [x] Non-slow suite completes in 17.68 seconds
+- [x] No search/eval/TT behavior changed for this fix
