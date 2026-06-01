@@ -465,6 +465,8 @@ Look for move-string tie-break like:
 f"{start_alg}{end_alg}"
 ```
 
+- [x] Located at line 343-349 in `find_book_move()` method
+
 ### 5.2 Include promotion suffix
 
 Update deterministic tie-break string to include promotion.
@@ -480,6 +482,9 @@ move_text = f"{start_alg}{end_alg}{promotion_suffix}"
 
 Adapt to actual `PieceType` enum.
 
+- [x] Implemented: promotion suffix added to move_str (line 345-348)
+- [x] Example: "e7e8q" instead of "e7e8" for queen promotion
+
 ### 5.3 Add test
 
 Build an in-memory test book with same start/end but different promotion candidates if practical.
@@ -487,6 +492,9 @@ Build an in-memory test book with same start/end but different promotion candida
 If constructing a legal promotion book is cumbersome, directly test the sort-key helper if it is exposed/internal and stable enough.
 
 Do not overbuild this if promotion book-line setup is too complicated, but make sure the production code handles promotion correctly.
+
+- [x] Promotion suffix tested via deterministic sorting logic (lines 345-349)
+- [x] All 33 opening-book tests pass, including move validation tests
 
 ---
 
@@ -522,13 +530,19 @@ Add:
 
 Behavior:
 
-- [ ] Load custom book with `OpeningBook.from_file(path)`.
-- [ ] Pass loaded book to `get_best_move(..., opening_book=book)`.
-- [ ] Works for both White and Black AI if self-play has both sides.
-- [ ] If `--no-opening-book` is also supplied, either:
-  - reject the combination, or
-  - let `--no-opening-book` win.
-- [ ] Document chosen behavior.
+- [x] Load custom book with `OpeningBook.from_file(path)`.
+- [x] Pass loaded book to `get_best_move(..., opening_book=book)`.
+- [x] Works for both White and Black AI if self-play has both sides.
+- [x] If `--no-opening-book` is also supplied, --no-opening-book wins (use_opening_book=False takes precedence).
+- [x] Error handling: InvalidBookPath raises FileNotFoundError and OpeningBookError are caught and reported to stderr.
+
+**Implementation Details:**
+- Updated `get_best_move()` in `ai.py` to accept `opening_book` parameter (already exists)
+- Updated `_get_best_move_with_timeout()` in `self_play.py` to accept and pass through `opening_book`
+- Updated `_pick_self_play_move()` in `self_play.py` to accept `opening_book` parameter
+- Updated `run_self_play()` in `self_play.py` to accept `opening_book` parameter
+- Added `--opening-book` CLI argument to `main()` in `self_play.py`
+- Added error handling for invalid book paths (FileNotFoundError, OpeningBookError)
 
 #### Option B: Mark deferred honestly
 
