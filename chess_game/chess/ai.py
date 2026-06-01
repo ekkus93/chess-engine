@@ -54,6 +54,7 @@ from chess_game.chess.evaluation_tables import (
     VOLUNTARY_REPETITION_PENALTY,
 )
 from chess_game.chess.move import Move
+from chess_game.chess.opening_book import get_bundled_opening_book, OpeningBook
 from chess_game.chess.position_utils import position_key as _shared_position_key
 from chess_game.chess.strategy_utils import is_capture_move as _is_capture_move
 from chess_game.chess.types import Color, LegalMove, PieceType
@@ -835,8 +836,24 @@ def get_best_move(
     depth: int,
     stats: Optional[SearchStats] = None,
     position_counts: Optional[dict[str, int]] = None,
+    *,
+    use_opening_book: bool = True,
+    opening_book: Optional[OpeningBook] = None,
 ) -> Optional[LegalMove]:
-    """Get the best move for the current position at given search depth."""
+    """Get the best move for the current position at given search depth.
+
+    Args:
+        board: The current board position.
+        depth: Search depth (must be >= 1).
+        stats: Optional SearchStats object for tracking search statistics.
+        position_counts: Optional position occurrence counts for repetition tracking.
+        use_opening_book: Whether to check the opening book before searching (default True).
+        opening_book: Optional OpeningBook instance. If None and use_opening_book is True,
+                      the bundled opening book will be used.
+
+    Returns:
+        The best move found, or None if no legal moves exist.
+    """
 
     if depth < 1:
         raise ValueError("depth must be >= 1")
@@ -844,11 +861,22 @@ def get_best_move(
     if not legal_moves:
         return None
 
+    # Check opening book before search if enabled
+    if use_opening_book:
+        try:
+            book = opening_book or get_bundled_opening_book()
+            book_move = book.find_book_move(board)
+            if book_move is not None:
+                return book_move
+        except Exception:
+            # If book lookup fails, fall back to search
+            pass
+
     context = SearchContext(
         transposition_table={},
         stats=stats,
         killer_moves=[],
-        position_counts=_search_position_counts(board, position_counts, position_key),
+        position_counts=_search_position_counts(board, position_counts, _shared_position_key),
     )
     best_move: Optional[LegalMove] = None
     previous_score = 0

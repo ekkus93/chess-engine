@@ -1,0 +1,214 @@
+{
+  "version": 1,
+  "selection": "highest_weight",
+  "lines": [
+    {
+      "name": "Italian Game",
+      "side": "white",
+      "eco": "C50",
+      "moves": ["e2e4", "e7e5", "g1f3", "b8c6", "f1c4"],
+      "weight": 85,
+      "tags": ["white", "open-game", "classical"]
+    },
+    {
+      "name": "Ruy Lopez",
+      "side": "white",
+      "eco": "C60",
+      "moves": ["e2e4", "e7e5", "g1f3", "b8c6", "f1b5"],
+      "weight": 95,
+      "tags": ["white", "open-game", "classical"]
+    },
+    {
+      "name": "Queen's Gambit",
+      "side": "white",
+      "eco": "D04",
+      "moves": ["d2d4", "d7d5", "c2c4"],
+      "weight": 90,
+      "tags": ["white", "closed-game", "gambit"]
+    },
+    {
+      "name": "London System",
+      "side": "white",
+      "eco": "D02",
+      "moves": ["d2d4", "d7d5", "c2c4", "c7c6", "c1f4", "g8f6", "g1f3", "a7a6"],
+      "weight": 65,
+      "tags": ["white", "closed-game", "system"]
+    },
+    {
+      "name": "Scotch Game",
+      "side": "white",
+      "eco": "C45",
+      "moves": ["e2e4", "e7e5", "g1f3", "b8c6", "d2d4"],
+      "weight": 75,
+      "tags": ["white", "open-game", "classical"]
+    },
+    {
+      "name": "King's Gambit",
+      "side": "white",
+      "eco": "C30",
+      "moves": ["e2e4", "e7e5", "f2f4"],
+      "weight": 70,
+      "tags": ["white", "open-game", "gambit", "aggressive"]
+    },
+    {
+      "name": "Vienna Game",
+      "side": "white",
+      "eco": "C25",
+      "moves": ["e2e4", "e7e5", "b1c3"],
+      "weight": 55,
+      "tags": ["white", "open-game", "classical"]
+    },
+    {
+      "name": "English Opening",
+      "side": "white",
+      "eco": "A10",
+      "moves": ["c2c4"],
+      "weight": 60,
+      "tags": ["white", "semi-closed-game"]
+    },
+    {
+      "name": "Reti Opening",
+      "side": "white",
+      "eco": "A04",
+      "moves": ["g1f3", "d7d5", "c2c4"],
+      "weight": 50,
+      "tags": ["white", "semi-closed-game"]
+    },
+    {
+      "name": "Catalan Opening",
+      "side": "white",
+      "eco": "E04",
+      "moves": ["d2d4", "d7d5", "c2c4", "e7e6", "g1f3", "g8f6", "g2g3"],
+      "weight": 70,
+      "tags": ["white", "closed-game", "fianchetto"]
+    },
+    {
+      "name": "King's Gambit Accepted: King's Knight Gambit",
+      "side": "white",
+      "eco": "C39",
+      "moves": ["e2e4", "e7e5", "f2f4", "e5f4", "g1f3"],
+      "weight": 80,
+      "tags": ["white", "open-game", "gambit", "accepted"]
+    },
+    {
+      "name": "King's Gambit Accepted: Bishop's Gambit",
+      "side": "white",
+      "eco": "C31",
+      "moves": ["e2e4", "e7e5", "f2f4", "e5f4", "f1c4"],
+      "weight": 45,
+      "tags": ["white", "open-game", "gambit", "accepted"]
+    },
+    {
+      "name": "King's Gambit Accepted: Classical Defense",
+      "side": "white",
+      "eco": "C37",
+      "moves": ["e2e4", "e7e5", "f2f4", "e5f4", "g1f3", "g8f6", "f1c4", "f8c5"],
+      "weight": 60,
+      "tags": ["white", "open-game", "gambit", "accepted", "classical"]
+    },
+    {
+      "name": "King's Gambit Accepted: Fischer Defense",
+      "side": "white",
+      "eco": "C36",
+      "moves": ["e2e4", "e7e5", "f2f4", "e5f4", "g1f3", "d7d5"],
+      "weight": 50,
+      "tags": ["white", "open-game", "gambit", "accepted"]
+    },
+    {
+      "name": "King's Gambit Declined: Classical",
+      "side": "white",
+      "eco": "C33",
+      "moves": ["e2e4", "e7e5", "f2f4", "f8c5"],
+      "weight": 55,
+      "tags": ["white", "open-game", "gambit", "declined"]
+    },
+    {
+      "name": "King's Gambit Declined: Falkbeer Countergambit",
+      "side": "white",
+      "eco": "C31",
+      "moves": ["e2e4", "e7e5", "f2f4", "d7d5"],
+      "weight": 40,
+      "tags": ["white", "open-game", "gambit", "declined"]
+    },
+    {
+      "name": "Sicilian Defense",
+      "side": "black",
+      "eco": "B20",
+      "moves": ["e2e4", "c7c5"],
+      "weight": 100,
+      "tags": ["black", "semi-closed-game"]
+    },
+    {
+      "name": "French Defense",
+      "side": "black",
+      "eco": "C00",
+      "moves": ["e2e4", "e7e6"],
+      "weight": 85,
+      "tags": ["black", "closed-game"]
+    },
+    {
+      "name": "Caro-Kann Defense",
+      "side": "black",
+      "eco": "B10",
+      "moves": ["e2e4", "c7c6"],
+      "weight": 80,
+      "tags": ["black", "semi-closed-game"]
+    },
+    {
+      "name": "Open Game",
+      "side": "black",
+      "eco": "C50",
+      "moves": ["e2e4", "e7e5"],
+      "weight": 75,
+      "tags": ["black", "open-game"]
+    },
+    {
+      "name": "Scandinavian Defense",
+      "side": "black",
+      "eco": "B01",
+      "moves": ["e2e4", "d7d5"],
+      "weight": 50,
+      "tags": ["black", "semi-closed-game"]
+    },
+    {
+      "name": "Pirc Defense",
+      "side": "black",
+      "eco": "B06",
+      "moves": ["e2e4", "d7d6", "d2d4", "g8f6", "g1f3"],
+      "weight": 55,
+      "tags": ["black", "semi-closed-game"]
+    },
+    {
+      "name": "Queen's Gambit Declined",
+      "side": "black",
+      "eco": "D60",
+      "moves": ["d2d4", "d7d5", "c2c4", "e7e6"],
+      "weight": 95,
+      "tags": ["black", "closed-game", "gambit"]
+    },
+    {
+      "name": "Slav Defense",
+      "side": "black",
+      "eco": "D10",
+      "moves": ["d2d4", "d7d5", "c2c4", "c7c6"],
+      "weight": 90,
+      "tags": ["black", "closed-game"]
+    },
+    {
+      "name": "King's Indian Defense",
+      "side": "black",
+      "eco": "E60",
+      "moves": ["d2d4", "g8f6", "c2c4", "g7g6"],
+      "weight": 85,
+      "tags": ["black", "closed-game", "fianchetto"]
+    },
+    {
+      "name": "Nimzo-Indian Defense",
+      "side": "black",
+      "eco": "E20",
+      "moves": ["d2d4", "g8f6", "c2c4", "e7e6", "b1c3", "f8b4"],
+      "weight": 80,
+      "tags": ["black", "closed-game"]
+    }
+  ]
+}

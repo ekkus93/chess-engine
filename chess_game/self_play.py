@@ -43,6 +43,7 @@ def _get_best_move_with_timeout(
     depth: int,
     timeout: Optional[float],
     position_counts: Optional[dict[str, int]] = None,
+    use_opening_book: bool = True,
 ) -> object:
     """Run get_best_move with a POSIX alarm-based timeout.
 
@@ -50,7 +51,12 @@ def _get_best_move_with_timeout(
     Otherwise, if it exceeds 'timeout' seconds, returns None.
     """
     if timeout is None:
-        return get_best_move(board, depth=depth, position_counts=position_counts)
+        return get_best_move(
+            board,
+            depth=depth,
+            position_counts=position_counts,
+            use_opening_book=use_opening_book,
+        )
 
     class _SearchTimeout(Exception):
         """Raised when move search exceeds allowed time."""
@@ -62,7 +68,12 @@ def _get_best_move_with_timeout(
     signal.alarm(int(timeout) or 1)
 
     try:
-        best = get_best_move(board, depth=depth, position_counts=position_counts)
+        best = get_best_move(
+            board,
+            depth=depth,
+            position_counts=position_counts,
+            use_opening_book=use_opening_book,
+        )
     except _SearchTimeout:
         best = None
     finally:
@@ -94,9 +105,12 @@ def _pick_self_play_move(
     base_depth: int,
     timeout: Optional[int],
     position_counts: Optional[dict[str, int]] = None,
+    use_opening_book: bool = True,
 ):
     """Choose a move at the exact requested depth."""
-    return _get_best_move_with_timeout(board, base_depth, timeout, position_counts)
+    return _get_best_move_with_timeout(
+        board, base_depth, timeout, position_counts, use_opening_book=use_opening_book
+    )
 
 
 def _print_played_move(board: Board, move_number: int, side: str, best_move) -> None:
@@ -117,6 +131,7 @@ def run_self_play(
     depth_black: int = 2,
     max_moves: int = 1000,
     verbose: bool = True,
+    use_opening_book: bool = True,
 ):
     """Run a self-play game with the AI playing both sides.
 
@@ -125,6 +140,7 @@ def run_self_play(
         depth_black: Search depth for Black.
         max_moves: Maximum moves before stopping.
         verbose: If True, print moves and board; else silent.
+        use_opening_book: If True, use the opening book for move selection.
     """
     board = Board()
     if verbose:
@@ -148,6 +164,7 @@ def run_self_play(
             base_depth,
             per_move_timeout,
             position_counts,
+            use_opening_book=use_opening_book,
         )
         if best is None:
             if verbose:
@@ -191,6 +208,11 @@ def main():
         default=1000,
         help="Maximum moves before stopping (default: 1000)",
     )
+    parser.add_argument(
+        "--no-opening-book",
+        action="store_true",
+        help="Disable the opening book (default: enabled)",
+    )
     args = parser.parse_args()
 
     # Validate depths >= 1
@@ -206,6 +228,7 @@ def main():
         depth_black=args.black_depth,
         max_moves=args.max_moves,
         verbose=True,
+        use_opening_book=not args.no_opening_book,
     )
 
 

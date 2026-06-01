@@ -44,3 +44,6 @@ warn_unused_configs = true
 [tool.setuptools.packages.find]
 include = ["chess_game*"]
 namespaces = false
+
+[tool.setuptools.package-data]
+"chess_game.chess" = ["data/*.json"]
