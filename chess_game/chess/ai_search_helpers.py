@@ -12,12 +12,10 @@ from chess_game.chess.anti_drift_guidance import anti_drift_root_bonus
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_in_check
 from chess_game.chess.conversion_guidance import (
-    low_material_conversion_root_bonus,
-    winning_conversion_root_bonus,
+    low_material_conversion_root_bonus, winning_conversion_root_bonus,
 )
 from chess_game.chess.defensive_containment_guidance import (
-    heavy_piece_defense_extension_bonus,
-    heavy_piece_defense_root_bonus,
+    heavy_piece_defense_extension_bonus, heavy_piece_defense_root_bonus,
 )
 from chess_game.chess.defensive_endgame_guidance import defensive_endgame_root_bonus
 from chess_game.chess.heavy_piece_endgame_guidance import heavy_piece_endgame_root_bonus
@@ -42,9 +40,12 @@ from chess_game.chess.passer_race_guidance import (
 from chess_game.chess.pawn_structure_evaluation import evaluate_pawn_structure
 from chess_game.chess.review_loop_guidance import review_loop_root_bonus
 from chess_game.chess.structure_recognition import structure_plan_bonus
-from chess_game.chess.endgame_choice_guidance import endgame_choice_root_bonus
 from chess_game.chess.endgame_choice_guidance import (
-    endgame_choice_king_activity_root_bonus,
+    endgame_choice_king_activity_root_bonus, endgame_choice_root_bonus,
+)
+from chess_game.chess.endgame_emergency_defense import (
+    endgame_emergency_extension_bonus,
+    endgame_emergency_root_bonus,
 )
 from chess_game.chess.low_material_coordination_guidance import low_material_coordination_root_bonus
 from chess_game.chess.simple_endgame_guidance import simple_endgame_root_bonus
@@ -60,13 +61,10 @@ from chess_game.chess.strategy_utils import (
 )
 from chess_game.chess.types import Color, LegalMove, PieceType
 from chess_game.chess.evaluation_tables import MATERIAL_VALUES, STARTING_NON_PAWN_MATERIAL
-
 ROOT_TIEBREAK_MARGIN, ROOT_TIEBREAK_OVERRIDE = 50, 24
 ROOT_TIEBREAK_MAX_SCORE_GAP, ROOT_TIEBREAK_WINNING_SCORE = 96, 1000
 _PAWN_STRUCTURE_CHANGE_ROOT_BONUS, _OPENING_CENTRAL_PAWN_ROOT_BONUS = 18, 14
 _MOVE1_CENTRAL_PAWN_BONUS = 320
-
-
 @dataclass(frozen=True)
 class RepetitionPolicy:
     """Configuration for repetition-aware draw scoring."""
@@ -77,8 +75,6 @@ class RepetitionPolicy:
     threshold: int
     progress_threshold: int
     penalty: int
-
-
 def initial_root_window(
     depth: int,
     previous_score: int,
@@ -90,8 +86,6 @@ def initial_root_window(
     if depth == 1:
         return -inf, inf
     return previous_score - aspiration_window, previous_score + aspiration_window
-
-
 def rerun_full_window_if_needed(
     score: int,
     alpha: int,
@@ -492,6 +486,12 @@ def selective_extension_bonus(
             child_board,
             moving_color,
         )
+        or endgame_emergency_extension_bonus(
+            board,
+            move,
+            child_board,
+            moving_color,
+        )
     )
     if strategic_extension and move_undoes_last_own_move(board, move):
         strategic_extension = False
@@ -775,6 +775,7 @@ def _strategic_root_bonus(
     score += forced_win_root_bonus(board, move, child_board, moving_color)
     score += review_loop_root_bonus(board, child_board, moving_color)
     score += endgame_choice_king_activity_root_bonus(board, child_board, moving_color)
+    score += endgame_emergency_root_bonus(board, move, child_board, moving_color)
     if king_danger_index(board, moving_color) >= DANGEROUS_KING_PRESSURE_THRESHOLD:
         return score + _high_danger_root_bonus(board, move, child_board, moving_color)
     if _is_simple_endgame(board):

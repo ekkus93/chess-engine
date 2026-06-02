@@ -44,6 +44,10 @@ from chess_game.chess.tactical_transition_guidance import (
 from chess_game.chess.defensive_containment_guidance import (
     heavy_piece_defense_evaluation_score as _heavy_piece_defense_evaluation_score,
 )
+from chess_game.chess.endgame_emergency_defense import (
+    defensive_king_danger_evaluation_score as _defensive_king_danger_evaluation_score,
+    endgame_holdability_evaluation_score as _endgame_holdability_evaluation_score,
+)
 from chess_game.chess.pieces.piece_movers import PieceMovers
 from chess_game.chess.review_loop_guidance import review_loop_evaluation_score
 from chess_game.chess.simple_endgame_guidance import simple_endgame_evaluation_score
@@ -135,6 +139,8 @@ def get_evaluation_breakdown(board: Board) -> EvaluationBreakdown:
         ),
         "endgame_choice": _evaluate_endgame_choice(board),
         "defensive_containment": _heavy_piece_defense_evaluation_score(board),
+        "defensive_king_danger": _defensive_king_danger_evaluation_score(board),
+        "holdability": _endgame_holdability_evaluation_score(board),
         "king_activation": (
             simple_endgame_evaluation_score(board) if endgame_phase >= 70 else 0
         ),

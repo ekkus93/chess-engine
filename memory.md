@@ -2,6 +2,19 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-02T07:35:27Z - GPT-5.4 mini - ENDGAME_FIX1 validation
+- Completed the ENDGAME_FIX1 implementation phase set and saved a fresh depth-3 validation transcript to `tmp/endgame_fix1_depth3_20260602T071131Z.txt`.
+- The new run delays mate to move 114 and keeps Black's king more active than the baseline's repeated h-file drift; the validation summary is in `tmp/endgame_fix1_validation_summary.txt`.
+- Full repository verification is green after the changes: `ruff`, `mypy`, `pylint 10.00/10`, and full pytest (`792 passed`).
+
+## 2026-06-02T05:53:26Z - GPT-5.3-Codex - ENDGAME_FIX1 implementation plan
+- Added `docs/ENDGAME_FIX1_TODO.md`, a comprehensive phased task list for improving endgame defense quality, including king-danger scoring, passed-pawn emergency response, holdability bias, root tie-break updates, selective extensions, and transcript-backed regressions.
+- The TODO includes per-phase acceptance criteria and full lint/type/test verification gates.
+
+## 2026-06-02T05:47:03Z - GPT-5.3-Codex - Full depth-3 self-play transcript
+- Ran uncapped self-play with both sides at depth 3 and saved the complete transcript to `tmp/selfplay_depth3_full_20260602T052903Z.txt`.
+- The game reached a natural terminal state: `Checkmate! White wins. On move 106.`
+
 ## 2026-06-02T02:37:43Z - GPT-5.4 mini - Integration test completion
 - Added three new integration suites for self-play runtime, board-state transitions, and pytest marker contracts, then updated `docs/INT_TEST1_TODO.md` with completion status.
 - Repo verification is green: `ruff`, `mypy`, `pylint 10.00/10`, and full pytest passed with `781 passed`.
