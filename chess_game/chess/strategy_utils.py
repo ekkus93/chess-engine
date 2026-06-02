@@ -6,6 +6,15 @@ from chess_game.chess.evaluation_tables import MATERIAL_VALUES
 from chess_game.chess.move import Move
 from chess_game.chess.types import Color, PieceType
 
+ENDGAME_PRINCIPAL_PIECE_KINDS = {
+    PieceType.KING,
+    PieceType.BISHOP,
+    PieceType.KNIGHT,
+    PieceType.ROOK,
+    PieceType.QUEEN,
+}
+ENDGAME_RACE_PIECE_KINDS = ENDGAME_PRINCIPAL_PIECE_KINDS | {PieceType.PAWN}
+
 
 def iter_board_pieces(board: Board):
     """Yield all occupied squares as piece, row, col triples."""
@@ -234,6 +243,33 @@ def non_king_piece_kinds(board: Board) -> list[PieceType]:
         for piece in row
         if piece is not None and piece.kind != PieceType.KING
     ]
+
+
+def total_non_pawn_material(board: Board) -> int:
+    """Return the total material value of all non-pawn, non-king pieces."""
+
+    total = 0
+    for row in board.board:
+        for piece in row:
+            if piece is None or piece.kind in {PieceType.KING, PieceType.PAWN}:
+                continue
+            total += MATERIAL_VALUES[piece.kind]
+    return total
+
+
+def clone_legal_child_board(board: Board, move: Move) -> Board | None:
+    """Return a cloned board after a legal move, or None when the move fails."""
+
+    child_board = board.clone()
+    if not child_board.apply_legal_move(move.start, move.end, promotion=move.promotion):
+        return None
+    return child_board
+
+
+def is_endgame_race_piece_kind(kind: PieceType) -> bool:
+    """Return True when a piece kind is relevant to endgame race heuristics."""
+
+    return kind in ENDGAME_RACE_PIECE_KINDS
 
 
 def non_king_piece_count_at_most(

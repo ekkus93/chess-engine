@@ -9,6 +9,7 @@ from chess_game.chess.strategy_utils import (
     heavy_piece_file_support_rows,
     iter_color_pieces,
     king_coordinates,
+    legal_move_count,
     materially_behind_color,
     non_king_piece_kinds,
     opposite_color,
@@ -46,6 +47,8 @@ _CHECK_DISRUPTION_PENALTY = 96
 _EXPLICIT_TEMPO_MARGIN_BONUS = 10
 _LOSING_SIDE_IRRELEVANT_ACTIVITY_PENALTY = 88
 _LOSING_SIDE_BAD_RACE_PENALTY = 180
+_CHECKMATE_RESOLUTION_BONUS = 240
+_STALEMATE_RESOLUTION_PENALTY = 4000
 _ALLOWED_RACE_KINDS = {PieceType.QUEEN, PieceType.ROOK, PieceType.PAWN}
 
 
@@ -102,6 +105,7 @@ def passer_race_order_bonus(
         and _has_relevant_race_targets(board, color)
     ):
         bonus -= _COSMETIC_CHECK_PENALTY
+    bonus += _defender_escape_bonus(child_board, color)
     bonus -= _losing_side_urgent_defense_penalty(board, child_board, color, move)
     bonus -= _losing_side_bad_race_penalty(board, color, kind, move)
     return bonus
@@ -131,6 +135,7 @@ def passer_race_root_bonus(
         and _has_relevant_race_targets(board, color)
     ):
         bonus -= _COSMETIC_CHECK_PENALTY
+    bonus += _defender_escape_bonus(child_board, color)
     bonus -= _losing_side_urgent_defense_penalty(board, child_board, color, move)
     if piece is not None:
         bonus -= _losing_side_bad_race_penalty(board, color, piece.kind, move)
@@ -685,6 +690,18 @@ def _king_distance(first: tuple[int, int], second: tuple[int, int]) -> int:
 
 def _move_checks_opponent(board: Board, color: Color) -> bool:
     return is_in_check(board, _opponent(color))
+
+
+def _defender_escape_bonus(board: Board, color: Color) -> int:
+    enemy_color = _opponent(color)
+    enemy_moves = legal_move_count(board, enemy_color)
+    if enemy_moves == 0:
+        return (
+            _CHECKMATE_RESOLUTION_BONUS
+            if is_in_check(board, enemy_color)
+            else -_STALEMATE_RESOLUTION_PENALTY
+        )
+    return 0
 
 
 def _opponent(color: Color) -> Color:

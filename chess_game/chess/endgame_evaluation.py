@@ -10,6 +10,7 @@ from chess_game.chess.low_material_coordination_guidance import (
     low_material_coordination_evaluation_score,
 )
 from chess_game.chess.low_material_race_guidance import low_material_race_evaluation_score
+from chess_game.chess.low_material_race_guidance import endgame_race_evaluation_score
 from chess_game.chess.passer_race_guidance import passer_race_evaluation_score
 from chess_game.chess.evaluation_tables import (
     ACTIVE_KING_ENDGAME_BONUS,
@@ -134,6 +135,14 @@ def evaluate_passer_races(board: Board, endgame_phase: int) -> int:
     score = passer_race_evaluation_score(board)
     score += low_material_race_evaluation_score(board)
     return scale_signed(score, endgame_phase)
+
+
+def evaluate_endgame_races(board: Board, endgame_phase: int) -> int:
+    """Return exact must-converge and must-hold race bonuses."""
+
+    if endgame_phase < 40:
+        return 0
+    return scale_signed(endgame_race_evaluation_score(board), endgame_phase)
 
 
 def evaluate_low_material_coordination(board: Board, endgame_phase: int) -> int:

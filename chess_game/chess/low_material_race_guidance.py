@@ -7,8 +7,11 @@ from chess_game.chess.board.attack_utils import piece_attacks_square
 from chess_game.chess.constants import ConstantSquare, get_square_constant
 from chess_game.chess.move import Move
 from chess_game.chess.strategy_utils import (
+    ENDGAME_PRINCIPAL_PIECE_KINDS,
+    is_endgame_race_piece_kind,
     iter_color_pieces,
     king_coordinates,
+    materially_behind_color,
     most_advanced_passer,
     non_king_piece_kinds,
     opposite_color,
@@ -30,6 +33,14 @@ _CRITICAL_CONTROL_BONUS = 20
 _TIED_DOWN_BONUS = 18
 _CLEAR_PATH_BONUS = 18
 _KING_GEOMETRY_BONUS = 10
+_ENDGAME_RACE_MAX_NON_KING_PIECES = 8
+_ENDGAME_RACE_ORDER_SCALE = 4
+_ENDGAME_RACE_ROOT_SCALE = 6
+_ENDGAME_RACE_EXTENSION_DELTA = 18
+_ENDGAME_RACE_BLOCKADE_BONUS = 40
+_ENDGAME_RACE_PROMOTION_CONTROL_BONUS = 20
+_ENDGAME_RACE_KING_APPROACH_BONUS = 8
+_ENDGAME_RACE_DRIFT_PENALTY = 28
 
 
 @dataclass(frozen=True)
@@ -37,6 +48,17 @@ class LowMaterialRaceContext:
     """The critical passers for one side in a low-material race."""
 
     color: Color
+    own_passer: tuple[int, int] | None
+    enemy_passer: tuple[int, int] | None
+
+
+@dataclass(frozen=True)
+class EndgameRaceContext:
+    """The critical passers and race mode for a true endgame race."""
+
+    color: Color
+    enemy_color: Color
+    mode: str
     own_passer: tuple[int, int] | None
     enemy_passer: tuple[int, int] | None
 
@@ -52,6 +74,112 @@ def low_material_race_evaluation_score(board: Board) -> int:
         sign = 1 if color == Color.WHITE else -1
         total += sign * _side_score(board, context)
     return total
+
+
+def endgame_race_context(board: Board, color: Color) -> EndgameRaceContext | None:
+    """Return the must-converge or must-hold race context for one side."""
+
+    if not _is_relevant_endgame_race(board):
+        return None
+    own_passer = _critical_passer(board, color)
+    enemy_color = opposite_color(color)
+    enemy_passer = _critical_passer(board, enemy_color)
+    if own_passer is None and enemy_passer is None:
+        return None
+    mode = (
+        "must_hold"
+        if materially_behind_color(board) == color and enemy_passer is not None
+        else "must_converge"
+    )
+    return EndgameRaceContext(
+        color=color,
+        enemy_color=enemy_color,
+        mode=mode,
+        own_passer=own_passer,
+        enemy_passer=enemy_passer,
+    )
+
+
+def endgame_race_evaluation_score(board: Board) -> int:
+    """Return a signed score for true must-converge and must-hold races."""
+
+    if not _is_relevant_endgame_race(board):
+        return 0
+    total = low_material_race_evaluation_score(board)
+    for color in (Color.WHITE, Color.BLACK):
+        context = endgame_race_context(board, color)
+        if context is None:
+            continue
+        sign = 1 if color == Color.WHITE else -1
+        total += sign * _endgame_race_side_score(board, context)
+    return total
+
+
+def endgame_race_order_bonus(
+    board: Board,
+    color: Color,
+    kind: PieceType,
+    move: Move,
+) -> int:
+    """Return a quiet-order bonus for exact race-converging or race-holding moves."""
+
+    if not is_endgame_race_piece_kind(kind):
+        return 0
+    context = endgame_race_context(board, color)
+    if context is None:
+        return 0
+    child_board = board.clone()
+    if not child_board.apply_legal_move(move.start, move.end, promotion=move.promotion):
+        return 0
+    next_context = endgame_race_context(child_board, color) or context
+    before = _endgame_race_side_score(board, context)
+    after = _endgame_race_side_score(child_board, next_context)
+    bonus = (after - before) * _ENDGAME_RACE_ORDER_SCALE
+    bonus += _endgame_race_direct_bonus(board, child_board, move, next_context)
+    return bonus
+
+
+def endgame_race_root_bonus(
+    board: Board,
+    move: Move,
+    child_board: Board,
+    color: Color,
+) -> int:
+    """Return a root tie-break bonus for exact race preservation."""
+
+    context = endgame_race_context(board, color)
+    if context is None:
+        return 0
+    next_context = endgame_race_context(child_board, color) or context
+    before = _endgame_race_side_score(board, context)
+    after = _endgame_race_side_score(child_board, next_context)
+    bonus = (after - before) * _ENDGAME_RACE_ROOT_SCALE
+    bonus += _endgame_race_direct_bonus(board, child_board, move, next_context)
+    return bonus
+
+
+def endgame_race_extension_bonus(
+    board: Board,
+    move: Move,
+    child_board: Board,
+    color: Color,
+) -> int:
+    """Return 1 for narrow must-converge or must-hold race moves."""
+
+    context = endgame_race_context(board, color)
+    if context is None:
+        return 0
+    next_context = endgame_race_context(child_board, color) or context
+    before = _endgame_race_side_score(board, context)
+    after = _endgame_race_side_score(child_board, next_context)
+    if after - before >= _ENDGAME_RACE_EXTENSION_DELTA:
+        return 1
+    if (
+        _endgame_race_direct_bonus(board, child_board, move, next_context)
+        >= _ENDGAME_RACE_EXTENSION_DELTA
+    ):
+        return 1
+    return 0
 
 
 def low_material_race_order_bonus(
@@ -153,6 +281,11 @@ def _critical_passer(board: Board, color: Color) -> tuple[int, int] | None:
     return most_advanced_passer(color, critical)
 
 
+def _is_relevant_endgame_race(board: Board) -> bool:
+    kinds = non_king_piece_kinds(board)
+    return len(kinds) <= _ENDGAME_RACE_MAX_NON_KING_PIECES
+
+
 def _side_score(board: Board, context: LowMaterialRaceContext) -> int:
     score = 0
     if context.own_passer is not None:
@@ -160,6 +293,87 @@ def _side_score(board: Board, context: LowMaterialRaceContext) -> int:
     if context.enemy_passer is not None:
         score -= _passer_score(board, opposite_color(context.color), context.enemy_passer)
     return score
+
+
+def _endgame_race_side_score(board: Board, context: EndgameRaceContext) -> int:
+    score = 0
+    if context.own_passer is not None:
+        score += _passer_score(board, context.color, context.own_passer)
+        score += _endgame_race_anchor_score(
+            board,
+            context.color,
+            context.own_passer,
+            hold=False,
+        )
+    if context.enemy_passer is not None:
+        score -= _passer_score(board, context.enemy_color, context.enemy_passer)
+        score -= _endgame_race_anchor_score(
+            board,
+            context.color,
+            context.enemy_passer,
+            hold=True,
+        )
+    if context.mode == "must_hold" and context.enemy_passer is not None:
+        score += _must_hold_escape_score(board, context)
+    if context.mode == "must_converge" and context.own_passer is not None:
+        score += _must_converge_escape_score(board, context)
+    return score
+
+
+def _endgame_race_anchor_score(
+    board: Board,
+    defender_color: Color,
+    pawn: tuple[int, int],
+    *,
+    hold: bool,
+) -> int:
+    score = 0
+    block_square = _block_square(opposite_color(defender_color) if hold else defender_color, pawn)
+    promotion_square = _promotion_square(
+        opposite_color(defender_color) if hold else defender_color,
+        pawn[1],
+    )
+    own_king = king_coordinates(board, defender_color)
+    if own_king is not None:
+        distance = _king_distance((int(own_king[0]), int(own_king[1])), block_square)
+        score += max(0, 6 - distance) * _ENDGAME_RACE_KING_APPROACH_BONUS
+        if distance <= 2:
+            score += _ENDGAME_RACE_BLOCKADE_BONUS // 2
+        if distance == 0:
+            score += _ENDGAME_RACE_BLOCKADE_BONUS
+    for piece, _, _ in iter_color_pieces(board, defender_color):
+        if piece.kind not in ENDGAME_PRINCIPAL_PIECE_KINDS:
+            continue
+        if piece_attacks_square(piece, piece.square, get_square_constant(*promotion_square), board):
+            score += _ENDGAME_RACE_PROMOTION_CONTROL_BONUS
+    block_row, block_col = block_square
+    if 0 <= block_row < 8 and board.board[block_row][block_col] is not None:
+        occupant = board.board[block_row][block_col]
+        if occupant is not None and occupant.color == defender_color:
+            score += _ENDGAME_RACE_BLOCKADE_BONUS
+    return score
+
+
+def _must_hold_escape_score(board: Board, context: EndgameRaceContext) -> int:
+    if context.enemy_passer is None:
+        return 0
+    own_king = king_coordinates(board, context.color)
+    if own_king is None:
+        return 0
+    block_square = _block_square(context.enemy_color, context.enemy_passer)
+    distance = _king_distance((int(own_king[0]), int(own_king[1])), block_square)
+    return max(0, 4 - distance) * _ENDGAME_RACE_KING_APPROACH_BONUS
+
+
+def _must_converge_escape_score(board: Board, context: EndgameRaceContext) -> int:
+    if context.own_passer is None:
+        return 0
+    own_king = king_coordinates(board, context.color)
+    if own_king is None:
+        return 0
+    promotion_square = _promotion_square(context.color, context.own_passer[1])
+    distance = _king_distance((int(own_king[0]), int(own_king[1])), promotion_square)
+    return max(0, 4 - distance) * _ENDGAME_RACE_KING_APPROACH_BONUS
 
 
 def _passer_score(board: Board, color: Color, pawn: tuple[int, int]) -> int:
@@ -341,3 +555,61 @@ def _square_to_constant(row: int, col: int) -> ConstantSquare:
 
 def _king_distance(first: tuple[int, int], second: tuple[int, int]) -> int:
     return abs(first[0] - second[0]) + abs(first[1] - second[1])
+
+
+def _endgame_race_direct_bonus(
+    board: Board,
+    child_board: Board,
+    move: Move,
+    context: EndgameRaceContext,
+) -> int:
+    moving_piece = board.get_piece(move.start)
+    if moving_piece is None:
+        return 0
+    bonus = 0
+    end = (int(move.end.row), int(move.end.col))
+    if context.own_passer is not None and moving_piece.kind == PieceType.PAWN:
+        if end == context.own_passer:
+            bonus += _ENDGAME_RACE_PROMOTION_CONTROL_BONUS
+    if context.enemy_passer is not None and moving_piece.kind in {
+        PieceType.KING,
+        PieceType.ROOK,
+        PieceType.QUEEN,
+        PieceType.BISHOP,
+        PieceType.KNIGHT,
+    }:
+        block_square = _block_square(context.enemy_color, context.enemy_passer)
+        promotion_square = _promotion_square(context.enemy_color, context.enemy_passer[1])
+        if end in {block_square, promotion_square}:
+            bonus += _ENDGAME_RACE_BLOCKADE_BONUS
+        if _move_directly_controls_promotion(move, child_board, context):
+            bonus += _ENDGAME_RACE_PROMOTION_CONTROL_BONUS
+        start_distance = _king_distance((int(move.start.row), int(move.start.col)), block_square)
+        end_distance = _king_distance(end, block_square)
+        if end_distance > start_distance:
+            bonus -= _ENDGAME_RACE_DRIFT_PENALTY
+        if moving_piece.kind == PieceType.KING and end_distance < start_distance:
+            bonus += _ENDGAME_RACE_BLOCKADE_BONUS
+        if moving_piece.kind == PieceType.KING and end_distance <= 2:
+            bonus += _ENDGAME_RACE_BLOCKADE_BONUS // 2
+        if (
+            moving_piece.kind != PieceType.KING
+            and end not in {block_square, promotion_square}
+            and not _move_directly_controls_promotion(move, child_board, context)
+        ):
+            bonus -= _ENDGAME_RACE_DRIFT_PENALTY
+    return bonus
+
+
+def _move_directly_controls_promotion(
+    move: Move,
+    child_board: Board,
+    context: EndgameRaceContext,
+) -> bool:
+    moved_piece = child_board.get_piece(move.end)
+    if moved_piece is None or moved_piece.color != context.color:
+        return False
+    if context.enemy_passer is None:
+        return False
+    target = get_square_constant(*_promotion_square(context.enemy_color, context.enemy_passer[1]))
+    return piece_attacks_square(moved_piece, move.end, target, child_board)

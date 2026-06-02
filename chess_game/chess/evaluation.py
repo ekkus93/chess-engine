@@ -8,11 +8,15 @@ from chess_game.chess.constants import ConstantSquare, get_col_constant, get_row
 from chess_game.chess.endgame_evaluation import (
     evaluate_conversion as _evaluate_conversion,
     evaluate_endgame_technique as _evaluate_endgame_technique,
+    evaluate_endgame_races as _evaluate_endgame_races,
     evaluate_heavy_piece_endgames as _evaluate_heavy_piece_endgames,
     evaluate_low_material_coordination as _evaluate_low_material_coordination,
     evaluate_passer_races as _evaluate_passer_races,
     evaluate_progress as _evaluate_progress,
     evaluate_rook_endgames as _evaluate_rook_endgames,
+)
+from chess_game.chess.middlegame_practicality_guidance import (
+    middlegame_practicality_evaluation_score as _middlegame_practicality_evaluation_score,
 )
 from chess_game.chess.defensive_priorities import king_defense_profile
 from chess_game.chess.pawn_structure_evaluation import (
@@ -133,6 +137,7 @@ def get_evaluation_breakdown(board: Board) -> EvaluationBreakdown:
         "rook_endgame": _evaluate_rook_endgames(board, endgame_phase),
         "heavy_piece_endgame": _evaluate_heavy_piece_endgames(board, endgame_phase),
         "passer_race": _evaluate_passer_races(board, endgame_phase),
+        "endgame_race": _evaluate_endgame_races(board, endgame_phase),
         "low_material_coordination": _evaluate_low_material_coordination(
             board,
             endgame_phase,
@@ -141,6 +146,7 @@ def get_evaluation_breakdown(board: Board) -> EvaluationBreakdown:
         "defensive_containment": _heavy_piece_defense_evaluation_score(board),
         "defensive_king_danger": _defensive_king_danger_evaluation_score(board),
         "holdability": _endgame_holdability_evaluation_score(board),
+        "middlegame_practicality": _middlegame_practicality_evaluation_score(board),
         "king_activation": (
             simple_endgame_evaluation_score(board) if endgame_phase >= 70 else 0
         ),

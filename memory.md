@@ -2,6 +2,14 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-02T11:23:34Z - GPT-5.4 mini - ENDGAME2 anti-stalemate conversion
+- The ENDGAME2 fix lives in `passer_race_guidance.py` via a defender-escape bonus that penalizes stalemate captures and rewards moves that leave the defender legal replies.
+- The new regression board is the strategy14 transcript position after move 111; Black now prefers `g6h7`, and White's practical reply after that is an active checking move.
+
+## 2026-06-02T08:21:53Z - GPT-5.4 mini - ENDGAME_FIX2 planning
+- Added `docs/ENDGAME_FIX2_TODO.md`, a phased implementation plan for the next endgame-defense pass.
+- The plan targets tighter emergency triggers, stronger king/blockade geometry, better rook-and-pawn practicality, a must-converge/must-hold race evaluator, and fresh transcript-backed regressions.
+
 ## 2026-06-02T07:35:27Z - GPT-5.4 mini - ENDGAME_FIX1 validation
 - Completed the ENDGAME_FIX1 implementation phase set and saved a fresh depth-3 validation transcript to `tmp/endgame_fix1_depth3_20260602T071131Z.txt`.
 - The new run delays mate to move 114 and keeps Black's king more active than the baseline's repeated h-file drift; the validation summary is in `tmp/endgame_fix1_validation_summary.txt`.

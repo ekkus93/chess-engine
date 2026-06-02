@@ -4,6 +4,7 @@ from chess_game.chess.board import Board
 from chess_game.chess.board.attack_utils import piece_attacks_square
 from chess_game.chess.board.game_state import is_in_check
 from chess_game.chess.move import Move
+from chess_game.chess.low_material_race_guidance import endgame_race_context
 from chess_game.chess.structure_recognition import structure_profile
 from chess_game.chess.strategy_utils import (
     is_advanced_passer,
@@ -26,6 +27,9 @@ _PASSIVE_ROOK_PENALTY = 10
 _WORSE_SIDE_CHECK_DRIFT_PENALTY = 48
 _LOOSE_WINNING_CHECK_PENALTY = 120
 _ORDER_SCORE_SCALE = 4
+_RACE_BLOCKADE_BONUS = 30
+_RACE_FILE_BONUS = 12
+_RACE_DRIFT_PENALTY = 16
 
 
 def rook_endgame_evaluation_score(board: Board) -> int:
@@ -67,6 +71,7 @@ def rook_endgame_order_bonus(
         bonus -= _WORSE_SIDE_CHECK_DRIFT_PENALTY
     if kind == PieceType.PAWN and _is_ready_outside_passer_push(board, color, move):
         bonus += _READY_OUTSIDE_PASSER_PUSH_BONUS
+    bonus += _race_alignment_bonus(board, color, kind, move)
     return bonus
 
 
@@ -89,6 +94,35 @@ def _rook_endgame_side_score(board: Board, color: Color) -> int:
     score += _king_support_score(board, color, own_passers)
     score += _outside_passer_activity_score(board, color, rooks)
     return score
+
+
+def _race_alignment_bonus(board: Board, color: Color, kind: PieceType, move: Move) -> int:
+    context = endgame_race_context(board, color)
+    if context is None or context.enemy_passer is None:
+        return 0
+    if kind not in {PieceType.KING, PieceType.ROOK, PieceType.PAWN}:
+        return 0
+    end = (int(move.end.row), int(move.end.col))
+    block_square = _block_square(context.enemy_color, context.enemy_passer)
+    bonus = 0
+    if kind == PieceType.ROOK:
+        if end in {block_square, context.enemy_passer}:
+            bonus += _RACE_BLOCKADE_BONUS
+        if end[1] == context.enemy_passer[1]:
+            bonus += _RACE_FILE_BONUS
+        if end not in {block_square, context.enemy_passer} and not _move_targets_enemy_passer_file(
+            board,
+            color,
+            move,
+        ):
+            bonus -= _RACE_DRIFT_PENALTY
+    if kind == PieceType.KING:
+        start = (int(move.start.row), int(move.start.col))
+        if _king_distance(end, block_square) < _king_distance(start, block_square):
+            bonus += _RACE_BLOCKADE_BONUS
+    if kind == PieceType.PAWN and end == context.enemy_passer:
+        bonus += _RACE_FILE_BONUS
+    return bonus
 
 
 def _rook_passer_alignment_score(
@@ -292,3 +326,8 @@ def simple_material_balance(board: Board, color: Color) -> int:
 
 def _opponent(color: Color) -> Color:
     return opposite_color(color)
+
+
+def _block_square(color: Color, pawn: tuple[int, int]) -> tuple[int, int]:
+    row, col = pawn
+    return (row - 1, col) if color == Color.WHITE else (row + 1, col)

@@ -18,8 +18,19 @@ from chess_game.chess.defensive_containment_guidance import (
     heavy_piece_defense_extension_bonus, heavy_piece_defense_root_bonus,
 )
 from chess_game.chess.defensive_endgame_guidance import defensive_endgame_root_bonus
+from chess_game.chess.ai_plan_guidance import (
+    keeps_tactical_stability,
+    plan_continuity_bonus,
+    practical_options_bonus,
+)
 from chess_game.chess.heavy_piece_endgame_guidance import heavy_piece_endgame_root_bonus
 from chess_game.chess.low_material_race_guidance import low_material_race_root_bonus
+from chess_game.chess.low_material_race_guidance import endgame_race_extension_bonus
+from chess_game.chess.low_material_race_guidance import endgame_race_root_bonus
+from chess_game.chess.middlegame_practicality_guidance import (
+    middlegame_practicality_extension_bonus,
+    middlegame_practicality_root_bonus,
+)
 from chess_game.chess.defensive_priorities import (
     DANGEROUS_KING_PRESSURE_THRESHOLD,
     king_defense_profile,
@@ -27,19 +38,18 @@ from chess_game.chess.defensive_priorities import (
     king_needs_shelter,
 )
 from chess_game.chess.move import Move
+from chess_game.chess.opponent_plans import opponent_plan_profile
 from chess_game.chess.opening_move_ordering import (
     opening_discipline_order_score,
     undeveloped_minor_count,
 )
 from chess_game.chess.opening_guidance import opening_guidance_bonus
-from chess_game.chess.opponent_plans import opponent_plan_profile
 from chess_game.chess.passer_race_guidance import (
     passer_race_extension_bonus,
     passer_race_root_bonus,
 )
 from chess_game.chess.pawn_structure_evaluation import evaluate_pawn_structure
 from chess_game.chess.review_loop_guidance import review_loop_root_bonus
-from chess_game.chess.structure_recognition import structure_plan_bonus
 from chess_game.chess.endgame_choice_guidance import (
     endgame_choice_king_activity_root_bonus, endgame_choice_root_bonus,
 )
@@ -58,6 +68,7 @@ from chess_game.chess.strategy_utils import (
     non_king_material_lead,
     non_king_piece_kinds,
     passed_pawns_for_color,
+    total_non_pawn_material,
 )
 from chess_game.chess.types import Color, LegalMove, PieceType
 from chess_game.chess.evaluation_tables import MATERIAL_VALUES, STARTING_NON_PAWN_MATERIAL
@@ -480,6 +491,18 @@ def selective_extension_bonus(
             child_board,
             moving_color,
         )
+        or endgame_race_extension_bonus(
+            board,
+            move,
+            child_board,
+            moving_color,
+        )
+        or middlegame_practicality_extension_bonus(
+            board,
+            move,
+            child_board,
+            moving_color,
+        )
         or heavy_piece_defense_extension_bonus(
             board,
             move,
@@ -517,7 +540,7 @@ def _is_central_prophylaxis_extension(
     after_pressure = opponent_plan_profile(child_board, moving_color).pressure
     if before_pressure < 6 or before_pressure - after_pressure < 3:
         return False
-    if not _keeps_tactical_stability(board, child_board, moving_color):
+    if not keeps_tactical_stability(board, child_board, moving_color):
         return False
     return _material_margin(child_board, moving_color) >= _material_margin(board, moving_color)
 
@@ -782,13 +805,15 @@ def _strategic_root_bonus(
         return score
     score += _pawn_structure_change_root_bonus(board, move, moving_color)
     score += _pawn_structure_root_bonus(board, move, child_board)
-    score += _practical_options_bonus(board, child_board, moving_color)
+    score += practical_options_bonus(board, child_board, moving_color)
     score += _opening_root_bonus(board, move, moving_kind)
     score += heavy_piece_defense_root_bonus(board, child_board, moving_color)
     score += winning_conversion_root_bonus(board, move, child_board, moving_color)
     score += threat_response_root_bonus(board, move, child_board, moving_color)
     score += tactical_transition_root_bonus(board, move, child_board, moving_color)
-    score += _plan_continuity_bonus(
+    score += endgame_race_root_bonus(board, move, child_board, moving_color)
+    score += middlegame_practicality_root_bonus(board, move, child_board, moving_color)
+    score += plan_continuity_bonus(
         board,
         move,
         child_board,
@@ -866,47 +891,8 @@ def _pawn_structure_root_bonus(board: Board, move: Move, child_board: Board) -> 
     if delta == 0:
         return 0
     return delta * 8
-def _practical_options_bonus(board: Board, child_board: Board, moving_color: Color) -> int:
-    before_pressure = opponent_plan_profile(board, moving_color).pressure
-    after_pressure = opponent_plan_profile(child_board, moving_color).pressure
-    score = max(0, before_pressure - after_pressure) * 6
-    score -= max(0, after_pressure - before_pressure) * 5
-    return score
-
-
-def _plan_continuity_bonus(
-    board: Board,
-    move: Move,
-    child_board: Board,
-    moving_kind: PieceType,
-    moving_color: Color,
-) -> int:
-    continuity = structure_plan_bonus(board, moving_color, moving_kind, move)
-    if continuity == 0:
-        return 0
-    score = continuity // 2
-    if _keeps_tactical_stability(board, child_board, moving_color):
-        score += 8
-    return score
-
-
-def _keeps_tactical_stability(
-    board: Board,
-    child_board: Board,
-    moving_color: Color,
-) -> bool:
-    before = king_defense_profile(board, moving_color)
-    after = king_defense_profile(child_board, moving_color)
-    return after.danger <= before.danger and after.invasion_lines <= before.invasion_lines
-
-
 def _endgame_phase(board: Board) -> int:
-    non_pawn_material = 0
-    for row in board.board:
-        for piece in row:
-            if piece is None or piece.kind in {PieceType.KING, PieceType.PAWN}:
-                continue
-            non_pawn_material += MATERIAL_VALUES[piece.kind]
+    non_pawn_material = total_non_pawn_material(board)
     middlegame_phase = min((non_pawn_material * 100) // STARTING_NON_PAWN_MATERIAL, 100)
     return 100 - middlegame_phase
 

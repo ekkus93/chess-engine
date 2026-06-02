@@ -8,6 +8,7 @@ from chess_game.chess.board.game_state import is_in_check
 from chess_game.chess.constants import get_square_constant
 from chess_game.chess.move import Move
 from chess_game.chess.strategy_utils import (
+    ENDGAME_PRINCIPAL_PIECE_KINDS,
     iter_color_pieces,
     king_coordinates,
     materially_behind_color,
@@ -17,6 +18,7 @@ from chess_game.chess.strategy_utils import (
     opposite_color,
     passed_pawns_for_color,
 )
+from chess_game.chess.low_material_race_guidance import endgame_race_context
 from chess_game.chess.types import Color, PieceType
 
 _MAX_NON_KING_PIECES = 8
@@ -80,13 +82,7 @@ def endgame_emergency_order_bonus(
 ) -> int:
     """Return a quiet-order bonus for emergency containment and active holds."""
 
-    if kind not in {
-        PieceType.KING,
-        PieceType.BISHOP,
-        PieceType.KNIGHT,
-        PieceType.ROOK,
-        PieceType.QUEEN,
-    }:
+    if kind not in ENDGAME_PRINCIPAL_PIECE_KINDS:
         return 0
     context = _emergency_context(board, color)
     if context is None:
@@ -171,6 +167,9 @@ def _emergency_context(board: Board, color: Color) -> EmergencyDefenseContext | 
     ):
         return None
     if not _has_non_king_piece(board, color):
+        return None
+    race_context = endgame_race_context(board, color)
+    if race_context is None or race_context.mode != "must_hold":
         return None
     enemy = opposite_color(color)
     dangerous = _critical_enemy_passer(board, enemy)
@@ -267,6 +266,7 @@ def _direct_emergency_move_bonus(
     context: EmergencyDefenseContext,
 ) -> int:
     end = (int(move.end.row), int(move.end.col))
+    start = (int(move.start.row), int(move.start.col))
     bonus = 0
     moving_piece = board.get_piece(move.start)
     if moving_piece is None:
@@ -275,6 +275,15 @@ def _direct_emergency_move_bonus(
         bonus += _BLOCKADE_OCCUPANCY_BONUS
     if _move_directly_controls_promotion(move, child_board, context):
         bonus += _PROMOTION_CONTROL_BONUS
+    if moving_piece.kind == PieceType.KING:
+        start_block_distance = _king_distance(start, context.block_square)
+        end_block_distance = _king_distance(end, context.block_square)
+        start_promo_distance = _king_distance(start, context.promotion_square)
+        end_promo_distance = _king_distance(end, context.promotion_square)
+        if end_block_distance < start_block_distance:
+            bonus += _CHECK_RESOURCE_BONUS
+        if end_promo_distance < start_promo_distance:
+            bonus += _CHECK_RESOURCE_BONUS // 2
     if _drifts_from_emergency_theater(context, move):
         bonus -= _THEATER_DRIFT_PENALTY
     if is_in_check(child_board, context.enemy_color):
@@ -307,7 +316,11 @@ def _drifts_from_emergency_theater(context: EmergencyDefenseContext, move: Move)
     end = (int(move.end.row), int(move.end.col))
     start_distance = _king_distance(start, context.block_square)
     end_distance = _king_distance(end, context.block_square)
-    return end_distance > start_distance
+    if end_distance > start_distance:
+        return True
+    start_promotion_distance = _king_distance(start, context.promotion_square)
+    end_promotion_distance = _king_distance(end, context.promotion_square)
+    return end_promotion_distance > start_promotion_distance
 
 
 def _is_bad_trade_when_worse(board: Board, move: Move, color: Color) -> bool:
