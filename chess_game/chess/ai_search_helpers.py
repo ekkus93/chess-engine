@@ -43,6 +43,9 @@ from chess_game.chess.pawn_structure_evaluation import evaluate_pawn_structure
 from chess_game.chess.review_loop_guidance import review_loop_root_bonus
 from chess_game.chess.structure_recognition import structure_plan_bonus
 from chess_game.chess.endgame_choice_guidance import endgame_choice_root_bonus
+from chess_game.chess.endgame_choice_guidance import (
+    endgame_choice_king_activity_root_bonus,
+)
 from chess_game.chess.low_material_coordination_guidance import low_material_coordination_root_bonus
 from chess_game.chess.simple_endgame_guidance import simple_endgame_root_bonus
 from chess_game.chess.threat_awareness import threat_response_root_bonus
@@ -771,6 +774,7 @@ def _strategic_root_bonus(
     score += low_material_conversion_root_bonus(board, move, child_board, moving_color)
     score += forced_win_root_bonus(board, move, child_board, moving_color)
     score += review_loop_root_bonus(board, child_board, moving_color)
+    score += endgame_choice_king_activity_root_bonus(board, child_board, moving_color)
     if king_danger_index(board, moving_color) >= DANGEROUS_KING_PRESSURE_THRESHOLD:
         return score + _high_danger_root_bonus(board, move, child_board, moving_color)
     if _is_simple_endgame(board):

@@ -879,3 +879,8 @@ Quality:
 - Read `docs/replies5.md` and captured final decisions for the opening-book final-fix pass.
 - Locked policy decisions: `--no-opening-book` wins over `--opening-book`; Falkbeer continuation `e4d5` is required; required-candidate tests should assert inclusion (not exact set equality).
 - Locked testing/documentation decisions: loader tests should assert `OpeningBookError` plus stable message fragment (e.g., `JSON object`), prefer function-level/monkeypatch CLI tests over subprocess when practical, and mark Task 0 copy-doc subtasks complete because final-fix docs already exist.
+
+## 2026-06-02T04:49:02Z - GPT-5.4 mini - Plan-fix verification
+- Added `docs/CHESS_ENGINE_PLAN_FIX_TODO.md` to track the strategic plan-quality pass and captured the baseline in `tmp/planfix_baseline.txt`.
+- Added a transcript-backed regression in `tests/test_ai_plan_fix_regressions.py` and a narrow root/eval endgame-choice signal so depth-3 late-game king play prefers active defense over passive shuffling without breaking simplification behavior.
+- Verification is green: `ruff`, `mypy`, `pylint 10.00/10`, full pytest (`782 passed`), and the new depth-3 transcript `tmp/planfix_depth3_20260602T042628Z.txt` diverges from the baseline at move 98 (`...g8g7` instead of `...g8h8`).

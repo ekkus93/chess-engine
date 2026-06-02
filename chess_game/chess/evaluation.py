@@ -14,6 +14,7 @@ from chess_game.chess.endgame_evaluation import (
     evaluate_progress as _evaluate_progress,
     evaluate_rook_endgames as _evaluate_rook_endgames,
 )
+from chess_game.chess.defensive_priorities import king_defense_profile
 from chess_game.chess.pawn_structure_evaluation import (
     collect_pawn_positions as _collect_pawn_positions,
     evaluate_pawn_structure as _evaluate_pawn_structure,
@@ -132,6 +133,7 @@ def get_evaluation_breakdown(board: Board) -> EvaluationBreakdown:
             board,
             endgame_phase,
         ),
+        "endgame_choice": _evaluate_endgame_choice(board),
         "defensive_containment": _heavy_piece_defense_evaluation_score(board),
         "king_activation": (
             simple_endgame_evaluation_score(board) if endgame_phase >= 70 else 0
@@ -309,6 +311,35 @@ def _pawn_shield_score(board: Board, color: Color, square: ConstantSquare) -> in
         if piece is not None and piece.color == color and piece.kind == PieceType.PAWN:
             score += PAWN_SHIELD_BONUS
     return score
+
+
+def _evaluate_endgame_choice(board: Board) -> int:
+    if _has_rook(board):
+        return 0
+    if _non_king_piece_count(board) > 8:
+        return 0
+    white_profile = king_defense_profile(board, Color.WHITE)
+    black_profile = king_defense_profile(board, Color.BLACK)
+    white_score = white_profile.safe_king_moves + white_profile.king_zone_defenders
+    black_score = black_profile.safe_king_moves + black_profile.king_zone_defenders
+    return (white_score - black_score) * 2
+
+
+def _has_rook(board: Board) -> bool:
+    for row in board.board:
+        for piece in row:
+            if piece is not None and piece.kind == PieceType.ROOK:
+                return True
+    return False
+
+
+def _non_king_piece_count(board: Board) -> int:
+    count = 0
+    for row in board.board:
+        for piece in row:
+            if piece is not None and piece.kind != PieceType.KING:
+                count += 1
+    return count
 
 
 def _open_king_file_penalty(board: Board, color: Color, square: ConstantSquare) -> int:

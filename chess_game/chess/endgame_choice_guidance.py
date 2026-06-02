@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from chess_game.chess.ai_repetition_patterns import move_undoes_last_own_move
 from chess_game.chess.board import Board
 from chess_game.chess.board.attack_utils import piece_attacks_square
+from chess_game.chess.defensive_priorities import king_defense_profile
 from chess_game.chess.constants import get_square_constant
 from chess_game.chess.move import Move
 from chess_game.chess.strategy_utils import (
@@ -17,6 +18,7 @@ from chess_game.chess.strategy_utils import (
     legal_move_count,
     most_advanced_passer,
     non_king_piece_count_at_most,
+    non_king_piece_kinds,
     opposite_color,
     passed_pawns_for_color,
     path_clear_between,
@@ -113,6 +115,54 @@ def endgame_choice_root_bonus(
     ):
         bonus -= _WORSE_SIDE_BAD_SIMPLIFICATION_PENALTY
     return bonus
+
+
+def endgame_choice_evaluation_score(board: Board) -> int:
+    """Return a small endgame evaluation signal for practical king activity."""
+
+    if not _is_relevant_endgame(board):
+        return 0
+    if any(
+        piece is not None and piece.kind == PieceType.ROOK
+        for row in board.board
+        for piece in row
+    ):
+        return 0
+    white_context = _choice_context(board, Color.WHITE)
+    black_context = _choice_context(board, Color.BLACK)
+    if white_context is None or black_context is None:
+        return 0
+    white_score = _side_score(board, white_context) + max(
+        0, white_context.practical_score + _PRACTICAL_REPEAT_THRESHOLD
+    )
+    black_score = _side_score(board, black_context) + max(
+        0, -black_context.practical_score + _PRACTICAL_REPEAT_THRESHOLD
+    )
+    return (white_score - black_score) * 2
+
+
+def endgame_choice_king_activity_root_bonus(
+    board: Board,
+    child_board: Board,
+    color: Color,
+) -> int:
+    """Return a root bonus for king moves that improve safe activity."""
+
+    if len(non_king_piece_kinds(board)) > 8:
+        return 0
+    if any(
+        piece is not None and piece.kind == PieceType.ROOK
+        for row in board.board
+        for piece in row
+    ):
+        return 0
+    before = king_defense_profile(board, color)
+    after = king_defense_profile(child_board, color)
+    score = max(0, after.safe_king_moves - before.safe_king_moves) * 40
+    score += max(0, before.danger - after.danger) * 20
+    score += max(0, after.king_zone_defenders - before.king_zone_defenders) * 6
+    score -= max(0, before.safe_king_moves - after.safe_king_moves) * 40
+    return score
 
 
 def _choice_context(board: Board, color: Color) -> EndgameChoiceContext | None:
