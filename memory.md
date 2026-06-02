@@ -905,3 +905,15 @@ Quality:
 - Added `docs/CHESS_ENGINE_PLAN_FIX_TODO.md` to track the strategic plan-quality pass and captured the baseline in `tmp/planfix_baseline.txt`.
 - Added a transcript-backed regression in `tests/test_ai_plan_fix_regressions.py` and a narrow root/eval endgame-choice signal so depth-3 late-game king play prefers active defense over passive shuffling without breaking simplification behavior.
 - Verification is green: `ruff`, `mypy`, `pylint 10.00/10`, full pytest (`782 passed`), and the new depth-3 transcript `tmp/planfix_depth3_20260602T042628Z.txt` diverges from the baseline at move 98 (`...g8g7` instead of `...g8h8`).
+
+## 2026-06-02T18:48:43Z - Claude Haiku 4.5 - ENDGAME2 anti-stalemate conversion complete
+- Implemented all ENDGAME2 tasks (0-7): anti-stalemate conversion heuristics to prevent winning endgames from collapsing into stalemate
+- Core fix: Added _defender_escape_bonus() to passer_race_guidance.py that returns -4000 penalty for stalemate, +240 bonus for checkmate, 0 for live positions
+- Integrated bonus into both quiet-move ordering and root tie-break paths
+- Created tests/test_ai_endgame2_regressions.py with 2 regression tests (both pass)
+  - test_endgame2_black_prefers_escape_over_stalemate_capture: Black chooses g6h7 escape over g7f6 stalemate capture
+  - test_endgame2_white_prefers_active_checking_defense_after_escape: White prefers active checking after escape
+- Extracted ENDGAME_PRINCIPAL_PIECE_KINDS constant to deduplicate piece-kind checks across 3 endgame modules
+- Verified lint: ruff clean, mypy clean, pylint 10.00/10
+- Committed and pushed to origin/master (commit 9593c61 + 719fbb7)
+- All ENDGAME2 tasks marked complete in docs/ENDGAME2_TODO.md
