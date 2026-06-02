@@ -2,6 +2,14 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-02T00:18:26Z - GPT-5.3-Codex - Fast unit coverage expansion
+- Added fast unit coverage for pure helper logic in `tests/test_ai_search_helpers.py` (aspiration windows, rerun triggers, repetition-count helpers, alpha/beta updates, and promotion ordering).
+- Added direct `position_key()` invariants in `tests/test_position_utils.py` (turn, castling rights, en-passant target, and piece-placement sensitivity).
+- Added `_get_best_move_with_timeout()` wrapper tests in `tests/test_self_play_runtime.py` for both no-timeout forwarding and timeout return/cleanup behavior.
+
+## 2026-06-01T23:51:30Z - GPT-5.3-Codex - Coverage tooling note
+- `pytest-cov` and `coverage` are not installed in the current environment (`pytest --cov...` and `python -m coverage ...` both fail), so coverage analysis currently relies on test/module inspection rather than generated line-coverage reports.
+
 ## 2026-06-01T23:24:15Z - GPT-5.4 mini - AI test-runtime hygiene
 - `get_best_move()` now uses `book_options: Optional[BestMoveOptions]` for opening-book control instead of `**kwargs`.
 - The repo no longer forces global `pytest -v`; slow AI regressions are marked with `pytest.mark.slow`, and generated `tmp/` artifacts are removed/ignored.
