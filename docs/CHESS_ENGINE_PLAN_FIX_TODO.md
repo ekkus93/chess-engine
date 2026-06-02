@@ -183,5 +183,5 @@ This pass should focus on the planning layer the engine uses when several moves 
 
 ### 5.3 Commit
 
-- [ ] Commit the plan-fix changes.
-- [ ] Push to `origin/master`.
+- [x] Commit the plan-fix changes.
+- [x] Push to `origin/master`.
