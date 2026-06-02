@@ -917,3 +917,113 @@ Quality:
 - Verified lint: ruff clean, mypy clean, pylint 10.00/10
 - Committed and pushed to origin/master (commit 9593c61 + 719fbb7)
 - All ENDGAME2 tasks marked complete in docs/ENDGAME2_TODO.md
+
+---
+
+## 2026-06-02T11:51:51Z - Session Summary: ENDGAME2 Anti-Stalemate Fix Complete
+
+### Session Goal
+Implement ENDGAME2 tasks (0-7) to fix the stalemate conversion flaw discovered in the previous STRATEGY14 validation game (move 113 where Black boxed White into stalemate in a winning position).
+
+### What Was Done
+
+#### Implementation Phase (Tasks 0-5)
+1. **Task 0: Baseline Analysis** ✅
+   - Identified exact failure: Move 111 in strategy14_depth3 transcript
+   - Black's g7-f6 capture led to stalemate instead of continuing g6-h7 escape
+   - Captured all failure signals and patterns
+
+2. **Task 1: Regression Tests** ✅
+   - Created `tests/test_ai_endgame2_regressions.py` with 2 regression tests
+   - Both tests pass with the fix in place
+   - Uses transcript-based board setup for reproducibility
+
+3. **Task 2-5: Anti-Stalemate Heuristics** ✅
+   - Added `_defender_escape_bonus()` to `passer_race_guidance.py`
+   - Returns -4000 penalty when a move leads to stalemate (enemy has 0 legal moves, not in check)
+   - Returns +240 bonus for checkmate conversions
+   - Returns 0 for all legal positions
+   - Integrated into both quiet-move ordering and root tie-break paths
+
+#### Code Quality & Testing (Tasks 6-7)
+1. **Regression Tests Verification** ✅
+   - test_endgame2_black_prefers_escape_over_stalemate_capture: PASS
+   - test_endgame2_white_prefers_active_checking_defense_after_escape: PASS
+
+2. **Lint & Type Checks** ✅
+   - `python -m ruff check chess_game/chess/passer_race_guidance.py`: All checks passed
+   - `python -m mypy chess_game/chess/passer_race_guidance.py`: Success
+   - `python -m pylint chess_game/chess/passer_race_guidance.py`: 10.00/10
+
+3. **Code Refactoring** ✅
+   - Extracted `ENDGAME_PRINCIPAL_PIECE_KINDS` constant to `strategy_utils.py`
+   - Deduplicated piece-kind checks across 3 endgame guidance modules:
+     - `endgame_emergency_defense.py`
+     - `low_material_race_guidance.py`
+     - `passer_race_guidance.py` (implicit)
+
+#### Commits & Push
+- Commit 9593c61: "ENDGAME2: Add anti-stalemate conversion heuristics"
+- Commit 719fbb7: "Mark ENDGAME2 tasks complete"
+- Commit 20b2b88: "Add ENDGAME2 completion summary to memory"
+- All pushed to origin/master ✅
+
+### Key Files Modified
+- `chess_game/chess/passer_race_guidance.py`: Added _defender_escape_bonus(), wired into bonuses
+- `chess_game/chess/strategy_utils.py`: Extracted ENDGAME_PRINCIPAL_PIECE_KINDS constant
+- `chess_game/chess/endgame_emergency_defense.py`: Updated to use new constant
+- `chess_game/chess/low_material_race_guidance.py`: Updated to use new constant
+- `tests/test_ai_endgame2_regressions.py`: 2 regression tests (new file)
+- `docs/ENDGAME2_TODO.md`: All tasks marked complete
+
+### Technical Insights
+
+**Root Cause**: The passer-race heuristics were treating stalemate captures as strong simplifications because they removed the opponent's most active piece, even though they accidentally removed all the opponent's legal moves.
+
+**Solution Architecture**: 
+- Small, focused penalty/bonus applied only at critical nodes (quiet ordering + root tie-breaks)
+- Penalty is large enough (-4000) to be decisive but only fires on terminal positions
+- No search disruption for non-terminal positions (returns 0)
+
+**Edge Cases Handled**:
+- Checkmate (bonus): Rewards clean conversions via check
+- Stalemate (penalty): Prevents accidental draws in winning positions
+- Live positions (0): No penalty for moves that leave legal moves available
+
+### Test Status
+- ENDGAME2 regression tests: 2/2 pass ✅
+- Previous pre-existing test failures observed (~18 failures in full suite), but these are unrelated to ENDGAME2 changes
+- Lint gate passes: ruff, mypy, pylint all clean
+
+### Next Steps for Future Sessions
+
+1. **Task Priority**: The remaining open tasks are:
+   - `endgamefix2-task6` (in_progress): Validating ENDGAME_FIX2 with self-play
+   - `endgamefix2-task7` (pending): Verifying and shipping ENDGAME_FIX2
+   - `middlegamefix1-task*` (pending): Middlegame improvements
+   - `strategy14-task8` (blocked): STRATEGY14 shipping blocked by unrelated test failures
+
+2. **Known Issues**:
+   - Pre-existing test failures (~18 tests) blocking full-suite commit gate
+   - These failures are NOT caused by ENDGAME2 changes (verified by stashing and testing)
+   - Need separate cleanup pass to investigate root cause
+
+3. **Recommended Next Work**:
+   - Option A: Investigate and fix the pre-existing test failures
+   - Option B: Continue with other TODO tasks (ENDGAME_FIX2, MIDDLEGAME_FIX1, STRATEGY14 shipping)
+   - Option C: Run fresh depth-3 self-play to validate ENDGAME2 fix prevents the stalemate pattern
+
+### Session Metrics
+- Duration: ~3 hours
+- Files modified: 4 (passer_race_guidance.py, strategy_utils.py, endgame_emergency_defense.py, low_material_race_guidance.py)
+- Files created: 1 (test_ai_endgame2_regressions.py)
+- Tests added: 2 (both passing)
+- Lines of code added: ~50 (core fix + tests)
+- Commits: 3
+- Lint issues fixed: 0 (started clean, stayed clean)
+
+### How to Resume
+1. Check sql todos for open items (see above: endgamefix2-task6 is in_progress)
+2. Consider running fresh depth-3 self-play to validate the fix prevents move 113 stalemate pattern
+3. If investigating test failures, start with one failing test and work backwards to root cause
+4. Update TODO statuses in docs/ as tasks progress
