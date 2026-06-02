@@ -2,10 +2,17 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-02T02:37:43Z - GPT-5.4 mini - Integration test completion
+- Added three new integration suites for self-play runtime, board-state transitions, and pytest marker contracts, then updated `docs/INT_TEST1_TODO.md` with completion status.
+- Repo verification is green: `ruff`, `mypy`, `pylint 10.00/10`, and full pytest passed with `781 passed`.
+
 ## 2026-06-02T00:18:26Z - GPT-5.3-Codex - Fast unit coverage expansion
 - Added fast unit coverage for pure helper logic in `tests/test_ai_search_helpers.py` (aspiration windows, rerun triggers, repetition-count helpers, alpha/beta updates, and promotion ordering).
 - Added direct `position_key()` invariants in `tests/test_position_utils.py` (turn, castling rights, en-passant target, and piece-placement sensitivity).
 - Added `_get_best_move_with_timeout()` wrapper tests in `tests/test_self_play_runtime.py` for both no-timeout forwarding and timeout return/cleanup behavior.
+
+## 2026-06-02T00:23:56Z - GPT-5.3-Codex - Integration test implementation plan
+- Added `docs/INT_TEST1_TODO.md`, a comprehensive phased TODO for new integration coverage across repetition/search behavior, opening-book fallback chains, self-play timeout/runtime flow, castling/en-passant state transitions, runtime marker contracts, and per-phase verification/commit gates.
 
 ## 2026-06-01T23:51:30Z - GPT-5.3-Codex - Coverage tooling note
 - `pytest-cov` and `coverage` are not installed in the current environment (`pytest --cov...` and `python -m coverage ...` both fail), so coverage analysis currently relies on test/module inspection rather than generated line-coverage reports.
