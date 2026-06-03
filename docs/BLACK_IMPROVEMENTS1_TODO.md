@@ -280,7 +280,7 @@ No changes to legal move generation or the public API.
 
 ### 5.1 Run multiple self-play games
 
-- [ ] Run at least 3 fresh depth-3 self-play games:
+- [x] Run at least 3 fresh depth-3 self-play games:
   ```bash
   uv run python -m chess_game.self_play --white-depth 3 --black-depth 3
   ```
@@ -307,8 +307,8 @@ Record findings in `tmp/black_improvements1_validation.txt`.
 - [x] `uv run python -m ruff check chess_game tests` — all clear.
 - [x] `uv run python -m mypy chess_game` — no errors.
 - [x] `uv run python -m pylint chess_game` — 10.00/10.
-- [ ] `uv run python -m pytest tests/ -q -m "not slow"` — all pass.
-- [ ] `uv run python -m pytest tests/ -q -m "slow"` — all pass.
+- [x] `uv run python -m pytest tests/ -q -m "not slow"` — all pass.
+- [x] `uv run python -m pytest tests/ -q -m "slow"` — all pass.
 - [x] Update `memory.md` with timestamp, model used, and summary of changes.
 
 ---
