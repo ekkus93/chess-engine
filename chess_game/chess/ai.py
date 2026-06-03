@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
+import random
 import time
 
 from chess_game.chess.board import Board
@@ -483,11 +484,13 @@ def _search_move_loop(
 
     for move in ordered_moves:
         child_score, root_tiebreak = _evaluate_child_move(board, move, params, alpha, beta)
-        if (
-            child_score > search_best_score
-            if params.is_maximizing
-            else child_score < search_best_score
-        ):
+        if params.is_maximizing:
+            is_better = child_score > search_best_score
+            is_tie = child_score == search_best_score
+        else:
+            is_better = child_score < search_best_score
+            is_tie = child_score == search_best_score
+        if is_better or (is_tie and random.random() < 0.5):
             search_best_score = child_score
             search_best_move = LegalMove(move.start, move.end, move.promotion)
         if len(params.line_history) == 1:
@@ -499,11 +502,14 @@ def _search_move_loop(
                 best_root_tiebreak,
             )
         else:
-            replace_selected_move = (
-                child_score > selected_score
-                if params.is_maximizing
-                else child_score < selected_score
-            )
+            if params.is_maximizing:
+                replace_selected_move = child_score > selected_score or (
+                    child_score == selected_score and random.random() < 0.5
+                )
+            else:
+                replace_selected_move = child_score < selected_score or (
+                    child_score == selected_score and random.random() < 0.5
+                )
         if root_selected_move is None or replace_selected_move:
             selected_score = child_score
             best_root_tiebreak = root_tiebreak

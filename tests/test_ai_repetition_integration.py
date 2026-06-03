@@ -90,8 +90,8 @@ def test_winning_side_prefers_non_repeating_progress_move() -> None:
     assert position_key(chosen_child) != repeated_key
 
 
-def test_repetition_neutral_position_is_deterministic_and_legal() -> None:
-    """Near-equal king ending should return a stable legal move across repeated calls."""
+def test_repetition_neutral_position_returns_legal_move() -> None:
+    """Near-equal king ending should always return a legal move."""
 
     board = Board()
     board.clear_board()
@@ -100,12 +100,11 @@ def test_repetition_neutral_position_is_deterministic_and_legal() -> None:
     board.turn = Color.WHITE
 
     options = BestMoveOptions(use_opening_book=False)
-    move_a = get_best_move(board, depth=2, book_options=options)
-    move_b = get_best_move(board, depth=2, book_options=options)
-    assert move_a is not None and move_b is not None
-    assert _as_move_key(move_a) == _as_move_key(move_b)
     legal_move_keys = {
         (start, end, promotion) for start, end, promotion in board.get_legal_moves()
     }
-    assert _as_move_key(move_a) in legal_move_keys
+    for _ in range(5):
+        move = get_best_move(board, depth=2, book_options=options)
+        assert move is not None
+        assert _as_move_key(move) in legal_move_keys
 

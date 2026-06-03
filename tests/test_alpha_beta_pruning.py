@@ -147,7 +147,7 @@ def test_self_play_honors_requested_depth(monkeypatch):
     run_self_play(
         depth_white=7,
         depth_black=7,
-        options=_SelfPlayOptions(max_moves=2, verbose=False),
+        options=_SelfPlayOptions(max_moves=2, verbose=False, use_opening_book=False),
     )
 
     assert requested_depths == [7, 7]
