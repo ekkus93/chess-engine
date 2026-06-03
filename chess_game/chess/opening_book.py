@@ -1,13 +1,16 @@
 """Data-driven opening book for the chess engine.
 
 The opening book is loaded from a JSON file and indexed by position key.
-Moves are validated during load to ensure they are legal.
-Lookup is deterministic: highest weight wins, with line index tie-breaking.
+Two selection modes are supported:
+- "highest_weight": deterministic — always picks the highest-weight candidate.
+- "weighted_random": stochastic — samples a candidate proportional to weight,
+  so varied self-play games naturally explore different opening lines.
 """
 
 from __future__ import annotations
 
 import json
+import random
 from dataclasses import dataclass
 from functools import lru_cache
 from importlib import resources
@@ -97,9 +100,9 @@ def parse_opening_lines(data: Mapping[str, object]) -> list[OpeningLine]:
 
     # Validate selection
     selection = data.get("selection")
-    if selection != "highest_weight":
+    if selection not in {"highest_weight", "weighted_random"}:
         raise OpeningBookError(
-            f"'selection' must be 'highest_weight', got {selection!r}"
+            f"'selection' must be 'highest_weight' or 'weighted_random', got {selection!r}"
         )
 
     # Validate lines
@@ -354,6 +357,22 @@ class OpeningBook:
 
         sorted_candidates = sorted(candidates, key=sort_key)
         return sorted_candidates[0].move
+
+    def find_book_move_random(self, board: Board) -> Optional[LegalMove]:
+        """Sample a book move for the current position proportional to candidate weights.
+
+        This produces varied self-play games while still favouring higher-weighted
+        (more theoretically sound) moves.  Black candidates are automatically
+        restricted to responses that are valid for the current position, so a
+        Sicilian Defence will only appear if White played 1.e4, a King's Indian
+        only if White played 1.d4, etc.
+        """
+        candidates = self.candidates_for(board)
+        if not candidates:
+            return None
+        weights = [c.weight for c in candidates]
+        chosen = random.choices(candidates, weights=weights, k=1)[0]
+        return chosen.move
 
 
 @lru_cache(maxsize=1)

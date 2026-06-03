@@ -13,7 +13,7 @@ from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import record_position, terminal_message
 from chess_game.chess.constants import ConstantSquare
 from chess_game.chess.coords import index_to_algebraic
-from chess_game.chess.opening_book import OpeningBook, OpeningBookError
+from chess_game.chess.opening_book import OpeningBook, OpeningBookError, get_bundled_opening_book
 from chess_game.chess.types import Color, LegalMove, PieceType
 
 @dataclass
@@ -36,6 +36,7 @@ class _SelfPlayOptions:
     verbose: bool = True
     use_opening_book: bool = True
     opening_book: Optional[OpeningBook] = None
+    random_opening: bool = False
 
 
 PROMOTION_SUFFIXES = {
@@ -148,12 +149,17 @@ def _run_self_play_internal(
 
     def _pick_move(board: Board, base_depth: int) -> Optional[LegalMove]:
         """Helper to pick a move with current game context."""
+        if options.random_opening and options.use_opening_book:
+            book = options.opening_book or get_bundled_opening_book()
+            book_move = book.find_book_move_random(board)
+            if book_move is not None:
+                return book_move
         params = _MoveSelectionParams(
             board=board,
             depth=base_depth,
             timeout=None,
             position_counts=position_counts,
-            use_opening_book=options.use_opening_book,
+            use_opening_book=options.use_opening_book and not options.random_opening,
             opening_book=options.opening_book,
         )
         return _get_best_move_with_timeout(params)
@@ -244,6 +250,15 @@ def main():
         default=None,
         help="Path to custom opening book JSON file (default: use bundled book)",
     )
+    parser.add_argument(
+        "--random-opening",
+        action="store_true",
+        help=(
+            "Sample book moves proportional to weight instead of always picking "
+            "the best.  Produces varied games: White picks any known first move, "
+            "Black responds with a contextually valid defence for that opening."
+        ),
+    )
     args = parser.parse_args()
 
     # Validate depths >= 1
@@ -268,6 +283,7 @@ def main():
         verbose=True,
         use_opening_book=not args.no_opening_book,
         opening_book=opening_book,
+        random_opening=args.random_opening,
     )
     run_self_play(
         depth_white=args.white_depth,

@@ -444,7 +444,7 @@ class TestOpeningBookSchemaValidation:
         """Test that unsupported selection value raises error."""
         data = {
             "version": 1,
-            "selection": "weighted_random",  # Unsupported
+            "selection": "unknown_mode",  # Unsupported
             "lines": [
                 {
                     "name": "Test",
