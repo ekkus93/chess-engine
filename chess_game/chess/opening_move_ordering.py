@@ -512,8 +512,12 @@ def _is_castled_shelter_pawn_advance(board: Board, move: Move) -> bool:
     if abs(start_col - ref_col) > 1:
         return False
     start_row = int(move.start.row)
+    end_row = int(move.end.row)
     shield_row = 6 if color == Color.WHITE else 1
-    return start_row == shield_row
+    if start_row != shield_row:
+        return False
+    advance = abs(end_row - start_row)
+    return advance >= 2
 
 
 def _has_kingside_castling_rights(board: Board, color: Color) -> bool:
