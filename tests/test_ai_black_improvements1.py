@@ -191,3 +191,62 @@ def test_bishop_retreat_does_not_fire_in_endgame() -> None:
     # No queens on board — penalty should be 0
     penalty = _bishop_passive_retreat_penalty(board2, _m("d7c8"), Color.BLACK)
     assert penalty == 0, "No penalty when queens are absent"
+
+
+# ---------------------------------------------------------------------------
+# BLACK_IMPROVEMENTS2 regressions (castling urgency, path blocked, etc.)
+# ---------------------------------------------------------------------------
+
+
+def test_castling_path_blocked_fires_for_f8_bishop() -> None:
+    """castling_path_blocked_penalty should fire when f8 bishop blocks kingside castle."""
+    from chess_game.chess.opening_development import castling_path_blocked_penalty
+
+    board = _board_before_move(10)
+    assert board.turn == Color.BLACK
+    penalty = castling_path_blocked_penalty(board, Color.BLACK)
+    assert penalty > 0, "Penalty should fire when f8 bishop blocks castling"
+
+
+def test_castling_path_blocked_clears_after_bishop_moves() -> None:
+    """castling_path_blocked_penalty should be 0 after the f8 bishop moves away."""
+    from chess_game.chess.opening_development import castling_path_blocked_penalty
+
+    board = _board_before_move(10)
+    fe7 = _m("f8e7")
+    child = board.clone()
+    child.apply_legal_move(fe7.start, fe7.end)
+    assert castling_path_blocked_penalty(child, Color.BLACK) == 0
+
+
+def test_g5_shelter_advance_now_includes_blocking_castling_penalty() -> None:
+    """g7-g5 with f8 bishop at home should get double shelter penalty."""
+    board = _board_before_move(10)
+    g5 = _m("g7g5")
+    g6 = _m("g7g6")
+    gap = quiet_strategy_order_score(board, g6, None) - quiet_strategy_order_score(
+        board, g5, None
+    )
+    assert gap >= 60, f"Expected gap >= 60 (double penalty), got {gap}"
+
+
+def test_bishop_development_clears_castling_path_bonus() -> None:
+    """A bishop move that vacates f8 should get a castling-path bonus in ordering."""
+    board = _board_before_move(10)
+    fd6 = _m("f8d6")
+    g5 = _m("g7g5")
+    assert quiet_strategy_order_score(board, fd6, None) > quiet_strategy_order_score(
+        board, g5, None
+    ), "f8-d6 (clears castling path) should score above g7-g5"
+
+
+def test_depth3_avoids_g7g5_before_castling() -> None:
+    """depth=3 should NOT choose g7-g5 when the bishop still blocks castling."""
+    from chess_game.chess.ai import get_best_move
+
+    board = _board_before_move(10)
+    best = get_best_move(board, depth=3)
+    g5 = _m("g7g5")
+    assert not (
+        best is not None and best.start == g5.start and best.end == g5.end
+    ), "depth=3 should avoid g7-g5 with f8 bishop blocking castling"

@@ -43,8 +43,11 @@ from chess_game.chess.opening_move_ordering import (
     opening_discipline_order_score,
     undeveloped_minor_count,
     _is_castled_shelter_pawn_advance,
+    _is_late_castling_move,
 )
-from chess_game.chess.opening_development import middlegame_rim_knight_penalty as _rim_knight_penalty
+from chess_game.chess.opening_development import (
+    middlegame_rim_knight_penalty as _rim_knight_penalty,
+)
 from chess_game.chess.opening_guidance import opening_guidance_bonus
 from chess_game.chess.passer_race_guidance import (
     passer_race_extension_bonus,
@@ -817,6 +820,7 @@ def _strategic_root_bonus(
     score += middlegame_practicality_root_bonus(board, move, child_board, moving_color)
     score -= _rim_knight_root_penalty(child_board, moving_color)
     score -= _shelter_pawn_advance_root_penalty(board, move, moving_kind, moving_color)
+    score += _late_castling_root_bonus(board, move, moving_kind, moving_color)
     score += plan_continuity_bonus(
         board,
         move,
@@ -870,6 +874,29 @@ def _shelter_pawn_advance_root_penalty(
         return 0
     _ = moving_color
     return 24
+
+
+def _late_castling_root_bonus(
+    board: Board,
+    move: Move,
+    moving_kind: PieceType,
+    moving_color: Color,
+) -> int:
+    """Root-only bonus for castling moves when the king has been uncastled past move 10.
+
+    Compensates for the search horizon: even when evaluation penalises the uncastled
+    king, the root tiebreak needs an explicit nudge to prefer castling over near-equal
+    tactical alternatives.
+    """
+
+    if moving_kind != PieceType.KING:
+        return 0
+    if _is_simple_endgame(board):
+        return 0
+    if not _is_late_castling_move(board, move):
+        return 0
+    _ = moving_color
+    return 40
 
 
 def _opening_root_bonus(board: Board, move: Move, moving_kind: PieceType) -> int:

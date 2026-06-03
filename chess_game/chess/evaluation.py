@@ -42,6 +42,8 @@ from chess_game.chess.opening_development import (
     unforced_shelter_loosening_penalty as _unforced_shelter_loosening_penalty,
     undeveloped_minor_piece_count as _undeveloped_minor_piece_count,
     middlegame_rim_knight_penalty as _middlegame_rim_knight_penalty,
+    late_castling_urgency_penalty as _late_castling_urgency_penalty,
+    castling_path_blocked_penalty as _castling_path_blocked_penalty,
 )
 from chess_game.chess.tactical_transition_guidance import (
     tactical_transition_king_penalty as _tactical_transition_king_penalty,
@@ -771,6 +773,8 @@ def _evaluate_development(board: Board, middlegame_phase: int) -> int:
         development_score -= sign * rim_knight_penalty
         development_score -= sign * edge_space_grab_penalty
         development_score -= sign * _middlegame_rim_knight_penalty(board, color)
+        development_score -= sign * _late_castling_urgency_penalty(board, color)
+        development_score -= sign * _castling_path_blocked_penalty(board, color)
     return _scale_signed(development_score, middlegame_phase)
 
 

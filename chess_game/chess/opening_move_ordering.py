@@ -26,6 +26,9 @@ QUIET_UNSETTLED_RIM_KNIGHT_PENALTY = 18
 QUIET_KNIGHT_WING_DRIFT_PENALTY = 36
 QUIET_BISHOP_WING_DRIFT_PENALTY = 16
 QUIET_SHELTER_ADVANCE_PENALTY = 32
+QUIET_CLEARS_CASTLING_PATH_BONUS = 36
+QUIET_LATE_CASTLING_URGENCY_BONUS = 48
+QUIET_RIM_KNIGHT_DELAYS_CASTLING_PENALTY = 28
 QUIET_UNSETTLED_CENTRAL_BREAK_BONUS = 24
 QUIET_KNIGHT_FLANK_LUNGE_PENALTY = 26
 QUIET_MINOR_RETREAT_PENALTY = 20
@@ -77,12 +80,19 @@ def _minor_opening_discipline_score(board: Board, kind: PieceType, move: Move) -
         score -= QUIET_REPEATED_MINOR_PIECE_PENALTY
     if kind == PieceType.BISHOP and _is_bishop_wing_drift(move, unsettled_king):
         score -= QUIET_BISHOP_WING_DRIFT_PENALTY
+    if kind == PieceType.BISHOP and _clears_castling_path(board, move):
+        score += QUIET_CLEARS_CASTLING_PATH_BONUS
+    if kind == PieceType.KNIGHT and _is_rim_knight_delays_castling(board, move):
+        score -= QUIET_RIM_KNIGHT_DELAYS_CASTLING_PENALTY
     return score
 
 
 def _king_opening_discipline_score(board: Board, move: Move) -> int:
-    if _is_castling_move(move) and _opening_king_unsettled(board):
-        return QUIET_OPENING_CASTLING_URGENCY_BONUS
+    if _is_castling_move(move):
+        if _opening_king_unsettled(board):
+            return QUIET_OPENING_CASTLING_URGENCY_BONUS
+        if _is_late_castling_move(board, move):
+            return QUIET_LATE_CASTLING_URGENCY_BONUS
     if _is_premature_king_walk(board, move, king_needs_shelter(board, board.turn)):
         return -QUIET_PREMATURE_KING_WALK_PENALTY
     return 0
@@ -142,7 +152,25 @@ def _pawn_opening_discipline(
         score += QUIET_UNSETTLED_CENTRAL_BREAK_BONUS
     if _is_castled_shelter_pawn_advance(board, move):
         score -= QUIET_SHELTER_ADVANCE_PENALTY
+        if _shelter_advance_blocks_castling(board, move):
+            score -= QUIET_SHELTER_ADVANCE_PENALTY
     return score
+
+
+def _shelter_advance_blocks_castling(board: Board, _move: Move) -> bool:
+    """Return True when a shelter pawn advance also keeps the f-bishop blocking castling."""
+
+    color = board.turn
+    king_square = board.find_king(color)
+    if king_square is None:
+        return False
+    home_row = 7 if color == Color.WHITE else 0
+    if int(king_square.col) != 4:
+        return False
+    if not _has_kingside_castling_rights(board, color):
+        return False
+    piece = board.board[home_row][5]
+    return piece is not None and piece.color == color and piece.kind == PieceType.BISHOP
 
 
 def _rook_opening_discipline(
@@ -480,11 +508,10 @@ def _queens_on_board(board: Board) -> bool:
 
 
 def _is_castled_shelter_pawn_advance(board: Board, move: Move) -> bool:
-    """Return True when a kingside shelter pawn advances while queens are on the board.
+    """Return True when a kingside shelter pawn advances 2+ squares with queens on board.
 
     Covers both the castled king (at g1/g8 etc.) and the pre-castling central king
-    that intends to castle kingside — advancing the g- or h-pawn in either case
-    loosens the future shelter and invites attacks when the opponent still has a queen.
+    that intends to castle kingside.
     """
 
     if not _queens_on_board(board):
@@ -493,12 +520,11 @@ def _is_castled_shelter_pawn_advance(board: Board, move: Move) -> bool:
     king_square = board.find_king(color)
     if king_square is None:
         return False
+    home_row = 7 if color == Color.WHITE else 0
     king_col = int(king_square.col)
     king_row = int(king_square.row)
-    home_row = 7 if color == Color.WHITE else 0
     if king_row != home_row:
         return False
-    # Castled kingside (col 6) or central uncastled with kingside rights (col 4)
     if king_col == 6:
         ref_col = 6
     elif king_col == 4 and _has_kingside_castling_rights(board, color):
@@ -506,18 +532,12 @@ def _is_castled_shelter_pawn_advance(board: Board, move: Move) -> bool:
     else:
         return False
     start_col = int(move.start.col)
-    end_col = int(move.end.col)
-    if start_col != end_col:
-        return False
-    if abs(start_col - ref_col) > 1:
-        return False
-    start_row = int(move.start.row)
-    end_row = int(move.end.row)
     shield_row = 6 if color == Color.WHITE else 1
-    if start_row != shield_row:
-        return False
-    advance = abs(end_row - start_row)
-    return advance >= 2
+    same_file = start_col == int(move.end.col)
+    near_king = abs(start_col - ref_col) <= 1
+    on_shield = int(move.start.row) == shield_row
+    big_advance = abs(int(move.end.row) - int(move.start.row)) >= 2
+    return same_file and near_king and on_shield and big_advance
 
 
 def _has_kingside_castling_rights(board: Board, color: Color) -> bool:
@@ -530,4 +550,63 @@ def _opening_king_unsettled(board: Board) -> bool:
     if king_square is None or not both_queens_on_board(board):
         return False
     home_row = 7 if board.turn == Color.WHITE else 0
+    return int(king_square.row) == home_row and int(king_square.col) == 4
+
+
+def _clears_castling_path(board: Board, move: Move) -> bool:
+    """Return True when a bishop move vacates the f1/f8 square to unblock kingside castling."""
+
+    color = board.turn
+    if not _queens_on_board(board):
+        return False
+    king_square = board.find_king(color)
+    if king_square is None:
+        return False
+    home_row = 7 if color == Color.WHITE else 0
+    if int(king_square.row) != home_row or int(king_square.col) != 4:
+        return False
+    rights = board.castling_rights
+    if not (rights.white_kingside if color == Color.WHITE else rights.black_kingside):
+        return False
+    f_col = 5
+    if int(move.start.row) == home_row and int(move.start.col) == f_col:
+        if int(move.end.col) != f_col:
+            return True
+    return False
+
+
+def _is_rim_knight_delays_castling(board: Board, move: Move) -> bool:
+    """Return True when a knight goes to the rim while the king still needs to castle."""
+
+    color = board.turn
+    if not _queens_on_board(board):
+        return False
+    king_square = board.find_king(color)
+    if king_square is None:
+        return False
+    home_row = 7 if color == Color.WHITE else 0
+    if int(king_square.row) != home_row or int(king_square.col) != 4:
+        return False
+    rights = board.castling_rights
+    has_rights = (rights.white_kingside or rights.white_queenside) if color == Color.WHITE \
+        else (rights.black_kingside or rights.black_queenside)
+    if not has_rights:
+        return False
+    return int(move.end.col) in {0, 7}
+
+
+def _is_late_castling_move(board: Board, move: Move) -> bool:
+    """Return True for castling moves played after move 10 with the king on e1/e8."""
+
+    if not _is_castling_move(move):
+        return False
+    color = board.turn
+    if not _queens_on_board(board):
+        return False
+    if board.fullmove_number < 10:
+        return False
+    king_square = board.find_king(color)
+    if king_square is None:
+        return False
+    home_row = 7 if color == Color.WHITE else 0
     return int(king_square.row) == home_row and int(king_square.col) == 4

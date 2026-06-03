@@ -321,6 +321,62 @@ def opening_king_urgency_penalty(board: Board, color: Color, undeveloped: int) -
     return penalty
 
 
+_LATE_CASTLING_BASE_PENALTY = 12
+_LATE_CASTLING_MAX_PENALTY = 96
+_BISHOP_BLOCKS_CASTLING_PENALTY = 56
+
+
+def late_castling_urgency_penalty(board: Board, color: Color) -> int:
+    """Scale urgency penalty for every extra move the king stays uncastled past move 10.
+
+    After move 10, a king still on its home square with queens on the board is
+    increasingly dangerous.  The penalty grows linearly with move count so the
+    engine strongly prefers castling over tactical wing adventures.
+    """
+
+    if not _queens_on_board(board):
+        return 0
+    king_square = board.find_king(color)
+    if king_square is None or _is_castled_king(color, king_square):
+        return 0
+    home_row = 7 if color == Color.WHITE else 0
+    if int(king_square.row) != home_row or int(king_square.col) != 4:
+        return 0
+    if _castling_options_remaining(board, color) == 0:
+        return 0
+    excess = max(0, board.fullmove_number - 4)
+    if excess == 0:
+        return 0
+    return min(_LATE_CASTLING_BASE_PENALTY * excess, _LATE_CASTLING_MAX_PENALTY)
+
+
+def castling_path_blocked_penalty(board: Board, color: Color) -> int:
+    """Penalise a position where the kingside bishop is still on f1/f8 blocking castling.
+
+    When the king hasn't castled and kingside castling rights exist, the f-square
+    bishop sitting on its home square means castling is impossible until the bishop
+    moves.  This penalty pushes the engine to prioritise bishop development as a
+    prerequisite for castling.
+    """
+
+    if not _queens_on_board(board):
+        return 0
+    king_square = board.find_king(color)
+    if king_square is None or _is_castled_king(color, king_square):
+        return 0
+    home_row = 7 if color == Color.WHITE else 0
+    if int(king_square.row) != home_row or int(king_square.col) != 4:
+        return 0
+    rights = board.castling_rights
+    has_kingside = rights.white_kingside if color == Color.WHITE else rights.black_kingside
+    if not has_kingside:
+        return 0
+    piece = board.board[home_row][5]
+    if piece is None or piece.color != color or piece.kind != PieceType.BISHOP:
+        return 0
+    return _BISHOP_BLOCKS_CASTLING_PENALTY
+
+
 def opening_rook_connection_bonus(board: Board, color: Color, undeveloped: int) -> int:
     """Reward connected rooks once the opening phase is nearly complete."""
 
