@@ -480,10 +480,11 @@ def _queens_on_board(board: Board) -> bool:
 
 
 def _is_castled_shelter_pawn_advance(board: Board, move: Move) -> bool:
-    """Return True when a castled-side g or h pawn advances while queens are on the board.
+    """Return True when a kingside shelter pawn advances while queens are on the board.
 
-    Advancing the g- or h-pawn in front of the castled king loosens the shelter and
-    invites attacks.  This is bad when the opponent still has a queen on the board.
+    Covers both the castled king (at g1/g8 etc.) and the pre-castling central king
+    that intends to castle kingside — advancing the g- or h-pawn in either case
+    loosens the future shelter and invites attacks when the opponent still has a queen.
     """
 
     if not _queens_on_board(board):
@@ -495,17 +496,29 @@ def _is_castled_shelter_pawn_advance(board: Board, move: Move) -> bool:
     king_col = int(king_square.col)
     king_row = int(king_square.row)
     home_row = 7 if color == Color.WHITE else 0
-    if king_row != home_row or king_col not in {2, 6}:
+    if king_row != home_row:
+        return False
+    # Castled kingside (col 6) or central uncastled with kingside rights (col 4)
+    if king_col == 6:
+        ref_col = 6
+    elif king_col == 4 and _has_kingside_castling_rights(board, color):
+        ref_col = 6
+    else:
         return False
     start_col = int(move.start.col)
     end_col = int(move.end.col)
     if start_col != end_col:
         return False
-    if abs(start_col - king_col) > 1:
+    if abs(start_col - ref_col) > 1:
         return False
     start_row = int(move.start.row)
     shield_row = 6 if color == Color.WHITE else 1
     return start_row == shield_row
+
+
+def _has_kingside_castling_rights(board: Board, color: Color) -> bool:
+    rights = board.castling_rights
+    return rights.white_kingside if color == Color.WHITE else rights.black_kingside
 
 
 def _opening_king_unsettled(board: Board) -> bool:
