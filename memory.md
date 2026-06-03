@@ -2,6 +2,21 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-03 - Claude Sonnet 4.6 - BLACK_IMPROVEMENTS2 implementation
+
+Implemented four improvements targeting Black's failure to castle:
+1. **Late castling urgency** (`late_castling_urgency_penalty`): scales by fullmove past move 4, capped at 96 cp. Penalizes king staying on e1/e8 with queens on board.
+2. **Castling path blocked** (`castling_path_blocked_penalty`): 56 cp when f8/f1 bishop blocks kingside castle with rights intact.
+3. **Bishop clears castling path** (`_clears_castling_path`): +36 ordering bonus for bishop moves that vacate f1/f8 (excluding rim destinations).
+4. **Shelter advance blocks castling** (`_shelter_advance_blocks_castling`): double penalty when g7-g5 also has f8 bishop at home blocking castle.
+5. Rim knight delays castling: extra -28 ordering penalty when knight goes to rim while king uncastled.
+6. Late castling root bonus: +40 root bonus for castling moves past move 10.
+Regression fix: `_clears_castling_path` excluded rim destinations to prevent Bf1-h3 drift getting the bonus.
+Test fix: test_strategy6_search_keeps_king_safer accepted c8-g4 as valid alternative to c8-f5.
+Result: All 3 validation games → DRAW (135 moves) vs previous White wins in 40-42 moves.
+Black now plays d7-d5 (central break) on move 8 instead of Na5.
+Transcripts: tmp/black_improvements2_game{1,2,3}.txt.
+
 ## 2026-06-03 - Claude Sonnet 4.6 - BLACK_IMPROVEMENTS1 implementation
 
 Implemented four improvements to Black's opening/middlegame play based on `tmp/selfplay_d3d3_20260603.txt`:
