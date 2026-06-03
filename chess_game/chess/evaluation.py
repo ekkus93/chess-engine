@@ -41,6 +41,7 @@ from chess_game.chess.opening_development import (
     opening_piece_coordination_bonus as _opening_piece_coordination_bonus,
     unforced_shelter_loosening_penalty as _unforced_shelter_loosening_penalty,
     undeveloped_minor_piece_count as _undeveloped_minor_piece_count,
+    middlegame_rim_knight_penalty as _middlegame_rim_knight_penalty,
 )
 from chess_game.chess.tactical_transition_guidance import (
     tactical_transition_king_penalty as _tactical_transition_king_penalty,
@@ -153,7 +154,8 @@ def get_evaluation_breakdown(board: Board) -> EvaluationBreakdown:
         "review_loop": review_loop_evaluation_score(board),
         "development": _evaluate_development(board, middlegame_phase),
     }
-    breakdown["total"] = sum(breakdown.values())
+    eval_only = {"endgame_race", "middlegame_practicality"}
+    breakdown["total"] = sum(v for k, v in breakdown.items() if k not in eval_only)
     return breakdown
 
 
@@ -768,6 +770,7 @@ def _evaluate_development(board: Board, middlegame_phase: int) -> int:
         development_score -= sign * rook_sidestep_penalty
         development_score -= sign * rim_knight_penalty
         development_score -= sign * edge_space_grab_penalty
+        development_score -= sign * _middlegame_rim_knight_penalty(board, color)
     return _scale_signed(development_score, middlegame_phase)
 
 

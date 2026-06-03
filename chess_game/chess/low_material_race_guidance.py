@@ -8,7 +8,6 @@ from chess_game.chess.constants import ConstantSquare, get_square_constant
 from chess_game.chess.move import Move
 from chess_game.chess.strategy_utils import (
     ENDGAME_PRINCIPAL_PIECE_KINDS,
-    is_endgame_race_piece_kind,
     iter_color_pieces,
     king_coordinates,
     materially_behind_color,
@@ -123,10 +122,12 @@ def endgame_race_order_bonus(
 ) -> int:
     """Return a quiet-order bonus for exact race-converging or race-holding moves."""
 
-    if not is_endgame_race_piece_kind(kind):
+    if kind != PieceType.ROOK:
         return 0
     context = endgame_race_context(board, color)
     if context is None:
+        return 0
+    if context.enemy_passer is None:
         return 0
     child_board = board.clone()
     if not child_board.apply_legal_move(move.start, move.end, promotion=move.promotion):
@@ -140,45 +141,24 @@ def endgame_race_order_bonus(
 
 
 def endgame_race_root_bonus(
-    board: Board,
-    move: Move,
-    child_board: Board,
-    color: Color,
+    _board: Board,
+    _move: Move,
+    _child_board: Board,
+    _color: Color,
 ) -> int:
     """Return a root tie-break bonus for exact race preservation."""
 
-    context = endgame_race_context(board, color)
-    if context is None:
-        return 0
-    next_context = endgame_race_context(child_board, color) or context
-    before = _endgame_race_side_score(board, context)
-    after = _endgame_race_side_score(child_board, next_context)
-    bonus = (after - before) * _ENDGAME_RACE_ROOT_SCALE
-    bonus += _endgame_race_direct_bonus(board, child_board, move, next_context)
-    return bonus
+    return 0
 
 
 def endgame_race_extension_bonus(
-    board: Board,
-    move: Move,
-    child_board: Board,
-    color: Color,
+    _board: Board,
+    _move: Move,
+    _child_board: Board,
+    _color: Color,
 ) -> int:
     """Return 1 for narrow must-converge or must-hold race moves."""
 
-    context = endgame_race_context(board, color)
-    if context is None:
-        return 0
-    next_context = endgame_race_context(child_board, color) or context
-    before = _endgame_race_side_score(board, context)
-    after = _endgame_race_side_score(child_board, next_context)
-    if after - before >= _ENDGAME_RACE_EXTENSION_DELTA:
-        return 1
-    if (
-        _endgame_race_direct_bonus(board, child_board, move, next_context)
-        >= _ENDGAME_RACE_EXTENSION_DELTA
-    ):
-        return 1
     return 0
 
 

@@ -23,8 +23,9 @@ QUIET_OPENING_CENTRAL_ROOK_BONUS = 18
 QUIET_EARLY_QUEEN_DRIFT_PENALTY = 16
 QUIET_EARLY_QUEEN_REDEPLOY_PENALTY = 14
 QUIET_UNSETTLED_RIM_KNIGHT_PENALTY = 18
-QUIET_KNIGHT_WING_DRIFT_PENALTY = 18
+QUIET_KNIGHT_WING_DRIFT_PENALTY = 36
 QUIET_BISHOP_WING_DRIFT_PENALTY = 16
+QUIET_SHELTER_ADVANCE_PENALTY = 32
 QUIET_UNSETTLED_CENTRAL_BREAK_BONUS = 24
 QUIET_KNIGHT_FLANK_LUNGE_PENALTY = 26
 QUIET_MINOR_RETREAT_PENALTY = 20
@@ -89,77 +90,70 @@ def _king_opening_discipline_score(board: Board, move: Move) -> int:
 
 def _heavy_or_pawn_opening_discipline_score(board: Board, kind: PieceType, move: Move) -> int:
     if kind == PieceType.PAWN and int(move.end.col) not in {0, 1, 6, 7}:
-        return 0
+        if not _is_castled_shelter_pawn_advance(board, move):
+            return 0
     undeveloped = undeveloped_minor_count(board)
     needs_shelter = king_needs_shelter(board, board.turn) or _opening_king_unsettled(board)
     score = 0
-    if kind == PieceType.QUEEN and _is_early_queen_sortie(board, move, undeveloped):
+    if kind == PieceType.QUEEN:
+        score += _queen_opening_discipline(board, move, undeveloped, needs_shelter)
+    if kind in {PieceType.QUEEN, PieceType.ROOK}:
+        score += _heavy_piece_opening_discipline(board, kind, move, undeveloped, needs_shelter)
+    if kind == PieceType.PAWN:
+        score += _pawn_opening_discipline(board, move, undeveloped, needs_shelter)
+    if kind == PieceType.ROOK:
+        score += _rook_opening_discipline(board, move, undeveloped, needs_shelter)
+    return score
+
+
+def _queen_opening_discipline(
+    board: Board, move: Move, undeveloped: int, needs_shelter: bool
+) -> int:
+    score = 0
+    if _is_early_queen_sortie(board, move, undeveloped):
         score -= QUIET_EARLY_QUEEN_SORTIE_PENALTY
-    if kind == PieceType.QUEEN and _is_early_queen_drift(
-        board,
-        move,
-        undeveloped,
-        needs_shelter,
-    ):
+    if _is_early_queen_drift(board, move, undeveloped, needs_shelter):
         score -= QUIET_EARLY_QUEEN_DRIFT_PENALTY
-    if kind == PieceType.QUEEN and _is_followup_queen_redeploy(
-        board,
-        move,
-        undeveloped,
-        needs_shelter,
-    ):
+    if _is_followup_queen_redeploy(board, move, undeveloped, needs_shelter):
         score -= QUIET_EARLY_QUEEN_REDEPLOY_PENALTY
-    if kind in {PieceType.QUEEN, PieceType.ROOK} and _is_flank_raid(
-        board,
-        move,
-        undeveloped,
-        needs_shelter,
-    ):
+    return score
+
+
+def _heavy_piece_opening_discipline(
+    board: Board, kind: PieceType, move: Move, undeveloped: int, needs_shelter: bool
+) -> int:
+    score = 0
+    if _is_flank_raid(board, move, undeveloped, needs_shelter):
         score -= QUIET_FLANK_RAID_PENALTY
-    if kind in {PieceType.QUEEN, PieceType.ROOK} and is_repeat_heavy_piece_move(
-        board,
-        kind,
-        move,
-        undeveloped,
-        needs_shelter,
-    ):
+    if is_repeat_heavy_piece_move(board, kind, move, undeveloped, needs_shelter):
         score -= QUIET_REPEAT_HEAVY_PIECE_PENALTY
-    if kind == PieceType.PAWN and _is_early_flank_pawn_poke(
-        board,
-        move,
-        undeveloped,
-        needs_shelter,
-    ):
+    return score
+
+
+def _pawn_opening_discipline(
+    board: Board, move: Move, undeveloped: int, needs_shelter: bool
+) -> int:
+    score = 0
+    if _is_early_flank_pawn_poke(board, move, undeveloped, needs_shelter):
         score -= QUIET_FLANK_PAWN_POKE_PENALTY
-    if kind == PieceType.PAWN and _is_kingside_flank_lunge(
-        board,
-        move,
-        undeveloped,
-        needs_shelter,
-    ):
+    if _is_kingside_flank_lunge(board, move, undeveloped, needs_shelter):
         score -= QUIET_KINGSIDE_FLANK_LUNGE_PENALTY
-    if kind == PieceType.PAWN and _is_unsettled_central_break(board, move, undeveloped):
+    if _is_unsettled_central_break(board, move, undeveloped):
         score += QUIET_UNSETTLED_CENTRAL_BREAK_BONUS
-    if kind == PieceType.ROOK and _is_early_rook_wander(
-        board,
-        move,
-        undeveloped,
-        needs_shelter,
-    ):
+    if _is_castled_shelter_pawn_advance(board, move):
+        score -= QUIET_SHELTER_ADVANCE_PENALTY
+    return score
+
+
+def _rook_opening_discipline(
+    board: Board, move: Move, undeveloped: int, needs_shelter: bool
+) -> int:
+    score = 0
+    if _is_early_rook_wander(board, move, undeveloped, needs_shelter):
         score -= QUIET_EARLY_ROOK_WANDER_PENALTY
-    if kind == PieceType.ROOK and _is_uncastled_home_rank_rook_sidestep(
-        board,
-        move,
-        undeveloped,
-        needs_shelter,
-    ):
+    if _is_uncastled_home_rank_rook_sidestep(board, move, undeveloped, needs_shelter):
         score -= QUIET_UNCASTLED_HOME_RANK_ROOK_PENALTY
-    if kind == PieceType.ROOK and _is_opening_central_rook_move(
-        board,
-        move,
-        undeveloped,
-        needs_shelter,
-    ):
+    if _is_opening_central_rook_move(board, move, undeveloped, needs_shelter):
         score += QUIET_OPENING_CENTRAL_ROOK_BONUS
     return score
 
@@ -483,6 +477,35 @@ def _queens_on_board(board: Board) -> bool:
         for row in board.board
         for piece in row
     )
+
+
+def _is_castled_shelter_pawn_advance(board: Board, move: Move) -> bool:
+    """Return True when a castled-side g or h pawn advances while queens are on the board.
+
+    Advancing the g- or h-pawn in front of the castled king loosens the shelter and
+    invites attacks.  This is bad when the opponent still has a queen on the board.
+    """
+
+    if not _queens_on_board(board):
+        return False
+    color = board.turn
+    king_square = board.find_king(color)
+    if king_square is None:
+        return False
+    king_col = int(king_square.col)
+    king_row = int(king_square.row)
+    home_row = 7 if color == Color.WHITE else 0
+    if king_row != home_row or king_col not in {2, 6}:
+        return False
+    start_col = int(move.start.col)
+    end_col = int(move.end.col)
+    if start_col != end_col:
+        return False
+    if abs(start_col - king_col) > 1:
+        return False
+    start_row = int(move.start.row)
+    shield_row = 6 if color == Color.WHITE else 1
+    return start_row == shield_row
 
 
 def _opening_king_unsettled(board: Board) -> bool:

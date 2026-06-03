@@ -476,6 +476,30 @@ def _queen_in_enemy_half(color: Color, queen_row: int) -> bool:
 
 
 
+def middlegame_rim_knight_penalty(board: Board, color: Color) -> int:
+    """Penalise knights on the rim (a or h file) whenever queens are still on the board.
+
+    The existing early_rim_knight_development_penalty only fires when most pieces are
+    already developed (undeveloped <= 1).  This function fires regardless of
+    development count so that a knight that wanders to the rim early in the middlegame
+    is also penalised in the static evaluation.
+    """
+
+    if not _queens_on_board(board):
+        return 0
+    penalty = 0
+    home_row = 7 if color == Color.WHITE else 0
+    for piece, row, col in iter_color_pieces(board, color):
+        if piece.kind != PieceType.KNIGHT:
+            continue
+        if col not in {0, 7}:
+            continue
+        if (row, col) in {(home_row, 0), (home_row, 7)}:
+            continue
+        penalty += KNIGHT_RIM_PENALTY * 3
+    return penalty
+
+
 def _queens_on_board(board: Board) -> bool:
     white_has_queen = any(
         piece.kind == PieceType.QUEEN

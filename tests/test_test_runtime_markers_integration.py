@@ -1,7 +1,11 @@
 """Meta-integration tests for pytest slow/fast marker contracts."""
 
 import subprocess
-import tomllib
+
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
 
 
 class TestSlowMarkerContract:

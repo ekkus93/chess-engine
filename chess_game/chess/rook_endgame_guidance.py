@@ -71,7 +71,6 @@ def rook_endgame_order_bonus(
         bonus -= _WORSE_SIDE_CHECK_DRIFT_PENALTY
     if kind == PieceType.PAWN and _is_ready_outside_passer_push(board, color, move):
         bonus += _READY_OUTSIDE_PASSER_PUSH_BONUS
-    bonus += _race_alignment_bonus(board, color, kind, move)
     return bonus
 
 

@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from chess_game.chess.ai import get_best_move, get_evaluation_breakdown
-from chess_game.chess.board import Board
-from chess_game.chess.move import Move, parse_move_notation
+from chess_game.chess.board import Board, create_piece
+from chess_game.chess.move import Move
 from chess_game.chess.passer_race_guidance import (
     passer_race_order_bonus,
     passer_race_root_bonus,
@@ -19,20 +17,35 @@ from tests.helpers import sq
 
 pytestmark = pytest.mark.slow
 
-_TRANSCRIPT = Path(__file__).resolve().parents[1] / "tmp" / "strategy14_depth3_20260602T095859Z.txt"
 
+def _stalemate_trap_board() -> Board:
+    """Endgame where Black is winning but risks stalemating White.
 
-def _transcript_board(move_number: int) -> Board:
+    White: King a1 (completely stalemated if the f6 rook is captured),
+           Rook f6.  The White king cannot move: a2 is occupied by a Black
+           pawn defended by b3, b1 is attacked by the a2 pawn, and b2 is
+           attacked by the c3 pawn.
+
+    Black: King g6, Pawn g7, Pawn g5 (blocks g5 king escape), Knight g4,
+           Pawn a2 (advanced passer, defended by b3), Pawn b3, Pawn c3.
+
+    Black's only king escape that doesn't stalemate White is Kg6-h7.
+    All three captures at f6 (pawn, king, knight) leave White with zero
+    legal moves (stalemate), so the guidance should heavily penalise them.
+    """
     board = Board()
-    for line in _TRANSCRIPT.read_text().splitlines():
-        if not line.startswith("Move ") or " plays " not in line:
-            continue
-        current_move = int(line.split(":", 1)[0].split()[1])
-        move = parse_move_notation(line.split(" plays ", 1)[1].strip())
-        assert board.make_move(move.start, move.end, promotion=move.promotion) is True
-        if current_move == move_number:
-            return board
-    raise AssertionError(f"Move {move_number} not found in {_TRANSCRIPT}")
+    board.clear_board()
+    board.set_piece(sq("a1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("f6"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(sq("g6"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("g7"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.set_piece(sq("g5"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.set_piece(sq("g4"), create_piece(Color.BLACK, PieceType.KNIGHT))
+    board.set_piece(sq("a2"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.set_piece(sq("b3"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.set_piece(sq("c3"), create_piece(Color.BLACK, PieceType.PAWN))
+    board.turn = Color.BLACK
+    return board
 
 
 def _apply(board: Board, move: Move) -> Board:
@@ -44,7 +57,7 @@ def _apply(board: Board, move: Move) -> Board:
 def test_endgame2_black_prefers_escape_over_stalemate_capture() -> None:
     """Black should keep a winning endgame alive instead of boxing White into stalemate."""
 
-    board = _transcript_board(111)
+    board = _stalemate_trap_board()
     escape = Move(start=sq("g6"), end=sq("h7"))
     capture = Move(start=sq("g7"), end=sq("f6"))
     king_capture = Move(start=sq("g6"), end=sq("f6"))
@@ -89,7 +102,7 @@ def test_endgame2_black_prefers_escape_over_stalemate_capture() -> None:
 def test_endgame2_white_prefers_active_checking_defense_after_escape() -> None:
     """White should answer the safer conversion line with active checking play."""
 
-    board = _transcript_board(111)
+    board = _stalemate_trap_board()
     escape_child = _apply(board, Move(start=sq("g6"), end=sq("h7")))
     checking = Move(start=sq("f6"), end=sq("h6"))
     passive = Move(start=sq("f6"), end=sq("f5"))

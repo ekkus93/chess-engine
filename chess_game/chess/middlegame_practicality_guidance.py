@@ -29,7 +29,7 @@ from chess_game.chess.defensive_priorities import king_defense_profile
 from chess_game.chess.types import Color, PieceType
 
 _ORDER_SCALE = 4
-_ROOT_SCALE = 6
+_ROOT_SCALE = 2
 _EXTENSION_DELTA = 18
 _DEVELOPMENT_BONUS = 16
 _KING_SAFETY_BONUS = 10
@@ -78,6 +78,9 @@ def middlegame_practicality_order_bonus(
     context = _middlegame_context(board, color)
     if context is None:
         return 0
+    moving_piece = board.get_piece(move.start)
+    if moving_piece is not None and moving_piece.kind == PieceType.QUEEN:
+        return 0
     child_board = clone_legal_child_board(board, move)
     if child_board is None:
         return 0
@@ -100,6 +103,9 @@ def middlegame_practicality_root_bonus(
     context = _middlegame_context(board, color)
     if context is None:
         return 0
+    moving_piece = board.get_piece(move.start)
+    if moving_piece is not None and moving_piece.kind == PieceType.QUEEN:
+        return 0
     next_context = _middlegame_context(child_board, color) or context
     before = _side_score(board, context)
     after = _side_score(child_board, next_context)
@@ -114,23 +120,13 @@ def middlegame_practicality_root_bonus(
 
 
 def middlegame_practicality_extension_bonus(
-    board: Board,
-    move: Move,
-    child_board: Board,
-    color: Color,
+    _board: Board,
+    _move: Move,
+    _child_board: Board,
+    _color: Color,
 ) -> int:
     """Return 1 when a middlegame move needs a narrow extension."""
 
-    context = _middlegame_context(board, color)
-    if context is None:
-        return 0
-    next_context = _middlegame_context(child_board, color) or context
-    before = _side_score(board, context)
-    after = _side_score(child_board, next_context)
-    if after - before >= _EXTENSION_DELTA:
-        return 1
-    if _is_central_break(move) and after >= before:
-        return 1
     return 0
 
 

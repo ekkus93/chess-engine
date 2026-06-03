@@ -96,6 +96,7 @@ QUIET_CHECK_MATE_NET_BONUS = 64
 QUIET_CHECK_MATERIAL_BONUS = 30
 QUIET_CHECK_DRIVING_BONUS = 22
 QUIET_CHECK_SIMPLIFY_BONUS = 16
+QUIET_BISHOP_PASSIVE_RETREAT_PENALTY = 24
 QUIET_CHECK_SHRINK_BOX_BONUS = 16
 QUIET_CHECK_BREAK_DEFENDER_BONUS = 12
 QUIET_EMPTY_CHECK_PENALTY = 40
@@ -180,6 +181,8 @@ def quiet_strategy_order_score(
         score += QUIET_WORST_PIECE_BONUS
     score += _check_quality_bonus(board, piece.kind, move)
     score -= _advantage_preservation_penalty(board, piece, move, quiet_context)
+    if piece.kind == PieceType.BISHOP:
+        score -= _bishop_passive_retreat_penalty(board, move, piece.color)
     return score
 
 
@@ -982,3 +985,27 @@ def _path_clear_after_move(
         current_row += row_step
         current_col += col_step
     return True
+
+
+def _bishop_passive_retreat_penalty(board: Board, move: Move, color: Color) -> int:
+    """Penalise bishop moves that retreat to the back rank in the middlegame.
+
+    A bishop retreating to its own back rank (rank 1 for White, rank 8 for Black)
+    when queens are still on the board is almost always passive — it gives up an
+    active diagonal for a locked-in corner.  This is especially bad when the bishop
+    returns to a square it previously occupied (as happened in the Bd7-c8 retreat
+    in the baseline game).
+    """
+
+    back_rank_row = 7 if color == Color.WHITE else 0
+    if int(move.end.row) != back_rank_row:
+        return 0
+    if int(move.start.row) == back_rank_row:
+        return 0
+    if not any(
+        piece is not None and piece.kind == PieceType.QUEEN
+        for row in board.board
+        for piece in row
+    ):
+        return 0
+    return QUIET_BISHOP_PASSIVE_RETREAT_PENALTY

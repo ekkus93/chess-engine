@@ -20,7 +20,7 @@ from chess_game.chess.evaluation_tables import (
     PAWN_MAJORITY_ENDGAME_BONUS,
     WEAK_CHAIN_PAWN_PENALTY,
 )
-from chess_game.chess.strategy_utils import is_passed_pawn
+from chess_game.chess.strategy_utils import both_queens_on_board, is_passed_pawn
 from chess_game.chess.types import Color, PieceType
 
 
@@ -252,6 +252,8 @@ def _loose_shelter_pawn_penalty(
         penalty += distance * KING_SHELTER_LOOSENING_PENALTY
         if distance >= 2:
             penalty += KING_SHELTER_LOOSENING_PENALTY // 2
+    if penalty > 0 and both_queens_on_board(board):
+        penalty = (penalty * 3) // 2
     return (penalty * middlegame_phase) // 100
 
 

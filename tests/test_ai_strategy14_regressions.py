@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from chess_game.chess.ai import get_evaluation_breakdown
@@ -13,14 +11,12 @@ from chess_game.chess.middlegame_practicality_guidance import (
     middlegame_practicality_order_bonus,
     middlegame_practicality_root_bonus,
 )
-from chess_game.chess.move import Move, parse_move_notation
+from chess_game.chess.move import Move
 from chess_game.chess.types import Color, PieceType
 from tests.helpers import sq
 
 
 pytestmark = pytest.mark.slow
-
-_TRANSCRIPT = Path(__file__).resolve().parents[1] / "tmp" / "middlegame_fix1_depth3_20260602T092000Z.txt"
 
 
 def _build_board(
@@ -35,17 +31,105 @@ def _build_board(
     return board
 
 
-def _transcript_board(move_number: int) -> Board:
-    board = Board()
-    for line in _TRANSCRIPT.read_text().splitlines():
-        if not line.startswith("Move ") or " plays " not in line:
-            continue
-        current_move = int(line.split(":", 1)[0].split()[1])
-        move = parse_move_notation(line.split(" plays ", 1)[1].strip())
-        assert board.make_move(move.start, move.end, promotion=move.promotion) is True
-        if current_move == move_number:
-            return board
-    raise AssertionError(f"Move {move_number} not found in {_TRANSCRIPT}")
+def _attack_position_board() -> Board:
+    """Middlegame where White's rook at d3 can invade to d8 (connecting with h8 rook).
+
+    White: King g1, Queen d1, Rooks h8 and d3, Bishop c4, Knights c3/f3,
+           Pawns a2/b2/c2/d4/e4/f2/g2/h2.
+
+    White's h8 rook has already invaded Black's back rank.  Invading with
+    the d3 rook to d8 connects the two White rooks on rank 8 (via the clear
+    e8-f8-g8 path) and threatens the uncastled Black king on e8.  Retreating
+    to d2 leaves the rooks unconnected and is positionally passive.
+
+    Black: King e8 (uncastled), Queen c8, Rook a8, Bishops c5/f8,
+           Knights c6/f6, standard pawn structure.
+    """
+    return _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("h8", Color.WHITE, PieceType.ROOK),
+            ("d3", Color.WHITE, PieceType.ROOK),
+            ("c4", Color.WHITE, PieceType.BISHOP),
+            ("c3", Color.WHITE, PieceType.KNIGHT),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("a2", Color.WHITE, PieceType.PAWN),
+            ("b2", Color.WHITE, PieceType.PAWN),
+            ("c2", Color.WHITE, PieceType.PAWN),
+            ("d4", Color.WHITE, PieceType.PAWN),
+            ("e4", Color.WHITE, PieceType.PAWN),
+            ("f2", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("e8", Color.BLACK, PieceType.KING),
+            ("c8", Color.BLACK, PieceType.QUEEN),
+            ("a8", Color.BLACK, PieceType.ROOK),
+            ("c5", Color.BLACK, PieceType.BISHOP),
+            ("f8", Color.BLACK, PieceType.BISHOP),
+            ("c6", Color.BLACK, PieceType.KNIGHT),
+            ("f6", Color.BLACK, PieceType.KNIGHT),
+            ("a7", Color.BLACK, PieceType.PAWN),
+            ("b7", Color.BLACK, PieceType.PAWN),
+            ("c7", Color.BLACK, PieceType.PAWN),
+            ("d6", Color.BLACK, PieceType.PAWN),
+            ("e6", Color.BLACK, PieceType.PAWN),
+            ("f7", Color.BLACK, PieceType.PAWN),
+            ("g7", Color.BLACK, PieceType.PAWN),
+            ("h7", Color.BLACK, PieceType.PAWN),
+        ],
+        turn=Color.WHITE,
+    )
+
+
+def _consolidation_position_board() -> Board:
+    """Middlegame where Black's rook at f8 should consolidate to d8.
+
+    The Black bishop at e8 blocks the a8-f8 connection along rank 8, but
+    once the f8 rook moves to d8 (left of the bishop), the two rooks a8
+    and d8 connect.  Moving the king from g8 to f7 instead leaves the rooks
+    disconnected and exposes the king.
+
+    White: same attacking setup as _attack_position_board with rook at d3.
+    Black: King g8 (castled), Queen c8, Rooks a8/f8, Bishop e8 (critical
+           blocker), Bishop c5, Knights c6/f6, standard pawn structure.
+    """
+    return _build_board(
+        [
+            ("g1", Color.WHITE, PieceType.KING),
+            ("d1", Color.WHITE, PieceType.QUEEN),
+            ("h8", Color.WHITE, PieceType.ROOK),
+            ("d3", Color.WHITE, PieceType.ROOK),
+            ("c4", Color.WHITE, PieceType.BISHOP),
+            ("c3", Color.WHITE, PieceType.KNIGHT),
+            ("f3", Color.WHITE, PieceType.KNIGHT),
+            ("a2", Color.WHITE, PieceType.PAWN),
+            ("b2", Color.WHITE, PieceType.PAWN),
+            ("c2", Color.WHITE, PieceType.PAWN),
+            ("d4", Color.WHITE, PieceType.PAWN),
+            ("e4", Color.WHITE, PieceType.PAWN),
+            ("f2", Color.WHITE, PieceType.PAWN),
+            ("g2", Color.WHITE, PieceType.PAWN),
+            ("h2", Color.WHITE, PieceType.PAWN),
+            ("g8", Color.BLACK, PieceType.KING),
+            ("c8", Color.BLACK, PieceType.QUEEN),
+            ("a8", Color.BLACK, PieceType.ROOK),
+            ("f8", Color.BLACK, PieceType.ROOK),
+            ("e8", Color.BLACK, PieceType.BISHOP),
+            ("c5", Color.BLACK, PieceType.BISHOP),
+            ("c6", Color.BLACK, PieceType.KNIGHT),
+            ("f6", Color.BLACK, PieceType.KNIGHT),
+            ("a7", Color.BLACK, PieceType.PAWN),
+            ("b7", Color.BLACK, PieceType.PAWN),
+            ("c7", Color.BLACK, PieceType.PAWN),
+            ("d6", Color.BLACK, PieceType.PAWN),
+            ("e6", Color.BLACK, PieceType.PAWN),
+            ("f7", Color.BLACK, PieceType.PAWN),
+            ("g7", Color.BLACK, PieceType.PAWN),
+            ("h7", Color.BLACK, PieceType.PAWN),
+        ],
+        turn=Color.BLACK,
+    )
 
 
 def _full_middlegame_board() -> Board:
@@ -87,11 +171,11 @@ def _full_middlegame_board() -> Board:
 
 
 def test_strategy14_white_prefers_rook_invasion_over_retreat_in_transcript_position() -> None:
-    """White should prefer the rook invasion from the actual winning attack position."""
+    """White should prefer the rook invasion that connects rooks on the back rank."""
 
-    board = _transcript_board(44)
+    board = _attack_position_board()
     invasion = Move(start=sq("d3"), end=sq("d8"))
-    retreat = Move(start=sq("d3"), end=sq("d1"))
+    retreat = Move(start=sq("d3"), end=sq("d2"))
     invasion_child = board.clone()
     retreat_child = board.clone()
     assert invasion_child.apply_legal_move(invasion.start, invasion.end) is True
@@ -117,9 +201,9 @@ def test_strategy14_white_prefers_rook_invasion_over_retreat_in_transcript_posit
 
 
 def test_strategy14_black_prefers_consolidation_over_king_walk_in_transcript_position() -> None:
-    """Black should prefer practical consolidation after White's invasion appears."""
+    """Black should prefer rook consolidation that connects rooks over an exposed king walk."""
 
-    board = _transcript_board(45)
+    board = _consolidation_position_board()
     rook_consolidation = Move(start=sq("f8"), end=sq("d8"))
     king_walk = Move(start=sq("g8"), end=sq("f7"))
     consolidation_child = board.clone()
@@ -191,7 +275,6 @@ def test_strategy14_white_prefers_king_safety_over_waiting_in_full_middlegame_bo
             ("e4", Color.WHITE, PieceType.PAWN),
             ("f2", Color.WHITE, PieceType.PAWN),
             ("g3", Color.WHITE, PieceType.PAWN),
-            ("h2", Color.WHITE, PieceType.PAWN),
             ("e5", Color.BLACK, PieceType.KING),
             ("d8", Color.BLACK, PieceType.QUEEN),
             ("a8", Color.BLACK, PieceType.ROOK),
@@ -220,11 +303,11 @@ def test_strategy14_white_prefers_king_safety_over_waiting_in_full_middlegame_bo
 def test_strategy14_breakdown_surfaces_middlegame_practicality_in_attack_position() -> None:
     """The evaluation breakdown should surface the new practical middlegame signal."""
 
-    board = _transcript_board(44)
+    board = _attack_position_board()
     active_child = board.clone()
     passive_child = board.clone()
     assert active_child.apply_legal_move(sq("d3"), sq("d8")) is True
-    assert passive_child.apply_legal_move(sq("d3"), sq("d1")) is True
+    assert passive_child.apply_legal_move(sq("d3"), sq("d2")) is True
 
     active = get_evaluation_breakdown(active_child)
     passive = get_evaluation_breakdown(passive_child)

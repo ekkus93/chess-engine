@@ -2,6 +2,10 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-02 - Claude Sonnet 4.6 - Python environment uses uv
+
+Always use `uv run` for all Python commands in this project. A `.venv` managed by uv (Python 3.11.14) exists at `.venv/`. Do NOT use mambaforge Python (`/home/phil/mambaforge/bin/python`). The `uv.lock` file is committed to the repo. Example: `uv run python -m pytest tests/ -q`. CLAUDE.md has been updated to document this.
+
 ## 2026-06-02T11:23:34Z - GPT-5.4 mini - ENDGAME2 anti-stalemate conversion
 - The ENDGAME2 fix lives in `passer_race_guidance.py` via a defender-escape bonus that penalizes stalemate captures and rewards moves that leave the defender legal replies.
 - The new regression board is the strategy14 transcript position after move 111; Black now prefers `g6h7`, and White's practical reply after that is an active checking move.
