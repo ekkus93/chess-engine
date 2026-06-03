@@ -42,7 +42,9 @@ from chess_game.chess.opponent_plans import opponent_plan_profile
 from chess_game.chess.opening_move_ordering import (
     opening_discipline_order_score,
     undeveloped_minor_count,
+    _is_castled_shelter_pawn_advance,
 )
+from chess_game.chess.opening_development import middlegame_rim_knight_penalty as _rim_knight_penalty
 from chess_game.chess.opening_guidance import opening_guidance_bonus
 from chess_game.chess.passer_race_guidance import (
     passer_race_extension_bonus,
@@ -813,6 +815,8 @@ def _strategic_root_bonus(
     score += tactical_transition_root_bonus(board, move, child_board, moving_color)
     score += endgame_race_root_bonus(board, move, child_board, moving_color)
     score += middlegame_practicality_root_bonus(board, move, child_board, moving_color)
+    score -= _rim_knight_root_penalty(child_board, moving_color)
+    score -= _shelter_pawn_advance_root_penalty(board, move, moving_kind, moving_color)
     score += plan_continuity_bonus(
         board,
         move,
@@ -840,6 +844,32 @@ def _pawn_structure_change_root_bonus(
     if is_capture_move(board, move):
         return _PAWN_STRUCTURE_CHANGE_ROOT_BONUS
     return 0
+
+
+def _rim_knight_root_penalty(child_board: Board, moving_color: Color) -> int:
+    """Root penalty for lines that leave a friendly knight on the rim with queens on board."""
+
+    if _is_simple_endgame(child_board):
+        return 0
+    return _rim_knight_penalty(child_board, moving_color)
+
+
+def _shelter_pawn_advance_root_penalty(
+    board: Board,
+    move: Move,
+    moving_kind: PieceType,
+    moving_color: Color,
+) -> int:
+    """Root penalty for castled-shelter pawn advances while the opponent has a queen."""
+
+    if moving_kind != PieceType.PAWN:
+        return 0
+    if _is_simple_endgame(board):
+        return 0
+    if not _is_castled_shelter_pawn_advance(board, move):
+        return 0
+    _ = moving_color
+    return 24
 
 
 def _opening_root_bonus(board: Board, move: Move, moving_kind: PieceType) -> int:
