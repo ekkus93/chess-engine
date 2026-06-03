@@ -570,7 +570,8 @@ def _clears_castling_path(board: Board, move: Move) -> bool:
         return False
     f_col = 5
     if int(move.start.row) == home_row and int(move.start.col) == f_col:
-        if int(move.end.col) != f_col:
+        end_col = int(move.end.col)
+        if end_col != f_col and end_col not in {0, 7}:
             return True
     return False
 
