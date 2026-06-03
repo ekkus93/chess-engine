@@ -2,6 +2,18 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-03 - Claude Sonnet 4.6 - BLACK_IMPROVEMENTS1 implementation
+
+Implemented four improvements to Black's opening/middlegame play based on `tmp/selfplay_d3d3_20260603.txt`:
+1. **Rim knight**: `middlegame_rim_knight_penalty` in `opening_development.py` fires regardless of undeveloped count; `QUIET_KNIGHT_WING_DRIFT_PENALTY` doubled (18→36); `_rim_knight_root_penalty` added to root tie-break in `ai_search_helpers.py`.
+2. **Shelter pawn**: `_loose_shelter_pawn_penalty` now scales 1.5× with enemy queens; `_is_castled_shelter_pawn_advance` added to ordering (only fires for 2-square advances, covers pre-castling kings with kingside rights); `_shelter_pawn_advance_root_penalty` added to root.
+3. **Rook shuffle**: Existing `quiet_cycle_penalty` (92 pts) confirmed effective; structural regression added.
+4. **Bishop retreat**: `_bishop_passive_retreat_penalty` (-24) added to `ai_move_ordering.py` for back-rank retreats with queens on board.
+Regression fix: `_is_castled_shelter_pawn_advance` was incorrectly penalising single-step luft (g2-g3); restricted to 2-square advances.
+Tests: 681 fast + 139 slow all pass. pylint 10.00/10.
+Validation: Bishop retreat and rook shuffle fully eliminated. Na5 and g5 (specific Sicilian line) still appear at depth=3 due to tactical justification — ordering/eval signals are in place but insufficient to override immediate tempo gain.
+Transcript: `tmp/black_improvements1_game1.txt`, `game2.txt`, `game3.txt`.
+
 ## 2026-06-02 - Claude Sonnet 4.6 - Python environment uses uv
 
 Always use `uv run` for all Python commands in this project. A `.venv` managed by uv (Python 3.11.14) exists at `.venv/`. Do NOT use mambaforge Python (`/home/phil/mambaforge/bin/python`). The `uv.lock` file is committed to the repo. Example: `uv run python -m pytest tests/ -q`. CLAUDE.md has been updated to document this.

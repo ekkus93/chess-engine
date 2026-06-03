@@ -289,24 +289,24 @@ No changes to legal move generation or the public API.
 ### 5.2 Evaluate improvement
 
 For each game, check:
-- [ ] Does Black play Na5 (or another rim knight) in the opening?
-- [ ] Does Black push g5 or h5 before move 25 while still castled and under queen pressure?
-- [ ] Does Black's rook shuffle between the same two squares more than once consecutively?
-- [ ] Does Black play a clearly passive bishop retreat when active alternatives exist?
+- [x] Does Black play Na5 (or another rim knight) in the opening?
+- [x] Does Black push g5 or h5 before move 25 while still castled and under queen pressure?
+- [x] Does Black's rook shuffle between the same two squares more than once consecutively?
+- [x] Does Black play a clearly passive bishop retreat when active alternatives exist?
 
 Record findings in `tmp/black_improvements1_validation.txt`.
 
 ### 5.3 Accept or iterate
 
-- [ ] If all four weaknesses are reduced or eliminated → mark this TODO complete.
-- [ ] If one or more persist → revisit the relevant task and increase signal
+- [x] If all four weaknesses are reduced or eliminated → mark this TODO complete.
+- [x] If one or more persist → revisit the relevant task and increase signal
       strength, then re-run.
 
 ### 5.4 Final verification gate
 
-- [ ] `uv run python -m ruff check chess_game tests` — all clear.
-- [ ] `uv run python -m mypy chess_game` — no errors.
-- [ ] `uv run python -m pylint chess_game` — 10.00/10.
+- [x] `uv run python -m ruff check chess_game tests` — all clear.
+- [x] `uv run python -m mypy chess_game` — no errors.
+- [x] `uv run python -m pylint chess_game` — 10.00/10.
 - [ ] `uv run python -m pytest tests/ -q -m "not slow"` — all pass.
 - [ ] `uv run python -m pytest tests/ -q -m "slow"` — all pass.
 - [x] Update `memory.md` with timestamp, model used, and summary of changes.
