@@ -252,28 +252,28 @@ def h_pawn_exposure_penalty(board: Board, color: Color) -> int:
     if h_piece is None or h_piece.color != color or h_piece.kind != PieceType.PAWN:
         return 0
     enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
-    penalty = 0
-    for piece, row, col in iter_color_pieces(board, enemy_color):
-        if piece.kind not in {PieceType.BISHOP, PieceType.QUEEN}:
-            continue
-        d_row = h_row - row
-        d_col = h_col - col
-        if abs(d_row) != abs(d_col) or d_row == 0:
-            continue
-        step_r = 1 if h_row > row else -1
-        step_c = 1 if h_col > col else -1
-        blockers = 0
-        r, c = row + step_r, col + step_c
-        while (r, c) != (h_row, h_col):
-            if board.board[r][c] is not None:
-                blockers += 1
-            r += step_r
-            c += step_c
-        if blockers == 0:
-            penalty += 30
-        elif blockers == 1:
-            penalty += 15
-    return penalty
+    return sum(
+        _diagonal_threat_to_h(board, row, col, h_row, h_col)
+        for piece, row, col in iter_color_pieces(board, enemy_color)
+        if piece.kind in {PieceType.BISHOP, PieceType.QUEEN}
+    )
+
+
+def _diagonal_threat_to_h(
+    board: Board, row: int, col: int, h_row: int, h_col: int
+) -> int:
+    d_row, d_col = h_row - row, h_col - col
+    if abs(d_row) != abs(d_col) or d_row == 0:
+        return 0
+    step_r = 1 if h_row > row else -1
+    step_c = 1 if h_col > col else -1
+    blockers, r, c = 0, row + step_r, col + step_c
+    while (r, c) != (h_row, h_col):
+        if board.board[r][c] is not None:
+            blockers += 1
+        r += step_r
+        c += step_c
+    return 30 if blockers == 0 else (15 if blockers == 1 else 0)
 
 
 def _king_lacks_luft(board: Board, color: Color, king_row: int) -> bool:
