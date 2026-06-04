@@ -1,11 +1,10 @@
 """Regressions for WHITE_IMPROVEMENTS2: early luft, castling urgency, KQvKR, pawn race.
 
-Positions are drawn from the WHITE_IMPROVEMENTS1 validation games.
+Positions are constructed directly rather than loaded from transcript files so
+the tests remain self-contained and do not depend on game artifacts in tmp/.
 """
 
 from __future__ import annotations
-
-import re
 
 from chess_game.chess.ai_move_ordering import (
     is_prophylactic_h_luft,
@@ -19,16 +18,29 @@ from chess_game.chess.types import Color, PieceType
 from tests.helpers import sq
 
 
-def _board_from_moves(path: str, n: int) -> Board:
-    moves = re.findall(
-        r"^Move \d+: (?:White|Black) plays ([a-h][1-8][a-h][1-8][qrbn]?)$",
-        open(path).read(),
-        re.MULTILINE,
-    )
+def _pos_white_castled_g1() -> Board:
+    """White king castled at g1 with h2 pawn; queens on board.  White to move."""
     board = Board()
-    for mv in moves[:n]:
-        p = parse_move_notation(mv)
-        board.make_move(p.start, p.end, promotion=p.promotion)
+    board.clear_board()
+    board.set_piece(sq("g1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("h2"), create_piece(Color.WHITE, PieceType.PAWN))
+    board.set_piece(sq("d1"), create_piece(Color.WHITE, PieceType.QUEEN))
+    board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("d8"), create_piece(Color.BLACK, PieceType.QUEEN))
+    board.turn = Color.WHITE
+    return board
+
+
+def _pos_white_uncastled_midgame() -> Board:
+    """White king at e1 (uncastled) at fullmove 15; queens on board.  White to move."""
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("d1"), create_piece(Color.WHITE, PieceType.QUEEN))
+    board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("d8"), create_piece(Color.BLACK, PieceType.QUEEN))
+    board.fullmove_number = 15  # past move 4 so late_castling_urgency fires
+    board.turn = Color.WHITE
     return board
 
 
@@ -62,14 +74,14 @@ def _kqvkr_board(queen_color: Color) -> Board:
 
 def test_is_prophylactic_h_luft_fires_after_castling() -> None:
     """is_prophylactic_h_luft should return True when king is castled at g1."""
-    board = _board_from_moves("tmp/white_improvements1_game1.txt", 20)
+    board = _pos_white_castled_g1()
     assert board.find_king(Color.WHITE) is not None
     assert is_prophylactic_h_luft(board, Color.WHITE)
 
 
 def test_h3_ordering_positive_after_castling() -> None:
     """h2-h3 should score positively after castling (not negative from old penalties)."""
-    board = _board_from_moves("tmp/white_improvements1_game1.txt", 20)
+    board = _pos_white_castled_g1()
     h3 = _m("h2h3")
     score = quiet_strategy_order_score(board, h3, None)
     assert score > 0, f"h2-h3 should score positively, got {score}"
@@ -77,7 +89,7 @@ def test_h3_ordering_positive_after_castling() -> None:
 
 def test_h3_competitive_with_other_moves_after_castling() -> None:
     """After castling h2-h3 should score at least +20 (prophylactic bonus active)."""
-    board = _board_from_moves("tmp/white_improvements1_game1.txt", 20)
+    board = _pos_white_castled_g1()
     h3 = _m("h2h3")
     score = quiet_strategy_order_score(board, h3, None)
     assert score >= 20, (
@@ -93,7 +105,7 @@ def test_prophylactic_luft_constant_positive() -> None:
 def test_tactical_transition_does_not_penalise_h3() -> None:
     """h2-h3 (1-square advance) should not receive shelter-loosening penalty."""
     from chess_game.chess.tactical_transition_guidance import tactical_transition_order_bonus
-    board = _board_from_moves("tmp/white_improvements1_game1.txt", 20)
+    board = _pos_white_castled_g1()
     h3 = _m("h2h3")
     bonus = tactical_transition_order_bonus(board, h3)
     assert bonus >= 0, f"tactical_transition should not penalise h2-h3, got {bonus}"
@@ -106,7 +118,7 @@ def test_tactical_transition_does_not_penalise_h3() -> None:
 
 def test_late_castling_urgency_fires_when_uncastled_with_queens() -> None:
     """late_castling_urgency_penalty should fire when king is uncastled with queens on board."""
-    board = _board_from_moves("tmp/white_improvements1_game2.txt", 15)
+    board = _pos_white_uncastled_midgame()
     penalty = late_castling_urgency_penalty(board, Color.WHITE)
     assert penalty > 0, (
         f"Uncastled king with queens should have urgency penalty > 0, got {penalty}"

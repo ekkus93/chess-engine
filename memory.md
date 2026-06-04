@@ -2,6 +2,25 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-04 - Claude Sonnet 4.6 - WHITE_IMPROVEMENTS2 validation and test fixes
+
+Ran three depth-3 self-play games to validate WHITE_IMPROVEMENTS2 changes:
+- Game 1 (tmp/white_improvements2_game1.txt): 194 moves, WHITE WINS (checkmate).
+  White castled queenside move 11, h3 played move 81 (queenside king — N/A criterion).
+  Black promoted h-pawn move 142; White captured queen immediately and won.
+- Game 2 (tmp/white_improvements2_game2.txt): 201 moves, BLACK WINS.
+  White NEVER formally castled (king walked e1→f2→g1 on move 35-37).
+  Castling urgency signal insufficient in Queen's Gambit-style opening with early b4/b5 pushes.
+- Game 3 (tmp/white_improvements2_game3.txt): 189 moves, BLACK WINS.
+  White castled kingside move 23, h3 played move 85 (62 halfmoves after castle, not within 5).
+
+Task 1 (h3 within 5 moves of kingside castle): FAIL — signal fires in tests but loses to competing middlegame plans in depth-3 search.
+Task 2 (castle by move 25 in all 3): PARTIAL (2/3) — failed in game 2's tactical opening.
+Task 3 (KQvKR no passive losses): PASS — no KQvKR positions arose; when Black promoted (game 1) White captured immediately.
+Task 4 (pawn race): PASS — White handled Black's promotion correctly in game 1.
+
+Also fixed 27 failing tests in test_ai_white_improvements1.py, test_ai_black_improvements1.py, and test_ai_white_improvements2.py that depended on missing tmp/ transcript files. Replaced transcript-based position loading with directly constructed Board positions — tests now self-contained. All 707 fast tests pass; ruff/mypy/pylint 10.00/10 clean.
+
 ## 2026-06-04 - Claude Sonnet 4.6 - WHITE_IMPROVEMENTS1 implementation
 
 Fixed three failure patterns from selfplay_varied_game2.txt (Black won via Bxh2+ in 34 moves):
