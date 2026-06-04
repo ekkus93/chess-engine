@@ -75,6 +75,10 @@ def _king_base_danger(
         danger += 1
     if _is_central_king(king_row, king_col) and _queens_remain(board):
         danger += 1
+    if h_pawn_exposure_penalty(board, color) >= 30:
+        danger += 2
+    elif h_pawn_exposure_penalty(board, color) >= 15:
+        danger += 1
     return danger
 
 
@@ -218,6 +222,58 @@ def _safe_king_move_count(board: Board, color: Color) -> int:
     if king_square is None:
         return 0
     return len(temp_board.get_legal_moves(king_square))
+
+
+def h_pawn_exposure_penalty(board: Board, color: Color) -> int:
+    """Return a penalty when the h-pawn shelter is absent and an enemy piece threatens h2/h7.
+
+    The classic Bxh2+ sacrifice only works when:
+    1. The king has castled kingside (at g1/g8).
+    2. The h-pawn is still on its home square (h2/h7) — if it has advanced, the
+       king may already have luft; if it was captured, the weakness is structural.
+    3. An enemy bishop or queen has a clear or near-clear diagonal to h2/h7.
+
+    The penalty is 30 cp per threatening piece and scales with how clear the
+    diagonal is (0 pieces in the way = full penalty, 1 piece = half).
+    """
+
+    king_pos = king_coordinates(board, color)
+    if king_pos is None:
+        return 0
+    king_row, king_col = king_pos
+    home_row = 7 if color == Color.WHITE else 0
+    if king_row != home_row or king_col != 6:
+        return 0
+    if not _queens_remain(board):
+        return 0
+    h_col = 7
+    h_row = home_row - 1 if color == Color.WHITE else home_row + 1
+    h_piece = board.board[h_row][h_col]
+    if h_piece is None or h_piece.color != color or h_piece.kind != PieceType.PAWN:
+        return 0
+    enemy_color = Color.BLACK if color == Color.WHITE else Color.WHITE
+    penalty = 0
+    for piece, row, col in iter_color_pieces(board, enemy_color):
+        if piece.kind not in {PieceType.BISHOP, PieceType.QUEEN}:
+            continue
+        d_row = h_row - row
+        d_col = h_col - col
+        if abs(d_row) != abs(d_col) or d_row == 0:
+            continue
+        step_r = 1 if h_row > row else -1
+        step_c = 1 if h_col > col else -1
+        blockers = 0
+        r, c = row + step_r, col + step_c
+        while (r, c) != (h_row, h_col):
+            if board.board[r][c] is not None:
+                blockers += 1
+            r += step_r
+            c += step_c
+        if blockers == 0:
+            penalty += 30
+        elif blockers == 1:
+            penalty += 15
+    return penalty
 
 
 def _king_lacks_luft(board: Board, color: Color, king_row: int) -> bool:

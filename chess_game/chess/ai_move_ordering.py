@@ -31,6 +31,7 @@ from chess_game.chess.defensive_priorities import (
     king_defense_profile,
     king_danger_index,
     king_needs_shelter,
+    h_pawn_exposure_penalty,
 )
 from chess_game.chess.evaluation_tables import MATERIAL_VALUES
 from chess_game.chess.move import Move
@@ -77,6 +78,7 @@ QUIET_MAJOR_TRADE_OFFER_BONUS = 26
 QUIET_KING_REFINEMENT_BONUS = 10
 QUIET_USEFUL_CHECK_BONUS = 34
 QUIET_URGENT_LUFT_BONUS = 24
+QUIET_H_EXPOSURE_LUFT_BONUS = 40
 QUIET_CONTEST_ATTACK_FILE_BONUS = 44
 QUIET_DANGER_RELIEF_BONUS = 52
 QUIET_ENTRY_SQUARE_BONUS = 28
@@ -298,6 +300,8 @@ def _pawn_bonus(board: Board, color: Color, kind: PieceType, move: Move) -> int:
         score += QUIET_LUFT_BONUS
         if _is_urgent_luft(board, color):
             score += QUIET_URGENT_LUFT_BONUS
+        if h_pawn_exposure_penalty(board, color) >= 15 and _is_h_pawn_luft(color, move):
+            score += QUIET_H_EXPOSURE_LUFT_BONUS
     return score
 
 
@@ -509,6 +513,16 @@ def _creates_luft(color: Color, move: Move) -> bool:
     return (
         int(move.start.row) == home_row
         and int(move.start.col) in {5, 6, 7}
+        and abs(int(move.end.row) - int(move.start.row)) == 1
+    )
+
+
+def _is_h_pawn_luft(color: Color, move: Move) -> bool:
+    """Return True when the move specifically creates h-file luft (h2-h3 or h7-h6)."""
+    home_row = 6 if color == Color.WHITE else 1
+    return (
+        int(move.start.row) == home_row
+        and int(move.start.col) == 7
         and abs(int(move.end.row) - int(move.start.row)) == 1
     )
 
@@ -988,24 +1002,27 @@ def _path_clear_after_move(
 
 
 def _bishop_passive_retreat_penalty(board: Board, move: Move, color: Color) -> int:
-    """Penalise bishop moves that retreat to the back rank in the middlegame.
+    """Penalise bishop moves that retreat to the back rank or second rank in the middlegame.
 
     A bishop retreating to its own back rank (rank 1 for White, rank 8 for Black)
-    when queens are still on the board is almost always passive — it gives up an
-    active diagonal for a locked-in corner.  This is especially bad when the bishop
-    returns to a square it previously occupied (as happened in the Bd7-c8 retreat
-    in the baseline game).
+    or second rank (rank 2 for White, rank 7 for Black) when queens are still on
+    the board is almost always passive — it gives up an active diagonal and is
+    often blocked by its own pawns.  The classic example is Bf4-d2, which retreated
+    the bishop to d2 in game 2 where it did nothing for the rest of the game.
     """
 
-    back_rank_row = 7 if color == Color.WHITE else 0
-    if int(move.end.row) != back_rank_row:
-        return 0
-    if int(move.start.row) == back_rank_row:
-        return 0
     if not any(
         piece is not None and piece.kind == PieceType.QUEEN
         for row in board.board
         for piece in row
     ):
         return 0
-    return QUIET_BISHOP_PASSIVE_RETREAT_PENALTY
+    back_rank_row = 7 if color == Color.WHITE else 0
+    second_rank_row = 6 if color == Color.WHITE else 1
+    end_row = int(move.end.row)
+    start_row = int(move.start.row)
+    if end_row == back_rank_row and start_row != back_rank_row:
+        return QUIET_BISHOP_PASSIVE_RETREAT_PENALTY
+    if end_row == second_rank_row and start_row not in {back_rank_row, second_rank_row}:
+        return QUIET_BISHOP_PASSIVE_RETREAT_PENALTY // 2
+    return 0

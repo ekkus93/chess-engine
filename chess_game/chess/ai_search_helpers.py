@@ -36,6 +36,7 @@ from chess_game.chess.defensive_priorities import (
     king_defense_profile,
     king_danger_index,
     king_needs_shelter,
+    h_pawn_exposure_penalty as _h_pawn_exposure,
 )
 from chess_game.chess.move import Move
 from chess_game.chess.opponent_plans import opponent_plan_profile
@@ -821,6 +822,7 @@ def _strategic_root_bonus(
     score -= _rim_knight_root_penalty(child_board, moving_color)
     score -= _shelter_pawn_advance_root_penalty(board, move, moving_kind, moving_color)
     score += _late_castling_root_bonus(board, move, moving_kind, moving_color)
+    score += _h_pawn_luft_root_bonus(board, move, moving_kind, moving_color)
     score += plan_continuity_bonus(
         board,
         move,
@@ -874,6 +876,28 @@ def _shelter_pawn_advance_root_penalty(
         return 0
     _ = moving_color
     return 24
+
+
+def _h_pawn_luft_root_bonus(
+    board: Board,
+    move: Move,
+    moving_kind: PieceType,
+    moving_color: Color,
+) -> int:
+    """Root bonus for h-pawn luft moves when a bishop is aimed at h2/h7."""
+
+    if moving_kind != PieceType.PAWN:
+        return 0
+    if _is_simple_endgame(board):
+        return 0
+    if _h_pawn_exposure(board, moving_color) < 15:
+        return 0
+    home_row = 6 if moving_color == Color.WHITE else 1
+    if int(move.start.row) != home_row or int(move.start.col) != 7:
+        return 0
+    if abs(int(move.end.row) - int(move.start.row)) != 1:
+        return 0
+    return 36
 
 
 def _late_castling_root_bonus(

@@ -18,7 +18,10 @@ from chess_game.chess.endgame_evaluation import (
 from chess_game.chess.middlegame_practicality_guidance import (
     middlegame_practicality_evaluation_score as _middlegame_practicality_evaluation_score,
 )
-from chess_game.chess.defensive_priorities import king_defense_profile
+from chess_game.chess.defensive_priorities import (
+    king_defense_profile,
+    h_pawn_exposure_penalty as _h_pawn_exposure_penalty,
+)
 from chess_game.chess.pawn_structure_evaluation import (
     collect_pawn_positions as _collect_pawn_positions,
     evaluate_pawn_structure as _evaluate_pawn_structure,
@@ -276,6 +279,7 @@ def _evaluate_king_exposure(board: Board, middlegame_phase: int) -> int:
         if queens_on_board and _is_exposed_central_king(king_square):
             color_score -= CENTRAL_KING_WITH_QUEENS_PENALTY
         color_score -= _heavy_piece_lane_pressure(board, color, king_square)
+        color_score -= _h_pawn_exposure_penalty(board, color)
         score += _color_sign(color) * color_score
     return _scale_signed(score, middlegame_phase)
 def _evaluate_defender_coordination(board: Board, middlegame_phase: int) -> int:

@@ -6,7 +6,7 @@ from chess_game.chess.ai_search_helpers import defensive_capture_bonus
 from chess_game.chess.board import Board
 from chess_game.chess.constants import Color, ConstantSquare
 from chess_game.chess.move import Move
-from chess_game.chess.strategy_utils import is_capture_move
+from chess_game.chess.strategy_utils import is_capture_move, iter_color_pieces
 from chess_game.chess.structure_recognition import structure_capture_bonus
 from chess_game.chess.types import Piece, PieceType
 
@@ -26,6 +26,7 @@ _ATTACKER_VALUES = {
     PieceType.QUEEN: 90,
 }
 _LOOSE_SHELTER_PAWN_GRAB_PENALTY = 10_500
+_PSEUDO_FORK_PAWN_RECAPTURE_PENALTY = 20_000
 
 
 def capture_order_score(
@@ -55,6 +56,7 @@ def capture_order_score(
             move.end,
         )
         - _shelter_loosening_pawn_grab_penalty(board, move, attacker, captured_piece)
+        - _pseudo_fork_pawn_recapture_penalty(board, move, attacker, captured_piece)
     )
 
 
@@ -74,6 +76,41 @@ def attacker_value(kind: PieceType) -> int:
     """Return the MVV/LVA attacker priority value."""
 
     return _ATTACKER_VALUES.get(kind, 0)
+
+
+def _pseudo_fork_pawn_recapture_penalty(
+    board: Board,
+    move: Move,
+    attacker: Piece,
+    captured_piece: Piece,
+) -> int:
+    """Penalise captures where the attacker immediately becomes en-prise to an enemy pawn.
+
+    A 'pseudo-fork' occurs when a knight (or bishop) captures on a square defended by
+    an enemy pawn, mistakenly believing the resulting position is favourable.  In game 2
+    White played Nxe5 which was immediately answered by dxe5, losing a full piece.
+    """
+
+    if attacker.kind not in {PieceType.KNIGHT, PieceType.BISHOP}:
+        return 0
+    attacker_value_cp = attacker_value(attacker.kind) * 100
+    captured_value_cp = victim_value(captured_piece.kind) * 100
+    if attacker_value_cp <= captured_value_cp:
+        return 0
+    end_row = int(move.end.row)
+    end_col = int(move.end.col)
+    enemy_color = Color.BLACK if attacker.color == Color.WHITE else Color.WHITE
+    pawn_attack_row = end_row - 1 if attacker.color == Color.WHITE else end_row + 1
+    if pawn_attack_row < 0 or pawn_attack_row > 7:
+        return 0
+    for piece, row, col in iter_color_pieces(board, enemy_color):
+        if piece.kind != PieceType.PAWN:
+            continue
+        if row != pawn_attack_row:
+            continue
+        if abs(col - end_col) == 1:
+            return _PSEUDO_FORK_PAWN_RECAPTURE_PENALTY
+    return 0
 
 
 def _shelter_loosening_pawn_grab_penalty(
