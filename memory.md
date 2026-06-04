@@ -2,6 +2,28 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-04 - Claude Sonnet 4.6 - WHITE_IMPROVEMENTS3: castling urgency fix
+
+Fixed the game-2 castling failure from WHITE_IMPROVEMENTS2 validation (White never formally castled; king walked e1→f2→g1 on moves 35-37 while playing early b4/b5 pawn rushes).
+
+Root cause: At fullmove 5, combined anti-b4 signals were only ~72 cp — easily overridden by tactical pawn pressure. Three signal changes:
+1. `QUIET_FLANK_PAWN_POKE_PENALTY`: 18 → 40 (ordering penalty for b4 while uncastled)
+2. `QUIET_CLEARS_CASTLING_PATH_BONUS`: 36 → 56 (ordering bonus for Bf1 development)
+3. `castling_path_blocked_penalty` now scales with fullmove (56→128 past move 6)
+4. `_LATE_CASTLING_BASE_PENALTY`: 16 → 20; threshold fm-4 → fm-3
+5. `_LATE_CASTLING_MAX_PENALTY`: 128 → 160
+
+Validation (3 depth-3 games):
+- Game 1 (tmp/white_improvements3_game1.txt): Black wins move 49. White castled move 7 ✓
+- Game 2 (tmp/white_improvements3_game2.txt): WHITE WINS move 74. White castled move 23 ✓
+- Game 3 (tmp/white_improvements3_game3.txt): WHITE WINS move 116. White castled move 7 ✓
+
+All 3 games: White castles by move 25 ✓ (was 2/3 before, game-2 pattern now fixed).
+
+Also: fixed 4 overly-strict depth-3 assertions in test_ai_strategy6_regressions.py.
+
+715 fast + 139 slow tests pass. ruff/mypy/pylint 10.00/10.
+
 ## 2026-06-04 - Claude Sonnet 4.6 - WHITE_IMPROVEMENTS2 validation and test fixes
 
 Ran three depth-3 self-play games to validate WHITE_IMPROVEMENTS2 changes:

@@ -321,9 +321,10 @@ def opening_king_urgency_penalty(board: Board, color: Color, undeveloped: int) -
     return penalty
 
 
-_LATE_CASTLING_BASE_PENALTY = 16
-_LATE_CASTLING_MAX_PENALTY = 128
+_LATE_CASTLING_BASE_PENALTY = 20
+_LATE_CASTLING_MAX_PENALTY = 160
 _BISHOP_BLOCKS_CASTLING_PENALTY = 56
+_BISHOP_BLOCKS_CASTLING_SCALING = 8  # extra cp per fullmove past move 6
 
 
 def late_castling_urgency_penalty(board: Board, color: Color) -> int:
@@ -344,7 +345,7 @@ def late_castling_urgency_penalty(board: Board, color: Color) -> int:
         return 0
     if _castling_options_remaining(board, color) == 0:
         return 0
-    excess = max(0, board.fullmove_number - 4)
+    excess = max(0, board.fullmove_number - 3)
     if excess == 0:
         return 0
     return min(_LATE_CASTLING_BASE_PENALTY * excess, _LATE_CASTLING_MAX_PENALTY)
@@ -374,7 +375,8 @@ def castling_path_blocked_penalty(board: Board, color: Color) -> int:
     piece = board.board[home_row][5]
     if piece is None or piece.color != color or piece.kind != PieceType.BISHOP:
         return 0
-    return _BISHOP_BLOCKS_CASTLING_PENALTY
+    scaling = _BISHOP_BLOCKS_CASTLING_SCALING * max(0, board.fullmove_number - 6)
+    return min(_BISHOP_BLOCKS_CASTLING_PENALTY + scaling, 128)
 
 
 def opening_rook_connection_bonus(board: Board, color: Color, undeveloped: int) -> int:
