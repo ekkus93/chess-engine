@@ -288,24 +288,24 @@ nothing for the rest of the game.
 ### 5.2 Evaluate improvement
 
 For each game, check:
-- [ ] Does White create luft (h3 or g3) within 5 moves of castling?
-- [ ] Does the Bxh2+ mating pattern occur in any game?
-- [ ] Are there any Nxe5-style pseudo-fork blunders?
-- [ ] What are the game lengths and results vs the baseline games?
+- [x] Does White create luft (h3 or g3) within 5 moves of castling?
+- [x] Does the Bxh2+ mating pattern occur in any game?
+- [x] Are there any Nxe5-style pseudo-fork blunders?
+- [x] What are the game lengths and results vs the baseline games?
 
 Record findings in `tmp/white_improvements1_validation.txt`.
 
 ### 5.3 Accept or iterate
 
-- [ ] If the Bxh2+ pattern is eliminated in all 3 games → mark this TODO complete.
-- [ ] If pseudo-fork blunders still appear → revisit Task 3 and increase the
+- [x] If the Bxh2+ pattern is eliminated in all 3 games → mark this TODO complete.
+- [x] If pseudo-fork blunders still appear → revisit Task 3 and increase the
       penalty, then re-run.
 
 ### 5.4 Final verification gate
 
-- [ ] `uv run python -m ruff check chess_game tests` — all clear.
-- [ ] `uv run python -m mypy chess_game` — no errors.
-- [ ] `uv run python -m pylint chess_game` — 10.00/10.
+- [x] `uv run python -m ruff check chess_game tests` — all clear.
+- [x] `uv run python -m mypy chess_game` — no errors.
+- [x] `uv run python -m pylint chess_game` — 10.00/10.
 - [x] `uv run python -m pytest tests/ -q -m "not slow"` — all pass.
 - [x] `uv run python -m pytest tests/ -q -m "slow"` — all pass.
 - [x] Update `memory.md` with timestamp, model used, and summary of changes.
@@ -314,7 +314,7 @@ Record findings in `tmp/white_improvements1_validation.txt`.
 
 ## Task 6: Commit and Push
 
-- [ ] Stage only source files and test files (not `tmp/` artifacts).
-- [ ] Write a commit message summarising the three improvements.
+- [x] Stage only source files and test files (not `tmp/` artifacts).
+- [x] Write a commit message summarising the three improvements.
 - [x] Push to `origin/master`.
 - [x] Update `docs/WHITE_IMPROVEMENTS1_TODO.md` to mark all tasks complete.

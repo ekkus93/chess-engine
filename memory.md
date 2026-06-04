@@ -2,6 +2,17 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-04 - Claude Sonnet 4.6 - WHITE_IMPROVEMENTS1 implementation
+
+Fixed three failure patterns from selfplay_varied_game2.txt (Black won via Bxh2+ in 34 moves):
+1. **h_pawn_exposure_penalty** in defensive_priorities.py: 30 cp when castled king has h2 pawn and enemy bishop/queen has clear diagonal to h2/h7; wired into king_danger_index (+2 to danger when present, making it reach DANGEROUS threshold) and evaluation.py king_exposure.
+2. **QUIET_H_EXPOSURE_LUFT_BONUS** (+40) in ai_move_ordering.py: extra ordering bonus for h2-h3 when bishop threatens h2; h2-h3 now scores 234 vs Re1 at 137 in the critical position.
+3. **_h_pawn_luft_root_bonus** (+36) in ai_search_helpers.py: root tiebreak for h-pawn luft when exposed.
+4. **_pseudo_fork_pawn_recapture_penalty** (-20000) in ai_capture_ordering.py: prevents knight/bishop captures on squares immediately defended by enemy pawn (prevents Nxe5-style blunders; Nxe5 went from +9970 to -10030).
+5. **Second-rank bishop retreat penalty** in ai_move_ordering.py: extended to cover rank-2 retreats (Bf4-d2 style) at half the back-rank penalty.
+Validation: 3 games, NO Bxh2+ pattern, NO pseudo-fork blunders. Games ran 93-209 moves vs 34 before. h3 appears in 2/3 games (late, within ~100 moves of castling). 694 fast + 139 slow tests pass. pylint 10.00/10.
+Transcripts: tmp/white_improvements1_game{1,2,3}.txt.
+
 ## 2026-06-03 - Claude Sonnet 4.6 - BLACK_IMPROVEMENTS2 implementation
 
 Implemented four improvements targeting Black's failure to castle:
