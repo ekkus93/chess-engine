@@ -321,8 +321,8 @@ def opening_king_urgency_penalty(board: Board, color: Color, undeveloped: int) -
     return penalty
 
 
-_LATE_CASTLING_BASE_PENALTY = 12
-_LATE_CASTLING_MAX_PENALTY = 96
+_LATE_CASTLING_BASE_PENALTY = 16
+_LATE_CASTLING_MAX_PENALTY = 128
 _BISHOP_BLOCKS_CASTLING_PENALTY = 56
 
 

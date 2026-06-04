@@ -79,6 +79,7 @@ QUIET_KING_REFINEMENT_BONUS = 10
 QUIET_USEFUL_CHECK_BONUS = 34
 QUIET_URGENT_LUFT_BONUS = 24
 QUIET_H_EXPOSURE_LUFT_BONUS = 40
+QUIET_PROPHYLACTIC_LUFT_BONUS = 32
 QUIET_CONTEST_ATTACK_FILE_BONUS = 44
 QUIET_DANGER_RELIEF_BONUS = 52
 QUIET_ENTRY_SQUARE_BONUS = 28
@@ -300,8 +301,11 @@ def _pawn_bonus(board: Board, color: Color, kind: PieceType, move: Move) -> int:
         score += QUIET_LUFT_BONUS
         if _is_urgent_luft(board, color):
             score += QUIET_URGENT_LUFT_BONUS
-        if h_pawn_exposure_penalty(board, color) >= 15 and _is_h_pawn_luft(color, move):
-            score += QUIET_H_EXPOSURE_LUFT_BONUS
+        if _is_h_pawn_luft(color, move):
+            if h_pawn_exposure_penalty(board, color) >= 15:
+                score += QUIET_H_EXPOSURE_LUFT_BONUS
+            elif is_prophylactic_h_luft(board, color):
+                score += QUIET_PROPHYLACTIC_LUFT_BONUS
     return score
 
 
@@ -525,6 +529,25 @@ def _is_h_pawn_luft(color: Color, move: Move) -> bool:
         and int(move.start.col) == 7
         and abs(int(move.end.row) - int(move.start.row)) == 1
     )
+
+
+def is_prophylactic_h_luft(board: Board, color: Color) -> bool:
+    """Return True when h2-h3 (h7-h6) is a good prophylactic move.
+
+    Fires when the king is castled kingside with the h-pawn unmoved and queens
+    are on the board — even before any bishop aims at h2.  This encourages the
+    engine to play h3 shortly after castling as good prophylactic chess.
+    """
+
+    if not any(p is not None and p.kind == PieceType.QUEEN for row in board.board for p in row):
+        return False
+    king_sq = board.find_king(color)
+    if king_sq is None:
+        return False
+    king_row = int(king_sq.row)
+    king_col = int(king_sq.col)
+    home_row = 7 if color == Color.WHITE else 0
+    return king_row == home_row and king_col == 6
 
 
 def _is_urgent_luft(board: Board, color: Color) -> bool:

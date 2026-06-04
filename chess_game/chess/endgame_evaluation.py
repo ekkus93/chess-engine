@@ -47,6 +47,9 @@ from chess_game.chess.strategy_utils import (
 from chess_game.chess.types import Color, PieceType
 
 _HEAVY_ENDGAME_KING_ACTIVITY_BONUS_PER_STEP = 4
+_QUEEN_VS_ROOK_QUEEN_SIDE_BONUS = 80
+_QUEEN_VS_ROOK_KING_ACTIVITY_BONUS = 12
+_QUEEN_VS_ROOK_PASSIVE_ROOK_PENALTY = 20
 
 
 def evaluate_endgame_technique(board: Board, endgame_phase: int) -> int:
@@ -612,6 +615,54 @@ def _rook_bishop_vs_rook_conversion_bonus(board: Board, leading_color: Color) ->
         7 - int(enemy_king.col),
     )
     return _ROOK_BISHOP_VS_ROOK_BONUS + (3 - edge_dist) * 4
+
+
+def evaluate_queen_vs_rook(board: Board, endgame_phase: int) -> int:
+    """Return a score adjustment for KQvKR positions.
+
+    The queen side is generally winning but needs active king play.
+    The rook side needs active rook play to avoid quick mate; passive
+    back-rank rook shuffling accelerates the loss.
+    """
+
+    if endgame_phase < 60:
+        return 0
+    pieces = [
+        (piece, row, col)
+        for piece, row, col in iter_board_pieces(board)
+        if piece.kind not in {PieceType.KING, PieceType.PAWN}
+    ]
+    kinds = {p.kind for p, _, _ in pieces}
+    if kinds != {PieceType.QUEEN, PieceType.ROOK}:
+        return 0
+    queens = [(p.color, row, col) for p, row, col in pieces if p.kind == PieceType.QUEEN]
+    rooks = [(p.color, row, col) for p, row, col in pieces if p.kind == PieceType.ROOK]
+    if len(queens) != 1 or len(rooks) != 1:
+        return 0
+    queen_color = queens[0][0]
+    rook_color, rook_row = rooks[0][0], rooks[0][1]
+    if queen_color == rook_color:
+        return 0
+    score = _queen_vs_rook_score(board, queen_color, rook_color, rook_row)
+    sign = 1 if queen_color == Color.WHITE else -1
+    return scale_signed(sign * score, endgame_phase)
+
+
+def _queen_vs_rook_score(
+    board: Board, queen_color: Color, rook_color: Color, rook_row: int
+) -> int:
+    score = _QUEEN_VS_ROOK_QUEEN_SIDE_BONUS
+    queen_king = next(
+        (sq for sq in iter_king_squares(board) if sq[0] == queen_color), None
+    )
+    if queen_king is not None:
+        king_sq = queen_king[1]
+        dist = center_distance(int(king_sq.row), int(king_sq.col))
+        score += max(0, 4 - dist) * _QUEEN_VS_ROOK_KING_ACTIVITY_BONUS
+    rook_home_row = 7 if rook_color == Color.WHITE else 0
+    if rook_row == rook_home_row:
+        score -= _QUEEN_VS_ROOK_PASSIVE_ROOK_PENALTY
+    return score
 
 
 def _opponent(color: Color) -> Color:

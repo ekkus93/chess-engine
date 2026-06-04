@@ -145,10 +145,14 @@ def _is_quiet_shelter_pawn_push(board: Board, move: Move, color: Color) -> bool:
         return False
     home_row = 6 if color == Color.WHITE else 1
     start_col = int(move.start.col)
+    advance = abs(int(move.end.row) - int(move.start.row))
+    king_col = int(king_square.col)
+    adjacent = -1 <= start_col - king_col <= 1
     return (
         int(move.start.row) == home_row
         and int(move.end.col) == start_col
-        and abs(start_col - int(king_square.col)) <= 1
+        and adjacent
+        and advance > 1
     )
 
 

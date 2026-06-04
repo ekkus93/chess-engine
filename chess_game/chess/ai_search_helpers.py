@@ -50,6 +50,9 @@ from chess_game.chess.opening_development import (
     middlegame_rim_knight_penalty as _rim_knight_penalty,
 )
 from chess_game.chess.opening_guidance import opening_guidance_bonus
+from chess_game.chess.ai_move_ordering import (
+    is_prophylactic_h_luft as _is_prophylactic_h_luft,
+)
 from chess_game.chess.passer_race_guidance import (
     passer_race_extension_bonus,
     passer_race_root_bonus,
@@ -823,6 +826,7 @@ def _strategic_root_bonus(
     score -= _shelter_pawn_advance_root_penalty(board, move, moving_kind, moving_color)
     score += _late_castling_root_bonus(board, move, moving_kind, moving_color)
     score += _h_pawn_luft_root_bonus(board, move, moving_kind, moving_color)
+    score -= _ignore_near_promotion_passer_penalty(board, move, moving_kind, moving_color)
     score += plan_continuity_bonus(
         board,
         move,
@@ -878,26 +882,52 @@ def _shelter_pawn_advance_root_penalty(
     return 24
 
 
+def _ignore_near_promotion_passer_penalty(
+    board: Board,
+    move: Move,
+    moving_kind: PieceType,
+    moving_color: Color,
+) -> int:
+    """Root penalty for ignoring an enemy passer within 2 squares of promotion."""
+
+    if not _is_simple_endgame(board):
+        return 0
+    enemy_color = Color.BLACK if moving_color == Color.WHITE else Color.WHITE
+    has_critical = any(
+        _promotion_progress_raw(enemy_color, pawn[0]) >= 4
+        for pawn in passed_pawns_for_color(board, enemy_color)
+    )
+    responds = has_critical and (
+        is_capture_move(board, move) or moving_kind == PieceType.PAWN
+    )
+    return 0 if not has_critical or responds else 24
+
+
+def _promotion_progress_raw(color: Color, row: int) -> int:
+    return 6 - row if color == Color.WHITE else row - 1
+
+
 def _h_pawn_luft_root_bonus(
     board: Board,
     move: Move,
     moving_kind: PieceType,
     moving_color: Color,
 ) -> int:
-    """Root bonus for h-pawn luft moves when a bishop is aimed at h2/h7."""
+    """Root bonus for h-pawn luft moves — reactive (bishop threat) or prophylactic."""
 
-    if moving_kind != PieceType.PAWN:
-        return 0
-    if _is_simple_endgame(board):
-        return 0
-    if _h_pawn_exposure(board, moving_color) < 15:
-        return 0
     home_row = 6 if moving_color == Color.WHITE else 1
-    if int(move.start.row) != home_row or int(move.start.col) != 7:
+    is_h_luft = (
+        moving_kind == PieceType.PAWN
+        and not _is_simple_endgame(board)
+        and int(move.start.row) == home_row
+        and int(move.start.col) == 7
+        and abs(int(move.end.row) - int(move.start.row)) == 1
+    )
+    if not is_h_luft:
         return 0
-    if abs(int(move.end.row) - int(move.start.row)) != 1:
-        return 0
-    return 36
+    if _h_pawn_exposure(board, moving_color) >= 15:
+        return 36
+    return 28 if _is_prophylactic_h_luft(board, moving_color) else 0
 
 
 def _late_castling_root_bonus(
