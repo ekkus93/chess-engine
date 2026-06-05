@@ -6,7 +6,7 @@ from chess_game.chess.board.attack_utils import piece_attacks_square
 from chess_game.chess.ai_repetition_patterns import quiet_cycle_penalty
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_checkmate, is_in_check
-from chess_game.chess.constants import ConstantSquare
+from chess_game.chess.constants import ConstantSquare, get_square_constant
 from chess_game.chess.conversion_guidance import winning_conversion_order_bonus
 from chess_game.chess.anti_drift_guidance import anti_drift_order_bonus
 from chess_game.chess.defensive_containment_guidance import (
@@ -108,6 +108,7 @@ QUIET_SELF_EXPOSING_CHECK_PENALTY = 22
 ENDGAME_ORDER_MAX_NON_KING_PIECES = 8
 _ADVANTAGE_PRESERVATION_HANGING_PENALTY = 30
 _ADVANTAGE_PRESERVATION_MIN_LEAD = 400  # 4 pawns
+_KNIGHT_THREATENS_MINOR_BONUS = 12
 
 
 @dataclass(frozen=True)
@@ -186,6 +187,8 @@ def quiet_strategy_order_score(
     score -= _advantage_preservation_penalty(board, piece, move, quiet_context)
     if piece.kind == PieceType.BISHOP:
         score -= _bishop_passive_retreat_penalty(board, move, piece.color)
+    if piece.kind == PieceType.KNIGHT:
+        score += _knight_threatens_minor_bonus(board, move, piece.color)
     return score
 
 
@@ -1048,4 +1051,23 @@ def _bishop_passive_retreat_penalty(board: Board, move: Move, color: Color) -> i
         return QUIET_BISHOP_PASSIVE_RETREAT_PENALTY
     if end_row == second_rank_row and start_row not in {back_rank_row, second_rank_row}:
         return QUIET_BISHOP_PASSIVE_RETREAT_PENALTY // 2
+    return 0
+
+
+def _knight_threatens_minor_bonus(board: Board, move: Move, color: Color) -> int:
+    """Return a bonus when a knight move's destination attacks an enemy bishop or
+    knight (quiet threat — move must not itself be a capture)."""
+    dest_row = int(move.end.row)
+    dest_col = int(move.end.col)
+    knight_deltas = [(-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1)]
+    for dr, dc in knight_deltas:
+        r, c = dest_row + dr, dest_col + dc
+        if 0 <= r <= 7 and 0 <= c <= 7:
+            target = board.get_piece(get_square_constant(r, c))
+            if (
+                target is not None
+                and target.color != color
+                and target.kind in (PieceType.BISHOP, PieceType.KNIGHT)
+            ):
+                return _KNIGHT_THREATENS_MINOR_BONUS
     return 0

@@ -50,6 +50,7 @@ _HEAVY_ENDGAME_KING_ACTIVITY_BONUS_PER_STEP = 4
 _QUEEN_VS_ROOK_QUEEN_SIDE_BONUS = 80
 _QUEEN_VS_ROOK_KING_ACTIVITY_BONUS = 12
 _QUEEN_VS_ROOK_PASSIVE_ROOK_PENALTY = 20
+_ROOK_SEVENTH_RANK_ENDGAME_BONUS = 24
 
 
 def evaluate_endgame_technique(board: Board, endgame_phase: int) -> int:
@@ -110,6 +111,7 @@ def evaluate_progress(board: Board, endgame_phase: int) -> int:
     bonus += abs(winning_conversion_evaluation_score(board))
     bonus += _rook_vs_bishop_king_conversion_bonus(board, leading_color)
     bonus += _rook_bishop_vs_rook_conversion_bonus(board, leading_color)
+    bonus += _rook_seventh_rank_endgame_score(board, leading_color)
     phase_scale = max(40, 40 + endgame_phase)
     return _color_sign(leading_color) * ((bonus * phase_scale) // 100)
 
@@ -615,6 +617,29 @@ def _rook_bishop_vs_rook_conversion_bonus(board: Board, leading_color: Color) ->
         7 - int(enemy_king.col),
     )
     return _ROOK_BISHOP_VS_ROOK_BONUS + (3 - edge_dist) * 4
+
+
+def _rook_seventh_rank_endgame_score(board: Board, color: Color) -> int:
+    """Endgame bonus for a rook on the 7th rank when enemy pawns are still there.
+
+    Only fires when the enemy has at least one pawn in its home three ranks
+    (rows 0-2 for White attacking Black, rows 5-7 for Black attacking White),
+    so we don't reward a passive rook on an empty seventh rank.
+    """
+    seventh_row = 1 if color == Color.WHITE else 6
+    enemy_color = _opponent(color)
+    target_rows = {0, 1, 2} if color == Color.WHITE else {5, 6, 7}
+    has_target = any(
+        piece.kind == PieceType.PAWN and piece.color == enemy_color and row in target_rows
+        for piece, row, _ in iter_board_pieces(board)
+    )
+    if not has_target:
+        return 0
+    return sum(
+        _ROOK_SEVENTH_RANK_ENDGAME_BONUS
+        for piece, row, _ in iter_board_pieces(board)
+        if piece.kind == PieceType.ROOK and piece.color == color and row == seventh_row
+    )
 
 
 def evaluate_queen_vs_rook(board: Board, endgame_phase: int) -> int:

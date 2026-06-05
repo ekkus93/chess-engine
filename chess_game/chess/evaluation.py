@@ -89,6 +89,7 @@ from chess_game.chess.evaluation_tables import (
     KING_TABLE,
     KING_ZONE_ATTACK_PENALTY,
     KNIGHT_OUTPOST_BONUS,
+    KNIGHT_STRONG_SQUARE_BONUS,
     KNIGHT_RIM_PENALTY,
     KNIGHT_TABLE,
     LONG_DIAGONAL_BISHOP_BONUS,
@@ -601,6 +602,8 @@ def _knight_activity_score(
         score += CENTRAL_MINOR_PIECE_BONUS
     if _is_knight_outpost(color, row, col, friendly_pawns, enemy_pawns):
         score += KNIGHT_OUTPOST_BONUS
+    elif _is_knight_strong_square(color, row, col, enemy_pawns):
+        score += KNIGHT_STRONG_SQUARE_BONUS
     return score
 
 
@@ -648,6 +651,20 @@ def _is_knight_outpost(
         for pawn_row, pawn_col in friendly_pawns
     )
     if not supported:
+        return False
+    return not any(abs(enemy_col - col) == 1 for _, enemy_col in enemy_pawns)
+
+
+def _is_knight_strong_square(
+    color: Color,
+    row: int,
+    col: int,
+    enemy_pawns: list[tuple[int, int]],
+) -> bool:
+    """Return True when the knight occupies an advanced square no enemy pawn can
+    attack, even without own pawn support."""
+    advanced = row <= 3 if color == Color.WHITE else row >= 4
+    if not advanced:
         return False
     return not any(abs(enemy_col - col) == 1 for _, enemy_col in enemy_pawns)
 

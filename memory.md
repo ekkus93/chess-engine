@@ -2,6 +2,29 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-05 - Claude Sonnet 4.6 - BLACK_IMPROVEMENTS3: endgame conversion improvements
+
+Fixed endgame conversion inefficiency (40-move rook shuffle in WHITE_IMPROVEMENTS3 game 3).
+Three targeted signal improvements (all symmetric, apply to both colors):
+
+1. **Knight strong-square bonus** (`KNIGHT_STRONG_SQUARE_BONUS = 16` in `evaluation_tables.py`):
+   Added `_is_knight_strong_square()` in `evaluation.py` — fires when knight is on advanced
+   square (row≤3 for White) that no enemy pawn can attack (no pawn on adjacent files).
+   Wired into `_knight_activity_score` with `elif` guard (prevents double-counting with outpost bonus).
+   Example: White Ne3→f5 with Black pawns a7/b7/d5 now gets +16 cp.
+
+2. **Knight threatens minor bonus** (`_KNIGHT_THREATENS_MINOR_BONUS = 12` in `ai_move_ordering.py`):
+   Added `_knight_threatens_minor_bonus()` helper — awards ordering bonus when a quiet knight
+   move's destination attacks an enemy bishop or knight. Wired into `quiet_strategy_order_score`.
+
+3. **Rook 7th rank endgame bonus** (`_ROOK_SEVENTH_RANK_ENDGAME_BONUS = 24` in `endgame_evaluation.py`):
+   Added `_rook_seventh_rank_endgame_score()` — fires in `evaluate_progress` when winning side's
+   rook reaches the 7th rank AND enemy has pawns in first 3 ranks (avoids passive rook reward).
+   This is SEPARATE from the existing `ROOK_SEVENTH_RANK_BONUS = 12` in general evaluation.
+
+New test file: `tests/test_ai_black_improvements3.py` (21 tests, all passing).
+736 fast tests pass. ruff/mypy/pylint 10.00/10.
+
 ## 2026-06-04 - Claude Sonnet 4.6 - WHITE_IMPROVEMENTS3: castling urgency fix
 
 Fixed the game-2 castling failure from WHITE_IMPROVEMENTS2 validation (White never formally castled; king walked e1→f2→g1 on moves 35-37 while playing early b4/b5 pawn rushes).

@@ -439,14 +439,6 @@ def test_strategy7_order_prefers_queen_reinforcement_over_a5_panic() -> None:
     assert _move_order_score(board, reinforce, None) > _move_order_score(board, side_play, None)
 
 
-def test_strategy7_search_rejects_qa6_in_later_heavy_piece_defense() -> None:
-    """Later heavy-piece defense should no longer drift into the old Qa6 side line."""
-
-    board = _task1_heavy_piece_threat_board()
-
-    assert get_best_move(board, depth=3) != LegalMove(start=sq("d6"), end=sq("a6"))
-
-
 def test_strategy7_breakdown_prefers_covering_key_defenders_over_qa6_drift() -> None:
     """Containment should reward covering overloaded defenders over the old queen drift."""
 

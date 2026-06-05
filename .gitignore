@@ -20,5 +20,6 @@ dist/
 
 run_opencode.sh
 run_copilot.sh
+run_claude.sh
 .opencode/
 tmp/
