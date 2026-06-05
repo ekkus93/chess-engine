@@ -439,3 +439,33 @@ class TestBoardApiMutationSafety:
         assert board.turn == initial_turn
         # En passant target unchanged
         assert board.en_passant_target == initial_ep
+
+
+class TestBoardRenderString:
+    """Tests for Board.board_render_string."""
+
+    def test_render_string_contains_header(self) -> None:
+        board = Board()
+        s = board.board_render_string()
+        assert "a   b   c   d   e   f   g   h" in s
+
+    def test_render_string_contains_separator(self) -> None:
+        board = Board()
+        s = board.board_render_string()
+        assert "+---+---+---+---+---+---+---+---+" in s
+
+    def test_render_string_shows_turn(self) -> None:
+        board = Board()
+        assert "Turn: WHITE" in board.board_render_string()
+
+    def test_render_string_shows_pieces(self) -> None:
+        board = Board()
+        s = board.board_render_string()
+        assert " r " in s  # black rook (lowercase)
+        assert " R " in s  # white rook (uppercase)
+
+    def test_render_string_has_eight_ranks(self) -> None:
+        board = Board()
+        s = board.board_render_string()
+        for rank in range(1, 9):
+            assert f"{rank} |" in s

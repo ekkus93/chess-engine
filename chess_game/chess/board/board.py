@@ -109,9 +109,9 @@ class Board:
         self._validators: BoardValidators
         self._move_history: List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]] = []
 
-        self.init_validators()
+        self._init_validators()
 
-    def init_validators(self) -> None:
+    def _init_validators(self) -> None:
         """Initialize internal validator instances."""
         self._validators = BoardValidators(
             move_validator=MoveValidator(self),
@@ -442,7 +442,7 @@ class Board:
             ),
         )
         cloned.__dict__["_move_history"] = self._move_history_copy()
-        cloned.init_validators()
+        Board._init_validators(cloned)
         return cloned
 
     def _move_history_copy(
@@ -706,3 +706,13 @@ class Board:
             name = promotion.name.lower()
             base += name[0] if name else "q"
         return base
+
+    def board_render_string(self) -> str:
+        """Return the board as a plain ASCII string without move annotations."""
+        sep = "  +---+---+---+---+---+---+---+---+"
+        lines = ["    a   b   c   d   e   f   g   h", sep]
+        for rank_line in self._build_board_lines():
+            lines.append(rank_line)
+            lines.append(sep)
+        lines.append(f"  Turn: {self.turn.name.upper()}")
+        return "\n".join(lines)

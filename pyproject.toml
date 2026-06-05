@@ -7,6 +7,7 @@ name = "chess-game"
 version = "0.1.0"
 dependencies = [
     "pydantic>=2",
+    "textual>=8.2.7",
 ]
 
 [project.optional-dependencies]
