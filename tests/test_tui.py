@@ -12,6 +12,7 @@ from chess_game.tui import (
     EngineMoveMessage,
     GameScreen,
     MainMenuScreen,
+    ResignConfirmScreen,
     _GameConfig,  # type: ignore[attr-defined]
 )
 from tests.helpers import sq
@@ -274,33 +275,66 @@ class TestThinkingIndicator:
 
 
 class TestResignButton:
-    """Tests for the human resign action."""
+    """Tests for the human resign action (requires confirmation dialog)."""
 
-    async def test_resign_sets_game_over(self) -> None:
-        """Clicking Resign sets _game_over to True."""
+    async def test_resign_shows_confirm_modal(self) -> None:
+        """Clicking Resign pushes the confirmation modal before ending the game."""
         async with _HumanGameApp().run_test() as pilot:
             await pilot.pause()
-            screen = pilot.app.screen
-            assert isinstance(screen, GameScreen)
+            game_screen = pilot.app.screen
+            assert isinstance(game_screen, GameScreen)
             await pilot.click("#resign-btn")
             await pilot.pause()
-            assert screen._game_over is True  # type: ignore[union-attr]
+            assert isinstance(pilot.app.screen, ResignConfirmScreen)
+            assert game_screen._game_over is False  # type: ignore[union-attr]
+
+    async def test_resign_cancel_does_not_end_game(self) -> None:
+        """Clicking Cancel on the confirm modal leaves the game running."""
+        async with _HumanGameApp().run_test() as pilot:
+            await pilot.pause()
+            game_screen = pilot.app.screen
+            assert isinstance(game_screen, GameScreen)
+            await pilot.click("#resign-btn")
+            await pilot.pause()
+            await pilot.click("#confirm-no")
+            await pilot.pause()
+            assert isinstance(pilot.app.screen, GameScreen)
+            assert game_screen._game_over is False  # type: ignore[union-attr]
+
+    async def test_resign_confirm_sets_game_over(self) -> None:
+        """Clicking 'Yes, resign' in the modal sets _game_over to True."""
+        async with _HumanGameApp().run_test() as pilot:
+            await pilot.pause()
+            game_screen = pilot.app.screen
+            assert isinstance(game_screen, GameScreen)
+            await pilot.click("#resign-btn")
+            await pilot.pause()
+            await pilot.click("#confirm-yes")
+            await pilot.pause()
+            assert game_screen._game_over is True  # type: ignore[union-attr]
 
     async def test_gameover_panel_visible_after_resign(self) -> None:
-        """The game-over panel becomes visible after resigning."""
+        """The game-over panel becomes visible after confirming resignation."""
         async with _HumanGameApp().run_test() as pilot:
             await pilot.pause()
+            game_screen = pilot.app.screen
             await pilot.click("#resign-btn")
             await pilot.pause()
-            assert pilot.app.screen.query_one("#gameover-panel").has_class("active")
+            await pilot.click("#confirm-yes")
+            await pilot.pause()
+            assert game_screen.query_one("#gameover-panel").has_class("active")
 
     async def test_resign_message_contains_wins(self) -> None:
-        """The game-over message mentions who wins after resignation."""
+        """The game-over message mentions who wins after confirming resignation."""
         async with _HumanGameApp().run_test() as pilot:
             await pilot.pause()
+            game_screen = pilot.app.screen
+            assert isinstance(game_screen, GameScreen)
             await pilot.click("#resign-btn")
             await pilot.pause()
-            msg = pilot.app.screen.query_one("#gameover-msg", Static).content
+            await pilot.click("#confirm-yes")
+            await pilot.pause()
+            msg = game_screen.query_one("#gameover-msg", Static).content
             assert "wins" in msg or "resign" in msg.lower()
 
 

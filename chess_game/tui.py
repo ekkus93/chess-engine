@@ -10,7 +10,7 @@ from textual.app import App, ComposeResult
 from textual.containers import Horizontal, ScrollableContainer, Vertical
 from textual.message import Message
 from textual.reactive import reactive
-from textual.screen import Screen
+from textual.screen import ModalScreen, Screen
 from textual.widgets import (
     Button,
     Footer,
@@ -180,6 +180,60 @@ class MainMenuScreen(Screen):
                 black_depth=3 if isinstance(bd, NoSelection) else int(bd),
             )
         self.app.push_screen(GameScreen(cfg))
+
+
+# ──────────────────────────── Resign Confirmation Modal ─────────────
+
+
+class ResignConfirmScreen(ModalScreen[bool]):
+    """Modal asking the user to confirm resignation before acting."""
+
+    DEFAULT_CSS = """
+    ResignConfirmScreen {
+        align: center middle;
+    }
+    ResignConfirmScreen > Vertical {
+        background: $surface;
+        border: solid $error;
+        padding: 1 2;
+        width: 44;
+        height: auto;
+    }
+    ResignConfirmScreen #confirm-title {
+        text-align: center;
+        text-style: bold;
+        margin-bottom: 1;
+        width: 100%;
+    }
+    ResignConfirmScreen #confirm-body {
+        text-align: center;
+        margin-bottom: 1;
+        width: 100%;
+    }
+    ResignConfirmScreen Horizontal {
+        align: center middle;
+        height: auto;
+    }
+    ResignConfirmScreen Button {
+        margin: 0 1;
+    }
+    """
+
+    def compose(self) -> ComposeResult:
+        with Vertical():
+            yield Static("Resign?", id="confirm-title")
+            yield Static("Are you sure you want to resign?", id="confirm-body")
+            with Horizontal():
+                yield Button("Yes, resign", variant="error", id="confirm-yes")
+                yield Button("Cancel", variant="primary", id="confirm-no")
+
+    @on(Button.Pressed, "#confirm-yes")
+    def _on_yes(self) -> None:
+        self.dismiss(True)
+
+    @on(Button.Pressed, "#confirm-no")
+    def _on_no(self) -> None:
+        self.dismiss(False)
 
 
 # ──────────────────────────── Game Screen ──────────────────────────
@@ -515,7 +569,7 @@ class GameScreen(Screen):
         raw = event.value.strip()
         event.input.clear()
         if raw.lower() == "resign":
-            self._on_resign()
+            self.app.push_screen(ResignConfirmScreen(), self._on_resign_confirmed)
             return
         try:
             move = parse_move_notation(raw)
@@ -550,7 +604,11 @@ class GameScreen(Screen):
 
     @on(Button.Pressed, "#resign-btn")
     def _on_resign_btn(self) -> None:
-        self._on_resign()
+        self.app.push_screen(ResignConfirmScreen(), self._on_resign_confirmed)
+
+    def _on_resign_confirmed(self, confirmed: bool | None) -> None:
+        if confirmed:
+            self._on_resign()
 
     # ── Self-play controls ────────────────────────────────────────
 
