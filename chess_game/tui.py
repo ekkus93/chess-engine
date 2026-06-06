@@ -33,7 +33,7 @@ from chess_game.chess.ai import get_best_move
 from chess_game.chess.board.game_state import is_in_check, record_position, terminal_message
 
 
-_WHITE_PIECE_STYLE = "bold bright_white"
+_WHITE_PIECE_STYLE = "bold yellow"
 _BLACK_PIECE_STYLE = "bold cyan"
 
 
