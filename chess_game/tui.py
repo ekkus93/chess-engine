@@ -25,12 +25,44 @@ from textual.widgets import (
 )
 from textual.widgets.select import NoSelection
 
-from chess_game.chess import Board, Color
+from chess_game.chess import Board, Color, PieceType
 from chess_game.chess.types import LegalMove
 from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.move import parse_move_notation
 from chess_game.chess.ai import get_best_move
 from chess_game.chess.board.game_state import is_in_check, record_position, terminal_message
+
+
+_WHITE_PIECE_STYLE = "bold bright_white"
+_BLACK_PIECE_STYLE = "bold cyan"
+
+
+def _render_board_rich(board: Board) -> str:
+    """Return the board as a Rich-markup string with colored piece letters."""
+    sep = "  +---+---+---+---+---+---+---+---+"
+    lines = ["    a   b   c   d   e   f   g   h", sep]
+    for row_index, row in enumerate(board.board):
+        rank = 8 - row_index
+        cells = []
+        for piece in row:
+            if piece is None:
+                cells.append("   ")
+            else:
+                sym = piece.kind.name[0]
+                if piece.kind == PieceType.KNIGHT:
+                    sym = "N"
+                style = (
+                    _WHITE_PIECE_STYLE
+                    if piece.color == Color.WHITE
+                    else _BLACK_PIECE_STYLE
+                )
+                if piece.color == Color.BLACK:
+                    sym = sym.lower()
+                cells.append(f" [{style}]{sym}[/{style}] ")
+        lines.append(f"{rank} |{'|'.join(cells)}|")
+        lines.append(sep)
+    lines.append(f"  Turn: {board.turn.name.upper()}")
+    return "\n".join(lines)
 
 
 # ──────────────────────────── Config ───────────────────────────────
@@ -421,7 +453,7 @@ class GameScreen(Screen):
 
     def _refresh_display(self) -> None:
         self.query_one("#board-display", Static).update(
-            self._board.board_render_string()
+            _render_board_rich(self._board)
         )
         self.query_one("#move-list", Static).update(
             self._format_move_list() or "(no moves yet)"
