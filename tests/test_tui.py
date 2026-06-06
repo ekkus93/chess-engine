@@ -209,6 +209,33 @@ class TestHumanMoveInput:
             assert piece.kind == PieceType.PAWN
             assert piece.color == Color.WHITE
 
+    async def test_human_move_appears_in_move_list(self) -> None:
+        """Human move is recorded in the move list immediately after submission."""
+        async with _HumanGameApp().run_test() as pilot:
+            await pilot.pause()
+            screen = pilot.app.screen
+            assert isinstance(screen, GameScreen)
+            await pilot.click("#move-input")
+            await pilot.press("e", "2", "e", "4")
+            await pilot.press("enter")
+            await pilot.pause()
+            # e2e4 must be in _move_strings right away (before engine responds)
+            assert "e2e4" in screen._move_strings  # type: ignore[union-attr]
+
+    async def test_move_list_shows_both_sides_after_engine_reply(self) -> None:
+        """After the engine replies, both the human move and engine move appear."""
+        async with _HumanGameApp().run_test() as pilot:
+            await pilot.pause()
+            screen = pilot.app.screen
+            assert isinstance(screen, GameScreen)
+            await pilot.click("#move-input")
+            await pilot.press("e", "2", "e", "4")
+            await pilot.press("enter")
+            await pilot.pause(delay=3.0)
+            # Both moves recorded: white at index 0, black at index 1
+            assert len(screen._move_strings) >= 2  # type: ignore[union-attr]
+            assert screen._move_strings[0] == "e2e4"  # type: ignore[union-attr]
+
     async def test_input_cleared_after_valid_move(self) -> None:
         """The move input field is empty after a valid move is submitted."""
         from textual.widgets import Input

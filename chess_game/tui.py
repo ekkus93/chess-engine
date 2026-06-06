@@ -621,6 +621,10 @@ class GameScreen(Screen):
                 f"  [red]Illegal move: {raw}[/red]"
             )
             return
+        move_str = index_to_algebraic(move.start) + index_to_algebraic(move.end)
+        if move.promotion is not None:
+            move_str += move.promotion.name.lower()[0]
+        self._move_strings.append(move_str)
         record_position(self._board, self._position_counts)
         self._refresh_display()
         self._check_game_over()
