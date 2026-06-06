@@ -24,7 +24,27 @@
       "Bash(mypy chess_game --show-error-codes)",
       "Bash(env)",
       "Bash(git add:*)",
-      "Bash(git commit -m \"Phase 9: AI module type checking fixes + linter cleanup:*)"
+      "Bash(git commit -m \"Phase 9: AI module type checking fixes + linter cleanup:*)",
+      "Bash(python3 *)",
+      "Bash(uv --version)",
+      "Bash(/home/phil/work/chess-engine/.venv/bin/python --version)",
+      "Bash(/home/phil/work/chess-engine/.venv/bin/python -m pytest --version)",
+      "Bash(/home/phil/work/chess-engine/.venv/bin/python -m pylint --version)",
+      "Bash(/home/phil/work/chess-engine/.venv/bin/python -m ruff --version)",
+      "Bash(grep -E \"\\(test_ai_endgame1_regressions|test_ai_endgame_strategy|test_ai_promotion|test_ai_quality|test_ai_search|test_ai_strategy6_regressions|test_ai_strategy7_regressions\\)\\\\.py$\")",
+      "Bash(uv run *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(tee tmp/black_improvements1_game1.txt)",
+      "Bash(tee tmp/black_improvements1_game2.txt)",
+      "Bash(tee tmp/black_improvements1_game3.txt)",
+      "Bash(tee tmp/black_improvements2_game1.txt)",
+      "Bash(tee tmp/black_improvements2_game2.txt)",
+      "Bash(tee tmp/black_improvements2_game3.txt)",
+      "Bash(2>&1)",
+      "Bash(wait *)",
+      "Bash(uv pip *)",
+      "Bash(uv sync *)"
     ]
   }
 }
