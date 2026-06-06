@@ -2,6 +2,24 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-05 - Claude Sonnet 4.6 - UNIT_TEST1: direct unit tests for 6 modules
+
+Added 158 new tests across 6 previously untested modules (Phases 1–6 of docs/UNIT_TEST1_TODO.md):
+
+- **Phase 1** `tests/test_strategy_utils.py` — 62 tests for all public functions in `strategy_utils.py`
+- **Phase 2** `tests/test_threat_awareness.py` — 16 tests for ThreatWeights, ThreatState, order/root bonuses
+- **Phase 3** `tests/test_piece_coordination.py` — 21 tests for PiecePlacementProfile, rook/bishop/queen coordination
+- **Phase 4** `tests/test_pawn_structure_evaluation.py` — 18 tests for pawn file/island penalties and central duo bonus
+- **Phase 5** `tests/test_ai_quiescence_helpers.py` — 14 tests for select_quiescence_moves, MVV-LVA, tactical score
+- **Phase 6** `tests/test_tui.py` — 27 async tests for ChessApp, MainMenuScreen, GameScreen (Textual TUI)
+
+Key implementation notes:
+- Phase 6 requires `pytest-asyncio>=0.23` (now in `pyproject.toml` dev extras) and `asyncio_mode = "auto"` in `[tool.pytest.ini_options]`
+- TUI tests use `pilot.app.screen.query_one(...)`, NOT `pilot.app.query_one(...)` — Textual 8.x's `app.query_one` searches from the default screen (not pushed screens)
+- Human move input test uses board-state assertion (pawn at e4) rather than turn check, since depth-1 engine responds before the assertion runs
+
+899 fast tests pass. ruff/mypy/pylint 10.00/10.
+
 ## 2026-06-05 - Claude Sonnet 4.6 - BLACK_IMPROVEMENTS3: endgame conversion improvements
 
 Fixed endgame conversion inefficiency (40-move rook shuffle in WHITE_IMPROVEMENTS3 game 3).
