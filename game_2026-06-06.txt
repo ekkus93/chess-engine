@@ -1,0 +1,38 @@
+Date: 2026-06-06
+Mode: human
+Human: White  Engine depth: 3
+
+  1. e2e4    e7e5
+  2. f2f4    f8c5
+  3. g1f3    g8f6
+  4. b1c3    e8g8
+  5. d2d4    e5d4
+  6. f3d4    f6e4
+  7. c3e4    f8e8
+  8. d1d3    d7d5
+  9. f1e2    e8e4
+ 10. d4b3    c8g4
+ 11. e1d2    e4e2
+ 12. d3e2    g4e2
+ 13. b3c5    b7b6
+ 14. c5b3    e2c4
+ 15. h1e1    b8c6
+ 16. d2c3    d8d6
+ 17. a2a3    a8d8
+ 18. g2g3    f7f6
+ 19. f4f5    h7h6
+ 20. c1f4    c6e5
+ 21. a1d1    c4b3
+ 22. c3b3    d6d7
+ 23. f4e5    d7b5
+ 24. b3a2    d8d7
+ 25. e5f4    c7c6
+ 26. d1d2    d7d8
+ 27. d2e2    d5d4
+ 28. e2e7    b5f5
+ 29. f4c7    d8d5
+ 30. e1e2    g7g6
+ 31. e7e8    g8g7
+ 32. e2e7    
+
+Checkmate! White wins.

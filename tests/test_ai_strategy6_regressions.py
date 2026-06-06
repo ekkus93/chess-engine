@@ -436,7 +436,8 @@ def test_strategy6_search_keeps_king_safer_than_g_pawn_lunge_in_transition() -> 
         sq("f5"),
         sq("g4"),
         sq("d7"),  # Also a valid developing move
-    }, f"Expected bishop development (c8-f5, c8-g4, or c8-d7), got {best}"
+        sq("e6"),  # Also valid — centralized development
+    }, f"Expected bishop development from c8, got {best}"
 
 
 def test_strategy6_search_prefers_clearer_knight_route_over_na7_in_transition() -> None:

@@ -85,8 +85,14 @@ class TestSelectQuiescenceMoves:
         result = select_quiescence_moves(board, [checking_move], _noop_order, 10)
         assert result == []
 
-    def test_clearly_losing_capture_filtered(self) -> None:
-        """Queen capturing a pawn (losing trade) is filtered by MVV-LVA guard."""
+    def test_qxp_undefended_included_in_quiescence(self) -> None:
+        """Queen capturing an undefended pawn is a winning capture and must be included.
+
+        The old filter blocked ALL QxP captures regardless of whether the pawn was
+        defended.  The new filter only rejects captures where the captured piece has
+        zero value (impossible in a real game), so QxP on an undefended pawn is
+        correctly included and the recursive search evaluates the follow-up.
+        """
         board = Board()
         board.clear_board()
         board.set_piece(sq("e5"), create_piece(Color.WHITE, PieceType.QUEEN))
@@ -94,9 +100,9 @@ class TestSelectQuiescenceMoves:
         board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
         board.set_piece(sq("h8"), create_piece(Color.BLACK, PieceType.KING))
         board.turn = Color.WHITE
-        losing_capture = Move(start=sq("e5"), end=sq("d4"), promotion=None)
-        result = select_quiescence_moves(board, [losing_capture], _noop_order, 10)
-        assert result == []
+        qxp = Move(start=sq("e5"), end=sq("d4"), promotion=None)
+        result = select_quiescence_moves(board, [qxp], _noop_order, 10)
+        assert result == [qxp], "QxP on undefended pawn must be a quiescence candidate"
 
 
 # ---------------------------------------------------------------------------
@@ -143,8 +149,13 @@ class TestQuiescenceCaptureMvvLva:
         move = Move(start=sq("d4"), end=sq("e5"), promotion=None)
         assert _quiescence_capture_mvv_lva(board, move) > 0
 
-    def test_queen_captures_pawn_returns_zero(self) -> None:
-        """Queen taking a pawn is a clearly losing capture — returns 0 (filtered)."""
+    def test_queen_captures_undefended_pawn_returns_positive(self) -> None:
+        """Queen taking an undefended pawn returns a positive MVV-LVA score.
+
+        The old filter blocked all QxP captures at the static stage.  The new filter
+        only rejects captures where captured_value < 1 (impossible for real pieces),
+        so QxP correctly returns a positive score and is included in quiescence.
+        """
         board = Board()
         board.clear_board()
         board.set_piece(sq("e5"), create_piece(Color.WHITE, PieceType.QUEEN))
@@ -152,7 +163,7 @@ class TestQuiescenceCaptureMvvLva:
         board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
         board.set_piece(sq("h8"), create_piece(Color.BLACK, PieceType.KING))
         move = Move(start=sq("e5"), end=sq("d4"), promotion=None)
-        assert _quiescence_capture_mvv_lva(board, move) == 0
+        assert _quiescence_capture_mvv_lva(board, move) > 0
 
     def test_rook_capture_scores_higher_than_bishop(self) -> None:
         """Capturing a rook returns a higher score than capturing a bishop."""

@@ -423,6 +423,17 @@ def _side_to_move_score(board: Board, score: int) -> int:
     return score if board.turn == Color.WHITE else -score
 
 
+def check_extension(child_board: Board, extension_budget: int) -> int:
+    """Return 1 if the last move gave check to the opponent, 0 otherwise.
+
+    Uses extension_budget to prevent cascading extensions — at most one
+    check extension fires per search path.
+    """
+    if extension_budget <= 0:
+        return 0
+    return 1 if is_in_check(child_board, child_board.turn) else 0
+
+
 def selective_extension_bonus(
     board: Board,
     move: Move,

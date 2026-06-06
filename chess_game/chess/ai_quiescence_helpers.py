@@ -72,7 +72,7 @@ def _quiescence_capture_mvv_lva(board: Board, move: Move) -> int:
         return _MVV_OFFSET + MATERIAL_VALUES[PieceType.PAWN] * 10
     cap_val = MATERIAL_VALUES[captured.kind]
     atk_val = MATERIAL_VALUES[attacker.kind]
-    if cap_val < MATERIAL_VALUES[PieceType.BISHOP] and atk_val > cap_val:
+    if cap_val < MATERIAL_VALUES[PieceType.PAWN] and atk_val > cap_val * 3:
         return 0
     return _MVV_OFFSET + cap_val * 10 - atk_val
 

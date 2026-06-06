@@ -2,6 +2,43 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-06 - Claude Sonnet 4.6 - STRATEGY15: Search quality — quiescence, capture filter, check extensions
+
+Analyzed a human-vs-engine game (game_2026-06-06.txt, white won despite blundering queen).
+Root cause: engine (black) failed to convert a large material advantage at depth=3.
+
+Four search-quality improvements implemented:
+
+1. **Quiescence depth/breadth** (`ai.py`):
+   - `MAX_QUIESCENCE_DEPTH`: 1 → 4
+   - `MAX_QUIESCENCE_MOVES`: 4 → 8
+   - Performance: ~3.9s → ~4.1s on starting position (within 3× target)
+
+2. **Pawn-capture filter fix** (`ai_quiescence_helpers.py`):
+   - Old: `if cap_val < MATERIAL_VALUES[BISHOP] and atk_val > cap_val: return 0`
+     (blocked ALL NxP, BxP, QxP, RxP from quiescence)
+   - New: `if cap_val < MATERIAL_VALUES[PAWN] and atk_val > cap_val * 3: return 0`
+     (only blocks zero-value captures, which are impossible in real games)
+
+3. **Check extensions** (`ai_search_helpers.py`, `ai.py`):
+   - Added `check_extension(child_board, budget)` in `ai_search_helpers.py`
+   - In `_leaf_extension_bonus` (ai.py): fires at `params.depth >= 2` with budget=1
+   - Extension budget=1 per path (prevents cascading depth explosions)
+   - Guard at depth >= 2 prevents noise at depth=1 leaf transitions
+
+4. **Evaluation noise audit**:
+   - Finding: only `conversion` (-1900) exceeds 300 — intentionally large, correct signal
+   - No rescaling needed; root cause was shallow search, not evaluation noise
+
+Integration result: Engine playing white at the game-30 position correctly plays Re7-e8+
+(mating start) rather than the passive e1e2 from the original game. g6 blunder eliminated.
+
+New regression tests in `tests/test_ai_strategy15_regressions.py` (8 fast, 1 slow).
+Two existing tests in `test_ai_quiescence_helpers.py` updated to match new filter behavior.
+pyproject.toml: added `requires-python = ">=3.11"` to silence startup warning.
+
+911+ fast tests pass. ruff/mypy/pylint 10.00/10 (C0302 pre-existing, doesn't affect score).
+
 ## 2026-06-05 - Claude Sonnet 4.6 - UNIT_TEST1: direct unit tests for 6 modules
 
 Added 158 new tests across 6 previously untested modules (Phases 1–6 of docs/UNIT_TEST1_TODO.md):

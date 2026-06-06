@@ -39,6 +39,7 @@ from chess_game.chess.ai_search_helpers import (
     root_stability_adjustment as _root_stability_adjustment,
     rerun_full_window_if_needed as _rerun_full_window_if_needed,
     same_legal_move as _same_legal_move,
+    check_extension as _check_extension,
     selective_extension_bonus as _selective_extension_bonus,
     search_position_counts as _search_position_counts,
     update_alpha_beta as _update_alpha_beta,
@@ -62,8 +63,8 @@ from chess_game.chess.types import Color, LegalMove, PieceType
 INF = 10_000_000
 MATE_SCORE = 100_000
 ASPIRATION_WINDOW = 150
-MAX_QUIESCENCE_DEPTH = 1
-MAX_QUIESCENCE_MOVES = 4
+MAX_QUIESCENCE_DEPTH = 4
+MAX_QUIESCENCE_MOVES = 8
 LegalMoveKey = tuple[object, object, Optional[PieceType]]
 get_evaluation_breakdown = _get_evaluation_breakdown
 _quiescence_capture_score = _quiescence_capture_score_impl
@@ -579,8 +580,21 @@ def _leaf_extension_bonus(
     child_board: Board,
     params: MinimaxParams,
 ) -> int:
-    """Return a bounded extension bonus for critical near-horizon moves."""
+    """Return a bounded extension bonus for critical near-horizon moves.
 
+    Check extensions fire at any depth so forcing sequences through checks
+    are not cut off mid-calculation.  Strategic extensions are reserved for
+    moves near the leaf (depth <= 2).  The extension_budget cap (starts at 1,
+    decremented on each extension) prevents cascading depth explosions.
+    """
+    # Check extensions only fire at depth >= 2.  At depth 1 the child falls
+    # directly into quiescence, so extending there adds noise without helping
+    # the engine follow a forcing line further.
+    if params.depth >= 2:
+        check_ext = _check_extension(child_board, params.extension_budget)
+        if check_ext:
+            _record_selective_extension(params.context)
+            return check_ext
     if params.depth > 2:
         return 0
     extension_bonus = _selective_extension_bonus(

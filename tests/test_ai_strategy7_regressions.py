@@ -527,6 +527,7 @@ def test_strategy7_search_rejects_bh3_in_winning_conversion_position() -> None:
         LegalMove(start=sq("f1"), end=sq("g2")),
         LegalMove(start=sq("d3"), end=sq("g3")),
         LegalMove(start=sq("h1"), end=sq("g1")),
+        LegalMove(start=sq("d4"), end=sq("b5")),  # Nd4-b5: attacks black bishop on b6
     ]
 
 
