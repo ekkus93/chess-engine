@@ -29,7 +29,7 @@ from chess_game.chess import Board, Color, PieceType
 from chess_game.chess.types import LegalMove
 from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.move import parse_move_notation
-from chess_game.chess.ai import get_best_move
+from chess_game.chess.ai import BestMoveOptions, get_best_move
 from chess_game.chess.board.game_state import is_in_check, record_position, terminal_message
 
 
@@ -544,7 +544,12 @@ class GameScreen(Screen):
         board_copy = self._board.clone()
         depth = self._current_depth()
         pos_counts = dict(self._position_counts)
-        move = get_best_move(board_copy, depth, position_counts=pos_counts)
+        move = get_best_move(
+            board_copy,
+            depth,
+            position_counts=pos_counts,
+            book_options=BestMoveOptions(random_opening_book=True),
+        )
         self.post_message(EngineMoveMessage(move))
 
     @on(EngineMoveMessage)

@@ -271,6 +271,7 @@ class BestMoveOptions:
 
     use_opening_book: bool = True
     opening_book: OpeningBook | None = None
+    random_opening_book: bool = False
 
 
 @dataclass
@@ -880,7 +881,10 @@ def get_best_move(
     options = book_options or BestMoveOptions()
     if options.use_opening_book:
         book = options.opening_book or get_bundled_opening_book()
-        book_move = book.find_book_move(board)
+        if options.random_opening_book:
+            book_move = book.find_book_move_random(board)
+        else:
+            book_move = book.find_book_move(board)
         if book_move is not None:
             return book_move
     context = SearchContext(
