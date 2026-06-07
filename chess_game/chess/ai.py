@@ -44,6 +44,12 @@ from chess_game.chess.ai_search_helpers import (
     search_position_counts as _search_position_counts,
     update_alpha_beta as _update_alpha_beta,
 )
+from chess_game.chess.ai_weight_cache import (
+    get as _wc_get,
+    invalidate_weights_cache as _invalidate_weights_cache,
+    is_loaded as _wc_is_loaded,
+    set_cache as _wc_set,
+)
 from chess_game.chess.eval_weights import EvalWeights
 from chess_game.chess.evaluation import (
     evaluate,
@@ -77,19 +83,23 @@ _quiescence_check_score = _quiescence_check_score_impl
 _quiescence_structure_follow_up_score = _quiescence_structure_follow_up_score_impl
 _quiescence_tactical_score = _quiescence_tactical_score_impl
 
-# Module-level weight cache so tuned weights are only loaded once per process.
-_weight_cache: list[Optional[EvalWeights]] = [None]
-_weight_cache_loaded: list[bool] = [False]
-
 
 def _get_effective_weights(weights: Optional[EvalWeights]) -> EvalWeights:
     """Resolve the effective weights to use, loading from disk if needed."""
     if weights is not None:
         return weights
-    if not _weight_cache_loaded[0]:
-        _weight_cache[0] = _load_weights_or_default(_TUNED_WEIGHTS_PATH)
-        _weight_cache_loaded[0] = True
-    return _weight_cache[0] or EvalWeights.default()
+    if not _wc_is_loaded():
+        _wc_set(_load_weights_or_default(_TUNED_WEIGHTS_PATH))
+    return _wc_get() or EvalWeights.default()
+
+
+def invalidate_weights_cache() -> None:
+    """Force reload of tuned weights on the next get_best_move call.
+
+    Call this after saving new tuned weights to disk so the AI immediately
+    picks them up without restarting the process.
+    """
+    _invalidate_weights_cache()
 
 
 def _progress_score(board: Board) -> int:

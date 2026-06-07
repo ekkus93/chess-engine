@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import dataclasses
 import datetime
+import threading
 from pathlib import Path
 
 from textual import on, work
@@ -31,7 +32,11 @@ from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.move import parse_move_notation
 from chess_game.chess.ai import BestMoveOptions, get_best_move
 from chess_game.chess.board.game_state import is_in_check, record_position, terminal_message
+from chess_game.texel.online_learning import OnlineLearningConfig, record_game_and_update_weights
+from chess_game.texel.position_db import GameRecord
 from chess_game.texel.weights_io import TUNED_WEIGHTS_PATH
+
+_SKIP_OPENING_PLIES = 10
 
 
 _WHITE_PIECE_STYLE = "bold yellow"
@@ -39,6 +44,21 @@ _BLACK_PIECE_STYLE = "bold cyan"
 
 # Detect at import time whether tuned weights are available.
 _ENGINE_LABEL = "Engine: tuned" if TUNED_WEIGHTS_PATH.exists() else "Engine: default"
+
+
+def _outcome_from_result(message: str) -> float | None:
+    """Return Texel outcome float from a terminal result message.
+
+    Returns 1.0 (White wins), 0.0 (Black wins), 0.5 (draw), or None if
+    the result cannot be parsed.
+    """
+    if "White wins" in message:
+        return 1.0
+    if "Black wins" in message:
+        return 0.0
+    if any(kw in message for kw in ("Stalemate", "Draw", "draw", "repetition", "fifty")):
+        return 0.5
+    return None
 
 
 def _render_board_rich(board: Board) -> str:
@@ -403,6 +423,7 @@ class GameScreen(Screen):
         self._board = Board()
         self._position_counts: dict[str, int] = {}
         self._move_strings: list[str] = []
+        self._board_fens: list[str] = []
         self._game_over = False
         self._auto_play = True
         record_position(self._board, self._position_counts)
@@ -583,6 +604,9 @@ class GameScreen(Screen):
             move_str += promotion.name.lower()[0]
         self._move_strings.append(move_str)
         record_position(self._board, self._position_counts)
+        # Collect post-move FEN for online learning (skip the opening book phase).
+        if len(self._move_strings) > _SKIP_OPENING_PLIES:
+            self._board_fens.append(self._board.to_fen())
         self._refresh_display()
         self._check_game_over()
 
@@ -598,6 +622,22 @@ class GameScreen(Screen):
                 self.query_one("#human-controls").remove_class("active")
             else:
                 self.query_one("#selfplay-controls").remove_class("active")
+                self._trigger_online_learning(msg)
+
+    def _trigger_online_learning(self, result_message: str) -> None:
+        """Start a background thread to update weights from this self-play game."""
+        outcome = _outcome_from_result(result_message)
+        if outcome is None or not self._board_fens:
+            return
+        fens = list(self._board_fens)
+        record = GameRecord(positions=fens, outcome=outcome)
+        cfg = OnlineLearningConfig()
+
+        def _learn() -> None:
+            record_game_and_update_weights(record, cfg)
+
+        thread = threading.Thread(target=_learn, daemon=True)
+        thread.start()
 
     # ── Human mode input ──────────────────────────────────────────
 

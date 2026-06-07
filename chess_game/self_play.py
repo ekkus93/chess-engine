@@ -15,6 +15,11 @@ from chess_game.chess.constants import ConstantSquare
 from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.opening_book import OpeningBook, OpeningBookError, get_bundled_opening_book
 from chess_game.chess.types import Color, LegalMove, PieceType
+from chess_game.texel.online_learning import OnlineLearningConfig, record_game_and_update_weights
+from chess_game.texel.position_db import GameRecord
+
+_SKIP_OPENING_PLIES = 10
+
 
 @dataclass
 class _MoveSelectionParams:
@@ -36,6 +41,8 @@ class _SelfPlayOptions:
     verbose: bool = True
     use_opening_book: bool = True
     opening_book: Optional[OpeningBook] = None
+    online_learning: bool = False
+    learning_config: Optional[OnlineLearningConfig] = None
 
 
 PROMOTION_SUFFIXES = {
@@ -103,6 +110,21 @@ def _get_best_move_with_timeout(params: _MoveSelectionParams) -> Optional[LegalM
     return best
 
 
+def _outcome_from_message(message: str) -> Optional[float]:
+    """Convert a terminal-message string to a Texel outcome float.
+
+    Returns 1.0 if White wins, 0.0 if Black wins, 0.5 for any draw,
+    or None if the result cannot be determined.
+    """
+    if "White wins" in message:
+        return 1.0
+    if "Black wins" in message:
+        return 0.0
+    if any(kw in message for kw in ("Stalemate", "Draw", "draw", "repetition", "fifty")):
+        return 0.5
+    return None
+
+
 def _print_game_header(depth_white: int, depth_black: int) -> None:
     """Print the self-play header."""
 
@@ -131,6 +153,31 @@ def _print_played_move(board: Board, move_number: int, side: str, best_move) -> 
     print(f"Move {move_number}: {side} plays {algebraic}")
     board.display()
     print()
+
+
+def _maybe_learn(
+    game_over_message: str,
+    fens: list[str],
+    options: _SelfPlayOptions,
+) -> None:
+    """Optionally run an online-learning pass after a completed game.
+
+    Only fires when ``options.online_learning`` is True and a clear outcome
+    can be parsed from *game_over_message*.
+    """
+    if not options.online_learning or not fens:
+        return
+    outcome = _outcome_from_message(game_over_message)
+    if outcome is None:
+        return
+    record = GameRecord(positions=fens, outcome=outcome)
+    cfg = options.learning_config or OnlineLearningConfig()
+    updated = record_game_and_update_weights(record, cfg)
+    if options.verbose:
+        if updated:
+            print("Learning from game... weights updated.")
+        else:
+            print("Learning from game... (not enough positions yet, skipped tuning).")
 
 
 def _run_self_play_internal(
@@ -168,14 +215,17 @@ def _run_self_play_internal(
         _print_game_header(depth_white, depth_black)
 
     move_number = 1
+    ply = 0
     position_counts: dict[str, int] = {}
     record_position(board, position_counts)
+    collected_fens: list[str] = []
 
     while move_number <= options.max_moves:
         game_over = terminal_message(board, position_counts)
         if game_over is not None:
             if options.verbose:
                 _print_terminal_position(f"{game_over} On move {move_number}.", board)
+            _maybe_learn(game_over, collected_fens, options)
             return
 
         base_depth = depth_white if board.turn == Color.WHITE else depth_black
@@ -191,6 +241,9 @@ def _run_self_play_internal(
         side = "White" if board.turn == Color.WHITE else "Black"
         board.make_move(best.start, best.end, promotion=best.promotion)
         record_position(board, position_counts)
+        ply += 1
+        if ply > _SKIP_OPENING_PLIES:
+            collected_fens.append(board.to_fen())
         if options.verbose:
             _print_played_move(board, move_number, side, best)
         move_number += 1

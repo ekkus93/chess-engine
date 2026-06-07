@@ -1254,3 +1254,13 @@ Completed full Texel tuning implementation across 12 phases. All 945 fast tests 
 4. Engine auto-loads tuned_weights.json on startup if present.
 
 ### Tagged as: v0.3
+
+## 2026-06-07T22:35:02Z - Claude Sonnet 4.6 - Continuous learning from self-play
+
+Added automatic weight improvement after every self-play game (CLI and TUI).
+
+- `chess_game/chess/ai_weight_cache.py` — shared cache module (list-boxing avoids circular import between ai.py and online_learning.py)
+- `chess_game/texel/online_learning.py` — `OnlineLearningConfig` + `record_game_and_update_weights()`; saves positions to `data/positions.jsonl`, runs 200-iteration SPSA pass when ≥50 positions accumulated, invalidates weight cache so next game uses updated weights
+- `chess_game/self_play.py` — `_SelfPlayOptions.online_learning=True` triggers `_maybe_learn()` at game end; enabled from CLI with `--learn` flag
+- `chess_game/tui.py` — `_board_fens` list collects FENs each ply; `_trigger_online_learning()` spawns daemon thread after self-play game ends; doesn't block UI
+- `invalidate_weights_cache()` exported from `ai_weight_cache.py` so tuned weights reload immediately on next `get_best_move` call
