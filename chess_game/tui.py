@@ -31,10 +31,14 @@ from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.move import parse_move_notation
 from chess_game.chess.ai import BestMoveOptions, get_best_move
 from chess_game.chess.board.game_state import is_in_check, record_position, terminal_message
+from chess_game.texel.weights_io import TUNED_WEIGHTS_PATH
 
 
 _WHITE_PIECE_STYLE = "bold yellow"
 _BLACK_PIECE_STYLE = "bold cyan"
+
+# Detect at import time whether tuned weights are available.
+_ENGINE_LABEL = "Engine: tuned" if TUNED_WEIGHTS_PATH.exists() else "Engine: default"
 
 
 def _render_board_rich(board: Board) -> str:
@@ -477,19 +481,19 @@ class GameScreen(Screen):
             status = ""
         elif self._thinking:
             color = self._board.turn.name.capitalize()
-            status = f"  {color} is thinking..."
+            status = f"  {color} is thinking...  [{_ENGINE_LABEL}]"
         elif is_in_check(self._board, self._board.turn):
             color = self._board.turn.name.capitalize()
-            status = f"  {color} is in CHECK!"
+            status = f"  {color} is in CHECK!  [{_ENGINE_LABEL}]"
         else:
             color = self._board.turn.name.capitalize()
             if self._config.mode == "human":
                 if self._board.turn == self._config.human_color:
-                    status = f"  Your turn ({color})"
+                    status = f"  Your turn ({color})  [{_ENGINE_LABEL}]"
                 else:
-                    status = f"  Engine ({color}) to move"
+                    status = f"  Engine ({color}) to move  [{_ENGINE_LABEL}]"
             else:
-                status = f"  {color} to move"
+                status = f"  {color} to move  [{_ENGINE_LABEL}]"
         self.query_one("#status-bar", Static).update(status)
 
     def _update_human_controls(self) -> None:

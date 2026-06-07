@@ -44,11 +44,16 @@ from chess_game.chess.ai_search_helpers import (
     search_position_counts as _search_position_counts,
     update_alpha_beta as _update_alpha_beta,
 )
+from chess_game.chess.eval_weights import EvalWeights
 from chess_game.chess.evaluation import (
     evaluate,
     get_evaluation_breakdown as _get_evaluation_breakdown,
 )
 from chess_game.chess.evaluation_tables import MATERIAL_VALUES
+from chess_game.texel.weights_io import (
+    TUNED_WEIGHTS_PATH as _TUNED_WEIGHTS_PATH,
+    load_weights_or_default as _load_weights_or_default,
+)
 from chess_game.chess.evaluation_tables import (
     REPETITION_PROGRESS_ONLY_THRESHOLD,
     REPETITION_PROGRESS_THRESHOLD,
@@ -71,10 +76,41 @@ _quiescence_capture_score = _quiescence_capture_score_impl
 _quiescence_check_score = _quiescence_check_score_impl
 _quiescence_structure_follow_up_score = _quiescence_structure_follow_up_score_impl
 _quiescence_tactical_score = _quiescence_tactical_score_impl
+
+# Module-level weight cache so tuned weights are only loaded once per process.
+_weight_cache: list[Optional[EvalWeights]] = [None]
+_weight_cache_loaded: list[bool] = [False]
+
+
+def _get_effective_weights(weights: Optional[EvalWeights]) -> EvalWeights:
+    """Resolve the effective weights to use, loading from disk if needed."""
+    if weights is not None:
+        return weights
+    if not _weight_cache_loaded[0]:
+        _weight_cache[0] = _load_weights_or_default(_TUNED_WEIGHTS_PATH)
+        _weight_cache_loaded[0] = True
+    return _weight_cache[0] or EvalWeights.default()
+
+
 def _progress_score(board: Board) -> int:
     """Return the progress component used to discourage empty repetitions."""
 
     return _get_evaluation_breakdown(board)["progress"]
+
+
+def _ctx_evaluate(board: Board, context: Optional[SearchContext]) -> int:
+    """Evaluate board using the weights stored in context (or defaults)."""
+    weights = context.weights if context is not None else None
+    return evaluate(board, weights)
+
+
+def _make_evaluate_fn(context: Optional[SearchContext]):
+    """Return an evaluate callable that captures context weights."""
+
+    def _fn(board: Board) -> int:
+        return _ctx_evaluate(board, context)
+
+    return _fn
 
 
 class TTFlag(Enum):
@@ -273,6 +309,7 @@ class BestMoveOptions:
     use_opening_book: bool = True
     opening_book: OpeningBook | None = None
     random_opening_book: bool = False
+    weights: Optional[EvalWeights] = None
 
 
 @dataclass
@@ -285,6 +322,7 @@ class SearchContext:
     stats: Optional[SearchStats] = None
     killer_moves: Optional[list[LegalMoveKey]] = None
     position_counts: Optional[dict[str, int]] = None
+    weights: Optional[EvalWeights] = None
 
 
 @dataclass
@@ -410,7 +448,7 @@ def minimax(
         params.line_history,
         RepetitionPolicy(
             position_key=position_key,
-            evaluate=evaluate,
+            evaluate=_make_evaluate_fn(params.context),
             progress=_progress_score,
             threshold=REPETITION_PROGRESS_THRESHOLD,
             progress_threshold=REPETITION_PROGRESS_ONLY_THRESHOLD,
@@ -656,7 +694,7 @@ def _quiescence(board: Board, params: QuiescenceParams) -> int:
         params.line_history,
         RepetitionPolicy(
             position_key=position_key,
-            evaluate=evaluate,
+            evaluate=_make_evaluate_fn(context),
             progress=_progress_score,
             threshold=REPETITION_PROGRESS_THRESHOLD,
             progress_threshold=REPETITION_PROGRESS_ONLY_THRESHOLD,
@@ -665,7 +703,7 @@ def _quiescence(board: Board, params: QuiescenceParams) -> int:
     )
     if repetition_score is not None:
         return repetition_score
-    stand_pat = evaluate(board)
+    stand_pat = _ctx_evaluate(board, context)
     best_score, alpha, beta = _stand_pat_bounds(
         stand_pat,
         alpha,
@@ -901,11 +939,13 @@ def get_best_move(
             book_move = book.find_book_move(board)
         if book_move is not None:
             return book_move
+    effective_weights = _get_effective_weights(options.weights)
     context = SearchContext(
         transposition_table={},
         stats=stats,
         killer_moves=[],
         position_counts=_search_position_counts(board, position_counts, _shared_position_key),
+        weights=effective_weights,
     )
     is_maximizing = board.turn == Color.WHITE
     return _iterative_deepening_best_move(board, depth, is_maximizing, context)
