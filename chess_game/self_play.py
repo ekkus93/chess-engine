@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import signal
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Optional
 
 from chess_game.chess.ai import BestMoveOptions, get_best_move
@@ -257,15 +260,59 @@ def run_self_play(
     depth_black: int = 2,
     options: Optional[_SelfPlayOptions] = None,
 ) -> None:
-    """Run a self-play game with the AI playing both sides.
-
-    Args:
-        depth_white: Search depth for White.
-        depth_black: Search depth for Black.
-        options: Optional self-play configuration. If omitted, default options are used.
-    """
+    """Run a self-play game with the AI playing both sides."""
     effective_options = options or _SelfPlayOptions()
     _run_self_play_internal(depth_white, depth_black, effective_options)
+
+
+@dataclass
+class _MultiGameConfig:
+    """Parameters for running multiple self-play games."""
+
+    depth_white: int = 2
+    depth_black: int = 2
+    num_games: int = 1
+    output_dir: Optional[Path] = None
+    play_options: _SelfPlayOptions = field(default_factory=_SelfPlayOptions)
+
+
+def _run_multi_game(config: _MultiGameConfig) -> None:
+    """Run *num_games* self-play games, optionally saving each to its own file."""
+    width = len(str(config.num_games))
+    if config.output_dir is not None:
+        config.output_dir.mkdir(parents=True, exist_ok=True)
+
+    for i in range(1, config.num_games + 1):
+        label = str(i).zfill(width)
+
+        if config.output_dir is not None:
+            out_path = config.output_dir / f"game_{label}.txt"
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                _run_self_play_internal(
+                    config.depth_white,
+                    config.depth_black,
+                    config.play_options,
+                )
+            text = buf.getvalue()
+            out_path.write_text(text, encoding="utf-8")
+            # Print a one-line summary to the real stdout (find the result line)
+            _keywords = ("wins", "Stalemate", "Draw", "draw", "repetition",
+                         "fifty", "maximum move", "no legal")
+            result_line = next(
+                (ln for ln in text.splitlines()
+                 if any(kw in ln for kw in _keywords)),
+                "completed",
+            )
+            print(f"Game {label}/{config.num_games}: {result_line.strip()} → {out_path}")
+        else:
+            if config.num_games > 1:
+                print(f"\n{'='*40}\nGame {label}/{config.num_games}\n{'='*40}\n")
+            _run_self_play_internal(
+                config.depth_white,
+                config.depth_black,
+                config.play_options,
+            )
 
 
 def main():
@@ -286,6 +333,19 @@ def main():
         help="Search depth for Black (default: 2)",
     )
     parser.add_argument(
+        "--games",
+        type=int,
+        default=1,
+        help="Number of self-play games to run (default: 1)",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=None,
+        help="Directory to save individual game files (game_001.txt, …). "
+             "Prints a one-line summary per game to stdout.",
+    )
+    parser.add_argument(
         "--max-moves",
         type=int,
         default=1000,
@@ -302,36 +362,46 @@ def main():
         default=None,
         help="Path to custom opening book JSON file (default: use bundled book)",
     )
+    parser.add_argument(
+        "--learn",
+        action="store_true",
+        help="Enable online learning: update tuned weights after each game",
+    )
     args = parser.parse_args()
 
-    # Validate depths >= 1
     if args.white_depth < 1:
         print("Error: --white-depth must be >= 1", file=sys.stderr)
         sys.exit(1)
     if args.black_depth < 1:
         print("Error: --black-depth must be >= 1", file=sys.stderr)
         sys.exit(1)
+    if args.games < 1:
+        print("Error: --games must be >= 1", file=sys.stderr)
+        sys.exit(1)
 
-    # Handle opening book loading
     opening_book: Optional[OpeningBook] = None
     if not args.no_opening_book and args.opening_book:
         try:
             opening_book = OpeningBook.from_file(args.opening_book)
         except OpeningBookError as exc:
-            print(f"Error loading opening book from {args.opening_book}: {exc}", file=sys.stderr)
+            print(f"Error loading opening book: {exc}", file=sys.stderr)
             sys.exit(1)
 
-    options = _SelfPlayOptions(
+    play_options = _SelfPlayOptions(
         max_moves=args.max_moves,
         verbose=True,
         use_opening_book=not args.no_opening_book,
         opening_book=opening_book,
+        online_learning=args.learn,
     )
-    run_self_play(
+    config = _MultiGameConfig(
         depth_white=args.white_depth,
         depth_black=args.black_depth,
-        options=options,
+        num_games=args.games,
+        output_dir=Path(args.output_dir) if args.output_dir else None,
+        play_options=play_options,
     )
+    _run_multi_game(config)
 
 
 if __name__ == "__main__":

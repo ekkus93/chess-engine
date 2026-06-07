@@ -21,13 +21,11 @@ def test_no_opening_book_wins_over_bad_custom_path(monkeypatch) -> None:
             called["from_file"] = True
             raise AssertionError(f"OpeningBook.from_file should not be called: {path}")
 
-    def fake_run_self_play(depth_white: int, depth_black: int, options: Any) -> None:
-        captured["depth_white"] = depth_white
-        captured["depth_black"] = depth_black
-        captured["options"] = options
+    def fake_run_multi_game(config: Any) -> None:
+        captured["config"] = config
 
     monkeypatch.setattr(self_play, "OpeningBook", DummyOpeningBook)
-    monkeypatch.setattr(self_play, "run_self_play", fake_run_self_play)
+    monkeypatch.setattr(self_play, "_run_multi_game", fake_run_multi_game)
     monkeypatch.setattr(
         sys,
         "argv",
@@ -44,6 +42,6 @@ def test_no_opening_book_wins_over_bad_custom_path(monkeypatch) -> None:
     self_play.main()
 
     assert called["from_file"] is False
-    options = cast(Any, captured["options"])
-    assert options.use_opening_book is False
-    assert options.opening_book is None
+    config = cast(Any, captured["config"])
+    assert config.play_options.use_opening_book is False
+    assert config.play_options.opening_book is None
