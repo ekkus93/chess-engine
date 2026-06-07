@@ -22,6 +22,7 @@ a Textual TUI, and a text-based CLI fallback.
 - AI: minimax with alpha-beta pruning, quiescence search, piece-square tables, opening book
 - **Textual TUI** with human-vs-engine and self-play modes, configurable depth, move list, save to file
 - Interactive CLI for simple text-based play
+- **Self-improving via Texel tuning** — the engine can learn from self-play games and improve its evaluation weights
 
 ## Python environment
 
@@ -74,6 +75,28 @@ uv run python -m pytest tests/ -q -m "slow"
 # Full suite
 uv run python -m pytest tests/ -q
 ```
+
+## Self-improving via Texel tuning
+
+The engine can optimize its evaluation weights by learning from self-play game outcomes
+using [Texel tuning](https://www.chessprogramming.org/Texel's_Tuning_Method) (gradient-free
+SPSA optimization over ~460 tunable parameters).
+
+```bash
+# Step 1: Collect positions from self-play games (depth 1, fast)
+uv run python -m chess_game.texel.collect --games 500 --depth 1 --db /tmp/positions.jsonl
+
+# Step 2: Tune evaluation weights (5000 SPSA iterations)
+uv run python -m chess_game.texel.tune --db /tmp/positions.jsonl \
+    --output chess_game/chess/data/tuned_weights.json --iterations 5000 --verbose
+
+# Step 3: Validate tuned vs. baseline (100 games at depth 2)
+uv run python -m chess_game.texel.validate \
+    --weights chess_game/chess/data/tuned_weights.json --games 100 --depth 2
+```
+
+Once `chess_game/chess/data/tuned_weights.json` exists, the engine automatically loads
+it on startup. The TUI shows **"Engine: tuned"** vs **"Engine: default"** in the status bar.
 
 ## Linting and type checking
 
@@ -149,6 +172,15 @@ chess_game/
       piece_validation.py  # Piece-specific validation
     pieces/
       piece_movers.py      # Movement rules per piece type
-tests/                     # Test suite (1037 tests: 899 fast + 138 slow)
+  texel/
+    __init__.py
+    collect.py      # Self-play data collection (python -m chess_game.texel.collect)
+    loss.py         # Sigmoid + MSE loss + K calibration
+    spsa.py         # SPSA optimizer
+    tune.py         # End-to-end tuning pipeline (python -m chess_game.texel.tune)
+    validate.py     # Validation match (python -m chess_game.texel.validate)
+    weights_io.py   # Save/load EvalWeights to/from JSON
+    position_db.py  # (FEN, outcome) position database
+tests/                     # Test suite
 docs/                      # Documentation
 ```

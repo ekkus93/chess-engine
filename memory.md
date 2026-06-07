@@ -1225,3 +1225,32 @@ Implement ENDGAME2 tasks (0-7) to fix the stalemate conversion flaw discovered i
 2. Consider running fresh depth-3 self-play to validate the fix prevents move 113 stalemate pattern
 3. If investigating test failures, start with one failing test and work backwards to root cause
 4. Update TODO statuses in docs/ as tasks progress
+
+## 2026-06-07T22:06:29Z - Claude Sonnet 4.6 - TEXEL1: Complete (Phases 1-12)
+
+Completed full Texel tuning implementation across 12 phases. All 945 fast tests pass, pylint 10.00/10.
+
+### New modules created:
+- `chess_game/chess/eval_weights.py` — EvalWeights with 8 sub-dataclasses; EVAL_WEIGHTS_FLAT_LENGTH=463
+- `chess_game/texel/position_db.py` — PositionDB stores (FEN, outcome) pairs
+- `chess_game/texel/collect.py` — collect_games() runs self-play, saves FENs; CLI entry
+- `chess_game/texel/loss.py` — sigmoid(), mean_squared_error(), calibrate_k(), calibrate_and_save_k()
+- `chess_game/texel/spsa.py` — SPSA optimizer with step decay, Bernoulli perturbations, checkpointing
+- `chess_game/texel/weights_io.py` — save/load EvalWeights; TUNED_WEIGHTS_PATH constant
+- `chess_game/texel/tune.py` — end-to-end TuningConfig + run_tuning() pipeline; CLI entry
+- `chess_game/texel/validate.py` — ValidationResult + run_validation_match(); CLI entry
+
+### Key changes to existing files:
+- `evaluation.py` — evaluate(board, weights=None) injectable weights
+- `ai.py` — BestMoveOptions.weights field; auto-loads tuned_weights.json via lazy cache
+- `board/board.py` — added to_fen() and from_fen() methods
+- `tui.py` — shows "Engine: tuned"/"Engine: default" in status bar
+- `pyproject.toml` — [tool.pylint.design] max-attributes=20, max-public-methods=22
+
+### Usage workflow:
+1. Collect: `python -m chess_game.texel.collect --games 500 --db /tmp/pos.jsonl`
+2. Tune: `python -m chess_game.texel.tune --db /tmp/pos.jsonl --output chess_game/chess/data/tuned_weights.json`
+3. Validate: `python -m chess_game.texel.validate --weights chess_game/chess/data/tuned_weights.json`
+4. Engine auto-loads tuned_weights.json on startup if present.
+
+### Tagged as: v0.3
