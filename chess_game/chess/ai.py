@@ -45,10 +45,10 @@ from chess_game.chess.ai_search_helpers import (
     update_alpha_beta as _update_alpha_beta,
 )
 from chess_game.chess.evaluation import (
-    MATERIAL_VALUES,
     evaluate,
     get_evaluation_breakdown as _get_evaluation_breakdown,
 )
+from chess_game.chess.evaluation_tables import MATERIAL_VALUES
 from chess_game.chess.evaluation_tables import (
     REPETITION_PROGRESS_ONLY_THRESHOLD,
     REPETITION_PROGRESS_THRESHOLD,

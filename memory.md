@@ -2,6 +2,43 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-07T20:59:35Z - Claude Sonnet 4.6 - TEXEL1: Phase 2 — thread EvalWeights through evaluators
+
+Phase 2 of Texel tuning implementation. Phase 1 (`eval_weights.py`) was also created in this session.
+
+### Files created:
+- `chess_game/chess/eval_weights.py` — `EvalWeights` dataclass with 8 sub-groups: `MaterialWeights`, `TableWeights`, `PawnWeights`, `PieceActivityWeights`, `KingSafetyWeights`, `DevelopmentWeights`, `EndgameWeights`, `MatingWeights`. Key methods: `default()`, `to_flat_list()`, `from_flat_list()`, `to_dict()`, `from_dict()`. `EVAL_WEIGHTS_FLAT_LENGTH = 463`.
+
+### Files refactored:
+- `evaluation.py` — `evaluate(board, weights=None)` and `get_evaluation_breakdown(board, weights=None)`. All internal evaluators accept weights. MATERIAL_VALUES now imported from evaluation_tables. King guard added before material lookup.
+- `pawn_structure_evaluation.py` — `evaluate_pawn_structure(board, endgame_phase, weights=None)`. Refactored to accept pawn_positions dict instead of two separate lists (reduced too-many-args). Private helpers `_pawn_file_penalty`, `_pawn_island_penalty`, `_central_duo_bonus` accept optional weights.
+- `endgame_evaluation.py` — All 9 public functions accept `weights=None`. `evaluate_endgame_technique`, `evaluate_conversion`, `evaluate_progress` use `weights.endgame.*` and `weights.mating.*`. Others accept weights for API consistency.
+- `opening_development.py` — All exported functions accept `weights=None`. Constants replaced with `weights.king.*`, `weights.development.*`, `weights.pieces.*`, `weights.pawns.*`. `_drift_penalty_accumulator` split off to reduce local count in `_opening_drift_penalties`.
+
+### Files deliberately NOT refactored (search path only, not hot-path):
+- `middlegame_practicality_guidance.py` — calls opening_development functions without weights (they default gracefully)
+- `conversion_guidance.py` — uses MATERIAL_VALUES from evaluation_tables, not hot-path
+- `strategy_utils.py` — uses MATERIAL_VALUES from evaluation_tables
+- AI search files — use MATERIAL_VALUES from evaluation_tables directly
+
+### pylint fixes:
+- `TableWeights` now imports table constants from `evaluation_tables` (removes duplicate-code warning)
+- `passed_pawn_bonus_by_progress` uses `dict(enumerate(...))` (removes unnecessary-comprehension)
+- `_knight_activity_score` and `_bishop_activity_score` refactored to take `pawn_positions` dict (removes too-many-arguments)
+- `_pawn_structure_score_for_color` and `_pawn_square_structure_score` refactored to use `square` tuple and `pawn_positions` dict
+- `pyproject.toml` gains `[tool.pylint.design] max-attributes = 20` for the weight dataclasses
+- `_opening_drift_penalties` uses `pens: list[int] = [0, 0, 0, 0]` to stay under 15-locals limit
+
+### Backward compatibility:
+- `evaluate(board)` returns same result as `evaluate(board, EvalWeights.default())` — verified (both return 0 for starting position)
+- All callers without weights use `EvalWeights.default()` which matches current hardcoded constants
+
+### Results:
+- 911 fast tests pass, 139 deselected
+- ruff: all checks passed
+- mypy: no issues in 65 source files
+- pylint: 10.00/10
+
 ## 2026-06-06 - Claude Sonnet 4.6 - STRATEGY15: Search quality — quiescence, capture filter, check extensions
 
 Analyzed a human-vs-engine game (game_2026-06-06.txt, white won despite blundering queen).

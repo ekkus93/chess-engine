@@ -16,7 +16,7 @@ from chess_game.chess.structure_recognition import (
 )
 from chess_game.chess.strategy_utils import is_capture_move
 from chess_game.chess.types import Color, PieceType
-from chess_game.chess.evaluation import MATERIAL_VALUES
+from chess_game.chess.evaluation_tables import MATERIAL_VALUES
 
 _MVV_OFFSET = 100_000
 

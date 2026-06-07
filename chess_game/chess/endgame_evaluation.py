@@ -3,6 +3,7 @@
 from chess_game.chess.board import Board
 from chess_game.chess.conversion_guidance import winning_conversion_evaluation_score
 from chess_game.chess.defensive_endgame_guidance import defensive_endgame_evaluation_score
+from chess_game.chess.eval_weights import EvalWeights
 from chess_game.chess.heavy_piece_endgame_guidance import (
     heavy_piece_endgame_evaluation_score,
 )
@@ -13,23 +14,7 @@ from chess_game.chess.low_material_race_guidance import low_material_race_evalua
 from chess_game.chess.low_material_race_guidance import endgame_race_evaluation_score
 from chess_game.chess.passer_race_guidance import passer_race_evaluation_score
 from chess_game.chess.evaluation_tables import (
-    ACTIVE_KING_ENDGAME_BONUS,
-    BLOCKADED_PASSED_PAWN_BONUS,
-    COUNTERPLAY_REDUCTION_BONUS,
-    ENEMY_KING_BOX_BONUS,
-    HEAVY_PIECE_COORDINATION_BONUS,
-    HEAVY_PIECE_ACTIVITY_BONUS,
-    KING_CUTOFF_BONUS,
-    KING_ESCORT_PASSED_PAWN_BONUS,
     MATERIAL_VALUES,
-    MATING_EDGE_BONUS,
-    MATING_KING_DISTANCE_BONUS,
-    MATING_MATERIAL_BASE,
-    PROMOTION_SQUARE_CONTROL_BONUS,
-    QUEENS_OFF_WHEN_AHEAD_BONUS,
-    ROOK_BEHIND_PASSED_PAWN_BONUS,
-    ROOKS_OFF_WHEN_AHEAD_BONUS,
-    SIMPLIFICATION_BONUS_SCALE,
     STARTING_NON_PAWN_MATERIAL,
 )
 from chess_game.chess.rook_endgame_guidance import rook_endgame_evaluation_score
@@ -53,22 +38,30 @@ _QUEEN_VS_ROOK_PASSIVE_ROOK_PENALTY = 20
 _ROOK_SEVENTH_RANK_ENDGAME_BONUS = 24
 
 
-def evaluate_endgame_technique(board: Board, endgame_phase: int) -> int:
+def evaluate_endgame_technique(
+    board: Board, endgame_phase: int, weights: EvalWeights | None = None
+) -> int:
     """Return endgame-technique bonuses such as king activity and mating method."""
 
     if endgame_phase == 0:
         return 0
-    score = _active_king_score(board, endgame_phase)
+    if weights is None:
+        weights = EvalWeights.default()
+    score = _active_king_score(board, endgame_phase, weights)
     score += _heavy_endgame_king_activity_score(board, endgame_phase)
-    score += _blockaded_passed_pawn_score(board, endgame_phase)
-    score += _mating_material_score(board)
+    score += _blockaded_passed_pawn_score(board, endgame_phase, weights)
+    score += _mating_material_score(board, weights)
     score += scale_signed(defensive_endgame_evaluation_score(board), endgame_phase)
     return score
 
 
-def evaluate_conversion(board: Board, endgame_phase: int) -> int:
+def evaluate_conversion(
+    board: Board, endgame_phase: int, weights: EvalWeights | None = None
+) -> int:
     """Return simplification and conversion bonuses when materially ahead."""
 
+    if weights is None:
+        weights = EvalWeights.default()
     material_without_kings = _material_without_kings(board)
     lead = material_without_kings[Color.WHITE] - material_without_kings[Color.BLACK]
     if lead == 0:
@@ -78,19 +71,23 @@ def evaluate_conversion(board: Board, endgame_phase: int) -> int:
     total_non_pawn_material = _total_non_pawn_material(board)
     simplification = max(0, STARTING_NON_PAWN_MATERIAL - total_non_pawn_material)
     bonus = (lead_value * simplification) // (STARTING_NON_PAWN_MATERIAL * 2)
-    bonus *= SIMPLIFICATION_BONUS_SCALE
+    bonus *= weights.endgame.simplification_bonus_scale
     if not _has_queen(board, _opponent(leading_color)):
-        bonus += QUEENS_OFF_WHEN_AHEAD_BONUS
+        bonus += weights.endgame.queens_off_when_ahead_bonus
     if not _has_rook(board, _opponent(leading_color)):
-        bonus += ROOKS_OFF_WHEN_AHEAD_BONUS
+        bonus += weights.endgame.rooks_off_when_ahead_bonus
     if endgame_phase > 0:
         bonus = (bonus * (50 + endgame_phase)) // 100
     return _color_sign(leading_color) * bonus
 
 
-def evaluate_progress(board: Board, endgame_phase: int) -> int:
+def evaluate_progress(
+    board: Board, endgame_phase: int, weights: EvalWeights | None = None
+) -> int:
     """Return progress and restriction bonuses for practical endgame play."""
 
+    if weights is None:
+        weights = EvalWeights.default()
     material_without_kings = _material_without_kings(board)
     lead = material_without_kings[Color.WHITE] - material_without_kings[Color.BLACK]
     if lead == 0:
@@ -99,13 +96,13 @@ def evaluate_progress(board: Board, endgame_phase: int) -> int:
     if not _has_conversion_assets(board, leading_color):
         return 0
     bonus = 0
-    bonus += _king_cutoff_score(board, leading_color)
-    bonus += _rook_behind_passed_pawn_score(board, leading_color)
-    bonus += _king_escort_passed_pawn_score(board, leading_color)
-    bonus += _promotion_square_control_score(board, leading_color)
-    bonus += _enemy_king_box_score(board, leading_color)
-    bonus += _counterplay_reduction_score(board, leading_color)
-    bonus += _heavy_piece_activity_score(board, leading_color)
+    bonus += _king_cutoff_score(board, leading_color, weights)
+    bonus += _rook_behind_passed_pawn_score(board, leading_color, weights)
+    bonus += _king_escort_passed_pawn_score(board, leading_color, weights)
+    bonus += _promotion_square_control_score(board, leading_color, weights)
+    bonus += _enemy_king_box_score(board, leading_color, weights)
+    bonus += _counterplay_reduction_score(board, leading_color, weights)
+    bonus += _heavy_piece_activity_score(board, leading_color, weights)
     bonus += _heavy_endgame_king_activity_bonus(board, leading_color)
     bonus += _passed_pawn_advancement_progress(board, leading_color)
     bonus += abs(winning_conversion_evaluation_score(board))
@@ -116,25 +113,49 @@ def evaluate_progress(board: Board, endgame_phase: int) -> int:
     return _color_sign(leading_color) * ((bonus * phase_scale) // 100)
 
 
-def evaluate_rook_endgames(board: Board, endgame_phase: int) -> int:
-    """Return rook-endgame placement and defense bonuses."""
+def evaluate_rook_endgames(
+    board: Board, endgame_phase: int, weights: EvalWeights | None = None
+) -> int:
+    """Return rook-endgame placement and defense bonuses.
 
+    ``weights`` is accepted for API consistency with the other endgame
+    evaluators; it is not yet used by this delegating function.
+    """
+
+    if weights is None:
+        weights = EvalWeights.default()
     if endgame_phase == 0:
         return 0
     return scale_signed(rook_endgame_evaluation_score(board), endgame_phase)
 
 
-def evaluate_heavy_piece_endgames(board: Board, endgame_phase: int) -> int:
-    """Return queen-and-rook ending guidance bonuses."""
+def evaluate_heavy_piece_endgames(
+    board: Board, endgame_phase: int, weights: EvalWeights | None = None
+) -> int:
+    """Return queen-and-rook ending guidance bonuses.
 
+    ``weights`` is accepted for API consistency with the other endgame
+    evaluators; it is not yet used by this delegating function.
+    """
+
+    if weights is None:
+        weights = EvalWeights.default()
     if endgame_phase == 0:
         return 0
     return scale_signed(heavy_piece_endgame_evaluation_score(board), endgame_phase)
 
 
-def evaluate_passer_races(board: Board, endgame_phase: int) -> int:
-    """Return passed-pawn race bonuses."""
+def evaluate_passer_races(
+    board: Board, endgame_phase: int, weights: EvalWeights | None = None
+) -> int:
+    """Return passed-pawn race bonuses.
 
+    ``weights`` is accepted for API consistency with the other endgame
+    evaluators; it is not yet used by this delegating function.
+    """
+
+    if weights is None:
+        weights = EvalWeights.default()
     if endgame_phase < 60:
         return 0
     score = passer_race_evaluation_score(board)
@@ -142,17 +163,33 @@ def evaluate_passer_races(board: Board, endgame_phase: int) -> int:
     return scale_signed(score, endgame_phase)
 
 
-def evaluate_endgame_races(board: Board, endgame_phase: int) -> int:
-    """Return exact must-converge and must-hold race bonuses."""
+def evaluate_endgame_races(
+    board: Board, endgame_phase: int, weights: EvalWeights | None = None
+) -> int:
+    """Return exact must-converge and must-hold race bonuses.
 
+    ``weights`` is accepted for API consistency with the other endgame
+    evaluators; it is not yet used by this delegating function.
+    """
+
+    if weights is None:
+        weights = EvalWeights.default()
     if endgame_phase < 40:
         return 0
     return scale_signed(endgame_race_evaluation_score(board), endgame_phase)
 
 
-def evaluate_low_material_coordination(board: Board, endgame_phase: int) -> int:
-    """Return piece-specific sparse-endgame coordination bonuses."""
+def evaluate_low_material_coordination(
+    board: Board, endgame_phase: int, weights: EvalWeights | None = None
+) -> int:
+    """Return piece-specific sparse-endgame coordination bonuses.
 
+    ``weights`` is accepted for API consistency with the other endgame
+    evaluators; it is not yet used by this delegating function.
+    """
+
+    if weights is None:
+        weights = EvalWeights.default()
     if endgame_phase < 60:
         return 0
     return scale_signed(low_material_coordination_evaluation_score(board), endgame_phase)
@@ -195,12 +232,14 @@ def _is_advanced_passer(color: Color, row: int) -> bool:
     return row <= 3 if color == Color.WHITE else row >= 4
 
 
-def _active_king_score(board: Board, endgame_phase: int) -> int:
+def _active_king_score(board: Board, endgame_phase: int, weights: EvalWeights) -> int:
+    eg = weights.endgame
+    mt = weights.mating
     score = 0
     for color, king_square in iter_king_squares(board):
         distance = center_distance(int(king_square.row), int(king_square.col))
         score += _color_sign(color) * (
-            ACTIVE_KING_ENDGAME_BONUS - distance * MATING_KING_DISTANCE_BONUS
+            eg.active_king_endgame_bonus - distance * mt.mating_king_distance_bonus
         )
     return scale_signed(score, endgame_phase)
 
@@ -242,8 +281,11 @@ def _passed_pawn_advancement_progress(board: Board, color: Color) -> int:
     return bonus
 
 
-def _blockaded_passed_pawn_score(board: Board, endgame_phase: int) -> int:
+def _blockaded_passed_pawn_score(
+    board: Board, endgame_phase: int, weights: EvalWeights
+) -> int:
     pawn_positions = _collect_pawn_positions(board)
+    bonus = weights.endgame.blockaded_passed_pawn_bonus
     score = 0
     for color in (Color.WHITE, Color.BLACK):
         enemy_color = _opponent(color)
@@ -255,11 +297,13 @@ def _blockaded_passed_pawn_score(board: Board, endgame_phase: int) -> int:
                 continue
             piece = board.board[block_row][col]
             if piece is not None and piece.color == color:
-                score += _color_sign(color) * BLOCKADED_PASSED_PAWN_BONUS
+                score += _color_sign(color) * bonus
     return scale_signed(score, endgame_phase)
 
 
-def _mating_material_score(board: Board) -> int:
+def _mating_material_score(board: Board, weights: EvalWeights) -> int:
+    mt = weights.mating
+    mating_bases = mt.mating_material_base()
     for color in (Color.WHITE, Color.BLACK):
         endgame_type = _basic_mating_endgame(board, color)
         if endgame_type is None:
@@ -272,11 +316,11 @@ def _mating_material_score(board: Board) -> int:
         king_distance = abs(int(king_square.row) - int(enemy_king.row)) + abs(
             int(king_square.col) - int(enemy_king.col)
         )
-        color_score = MATING_MATERIAL_BASE[endgame_type]
-        color_score += (3 - edge_distance) * MATING_EDGE_BONUS
-        color_score += max(0, 7 - king_distance) * MATING_KING_DISTANCE_BONUS
+        color_score = mating_bases[endgame_type]
+        color_score += (3 - edge_distance) * mt.mating_edge_bonus
+        color_score += max(0, 7 - king_distance) * mt.mating_king_distance_bonus
         if _heavy_piece_coordination(board, color):
-            color_score += HEAVY_PIECE_COORDINATION_BONUS
+            color_score += mt.heavy_piece_coordination_bonus
         return _color_sign(color) * color_score
     return 0
 
@@ -338,12 +382,13 @@ def _heavy_piece_coordination(board: Board, color: Color) -> bool:
     return False
 
 
-def _king_cutoff_score(board: Board, color: Color) -> int:
+def _king_cutoff_score(board: Board, color: Color, weights: EvalWeights) -> int:
     enemy_king = _find_king(board, _opponent(color))
     if enemy_king is None:
         return 0
     enemy_row = int(enemy_king.row)
     enemy_col = int(enemy_king.col)
+    cutoff_bonus = weights.mating.king_cutoff_bonus
     score = 0
     for piece, row, col in iter_color_pieces(board, color):
         if piece.kind not in (PieceType.ROOK, PieceType.QUEEN):
@@ -353,16 +398,17 @@ def _king_cutoff_score(board: Board, color: Color) -> int:
         row_distance = abs(row - enemy_row)
         col_distance = abs(col - enemy_col)
         if row == enemy_row and col_distance >= 2:
-            score += KING_CUTOFF_BONUS
+            score += cutoff_bonus
         if col == enemy_col and row_distance >= 2:
-            score += KING_CUTOFF_BONUS
+            score += cutoff_bonus
     return score
 
 
-def _rook_behind_passed_pawn_score(board: Board, color: Color) -> int:
+def _rook_behind_passed_pawn_score(board: Board, color: Color, weights: EvalWeights) -> int:
     rooks = rook_positions(board, color)
     if not rooks:
         return 0
+    bonus = weights.mating.rook_behind_passed_pawn_bonus
     score = 0
     for pawn_row, pawn_col in _passed_pawns_for_color(board, color):
         if not _is_advanced_passer(color, pawn_row):
@@ -375,17 +421,18 @@ def _rook_behind_passed_pawn_score(board: Board, color: Color) -> int:
             if color == Color.BLACK and rook_row >= pawn_row:
                 continue
             if path_clear_between(board, (rook_row, rook_col), (pawn_row, pawn_col)):
-                score += ROOK_BEHIND_PASSED_PAWN_BONUS
+                score += bonus
     return score
 
 
-def _king_escort_passed_pawn_score(board: Board, color: Color) -> int:
+def _king_escort_passed_pawn_score(board: Board, color: Color, weights: EvalWeights) -> int:
     king_square = _find_king(board, color)
     enemy_king = _find_king(board, _opponent(color))
     if king_square is None or enemy_king is None:
         return 0
     own_king = (int(king_square.row), int(king_square.col))
     enemy_king_pos = (int(enemy_king.row), int(enemy_king.col))
+    escort_bonus = weights.mating.king_escort_passed_pawn_bonus
     score = 0
     for pawn_row, pawn_col in _passed_pawns_for_color(board, color):
         if not _is_advanced_passer(color, pawn_row):
@@ -393,15 +440,16 @@ def _king_escort_passed_pawn_score(board: Board, color: Color) -> int:
         own_distance = abs(own_king[0] - pawn_row) + abs(own_king[1] - pawn_col)
         enemy_distance = abs(enemy_king_pos[0] - pawn_row) + abs(enemy_king_pos[1] - pawn_col)
         if own_distance + 1 < enemy_distance:
-            score += KING_ESCORT_PASSED_PAWN_BONUS
+            score += escort_bonus
     return score
 
 
-def _promotion_square_control_score(board: Board, color: Color) -> int:
+def _promotion_square_control_score(board: Board, color: Color, weights: EvalWeights) -> int:
     enemy_king = _find_king(board, _opponent(color))
     if enemy_king is None:
         return 0
     enemy_king_pos = (int(enemy_king.row), int(enemy_king.col))
+    promo_bonus = weights.mating.promotion_square_control_bonus
     score = 0
     for pawn_row, pawn_col in _passed_pawns_for_color(board, color):
         if not _is_advanced_passer(color, pawn_row):
@@ -412,15 +460,15 @@ def _promotion_square_control_score(board: Board, color: Color) -> int:
             enemy_king_pos[1] - pawn_col
         )
         if enemy_distance > 2:
-            score += PROMOTION_SQUARE_CONTROL_BONUS
+            score += promo_bonus
         for piece, row, col in iter_color_pieces(board, color):
             if piece.kind in (PieceType.ROOK, PieceType.QUEEN) and col == pawn_col:
                 if color == Color.WHITE and row > pawn_row:
-                    score += PROMOTION_SQUARE_CONTROL_BONUS // 2
+                    score += promo_bonus // 2
                 if color == Color.BLACK and row < pawn_row:
-                    score += PROMOTION_SQUARE_CONTROL_BONUS // 2
+                    score += promo_bonus // 2
         if _own_king_controls_square(board, color, promotion_square):
-            score += PROMOTION_SQUARE_CONTROL_BONUS // 2
+            score += promo_bonus // 2
     return score
 
 
@@ -438,7 +486,7 @@ def _own_king_controls_square(
     ) <= 1
 
 
-def _enemy_king_box_score(board: Board, color: Color) -> int:
+def _enemy_king_box_score(board: Board, color: Color, weights: EvalWeights) -> int:
     enemy_color = _opponent(color)
     enemy_king = _find_king(board, enemy_color)
     if enemy_king is None:
@@ -449,38 +497,40 @@ def _enemy_king_box_score(board: Board, color: Color) -> int:
         if move[0] == enemy_king
     ]
     restricted = max(0, 8 - len(enemy_moves))
-    return restricted * ENEMY_KING_BOX_BONUS
+    return restricted * weights.mating.enemy_king_box_bonus
 
 
-def _counterplay_reduction_score(board: Board, color: Color) -> int:
+def _counterplay_reduction_score(board: Board, color: Color, weights: EvalWeights) -> int:
     enemy_color = _opponent(color)
     own_king = _find_king(board, color)
     if own_king is None:
         return 0
     own_king_row = int(own_king.row)
     own_king_col = int(own_king.col)
+    cp_bonus = weights.mating.counterplay_reduction_bonus
     score = 0
     for piece, row, col in iter_color_pieces(board, enemy_color):
         if piece.kind not in (PieceType.ROOK, PieceType.QUEEN):
             continue
         if row == own_king_row or col == own_king_col:
-            score -= COUNTERPLAY_REDUCTION_BONUS
+            score -= cp_bonus
     return score
 
 
-def _heavy_piece_activity_score(board: Board, color: Color) -> int:
+def _heavy_piece_activity_score(board: Board, color: Color, weights: EvalWeights) -> int:
     enemy_king = _find_king(board, _opponent(color))
     if enemy_king is None:
         return 0
     enemy_row = int(enemy_king.row)
     enemy_col = int(enemy_king.col)
+    activity_bonus = weights.mating.heavy_piece_activity_bonus
     score = 0
     for piece, row, col in iter_color_pieces(board, color):
         if piece.kind not in (PieceType.ROOK, PieceType.QUEEN):
             continue
         distance = max(abs(row - enemy_row), abs(col - enemy_col))
         if distance <= 2:
-            score += HEAVY_PIECE_ACTIVITY_BONUS
+            score += activity_bonus
     return score
 
 
@@ -642,14 +692,21 @@ def _rook_seventh_rank_endgame_score(board: Board, color: Color) -> int:
     )
 
 
-def evaluate_queen_vs_rook(board: Board, endgame_phase: int) -> int:
+def evaluate_queen_vs_rook(
+    board: Board, endgame_phase: int, weights: EvalWeights | None = None
+) -> int:
     """Return a score adjustment for KQvKR positions.
 
     The queen side is generally winning but needs active king play.
     The rook side needs active rook play to avoid quick mate; passive
     back-rank rook shuffling accelerates the loss.
+
+    ``weights`` is accepted for API consistency; it is not yet used by
+    this function.
     """
 
+    if weights is None:
+        weights = EvalWeights.default()
     if endgame_phase < 60:
         return 0
     pieces = [

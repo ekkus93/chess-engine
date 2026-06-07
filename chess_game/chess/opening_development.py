@@ -2,22 +2,12 @@
 
 from chess_game.chess.board import Board
 from chess_game.chess.constants import ConstantSquare, get_col_constant, get_row_constant
+from chess_game.chess.eval_weights import EvalWeights
 from chess_game.chess.evaluation_tables import (
-    CASTLED_KING_BONUS,
-    CENTRAL_DUO_BONUS,
-    CENTRAL_MINOR_PIECE_BONUS,
     CENTRAL_SQUARES,
     CENTER_FILES,
-    EARLY_QUEEN_MOVE_PENALTY,
-    EARLY_ROOK_MOVE_PENALTY,
-    CONNECTED_ROOKS_BONUS,
-    DEFENDER_DISTANCE_PENALTY,
-    EARLY_FLANK_RAID_PENALTY,
-    EARLY_QUEEN_RAID_PENALTY,
     EXTENDED_CENTER_FILES,
     EXTENDED_CENTER_RANKS,
-    KNIGHT_RIM_PENALTY,
-    MINOR_COORDINATION_BONUS,
 )
 from chess_game.chess.strategy_utils import (
     both_queens_on_board,
@@ -29,19 +19,23 @@ from chess_game.chess.strategy_utils import (
 from chess_game.chess.types import Color, PieceType
 
 
-def opening_central_control_bonus(board: Board, color: Color) -> int:
+def opening_central_control_bonus(
+    board: Board, color: Color, weights: EvalWeights | None = None
+) -> int:
     """Reward early control of the center by pawns and minor pieces."""
 
+    if weights is None:
+        weights = EvalWeights.default()
     bonus = 0
     for piece, row, col in iter_color_pieces(board, color):
         if piece.kind == PieceType.PAWN and (row, col) in CENTRAL_SQUARES:
-            bonus += CENTRAL_DUO_BONUS // 2
+            bonus += weights.pawns.central_duo_bonus // 2
         if (
             piece.kind in {PieceType.KNIGHT, PieceType.BISHOP}
             and row in EXTENDED_CENTER_RANKS
             and col in EXTENDED_CENTER_FILES
         ):
-            bonus += CENTRAL_MINOR_PIECE_BONUS // 2
+            bonus += weights.pieces.central_minor_piece_bonus // 2
     return bonus
 
 
@@ -49,11 +43,14 @@ def opening_piece_coordination_bonus(
     board: Board,
     color: Color,
     undeveloped: int,
+    weights: EvalWeights | None = None,
 ) -> int:
     """Reward coordinated minor-piece development before the opening is finished."""
 
     if undeveloped > 2:
         return 0
+    if weights is None:
+        weights = EvalWeights.default()
     developed_minors = [
         (row, col)
         for piece, row, col in iter_color_pieces(board, color)
@@ -61,16 +58,21 @@ def opening_piece_coordination_bonus(
         and not minor_on_home_square(color, piece.kind, row, col)
     ]
     if coordinated_minor_piece_setup(developed_minors):
-        return MINOR_COORDINATION_BONUS // 2
+        return weights.pieces.minor_coordination_bonus // 2
     return 0
 
 
-def early_flank_raid_penalty(board: Board, color: Color, undeveloped: int) -> int:
+def early_flank_raid_penalty(
+    board: Board, color: Color, undeveloped: int, weights: EvalWeights | None = None
+) -> int:
     """Penalize early queen/rook flank raids before king safety is secured."""
 
     king_square = board.find_king(color)
     if undeveloped < 2 or king_square is None or _is_castled_king(color, king_square):
         return 0
+    if weights is None:
+        weights = EvalWeights.default()
+    flank_penalty = weights.development.early_flank_raid_penalty
     penalty = 0
     for piece, row, col in iter_color_pieces(board, color):
         if piece.kind not in {PieceType.QUEEN, PieceType.ROOK}:
@@ -78,60 +80,74 @@ def early_flank_raid_penalty(board: Board, color: Color, undeveloped: int) -> in
         if col not in {0, 1, 6, 7} or not _piece_in_enemy_half(color, row):
             continue
         penalty += (
-            EARLY_FLANK_RAID_PENALTY
+            flank_penalty
             if piece.kind == PieceType.QUEEN
-            else EARLY_FLANK_RAID_PENALTY // 2
+            else flank_penalty // 2
         )
     return penalty
 
 
-def early_flank_pawn_poke_penalty(board: Board, color: Color, undeveloped: int) -> int:
+def early_flank_pawn_poke_penalty(
+    board: Board, color: Color, undeveloped: int, weights: EvalWeights | None = None
+) -> int:
     """Penalize premature flank pawn lunges before development and castling."""
 
     king_square = board.find_king(color)
     if undeveloped < 1 or king_square is None or _is_castled_king(color, king_square):
         return 0
+    if weights is None:
+        weights = EvalWeights.default()
+    flank_penalty = weights.development.early_flank_raid_penalty
     penalty = 0
     for piece, row, col in iter_color_pieces(board, color):
         if piece.kind != PieceType.PAWN or col not in {0, 1, 6, 7}:
             continue
         if _flank_pawn_is_overextended(color, row):
-            penalty += EARLY_FLANK_RAID_PENALTY
+            penalty += flank_penalty
             if col in {0, 7}:
-                penalty += EARLY_FLANK_RAID_PENALTY // 2
+                penalty += flank_penalty // 2
             if col in {6, 7}:
-                penalty += EARLY_FLANK_RAID_PENALTY // 2
+                penalty += flank_penalty // 2
     return penalty
 
 
-def early_kingside_flank_lunge_penalty(board: Board, color: Color, undeveloped: int) -> int:
+def early_kingside_flank_lunge_penalty(
+    board: Board, color: Color, undeveloped: int, weights: EvalWeights | None = None
+) -> int:
     """Penalize early g/h-pawn lunges before development and castling are settled."""
 
-    return _opening_drift_penalties(board, color, undeveloped)[0]
+    return _opening_drift_penalties(board, color, undeveloped, weights)[0]
 
 
-def early_home_rank_rook_sidestep_penalty(board: Board, color: Color, undeveloped: int) -> int:
+def early_home_rank_rook_sidestep_penalty(
+    board: Board, color: Color, undeveloped: int, weights: EvalWeights | None = None
+) -> int:
     """Penalize rooks drifting along the home rank before king safety is fixed."""
 
-    return _opening_drift_penalties(board, color, undeveloped)[1]
+    return _opening_drift_penalties(board, color, undeveloped, weights)[1]
 
 
-def early_rim_knight_development_penalty(board: Board, color: Color, undeveloped: int) -> int:
+def early_rim_knight_development_penalty(
+    board: Board, color: Color, undeveloped: int, weights: EvalWeights | None = None
+) -> int:
     """Penalize early knight development to the rim when central squares are available."""
 
-    return _opening_drift_penalties(board, color, undeveloped)[2]
+    return _opening_drift_penalties(board, color, undeveloped, weights)[2]
 
 
-def early_edge_space_grab_penalty(board: Board, color: Color, undeveloped: int) -> int:
+def early_edge_space_grab_penalty(
+    board: Board, color: Color, undeveloped: int, weights: EvalWeights | None = None
+) -> int:
     """Penalize early a/h-pawn space grabs that do not help development or king safety."""
 
-    return _opening_drift_penalties(board, color, undeveloped)[3]
+    return _opening_drift_penalties(board, color, undeveloped, weights)[3]
 
 
 def _opening_drift_penalties(
     board: Board,
     color: Color,
     undeveloped: int,
+    weights: EvalWeights | None = None,
 ) -> tuple[int, int, int, int]:
     """Return combined opening penalties for drift-heavy late-opening moves."""
 
@@ -142,14 +158,15 @@ def _opening_drift_penalties(
         or not _queens_on_board(board)
     ):
         return 0, 0, 0, 0
-    kingside_pawn_penalty = 0
-    rook_sidestep_penalty = 0
-    rim_knight_penalty = 0
-    edge_space_grab_penalty = 0
+    if weights is None:
+        weights = EvalWeights.default()
     home_row = 7 if color == Color.WHITE else 0
     king_col = int(king_square.col)
     castled_king = _is_castled_king(color, king_square)
-    unsettled_central_king = king_col in {3, 4, 5}
+    unsettled = king_col in {3, 4, 5}
+    dev = weights.development
+    # penalties: [kingside_pawn, rook_sidestep, rim_knight, edge_space_grab]
+    pens: list[int] = [0, 0, 0, 0]
     for piece, row, col in iter_color_pieces(board, color):
         if (
             piece.kind == PieceType.PAWN
@@ -157,28 +174,27 @@ def _opening_drift_penalties(
             and _flank_pawn_is_overextended(color, row)
             and not castled_king
         ):
-            kingside_pawn_penalty += EARLY_FLANK_RAID_PENALTY + EARLY_QUEEN_MOVE_PENALTY
-            if col == 7:
-                kingside_pawn_penalty += EARLY_ROOK_MOVE_PENALTY
+            pens[0] += dev.early_flank_raid_penalty + dev.early_queen_move_penalty
+            pens[0] += dev.early_rook_move_penalty if col == 7 else 0
         elif (
             piece.kind == PieceType.ROOK
             and row == home_row
             and col not in {0, 7}
             and not castled_king
         ):
-            rook_sidestep_penalty += EARLY_ROOK_MOVE_PENALTY + EARLY_QUEEN_MOVE_PENALTY
-            if col not in CENTER_FILES:
-                rook_sidestep_penalty += EARLY_ROOK_MOVE_PENALTY
+            pens[1] += dev.early_rook_move_penalty + dev.early_queen_move_penalty
+            pens[1] += dev.early_rook_move_penalty if col not in CENTER_FILES else 0
         elif (
             piece.kind == PieceType.KNIGHT
             and col in {0, 7}
             and not minor_on_home_square(color, PieceType.KNIGHT, row, col)
         ):
-            rim_knight_penalty += (
-                KNIGHT_RIM_PENALTY + EARLY_QUEEN_MOVE_PENALTY + EARLY_FLANK_RAID_PENALTY
+            pens[2] += (
+                weights.pieces.knight_rim_penalty
+                + dev.early_queen_move_penalty
+                + dev.early_flank_raid_penalty
             )
-            if unsettled_central_king:
-                rim_knight_penalty += CASTLED_KING_BONUS
+            pens[2] += weights.king.castled_king_bonus if unsettled else 0
         elif (
             piece.kind == PieceType.PAWN
             and col in {0, 7}
@@ -187,16 +203,13 @@ def _opening_drift_penalties(
                 or (col == 0 and _flank_pawn_is_overextended(color, row))
             )
         ):
-            edge_space_grab_penalty += EARLY_FLANK_RAID_PENALTY + EARLY_ROOK_MOVE_PENALTY
-    return (
-        kingside_pawn_penalty,
-        rook_sidestep_penalty,
-        rim_knight_penalty,
-        edge_space_grab_penalty,
-    )
+            pens[3] += dev.early_flank_raid_penalty + dev.early_rook_move_penalty
+    return pens[0], pens[1], pens[2], pens[3]
 
 
-def early_flank_queen_sortie_penalty(board: Board, color: Color, undeveloped: int) -> int:
+def early_flank_queen_sortie_penalty(
+    board: Board, color: Color, undeveloped: int, weights: EvalWeights | None = None
+) -> int:
     """Penalize early unsupported queen swings to the board edge."""
 
     queens = [
@@ -211,8 +224,10 @@ def early_flank_queen_sortie_penalty(board: Board, color: Color, undeveloped: in
         return 0
     if _queen_has_nearby_support(board, color, queen_row, queen_col):
         return 0
-
-    penalty = EARLY_FLANK_RAID_PENALTY + EARLY_QUEEN_MOVE_PENALTY // 2
+    if weights is None:
+        weights = EvalWeights.default()
+    dev = weights.development
+    penalty = dev.early_flank_raid_penalty + dev.early_queen_move_penalty // 2
     king_square = board.find_king(color)
     if king_square is None:
         return penalty
@@ -221,11 +236,13 @@ def early_flank_queen_sortie_penalty(board: Board, color: Color, undeveloped: in
         abs(int(king_square.col) - queen_col),
     )
     if king_distance >= 4:
-        penalty += DEFENDER_DISTANCE_PENALTY
+        penalty += weights.king.defender_distance_penalty
     return penalty
 
 
-def early_queen_raid_penalty(board: Board, color: Color, undeveloped: int) -> int:
+def early_queen_raid_penalty(
+    board: Board, color: Color, undeveloped: int, weights: EvalWeights | None = None
+) -> int:
     """Penalize unsupported early queen raids into the enemy half."""
 
     queens = [
@@ -240,10 +257,13 @@ def early_queen_raid_penalty(board: Board, color: Color, undeveloped: int) -> in
         return 0
     if _queen_has_nearby_support(board, color, queen_row, queen_col):
         return 0
-    penalty = EARLY_QUEEN_RAID_PENALTY
+    if weights is None:
+        weights = EvalWeights.default()
+    dev = weights.development
+    penalty = dev.early_queen_raid_penalty
     if undeveloped >= 2:
-        penalty += EARLY_QUEEN_MOVE_PENALTY // 2
-    return penalty + _distant_queen_from_king_penalty(board, color, queen_row, queen_col)
+        penalty += dev.early_queen_move_penalty // 2
+    return penalty + _distant_queen_from_king_penalty(board, color, queen_row, queen_col, weights)
 
 
 def unforced_shelter_loosening_penalty(
@@ -251,11 +271,15 @@ def unforced_shelter_loosening_penalty(
     color: Color,
     square: ConstantSquare,
     attack_pressure: int,
+    weights: EvalWeights | None = None,
 ) -> int:
     """Penalize single-step shield pawn pushes when the castled king is not under fire."""
 
     if not _is_castled_king(color, square) or not _queens_on_board(board) or attack_pressure > 0:
         return 0
+    if weights is None:
+        weights = EvalWeights.default()
+    flank_penalty = weights.development.early_flank_raid_penalty
     king_col = int(square.col)
     penalty = 0
     for file_index in range(max(0, king_col - 1), min(7, king_col + 1) + 1):
@@ -263,21 +287,28 @@ def unforced_shelter_loosening_penalty(
         if has_home_pawn:
             continue
         if has_advanced_pawn:
-            penalty += EARLY_FLANK_RAID_PENALTY
+            penalty += flank_penalty
     return penalty
 
 
-def early_shelter_pawn_push_penalty(board: Board, color: Color, undeveloped: int) -> int:
+def early_shelter_pawn_push_penalty(
+    board: Board, color: Color, undeveloped: int, weights: EvalWeights | None = None
+) -> int:
     """Penalize premature castled-king shelter loosening before development finishes."""
 
     king_square = board.find_king(color)
     if king_square is None or undeveloped < 2:
         return 0
     attack_pressure = _king_zone_attack_pressure(board, color, king_square)
-    return unforced_shelter_loosening_penalty(board, color, king_square, attack_pressure) * 2
+    return (
+        unforced_shelter_loosening_penalty(board, color, king_square, attack_pressure, weights)
+        * 2
+    )
 
 
-def opening_king_safety_score(board: Board, color: Color, undeveloped: int) -> int:
+def opening_king_safety_score(
+    board: Board, color: Color, undeveloped: int, weights: EvalWeights | None = None
+) -> int:
     """Reward castling on time once opening development is underway."""
 
     king_square = board.find_king(color)
@@ -285,14 +316,19 @@ def opening_king_safety_score(board: Board, color: Color, undeveloped: int) -> i
         return 0
     if not _is_castled_king(color, king_square):
         return 0
+    if weights is None:
+        weights = EvalWeights.default()
+    castled_bonus = weights.king.castled_king_bonus
     if undeveloped <= 1:
-        return CASTLED_KING_BONUS
+        return castled_bonus
     if undeveloped == 2:
-        return CASTLED_KING_BONUS // 2
+        return castled_bonus // 2
     return 0
 
 
-def opening_king_urgency_penalty(board: Board, color: Color, undeveloped: int) -> int:
+def opening_king_urgency_penalty(
+    board: Board, color: Color, undeveloped: int, weights: EvalWeights | None = None
+) -> int:
     """Penalize delaying king safety or abandoning castling rights in the opening."""
 
     king_square = board.find_king(color)
@@ -303,21 +339,25 @@ def opening_king_urgency_penalty(board: Board, color: Color, undeveloped: int) -
     king_col = int(king_square.col)
     if king_row != home_row:
         return 0
+    if weights is None:
+        weights = EvalWeights.default()
+    dev = weights.development
+    castled_bonus = weights.king.castled_king_bonus
 
     penalty = 0
     if king_col in {3, 4, 5}:
-        penalty += CASTLED_KING_BONUS // 2
-        penalty += max(undeveloped, 1) * (EARLY_QUEEN_MOVE_PENALTY // 2)
+        penalty += castled_bonus // 2
+        penalty += max(undeveloped, 1) * (dev.early_queen_move_penalty // 2)
     if king_col != 4:
-        penalty += EARLY_QUEEN_MOVE_PENALTY
+        penalty += dev.early_queen_move_penalty
 
     castling_options = _castling_options_remaining(board, color)
     if castling_options == 0:
-        penalty += CASTLED_KING_BONUS
+        penalty += castled_bonus
     elif castling_options == 1:
-        penalty += EARLY_ROOK_MOVE_PENALTY
+        penalty += dev.early_rook_move_penalty
 
-    penalty += _uncastled_shell_penalty(board, color, king_col)
+    penalty += _uncastled_shell_penalty(board, color, king_col, weights)
     return penalty
 
 
@@ -379,7 +419,9 @@ def castling_path_blocked_penalty(board: Board, color: Color) -> int:
     return min(_BISHOP_BLOCKS_CASTLING_PENALTY + scaling, 128)
 
 
-def opening_rook_connection_bonus(board: Board, color: Color, undeveloped: int) -> int:
+def opening_rook_connection_bonus(
+    board: Board, color: Color, undeveloped: int, weights: EvalWeights | None = None
+) -> int:
     """Reward connected rooks once the opening phase is nearly complete."""
 
     if undeveloped > 1:
@@ -395,26 +437,35 @@ def opening_rook_connection_bonus(board: Board, color: Color, undeveloped: int) 
     same_line = first[0] == second[0] or first[1] == second[1]
     if not same_line or not path_clear_between(board, first, second):
         return 0
-    return CONNECTED_ROOKS_BONUS
+    if weights is None:
+        weights = EvalWeights.default()
+    return weights.pieces.connected_rooks_bonus
 
 
-def opening_central_rook_bonus(board: Board, color: Color, undeveloped: int) -> int:
+def opening_central_rook_bonus(
+    board: Board, color: Color, undeveloped: int, weights: EvalWeights | None = None
+) -> int:
     """Reward rooks that reach central files after king safety is fixed."""
 
     king_square = board.find_king(color)
     if undeveloped > 1 or king_square is None or not _is_castled_king(color, king_square):
         return 0
+    if weights is None:
+        weights = EvalWeights.default()
+    rook_bonus = weights.pieces.connected_rooks_bonus
     bonus = 0
     home_row = 7 if color == Color.WHITE else 0
     for piece, row, col in iter_color_pieces(board, color):
         if piece.kind != PieceType.ROOK:
             continue
         if col in CENTER_FILES and (row != home_row or col not in {0, 7}):
-            bonus += CONNECTED_ROOKS_BONUS // 2
+            bonus += rook_bonus // 2
     return bonus
 
 
-def opening_queen_restraint_bonus(board: Board, color: Color, undeveloped: int) -> int:
+def opening_queen_restraint_bonus(
+    board: Board, color: Color, undeveloped: int, weights: EvalWeights | None = None
+) -> int:
     """Reward keeping the queen home while development and king safety lag."""
 
     if undeveloped < 2:
@@ -426,10 +477,14 @@ def opening_queen_restraint_bonus(board: Board, color: Color, undeveloped: int) 
     queen = board.get_piece(home_square)
     if queen is None or queen.color != color or queen.kind != PieceType.QUEEN:
         return 0
-    return EARLY_QUEEN_MOVE_PENALTY // 2
+    if weights is None:
+        weights = EvalWeights.default()
+    return weights.development.early_queen_move_penalty // 2
 
 
-def opening_wing_knight_lunge_penalty(board: Board, color: Color, undeveloped: int) -> int:
+def opening_wing_knight_lunge_penalty(
+    board: Board, color: Color, undeveloped: int, weights: EvalWeights | None = None
+) -> int:
     """Penalize unsupported early knight lunges toward the enemy wing."""
 
     king_square = board.find_king(color)
@@ -441,13 +496,17 @@ def opening_wing_knight_lunge_penalty(board: Board, color: Color, undeveloped: i
         or not both_queens_on_board(board)
     ):
         return 0
+    if weights is None:
+        weights = EvalWeights.default()
+    rim_penalty = weights.pieces.knight_rim_penalty
+    flank_penalty = weights.development.early_flank_raid_penalty
     penalty = 0
     for piece, row, col in iter_color_pieces(board, color):
         if piece.kind != PieceType.KNIGHT or not _is_wing_knight_lunge(color, row, col):
             continue
         if pawn_supports_square(board, color, row, col):
             continue
-        penalty += KNIGHT_RIM_PENALTY + EARLY_FLANK_RAID_PENALTY
+        penalty += rim_penalty + flank_penalty
     return penalty
 
 
@@ -534,7 +593,9 @@ def _queen_in_enemy_half(color: Color, queen_row: int) -> bool:
 
 
 
-def middlegame_rim_knight_penalty(board: Board, color: Color) -> int:
+def middlegame_rim_knight_penalty(
+    board: Board, color: Color, weights: EvalWeights | None = None
+) -> int:
     """Penalise knights on the rim (a or h file) whenever queens are still on the board.
 
     The existing early_rim_knight_development_penalty only fires when most pieces are
@@ -545,6 +606,9 @@ def middlegame_rim_knight_penalty(board: Board, color: Color) -> int:
 
     if not _queens_on_board(board):
         return 0
+    if weights is None:
+        weights = EvalWeights.default()
+    rim_penalty = weights.pieces.knight_rim_penalty
     penalty = 0
     home_row = 7 if color == Color.WHITE else 0
     for piece, row, col in iter_color_pieces(board, color):
@@ -554,7 +618,7 @@ def middlegame_rim_knight_penalty(board: Board, color: Color) -> int:
             continue
         if (row, col) in {(home_row, 0), (home_row, 7)}:
             continue
-        penalty += KNIGHT_RIM_PENALTY * 3
+        penalty += rim_penalty * 3
     return penalty
 
 
@@ -589,15 +653,18 @@ def _distant_queen_from_king_penalty(
     color: Color,
     queen_row: int,
     queen_col: int,
+    weights: EvalWeights | None = None,
 ) -> int:
     king_square = board.find_king(color)
     if king_square is None:
         return 0
+    if weights is None:
+        weights = EvalWeights.default()
     king_distance = max(
         abs(int(king_square.row) - queen_row),
         abs(int(king_square.col) - queen_col),
     )
-    return DEFENDER_DISTANCE_PENALTY if king_distance >= 4 else 0
+    return weights.king.defender_distance_penalty if king_distance >= 4 else 0
 
 
 def _king_zone_attack_pressure(
@@ -629,7 +696,12 @@ def _castling_options_remaining(board: Board, color: Color) -> int:
     return int(rights.black_kingside) + int(rights.black_queenside)
 
 
-def _uncastled_shell_penalty(board: Board, color: Color, king_col: int) -> int:
+def _uncastled_shell_penalty(
+    board: Board, color: Color, king_col: int, weights: EvalWeights | None = None
+) -> int:
+    if weights is None:
+        weights = EvalWeights.default()
+    flank_penalty = weights.development.early_flank_raid_penalty
     shield_row = 6 if color == Color.WHITE else 1
     penalty = 0
     for file_index in range(max(0, king_col - 1), min(7, king_col + 1) + 1):
@@ -639,5 +711,5 @@ def _uncastled_shell_penalty(board: Board, color: Color, king_col: int) -> int:
         )
         pawn = board.get_piece(square)
         if pawn is None or pawn.color != color or pawn.kind != PieceType.PAWN:
-            penalty += EARLY_FLANK_RAID_PENALTY
+            penalty += flank_penalty
     return penalty

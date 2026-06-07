@@ -16,6 +16,7 @@ from chess_game.chess.endgame_evaluation import (
     evaluate_progress as _evaluate_progress,
     evaluate_rook_endgames as _evaluate_rook_endgames,
 )
+from chess_game.chess.eval_weights import EvalWeights
 from chess_game.chess.middlegame_practicality_guidance import (
     middlegame_practicality_evaluation_score as _middlegame_practicality_evaluation_score,
 )
@@ -69,87 +70,58 @@ from chess_game.chess.strategy_utils import (
     scale_signed as _scale_signed,
 )
 from chess_game.chess.evaluation_tables import (
-    BACK_RANK_TENSION_PENALTY,
-    BAD_BISHOP_PAWN_PENALTY,
-    BISHOP_TABLE,
-    BISHOP_PAIR_BONUS,
-    CASTLED_KING_BONUS,
     CENTER_FILES,
-    CENTRAL_MINOR_PIECE_BONUS,
     CENTRAL_SQUARES,
-    CONNECTED_ROOKS_BONUS,
-    CENTRAL_KING_WITH_QUEENS_PENALTY,
-    CRAMPED_PIECE_PENALTY,
-    DEFENDER_DISTANCE_PENALTY,
-    EARLY_QUEEN_MOVE_PENALTY,
-    EARLY_ROOK_MOVE_PENALTY,
-    EXPOSED_CENTRAL_KING_PENALTY,
-    HEAVY_FILE_PRESSURE_PENALTY,
     EXTENDED_CENTER_FILES,
-    KING_TABLE,
-    KING_ZONE_ATTACK_PENALTY,
-    KNIGHT_OUTPOST_BONUS,
-    KNIGHT_STRONG_SQUARE_BONUS,
-    KNIGHT_RIM_PENALTY,
-    KNIGHT_TABLE,
-    LONG_DIAGONAL_BISHOP_BONUS,
-    MATERIAL_VALUES,
-    MINOR_COORDINATION_BONUS,
-    MOBILITY_WEIGHTS,
-    OPEN_KING_FILE_PENALTY,
-    PAWN_SHIELD_BONUS,
-    PAWN_TABLE,
-    QUEEN_ROOK_BATTERY_BONUS,
-    QUEEN_TABLE,
-    ROOK_OPEN_FILE_BONUS,
-    ROOK_SEMI_OPEN_FILE_BONUS,
-    ROOK_SEVENTH_RANK_BONUS,
-    ROOK_TABLE,
-    ROOK_TRAPPED_PENALTY,
-    SPACE_ADVANTAGE_BONUS,
     STARTING_NON_PAWN_MATERIAL,
-    UNDEVELOPED_MINOR_PIECE_PENALTY,
 )
 from chess_game.chess.types import Color, Piece, PieceType
 
 EvaluationBreakdown = dict[str, int]
 
 
-def evaluate(board: Board) -> int:
+def evaluate(board: Board, weights: EvalWeights | None = None) -> int:
     """Evaluate the board position from White's perspective."""
 
-    return get_evaluation_breakdown(board)["total"]
+    return get_evaluation_breakdown(board, weights)["total"]
 
 
-def get_evaluation_breakdown(board: Board) -> EvaluationBreakdown:
+def get_evaluation_breakdown(
+    board: Board,
+    weights: EvalWeights | None = None,
+) -> EvaluationBreakdown:
     """Return a debug-friendly breakdown of evaluation components."""
 
-    middlegame_phase = _middlegame_phase(board)
+    if weights is None:
+        weights = EvalWeights.default()
+
+    middlegame_phase = _middlegame_phase(board, weights)
     endgame_phase = 100 - middlegame_phase
-    material_score, piece_square_score = _evaluate_material_and_piece_square(board)
+    material_score, piece_square_score = _evaluate_material_and_piece_square(board, weights)
     breakdown: EvaluationBreakdown = {
         "material": material_score,
         "piece_square": piece_square_score,
-        "mobility": _evaluate_mobility(board),
-        "pawn_structure": _evaluate_pawn_structure(board, endgame_phase),
-        "king_safety": _evaluate_king_safety(board, middlegame_phase),
-        "king_exposure": _evaluate_king_exposure(board, middlegame_phase),
-        "defender_coordination": _evaluate_defender_coordination(board, middlegame_phase),
-        "rook_activity": _evaluate_rook_activity(board),
-        "bishop_pair": _evaluate_bishop_pair(board),
-        "minor_piece_activity": _evaluate_minor_piece_activity(board),
-        "space": _evaluate_space(board, middlegame_phase),
-        "endgame_technique": _evaluate_endgame_technique(board, endgame_phase),
-        "conversion": _evaluate_conversion(board, endgame_phase),
-        "progress": _evaluate_progress(board, endgame_phase),
-        "rook_endgame": _evaluate_rook_endgames(board, endgame_phase),
-        "heavy_piece_endgame": _evaluate_heavy_piece_endgames(board, endgame_phase),
-        "queen_vs_rook": _evaluate_queen_vs_rook(board, endgame_phase),
-        "passer_race": _evaluate_passer_races(board, endgame_phase),
-        "endgame_race": _evaluate_endgame_races(board, endgame_phase),
+        "mobility": _evaluate_mobility(board, weights),
+        "pawn_structure": _evaluate_pawn_structure(board, endgame_phase, weights),
+        "king_safety": _evaluate_king_safety(board, middlegame_phase, weights),
+        "king_exposure": _evaluate_king_exposure(board, middlegame_phase, weights),
+        "defender_coordination": _evaluate_defender_coordination(board, middlegame_phase, weights),
+        "rook_activity": _evaluate_rook_activity(board, weights),
+        "bishop_pair": _evaluate_bishop_pair(board, weights),
+        "minor_piece_activity": _evaluate_minor_piece_activity(board, weights),
+        "space": _evaluate_space(board, middlegame_phase, weights),
+        "endgame_technique": _evaluate_endgame_technique(board, endgame_phase, weights),
+        "conversion": _evaluate_conversion(board, endgame_phase, weights),
+        "progress": _evaluate_progress(board, endgame_phase, weights),
+        "rook_endgame": _evaluate_rook_endgames(board, endgame_phase, weights),
+        "heavy_piece_endgame": _evaluate_heavy_piece_endgames(board, endgame_phase, weights),
+        "queen_vs_rook": _evaluate_queen_vs_rook(board, endgame_phase, weights),
+        "passer_race": _evaluate_passer_races(board, endgame_phase, weights),
+        "endgame_race": _evaluate_endgame_races(board, endgame_phase, weights),
         "low_material_coordination": _evaluate_low_material_coordination(
             board,
             endgame_phase,
+            weights,
         ),
         "endgame_choice": _evaluate_endgame_choice(board),
         "defensive_containment": _heavy_piece_defense_evaluation_score(board),
@@ -160,20 +132,26 @@ def get_evaluation_breakdown(board: Board) -> EvaluationBreakdown:
             simple_endgame_evaluation_score(board) if endgame_phase >= 70 else 0
         ),
         "review_loop": review_loop_evaluation_score(board),
-        "development": _evaluate_development(board, middlegame_phase),
+        "development": _evaluate_development(board, middlegame_phase, weights),
     }
     eval_only = {"endgame_race", "middlegame_practicality"}
     breakdown["total"] = sum(v for k, v in breakdown.items() if k not in eval_only)
     return breakdown
 
 
-def _evaluate_material_and_piece_square(board: Board) -> tuple[int, int]:
+def _evaluate_material_and_piece_square(
+    board: Board,
+    weights: EvalWeights,
+) -> tuple[int, int]:
     material_score = 0
     piece_square_score = 0
+    material_dict = weights.material.as_dict()
     for piece, row, col in _iter_board_pieces(board):
         sign = _color_sign(piece.color)
-        material_score += sign * MATERIAL_VALUES[piece.kind]
-        piece_square_score += sign * _piece_square_value(piece, row, col)
+        # King is not tunable material; only non-king pieces are in material_dict
+        if piece.kind != PieceType.KING:
+            material_score += sign * material_dict[piece.kind]
+        piece_square_score += sign * _piece_square_value(piece, row, col, weights)
     return material_score, piece_square_score
 
 
@@ -210,25 +188,27 @@ def _mirror_row_for_color(color: Color, row: int) -> int:
     return row if color == Color.WHITE else 7 - row
 
 
-def _piece_square_value(piece: Piece, row: int, col: int) -> int:
+def _piece_square_value(piece: Piece, row: int, col: int, weights: EvalWeights) -> int:
     mirrored_row = _mirror_row_for_color(piece.color, row)
+    t = weights.tables
     if piece.kind == PieceType.PAWN:
-        return PAWN_TABLE[mirrored_row][col]
+        return t.pawn_table[mirrored_row][col]
     if piece.kind == PieceType.KNIGHT:
-        return KNIGHT_TABLE[mirrored_row][col]
+        return t.knight_table[mirrored_row][col]
     if piece.kind == PieceType.BISHOP:
-        return BISHOP_TABLE[mirrored_row][col]
+        return t.bishop_table[mirrored_row][col]
     if piece.kind == PieceType.ROOK:
-        return ROOK_TABLE[mirrored_row][col]
+        return t.rook_table[mirrored_row][col]
     if piece.kind == PieceType.QUEEN:
-        return QUEEN_TABLE[mirrored_row][col]
-    return KING_TABLE[mirrored_row][col]
+        return t.queen_table[mirrored_row][col]
+    return t.king_table[mirrored_row][col]
 
 
-def _evaluate_mobility(board: Board) -> int:
+def _evaluate_mobility(board: Board, weights: EvalWeights) -> int:
+    mobility_weights = weights.pieces.mobility_weights()
     mobility_score = 0
     for piece, _, _ in _iter_board_pieces(board):
-        weight = MOBILITY_WEIGHTS.get(piece.kind)
+        weight = mobility_weights.get(piece.kind)
         if weight is None:
             continue
         move_count = len(PieceMovers.get_valid_moves(piece, board))
@@ -240,38 +220,49 @@ def _pawn_direction(color: Color) -> int:
     return -1 if color == Color.WHITE else 1
 
 
-def _evaluate_king_safety(board: Board, middlegame_phase: int) -> int:
+def _evaluate_king_safety(
+    board: Board,
+    middlegame_phase: int,
+    weights: EvalWeights,
+) -> int:
     if middlegame_phase == 0:
         return 0
+    k = weights.king
     king_safety_score = 0
     for color in (Color.WHITE, Color.BLACK):
         king_square = _find_king(board, color)
         if king_square is None:
             continue
         color_score = 0
-        attack_pressure = _king_zone_attack_pressure(board, color, king_square)
+        attack_pressure = _king_zone_attack_pressure(board, color, king_square, weights)
         if _is_castled_king(color, king_square):
-            color_score += CASTLED_KING_BONUS
-        color_score += _pawn_shield_score(board, color, king_square)
-        color_score -= _open_king_file_penalty(board, color, king_square)
+            color_score += k.castled_king_bonus
+        color_score += _pawn_shield_score(board, color, king_square, weights)
+        color_score -= _open_king_file_penalty(board, color, king_square, weights)
         color_score -= _unforced_shelter_loosening_penalty(
             board,
             color,
             king_square,
             attack_pressure,
+            weights,
         )
         color_score -= _tactical_transition_king_penalty(board, color)
         color_score -= attack_pressure
-        color_score -= _back_rank_tension(board, color, king_square)
+        color_score -= _back_rank_tension(board, color, king_square, weights)
         if _is_exposed_central_king(king_square):
-            color_score -= EXPOSED_CENTRAL_KING_PENALTY
+            color_score -= k.exposed_central_king_penalty
         king_safety_score += _color_sign(color) * color_score
     return _scale_signed(king_safety_score, middlegame_phase)
 
 
-def _evaluate_king_exposure(board: Board, middlegame_phase: int) -> int:
+def _evaluate_king_exposure(
+    board: Board,
+    middlegame_phase: int,
+    weights: EvalWeights,
+) -> int:
     if middlegame_phase == 0:
         return 0
+    k = weights.king
     score = 0
     queens_on_board = _queens_on_board(board)
     for color in (Color.WHITE, Color.BLACK):
@@ -280,23 +271,34 @@ def _evaluate_king_exposure(board: Board, middlegame_phase: int) -> int:
             continue
         color_score = 0
         if queens_on_board and _is_exposed_central_king(king_square):
-            color_score -= CENTRAL_KING_WITH_QUEENS_PENALTY
-        color_score -= _heavy_piece_lane_pressure(board, color, king_square)
+            color_score -= k.central_king_with_queens_penalty
+        color_score -= _heavy_piece_lane_pressure(board, color, king_square, weights)
         color_score -= _h_pawn_exposure_penalty(board, color)
         score += _color_sign(color) * color_score
     return _scale_signed(score, middlegame_phase)
-def _evaluate_defender_coordination(board: Board, middlegame_phase: int) -> int:
+
+
+def _evaluate_defender_coordination(
+    board: Board,
+    middlegame_phase: int,
+    weights: EvalWeights,
+) -> int:
     if middlegame_phase == 0 or not _queens_on_board(board):
         return 0
     score = 0
     for color, king_square in _iter_king_squares(board):
-        score += _color_sign(color) * (-_heavy_defender_distance_penalty(board, color, king_square))
+        score += _color_sign(color) * (
+            -_heavy_defender_distance_penalty(board, color, king_square, weights)
+        )
     return _scale_signed(score, middlegame_phase)
-def _middlegame_phase(board: Board) -> int:
+
+
+def _middlegame_phase(board: Board, weights: EvalWeights) -> int:
+    material_dict = weights.material.as_dict()
     non_pawn_material = 0
     for piece, _, _ in _iter_board_pieces(board):
         if piece.kind not in (PieceType.KING, PieceType.PAWN):
-            non_pawn_material += MATERIAL_VALUES[piece.kind]
+            non_pawn_material += material_dict[piece.kind]
     return min((non_pawn_material * 100) // STARTING_NON_PAWN_MATERIAL, 100)
 
 
@@ -319,7 +321,12 @@ def _is_castled_king(color: Color, square: ConstantSquare) -> bool:
     )
 
 
-def _pawn_shield_score(board: Board, color: Color, square: ConstantSquare) -> int:
+def _pawn_shield_score(
+    board: Board,
+    color: Color,
+    square: ConstantSquare,
+    weights: EvalWeights,
+) -> int:
     if not _is_castled_king(color, square):
         return 0
     shield_row = 6 if color == Color.WHITE else 1
@@ -332,7 +339,7 @@ def _pawn_shield_score(board: Board, color: Color, square: ConstantSquare) -> in
         )
         piece = board.get_piece(shield_square)
         if piece is not None and piece.color == color and piece.kind == PieceType.PAWN:
-            score += PAWN_SHIELD_BONUS
+            score += weights.king.pawn_shield_bonus
     return score
 
 
@@ -365,12 +372,17 @@ def _non_king_piece_count(board: Board) -> int:
     return count
 
 
-def _open_king_file_penalty(board: Board, color: Color, square: ConstantSquare) -> int:
+def _open_king_file_penalty(
+    board: Board,
+    color: Color,
+    square: ConstantSquare,
+    weights: EvalWeights,
+) -> int:
     penalty = 0
     king_col = int(square.col)
     for file_index in range(max(0, king_col - 1), min(7, king_col + 1) + 1):
         if not _file_has_friendly_pawn(board, color, file_index):
-            penalty += OPEN_KING_FILE_PENALTY
+            penalty += weights.king.open_king_file_penalty
     return penalty
 def _file_has_friendly_pawn(board: Board, color: Color, file_index: int) -> bool:
     for rank_index in range(8):
@@ -388,25 +400,32 @@ def _king_zone_attack_pressure(
     board: Board,
     color: Color,
     square: ConstantSquare,
+    weights: EvalWeights,
 ) -> int:
     enemy_color = _opponent(color)
     king_row = int(square.row)
     king_col = int(square.col)
+    kzap = weights.king.king_zone_attack_penalty
     penalty = 0
     for piece, row, col in _iter_color_pieces(board, enemy_color):
         distance = max(abs(row - king_row), abs(col - king_col))
         if distance > 2:
             continue
         if piece.kind == PieceType.QUEEN:
-            penalty += KING_ZONE_ATTACK_PENALTY * 3
+            penalty += kzap * 3
         elif piece.kind == PieceType.ROOK:
-            penalty += KING_ZONE_ATTACK_PENALTY * 2
+            penalty += kzap * 2
         elif piece.kind in (PieceType.BISHOP, PieceType.KNIGHT):
-            penalty += KING_ZONE_ATTACK_PENALTY
+            penalty += kzap
     return penalty
 
 
-def _back_rank_tension(board: Board, color: Color, square: ConstantSquare) -> int:
+def _back_rank_tension(
+    board: Board,
+    color: Color,
+    square: ConstantSquare,
+    weights: EvalWeights,
+) -> int:
     home_row = 7 if color == Color.WHITE else 0
     if int(square.row) != home_row:
         return 0
@@ -420,7 +439,7 @@ def _back_rank_tension(board: Board, color: Color, square: ConstantSquare) -> in
         )
         if board.get_piece(luft_square) is None:
             return 0
-    return BACK_RANK_TENSION_PENALTY
+    return weights.king.back_rank_tension_penalty
 
 
 def _is_exposed_central_king(square: ConstantSquare) -> bool:
@@ -433,6 +452,7 @@ def _heavy_piece_lane_pressure(
     board: Board,
     color: Color,
     square: ConstantSquare,
+    weights: EvalWeights,
 ) -> int:
     enemy_color = _opponent(color)
     king_row = int(square.row)
@@ -443,7 +463,7 @@ def _heavy_piece_lane_pressure(
             continue
         if row == king_row or col == king_col:
             if _path_clear_between(board, (row, col), (king_row, king_col)):
-                penalty += HEAVY_FILE_PRESSURE_PENALTY
+                penalty += weights.king.heavy_file_pressure_penalty
     return penalty
 
 
@@ -451,6 +471,7 @@ def _heavy_defender_distance_penalty(
     board: Board,
     color: Color,
     king_square: ConstantSquare,
+    weights: EvalWeights,
 ) -> int:
     king_row = int(king_square.row)
     king_col = int(king_square.col)
@@ -460,11 +481,12 @@ def _heavy_defender_distance_penalty(
             continue
         distance = max(abs(row - king_row), abs(col - king_col))
         if distance >= 4:
-            penalty += DEFENDER_DISTANCE_PENALTY
+            penalty += weights.king.defender_distance_penalty
     return penalty
 
 
-def _evaluate_rook_activity(board: Board) -> int:
+def _evaluate_rook_activity(board: Board, weights: EvalWeights) -> int:
+    p = weights.pieces
     rook_activity_score = 0
     for piece, row, col in _iter_board_pieces(board):
         if piece.kind != PieceType.ROOK:
@@ -472,17 +494,17 @@ def _evaluate_rook_activity(board: Board) -> int:
         color_score = 0
         file_state = _rook_file_state(board, piece.color, col)
         if file_state == "open":
-            color_score += ROOK_OPEN_FILE_BONUS
+            color_score += p.rook_open_file_bonus
         elif file_state == "semi-open":
-            color_score += ROOK_SEMI_OPEN_FILE_BONUS
+            color_score += p.rook_semi_open_file_bonus
         if _rook_on_seventh_rank(piece.color, row):
-            color_score += ROOK_SEVENTH_RANK_BONUS
+            color_score += p.rook_seventh_rank_bonus
         if _rook_is_trapped(board, piece.color, row, col):
-            color_score -= ROOK_TRAPPED_PENALTY
+            color_score -= p.rook_trapped_penalty
         rook_activity_score += _color_sign(piece.color) * color_score
     for color in (Color.WHITE, Color.BLACK):
-        rook_activity_score += _color_sign(color) * _connected_rooks_bonus(board, color)
-        rook_activity_score += _color_sign(color) * _queen_rook_battery_bonus(board, color)
+        rook_activity_score += _color_sign(color) * _connected_rooks_bonus(board, color, weights)
+        rook_activity_score += _color_sign(color) * _queen_rook_battery_bonus(board, color, weights)
     return rook_activity_score
 
 
@@ -523,7 +545,7 @@ def _rook_is_trapped(board: Board, color: Color, row: int, col: int) -> bool:
     return False
 
 
-def _connected_rooks_bonus(board: Board, color: Color) -> int:
+def _connected_rooks_bonus(board: Board, color: Color, weights: EvalWeights) -> int:
     rooks = _collect_piece_positions(board, color, PieceType.ROOK)
     if len(rooks) < 2:
         return 0
@@ -532,11 +554,11 @@ def _connected_rooks_bonus(board: Board, color: Color) -> int:
     if row_a != row_b and col_a != col_b:
         return 0
     if _path_clear_between(board, (row_a, col_a), (row_b, col_b)):
-        return CONNECTED_ROOKS_BONUS
+        return weights.pieces.connected_rooks_bonus
     return 0
 
 
-def _queen_rook_battery_bonus(board: Board, color: Color) -> int:
+def _queen_rook_battery_bonus(board: Board, color: Color, weights: EvalWeights) -> int:
     queens = _collect_piece_positions(board, color, PieceType.QUEEN)
     rooks = _collect_piece_positions(board, color, PieceType.ROOK)
     if len(queens) != 1 or not rooks:
@@ -545,46 +567,39 @@ def _queen_rook_battery_bonus(board: Board, color: Color) -> int:
     for rook_row, rook_col in rooks:
         if queen_row == rook_row or queen_col == rook_col:
             if _path_clear_between(board, (queen_row, queen_col), (rook_row, rook_col)):
-                return QUEEN_ROOK_BATTERY_BONUS
+                return weights.pieces.queen_rook_battery_bonus
     return 0
 
 
-def _evaluate_bishop_pair(board: Board) -> int:
+def _evaluate_bishop_pair(board: Board, weights: EvalWeights) -> int:
     bishop_counts = {Color.WHITE: 0, Color.BLACK: 0}
     for piece, _, _ in _iter_board_pieces(board):
         if piece.kind == PieceType.BISHOP:
             bishop_counts[piece.color] += 1
+    bp = weights.pieces.bishop_pair_bonus
     return (
-        (BISHOP_PAIR_BONUS if bishop_counts[Color.WHITE] >= 2 else 0)
-        - (BISHOP_PAIR_BONUS if bishop_counts[Color.BLACK] >= 2 else 0)
+        (bp if bishop_counts[Color.WHITE] >= 2 else 0)
+        - (bp if bishop_counts[Color.BLACK] >= 2 else 0)
     )
 
 
-def _evaluate_minor_piece_activity(board: Board) -> int:
+def _evaluate_minor_piece_activity(board: Board, weights: EvalWeights) -> int:
     pawn_positions = _collect_pawn_positions(board)
     score = 0
     for color in (Color.WHITE, Color.BLACK):
         sign = _color_sign(color)
-        color_positions = pawn_positions[color]
-        enemy_positions = pawn_positions[_opponent(color)]
         minor_squares: list[tuple[int, int]] = []
         for piece, row, col in _iter_color_pieces(board, color):
             if piece.kind == PieceType.KNIGHT:
-                color_score = _knight_activity_score(
-                    color,
-                    row,
-                    col,
-                    color_positions,
-                    enemy_positions,
-                )
-                score += sign * color_score
+                score += sign * _knight_activity_score(color, row, col, pawn_positions, weights)
                 minor_squares.append((row, col))
             if piece.kind == PieceType.BISHOP:
-                color_score = _bishop_activity_score(board, piece, row, col, color_positions)
-                score += sign * color_score
+                score += sign * _bishop_activity_score(
+                    board, piece, (row, col), pawn_positions, weights
+                )
                 minor_squares.append((row, col))
         if _coordinated_minor_piece_setup(minor_squares):
-            score += sign * MINOR_COORDINATION_BONUS
+            score += sign * weights.pieces.minor_coordination_bonus
     return score
 
 
@@ -592,39 +607,45 @@ def _knight_activity_score(
     color: Color,
     row: int,
     col: int,
-    friendly_pawns: list[tuple[int, int]],
-    enemy_pawns: list[tuple[int, int]],
+    pawn_positions: dict[Color, list[tuple[int, int]]],
+    weights: EvalWeights,
 ) -> int:
+    p = weights.pieces
+    friendly_pawns = pawn_positions[color]
+    enemy_pawns = pawn_positions[_opponent(color)]
     score = 0
     if col in {0, 7}:
-        score -= KNIGHT_RIM_PENALTY
+        score -= p.knight_rim_penalty
     if _occupies_central_square(row, col):
-        score += CENTRAL_MINOR_PIECE_BONUS
+        score += p.central_minor_piece_bonus
     if _is_knight_outpost(color, row, col, friendly_pawns, enemy_pawns):
-        score += KNIGHT_OUTPOST_BONUS
+        score += p.knight_outpost_bonus
     elif _is_knight_strong_square(color, row, col, enemy_pawns):
-        score += KNIGHT_STRONG_SQUARE_BONUS
+        score += p.knight_strong_square_bonus
     return score
 
 
 def _bishop_activity_score(
     board: Board,
     piece: Piece,
-    row: int,
-    col: int,
-    friendly_pawns: list[tuple[int, int]],
+    square: tuple[int, int],
+    pawn_positions: dict[Color, list[tuple[int, int]]],
+    weights: EvalWeights,
 ) -> int:
+    p = weights.pieces
+    row, col = square
+    friendly_pawns = pawn_positions[piece.color]
     score = 0
     mobility = len(PieceMovers.get_valid_moves(piece, board))
     bishop_color = (row + col) % 2
     same_color_pawns = sum(
         1 for pawn_row, pawn_col in friendly_pawns if (pawn_row + pawn_col) % 2 == bishop_color
     )
-    score -= same_color_pawns * BAD_BISHOP_PAWN_PENALTY
+    score -= same_color_pawns * p.bad_bishop_pawn_penalty
     if mobility >= 7 and _on_long_diagonal(row, col):
-        score += LONG_DIAGONAL_BISHOP_BONUS
+        score += p.long_diagonal_bishop_bonus
     if _occupies_central_square(row, col):
-        score += CENTRAL_MINOR_PIECE_BONUS
+        score += p.central_minor_piece_bonus
     return score
 
 
@@ -682,26 +703,27 @@ def _pawn_attacks_square(
     )
 
 
-def _evaluate_space(board: Board, middlegame_phase: int) -> int:
+def _evaluate_space(board: Board, middlegame_phase: int, weights: EvalWeights) -> int:
     if middlegame_phase == 0:
         return 0
-    white_space = _space_score_for_color(board, Color.WHITE)
-    black_space = _space_score_for_color(board, Color.BLACK)
+    white_space = _space_score_for_color(board, Color.WHITE, weights)
+    black_space = _space_score_for_color(board, Color.BLACK, weights)
     return _scale_signed(white_space - black_space, middlegame_phase)
 
 
-def _space_score_for_color(board: Board, color: Color) -> int:
+def _space_score_for_color(board: Board, color: Color, weights: EvalWeights) -> int:
+    p = weights.pieces
     score = 0
     for piece, row, col in _iter_color_pieces(board, color):
         if piece.kind == PieceType.PAWN and _supports_space(color, row, col):
-            score += SPACE_ADVANTAGE_BONUS * 2
+            score += p.space_advantage_bonus * 2
         elif piece.kind in (PieceType.KNIGHT, PieceType.BISHOP):
             if _piece_supports_space(color, row, col):
-                score += SPACE_ADVANTAGE_BONUS
+                score += p.space_advantage_bonus
     for piece, row, col in _iter_color_pieces(board, color):
         if piece.kind in (PieceType.KNIGHT, PieceType.BISHOP, PieceType.ROOK):
             if _is_cramped_piece(color, row, col):
-                score -= CRAMPED_PIECE_PENALTY
+                score -= p.cramped_piece_penalty
     return score
 
 
@@ -723,79 +745,69 @@ def _is_cramped_piece(color: Color, row: int, col: int) -> bool:
     return row == 0 and col not in CENTER_FILES
 
 
-def _evaluate_development(board: Board, middlegame_phase: int) -> int:
+def _evaluate_development(
+    board: Board,
+    middlegame_phase: int,
+    weights: EvalWeights,
+) -> int:
     if middlegame_phase < 70:
         return 0
+    d = weights.development
     development_score = 0
     for color in (Color.WHITE, Color.BLACK):
         sign = _color_sign(color)
         undeveloped = _undeveloped_minor_piece_count(board, color)
-        development_score -= sign * undeveloped * UNDEVELOPED_MINOR_PIECE_PENALTY
-        development_score += sign * _opening_central_control_bonus(board, color)
+        development_score -= sign * undeveloped * d.undeveloped_minor_piece_penalty
+        development_score += sign * _opening_central_control_bonus(board, color, weights)
         development_score += sign * _opening_piece_coordination_bonus(
-            board,
-            color,
-            undeveloped,
+            board, color, undeveloped, weights
         )
-        development_score += sign * _opening_king_safety_score(board, color, undeveloped)
+        development_score += sign * _opening_king_safety_score(board, color, undeveloped, weights)
         development_score -= sign * _opening_king_urgency_penalty(
-            board,
-            color,
-            undeveloped,
+            board, color, undeveloped, weights
         )
         development_score += sign * _opening_rook_connection_bonus(
-            board,
-            color,
-            undeveloped,
+            board, color, undeveloped, weights
         )
-        development_score += sign * _opening_central_rook_bonus(board, color, undeveloped)
+        development_score += sign * _opening_central_rook_bonus(board, color, undeveloped, weights)
         development_score += sign * _opening_queen_restraint_bonus(
-            board,
-            color,
-            undeveloped,
+            board, color, undeveloped, weights
         )
         development_score -= sign * _early_shelter_pawn_push_penalty(
-            board,
-            color,
-            undeveloped,
+            board, color, undeveloped, weights
         )
         if undeveloped >= 2 and _queen_left_home_square(board, color):
-            development_score -= sign * EARLY_QUEEN_MOVE_PENALTY
+            development_score -= sign * d.early_queen_move_penalty
         development_score -= sign * _early_flank_queen_sortie_penalty(
-            board,
-            color,
-            undeveloped,
+            board, color, undeveloped, weights
         )
-        development_score -= sign * _early_queen_raid_penalty(board, color, undeveloped)
+        development_score -= sign * _early_queen_raid_penalty(board, color, undeveloped, weights)
         if undeveloped >= 2 and _rook_left_home_square_early(board, color):
-            development_score -= sign * EARLY_ROOK_MOVE_PENALTY
+            development_score -= sign * d.early_rook_move_penalty
         development_score -= sign * _rook_home_rank_sidestep_penalty(
             board,
             color,
             undeveloped,
+            weights,
         )
         development_score -= sign * _early_flank_pawn_poke_penalty(
-            board,
-            color,
-            undeveloped,
+            board, color, undeveloped, weights
         )
-        development_score -= sign * _early_flank_raid_penalty(board, color, undeveloped)
+        development_score -= sign * _early_flank_raid_penalty(board, color, undeveloped, weights)
         development_score -= sign * _opening_wing_knight_lunge_penalty(
-            board,
-            color,
-            undeveloped,
+            board, color, undeveloped, weights
         )
         (
             kingside_lunge_penalty,
             rook_sidestep_penalty,
             rim_knight_penalty,
             edge_space_grab_penalty,
-        ) = _opening_drift_penalties(board, color, undeveloped)
+        ) = _opening_drift_penalties(board, color, undeveloped, weights)
         development_score -= sign * kingside_lunge_penalty
         development_score -= sign * rook_sidestep_penalty
         development_score -= sign * rim_knight_penalty
         development_score -= sign * edge_space_grab_penalty
-        development_score -= sign * _middlegame_rim_knight_penalty(board, color)
+        development_score -= sign * _middlegame_rim_knight_penalty(board, color, weights)
         development_score -= sign * _late_castling_urgency_penalty(board, color)
         development_score -= sign * _castling_path_blocked_penalty(board, color)
     return _scale_signed(development_score, middlegame_phase)
@@ -819,7 +831,12 @@ def _rook_left_home_square_early(board: Board, color: Color) -> bool:
     )
 
 
-def _rook_home_rank_sidestep_penalty(board: Board, color: Color, undeveloped: int) -> int:
+def _rook_home_rank_sidestep_penalty(
+    board: Board,
+    color: Color,
+    undeveloped: int,
+    weights: EvalWeights,
+) -> int:
     if undeveloped < 1:
         return 0
     home_row = 7 if color == Color.WHITE else 0
@@ -828,9 +845,10 @@ def _rook_home_rank_sidestep_penalty(board: Board, color: Color, undeveloped: in
         return 0
     sidestep_squares = {(home_row, 1), (home_row, 6)}
     penalty = 0
+    d = weights.development
     for square in sidestep_squares:
         if _piece_on_square(board, color, PieceType.ROOK, square):
-            penalty += EARLY_ROOK_MOVE_PENALTY + EARLY_QUEEN_MOVE_PENALTY
+            penalty += d.early_rook_move_penalty + d.early_queen_move_penalty
     return penalty
 
 

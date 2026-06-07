@@ -44,6 +44,11 @@ python_version = "3.11"
 files = ["chess_game"]
 warn_unused_configs = true
 
+[tool.pylint.design]
+# eval_weights.py dataclasses are intentional weight containers for Texel tuning;
+# they naturally hold more attributes than the default limit.
+max-attributes = 20
+
 [tool.setuptools.packages.find]
 include = ["chess_game*"]
 namespaces = false
