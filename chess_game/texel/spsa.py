@@ -1,0 +1,117 @@
+"""SPSA optimizer for Texel tuning."""
+from __future__ import annotations
+
+import dataclasses
+import json
+import random
+from pathlib import Path
+from typing import Optional
+
+from chess_game.chess.eval_weights import EVAL_WEIGHTS_FLAT_LENGTH, EvalWeights
+from chess_game.texel.loss import mean_squared_error
+from chess_game.texel.position_db import PositionDB
+
+# EVAL_WEIGHTS_FLAT_LENGTH is re-exported as part of the public API so that
+# callers can discover the flat-list dimension without importing eval_weights.
+__all__ = [
+    "SPSAOptions",
+    "optimize",
+    "_clip_weights",
+    "EVAL_WEIGHTS_FLAT_LENGTH",
+]
+
+
+@dataclasses.dataclass
+class SPSAOptions:
+    """Configuration for the SPSA optimiser."""
+
+    max_iterations: int = 5000
+    initial_step_size: float = 5.0
+    step_decay: float = 0.602
+    perturbation_size: float = 1.0
+    perturbation_decay: float = 0.101
+    stability_constant: int = 100
+    batch_size: Optional[int] = None
+    checkpoint_every: int = 500
+    checkpoint_path: Optional[Path] = None
+    verbose: bool = True
+
+
+def _clip_weights(w: list[float]) -> list[float]:
+    """Clip weights to sane bounds to prevent divergence."""
+    result = list(w)
+    # Material values (first 5) must be positive
+    for i in range(5):
+        result[i] = max(1.0, result[i])
+    # Piece-square table values (next 384) capped at [-200, 200]
+    for i in range(5, 5 + 384):
+        result[i] = max(-200.0, min(200.0, result[i]))
+    # All remaining scalar weights: cap at [-500, 500]
+    for i in range(5 + 384, len(result)):
+        result[i] = max(-500.0, min(500.0, result[i]))
+    return result
+
+
+def _spsa_step(
+    w: list[float],
+    pairs: list[tuple[str, float]],
+    a_k: float,
+    c_k: float,
+) -> list[float]:
+    """Execute one SPSA gradient step; return the updated weight vector."""
+    n = len(w)
+    delta = [1.0 if random.random() < 0.5 else -1.0 for _ in range(n)]
+    w_plus = _clip_weights([w[i] + c_k * delta[i] for i in range(n)])
+    w_minus = _clip_weights([w[i] - c_k * delta[i] for i in range(n)])
+    loss_plus = mean_squared_error(pairs, EvalWeights.from_flat_list(w_plus))
+    loss_minus = mean_squared_error(pairs, EvalWeights.from_flat_list(w_minus))
+    grad_scale = (loss_plus - loss_minus) / (2.0 * c_k)
+    return _clip_weights([w[i] - a_k * grad_scale / delta[i] for i in range(n)])
+
+
+def _maybe_checkpoint(
+    w: list[float],
+    k: int,
+    options: SPSAOptions,
+) -> None:
+    """Write a checkpoint file if the iteration count is due."""
+    if options.checkpoint_path is None:
+        return
+    if k % options.checkpoint_every != 0:
+        return
+    checkpoint = EvalWeights.from_flat_list(w)
+    options.checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+    with options.checkpoint_path.open("w", encoding="utf-8") as fh:
+        json.dump(checkpoint.to_dict(), fh, indent=2)
+
+
+def optimize(
+    weights: EvalWeights,
+    db: PositionDB,
+    options: SPSAOptions,
+) -> EvalWeights:
+    """Run SPSA optimization and return the tuned weights."""
+    w = weights.to_flat_list()
+    a = options.initial_step_size
+    alpha = options.step_decay
+    c = options.perturbation_size
+    gamma = options.perturbation_decay
+    cap_a = options.stability_constant
+
+    for k in range(1, options.max_iterations + 1):
+        a_k = a / (k + cap_a) ** alpha
+        c_k = c / k ** gamma
+        pairs = (
+            db.sample(options.batch_size)
+            if options.batch_size is not None
+            else db.all_pairs()
+        )
+        if not pairs:
+            break
+        w = _spsa_step(w, pairs, a_k, c_k)
+        if options.verbose and k % 100 == 0:
+            mse = mean_squared_error(pairs, EvalWeights.from_flat_list(w))
+            print(f"  iter {k:5d}: MSE={mse:.6f} a_k={a_k:.4f}")
+        _maybe_checkpoint(w, k, options)
+
+    return EvalWeights.from_flat_list(w)

@@ -48,6 +48,8 @@ warn_unused_configs = true
 # eval_weights.py dataclasses are intentional weight containers for Texel tuning;
 # they naturally hold more attributes than the default limit.
 max-attributes = 20
+# Board has to_fen, from_fen, and other FEN helpers pushing it past the default 20.
+max-public-methods = 22
 
 [tool.setuptools.packages.find]
 include = ["chess_game*"]
