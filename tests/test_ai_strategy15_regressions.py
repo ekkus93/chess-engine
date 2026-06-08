@@ -99,6 +99,7 @@ class TestQuiescenceDepth:
             Color.WHITE,
         )
 
+    @pytest.mark.slow
     def test_quiescence_resolves_capture_chain(self) -> None:
         """Depth-3 search must not rate RxP as a clean material gain when it loses the rook."""
         board = self._capture_chain_board()

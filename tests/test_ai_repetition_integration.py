@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from chess_game.chess.ai import BestMoveOptions, get_best_move
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.position_utils import position_key
@@ -22,6 +24,7 @@ def _as_move_key(move: LegalMove) -> tuple[object, object, object]:
     return move.start, move.end, move.promotion
 
 
+@pytest.mark.slow
 def test_repetition_sensitive_position_counts_change_root_choice() -> None:
     """Supplying a repeated child key should alter a near-equal root choice."""
 
