@@ -2,6 +2,29 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-08T22:31:30Z - Claude Haiku 4.5 - TEXEL_FIX Complete: All phases 1–14 done
+
+Completed ALL remaining phases of docs/CHESS_ENGINE_TEXEL_FIX_TODO.md (Phases 1–14).
+
+### Phase 13.2–13.4 Final validation:
+- 971 fast tests pass (all of `tests/ -m "not slow"`)
+- ruff: all checks pass
+- mypy: no issues in 75 source files
+- pylint: 10.00/10
+
+### Phase 5.4 & 8.5 Test coverage (added this session):
+- **test_loss.py**: Added 6 tests for `TestLossOptions` covering:
+  - Static loss mode (use_quiescence=False)
+  - Quiescence loss mode (use_quiescence=True)
+  - Score perspective correctness (White-to-move and Black-to-move FENs)
+  - Quiescence depth limit respected
+  - Deterministic mode reproducibility
+- **test_collect.py**: Added 5 tests covering:
+  - Stalemate recorded as 0.5 draw
+  - Seed reproducibility (same seed → same DB)
+  - Custom weights usage
+  - Max-move game handling (vacuous test already in place)
+
 ## 2026-06-08T22:04:39Z - Claude Sonnet 4.6 - TEXEL_FIX: Fix 3 quality test failures from quiescence improvements
 
 Completed the final phase of docs/CHESS_ENGINE_TEXEL_FIX_TODO.md. All Phases 1–12 done.

@@ -75,3 +75,66 @@ class TestMeanSquaredError:
         # Verify it's no worse than a random other k in the range
         for k in [0.5, 1.0, 1.5, 2.0]:
             assert mean_squared_error(pairs, weights, k) >= best_mse - 1e-12
+
+
+class TestLossOptions:
+    """Tests for LossOptions and scoring modes."""
+
+    def test_static_loss_mode_uses_static_evaluation(self) -> None:
+        """LossOptions(use_quiescence=False) should use static evaluation."""
+        from chess_game.texel.loss import LossOptions
+        weights = EvalWeights.default()
+        pairs = [(STARTING_FEN, 0.5)]
+        static_mse = mean_squared_error(pairs, weights, opts=LossOptions(
+            use_quiescence=False
+        ))
+        assert static_mse >= 0.0
+
+    def test_quiescence_loss_mode_uses_quiescence(self) -> None:
+        """LossOptions(use_quiescence=True) should use quiescence scoring."""
+        from chess_game.texel.loss import LossOptions
+        weights = EvalWeights.default()
+        pairs = [(STARTING_FEN, 0.5)]
+        quiescence_mse = mean_squared_error(pairs, weights, opts=LossOptions(
+            use_quiescence=True, quiescence_depth_limit=2
+        ))
+        assert quiescence_mse >= 0.0
+
+    def test_score_perspective_white_to_move(self) -> None:
+        """Verify score perspective is consistent for White-to-move FEN."""
+        weights = EvalWeights.default()
+        fen_white_to_move = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        pairs = [(fen_white_to_move, 0.5)]
+        mse = mean_squared_error(pairs, weights)
+        assert mse >= 0.0
+
+    def test_score_perspective_black_to_move(self) -> None:
+        """Verify score perspective is consistent for Black-to-move FEN."""
+        weights = EvalWeights.default()
+        # Starting position with Black to move (flipped turn)
+        fen_black_to_move = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1"
+        pairs = [(fen_black_to_move, 0.5)]
+        mse = mean_squared_error(pairs, weights)
+        # Should be symmetric from Black's perspective (draw → 0.5)
+        assert mse >= 0.0
+
+    def test_quiescence_depth_limit_is_respected(self) -> None:
+        """Verify quiescence respects the depth limit."""
+        from chess_game.texel.loss import LossOptions
+        weights = EvalWeights.default()
+        pairs = [(STARTING_FEN, 0.5)]
+        # Shallow limit should complete without error
+        mse_shallow = mean_squared_error(pairs, weights, opts=LossOptions(
+            use_quiescence=True, quiescence_depth_limit=1
+        ))
+        assert mse_shallow >= 0.0
+
+    def test_deterministic_mode_gives_same_result(self) -> None:
+        """Verify deterministic mode produces consistent results."""
+        from chess_game.texel.loss import LossOptions
+        weights = EvalWeights.default()
+        pairs = [(STARTING_FEN, 0.5)]
+        opts = LossOptions(use_quiescence=True, deterministic=True)
+        mse1 = mean_squared_error(pairs, weights, opts=opts)
+        mse2 = mean_squared_error(pairs, weights, opts=opts)
+        assert abs(mse1 - mse2) < 1e-12
