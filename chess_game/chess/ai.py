@@ -1088,6 +1088,9 @@ def get_best_move(
     if not legal_moves:
         return None
     options = book_options or BestMoveOptions()
+    # Apply seed early to control all random choices, including opening-book selection
+    if options.rng_seed is not None:
+        random.seed(options.rng_seed)
     if options.use_opening_book:
         book = options.opening_book or get_bundled_opening_book()
         if options.random_opening_book:
@@ -1096,8 +1099,6 @@ def get_best_move(
             book_move = book.find_book_move(board)
         if book_move is not None:
             return book_move
-    if options.rng_seed is not None:
-        random.seed(options.rng_seed)
     effective_weights = _get_effective_weights(options.weights)
     context = SearchContext(
         transposition_table={},

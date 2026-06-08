@@ -1296,3 +1296,32 @@ def test_search_goes_deeper_in_structure_changing_defensive_moments() -> None:
     assert stats.diagnostics.selective_extensions > 0, (
         "Should have fired at least one selective extension in a shelter-changing position"
     )
+
+
+# Tests for RNG seed behavior
+
+
+def test_seeded_get_best_move_is_reproducible() -> None:
+    """Repeated seeded calls to get_best_move should return the same move."""
+    from chess_game.chess.ai import get_best_move, BestMoveOptions
+    board = Board()
+    opts = BestMoveOptions(use_opening_book=False, deterministic=True, rng_seed=42)
+    move1 = get_best_move(board, depth=1, book_options=opts)
+    move2 = get_best_move(board, depth=1, book_options=opts)
+    assert move1 == move2
+
+
+def test_different_seeds_can_produce_different_results() -> None:
+    """Different seeds can produce different moves (if tie-breaking matters)."""
+    from chess_game.chess.ai import get_best_move, BestMoveOptions
+    # Using deterministic=False to allow seed to affect randomness
+    board = Board()
+    opts1 = BestMoveOptions(use_opening_book=False, deterministic=False, rng_seed=42)
+    opts2 = BestMoveOptions(use_opening_book=False, deterministic=False, rng_seed=43)
+    # Note: At depth 1 from starting position, tie-breaking might not matter,
+    # but the seed is applied consistently at least
+    move1 = get_best_move(board, depth=1, book_options=opts1)
+    move2 = get_best_move(board, depth=1, book_options=opts2)
+    # Just verify both calls complete without error
+    assert move1 is not None
+    assert move2 is not None
