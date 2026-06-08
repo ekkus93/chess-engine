@@ -933,8 +933,23 @@ def _score_move_at_depth_zero(board: Board, move: LegalMove) -> int:
 def test_tt_stores_score_producing_move_when_root_tiebreak_selects_different(
     monkeypatch,
 ):
-    """TT must store the move that produced the cached score, not root-selected tie-break."""
-    board = make_mate_in_one_white_position()
+    """TT must store the move that produced the cached score, not root-selected tie-break.
+
+    Note: This test uses a non-mate position because mate scores are now excluded from TT
+    until proper ply-based normalization exists.
+    """
+    from chess_game.chess.ai import MATE_SCORE  # pylint: disable=import-outside-toplevel
+
+    # Use a position with a winning but non-mate evaluation
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("d2"), create_piece(Color.WHITE, PieceType.QUEEN))
+    board.set_piece(sq("e3"), create_piece(Color.WHITE, PieceType.ROOK))
+    board.set_piece(sq("e8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("a8"), create_piece(Color.BLACK, PieceType.ROOK))
+    board.turn = Color.WHITE
+
     tt: dict = {}
     context = make_search_context(tt=tt)
 
@@ -951,14 +966,85 @@ def test_tt_stores_score_producing_move_when_root_tiebreak_selects_different(
     )
 
     assert selected_move is not None
-    entry = tt[position_key(board)]
-    assert entry.best_move is not None
-    assert entry.score == score
-    assert _score_move_at_depth_zero(board, entry.best_move) == score
-    assert _score_move_at_depth_zero(board, entry.best_move) >= _score_move_at_depth_zero(
-        board,
-        selected_move,
+    # Only check TT if the score is not a mate score (which are now excluded from TT)
+    if abs(score) >= MATE_SCORE - 1_000:
+        assert len(tt) == 0  # Mate scores are not stored
+    else:
+        entry = tt[position_key(board)]
+        assert entry.best_move is not None
+        assert entry.score == score
+        assert _score_move_at_depth_zero(board, entry.best_move) == score
+        assert _score_move_at_depth_zero(board, entry.best_move) >= _score_move_at_depth_zero(
+            board,
+            selected_move,
+        )
+
+
+# Tests for safe mate-score TT handling
+
+
+def test_is_mate_score_at_exact_mate_score():
+    """_is_mate_score(MATE_SCORE) should return True."""
+    from chess_game.chess.ai import MATE_SCORE, _is_mate_score  # pylint: disable=import-outside-toplevel
+    assert _is_mate_score(MATE_SCORE)
+
+
+def test_is_mate_score_within_margin():
+    """_is_mate_score returns True for scores within MATE_SCORE_MARGIN."""
+    from chess_game.chess.ai import MATE_SCORE, _is_mate_score  # pylint: disable=import-outside-toplevel
+    assert _is_mate_score(MATE_SCORE - 1)
+    assert _is_mate_score(MATE_SCORE - 500)
+    assert _is_mate_score(-MATE_SCORE + 1)
+
+
+def test_is_mate_score_normal_evaluation():
+    """_is_mate_score returns False for normal evaluation scores."""
+    from chess_game.chess.ai import _is_mate_score  # pylint: disable=import-outside-toplevel
+    assert not _is_mate_score(500)
+    assert not _is_mate_score(0)
+    assert not _is_mate_score(-500)
+
+
+def test_tt_skips_mate_scores():
+    """_store_tt_cache should skip storing mate scores."""
+    from chess_game.chess.ai import (  # pylint: disable=import-outside-toplevel
+        MATE_SCORE,
+        MinimaxParams,
+        _store_tt_cache,
     )
+    board = make_simple_board_with_legal_moves()
+    tt: dict = {}
+    context = make_search_context(tt=tt)
+    params = MinimaxParams(
+        depth=1,
+        alpha=-MATE_SCORE,
+        beta=MATE_SCORE,
+        is_maximizing=True,
+        context=context,
+    )
+    # Try to store a mate score
+    _store_tt_cache(board, params, MATE_SCORE, None, (-MATE_SCORE, MATE_SCORE))
+    # Should not be stored
+    assert len(tt) == 0
+
+
+def test_tt_stores_normal_scores():
+    """_store_tt_cache should still store normal non-mate scores."""
+    from chess_game.chess.ai import MinimaxParams, _store_tt_cache  # pylint: disable=import-outside-toplevel
+    board = make_simple_board_with_legal_moves()
+    tt: dict = {}
+    context = make_search_context(tt=tt)
+    params = MinimaxParams(
+        depth=1,
+        alpha=-1000,
+        beta=1000,
+        is_maximizing=True,
+        context=context,
+    )
+    # Store a normal score
+    _store_tt_cache(board, params, 500, None, (-1000, 1000))
+    # Should be stored
+    assert len(tt) > 0
 
 
 # Alpha-beta pruning behavior tests

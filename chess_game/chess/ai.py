@@ -77,6 +77,7 @@ from chess_game.chess.types import Color, LegalMove, PieceType
 
 INF = 10_000_000
 MATE_SCORE = 100_000
+MATE_SCORE_MARGIN = 1_000  # Safe margin for ply adjustments
 DRAW_SCORE = 0
 ASPIRATION_WINDOW = 150
 MAX_QUIESCENCE_DEPTH = 4
@@ -368,11 +369,23 @@ class QuiescenceParams:
     line_history: tuple[str, ...] = ()
     legal_moves: tuple[Move, ...] | None = None
 
+
+def _is_mate_score(score: int) -> bool:
+    """Return true if score is close to a mate score.
+
+    Mate scores are not stored in TT until proper ply-based normalization exists.
+    """
+    return abs(score) >= MATE_SCORE - MATE_SCORE_MARGIN
+
+
 def _check_tt_cache(
     board: Board,
     params: MinimaxParams,
 ) -> Optional[tuple[int, LegalMove | None]]:
-    """Check transposition table for a cached result."""
+    """Check transposition table for a cached result.
+
+    Mate-score entries are ignored until proper normalization exists.
+    """
 
     if _position_occurrence_count(board, params.context, params.line_history, position_key) > 1:
         return None
@@ -381,6 +394,9 @@ def _check_tt_cache(
         return None
     entry = context.transposition_table.get(position_key(board))
     if entry is None or entry.depth < params.depth:
+        return None
+    if _is_mate_score(entry.score):
+        # Mate scores are not stored/used until normalization exists
         return None
     if entry.flag == TTFlag.EXACT:
         _record_tt_usage(context, entry)
@@ -400,12 +416,20 @@ def _store_tt_cache(
     move: LegalMove | None,
     original_window: tuple[int, int],
 ) -> None:
-    """Store a result in the transposition table with the correct bound flag."""
+    """Store a result in the transposition table with the correct bound flag.
+
+    Mate scores are skipped until proper TT mate-score normalization exists.
+    """
 
     if _position_occurrence_count(board, params.context, params.line_history, position_key) > 1:
         return
     context = params.context
     if context is None or context.transposition_table is None:
+        return
+    if _is_mate_score(score):
+        # TODO: Implement mate-score normalization for TT storage/retrieval.
+        # Mate scores are ply-relative and corrupt when stored/retrieved without
+        # proper adjustment. Skip storage until normalization is implemented.
         return
     alpha_orig, beta_orig = original_window
     if score <= alpha_orig:
