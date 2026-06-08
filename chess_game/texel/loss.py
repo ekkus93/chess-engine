@@ -2,35 +2,75 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from chess_game.chess import Board
+from chess_game.chess.ai import INF as _INF, SearchContext, quiescence
 from chess_game.chess.eval_weights import EvalWeights
 from chess_game.chess.evaluation import evaluate
+from chess_game.chess.types import Color
 
 if TYPE_CHECKING:
     from chess_game.texel.position_db import PositionDB
 
+DEFAULT_K: float = 1.13
 
-def sigmoid(score: float, k: float = 1.13) -> float:
-    """Win-probability sigmoid. score is in centipawns from white's perspective."""
+
+@dataclass(frozen=True)
+class LossOptions:
+    """Options controlling Texel loss computation."""
+
+    k: float = DEFAULT_K
+    use_quiescence: bool = False
+    quiescence_depth_limit: int = 4
+    deterministic: bool = True
+
+
+def sigmoid(score: float, k: float = DEFAULT_K) -> float:
+    """Win-probability sigmoid. score is in centipawns, White-relative."""
     return float(1.0 / (1.0 + 10.0 ** (-k * score / 400.0)))
+
+
+def _score_position(
+    board: Board,
+    weights: EvalWeights,
+    opts: LossOptions,
+) -> float:
+    """Return a White-relative score for a position, static or via quiescence."""
+    if not opts.use_quiescence:
+        return float(evaluate(board, weights))
+    ctx = SearchContext(weights=weights, deterministic=opts.deterministic)
+    is_max = board.turn == Color.WHITE
+    return float(quiescence(
+        board, -_INF, _INF, is_max,
+        context=ctx, depth_remaining=opts.quiescence_depth_limit,
+    ))
 
 
 def mean_squared_error(
     pairs: list[tuple[str, float]],
     weights: EvalWeights,
-    k: float = 1.13,
+    k: float = DEFAULT_K,
+    opts: Optional[LossOptions] = None,
 ) -> float:
-    """MSE between sigmoid(eval) and game outcome over a list of (fen, outcome) pairs."""
+    """MSE between sigmoid(eval) and game outcome over (fen, outcome) pairs.
+
+    Outcome labels are White-relative: 1.0 = White wins, 0.5 = draw, 0.0 = Black wins.
+    evaluate() returns a White-relative score, so no perspective conversion is needed.
+    """
     if not pairs:
         return 0.0
+    effective_k = opts.k if opts is not None else k
     total = 0.0
     for fen, outcome in pairs:
         board = Board.from_fen(fen)
-        score = evaluate(board, weights)
-        predicted = sigmoid(float(score), k)
+        if opts is not None:
+            score = _score_position(board, weights, opts)
+        else:
+            score = float(evaluate(board, weights))
+        predicted = sigmoid(score, effective_k)
         total += (outcome - predicted) ** 2
     return total / len(pairs)
 

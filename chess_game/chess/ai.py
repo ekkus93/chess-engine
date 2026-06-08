@@ -10,7 +10,11 @@ import random
 import time
 
 from chess_game.chess.board import Board
-from chess_game.chess.board.game_state import is_in_check as _gs_is_in_check
+from chess_game.chess.board.game_state import (
+    is_in_check as _gs_is_in_check,
+    is_fifty_move_rule as _gs_is_fifty_move_rule,
+    is_insufficient_material as _gs_is_insufficient_material,
+)
 from chess_game.chess.ai_capture_ordering import capture_order_score as _shared_capture_order_score
 from chess_game.chess.ai_board_utils import (
     clone_with_move as _make_copy_with_move,
@@ -25,6 +29,7 @@ from chess_game.chess.ai_quiescence_helpers import (
     _quiescence_check_score as _quiescence_check_score_impl,
     _quiescence_structure_follow_up_score as _quiescence_structure_follow_up_score_impl,
     _quiescence_tactical_score as _quiescence_tactical_score_impl,
+    select_quiescence_moves as _select_quiescence_moves,
 )
 from chess_game.chess.ai_search_helpers import (
     RepetitionPolicy,
@@ -55,7 +60,6 @@ from chess_game.chess.evaluation import (
     evaluate,
     get_evaluation_breakdown as _get_evaluation_breakdown,
 )
-from chess_game.chess.evaluation_tables import MATERIAL_VALUES
 from chess_game.texel.weights_io import (
     TUNED_WEIGHTS_PATH as _TUNED_WEIGHTS_PATH,
     load_weights_or_default as _load_weights_or_default,
@@ -73,6 +77,7 @@ from chess_game.chess.types import Color, LegalMove, PieceType
 
 INF = 10_000_000
 MATE_SCORE = 100_000
+DRAW_SCORE = 0
 ASPIRATION_WINDOW = 150
 MAX_QUIESCENCE_DEPTH = 4
 MAX_QUIESCENCE_MOVES = 8
@@ -320,6 +325,8 @@ class BestMoveOptions:
     opening_book: OpeningBook | None = None
     random_opening_book: bool = False
     weights: Optional[EvalWeights] = None
+    deterministic: bool = False
+    rng_seed: int | None = None
 
 
 @dataclass
@@ -333,6 +340,7 @@ class SearchContext:
     killer_moves: Optional[list[LegalMoveKey]] = None
     position_counts: Optional[dict[str, int]] = None
     weights: Optional[EvalWeights] = None
+    deterministic: bool = False
 
 
 @dataclass
@@ -406,6 +414,9 @@ def _store_tt_cache(
         flag = TTFlag.LOWERBOUND
     else:
         flag = TTFlag.EXACT
+    # TODO: Implement mate-score normalization for TT storage/retrieval.
+    # Mate scores are currently not normalized on store/retrieve, which can corrupt
+    # mate distance across different search plies. Full normalization is a separate patch.
     new_entry = TTEntry(
         depth=params.depth,
         score=score,
@@ -435,14 +446,19 @@ def _record_quiescence_node(context: Optional[SearchContext]) -> None:
         context.stats.quiescence_nodes += 1
 
 
-def _terminal_score(board: Board, legal_moves: list[Move]) -> Optional[int]:
-    """Return a terminal score when the side to move is mated or stalemated."""
+def _terminal_score(board: Board, legal_moves: list[Move], ply: int = 0) -> Optional[int]:
+    """Return a terminal score for draws and checkmate; None when non-terminal."""
 
+    if _gs_is_fifty_move_rule(board):
+        return DRAW_SCORE
+    if _gs_is_insufficient_material(board):
+        return DRAW_SCORE
     if legal_moves:
         return None
     if _gs_is_in_check(board, board.turn):
-        return -MATE_SCORE if board.turn == Color.WHITE else MATE_SCORE
-    return 0
+        # Side to move is checkmated; prefer closer mates
+        return -MATE_SCORE + ply if board.turn == Color.WHITE else MATE_SCORE - ply
+    return DRAW_SCORE
 
 
 def minimax(
@@ -473,7 +489,8 @@ def minimax(
         return cached
 
     legal_moves = get_legal_moves(board)
-    terminal_score = _terminal_score(board, legal_moves)
+    ply = max(0, len(params.line_history) - 1)
+    terminal_score = _terminal_score(board, legal_moves, ply)
     if terminal_score is not None:
         return (terminal_score, None)
     if params.depth == 0:
@@ -517,6 +534,19 @@ def _record_tt_usage(context: Optional[SearchContext], entry: TTEntry) -> None:
     context.stats.diagnostics.tt.tt_depth_uses += 1
 
 
+def _tie_break(
+    move: Move,
+    current_best: Optional[LegalMove],
+    deterministic: bool,
+) -> bool:
+    """Return True when the new move should replace the current best on equal score."""
+    if deterministic:
+        if current_best is None:
+            return True
+        return _move_sort_key(move) < _move_sort_key(current_best)
+    return random.random() < 0.5
+
+
 def _search_move_loop(
     board: Board,
     ordered_moves: list[Move],
@@ -540,7 +570,8 @@ def _search_move_loop(
         else:
             is_better = child_score < search_best_score
             is_tie = child_score == search_best_score
-        if is_better or (is_tie and random.random() < 0.5):
+        is_det = params.context is not None and params.context.deterministic
+        if is_better or (is_tie and _tie_break(move, search_best_move, is_det)):
             search_best_score = child_score
             search_best_move = LegalMove(move.start, move.end, move.promotion)
         if len(params.line_history) == 1:
@@ -554,11 +585,13 @@ def _search_move_loop(
         else:
             if params.is_maximizing:
                 replace_selected_move = child_score > selected_score or (
-                    child_score == selected_score and random.random() < 0.5
+                    child_score == selected_score
+                    and _tie_break(move, root_selected_move, is_det)
                 )
             else:
                 replace_selected_move = child_score < selected_score or (
-                    child_score == selected_score and random.random() < 0.5
+                    child_score == selected_score
+                    and _tie_break(move, root_selected_move, is_det)
                 )
         if root_selected_move is None or replace_selected_move:
             selected_score = child_score
@@ -676,7 +709,9 @@ def quiescence(
     alpha: int,
     beta: int,
     is_maximizing: bool,
+    *,
     context: Optional[SearchContext] = None,
+    depth_remaining: int = MAX_QUIESCENCE_DEPTH,
 ) -> int:
     """Extend tactical leaf nodes through captures and promotions."""
 
@@ -687,8 +722,53 @@ def quiescence(
             beta=beta,
             is_maximizing=is_maximizing,
             context=context,
+            depth_remaining=depth_remaining,
         ),
     )
+
+
+def _quiescence_evasion_search(
+    board: Board,
+    params: QuiescenceParams,
+    ply: int,
+    legal_moves: list[Move],
+) -> int:
+    """Search all legal evasions when the side to move is in check."""
+    if not legal_moves:
+        return -MATE_SCORE + ply if board.turn == Color.WHITE else MATE_SCORE - ply
+    alpha = params.alpha
+    beta = params.beta
+    context = params.context
+    best_score = -INF if params.is_maximizing else INF
+    order_params = MinimaxParams(
+        depth=0,
+        alpha=alpha,
+        beta=beta,
+        is_maximizing=params.is_maximizing,
+        context=context,
+    )
+    for move in _order_moves(board, legal_moves, order_params):
+        child_board = _make_copy_with_move(board, move)
+        child_score = _quiescence(
+            child_board,
+            QuiescenceParams(
+                alpha=alpha,
+                beta=beta,
+                is_maximizing=not params.is_maximizing,
+                context=context,
+                depth_remaining=params.depth_remaining - 1,
+                line_history=params.line_history + (position_key(child_board),),
+            ),
+        )
+        if params.is_maximizing:
+            best_score = max(best_score, child_score)
+            alpha = max(alpha, best_score)
+        else:
+            best_score = min(best_score, child_score)
+            beta = min(beta, best_score)
+        if alpha >= beta:
+            break
+    return best_score
 
 
 def _quiescence(board: Board, params: QuiescenceParams) -> int:
@@ -697,6 +777,7 @@ def _quiescence(board: Board, params: QuiescenceParams) -> int:
     alpha = params.alpha
     beta = params.beta
     context = params.context
+    ply = len(params.line_history)
     _record_quiescence_node(context)
     repetition_score = _repetition_score(
         board,
@@ -713,6 +794,16 @@ def _quiescence(board: Board, params: QuiescenceParams) -> int:
     )
     if repetition_score is not None:
         return repetition_score
+
+    # Check-evasion path: no stand-pat when in check — search all legal evasions
+    if _gs_is_in_check(board, board.turn):
+        legal_moves = (
+            list(params.legal_moves) if params.legal_moves is not None
+            else get_legal_moves(board)
+        )
+        return _quiescence_evasion_search(board, params, ply, legal_moves)
+
+    # Normal stand-pat path — not in check
     stand_pat = _ctx_evaluate(board, context)
     best_score, alpha, beta = _stand_pat_bounds(
         stand_pat,
@@ -725,9 +816,15 @@ def _quiescence(board: Board, params: QuiescenceParams) -> int:
     if params.depth_remaining <= 0:
         return stand_pat
 
-    tactical_moves = _get_tactical_moves(
+    all_moves = (
+        list(params.legal_moves) if params.legal_moves is not None
+        else get_legal_moves(board)
+    )
+    tactical_moves = _select_quiescence_moves(
         board,
-        list(params.legal_moves) if params.legal_moves else None,
+        all_moves,
+        _capture_order_score,
+        MAX_QUIESCENCE_MOVES,
     )
     if not tactical_moves:
         return stand_pat
@@ -800,44 +897,10 @@ def _record_tactical_width(context: Optional[SearchContext], width: int) -> None
     context.stats.tactical_max_width = max(context.stats.tactical_max_width, width)
 
 
-def _get_tactical_moves(
-    board: Board,
-    legal_moves: list[Move] | None = None,
-) -> list[Move]:
-    """Return capture and promotion moves for quiescence search.
 
-    Uses pre-computed legal_moves when available to avoid a redundant
-    get_legal_moves() call at depth-0 leaf nodes.
-    """
-
-    moves = legal_moves if legal_moves is not None else get_legal_moves(board)
-    tactical_moves = [move for move in moves if _is_tactical_move(board, move)]
-    ordered_moves = _order_moves(board, tactical_moves)
-    return ordered_moves[:MAX_QUIESCENCE_MOVES]
-
-
-def _is_tactical_move(board: Board, move: Move) -> bool:
-    """Return True when a move changes material immediately."""
-
-    if move.promotion is not None:
-        return True
-    return _is_interesting_capture(board, move)
-
-
-def _is_interesting_capture(board: Board, move: Move) -> bool:
-    """Return True for tactical captures worth exploring in quiescence."""
-
-    if not _is_capture_move(board, move):
-        return False
-    captured_piece = board.get_piece(move.end)
-    attacker = board.get_piece(move.start)
-    if attacker is None:
-        return False
-    if captured_piece is None:
-        return False
-    if MATERIAL_VALUES[captured_piece.kind] < MATERIAL_VALUES[PieceType.BISHOP]:
-        return False
-    return MATERIAL_VALUES[captured_piece.kind] >= MATERIAL_VALUES[attacker.kind]
+def _move_sort_key(move: Move | LegalMove) -> tuple[object, object, str]:
+    """Stable tie-break key for deterministic equal-score move selection."""
+    return (move.start, move.end, str(move.promotion) if move.promotion else "")
 
 
 def _order_moves(
@@ -920,7 +983,20 @@ def _iterative_deepening_best_move(
         )
         _record_depth_timing(context, current_depth, time.monotonic() - depth_start)
         if move is None:
-            return None
+            # Terminal or draw detected at root (e.g., fifty-move rule or insufficient
+            # material). Return the best move found so far, or fall back to the first
+            # legal move. The engine must always return a move when legal moves exist.
+            root_legal = get_legal_moves(board)
+            fallback: Optional[LegalMove] = (
+                LegalMove(
+                    start=root_legal[0].start,
+                    end=root_legal[0].end,
+                    promotion=root_legal[0].promotion,
+                )
+                if root_legal
+                else None
+            )
+            return best_move if best_move is not None else fallback
         previous_score = score
         best_move = move
         _trim_killer_moves(context)
@@ -949,6 +1025,8 @@ def get_best_move(
             book_move = book.find_book_move(board)
         if book_move is not None:
             return book_move
+    if options.rng_seed is not None:
+        random.seed(options.rng_seed)
     effective_weights = _get_effective_weights(options.weights)
     context = SearchContext(
         transposition_table={},
@@ -956,6 +1034,7 @@ def get_best_move(
         killer_moves=[],
         position_counts=_search_position_counts(board, position_counts, _shared_position_key),
         weights=effective_weights,
+        deterministic=options.deterministic,
     )
     is_maximizing = board.turn == Color.WHITE
     return _iterative_deepening_best_move(board, depth, is_maximizing, context)

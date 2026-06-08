@@ -914,14 +914,17 @@ def test_tt_entry_score_is_int():
 
 
 def _score_move_at_depth_zero(board: Board, move: LegalMove) -> int:
+    from chess_game.chess.ai import MinimaxParams  # pylint: disable=import-outside-toplevel
     child = board.clone()
     assert child.make_move(move.start, move.end, promotion=move.promotion)
-    params = make_search_params(
-        0,
-        -10_000_000,
-        10_000_000,
-        child.turn == Color.WHITE,
+    # Match production line_history so ply-adjusted mate scores are consistent
+    params = MinimaxParams(
+        depth=0,
+        alpha=-10_000_000,
+        beta=10_000_000,
+        is_maximizing=child.turn == Color.WHITE,
         context=make_search_context(),
+        line_history=(position_key(board), position_key(child)),
     )
     score, _ = minimax(child, params)
     return score

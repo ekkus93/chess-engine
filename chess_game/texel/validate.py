@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import dataclasses
+import random
 from pathlib import Path
+from typing import Optional
 
 from chess_game.chess import Board
 from chess_game.chess.ai import BestMoveOptions, get_best_move
@@ -39,6 +41,17 @@ class ValidationResult:
             return 0.0
         return self.tuned_wins / self.total_games
 
+    @property
+    def tuned_score_rate(self) -> float:
+        """Score rate: wins count full, draws count half.
+
+        A better metric than raw win rate for small samples because it
+        doesn't discard information from drawn games.
+        """
+        if self.total_games == 0:
+            return 0.0
+        return (self.tuned_wins + 0.5 * self.draws) / self.total_games
+
 
 def _is_draw(board: Board, position_counts: dict[str, int]) -> bool:
     """Return True when the current position is a draw by rule."""
@@ -61,6 +74,7 @@ def _play_one_game(
     baseline: EvalWeights,
     tuned_is_white: bool,
     depth: int,
+    rng: Optional[random.Random] = None,
 ) -> str:
     """Play one game; return 'tuned', 'baseline', or 'draw'."""
     board = Board()
@@ -70,8 +84,11 @@ def _play_one_game(
     for _ in range(400):
         is_white_turn = board.turn == Color.WHITE
         w = tuned_weights if (tuned_is_white == is_white_turn) else baseline
+        seed = rng.randint(0, 2**31) if rng is not None else None
         move = get_best_move(
-            board, depth=depth, book_options=BestMoveOptions(weights=w, use_opening_book=False)
+            board,
+            depth=depth,
+            book_options=BestMoveOptions(weights=w, use_opening_book=False, rng_seed=seed),
         )
         if move is None:
             break
@@ -90,14 +107,16 @@ def run_validation_match(
     num_games: int = 100,
     depth: int = 2,
     verbose: bool = False,
+    seed: Optional[int] = None,
 ) -> ValidationResult:
     """Play tuned vs baseline; alternate which side uses tuned weights."""
     result = ValidationResult()
     baseline = EvalWeights.default()
+    rng = random.Random(seed)
 
     for game_idx in range(num_games):
         tuned_is_white = game_idx % 2 == 0
-        outcome = _play_one_game(tuned_weights, baseline, tuned_is_white, depth)
+        outcome = _play_one_game(tuned_weights, baseline, tuned_is_white, depth, rng=rng)
         if outcome == "tuned":
             result.tuned_wins += 1
         elif outcome == "baseline":

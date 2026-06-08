@@ -6,6 +6,8 @@ the tests remain self-contained and do not depend on game artifacts in tmp/.
 
 from __future__ import annotations
 
+import pytest
+
 from chess_game.chess.ai_move_ordering import quiet_strategy_order_score
 from chess_game.chess.board.board import Board, create_piece
 from chess_game.chess.move import Move, parse_move_notation
@@ -201,10 +203,21 @@ def test_quiet_cycle_penalty_fires_for_rook_reversal() -> None:
     """The quiet cycle penalty should fire for a rook directly reversing its move."""
     from chess_game.chess.ai_repetition_patterns import quiet_cycle_penalty
 
-    board2 = _pos_rook_at_e7()
-    assert quiet_cycle_penalty(board2, _m("e7e8"), PieceType.ROOK) > 0 or True
+    # Build a board with move history: Black played Re8-e7 then White Kg1-h1.
+    # Black's last own move was Re8→e7, so Re7→e8 reverses it.
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("g1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("g8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("e8"), create_piece(Color.BLACK, PieceType.ROOK))
+    board.turn = Color.BLACK
+    board.make_move(sq("e8"), sq("e7"))  # Black: Re8-e7
+    board.make_move(sq("g1"), sq("h1"))  # White: Kg1-h1
+    # Now Black's last own move (history[-2]) was Re8→e7; playing Re7→e8 reverses it.
+    assert quiet_cycle_penalty(board, _m("e7e8"), PieceType.ROOK) > 0
+
     # Structural test: combined undo penalty for heavy pieces should be >= 90
-    from chess_game.chess.ai_repetition_patterns import (
+    from chess_game.chess.ai_repetition_patterns import (  # noqa: PLC0415
         QUIET_HEAVY_UNDO_MOVE_PENALTY,
         QUIET_UNDO_MOVE_PENALTY,
     )
@@ -303,6 +316,7 @@ def test_bishop_development_clears_castling_path_bonus() -> None:
     ), "f8-d6 (clears castling path) should score above g7-g5"
 
 
+@pytest.mark.slow
 def test_depth3_avoids_g7g5_before_castling() -> None:
     """depth=3 should NOT choose g7-g5 when the bishop still blocks castling."""
     from chess_game.chess.ai import get_best_move

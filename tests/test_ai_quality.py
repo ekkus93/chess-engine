@@ -669,7 +669,9 @@ def test_search_prefers_castling_in_quiet_position() -> None:
     board.clear_board()
     board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
     board.set_piece(sq("h1"), create_piece(Color.WHITE, PieceType.ROOK))
-    board.set_piece(sq("c4"), create_piece(Color.WHITE, PieceType.BISHOP))
+    # Bishop at e3 (not c4) so the diagonal to g8 is not open and the
+    # initial position is legal (Black king not already in check).
+    board.set_piece(sq("e3"), create_piece(Color.WHITE, PieceType.BISHOP))
     board.set_piece(sq("f3"), create_piece(Color.WHITE, PieceType.KNIGHT))
     board.set_piece(sq("d2"), create_piece(Color.WHITE, PieceType.QUEEN))
     board.set_piece(sq("f2"), create_piece(Color.WHITE, PieceType.PAWN))

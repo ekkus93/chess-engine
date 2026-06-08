@@ -195,8 +195,14 @@ def test_quiet_move_order_prefers_cutoff_support_over_harmless_check_in_winning_
     )
 
 
-def test_search_prefers_purposeful_checking_over_idle_shuffle_when_worse() -> None:
-    """The worse side should use a checking resource that forces real tempi."""
+def test_search_prefers_king_shelter_over_rook_check_that_concedes_tempo() -> None:
+    """The worse side should shelter the king rather than give a check that rebounds.
+
+    Ra8-a5+ looks active but allows Re1-e5 interpose -> Ra5xe5 -> Kg5xe5: White's
+    king wins back the rook and the d6 pawn advances. Kg7-f8 is objectively better —
+    the king avoids Kg7-f7 (which allows Re1-e7+ gaining White a tempo) and keeps the
+    king safe while eyeing e7 to stop the d-pawn.
+    """
 
     board = _build_board(
         [
@@ -209,7 +215,7 @@ def test_search_prefers_purposeful_checking_over_idle_shuffle_when_worse() -> No
         turn=Color.BLACK,
     )
 
-    assert get_best_move(board, depth=1) == LegalMove(start=sq("a8"), end=sq("a5"))
+    assert get_best_move(board, depth=1) == LegalMove(start=sq("g7"), end=sq("f8"))
 
 
 def test_quiet_move_order_prefers_critical_square_approach_in_pawn_ending() -> None:

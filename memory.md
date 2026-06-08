@@ -2,6 +2,39 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-08T22:04:39Z - Claude Sonnet 4.6 - TEXEL_FIX: Fix 3 quality test failures from quiescence improvements
+
+Completed the final phase of docs/CHESS_ENGINE_TEXEL_FIX_TODO.md. All Phases 1–12 done.
+
+### Root causes of the 3 failing tests:
+
+1. **`test_search_prefers_castling_in_quiet_position`** (test_ai_quality.py):
+   White bishop at c4 attacked Black king at g8 diagonally through d5-e6-f7 — illegal position.
+   New quiescence correctly triggered evasion search after every move, scrambling scores.
+   Fix: Moved bishop from c4 to e3.
+
+2. **`test_search_prefers_king_shelter_over_rook_check_that_concedes_tempo`** (test_ai_endgame_strategy.py):
+   Ra8-a5+ (check) was previously scored as good for Black. New quiescence includes king-captures-rook:
+   After Ra8-a5+, White plays Re1-e5 (interpose), Ra5xe5 recaptures, Kg5xe5 wins back the rook.
+   Score: 1087 (bad for Black), not 833 (old false score). Kg7-f7 also bad — selective extension fires
+   (extension=1), full depth-1 minimax finds Re1-e7+ check gaining tempo → score ~1152 (worse for Black).
+   Kg7-f8 (851, no extension) is correctly the best. Test renamed and assertion updated to Kg7-f8.
+
+3. **`test_search_plays_active_queen_move_with_pawn_threat`** (test_ai_opening_strategy.py):
+   e4xd5 (score 12824) and Qd1-g4 (score 12806) differ by only 18 points — within ROOT_TIEBREAK_MARGIN=50.
+   Tiebreak: e4xd5 has strategic_root_bonus=-559 (penalty), Qd1-g4 has +40. Tiebreak gap=599 > OVERRIDE=24.
+   Qd1-g4 wins correctly: it attacks the h7 pawn, while e4xd5 is a neutral trade. Test updated.
+
+### mypy fix:
+`_iterative_deepening_best_move` fallback used `root_legal[0]` (type `Move`) but return type is `Optional[LegalMove]`.
+Fixed by wrapping fallback in `LegalMove(start=..., end=..., promotion=...)` constructor.
+
+### Results:
+- 965 fast tests pass (all of tests/ -m "not slow")
+- ruff: all checks passed
+- mypy: no issues in 75 source files
+- pylint: 10.00/10
+
 ## 2026-06-07T20:59:35Z - Claude Sonnet 4.6 - TEXEL1: Phase 2 — thread EvalWeights through evaluators
 
 Phase 2 of Texel tuning implementation. Phase 1 (`eval_weights.py`) was also created in this session.

@@ -5,10 +5,10 @@ import dataclasses
 import json
 import random
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 from chess_game.chess.eval_weights import EVAL_WEIGHTS_FLAT_LENGTH, EvalWeights
-from chess_game.texel.loss import mean_squared_error
+from chess_game.texel.loss import DEFAULT_K, LossOptions, mean_squared_error
 from chess_game.texel.position_db import PositionDB
 
 # EVAL_WEIGHTS_FLAT_LENGTH is re-exported as part of the public API so that
@@ -19,6 +19,8 @@ __all__ = [
     "_clip_weights",
     "EVAL_WEIGHTS_FLAT_LENGTH",
 ]
+
+LossFn = Callable[[list[tuple[str, float]], EvalWeights], float]
 
 
 @dataclasses.dataclass
@@ -35,6 +37,7 @@ class SPSAOptions:
     checkpoint_every: int = 500
     checkpoint_path: Optional[Path] = None
     verbose: bool = True
+    loss_options: Optional[LossOptions] = None
 
 
 def _clip_weights(w: list[float]) -> list[float]:
@@ -52,19 +55,28 @@ def _clip_weights(w: list[float]) -> list[float]:
     return result
 
 
+def _make_loss_fn(opts: SPSAOptions) -> LossFn:
+    """Build the loss callable used during optimization."""
+    loss_opts = opts.loss_options or LossOptions(k=DEFAULT_K)
+    def _loss(pairs: list[tuple[str, float]], weights: EvalWeights) -> float:
+        return mean_squared_error(pairs, weights, opts=loss_opts)
+    return _loss
+
+
 def _spsa_step(
     w: list[float],
     pairs: list[tuple[str, float]],
     a_k: float,
     c_k: float,
+    loss_fn: LossFn,
 ) -> list[float]:
     """Execute one SPSA gradient step; return the updated weight vector."""
     n = len(w)
     delta = [1.0 if random.random() < 0.5 else -1.0 for _ in range(n)]
     w_plus = _clip_weights([w[i] + c_k * delta[i] for i in range(n)])
     w_minus = _clip_weights([w[i] - c_k * delta[i] for i in range(n)])
-    loss_plus = mean_squared_error(pairs, EvalWeights.from_flat_list(w_plus))
-    loss_minus = mean_squared_error(pairs, EvalWeights.from_flat_list(w_minus))
+    loss_plus = loss_fn(pairs, EvalWeights.from_flat_list(w_plus))
+    loss_minus = loss_fn(pairs, EvalWeights.from_flat_list(w_minus))
     grad_scale = (loss_plus - loss_minus) / (2.0 * c_k)
     return _clip_weights([w[i] - a_k * grad_scale / delta[i] for i in range(n)])
 
@@ -97,6 +109,7 @@ def optimize(
     c = options.perturbation_size
     gamma = options.perturbation_decay
     cap_a = options.stability_constant
+    loss_fn = _make_loss_fn(options)
 
     for k in range(1, options.max_iterations + 1):
         a_k = a / (k + cap_a) ** alpha
@@ -108,9 +121,9 @@ def optimize(
         )
         if not pairs:
             break
-        w = _spsa_step(w, pairs, a_k, c_k)
+        w = _spsa_step(w, pairs, a_k, c_k, loss_fn)
         if options.verbose and k % 100 == 0:
-            mse = mean_squared_error(pairs, EvalWeights.from_flat_list(w))
+            mse = loss_fn(pairs, EvalWeights.from_flat_list(w))
             print(f"  iter {k:5d}: MSE={mse:.6f} a_k={a_k:.4f}")
         _maybe_checkpoint(w, k, options)
 

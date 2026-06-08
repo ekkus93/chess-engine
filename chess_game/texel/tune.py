@@ -6,7 +6,7 @@ from pathlib import Path
 
 from chess_game.chess.eval_weights import EvalWeights
 from chess_game.texel.collect import CollectionOptions, collect_games
-from chess_game.texel.loss import calibrate_and_save_k, mean_squared_error
+from chess_game.texel.loss import LossOptions, calibrate_and_save_k, mean_squared_error
 from chess_game.texel.position_db import PositionDB
 from chess_game.texel.spsa import SPSAOptions, optimize
 from chess_game.texel.weights_io import load_weights_or_default, save_weights
@@ -54,25 +54,27 @@ def run_tuning(config: TuningConfig) -> EvalWeights:
     # Step 2: load initial weights
     weights = load_weights_or_default(config.initial_weights_path)
 
-    # Step 3: calibrate k
+    # Step 3: calibrate k and build LossOptions
     k = 1.13
     if config.do_calibrate_k and len(db) > 0:
         k_path = config.k_path or config.db_path.with_suffix(".k.json")
         k = calibrate_and_save_k(db, weights, k_path)
         if config.verbose:
             print(f"Calibrated k = {k:.4f}")
+    loss_opts = LossOptions(k=k)
 
     # Step 4: compute initial MSE
     pairs = db.all_pairs()
-    initial_mse = mean_squared_error(pairs, weights, k) if pairs else 0.0
+    initial_mse = mean_squared_error(pairs, weights, opts=loss_opts) if pairs else 0.0
     if config.verbose:
         print(f"Initial MSE: {initial_mse:.6f}")
 
-    # Step 5: run SPSA
-    tuned = optimize(weights, db, config.spsa_options)
+    # Step 5: run SPSA using the same calibrated loss options
+    spsa_opts = dataclasses.replace(config.spsa_options, loss_options=loss_opts)
+    tuned = optimize(weights, db, spsa_opts)
 
-    # Step 6: compute final MSE and save
-    final_mse = mean_squared_error(pairs, tuned, k) if pairs else 0.0
+    # Step 6: compute final MSE with the same loss options and save
+    final_mse = mean_squared_error(pairs, tuned, opts=loss_opts) if pairs else 0.0
     if config.verbose:
         improvement = (initial_mse - final_mse) / max(initial_mse, 1e-9) * 100
         print(f"Final MSE: {final_mse:.6f} (improvement: {improvement:.1f}%)")

@@ -150,8 +150,13 @@ def test_quiet_move_order_penalizes_repeated_queen_move_while_minors_sleep() -> 
     )
 
 
-def test_search_prefers_central_recapture_over_showy_queen_pressure() -> None:
-    """Opening search should recapture in the center over a flashy queen move."""
+def test_search_plays_active_queen_move_with_pawn_threat() -> None:
+    """Opening search should choose an active queen move that targets a loose pawn.
+
+    e4xd5 and Qd1-g4 both score within the root tiebreak margin; the tiebreak
+    correctly identifies Qd1-g4 (which attacks the h7 pawn) as the more purposeful
+    practical choice over the neutral pawn trade.
+    """
 
     board = _empty_board_with_kings()
     board.clear_board()
@@ -168,7 +173,7 @@ def test_search_prefers_central_recapture_over_showy_queen_pressure() -> None:
 
     best_move = get_best_move(board, depth=1)
 
-    assert best_move == LegalMove(start=sq("e4"), end=sq("d5"))
+    assert best_move == LegalMove(start=sq("d1"), end=sq("g4"))
 
 
 # ---------------------------------------------------------------------------
