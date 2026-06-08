@@ -61,3 +61,44 @@ class TestPositionDB:
         loaded = PositionDB.load(save_path)
         assert len(loaded) == 0
         assert loaded.all_pairs() == []
+
+    def test_duplicate_aggregation(self) -> None:
+        """Duplicate FENs should aggregate outcomes."""
+        db = PositionDB()
+        fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        db.add_game(GameRecord(positions=[fen], outcome=1.0))
+        db.add_game(GameRecord(positions=[fen], outcome=0.5))
+        db.add_game(GameRecord(positions=[fen], outcome=0.0))
+
+        pairs = db.all_pairs()
+        assert len(pairs) == 1
+        assert pairs[0][0] == fen
+        # Mean of 1.0, 0.5, 0.0 = 0.5
+        assert abs(pairs[0][1] - 0.5) < 1e-9
+
+    def test_old_jsonl_format_load(self, tmp_path: Path) -> None:
+        """Loading old JSONL format {"pos": ..., "outcome": ...} should work."""
+        save_path = tmp_path / "old_format.jsonl"
+        old_format_line = '{"pos": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "outcome": 1.0}\n'
+        save_path.write_text(old_format_line)
+
+        db = PositionDB.load(save_path)
+        assert len(db) == 1
+        pairs = db.all_pairs()
+        assert pairs[0][1] == 1.0  # outcome should be 1.0
+
+    def test_new_jsonl_format_roundtrip(self, tmp_path: Path) -> None:
+        """Saving and loading new JSONL format should preserve stats."""
+        db = PositionDB()
+        fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        db.add_game(GameRecord(positions=[fen], outcome=1.0))
+        db.add_game(GameRecord(positions=[fen], outcome=0.5))
+
+        save_path = tmp_path / "new_format.jsonl"
+        db.save(save_path)
+
+        loaded = PositionDB.load(save_path)
+        assert len(loaded) == 1
+        pairs = loaded.all_pairs()
+        # Mean of 1.0 and 0.5 = 0.75
+        assert abs(pairs[0][1] - 0.75) < 1e-9
