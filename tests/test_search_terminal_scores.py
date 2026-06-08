@@ -135,3 +135,53 @@ def test_insufficient_material_king_vs_king_returns_draw_score() -> None:
     board.turn = Color.WHITE
     score = _minimax_d0(board)
     assert score == DRAW_SCORE
+
+
+def test_seventy_five_move_rule_returns_draw_score() -> None:
+    """Seventy-five move rule is an automatic draw."""
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("e8"), create_piece(Color.BLACK, PieceType.KING))
+    board.turn = Color.WHITE
+    # Set halfmove clock to 150 (75 full moves since last capture/pawn move)
+    board.halfmove_clock = 150
+    score = _minimax_d0(board)
+    assert score == DRAW_SCORE
+
+
+def test_dead_position_returns_draw_score() -> None:
+    """Dead position (no possible checkmate) is drawn."""
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("e8"), create_piece(Color.BLACK, PieceType.KING))
+    board.set_piece(sq("f8"), create_piece(Color.BLACK, PieceType.BISHOP))
+    board.turn = Color.WHITE
+    score = _minimax_d0(board)
+    assert score == DRAW_SCORE
+
+
+def test_fivefold_repetition_returns_draw_score() -> None:
+    """Fivefold repetition (with position_counts) is drawn by _terminal_score helper."""
+    from chess_game.chess.ai import _terminal_score
+    from chess_game.chess.ai_board_utils import get_legal_moves
+    from chess_game.chess.position_utils import position_key
+
+    board = Board()
+    board.clear_board()
+    board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
+    board.set_piece(sq("d4"), create_piece(Color.WHITE, PieceType.QUEEN))
+    board.set_piece(sq("e8"), create_piece(Color.BLACK, PieceType.KING))
+    board.turn = Color.WHITE
+
+    # Create a position key for this board
+    key = position_key(board)
+
+    # Create position_counts with this position appearing 5 times
+    position_counts = {key: 5}
+
+    # Call _terminal_score directly with position_counts
+    legal_moves = get_legal_moves(board)
+    score = _terminal_score(board, legal_moves, ply=0, position_counts=position_counts)
+    assert score == DRAW_SCORE

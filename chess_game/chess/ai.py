@@ -11,9 +11,11 @@ import time
 
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import (
-    is_in_check as _gs_is_in_check,
+    is_dead_position as _gs_is_dead_position,
     is_fifty_move_rule as _gs_is_fifty_move_rule,
+    is_in_check as _gs_is_in_check,
     is_insufficient_material as _gs_is_insufficient_material,
+    is_seventy_five_move_rule as _gs_is_seventy_five_move_rule,
 )
 from chess_game.chess.ai_capture_ordering import capture_order_score as _shared_capture_order_score
 from chess_game.chess.ai_board_utils import (
@@ -470,18 +472,48 @@ def _record_quiescence_node(context: Optional[SearchContext]) -> None:
         context.stats.quiescence_nodes += 1
 
 
-def _terminal_score(board: Board, legal_moves: list[Move], ply: int = 0) -> Optional[int]:
-    """Return a terminal score for draws and checkmate; None when non-terminal."""
+def _terminal_score(
+    board: Board,
+    legal_moves: list[Move],
+    ply: int = 0,
+    position_counts: Optional[dict[str, int]] = None,
+) -> Optional[int]:
+    """Return a terminal score for draws and checkmate; None when non-terminal.
 
+    Covers all draw states supported by the board/game-state API:
+    - fifty-move rule
+    - seventy-five move rule
+    - insufficient material
+    - dead position
+    - fivefold repetition (if position_counts provided)
+    - stalemate
+    - checkmate (via ply-adjusted mate score)
+    """
+
+    # Draw states checked before legal move availability
     if _gs_is_fifty_move_rule(board):
+        return DRAW_SCORE
+    if _gs_is_seventy_five_move_rule(board):
         return DRAW_SCORE
     if _gs_is_insufficient_material(board):
         return DRAW_SCORE
+    if _gs_is_dead_position(board):
+        return DRAW_SCORE
+    if position_counts is not None:
+        from chess_game.chess.board.game_state import is_fivefold_repetition as _gs_is_fivefold
+        if _gs_is_fivefold(board, position_counts):
+            return DRAW_SCORE
+
+    # If legal moves exist, position is not terminal
     if legal_moves:
         return None
+
+    # No legal moves: either checkmate or stalemate
     if _gs_is_in_check(board, board.turn):
         # Side to move is checkmated; prefer closer mates
         return -MATE_SCORE + ply if board.turn == Color.WHITE else MATE_SCORE - ply
+
+    # Stalemate: no legal moves and not in check
     return DRAW_SCORE
 
 
@@ -514,7 +546,12 @@ def minimax(
 
     legal_moves = get_legal_moves(board)
     ply = max(0, len(params.line_history) - 1)
-    terminal_score = _terminal_score(board, legal_moves, ply)
+    terminal_score = _terminal_score(
+        board,
+        legal_moves,
+        ply,
+        params.context.position_counts if params.context else None,
+    )
     if terminal_score is not None:
         return (terminal_score, None)
     if params.depth == 0:
@@ -819,12 +856,19 @@ def _quiescence(board: Board, params: QuiescenceParams) -> int:
     if repetition_score is not None:
         return repetition_score
 
+    # Get legal moves once for reuse
+    legal_moves = (
+        list(params.legal_moves) if params.legal_moves is not None
+        else get_legal_moves(board)
+    )
+
+    # Check for terminal/draw states early
+    terminal_score = _terminal_score(board, legal_moves, ply, context.position_counts if context else None)
+    if terminal_score is not None:
+        return terminal_score
+
     # Check-evasion path: no stand-pat when in check — search all legal evasions
     if _gs_is_in_check(board, board.turn):
-        legal_moves = (
-            list(params.legal_moves) if params.legal_moves is not None
-            else get_legal_moves(board)
-        )
         return _quiescence_evasion_search(board, params, ply, legal_moves)
 
     # Normal stand-pat path — not in check
@@ -840,13 +884,9 @@ def _quiescence(board: Board, params: QuiescenceParams) -> int:
     if params.depth_remaining <= 0:
         return stand_pat
 
-    all_moves = (
-        list(params.legal_moves) if params.legal_moves is not None
-        else get_legal_moves(board)
-    )
     tactical_moves = _select_quiescence_moves(
         board,
-        all_moves,
+        legal_moves,
         _capture_order_score,
         MAX_QUIESCENCE_MOVES,
     )
