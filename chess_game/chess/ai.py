@@ -898,9 +898,16 @@ def _record_tactical_width(context: Optional[SearchContext], width: int) -> None
 
 
 
-def _move_sort_key(move: Move | LegalMove) -> tuple[object, object, str]:
-    """Stable tie-break key for deterministic equal-score move selection."""
-    return (move.start, move.end, str(move.promotion) if move.promotion else "")
+def _move_sort_key(move: Move | LegalMove) -> tuple[int, int, str]:
+    """Stable tie-break key for deterministic equal-score move selection.
+
+    Returns only primitive comparable values (int, int, str) to avoid
+    comparison errors with ConstantSquare objects.
+    """
+    start_idx = int(move.start.row) * 8 + int(move.start.col)
+    end_idx = int(move.end.row) * 8 + int(move.end.col)
+    promo_str = move.promotion.name if move.promotion else ""
+    return (start_idx, end_idx, promo_str)
 
 
 def _order_moves(
