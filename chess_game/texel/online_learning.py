@@ -31,6 +31,12 @@ class OnlineLearningConfig:
     min_positions: int = 50
     enabled: bool = True
     loss_options: LossOptions = dataclasses.field(default_factory=LossOptions)
+    # Validation gate configuration
+    require_validation_improvement: bool = True
+    min_validation_mse_improvement: float = 0.0
+    keep_rejected_candidate: bool = False
+    validation_fraction: float = 0.20
+    validation_seed: int = 0
 
 
 def _backup_path(weights_path: Path) -> Path:

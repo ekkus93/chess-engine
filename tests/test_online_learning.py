@@ -90,3 +90,31 @@ class TestInvalidateWeightsCacheIsCallable:
     def test_invalidate_from_ai_module(self) -> None:
         """The function is re-exported from chess_game.chess.ai."""
         assert callable(getattr(_ai_module, "invalidate_weights_cache", None))
+
+
+class TestOnlineLearningConfigValidationGate:
+    """Test online learning validation gate configuration."""
+
+    def test_default_config_has_validation_gate_defaults(self) -> None:
+        """Default config should have sensible validation gate values."""
+        cfg = OnlineLearningConfig()
+        assert cfg.require_validation_improvement is True
+        assert cfg.min_validation_mse_improvement == 0.0
+        assert cfg.keep_rejected_candidate is False
+        assert cfg.validation_fraction == 0.20
+        assert cfg.validation_seed == 0
+
+    def test_config_validation_gate_fields_are_settable(self) -> None:
+        """Validation gate fields should be configurable."""
+        cfg = OnlineLearningConfig(
+            require_validation_improvement=False,
+            min_validation_mse_improvement=0.001,
+            keep_rejected_candidate=True,
+            validation_fraction=0.25,
+            validation_seed=42,
+        )
+        assert cfg.require_validation_improvement is False
+        assert cfg.min_validation_mse_improvement == 0.001
+        assert cfg.keep_rejected_candidate is True
+        assert cfg.validation_fraction == 0.25
+        assert cfg.validation_seed == 42
