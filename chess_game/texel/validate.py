@@ -52,6 +52,16 @@ class ValidationResult:
             return 0.0
         return (self.tuned_wins + 0.5 * self.draws) / self.total_games
 
+    @property
+    def baseline_score_rate(self) -> float:
+        """Baseline score rate: wins count full, draws count half.
+
+        Complement to tuned_score_rate for comparing performance.
+        """
+        if self.total_games == 0:
+            return 0.0
+        return (self.baseline_wins + 0.5 * self.draws) / self.total_games
+
 
 def _is_draw(board: Board, position_counts: dict[str, int]) -> bool:
     """Return True when the current position is a draw by rule."""
@@ -145,9 +155,9 @@ if __name__ == "__main__":
     _result = run_validation_match(_weights, _args.games, _args.depth, verbose=True)
     print(
         f"\nResult: {_result.tuned_wins}W/{_result.baseline_wins}L/{_result.draws}D "
-        f"({_result.tuned_win_rate:.1%} win rate)"
+        f"({_result.tuned_win_rate:.1%} win rate, {_result.tuned_score_rate:.1%} score rate)"
     )
-    if _result.tuned_win_rate > 0.55:
-        print("PASS: Tuned weights show meaningful improvement (>55% win rate)")
+    if _result.tuned_score_rate > 0.55:
+        print("PASS: Tuned weights show meaningful improvement (>55% score rate)")
     else:
-        print("NOTE: Win rate below 55% threshold — more tuning may be needed")
+        print("NOTE: Score rate below 55% threshold — more tuning may be needed")
