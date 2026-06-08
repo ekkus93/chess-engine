@@ -138,3 +138,73 @@ class TestLossOptions:
         mse1 = mean_squared_error(pairs, weights, opts=opts)
         mse2 = mean_squared_error(pairs, weights, opts=opts)
         assert abs(mse1 - mse2) < 1e-12
+
+    def test_white_material_advantage_gives_positive_score(self) -> None:
+        """Evaluator should return positive score when White has material advantage."""
+        from chess_game.chess import Board, create_piece
+        from chess_game.chess.types import Color, PieceType
+        from chess_game.chess.evaluation import evaluate
+        from tests.helpers import sq
+
+        board = Board()
+        board.clear_board()
+        # White king + extra queen
+        board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
+        board.set_piece(sq("d1"), create_piece(Color.WHITE, PieceType.QUEEN))
+        # Black king only
+        board.set_piece(sq("e8"), create_piece(Color.BLACK, PieceType.KING))
+        board.turn = Color.WHITE
+
+        weights = EvalWeights.default()
+        score = float(evaluate(board, weights))
+        assert score > 0, f"White has material advantage, expected positive score, got {score}"
+
+    def test_black_material_advantage_gives_negative_score(self) -> None:
+        """Evaluator should return negative score when Black has material advantage."""
+        from chess_game.chess import Board, create_piece
+        from chess_game.chess.types import Color, PieceType
+        from chess_game.chess.evaluation import evaluate
+        from tests.helpers import sq
+
+        board = Board()
+        board.clear_board()
+        # White king only
+        board.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
+        # Black king + extra queen
+        board.set_piece(sq("e8"), create_piece(Color.BLACK, PieceType.KING))
+        board.set_piece(sq("d8"), create_piece(Color.BLACK, PieceType.QUEEN))
+        board.turn = Color.WHITE
+
+        weights = EvalWeights.default()
+        score = float(evaluate(board, weights))
+        assert score < 0, f"Black has material advantage, expected negative score, got {score}"
+
+    def test_score_sign_independent_of_side_to_move(self) -> None:
+        """Evaluator score sign should be independent of whose turn it is."""
+        from chess_game.chess import Board, create_piece
+        from chess_game.chess.types import Color, PieceType
+        from chess_game.chess.evaluation import evaluate
+        from tests.helpers import sq
+
+        board1 = Board()
+        board1.clear_board()
+        board1.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
+        board1.set_piece(sq("d1"), create_piece(Color.WHITE, PieceType.QUEEN))
+        board1.set_piece(sq("e8"), create_piece(Color.BLACK, PieceType.KING))
+        board1.turn = Color.WHITE
+
+        board2 = Board()
+        board2.clear_board()
+        board2.set_piece(sq("e1"), create_piece(Color.WHITE, PieceType.KING))
+        board2.set_piece(sq("d1"), create_piece(Color.WHITE, PieceType.QUEEN))
+        board2.set_piece(sq("e8"), create_piece(Color.BLACK, PieceType.KING))
+        board2.turn = Color.BLACK
+
+        weights = EvalWeights.default()
+        score1 = float(evaluate(board1, weights))
+        score2 = float(evaluate(board2, weights))
+        # Both should be positive (White advantage) regardless of whose turn
+        assert score1 > 0
+        assert score2 > 0
+        # Scores should be similar (ignoring small tempo adjustments)
+        assert abs(score1 - score2) < 100  # Small tolerance for tempo
