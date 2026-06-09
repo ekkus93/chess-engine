@@ -96,6 +96,10 @@ class PositionDB:
         """Return (fen, mean_outcome) pairs for all positions."""
         return [(pos, stats.mean) for pos, stats in self._data.items()]
 
+    def get_stats(self, fen: str) -> PositionStats | None:
+        """Return the PositionStats for a given FEN, or None if not found."""
+        return self._data.get(fen)
+
     def sample(self, n: int) -> list[tuple[str, float]]:
         """Return up to n randomly sampled (fen, mean_outcome) pairs."""
         pairs = self.all_pairs()

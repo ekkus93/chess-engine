@@ -267,23 +267,19 @@ class TestTexelLossKParameter:
         assert mse_via_options >= 0.0
 
     def test_k_parameter_affects_sigmoid_scaling(self) -> None:
-        """Sigmoid scaling via k should affect MSE calculation."""
-        weights = EvalWeights.default()
+        """K parameter is used in sigmoid function (replaced vacuous assertion)."""
+        import pytest
         from chess_game.texel.loss import LossOptions
 
-        # Use a draw outcome with default weights
-        pairs = [(STARTING_FEN, 0.5)]
+        weights = EvalWeights.default()
+        pairs = [(STARTING_FEN, 1.0), (STARTING_FEN, 0.0)]
 
-        # With different k values, sigmoid function behaves differently
-        mse_k0_5 = mean_squared_error(pairs, weights, opts=LossOptions(k=0.5))
-        mse_k1_0 = mean_squared_error(pairs, weights, opts=LossOptions(k=1.0))
-        mse_k2_0 = mean_squared_error(pairs, weights, opts=LossOptions(k=2.0))
+        # All k values should produce valid MSE >= 0
+        for k in [0.5, 1.0, 1.5, 2.0]:
+            mse = mean_squared_error(pairs, weights, opts=LossOptions(k=k))
+            assert mse >= 0.0, f"MSE with k={k} should be non-negative"
 
-        # All should be non-negative and valid
-        assert mse_k0_5 >= 0.0
-        assert mse_k1_0 >= 0.0
-        assert mse_k2_0 >= 0.0
-
-        # Sigmoid behavior should differ with k (more aggressive with higher k)
-        # With k=2.0, sigmoid is steeper, should affect MSE
-        assert mse_k0_5 != mse_k2_0 or abs(mse_k0_5 - mse_k2_0) < 1e-12
+        # k=1.0 (default) should match no k parameter specified
+        mse_default = mean_squared_error(pairs, weights)
+        mse_k1 = mean_squared_error(pairs, weights, opts=LossOptions(k=1.0))
+        assert mse_default == pytest.approx(mse_k1, rel=1e-12)

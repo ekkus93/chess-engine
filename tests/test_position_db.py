@@ -138,3 +138,42 @@ class TestPositionDB:
         pairs = loaded.all_pairs()
         # Mean should be (1+1+1+0.5)/4 = 3.5/4 = 0.875
         assert abs(pairs[0][1] - 0.875) < 1e-9
+
+    def test_get_stats_returns_none_for_missing_position(self) -> None:
+        """get_stats should return None for a position not in the database."""
+        db = PositionDB()
+        db.add_game(GameRecord(positions=["pos1"], outcome=1.0))
+        assert db.get_stats("pos_not_in_db") is None
+
+    def test_get_stats_direct_access_to_stats(self) -> None:
+        """get_stats should return PositionStats with correct total, count, mean."""
+        db = PositionDB()
+        fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        # Add duplicate outcomes: 1.0, 0.5, 0.0 → total=1.5, count=3, mean=0.5
+        db.add_game(GameRecord(positions=[fen], outcome=1.0))
+        db.add_game(GameRecord(positions=[fen], outcome=0.5))
+        db.add_game(GameRecord(positions=[fen], outcome=0.0))
+
+        stats = db.get_stats(fen)
+        assert stats is not None
+        assert stats.count == 3
+        assert abs(stats.total - 1.5) < 1e-9
+        assert abs(stats.mean - 0.5) < 1e-9
+
+    def test_get_stats_round_trip_with_save_load(self, tmp_path: Path) -> None:
+        """get_stats should work correctly after save/load round trip."""
+        db = PositionDB()
+        fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        db.add_game(GameRecord(positions=[fen], outcome=1.0))
+        db.add_game(GameRecord(positions=[fen], outcome=1.0))
+        db.add_game(GameRecord(positions=[fen], outcome=0.5))
+
+        save_path = tmp_path / "round_trip.jsonl"
+        db.save(save_path)
+
+        loaded = PositionDB.load(save_path)
+        stats = loaded.get_stats(fen)
+        assert stats is not None
+        assert stats.count == 3
+        assert abs(stats.total - 2.5) < 1e-9
+        assert abs(stats.mean - (2.5 / 3.0)) < 1e-9
