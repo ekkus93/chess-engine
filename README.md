@@ -65,8 +65,14 @@ Move input format:
 
 ## Running the tests
 
+**Pytest is a dev dependency.** Use one of these approaches:
+
+**Primary workflow** (recommended for repeated use):
+
 ```bash
-# Fast suite (~100 seconds): unit tests, smoke tests, shallow search tests
+uv sync --extra dev
+
+# Fast suite (~44 seconds): unit tests, smoke tests, shallow search tests
 uv run python -m pytest tests/ -q -m "not slow"
 
 # Slow suite (~15-20 minutes): AI engine-strength regressions at depth 3+
@@ -76,6 +82,14 @@ uv run python -m pytest tests/ -q -m "slow"
 
 # Full suite (fast + slow)
 uv run python -m pytest tests/ -q
+```
+
+**Direct workflow** (no environment sync needed):
+
+```bash
+uv run --extra dev python -m pytest tests/ -q -m "not slow"
+uv run --extra dev python -m pytest tests/ -q -m "slow"
+uv run --extra dev python -m pytest tests/ -q
 ```
 
 **Note:** Expensive engine-strength tests are marked `@pytest.mark.slow` and excluded from the
@@ -105,10 +119,24 @@ it on startup. The TUI shows **"Engine: tuned"** vs **"Engine: default"** in the
 
 ## Linting and type checking
 
+These tools are dev dependencies and require either syncing the dev environment or using `--extra dev`:
+
+**Primary workflow** (recommended for repeated use):
+
 ```bash
+uv sync --extra dev
+
 uv run python -m ruff check chess_game tests
 uv run python -m mypy chess_game
 uv run python -m pylint chess_game          # Target: 10.00/10
+```
+
+**Direct workflow** (no environment sync needed):
+
+```bash
+uv run --extra dev python -m ruff check chess_game tests
+uv run --extra dev python -m mypy chess_game
+uv run --extra dev python -m pylint chess_game          # Target: 10.00/10
 ```
 
 ## Project structure
