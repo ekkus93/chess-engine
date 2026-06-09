@@ -6,6 +6,8 @@ All positions are constructed directly (no transcript dependency).
 
 from __future__ import annotations
 
+import pytest
+
 from chess_game.chess.ai import get_best_move
 from chess_game.chess.board.board import Board, create_piece
 from chess_game.chess.move import Move, parse_move_notation
@@ -178,8 +180,12 @@ def _pos_game2_opening() -> Board:
     return board
 
 
+@pytest.mark.slow
 def test_depth3_avoids_b4_when_path_blocked() -> None:
-    """Depth-3 should NOT choose b2-b4 when f1/c1 bishops block castling."""
+    """Depth-3 should NOT choose b2-b4 when f1/c1 bishops block castling.
+
+    Depth-heavy strategic regression; excluded from fast suite.
+    """
     board = _pos_game2_opening()
     best = get_best_move(board, depth=3)
     b4 = _m("b2b4")
