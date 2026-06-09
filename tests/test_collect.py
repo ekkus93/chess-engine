@@ -229,10 +229,6 @@ def test_collection_invalid_max_move_result_rejected() -> None:
 
 def test_collection_draw_stores_outcome_half() -> None:
     """Draw outcomes are stored as 0.5."""
-    from unittest import mock
-    from chess_game.chess.board import Board
-
-    # Create a mock game that ends in a draw
     opts = CollectionOptions(
         db_path=Path("/tmp/test.jsonl"),
         num_games=1,
