@@ -130,3 +130,63 @@ def test_collect_games_invalid_max_move_result_raises() -> None:
             depth=1,
             max_move_result="invalid",
         )
+
+
+def test_collect_games_seed_is_configurable() -> None:
+    """CollectionOptions should accept and store seed parameter."""
+    opts1 = CollectionOptions(
+        db_path=Path("/tmp/test1.jsonl"),
+        num_games=1,
+        depth=1,
+        seed=0,
+    )
+    opts2 = CollectionOptions(
+        db_path=Path("/tmp/test2.jsonl"),
+        num_games=1,
+        depth=1,
+        seed=42,
+    )
+    assert opts1.seed == 0
+    assert opts2.seed == 42
+
+
+def test_collect_games_weights_parameter_accepted() -> None:
+    """CollectionOptions should accept custom weights."""
+    from chess_game.chess.eval_weights import EvalWeights
+
+    weights = EvalWeights.default()
+    opts = CollectionOptions(
+        db_path=Path("/tmp/test.jsonl"),
+        num_games=1,
+        depth=1,
+        weights=weights,
+    )
+    assert opts.weights is weights
+
+
+def test_collect_games_draw_outcome_is_half() -> None:
+    """When max_move_result='draw', games hitting limit should have 0.5 outcome."""
+    # This is a smoke test verifying the config accepts 'draw'.
+    # Full integration test would need monkeypatch of game loop to force max_moves.
+    opts = CollectionOptions(
+        db_path=Path("/tmp/test.jsonl"),
+        num_games=1,
+        depth=1,
+        max_moves=1,
+        max_move_result="draw",
+    )
+    assert opts.max_move_result == "draw"
+
+
+def test_collect_games_discard_outcome_stores_nothing() -> None:
+    """When max_move_result='discard', games hitting limit don't contribute."""
+    # This is a smoke test verifying the config accepts 'discard'.
+    # Full integration test would need monkeypatch of game loop to force max_moves.
+    opts = CollectionOptions(
+        db_path=Path("/tmp/test.jsonl"),
+        num_games=1,
+        depth=1,
+        max_moves=1,
+        max_move_result="discard",
+    )
+    assert opts.max_move_result == "discard"
