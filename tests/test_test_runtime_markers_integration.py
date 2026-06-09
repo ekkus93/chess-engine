@@ -1,11 +1,15 @@
 """Meta-integration tests for pytest slow/fast marker contracts."""
 
 import subprocess
+from pathlib import Path
 
 try:
     import tomllib
 except ImportError:
     import tomli as tomllib
+
+# Dynamic repo root: get parent of tests/ directory
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 class TestSlowMarkerContract:
@@ -27,7 +31,7 @@ class TestSlowMarkerContract:
             ],
             capture_output=True,
             text=True,
-            cwd="/home/phil/work/chess-engine",
+            cwd=str(REPO_ROOT),
             check=False,
         )
 
@@ -54,7 +58,7 @@ class TestSlowMarkerContract:
             ],
             capture_output=True,
             text=True,
-            cwd="/home/phil/work/chess-engine",
+            cwd=str(REPO_ROOT),
             check=False,
         )
 
@@ -85,7 +89,7 @@ class TestFastMarkerContractNegative:
             ],
             capture_output=True,
             text=True,
-            cwd="/home/phil/work/chess-engine",
+            cwd=str(REPO_ROOT),
             check=False,
         )
 
@@ -107,7 +111,7 @@ class TestFastMarkerContractNegative:
             ],
             capture_output=True,
             text=True,
-            cwd="/home/phil/work/chess-engine",
+            cwd=str(REPO_ROOT),
             check=False,
         )
 
@@ -134,7 +138,7 @@ class TestMarkerAssignmentConsistency:
                 ],
                 capture_output=True,
                 text=True,
-                cwd="/home/phil/work/chess-engine",
+                cwd=str(REPO_ROOT),
                 check=False,
             )
 
@@ -158,7 +162,7 @@ class TestMarkerAssignmentConsistency:
             ],
             capture_output=True,
             text=True,
-            cwd="/home/phil/work/chess-engine",
+            cwd=str(REPO_ROOT),
             check=False,
         )
 
@@ -182,7 +186,7 @@ class TestMarkerSplitCoverage:
             ],
             capture_output=True,
             text=True,
-            cwd="/home/phil/work/chess-engine",
+            cwd=str(REPO_ROOT),
             check=False,
         )
 
@@ -200,7 +204,7 @@ class TestMarkerSplitCoverage:
             ],
             capture_output=True,
             text=True,
-            cwd="/home/phil/work/chess-engine",
+            cwd=str(REPO_ROOT),
             check=False,
         )
 
@@ -218,7 +222,7 @@ class TestMarkerSplitCoverage:
             ],
             capture_output=True,
             text=True,
-            cwd="/home/phil/work/chess-engine",
+            cwd=str(REPO_ROOT),
             check=False,
         )
 
@@ -242,7 +246,7 @@ class TestMarkerSplitCoverage:
             ],
             capture_output=True,
             text=True,
-            cwd="/home/phil/work/chess-engine",
+            cwd=str(REPO_ROOT),
             check=False,
         )
         result_not_slow = subprocess.run(
@@ -258,7 +262,7 @@ class TestMarkerSplitCoverage:
             ],
             capture_output=True,
             text=True,
-            cwd="/home/phil/work/chess-engine",
+            cwd=str(REPO_ROOT),
             check=False,
         )
 
@@ -271,7 +275,7 @@ class TestMarkerInPyproject:
 
     def test_slow_marker_declared_in_config(self):
         """Verify that slow marker is properly declared."""
-        with open("/home/phil/work/chess-engine/pyproject.toml", "rb") as f:
+        with open(REPO_ROOT / "pyproject.toml", "rb") as f:
             config = tomllib.load(f)
 
         pytest_config = config.get("tool", {}).get("pytest", {})
@@ -287,14 +291,14 @@ class TestMarkerInPyproject:
 
     def test_pyproject_has_pytest_section(self):
         """Verify the pyproject has a pytest config section."""
-        with open("/home/phil/work/chess-engine/pyproject.toml", "rb") as f:
+        with open(REPO_ROOT / "pyproject.toml", "rb") as f:
             config = tomllib.load(f)
 
         assert "pytest" in config.get("tool", {})
 
     def test_pytest_markers_section_exists(self):
         """Verify that pytest markers are configured in pyproject.toml."""
-        with open("/home/phil/work/chess-engine/pyproject.toml", "rb") as f:
+        with open(REPO_ROOT / "pyproject.toml", "rb") as f:
             config = tomllib.load(f)
 
         markers = config.get("tool", {}).get("pytest", {}).get("markers", [])
@@ -318,7 +322,7 @@ class TestIntegrationTestMarkers:
             ],
             capture_output=True,
             text=True,
-            cwd="/home/phil/work/chess-engine",
+            cwd=str(REPO_ROOT),
             check=False,
         )
 
@@ -339,7 +343,7 @@ class TestIntegrationTestMarkers:
             ],
             capture_output=True,
             text=True,
-            cwd="/home/phil/work/chess-engine",
+            cwd=str(REPO_ROOT),
             check=False,
         )
 
@@ -360,7 +364,7 @@ class TestIntegrationTestMarkers:
             ],
             capture_output=True,
             text=True,
-            cwd="/home/phil/work/chess-engine",
+            cwd=str(REPO_ROOT),
             check=False,
         )
 
@@ -381,7 +385,7 @@ class TestIntegrationTestMarkers:
             ],
             capture_output=True,
             text=True,
-            cwd="/home/phil/work/chess-engine",
+            cwd=str(REPO_ROOT),
             check=False,
         )
 
