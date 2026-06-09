@@ -93,3 +93,40 @@ def test_collect_games_aggregates_position_outcomes(tmp_path: Path) -> None:
     for fen, outcome in pairs:
         assert isinstance(fen, str)
         assert 0.0 <= outcome <= 1.0
+
+
+def test_collect_games_max_move_result_draw() -> None:
+    """max_move_result='draw' should treat timeout games as draws."""
+    opts = CollectionOptions(
+        db_path=Path("/tmp/test_draw.jsonl"),
+        num_games=1,
+        depth=1,
+        max_moves=1,
+        max_move_result="draw",
+    )
+    # Just verify the config accepts 'draw'
+    assert opts.max_move_result == "draw"
+
+
+def test_collect_games_max_move_result_discard() -> None:
+    """max_move_result='discard' should discard timeout games."""
+    opts = CollectionOptions(
+        db_path=Path("/tmp/test_discard.jsonl"),
+        num_games=1,
+        depth=1,
+        max_moves=1,
+        max_move_result="discard",
+    )
+    # Just verify the config accepts 'discard'
+    assert opts.max_move_result == "discard"
+
+
+def test_collect_games_invalid_max_move_result_raises() -> None:
+    """Invalid max_move_result should raise ValueError."""
+    with pytest.raises(ValueError):
+        CollectionOptions(
+            db_path=Path("/tmp/test.jsonl"),
+            num_games=1,
+            depth=1,
+            max_move_result="invalid",
+        )

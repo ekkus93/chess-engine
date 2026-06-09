@@ -35,6 +35,13 @@ class CollectionOptions:
     seed: Optional[int] = None
     max_move_result: str = "draw"
 
+    def __post_init__(self) -> None:
+        """Validate max_move_result is one of the allowed values."""
+        if self.max_move_result not in {"draw", "discard"}:
+            raise ValueError(
+                f"max_move_result must be 'draw' or 'discard', got '{self.max_move_result}'"
+            )
+
 
 def _is_draw_by_rule(
     board: Board,

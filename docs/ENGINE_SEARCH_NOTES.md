@@ -37,7 +37,9 @@ position is re-searched.
 
 `minimax(board, params)` implements negamax-style alpha-beta with:
 
-- **Transposition table** (Zobrist-keyed with `TTFlag.EXACT / LOWER / UPPER`).
+- **Transposition table** (position-keyed using `position_key()` string representation, with `TTFlag.EXACT / LOWER / UPPER`).
+  - **Future work:** Replace string keys with true Zobrist hashing for improved performance.
+  - **Mate-score safety:** Mate scores are not stored in the TT until ply-based normalization is implemented (see `MATE_SCORE_MARGIN`).
 - **Killer move heuristic** — two killer slots per ply.
 - **History heuristic** — quiet moves that caused cut-offs get bonus ordering.
 - **Selective extensions** — check extensions and pawn-push extensions.
@@ -102,11 +104,14 @@ by older heuristics.
 
 ---
 
-## Deterministic mode
+## Deterministic mode and seeding
 
-`BestMoveOptions(deterministic=True)` makes the search tie-break
-lexicographically by (from, to, promotion) instead of randomly.  Used in the
-Texel tuning pipeline to ensure reproducible position evaluation.
+`BestMoveOptions(deterministic=True)` makes the search tie-break lexicographically by
+(from_row*8+from_col, to_row*8+to_col, promotion) using primitive square indices
+instead of random shuffling. Used in the Texel tuning pipeline for reproducible evaluation.
+
+`BestMoveOptions(rng_seed=N)` seeds the global RNG early, before opening-book
+selection, ensuring all random choices (including `random_opening_book`) are controlled.
 
 ---
 
