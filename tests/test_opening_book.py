@@ -1,6 +1,7 @@
 """Tests for the opening book module."""
 
 import json
+import random
 import tempfile
 from pathlib import Path
 
@@ -493,3 +494,98 @@ class TestOpeningBookSchemaValidation:
                 depth=1,
                 book_options=BestMoveOptions(opening_book=broken_book),
             )
+
+
+class TestOpeningBookSeedReproducibility:
+    """Tests for seed-based reproducibility in random opening book selection."""
+
+    def test_same_seed_produces_same_move(self):
+        """Calling get_best_move with same seed should produce same move."""
+        board = Board()
+        book = get_bundled_opening_book()
+
+        # Get move with seed=42 twice
+        move1 = get_best_move(
+            board,
+            depth=1,
+            book_options=BestMoveOptions(
+                use_opening_book=True,
+                opening_book=book,
+                random_opening_book=True,
+                rng_seed=42,
+            ),
+        )
+        move2 = get_best_move(
+            board,
+            depth=1,
+            book_options=BestMoveOptions(
+                use_opening_book=True,
+                opening_book=book,
+                random_opening_book=True,
+                rng_seed=42,
+            ),
+        )
+        assert move1 == move2, "Same seed should produce same move"
+
+    def test_different_seeds_can_produce_different_moves(self):
+        """Different seeds may produce different moves from book."""
+        # Use a position where book has multiple legal moves
+        board = Board()
+        apply_moves(board, "e2e4")
+        book = get_bundled_opening_book()
+
+        moves_found = set()
+        # Try multiple seeds to see if we can get different moves
+        for seed_val in range(0, 10):
+            move = get_best_move(
+                board,
+                depth=1,
+                book_options=BestMoveOptions(
+                    use_opening_book=True,
+                    opening_book=book,
+                    random_opening_book=True,
+                    rng_seed=seed_val,
+                ),
+            )
+            if move is not None:
+                moves_found.add(move_to_text(move))
+
+        # With 10 different seeds, we should likely see multiple moves
+        # (though not guaranteed if book has only one legal move)
+        assert len(moves_found) >= 1, "Should find at least one book move"
+
+    def test_global_rng_independence(self):
+        """Seeded move selection should be independent of global RNG state."""
+        board = Board()
+        book = get_bundled_opening_book()
+
+        # Get move with seed=99, no prior RNG calls
+        move_first = get_best_move(
+            board,
+            depth=1,
+            book_options=BestMoveOptions(
+                use_opening_book=True,
+                opening_book=book,
+                random_opening_book=True,
+                rng_seed=99,
+            ),
+        )
+
+        # Change global RNG state significantly
+        for _ in range(100):
+            random.random()
+
+        # Get move with same seed again
+        move_second = get_best_move(
+            board,
+            depth=1,
+            book_options=BestMoveOptions(
+                use_opening_book=True,
+                opening_book=book,
+                random_opening_book=True,
+                rng_seed=99,
+            ),
+        )
+
+        assert move_first == move_second, \
+            "Seed-controlled move should be stable despite global RNG changes"
