@@ -32,6 +32,7 @@ from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.move import parse_move_notation
 from chess_game.chess.ai import BestMoveOptions, get_best_move
 from chess_game.chess.board.game_state import is_in_check, record_position, terminal_message
+from chess_game.texel.game_result import outcome_from_message
 from chess_game.texel.online_learning import OnlineLearningConfig, record_game_and_update_weights
 from chess_game.texel.position_db import GameRecord
 from chess_game.texel.weights_io import TUNED_WEIGHTS_PATH
@@ -44,21 +45,6 @@ _BLACK_PIECE_STYLE = "bold cyan"
 
 # Detect at import time whether tuned weights are available.
 _ENGINE_LABEL = "Engine: tuned" if TUNED_WEIGHTS_PATH.exists() else "Engine: default"
-
-
-def _outcome_from_result(message: str) -> float | None:
-    """Return Texel outcome float from a terminal result message.
-
-    Returns 1.0 (White wins), 0.0 (Black wins), 0.5 (draw), or None if
-    the result cannot be parsed.
-    """
-    if "White wins" in message:
-        return 1.0
-    if "Black wins" in message:
-        return 0.0
-    if any(kw in message for kw in ("Stalemate", "Draw", "draw", "repetition", "fifty")):
-        return 0.5
-    return None
 
 
 def _render_board_rich(board: Board) -> str:
@@ -626,7 +612,7 @@ class GameScreen(Screen):
 
     def _trigger_online_learning(self, result_message: str) -> None:
         """Start a background thread to update weights from this self-play game."""
-        outcome = _outcome_from_result(result_message)
+        outcome = outcome_from_message(result_message)
         if outcome is None or not self._board_fens:
             return
         fens = list(self._board_fens)

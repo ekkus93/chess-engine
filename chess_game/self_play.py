@@ -18,6 +18,7 @@ from chess_game.chess.constants import ConstantSquare
 from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.opening_book import OpeningBook, OpeningBookError, get_bundled_opening_book
 from chess_game.chess.types import Color, LegalMove, PieceType
+from chess_game.texel.game_result import outcome_from_message
 from chess_game.texel.online_learning import OnlineLearningConfig, record_game_and_update_weights
 from chess_game.texel.position_db import GameRecord
 
@@ -113,21 +114,6 @@ def _get_best_move_with_timeout(params: _MoveSelectionParams) -> Optional[LegalM
     return best
 
 
-def _outcome_from_message(message: str) -> Optional[float]:
-    """Convert a terminal-message string to a Texel outcome float.
-
-    Returns 1.0 if White wins, 0.0 if Black wins, 0.5 for any draw,
-    or None if the result cannot be determined.
-    """
-    if "White wins" in message:
-        return 1.0
-    if "Black wins" in message:
-        return 0.0
-    if any(kw in message for kw in ("Stalemate", "Draw", "draw", "repetition", "fifty")):
-        return 0.5
-    return None
-
-
 def _print_game_header(depth_white: int, depth_black: int) -> None:
     """Print the self-play header."""
 
@@ -170,7 +156,7 @@ def _maybe_learn(
     """
     if not options.online_learning or not fens:
         return
-    outcome = _outcome_from_message(game_over_message)
+    outcome = outcome_from_message(game_over_message)
     if outcome is None:
         return
     record = GameRecord(positions=fens, outcome=outcome)
