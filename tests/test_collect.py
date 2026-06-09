@@ -56,7 +56,7 @@ def test_collect_games_with_custom_weights_completes(tmp_path: Path) -> None:
     )
     db = collect_games(opts)
     # Verify that collection completed with custom weights
-    assert len(db) >= 0
+    assert len(db) > 0, "Should collect at least one position from games"
 
 
 @pytest.mark.slow
@@ -73,7 +73,7 @@ def test_collect_games_handles_max_move_limit(tmp_path: Path) -> None:
     )
     db = collect_games(opts)
     # Verify that collection completed (games hitting max_moves → outcome 0.5)
-    assert len(db) >= 0
+    assert len(db) > 0, "Should collect positions even when games hit max_moves"
 
 
 @pytest.mark.slow
