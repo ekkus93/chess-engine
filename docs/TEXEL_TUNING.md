@@ -147,6 +147,11 @@ the baseline, with the existing weights preserved as a backup.
 - Existing weights backed up to `<weights>.backup.json` before promotion.
 - Weight cache is invalidated after promotion so the new weights are loaded on next search.
 
+**Candidate persistence:**
+- Rejected candidates are **memory-only** in the current implementation and are not persisted.
+- `keep_rejected_candidate` is reserved for future file-based candidate persistence and is not used yet.
+- Only accepted candidates (promoted to active weights) trigger file saves and cache invalidation.
+
 ---
 
 ## Reproducing a run

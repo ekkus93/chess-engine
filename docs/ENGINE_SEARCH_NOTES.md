@@ -190,5 +190,10 @@ uv run python -m pytest tests/test_ai_quiescence_production.py -v
 - Promotion: verify promotion moves exist
 - Check evasion: verify evasion moves exist
 
-**Deferred (future work):** Exact counts for pins, discovered checks, complex
-castling/en passant combinations.
+**Deferred (future work):**
+- Exact counts for pins, discovered checks, complex castling/en passant combinations
+- Make/unmake search optimization (replace clone-based move exploration)
+- Zobrist hashing (replace string position keys)
+- TT mate-score ply-based normalization (allow safe mate score storage)
+- Broader exact special perft suite (external database integration)
+- Search module decomposition (ai.py is currently ~500+ lines)
