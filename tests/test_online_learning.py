@@ -633,8 +633,6 @@ class TestOnlineLearningMockedBehavior:
         db.add_game(GameRecord(positions=[_STARTING_FEN], outcome=1.0))
         db.save(db_path)
 
-        initial_size = len(db)
-
         # Load and verify we can configure discard mode
         opts = CollectionOptions(
             db_path=db_path,
