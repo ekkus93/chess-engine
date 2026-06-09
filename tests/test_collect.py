@@ -373,3 +373,31 @@ def test_5_2_weights_propagation_via_best_move_options(tmp_path: Path) -> None:
         # via the BestMoveOptions.eval_weights parameter
         # The actual monkeypatching happens in collect_games internals
         assert opts.weights is not None, "5.2: weights available for propagation"
+
+
+# Phase 3: Behavior verification tests (TEXEL_FIX5)
+
+
+def test_phase3_max_move_result_config_invalid_raises() -> None:
+    """Phase 3.6: Invalid max_move_result value raises ValueError at construction."""
+    with pytest.raises(ValueError):
+        CollectionOptions(
+            db_path=Path("/tmp/test.jsonl"),
+            num_games=1,
+            depth=1,
+            max_move_result="invalid_mode",
+        )
+
+
+def test_phase3_invalid_max_move_documented() -> None:
+    """Phase 3.6: max_move_result validation is applied at CollectionOptions init."""
+    # Valid values should work
+    valid_modes = ["draw", "discard"]
+    for mode in valid_modes:
+        opts = CollectionOptions(
+            db_path=Path("/tmp/test.jsonl"),
+            num_games=1,
+            depth=1,
+            max_move_result=mode,
+        )
+        assert opts.max_move_result == mode
