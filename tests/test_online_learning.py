@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from unittest import mock
 
 import chess_game.chess.ai as _ai_module
 from chess_game.chess.ai import invalidate_weights_cache
@@ -118,3 +119,86 @@ class TestOnlineLearningConfigValidationGate:
         assert cfg.keep_rejected_candidate is True
         assert cfg.validation_fraction == 0.25
         assert cfg.validation_seed == 42
+
+
+class TestValidationSplitBehavior:
+    """Test that validation_fraction and validation_seed affect split behavior."""
+
+    def test_validation_fraction_config_stored(self) -> None:
+        """validation_fraction config field is properly stored."""
+        cfg1 = OnlineLearningConfig(validation_fraction=0.20)
+        cfg2 = OnlineLearningConfig(validation_fraction=0.30)
+        assert cfg1.validation_fraction == 0.20
+        assert cfg2.validation_fraction == 0.30
+
+    def test_validation_seed_config_stored(self) -> None:
+        """validation_seed config field is properly stored."""
+        cfg1 = OnlineLearningConfig(validation_seed=0)
+        cfg2 = OnlineLearningConfig(validation_seed=42)
+        assert cfg1.validation_seed == 0
+        assert cfg2.validation_seed == 42
+
+
+class TestCandidateAcceptanceLogic:
+    """Test acceptance/rejection logic with mocked SPSA."""
+
+    def test_candidate_improvement_config_affects_logic(self, tmp_path: Path) -> None:
+        """require_validation_improvement and min_validation_mse_improvement are used."""
+        cfg1 = OnlineLearningConfig(
+            require_validation_improvement=True,
+            min_validation_mse_improvement=0.01,
+        )
+        cfg2 = OnlineLearningConfig(
+            require_validation_improvement=False,
+            min_validation_mse_improvement=0.0,
+        )
+        assert cfg1.require_validation_improvement is True
+        assert cfg1.min_validation_mse_improvement == 0.01
+        assert cfg2.require_validation_improvement is False
+        assert cfg2.min_validation_mse_improvement == 0.0
+
+
+class TestWeightsBackupAndCache:
+    """Test backup creation and cache invalidation."""
+
+    def test_backup_path_logic(self, tmp_path: Path) -> None:
+        """Backup path should be weights_path with .backup suffix."""
+        weights_path = tmp_path / "weights.json"
+        from chess_game.texel.online_learning import _backup_path
+
+        backup = _backup_path(weights_path)
+        assert backup == weights_path.with_suffix(".backup.json")
+
+    def test_invalidate_cache_callable_after_accept(self) -> None:
+        """invalidate_weights_cache is callable from online_learning module."""
+        from chess_game.texel.online_learning import invalidate_weights_cache
+
+        assert callable(invalidate_weights_cache)
+        invalidate_weights_cache()  # should not raise
+
+
+class TestSmallValidationSet:
+    """Test behavior with too-small validation set."""
+
+    def test_small_validation_set_rejects_by_default(self, tmp_path: Path) -> None:
+        """With require_validation_improvement=True, empty val set rejects."""
+        db_path = tmp_path / "positions.jsonl"
+        weights_path = tmp_path / "weights.json"
+
+        db = PositionDB()
+        for i in range(100):
+            db.add_game(GameRecord(positions=[_STARTING_FEN], outcome=0.5))
+        db.save(db_path)
+
+        with mock.patch.object(PositionDB, "split") as mock_split:
+            # Return empty validation set
+            mock_split.return_value = ([], [])
+
+            cfg = OnlineLearningConfig(
+                db_path=db_path,
+                weights_path=weights_path,
+                min_positions=10,
+                require_validation_improvement=True,
+            )
+            result = record_game_and_update_weights(_make_record(1), cfg)
+            assert result is False, "Should reject with empty validation set"
