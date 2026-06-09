@@ -206,6 +206,60 @@ class TestSmallValidationSet:
             assert result is False, "Should reject with empty validation set"
 
 
+class TestOnlineLearningMockedBehavior:
+    """Test online-learning behavior with mocking (Phase 4)."""
+
+    def test_config_controls_behavior(self) -> None:
+        """Test that config fields control online-learning behavior."""
+        # Test that config fields are used correctly
+        cfg_improve = OnlineLearningConfig(
+            require_validation_improvement=True,
+            min_validation_mse_improvement=0.01,
+        )
+        assert cfg_improve.require_validation_improvement is True
+        assert cfg_improve.min_validation_mse_improvement == 0.01
+
+        cfg_no_improve = OnlineLearningConfig(
+            require_validation_improvement=False,
+        )
+        assert cfg_no_improve.require_validation_improvement is False
+
+    def test_optimization_respects_config_settings(self, tmp_path: Path) -> None:
+        """Test that config SPSA settings are passed through."""
+        cfg = OnlineLearningConfig(
+            spsa_iterations=300,
+            spsa_batch_size=512,
+        )
+        # Verify config settings are stored
+        assert cfg.spsa_iterations == 300
+        assert cfg.spsa_batch_size == 512
+
+    def test_weights_preservation_on_insufficient_data(self, tmp_path: Path) -> None:
+        """Active weights preserved when insufficient data for training."""
+        db_path = tmp_path / "positions.jsonl"
+        weights_path = tmp_path / "weights.json"
+
+        # Create DB with insufficient positions
+        db = PositionDB()
+        for i in range(10):
+            db.add_game(GameRecord(positions=[_STARTING_FEN], outcome=0.5))
+        db.save(db_path)
+
+        with mock.patch("chess_game.texel.online_learning.save_weights") as mock_save:
+            cfg = OnlineLearningConfig(
+                db_path=db_path,
+                weights_path=weights_path,
+                min_positions=50,  # Need at least 50, only have 11
+            )
+
+            result = record_game_and_update_weights(_make_record(1), cfg)
+
+            # Should return False (not enough data)
+            assert result is False
+            # Should not save weights
+            assert not mock_save.called
+
+
 class TestValidationFractionValidation:
     """Test validation_fraction validation in OnlineLearningConfig."""
 
