@@ -3,10 +3,15 @@
 import subprocess
 from pathlib import Path
 
+import pytest
+
 try:
     import tomllib
 except ImportError:
     import tomli as tomllib
+
+# Mark this entire file as slow: meta-tests are infrastructure, not product behavior
+pytestmark = pytest.mark.slow
 
 # Dynamic repo root: get parent of tests/ directory
 REPO_ROOT = Path(__file__).resolve().parents[1]
