@@ -603,8 +603,6 @@ class TestOnlineLearningMockedBehavior:
     def test_5_2_weights_propagation_to_search(self, tmp_path: Path) -> None:
         """5.2: CollectionOptions.weights propagated to get_best_move."""
         from chess_game.chess.eval_weights import EvalWeights
-        from chess_game.chess.board import Board
-        from unittest.mock import call
 
         db_path = tmp_path / "test.jsonl"
         custom_weights = EvalWeights.default()
