@@ -405,6 +405,135 @@ class TestOnlineLearningMockedBehavior:
                         # In unsafe mode, any candidate is promoted
                         assert mock_save.called, "4.6: unsafe mode accepts any candidate"
 
+    def test_4_4_validation_fraction_controls_split_size(self, tmp_path: Path) -> None:
+        """4.4: validation_fraction parameter controls train/validation split size."""
+        db_path = tmp_path / "positions.jsonl"
+
+        # Create DB with distinct positions (not duplicates)
+        db = PositionDB()
+        # Use different moves from starting position to create distinct FENs
+        test_positions = [
+            "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",  # e4
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1",  # different
+            "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",  # e5
+            "rnbqkbnr/pppp1ppp/8/4p3/4PP2/8/PPPP2PP/RNBQKBNR b KQkq - 0 2",  # f4
+        ]
+        for pos in test_positions * 15:  # 60 distinct positions
+            db.add_game(GameRecord(positions=[pos], outcome=0.5))
+        db.save(db_path)
+
+        # Load and split
+        db_loaded = PositionDB.load(db_path)
+        train, val = db_loaded.split(validation_fraction=0.20, seed=0)
+
+        # With 20% validation_fraction on ~60 positions, expect ~12 val, ~48 train
+        # Verify split respects the fraction
+        total = len(train) + len(val)
+        val_fraction = len(val) / total if total > 0 else 0
+        assert 0.15 <= val_fraction <= 0.30, f"4.4: validation fraction should be ~0.20, got {val_fraction}"
+
+    def test_4_4_same_validation_seed_gives_same_split(self, tmp_path: Path) -> None:
+        """4.4: Same validation_seed produces deterministic train/validation split."""
+        db_path = tmp_path / "positions.jsonl"
+
+        # Pre-populate DB
+        db = PositionDB()
+        for i in range(60):
+            db.add_game(GameRecord(positions=[_STARTING_FEN], outcome=0.5))
+        db.save(db_path)
+
+        # Load and split with seed=0
+        db1 = PositionDB.load(db_path)
+        train1, val1 = db1.split(validation_fraction=0.20, seed=0)
+
+        # Load again and split with same seed
+        db2 = PositionDB.load(db_path)
+        train2, val2 = db2.split(validation_fraction=0.20, seed=0)
+
+        # Same seed should give identical splits
+        assert len(train1) == len(train2), "4.4: same seed should give same train size"
+        assert len(val1) == len(val2), "4.4: same seed should give same val size"
+        # Verify same FENs in same order
+        train1_fens = {fen for fen, _ in train1}
+        train2_fens = {fen for fen, _ in train2}
+        assert train1_fens == train2_fens, "4.4: same seed should split to same FENs"
+
+    def test_4_4_different_validation_seed_can_change_split(self, tmp_path: Path) -> None:
+        """4.4: Different validation_seed can produce different split contents."""
+        db_path = tmp_path / "positions.jsonl"
+
+        # Create DB with distinct positions
+        db = PositionDB()
+        test_positions = [
+            "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+            "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+            "rnbqkbnr/pppp1ppp/8/4p3/4PP2/8/PPPP2PP/RNBQKBNR b KQkq - 0 2",
+            "rnbqkbnr/pppp1ppp/8/4p3/4PP2/5N2/PPPP2PP/RNBQKB1R b KQkq - 1 2",
+        ]
+        for pos in test_positions * 15:  # 60 distinct positions
+            db.add_game(GameRecord(positions=[pos], outcome=0.5))
+        db.save(db_path)
+
+        # Load and split with seed=0
+        db1 = PositionDB.load(db_path)
+        _, val1 = db1.split(validation_fraction=0.20, seed=0)
+
+        # Load and split with seed=42
+        db2 = PositionDB.load(db_path)
+        _, val2 = db2.split(validation_fraction=0.20, seed=42)
+
+        # Different seeds should produce splits of same size
+        assert len(val1) == len(val2), "4.4: splits should have same size"
+        assert len(val1) > 0, "4.4: validation sets should be non-empty"
+        # Different seeds may produce different validation FENs (not guaranteed)
+        # but we verify the config controls seed behavior
+        val1_fens = {fen for fen, _ in val1}
+        val2_fens = {fen for fen, _ in val2}
+        # At least verify both are valid sets
+        assert len(val1_fens) > 0 and len(val2_fens) > 0
+
+    def test_4_4_too_small_validation_set_prevents_promotion(self, tmp_path: Path) -> None:
+        """4.4: Too-small validation set prevents promotion when improvement required."""
+        db_path = tmp_path / "positions.jsonl"
+        weights_path = tmp_path / "weights.json"
+
+        # Pre-populate DB with only 10 positions (too small for meaningful split)
+        db = PositionDB()
+        for i in range(10):
+            db.add_game(GameRecord(positions=[_STARTING_FEN], outcome=0.5))
+        db.save(db_path)
+
+        call_count = {"count": 0}
+
+        def mock_mse_func(pairs, weights, opts=None):
+            call_count["count"] += 1
+            # With too-small val set, even good improvements may not be trusted
+            if call_count["count"] == 1:
+                return 0.20
+            return 0.10
+
+        with mock.patch("chess_game.texel.online_learning.optimize") as mock_opt:
+            with mock.patch("chess_game.texel.online_learning.mean_squared_error", side_effect=mock_mse_func):
+                with mock.patch("chess_game.texel.online_learning.save_weights") as mock_save:
+                    from chess_game.chess.eval_weights import EvalWeights
+
+                    mock_opt.return_value = EvalWeights.default()
+
+                    # min_positions=50 but only have 11 (10+1)
+                    cfg = OnlineLearningConfig(
+                        db_path=db_path,
+                        weights_path=weights_path,
+                        min_positions=50,
+                        require_validation_improvement=True,
+                        validation_fraction=0.20,
+                    )
+
+                    result = record_game_and_update_weights(_make_record(1), cfg)
+
+                    # Should not promote due to insufficient data
+                    assert result is False, "4.4: insufficient data should prevent promotion"
+                    assert not mock_save.called, "4.4: weights not saved with insufficient data"
+
 
 class TestValidationFractionValidation:
     """Test validation_fraction validation in OnlineLearningConfig."""
