@@ -4,6 +4,8 @@ from __future__ import annotations
 from pathlib import Path
 from unittest import mock
 
+import pytest
+
 import chess_game.chess.ai as _ai_module
 from chess_game.chess.ai import invalidate_weights_cache
 from chess_game.texel.online_learning import OnlineLearningConfig, record_game_and_update_weights
@@ -202,3 +204,37 @@ class TestSmallValidationSet:
             )
             result = record_game_and_update_weights(_make_record(1), cfg)
             assert result is False, "Should reject with empty validation set"
+
+
+class TestValidationFractionValidation:
+    """Test validation_fraction validation in OnlineLearningConfig."""
+
+    def test_negative_validation_fraction_raises(self) -> None:
+        """Negative validation_fraction should raise ValueError."""
+        with pytest.raises(ValueError, match="validation_fraction must satisfy"):
+            OnlineLearningConfig(validation_fraction=-0.1)
+
+    def test_validation_fraction_exactly_one_raises(self) -> None:
+        """validation_fraction = 1.0 should raise ValueError."""
+        with pytest.raises(ValueError, match="validation_fraction must satisfy"):
+            OnlineLearningConfig(validation_fraction=1.0)
+
+    def test_validation_fraction_greater_than_one_raises(self) -> None:
+        """validation_fraction > 1.0 should raise ValueError."""
+        with pytest.raises(ValueError, match="validation_fraction must satisfy"):
+            OnlineLearningConfig(validation_fraction=1.5)
+
+    def test_validation_fraction_zero_accepted(self) -> None:
+        """validation_fraction = 0.0 should be accepted."""
+        cfg = OnlineLearningConfig(validation_fraction=0.0)
+        assert cfg.validation_fraction == 0.0
+
+    def test_validation_fraction_default_accepted(self) -> None:
+        """Default validation_fraction = 0.20 should be accepted."""
+        cfg = OnlineLearningConfig()
+        assert cfg.validation_fraction == 0.20
+
+    def test_validation_fraction_midrange_accepted(self) -> None:
+        """validation_fraction in (0.0, 1.0) should be accepted."""
+        cfg = OnlineLearningConfig(validation_fraction=0.5)
+        assert cfg.validation_fraction == 0.5

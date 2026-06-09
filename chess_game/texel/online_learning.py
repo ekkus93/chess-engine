@@ -38,6 +38,14 @@ class OnlineLearningConfig:
     validation_fraction: float = 0.20
     validation_seed: int = 0
 
+    def __post_init__(self) -> None:
+        """Validate configuration values."""
+        if not 0.0 <= self.validation_fraction < 1.0:
+            raise ValueError(
+                f"validation_fraction must satisfy 0.0 <= validation_fraction < 1.0, "
+                f"got {self.validation_fraction}"
+            )
+
 
 def _backup_path(weights_path: Path) -> Path:
     return weights_path.with_suffix(".backup" + weights_path.suffix)
