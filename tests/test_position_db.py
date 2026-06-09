@@ -40,7 +40,7 @@ class TestPositionDB:
         db = PositionDB()
         db.add_game(GameRecord(positions=["a", "b", "c"], outcome=1.0))
         db.add_game(GameRecord(positions=["b", "c", "d"], outcome=0.0))
-        # "b" and "c" appear in both games; last outcome wins
+        # "b" and "c" appear in both games; outcomes aggregate to mean
         assert len(db) == 4
 
     def test_sample_respects_size(self) -> None:
@@ -102,3 +102,39 @@ class TestPositionDB:
         pairs = loaded.all_pairs()
         # Mean of 1.0 and 0.5 = 0.75
         assert abs(pairs[0][1] - 0.75) < 1e-9
+
+    def test_old_jsonl_duplicate_aggregation(self, tmp_path: Path) -> None:
+        """Old JSONL format with duplicate FENs should aggregate."""
+        save_path = tmp_path / "old_duplicate.jsonl"
+        fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        old_lines = (
+            f'{{"pos": "{fen}", "outcome": 1.0}}\n'
+            f'{{"pos": "{fen}", "outcome": 0.5}}\n'
+            f'{{"pos": "{fen}", "outcome": 0.0}}\n'
+        )
+        save_path.write_text(old_lines)
+
+        db = PositionDB.load(save_path)
+        assert len(db) == 1
+        pairs = db.all_pairs()
+        # Mean of 1.0, 0.5, 0.0 = 0.5
+        assert abs(pairs[0][1] - 0.5) < 1e-9
+
+    def test_new_jsonl_format_with_explicit_counts(self, tmp_path: Path) -> None:
+        """New JSONL format should preserve total and count separately."""
+        db = PositionDB()
+        fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        # Add 4 games: 3 wins + 1 draw = total 3.5, count 4, mean 0.875
+        db.add_game(GameRecord(positions=[fen], outcome=1.0))
+        db.add_game(GameRecord(positions=[fen], outcome=1.0))
+        db.add_game(GameRecord(positions=[fen], outcome=1.0))
+        db.add_game(GameRecord(positions=[fen], outcome=0.5))
+
+        save_path = tmp_path / "counts.jsonl"
+        db.save(save_path)
+
+        loaded = PositionDB.load(save_path)
+        assert len(loaded) == 1
+        pairs = loaded.all_pairs()
+        # Mean should be (1+1+1+0.5)/4 = 3.5/4 = 0.875
+        assert abs(pairs[0][1] - 0.875) < 1e-9
