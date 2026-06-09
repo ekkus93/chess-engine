@@ -76,10 +76,10 @@ def record_game_and_update_weights(
         return False
 
     train_pairs, val_pairs = db.split(
-        validation_fraction=_VALIDATION_FRACTION,
-        seed=_VALIDATION_SEED,
+        validation_fraction=config.validation_fraction,
+        seed=config.validation_seed,
     )
-    if not val_pairs:
+    if not val_pairs and config.require_validation_improvement:
         return False
 
     weights = load_weights_or_default(config.weights_path)
@@ -100,8 +100,14 @@ def record_game_and_update_weights(
     candidate = optimize(weights, train_db, spsa_opts)
     candidate_val_mse = mean_squared_error(val_pairs, candidate, opts=config.loss_options)
 
-    if candidate_val_mse >= baseline_val_mse:
-        return False
+    # Check validation improvement if required
+    if config.require_validation_improvement:
+        min_threshold = baseline_val_mse - config.min_validation_mse_improvement
+        if candidate_val_mse >= min_threshold:
+            return False
+    else:
+        # If validation not required, accept any candidate
+        pass
 
     if config.weights_path.exists():
         shutil.copy2(config.weights_path, _backup_path(config.weights_path))
