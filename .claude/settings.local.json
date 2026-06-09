@@ -44,7 +44,9 @@
       "Bash(2>&1)",
       "Bash(wait *)",
       "Bash(uv pip *)",
-      "Bash(uv sync *)"
+      "Bash(uv sync *)",
+      "Bash(git stash *)",
+      "Bash(git checkout *)"
     ]
   }
 }
