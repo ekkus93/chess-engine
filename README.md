@@ -66,15 +66,20 @@ Move input format:
 ## Running the tests
 
 ```bash
-# Fast suite (skips AI game simulations)
+# Fast suite (~100 seconds): unit tests, smoke tests, shallow search tests
 uv run python -m pytest tests/ -q -m "not slow"
 
-# Slow suite (AI regression games, ~16 min)
+# Slow suite (~15-20 minutes): AI engine-strength regressions at depth 3+
+# These tests run full games and are expensive but important for catching
+# evaluation degradation from code changes.
 uv run python -m pytest tests/ -q -m "slow"
 
-# Full suite
+# Full suite (fast + slow)
 uv run python -m pytest tests/ -q
 ```
+
+**Note:** Expensive engine-strength tests are marked `@pytest.mark.slow` and excluded from the
+fast suite. Depth 1-2 searches run quickly; depth 3+ searches take minutes per test.
 
 ## Self-improving via Texel tuning
 

@@ -140,11 +140,33 @@ selection, ensuring all random choices (including `random_opening_book`) are con
 
 ## Testing
 
+### Test policy: Fast vs Slow
+
+- **Fast suite** (~100 seconds): Unit tests, smoke tests, and shallow-depth search tests (depth ≤ 2)
+  - Run on every code change
+  - Test behavior via mocking where practical
+  - Catch correctness regressions quickly
+
+- **Slow suite** (~15-20 minutes): Engine-strength regressions at depth 3+
+  - Run before releases or major changes
+  - Marked with `@pytest.mark.slow`
+  - Test full search and evaluation function
+
+**Rule:** Deep search tests (depth > 2) must be marked slow. Fast tests must
+complete in <2 seconds each.
+
+### Running tests
+
 ```bash
 # Fast test suite (excludes @slow markers)
 uv run python -m pytest tests/ -q -m "not slow"
 
+# Slow test suite (depth 3+ engine regressions, ~20 minutes)
+uv run python -m pytest tests/ -q -m "slow"
+
 # Perft node-count correctness checks
+# - Starting position: exact counts (depth 1-4)
+# - Special cases: smoke tests only (castling, en passant, promotion, check evasion)
 uv run python -m pytest tests/test_perft.py -v -m "not slow"
 
 # Terminal-score branching
@@ -153,3 +175,20 @@ uv run python -m pytest tests/test_search_terminal_scores.py -v
 # Quiescence correctness
 uv run python -m pytest tests/test_ai_quiescence_production.py -v
 ```
+
+### Perft coverage
+
+**Starting position** (known-exact):
+- Depth 1: 20 nodes
+- Depth 2: 400 nodes
+- Depth 3: 8,902 nodes
+- Depth 4: 197,281 nodes (slow)
+
+**Special cases** (smoke tests — verify move generation works):
+- Castling: verify move count consistent
+- En passant: verify capturing moves exist
+- Promotion: verify promotion moves exist
+- Check evasion: verify evasion moves exist
+
+**Deferred (future work):** Exact counts for pins, discovered checks, complex
+castling/en passant combinations.

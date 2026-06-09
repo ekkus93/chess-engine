@@ -114,12 +114,38 @@ A `seed` parameter makes validation reproducible.
 After each self-play game in the TUI, `online_learning.record_game_and_update_weights()`
 can update the weights incrementally.
 
-It uses an 80/20 train/validation split.  The candidate weights (after a mini
-SPSA pass on the training set) are only promoted if they achieve lower MSE on
-the **held-out validation set**.  Otherwise the existing weights are kept
-unchanged.  A backup is saved as `<weights>.backup.json` before any promotion.
+It runs a mini SPSA pass on the training set and evaluates the candidate weights
+on a held-out validation set. Candidates are promoted only if they improve over
+the baseline, with the existing weights preserved as a backup.
 
-Configure via `OnlineLearningConfig`.
+### OnlineLearningConfig
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| `db_path` | `chess_game/chess/data/positions.jsonl` | Database path |
+| `weights_path` | `chess_game/chess/data/tuned_weights.json` | Weights path |
+| `enabled` | `True` | Enable/disable online learning entirely |
+| `min_positions` | 50 | Minimum positions before attempting tuning |
+| `spsa_iterations` | 200 | Mini SPSA steps |
+| `spsa_batch_size` | 256 | Positions sampled per step |
+| `require_validation_improvement` | `True` | Reject if validation doesn't improve |
+| `min_validation_mse_improvement` | 0.0 | Minimum MSE improvement threshold |
+| `validation_fraction` | 0.20 | Fraction of positions held for validation |
+| `validation_seed` | 0 | Seed for reproducible train/val split |
+| `keep_rejected_candidate` | `False` | Preserve rejected candidates (future work) |
+| `loss_options` | `LossOptions()` | Loss function configuration |
+
+**Validation gate behavior:**
+- If `require_validation_improvement=True` (default): Reject candidates unless they
+  achieve lower MSE than baseline on the validation set, minus `min_validation_mse_improvement`.
+- If `require_validation_improvement=False`: Accept any candidate (unsafe, not recommended).
+
+**Reproducibility:**
+- Set `validation_seed` to get deterministic train/validation splits across runs.
+
+**Backup and cache:**
+- Existing weights backed up to `<weights>.backup.json` before promotion.
+- Weight cache is invalidated after promotion so the new weights are loaded on next search.
 
 ---
 
