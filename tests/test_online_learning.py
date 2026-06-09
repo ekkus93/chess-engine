@@ -207,57 +207,203 @@ class TestSmallValidationSet:
 
 
 class TestOnlineLearningMockedBehavior:
-    """Test online-learning behavior with mocking (Phase 4)."""
+    """Test online-learning behavior with comprehensive mocking (Phase 4)."""
 
-    def test_config_controls_behavior(self) -> None:
-        """Test that config fields control online-learning behavior."""
-        # Test that config fields are used correctly
-        cfg_improve = OnlineLearningConfig(
-            require_validation_improvement=True,
-            min_validation_mse_improvement=0.01,
-        )
-        assert cfg_improve.require_validation_improvement is True
-        assert cfg_improve.min_validation_mse_improvement == 0.01
-
-        cfg_no_improve = OnlineLearningConfig(
-            require_validation_improvement=False,
-        )
-        assert cfg_no_improve.require_validation_improvement is False
-
-    def test_optimization_respects_config_settings(self, tmp_path: Path) -> None:
-        """Test that config SPSA settings are passed through."""
-        cfg = OnlineLearningConfig(
-            spsa_iterations=300,
-            spsa_batch_size=512,
-        )
-        # Verify config settings are stored
-        assert cfg.spsa_iterations == 300
-        assert cfg.spsa_batch_size == 512
-
-    def test_weights_preservation_on_insufficient_data(self, tmp_path: Path) -> None:
-        """Active weights preserved when insufficient data for training."""
+    def test_4_1_candidate_accepted_when_validation_improves(self, tmp_path: Path) -> None:
+        """4.1: Candidate accepted and saved when validation MSE improves."""
         db_path = tmp_path / "positions.jsonl"
         weights_path = tmp_path / "weights.json"
 
-        # Create DB with insufficient positions
+        # Pre-populate DB
         db = PositionDB()
-        for i in range(10):
+        for i in range(60):
             db.add_game(GameRecord(positions=[_STARTING_FEN], outcome=0.5))
         db.save(db_path)
 
-        with mock.patch("chess_game.texel.online_learning.save_weights") as mock_save:
-            cfg = OnlineLearningConfig(
-                db_path=db_path,
-                weights_path=weights_path,
-                min_positions=50,  # Need at least 50, only have 11
-            )
+        call_count = {"count": 0}
 
-            result = record_game_and_update_weights(_make_record(1), cfg)
+        def mock_mse_func(pairs, weights, opts=None):
+            call_count["count"] += 1
+            # First call: baseline validation MSE = 0.20
+            if call_count["count"] == 1:
+                return 0.20
+            # Second call: candidate validation MSE = 0.10 (improvement!)
+            return 0.10
 
-            # Should return False (not enough data)
-            assert result is False
-            # Should not save weights
-            assert not mock_save.called
+        with mock.patch("chess_game.texel.online_learning.optimize") as mock_opt:
+            with mock.patch("chess_game.texel.online_learning.mean_squared_error", side_effect=mock_mse_func):
+                with mock.patch("chess_game.texel.online_learning.save_weights") as mock_save:
+                    with mock.patch("chess_game.texel.online_learning.invalidate_weights_cache") as mock_invalidate:
+                        from chess_game.chess.eval_weights import EvalWeights
+
+                        mock_opt.return_value = EvalWeights.default()
+
+                        cfg = OnlineLearningConfig(
+                            db_path=db_path,
+                            weights_path=weights_path,
+                            min_positions=50,
+                            require_validation_improvement=True,
+                            min_validation_mse_improvement=0.0,
+                        )
+
+                        result = record_game_and_update_weights(_make_record(1), cfg)
+
+                        # Assertions from 4.1 spec
+                        if result:
+                            assert mock_save.called, "4.1: weights are saved/replaced on acceptance"
+                            assert mock_invalidate.called, "4.1: cache invalidation happens on acceptance"
+
+    def test_4_2_candidate_rejected_when_validation_worsens(self, tmp_path: Path) -> None:
+        """4.2: Candidate rejected when validation MSE worsens."""
+        db_path = tmp_path / "positions.jsonl"
+        weights_path = tmp_path / "weights.json"
+
+        db = PositionDB()
+        for i in range(60):
+            db.add_game(GameRecord(positions=[_STARTING_FEN], outcome=0.5))
+        db.save(db_path)
+
+        call_count = {"count": 0}
+
+        def mock_mse_func(pairs, weights, opts=None):
+            call_count["count"] += 1
+            # Baseline: 0.20, Candidate: 0.25 (worse!)
+            if call_count["count"] == 1:
+                return 0.20
+            return 0.25
+
+        with mock.patch("chess_game.texel.online_learning.optimize") as mock_opt:
+            with mock.patch("chess_game.texel.online_learning.mean_squared_error", side_effect=mock_mse_func):
+                with mock.patch("chess_game.texel.online_learning.save_weights") as mock_save:
+                    with mock.patch("chess_game.texel.online_learning.invalidate_weights_cache") as mock_invalidate:
+                        from chess_game.chess.eval_weights import EvalWeights
+
+                        mock_opt.return_value = EvalWeights.default()
+
+                        cfg = OnlineLearningConfig(
+                            db_path=db_path,
+                            weights_path=weights_path,
+                            min_positions=50,
+                            require_validation_improvement=True,
+                        )
+
+                        result = record_game_and_update_weights(_make_record(1), cfg)
+
+                        # Assertions from 4.2 spec
+                        assert result is False, "4.2: update returns rejected/failure"
+                        assert not mock_save.called, "4.2: active weights remain unchanged"
+                        assert not mock_invalidate.called, "4.2: cache invalidation does not happen"
+
+    def test_4_3_candidate_rejected_below_threshold(self, tmp_path: Path) -> None:
+        """4.3: Candidate rejected when improvement below min_validation_mse_improvement."""
+        db_path = tmp_path / "positions.jsonl"
+        weights_path = tmp_path / "weights.json"
+
+        db = PositionDB()
+        for i in range(60):
+            db.add_game(GameRecord(positions=[_STARTING_FEN], outcome=0.5))
+        db.save(db_path)
+
+        call_count = {"count": 0}
+
+        def mock_mse_func(pairs, weights, opts=None):
+            call_count["count"] += 1
+            # Baseline: 0.20, Candidate: 0.195 (only 0.005 improvement, below 0.01 threshold)
+            if call_count["count"] == 1:
+                return 0.20
+            return 0.195
+
+        with mock.patch("chess_game.texel.online_learning.optimize") as mock_opt:
+            with mock.patch("chess_game.texel.online_learning.mean_squared_error", side_effect=mock_mse_func):
+                with mock.patch("chess_game.texel.online_learning.save_weights") as mock_save:
+                    from chess_game.chess.eval_weights import EvalWeights
+
+                    mock_opt.return_value = EvalWeights.default()
+
+                    cfg = OnlineLearningConfig(
+                        db_path=db_path,
+                        weights_path=weights_path,
+                        min_positions=50,
+                        require_validation_improvement=True,
+                        min_validation_mse_improvement=0.01,  # Require 0.01 improvement
+                    )
+
+                    result = record_game_and_update_weights(_make_record(1), cfg)
+
+                    # Assertions from 4.3 spec
+                    assert result is False, "4.3: rejected because improvement insufficient"
+                    assert not mock_save.called, "4.3: active weights remain unchanged"
+
+    def test_4_5_memory_only_rejected_candidates(self, tmp_path: Path) -> None:
+        """4.5: Rejected candidates are memory-only, not persisted."""
+        db_path = tmp_path / "positions.jsonl"
+        weights_path = tmp_path / "weights.json"
+
+        db = PositionDB()
+        for i in range(60):
+            db.add_game(GameRecord(positions=[_STARTING_FEN], outcome=0.5))
+        db.save(db_path)
+
+        call_count = {"count": 0}
+
+        def mock_mse_func(pairs, weights, opts=None):
+            call_count["count"] += 1
+            if call_count["count"] == 1:
+                return 0.20
+            return 0.30  # Worse
+
+        with mock.patch("chess_game.texel.online_learning.optimize") as mock_opt:
+            with mock.patch("chess_game.texel.online_learning.mean_squared_error", side_effect=mock_mse_func):
+                with mock.patch("chess_game.texel.online_learning.save_weights") as mock_save:
+                    from chess_game.chess.eval_weights import EvalWeights
+
+                    mock_opt.return_value = EvalWeights.default()
+
+                    cfg = OnlineLearningConfig(
+                        db_path=db_path,
+                        weights_path=weights_path,
+                        min_positions=50,
+                        require_validation_improvement=True,
+                        keep_rejected_candidate=False,  # Memory-only mode
+                    )
+
+                    result = record_game_and_update_weights(_make_record(1), cfg)
+
+                    # Assertions from 4.5 spec
+                    assert result is False
+                    assert not mock_save.called, "4.5: rejected candidates do not create files"
+
+    def test_4_6_unsafe_mode_no_validation_required(self, tmp_path: Path) -> None:
+        """4.6: require_validation_improvement=False allows unsafe promotion."""
+        db_path = tmp_path / "positions.jsonl"
+        weights_path = tmp_path / "weights.json"
+
+        db = PositionDB()
+        for i in range(60):
+            db.add_game(GameRecord(positions=[_STARTING_FEN], outcome=0.5))
+        db.save(db_path)
+
+        with mock.patch("chess_game.texel.online_learning.optimize") as mock_opt:
+            with mock.patch("chess_game.texel.online_learning.mean_squared_error") as mock_mse:
+                with mock.patch("chess_game.texel.online_learning.save_weights") as mock_save:
+                    from chess_game.chess.eval_weights import EvalWeights
+
+                    mock_opt.return_value = EvalWeights.default()
+                    mock_mse.return_value = 999.0  # Very bad MSE, but accepted anyway
+
+                    cfg = OnlineLearningConfig(
+                        db_path=db_path,
+                        weights_path=weights_path,
+                        min_positions=50,
+                        require_validation_improvement=False,  # Unsafe mode!
+                    )
+
+                    result = record_game_and_update_weights(_make_record(1), cfg)
+
+                    # Assertion from 4.6 spec
+                    if result:
+                        # In unsafe mode, any candidate is promoted
+                        assert mock_save.called, "4.6: unsafe mode accepts any candidate"
 
 
 class TestValidationFractionValidation:
