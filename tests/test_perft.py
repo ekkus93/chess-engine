@@ -6,7 +6,12 @@ fixed depths and comparing against the known-correct perft values:
   depth 1:      20
   depth 2:     400
   depth 3:   8 902
-  depth 4: 197 281  (slow)
+  depth 4: 197 281  (slow, marked @pytest.mark.slow)
+
+Special perft test cases (castling, en passant, promotion, check evasion):
+  - SMOKE TESTS ONLY: Verify move generation works, not exact node counts
+  - Exact counts deferred (would require external perft databases)
+  - Future work: Add known-count positions for pins, discovered checks, etc.
 """
 from __future__ import annotations
 
@@ -57,36 +62,40 @@ def test_perft_depth_4(start_board: BoardImpl) -> None:
     assert _perft(start_board, 4) == 197281
 
 
-# Special perft cases (shallow depths)
+# Special perft cases (shallow depths) - SMOKE TESTS
+# These verify move generation works for positions with special rules.
+# Exact node counts are deferred (requires external perft databases).
+# Covers: castling, en passant, promotion, check evasions.
 
 
-def test_perft_castling_position() -> None:
-    """Perft for a position with castling rights."""
+def test_perft_smoke_castling_position() -> None:
+    """SMOKE TEST: Position with castling rights generates legal moves."""
     board = Board.from_fen("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1")
-    # Just verify move generation works and counts are consistent
+    # Verify move generation works and produces consistent counts
     assert _perft(board, 1) > 0
     assert _perft(board, 2) > _perft(board, 1)
 
 
-def test_perft_en_passant_position() -> None:
-    """Perft for a position with en passant possibility."""
+def test_perft_smoke_en_passant_position() -> None:
+    """SMOKE TEST: Position with en passant possibility generates legal moves."""
     board = Board.from_fen("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1")
     # Verify move generation works (black can capture en passant)
-    assert _perft(board, 1) > 0
+    moves = board.get_legal_moves()
+    assert len(moves) > 0
 
 
-def test_perft_promotion_position() -> None:
-    """Perft for a position with promotion possibility."""
+def test_perft_smoke_promotion_position() -> None:
+    """SMOKE TEST: Position with promotion possibility generates legal moves."""
     board = Board.from_fen("8/P7/8/8/8/8/8/K6k w - - 0 1")
-    # White pawn can promote
+    # White pawn can promote; verify promotion moves exist
     moves = board.get_legal_moves()
     promotion_moves = [m for m in moves if m[2] is not None]
-    assert len(promotion_moves) > 0  # Should have promotion moves
+    assert len(promotion_moves) > 0, "Should have promotion moves"
 
 
-def test_perft_check_evasion_position() -> None:
-    """Perft for a position with check."""
+def test_perft_smoke_check_evasion_position() -> None:
+    """SMOKE TEST: Position with check generates legal evasion moves."""
     board = Board.from_fen("rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 4 4")
-    # Verify that check does not prevent move generation
+    # Verify that positions with check allow legal moves
     moves = board.get_legal_moves()
-    assert len(moves) > 0  # Should have legal moves from this position
+    assert len(moves) > 0, "Should have legal moves from this position"
