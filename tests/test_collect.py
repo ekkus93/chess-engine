@@ -1,11 +1,24 @@
 """Tests for Texel self-play data collection."""
 from __future__ import annotations
 
+import random
 from pathlib import Path
 
 import pytest
 
+import chess_game.texel.collect as collect_mod
+from chess_game.chess.ai_board_utils import get_legal_moves
 from chess_game.texel.collect import CollectionOptions, collect_games
+
+
+def _first_legal_move(board, depth, book_options=None):
+    """Fake get_best_move: return the first legal move, keeping a game progressing.
+
+    Used to force games to the max-move limit with legal play so draw/discard
+    behavior can be exercised without real (slow) search.
+    """
+    moves = get_legal_moves(board)
+    return moves[0] if moves else None
 
 
 @pytest.mark.slow
@@ -95,30 +108,70 @@ def test_collect_games_aggregates_position_outcomes(tmp_path: Path) -> None:
         assert 0.0 <= outcome <= 1.0
 
 
-def test_collect_games_max_move_result_draw() -> None:
-    """max_move_result='draw' should treat timeout games as draws."""
+def test_play_game_propagates_weights_to_get_best_move(monkeypatch) -> None:
+    """CollectionOptions.weights must reach get_best_move via BestMoveOptions.
+
+    Behavior test: monkeypatches the real get_best_move used by _play_game and
+    captures the BestMoveOptions actually passed by the collection code.
+    """
+    from chess_game.chess.eval_weights import EvalWeights
+
+    custom = EvalWeights.default()
+    captured: list = []
+
+    def fake_get_best_move(board, depth, book_options=None):
+        captured.append(book_options)
+        return None  # end the game immediately after the first call
+
+    monkeypatch.setattr(collect_mod, "get_best_move", fake_get_best_move)
+
     opts = CollectionOptions(
-        db_path=Path("/tmp/test_draw.jsonl"),
+        db_path=Path("/tmp/unused.jsonl"),
         num_games=1,
         depth=1,
-        max_moves=1,
+        weights=custom,
+        skip_opening_plies=0,
+    )
+    collect_mod._play_game(opts, random.Random(0))
+
+    assert captured, "get_best_move should have been invoked by _play_game"
+    assert captured[0].weights is custom, "weights must propagate into BestMoveOptions"
+
+
+def test_play_game_max_move_draw_returns_half(monkeypatch) -> None:
+    """Hitting max_moves with max_move_result='draw' yields a 0.5 GameRecord."""
+    monkeypatch.setattr(collect_mod, "get_best_move", _first_legal_move)
+
+    opts = CollectionOptions(
+        db_path=Path("/tmp/unused.jsonl"),
+        num_games=1,
+        depth=1,
+        max_moves=4,
+        skip_opening_plies=0,
         max_move_result="draw",
     )
-    # Just verify the config accepts 'draw'
-    assert opts.max_move_result == "draw"
+    record = collect_mod._play_game(opts, random.Random(0))
+
+    assert record is not None
+    assert record.outcome == pytest.approx(0.5)
+    assert len(record.positions) > 0
 
 
-def test_collect_games_max_move_result_discard() -> None:
-    """max_move_result='discard' should discard timeout games."""
+def test_play_game_max_move_discard_returns_none(monkeypatch) -> None:
+    """Hitting max_moves with max_move_result='discard' returns None (game dropped)."""
+    monkeypatch.setattr(collect_mod, "get_best_move", _first_legal_move)
+
     opts = CollectionOptions(
-        db_path=Path("/tmp/test_discard.jsonl"),
+        db_path=Path("/tmp/unused.jsonl"),
         num_games=1,
         depth=1,
-        max_moves=1,
+        max_moves=4,
+        skip_opening_plies=0,
         max_move_result="discard",
     )
-    # Just verify the config accepts 'discard'
-    assert opts.max_move_result == "discard"
+    record = collect_mod._play_game(opts, random.Random(0))
+
+    assert record is None
 
 
 def test_collect_games_invalid_max_move_result_raises() -> None:
@@ -164,39 +217,81 @@ def test_collect_games_weights_parameter_accepted() -> None:
     assert opts.weights is weights
 
 
-def test_collect_games_draw_outcome_is_half() -> None:
-    """When max_move_result='draw', games hitting limit should have 0.5 outcome."""
-    # This is a smoke test verifying the config accepts 'draw'.
-    # Full integration test would need monkeypatch of game loop to force max_moves.
+def test_collect_games_draw_stores_half_outcomes(monkeypatch, tmp_path: Path) -> None:
+    """collect_games with max_move_result='draw' stores positions with 0.5 outcome."""
+    monkeypatch.setattr(collect_mod, "get_best_move", _first_legal_move)
+
     opts = CollectionOptions(
-        db_path=Path("/tmp/test.jsonl"),
+        db_path=tmp_path / "draw.jsonl",
         num_games=1,
         depth=1,
-        max_moves=1,
+        max_moves=4,
+        skip_opening_plies=0,
         max_move_result="draw",
     )
-    assert opts.max_move_result == "draw"
+    db = collect_games(opts)
+
+    assert len(db) > 0
+    assert all(outcome == pytest.approx(0.5) for _, outcome in db.all_pairs())
 
 
-def test_collect_games_discard_outcome_stores_nothing() -> None:
-    """When max_move_result='discard', games hitting limit don't contribute."""
-    # This is a smoke test verifying the config accepts 'discard'.
-    # Full integration test would need monkeypatch of game loop to force max_moves.
+def test_collect_games_discard_stores_nothing(monkeypatch, tmp_path: Path) -> None:
+    """collect_games with max_move_result='discard' stores no positions."""
+    monkeypatch.setattr(collect_mod, "get_best_move", _first_legal_move)
+
     opts = CollectionOptions(
-        db_path=Path("/tmp/test.jsonl"),
-        num_games=1,
+        db_path=tmp_path / "discard.jsonl",
+        num_games=2,
         depth=1,
-        max_moves=1,
+        max_moves=4,
+        skip_opening_plies=0,
         max_move_result="discard",
     )
-    assert opts.max_move_result == "discard"
+    db = collect_games(opts)
+
+    assert len(db) == 0
 
 
-# Phase 5: Collection behavior tests (comprehensive behavior verification)
+def test_collect_games_same_seed_reproducible(monkeypatch, tmp_path: Path) -> None:
+    """Same CollectionOptions.seed produces identical recorded data.
+
+    The fake move chooser keys off the per-move rng_seed that collect_games
+    derives from its seeded random.Random(seed), so reproducibility genuinely
+    depends on the collection seed rather than being trivially constant.
+    """
+
+    def seeded_choice(board, depth, book_options=None):
+        moves = get_legal_moves(board)
+        if not moves:
+            return None
+        return moves[book_options.rng_seed % len(moves)]
+
+    monkeypatch.setattr(collect_mod, "get_best_move", seeded_choice)
+
+    def run(path: Path) -> dict:
+        opts = CollectionOptions(
+            db_path=path,
+            num_games=2,
+            depth=1,
+            max_moves=6,
+            skip_opening_plies=0,
+            max_move_result="draw",
+            seed=42,
+        )
+        return dict(collect_games(opts).all_pairs())
+
+    first = run(tmp_path / "a.jsonl")
+    second = run(tmp_path / "b.jsonl")
+
+    assert len(first) > 0
+    assert first == second
 
 
-def test_5_1_collection_options_stores_all_fields() -> None:
-    """5.1: CollectionOptions stores all configuration fields correctly."""
+# Configuration and persistence tests (named honestly; not behavior claims)
+
+
+def test_collection_options_stores_all_fields() -> None:
+    """Config test: CollectionOptions stores all configuration fields."""
     opts = CollectionOptions(
         db_path=Path("/tmp/db.jsonl"),
         num_games=10,
@@ -207,7 +302,6 @@ def test_5_1_collection_options_stores_all_fields() -> None:
         weights=None,
         max_move_result="draw",
     )
-    # Verify all fields are stored correctly
     assert opts.num_games == 10
     assert opts.depth == 2
     assert opts.skip_opening_plies == 8
@@ -217,187 +311,21 @@ def test_5_1_collection_options_stores_all_fields() -> None:
     assert opts.max_move_result == "draw"
 
 
-def test_5_6_invalid_max_move_result_raises_valueerror() -> None:
-    """5.6: Invalid max_move_result values raise ValueError."""
-    with pytest.raises(ValueError):
-        CollectionOptions(
-            db_path=Path("/tmp/db.jsonl"),
-            num_games=1,
-            depth=1,
-            max_move_result="invalid_value",
-        )
+def test_position_db_persists_draw_outcome(tmp_path: Path) -> None:
+    """Persistence test: a 0.5 GameRecord round-trips through PositionDB as 0.5.
 
-
-def test_5_3_max_move_draw_stores_outcome_half(tmp_path: Path) -> None:
-    """5.3: When max_move_result='draw', outcome recorded as 0.5."""
-    from chess_game.texel.position_db import GameRecord, PositionDB
-
-    db_path = tmp_path / "test.jsonl"
-
-    # Simulate a game that would hit max_moves with draw result
-    game = GameRecord(
-        positions=["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"],
-        outcome=0.5,  # Draw outcome (from max_move_result="draw")
-    )
-
-    db = PositionDB()
-    db.add_game(game)
-    db.save(db_path)
-
-    # Verify draw outcome is stored
-    db_loaded = PositionDB.load(db_path)
-    for _, outcome in db_loaded.all_pairs():
-        assert outcome == 0.5, "5.3: max_move_result='draw' stores outcome=0.5"
-
-
-def test_5_4_max_move_discard_config_accepted(tmp_path: Path) -> None:
-    """5.4: max_move_result='discard' configuration is accepted."""
-    db_path = tmp_path / "test.jsonl"
-
-    # Verify discard mode can be configured
-    opts = CollectionOptions(
-        db_path=db_path,
-        num_games=1,
-        depth=1,
-        max_moves=1,
-        max_move_result="discard",
-    )
-
-    assert opts.max_move_result == "discard"
-
-
-def test_5_5_draw_outcome_stored_as_half(tmp_path: Path) -> None:
-    """5.5: Draw outcomes are stored as 0.5."""
+    Explicitly a persistence test, not collection draw-detection (which is
+    covered by test_play_game_max_move_draw_returns_half).
+    """
     from chess_game.texel.position_db import GameRecord, PositionDB
 
     db_path = tmp_path / "positions.jsonl"
-
-    # Create a game record with draw outcome
-    game_record = GameRecord(
-        positions=["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"],
-        outcome=0.5,  # Draw
-    )
-
+    fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
     db = PositionDB()
-    db.add_game(game_record)
+    db.add_game(GameRecord(positions=[fen], outcome=0.5))
     db.save(db_path)
 
-    db_loaded = PositionDB.load(db_path)
-
-    # Verify draw outcome persisted as 0.5
-    outcomes = [outcome for _, outcome in db_loaded.all_pairs()]
-    assert len(outcomes) > 0, "Should have stored positions"
-    for outcome in outcomes:
-        assert outcome == 0.5, "5.5: Draw outcomes should be stored as 0.5"
-
-
-def test_5_7_collection_seed_configuration() -> None:
-    """5.7: Same seed enables reproducible collection behavior."""
-    db_path1 = Path("/tmp/db1.jsonl")
-    db_path2 = Path("/tmp/db2.jsonl")
-
-    # Collection with seed=42
-    opts1 = CollectionOptions(
-        db_path=db_path1,
-        num_games=3,
-        depth=1,
-        seed=42,
-    )
-
-    opts2 = CollectionOptions(
-        db_path=db_path2,
-        num_games=3,
-        depth=1,
-        seed=42,
-    )
-
-    # Both should have same seed for reproducibility
-    assert opts1.seed == opts2.seed == 42
-    # Verify seed is stored correctly
-    assert opts1.seed is not None
-
-
-def test_5_2_weights_field_stored_in_options() -> None:
-    """5.2: CollectionOptions.weights field is stored correctly."""
-    from chess_game.chess.eval_weights import EvalWeights
-
-    custom_weights = EvalWeights.default()
-
-    opts = CollectionOptions(
-        db_path=Path("/tmp/test.jsonl"),
-        num_games=1,
-        depth=1,
-        weights=custom_weights,
-    )
-
-    # Verify weights are stored in options
-    assert opts.weights is custom_weights
-
-
-def test_5_8_slow_tests_properly_marked() -> None:
-    """5.8: Real self-play collection tests are marked @pytest.mark.slow."""
-    # Verify known slow tests exist
-    slow_test_names = {
-        "test_collect_games_produces_nonempty_db",
-        "test_collect_games_outcomes_are_valid",
-        "test_collect_games_appends_to_existing_db",
-        "test_collect_games_with_custom_weights_completes",
-    }
-    # These test names should exist in test_collect.py
-    # Actual marking is verified by pytest discovery
-    assert len(slow_test_names) > 0, "Slow tests should be defined"
-
-
-def test_5_2_weights_propagation_via_best_move_options(tmp_path: Path) -> None:
-    """5.2: CollectionOptions.weights passed to get_best_move via BestMoveOptions."""
-    from unittest import mock
-    from chess_game.chess.eval_weights import EvalWeights
-
-    db_path = tmp_path / "test.jsonl"
-    custom_weights = EvalWeights.default()
-
-    with mock.patch("chess_game.texel.collect.get_best_move") as mock_best_move:
-        mock_best_move.return_value = "e2e4"
-
-        opts = CollectionOptions(
-            db_path=db_path,
-            num_games=1,
-            depth=1,
-            weights=custom_weights,
-        )
-
-        # Verify CollectionOptions.weights is stored
-        assert opts.weights is custom_weights, "5.2: weights stored in CollectionOptions"
-
-        # When collect_games is called with weights, they should be passed to get_best_move
-        # via the BestMoveOptions.eval_weights parameter
-        # The actual monkeypatching happens in collect_games internals
-        assert opts.weights is not None, "5.2: weights available for propagation"
-
-
-# Phase 3: Behavior verification tests (TEXEL_FIX5)
-
-
-def test_phase3_max_move_result_config_invalid_raises() -> None:
-    """Phase 3.6: Invalid max_move_result value raises ValueError at construction."""
-    with pytest.raises(ValueError):
-        CollectionOptions(
-            db_path=Path("/tmp/test.jsonl"),
-            num_games=1,
-            depth=1,
-            max_move_result="invalid_mode",
-        )
-
-
-def test_phase3_invalid_max_move_documented() -> None:
-    """Phase 3.6: max_move_result validation is applied at CollectionOptions init."""
-    # Valid values should work
-    valid_modes = ["draw", "discard"]
-    for mode in valid_modes:
-        opts = CollectionOptions(
-            db_path=Path("/tmp/test.jsonl"),
-            num_games=1,
-            depth=1,
-            max_move_result=mode,
-        )
-        assert opts.max_move_result == mode
+    reloaded = PositionDB.load(db_path)
+    outcomes = [outcome for _, outcome in reloaded.all_pairs()]
+    assert outcomes
+    assert all(outcome == pytest.approx(0.5) for outcome in outcomes)
