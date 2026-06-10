@@ -866,8 +866,14 @@ def test_tt_stores_non_none_best_move():
     assert any(entry.best_move is not None for entry in tt.values())
 
 
+@pytest.mark.slow
 def test_tt_does_not_overwrite_deeper_entry():
-    """A shallower TT entry should not overwrite a deeper one."""
+    """A shallower TT entry should not overwrite a deeper one.
+
+    Marked slow: the depth-2 root search on a full board runs ~2.5s, over the
+    2-second fast-test budget. The transposition-table mechanism keeps fast
+    coverage via the depth-1 tests below (flag, depth, score).
+    """
     board = make_simple_board_with_legal_moves()
     tt: dict = {}
 

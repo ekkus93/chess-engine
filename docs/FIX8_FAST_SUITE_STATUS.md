@@ -38,22 +38,23 @@ added (the spec said not to block this patch on end-to-end coverage).
 
 ## Remaining non-slow tests over 2 seconds (documented, not changed)
 
-Per the Fix 8 reply guidance (do not chase sub-second optimizations; document
-justified slightly-over-2s tests when the suite is comfortably under target):
+Per owner decision, the slow-marker policy is applied literally: no non-slow
+test should exceed the 2-second budget. Two `test_ai_search.py` tests were moved
+to the slow suite:
 
-- `tests/test_ai_search.py::test_tt_does_not_overwrite_deeper_entry` — ~2.5s.
-  Real search at **depth 2**; a transposition-table correctness invariant. Does
-  not trigger the "depth 3+ -> slow" rule; left fast as a justified
-  slightly-over-2s case. Now the slowest non-slow test.
-- `tests/test_opening_book_search_integration.py::test_book_to_offbook_transition_keeps_repetition_aware_search`
-  — ~2.0s. Book/search integration invariant.
+- `test_alpha_beta_tight_window_visits_no_more_nodes_than_wide_window` — ran two
+  **depth-3** root searches (~2.3s), violating "real engine search at depth 3 or
+  higher". Now `@pytest.mark.slow`.
+- `test_tt_does_not_overwrite_deeper_entry` — a depth-2 root search on a full
+  board (~2.5s), over the 2-second fast-test budget. Now `@pytest.mark.slow`.
+  The transposition-table mechanism keeps fast coverage via the adjacent
+  depth-1 tests (flag/depth/score).
 
-Resolved: `test_alpha_beta_tight_window_visits_no_more_nodes_than_wide_window`
-ran two **depth-3** searches, violating the strict Problem-5 policy ("real
-engine search at depth 3 or higher"). Per owner decision to follow the policy
-literally, it is now `@pytest.mark.slow` (excluded from the fast suite; passes
-under `-m slow` in ~2.3s). Fast suite after this change: 1030 passed, 170
-deselected, ~34.5s.
+Both are excluded from the fast suite and pass under `-m slow`. After the
+change the fast suite is **1029 passed, 171 deselected, ~31s**, and the slowest
+remaining non-slow test is ~2.0s
+(`test_opening_book_search_integration::test_book_to_offbook_transition_keeps_repetition_aware_search`),
+so no non-slow test exceeds the 2-second target.
 
 ## Verified intact / revalidated
 
