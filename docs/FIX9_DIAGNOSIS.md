@@ -69,8 +69,24 @@ acceptable-set test — not by reverting the quiescence improvement.
 
 Recommendation: option 1 (general "prefer realizing material sooner" root
 tie-break) — it matches replies14.md's "stronger eval preference" and is the
-narrowest engine change. Pending confirmation before implementing, given
-engine-wide tie-break changes touch the 161 passing slow tests.
+narrowest engine change.
+
+### FIXED (option 1 implemented)
+
+Diagnostics revealed the real imbalance: at the exact tie, `root_stability_adjustment`
+gave `Qf6+` an `_attacking_root_bonus` of **46** (speculative queen pressure near
+the king) vs `Qxd5`'s 30 — so a speculative nudge outranked concrete material.
+
+Fix (`chess_game/chess/ai_search_helpers.py`): added `_material_realization_bonus`
+to `root_stability_adjustment` — a mover-relative root tie-break scaled by
+captured value (`MATERIAL_VALUES[captured] // 10`) and capped at 49 (just under
+`ROOT_TIEBREAK_MARGIN`=50). A concrete capture now outranks the speculative
+attack/strategic nudges at (near-)equal search scores, but cannot override a
+score difference the search judged larger than the tie band.
+
+Validation: hanging-rook passes; `test_ai_quality.py` 52 passed; fast suite 1029
+passed; strategy6/7/8 + endgame1 files 88 passed (only the other 7 known
+failures remain — no new regressions). Full slow suite to be run at the end.
 
 ---
 

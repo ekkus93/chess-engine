@@ -85,6 +85,11 @@ ROOT_TIEBREAK_MARGIN, ROOT_TIEBREAK_OVERRIDE = 50, 24
 ROOT_TIEBREAK_MAX_SCORE_GAP, ROOT_TIEBREAK_WINNING_SCORE = 96, 1000
 _PAWN_STRUCTURE_CHANGE_ROOT_BONUS, _OPENING_CENTRAL_PAWN_ROOT_BONUS = 18, 14
 _MOVE1_CENTRAL_PAWN_BONUS = 320
+# Capped just under ROOT_TIEBREAK_MARGIN: a concrete material capture dominates
+# the speculative attack/strategic root nudges at (near-)equal search scores, but
+# still cannot override a score difference the search judged larger than the tie
+# band.
+_MATERIAL_REALIZATION_CAP = 49
 @dataclass(frozen=True)
 class RepetitionPolicy:
     """Configuration for repetition-aware draw scoring."""
@@ -371,6 +376,21 @@ def defensive_capture_bonus(
     return score
 
 
+def _material_realization_bonus(board: Board, move: Move) -> int:
+    """Mover-relative root tie-break nudge toward realizing material immediately.
+
+    Among root moves the search scores equally, prefer the one that captures
+    material now (a concrete gain) over deferring it to a later ply. Scaled by
+    captured value and capped at _MATERIAL_REALIZATION_CAP so a real capture
+    outranks the speculative attack/strategic nudges without overriding score
+    differences the search judged larger than the tie band.
+    """
+    captured = board.get_piece(move.end)
+    if captured is None:
+        return 0
+    return min(MATERIAL_VALUES[captured.kind] // 10, _MATERIAL_REALIZATION_CAP)
+
+
 def root_stability_adjustment(
     board: Board,
     move: Move,
@@ -407,6 +427,7 @@ def root_stability_adjustment(
         moving_piece.kind,
         moving_color,
     )
+    signed_bonus += _material_realization_bonus(board, move)
     signed_bonus -= _repetition_root_penalty(
         board,
         move,
