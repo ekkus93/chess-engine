@@ -613,6 +613,34 @@ def _tie_break(
     return chooser.random() < 0.5
 
 
+def _fold_search_best(
+    params: MinimaxParams,
+    child_score: int,
+    search_best_score: int,
+    search_best_move: Optional[LegalMove],
+    move: Move,
+) -> tuple[int, Optional[LegalMove], bool]:
+    """Fold one child result into the running search best.
+
+    Returns ``(search_best_score, search_best_move, is_better)`` where ``is_better``
+    reports whether ``child_score`` strictly improved on the prior best. Callers use
+    ``is_better`` to detect a non-improving root move whose reported score is only an
+    alpha-beta bound rather than its exact value.
+    """
+
+    is_det = params.context is not None and params.context.deterministic
+    tie_rng = params.context.rng if params.context is not None else None
+    if params.is_maximizing:
+        is_better = child_score > search_best_score
+        is_tie = child_score == search_best_score
+    else:
+        is_better = child_score < search_best_score
+        is_tie = child_score == search_best_score
+    if is_better or (is_tie and _tie_break(move, search_best_move, is_det, tie_rng)):
+        return child_score, LegalMove(move.start, move.end, move.promotion), is_better
+    return search_best_score, search_best_move, is_better
+
+
 def _search_move_loop(
     board: Board,
     ordered_moves: list[Move],
@@ -630,17 +658,15 @@ def _search_move_loop(
 
     for move in ordered_moves:
         child_score, root_tiebreak = _evaluate_child_move(board, move, params, alpha, beta)
-        if params.is_maximizing:
-            is_better = child_score > search_best_score
-            is_tie = child_score == search_best_score
-        else:
-            is_better = child_score < search_best_score
-            is_tie = child_score == search_best_score
         is_det = params.context is not None and params.context.deterministic
         tie_rng = params.context.rng if params.context is not None else None
-        if is_better or (is_tie and _tie_break(move, search_best_move, is_det, tie_rng)):
-            search_best_score = child_score
-            search_best_move = LegalMove(move.start, move.end, move.promotion)
+        search_best_score, search_best_move, is_better = _fold_search_best(
+            params,
+            child_score,
+            search_best_score,
+            search_best_move,
+            move,
+        )
         if len(params.line_history) == 1:
             replace_selected_move = _prefer_root_move(
                 params.is_maximizing,
@@ -666,6 +692,21 @@ def _search_move_loop(
                 # re-search is gated on ``not is_better``.
                 child_score, root_tiebreak = _evaluate_child_move(
                     board, move, params, -INF, INF
+                )
+                # The exact full-window score supersedes the discarded bound, so
+                # re-fold it into the search best before deciding root selection:
+                # search_best_score / search_best_move feed alpha-beta, the TT
+                # store, and the returned root score, and must reflect the exact
+                # value, never the stale bound. (A bounded non-improving move can
+                # only resolve to an exact value no better than search_best_score,
+                # so this updates search_best_move on a genuine tie and can never
+                # leave a bound in the search-best state.)
+                search_best_score, search_best_move, _ = _fold_search_best(
+                    params,
+                    child_score,
+                    search_best_score,
+                    search_best_move,
+                    move,
                 )
                 replace_selected_move = _prefer_root_move(
                     params.is_maximizing,

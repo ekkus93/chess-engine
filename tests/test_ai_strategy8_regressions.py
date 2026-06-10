@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from chess_game.chess import ai
-from chess_game.chess.ai import _move_order_score, get_best_move
+from chess_game.chess.ai import BestMoveOptions, _move_order_score, get_best_move
 from chess_game.chess.ai_search_helpers import (
     RepetitionPolicy,
     _high_danger_root_bonus,
@@ -20,6 +20,10 @@ from chess_game.chess.conversion_guidance import (
 from chess_game.chess.endgame_choice_guidance import _choice_context, _theater_switch_penalty
 from chess_game.chess.types import Color, LegalMove, PieceType
 from tests.helpers import sq
+
+# Regression targets must be stable across runs: disable the opening book and use
+# deterministic equal-score tie-breaking rather than random selection.
+_DETERMINISTIC = BestMoveOptions(use_opening_book=False, deterministic=True)
 
 
 def _board_from_moves(moves: list[tuple[str, str]]) -> Board:
@@ -116,7 +120,7 @@ def test_strategy8_search_demotes_flank_poke_when_castling_is_available() -> Non
 
     assert _move_order_score(board, castle, None) > _move_order_score(board, flank_poke, None)
 
-    best_move = get_best_move(board, depth=2)
+    best_move = get_best_move(board, depth=2, book_options=_DETERMINISTIC)
 
     assert best_move != LegalMove(start=sq("a2"), end=sq("a4"))
 

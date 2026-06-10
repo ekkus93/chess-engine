@@ -7,6 +7,7 @@ import pytest
 from chess_game.chess import ai
 from chess_game.chess.ai import (
     INF,
+    BestMoveOptions,
     SearchContext,
     SearchStats,
     _move_order_score,
@@ -24,6 +25,9 @@ from chess_game.chess.board import Board, create_piece
 from chess_game.chess.move import Move
 from chess_game.chess.types import Color, LegalMove, PieceType
 from tests.helpers import sq
+
+# Stable equal-score selection for regression targets (no opening book, no RNG).
+_DETERMINISTIC = BestMoveOptions(use_opening_book=False, deterministic=True)
 
 
 def _empty_board_with_kings() -> Board:
@@ -422,7 +426,7 @@ def test_simple_quality_benchmark_prefers_hanging_rook_capture() -> None:
     board.set_piece(sq("d4"), create_piece(Color.WHITE, PieceType.QUEEN))
     board.set_piece(sq("d5"), create_piece(Color.BLACK, PieceType.ROOK))
 
-    best_move = get_best_move(board, depth=2)
+    best_move = get_best_move(board, depth=2, book_options=_DETERMINISTIC)
 
     assert best_move == LegalMove(start=sq("d4"), end=sq("d5"))
 

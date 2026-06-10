@@ -3,13 +3,17 @@
 import pytest
 
 from chess_game.chess import ai
-from chess_game.chess.ai import get_best_move, get_evaluation_breakdown
+from chess_game.chess.ai import BestMoveOptions, get_best_move, get_evaluation_breakdown
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.types import Color, LegalMove, PieceType
 from tests.helpers import sq
 from tests.test_ai_quality import _move_order_score
 
 pytestmark = pytest.mark.slow
+
+# Regression targets must be stable across runs: disable the opening book and use
+# deterministic equal-score tie-breaking rather than random selection.
+_DETERMINISTIC = BestMoveOptions(use_opening_book=False, deterministic=True)
 
 
 def _board_from_moves(moves: list[tuple[str, str]]) -> Board:
@@ -431,7 +435,7 @@ def test_strategy6_search_keeps_king_safer_than_g_pawn_lunge_in_transition() -> 
     board.make_move(sq("c6"), sq("d4"))
     board.make_move(sq("h3"), sq("g2"))
 
-    best = get_best_move(board, depth=3)
+    best = get_best_move(board, depth=3, book_options=_DETERMINISTIC)
     # FIX9 diagnostics (tests/root_diagnostics.py, depth 3): the engine's
     # search-best move is Nh6-g4 (score -1035), 72cp better than the best
     # bishop development c8-g4 (-963) and stable in quiescence. Nh6-g4
@@ -470,7 +474,7 @@ def test_strategy6_search_prefers_clearer_knight_route_over_na7_in_transition() 
     ]:
         board.make_move(sq(start), sq(end))
 
-    best = get_best_move(board, depth=3)
+    best = get_best_move(board, depth=3, book_options=_DETERMINISTIC)
     # Accept Nb5-d6 (toward center/outpost) or Nb5-c3 (recentralize) — both
     # are better than the Na7 rim retreat this test guards against.
     # FIX9 diagnostics (depth 3): the engine's search-best move is the passed
@@ -553,7 +557,9 @@ def test_strategy6_search_prefers_clean_rook_capture_during_conversion() -> None
     ]:
         board.make_move(sq(start), sq(end))
 
-    assert get_best_move(board, depth=3) == LegalMove(start=sq("b4"), end=sq("d6"))
+    assert get_best_move(board, depth=3, book_options=_DETERMINISTIC) == LegalMove(
+        start=sq("b4"), end=sq("d6")
+    )
 
 
 def test_strategy6_depth3_prefers_queen_trade_in_won_ending() -> None:

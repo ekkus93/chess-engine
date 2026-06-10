@@ -3,7 +3,7 @@
 import pytest
 
 from chess_game.chess import ai
-from chess_game.chess.ai import get_best_move, get_evaluation_breakdown
+from chess_game.chess.ai import BestMoveOptions, get_best_move, get_evaluation_breakdown
 from chess_game.chess.ai_search_helpers import root_stability_adjustment
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.types import Color, LegalMove, PieceType
@@ -11,6 +11,10 @@ from tests.helpers import sq
 from tests.test_ai_quality import _move_order_score
 
 pytestmark = pytest.mark.slow
+
+# Regression targets must be stable across runs: disable the opening book and use
+# deterministic equal-score tie-breaking rather than random selection.
+_DETERMINISTIC = BestMoveOptions(use_opening_book=False, deterministic=True)
 
 
 def _board_from_moves(moves: list[tuple[str, str]]) -> Board:
@@ -686,7 +690,7 @@ def test_strategy7_search_prefers_only_blockade_move_in_passer_race() -> None:
 
     board = _task7_only_blockadable_board()
 
-    best = get_best_move(board, depth=3)
+    best = get_best_move(board, depth=3, book_options=_DETERMINISTIC)
     acceptable = [
         LegalMove(start=sq("a8"), end=sq("b8")),  # Rb8 textbook blockade
         LegalMove(start=sq("a8"), end=sq("a5")),  # Ra5 — engine's pick, still wins
@@ -725,7 +729,7 @@ def test_strategy7_search_prefers_stopping_enemy_race_over_wrong_side_check() ->
     # the king while the queen keeps the pawn stopped. Accept the king
     # centralization alongside the queen blockades; the meaningful invariant is
     # "the b-pawn stays stopped", which all three satisfy.
-    best = get_best_move(board, depth=3)
+    best = get_best_move(board, depth=3, book_options=_DETERMINISTIC)
     acceptable = [
         LegalMove(start=sq("e5"), end=sq("b8")),  # Qb8 blockade
         LegalMove(start=sq("e5"), end=sq("c7")),  # Qc7 also stops the pawn

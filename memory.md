@@ -2,6 +2,52 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-10T21:52:17Z - Claude Opus 4.8 (1M context) - FIX10 COMPLETE: root re-search bookkeeping fix + tests; full slow suite green (no net regression)
+
+FIX10 (CHESS_ENGINE_SLOW_STRENGTH_FIX10) is done. Key finding: the FIX10 SPEC was
+written by ChatGPT 5.5 against a **stale snapshot** (commit `e0a0157`, the 2/8 point
+of FIX9); a `git pull` had rebased the rest of FIX9 on top, so most of FIX10's
+"still failing" premises (endgame cutoff, Strategy6/7, the `not is_tie` gate) were
+already resolved. Ground-truth re-run at HEAD confirmed the 8 named targets already
+pass (8 passed, 4m36s). Per the user's direction in `docs/replies15.md`, FIX10 was
+scoped down to the one genuinely-open item rather than redoing FIX9 work. The
+question/answer exchange is in `docs/responses15.md`; full triage in
+`docs/FIX10_COMPLETION_DIAGNOSIS.md`.
+
+### The real fix: root re-search bookkeeping (chess_game/chess/ai.py)
+
+FIX9's full-window re-search of a non-improving root move only re-ran
+`_prefer_root_move`; it never re-folded the **exact** score into
+`search_best_score`/`search_best_move`. So when the exact re-search proved a move
+best, the root could return `(search_best_score, root_selected_move)` with the score
+belonging to a *different* move than the returned move, and the TT could store that
+stale pairing. Fix: after the re-search, re-fold the exact score via a new helper
+`_fold_search_best(params, child_score, search_best_score, search_best_move, move)`
+used at both update sites; this keeps alpha-beta, the TT store, and the returned root
+score consistent with the exact value. The helper extraction (replacing duplicated
+inline `if/else`) also kept `pylint chess_game` at 10.00/10 — no pragmas. The
+intentional clearly-winning practical-override path (`_strong_root_tiebreak_override`,
+e.g. Strategy7 only_blockade) still lets the played move differ from the objective
+best; that is a playing preference, not stale bookkeeping, and is preserved.
+
+### Tests + determinism
+
+- `tests/test_root_research_bookkeeping.py` (4 tests): scripted-fake unit tests of
+  `_search_move_loop` (bounded vs exact). Verified by stashing the fix — only
+  `test_exact_better_rescore_updates_search_best_and_return` flips to failing
+  (`assert 100 == 160`), proving it guards the bug; the other 3 lock in FIX9 behavior.
+- The 8 named slow targets now pass `BestMoveOptions(use_opening_book=False,
+  deterministic=True)` via `get_best_move(book_options=...)`. No production default
+  change.
+
+### Validation gates (all green)
+
+ruff + mypy clean; `pylint chess_game` 10.00/10 (3 pre-existing R0911 unchanged);
+fast suite 1033 passed (1029 + 4 new); Fix7 85 passed; Fix8 TUI 31 passed, no long
+sleeps, runtime marker intact; 8 named targets 8 passed; **full slow suite = 171
+passed, 0 failed, 1033 deselected (52m59s)** — identical to the FIX9 baseline, no
+net regression.
+
 ## 2026-06-10T18:15:53Z - Claude Opus 4.8 (1M context) - FIX9 COMPLETE: 8/8 slow-strength failures resolved, full slow suite green
 
 FIX9 (CHESS_ENGINE_SLOW_STRENGTH_FIX9) is done. The decisive no-net-regression

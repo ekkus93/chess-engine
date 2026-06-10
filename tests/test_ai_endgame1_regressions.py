@@ -4,6 +4,7 @@ import pytest
 
 from chess_game.chess import ai
 from chess_game.chess.ai import (
+    BestMoveOptions,
     _root_stability_adjustment,
     get_best_move,
     get_evaluation_breakdown,
@@ -18,6 +19,9 @@ from tests.test_ai_quality import _move_order_score
 
 
 pytestmark = pytest.mark.slow
+
+# Stable equal-score selection for regression targets (no opening book, no RNG).
+_DETERMINISTIC = BestMoveOptions(use_opening_book=False, deterministic=True)
 
 
 def _build_board(
@@ -636,7 +640,7 @@ def test_endgame1_search_prefers_cutoff_before_starting_pawn_race() -> None:
     # shoulder the black king. Accept the king escort alongside the rook
     # cutoffs; both convert. The meaningful invariant is "a winning rook cutoff
     # or king escort, not a blunder".
-    best = get_best_move(board, depth=3)
+    best = get_best_move(board, depth=3, book_options=_DETERMINISTIC)
     assert best.start == sq("a5") or best == LegalMove(start=sq("d4"), end=sq("e5")), (
         f"Expected a rook cutoff (start a5) or the king escort Kd4-e5, got {best}"
     )
