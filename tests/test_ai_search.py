@@ -866,8 +866,14 @@ def test_tt_stores_non_none_best_move():
     assert any(entry.best_move is not None for entry in tt.values())
 
 
+@pytest.mark.slow
 def test_tt_does_not_overwrite_deeper_entry():
-    """A shallower TT entry should not overwrite a deeper one."""
+    """A shallower TT entry should not overwrite a deeper one.
+
+    Marked slow: the depth-2 root search on a full board runs ~2.5s, over the
+    2-second fast-test budget. The transposition-table mechanism keeps fast
+    coverage via the depth-1 tests below (flag, depth, score).
+    """
     board = make_simple_board_with_legal_moves()
     tt: dict = {}
 
@@ -1050,9 +1056,13 @@ def test_tt_stores_normal_scores():
 # Alpha-beta pruning behavior tests
 
 
+@pytest.mark.slow
 def test_alpha_beta_tight_window_visits_no_more_nodes_than_wide_window():
     """
     Tight alpha-beta windows should not visit more nodes than wide windows.
+
+    Marked slow: runs two depth-3 root searches (Problem-5 slow-marker policy —
+    real engine search at depth 3 or higher belongs in the slow suite).
     """
     board = make_mate_in_one_white_position()
 

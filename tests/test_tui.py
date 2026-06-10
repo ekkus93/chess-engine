@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
+import time
+
 from textual.app import App, ComposeResult
 from textual.widgets import RadioButton, RadioSet, Static
 
 from chess_game.chess import Color
+from chess_game.chess.ai_board_utils import get_legal_moves
 from chess_game.chess.types import LegalMove, PieceType
 from chess_game.tui import (
     ChessApp,
@@ -16,6 +20,30 @@ from chess_game.tui import (
     _GameConfig,  # type: ignore[attr-defined]
 )
 from tests.helpers import sq
+
+
+async def wait_until(predicate, *, timeout: float = 2.0, interval: float = 0.01) -> None:
+    """Poll until predicate() is truthy or timeout elapses.
+
+    Lets fast UI tests wait for an expected state transition instead of sleeping
+    a fixed wall-clock duration. Returns as soon as the condition holds.
+    """
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if predicate():
+            return
+        await asyncio.sleep(interval)
+    raise AssertionError("condition was not met before timeout")
+
+
+def _fake_engine_first_legal_move(board, depth, position_counts=None, book_options=None):
+    """Deterministic, instant fake for chess_game.tui.get_best_move.
+
+    Returns the first legal move for the position so the engine reply is legal
+    regardless of board state, without running a real search.
+    """
+    moves = get_legal_moves(board)
+    return moves[0] if moves else None
 
 
 # ---------------------------------------------------------------------------
@@ -202,8 +230,8 @@ class TestHumanMoveInput:
             await pilot.click("#move-input")
             await pilot.press("e", "2", "e", "4")
             await pilot.press("enter")
-            # Engine at depth-1 responds quickly; wait for it to finish
-            await pilot.pause(delay=3.0)
+            # The human move is applied immediately; no need to wait for the engine.
+            await pilot.pause()
             piece = screen._board.get_piece(sq("e4"))  # type: ignore[union-attr]
             assert piece is not None
             assert piece.kind == PieceType.PAWN
@@ -222,8 +250,15 @@ class TestHumanMoveInput:
             # e2e4 must be in _move_strings right away (before engine responds)
             assert "e2e4" in screen._move_strings  # type: ignore[union-attr]
 
-    async def test_move_list_shows_both_sides_after_engine_reply(self) -> None:
-        """After the engine replies, both the human move and engine move appear."""
+    async def test_move_list_shows_both_sides_after_engine_reply(self, monkeypatch) -> None:
+        """After the engine replies, both the human move and engine move appear.
+
+        Uses a deterministic instant fake engine and waits for the move-list
+        state rather than sleeping for a real search.
+        """
+        monkeypatch.setattr(
+            "chess_game.tui.get_best_move", _fake_engine_first_legal_move
+        )
         async with _HumanGameApp().run_test() as pilot:
             await pilot.pause()
             screen = pilot.app.screen
@@ -231,7 +266,8 @@ class TestHumanMoveInput:
             await pilot.click("#move-input")
             await pilot.press("e", "2", "e", "4")
             await pilot.press("enter")
-            await pilot.pause(delay=3.0)
+            # Wait for the (faked) engine reply to be applied to the move list.
+            await wait_until(lambda: len(screen._move_strings) >= 2)  # type: ignore[union-attr]
             # Both moves recorded: white at index 0, black at index 1
             assert len(screen._move_strings) >= 2  # type: ignore[union-attr]
             assert screen._move_strings[0] == "e2e4"  # type: ignore[union-attr]
@@ -245,7 +281,8 @@ class TestHumanMoveInput:
             await pilot.click("#move-input")
             await pilot.press("e", "2", "e", "4")
             await pilot.press("enter")
-            await pilot.pause(delay=3.0)
+            # Input is cleared on submission of the human move; no engine wait needed.
+            await pilot.pause()
             input_val = pilot.app.screen.query_one("#move-input", Input).value
             assert input_val == ""
 

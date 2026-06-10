@@ -1468,3 +1468,90 @@ The two most plausible original causes (subprocess meta-tests; global RNG
 mutation) are BOTH now addressed (slow-marked in FIX6; localized RNG in FIX7).
 Remaining uncertainty is environmental and needs the sandbox's timeout/coredata
 to resolve definitively.
+
+## 2026-06-10T05:08:05Z - Claude Opus 4.8 - FIX8: fast-suite runtime (TUI 3s waits removed)
+
+Test-only patch; no engine/TUI production code changed. Made the "fast" suite
+genuinely fast and sandbox-resilient.
+
+- **Root cause (confirms Problem 1 / H1):** three `await pilot.pause(delay=3.0)`
+  waits in `tests/test_tui.py::TestHumanMoveInput` waited for a real depth-1
+  engine reply in the `@work(thread=True)` worker — ~3.6s each (~11s) on EVERY
+  machine, the dominant fast-suite cost and the likely sandbox-timeout cause.
+- **Fix:** two tests assert human-side state (pawn on e4 / input cleared) true
+  immediately after the move -> short `await pilot.pause()`, no fake. The third
+  needs a reply -> monkeypatch `chess_game.tui.get_best_move` with an instant
+  first-legal-move fake + a new `wait_until(predicate, timeout, interval)` poll
+  helper (waits for state, not wall-clock). All three stay fast; none slow-marked.
+- **Result:** test_tui.py 18.2s -> 9.6s; full fast suite ~45s -> ~35-36s
+  (1031 passed). Engine-reply test 5/5 stable ~0.74s.
+- **Documented, not changed (per replies13.md "don't chase"):** two ~2.3s
+  test_ai_search.py invariants (one does depth-3 search — flagged for optional
+  slow-marking) + one ~2.0s book/search integration test. See
+  docs/FIX8_FAST_SUITE_STATUS.md.
+- FIX7 behavior tests reconfirmed intact (85 passed). Meta-tests still excluded
+  from fast. signal.alarm in self_play.py left alone (out of scope, no leak seen).
+
+## 2026-06-10T06:45:31Z - Claude Opus 4.8 - FIX8 Phase 6.5: slow suite run surfaced 9 PRE-EXISTING failures
+
+Ran the full slow suite to completion (option a): `pytest -m slow` ->
+**9 failed, 160 passed, 1031 deselected in 2870s (47:50)**.
+
+Investigated whether FIX7/FIX8 caused them. They did NOT — all 9 are pre-existing:
+- Only production change in FIX7+FIX8 is the FIX7 RNG commit (4d7a33a); FIX8 is
+  test-only. The failing test files are unchanged since b7ecf3e (pre-FIX7).
+- Restored ai.py + opening_book.py to b7ecf3e and representative failures still
+  fail: test_strategy8...flank_poke (2/2), test_simple_quality_benchmark...rook
+  (fail). strategy8 also fails 3/3 deterministically on HEAD -> not flaky
+  tie-break; engine genuinely scores the "wrong" move best, which the RNG change
+  cannot affect (it only breaks ties among EQUAL scores).
+
+Breakdown: 8 engine-strength regressions (eval/search drift from earlier tuning
+commits like STRATEGY15 — out of FIX8 scope) + 1 buggy slow test
+(test_collect_games_outcomes_are_valid asserts all_pairs() means in {0,0.5,1},
+but all_pairs returns total/count means; with skip_opening_plies=0 the start
+position aggregates 3 games -> often fractional, e.g. 0.6667; inherently flaky,
+not mine).
+
+IMPORTANT for future sessions: the slow suite was apparently not run green for a
+while; these failures are latent debt, NOT introduced by FIX7/FIX8. The cheap,
+safe one is the collect test assertion bug. The 8 engine-strength ones need a
+separate engine-tuning effort. Detail recorded in docs/FIX8_FAST_SUITE_STATUS.md.
+
+## 2026-06-10T07:01:55Z - Claude Opus 4.8 - OPEN: 8 pre-existing engine-strength regressions (slow suite) — revisit later
+
+Surfaced by running the full slow suite during FIX8 (see entry above). These are
+PRE-EXISTING (proven not caused by FIX7/FIX8: test files unchanged since
+b7ecf3e; representative cases still fail with ai.py/opening_book.py restored to
+pre-FIX7; strategy8 fails 3/3 deterministically so it is not flaky tie-break).
+They are eval/search-strength drift from earlier tuning commits (e.g. STRATEGY15)
+and are OUT OF SCOPE for the test-runtime fixes. To be tackled as a dedicated
+engine-tuning patch later, likely with ChatGPT 5.5.
+
+Current slow-suite status after the FIX8 collect-test fix: 8 failed, 161 passed,
+1031 deselected. The 8 failing tests:
+
+1. tests/test_ai_endgame1_regressions.py::test_endgame1_search_prefers_cutoff_before_starting_pawn_race
+2. tests/test_ai_quality.py::test_simple_quality_benchmark_prefers_hanging_rook_capture
+3. tests/test_ai_strategy6_regressions.py::test_strategy6_search_keeps_king_safer_than_g_pawn_lunge_in_transition
+4. tests/test_ai_strategy6_regressions.py::test_strategy6_search_prefers_clearer_knight_route_over_na7_in_transition
+5. tests/test_ai_strategy6_regressions.py::test_strategy6_search_prefers_clean_rook_capture_during_conversion
+6. tests/test_ai_strategy7_regressions.py::test_strategy7_search_prefers_only_blockade_move_in_passer_race
+7. tests/test_ai_strategy7_regressions.py::test_strategy7_search_prefers_stopping_enemy_race_over_wrong_side_check
+8. tests/test_ai_strategy8_regressions.py::test_strategy8_search_demotes_flank_poke_when_castling_is_available
+
+Known detail: #8 — get_best_move(board, depth=2) returns a2a4 (b2... flank/edge
+pawn push) where the test asserts it should NOT; engine genuinely scores the
+"wrong" move best (deterministic), so this is an evaluation/move-ordering issue,
+not search nondeterminism. The others are similar depth-2/3 "search should prefer
+move X" engine-strength assertions (move ordering / positional eval).
+
+How to triage when we return:
+- These tests do NOT set deterministic=True; confirm whether any failures are
+  tie-break sensitivity vs genuine eval preference (run each in isolation a few
+  times — strategy8 already shown deterministic).
+- Bisect against earlier tuning commits to find which eval/ordering change moved
+  each one; decide per-test whether the engine regressed or the assertion is now
+  outdated (the engine may have legitimately changed its preference).
+- Full reproduce: `uv run --extra dev python -m pytest -m slow -q` (~48 min), or
+  run the 8 files individually. Detail also in docs/FIX8_FAST_SUITE_STATUS.md.

@@ -32,13 +32,27 @@ def test_collect_games_produces_nonempty_db(tmp_path: Path) -> None:
 
 @pytest.mark.slow
 def test_collect_games_outcomes_are_valid(tmp_path: Path) -> None:
-    """All collected outcomes must be one of {0.0, 0.5, 1.0}."""
-    db_path = tmp_path / "positions.jsonl"
-    opts = CollectionOptions(db_path=db_path, num_games=3, depth=1, skip_opening_plies=0)
-    db = collect_games(opts)
+    """Every individual self-play game outcome is one of {0.0, 0.5, 1.0}.
+
+    Checks raw per-game outcomes from _play_game, not collect_games'
+    all_pairs() values: all_pairs() returns aggregated means (total/count) that
+    are legitimately fractional when a position recurs across games (e.g. the
+    start position with skip_opening_plies=0), so asserting membership in
+    {0,0.5,1} against the means is incorrect. Uses a seeded RNG for determinism.
+    """
+    opts = CollectionOptions(
+        db_path=tmp_path / "positions.jsonl",
+        num_games=3,
+        depth=1,
+        skip_opening_plies=0,
+        max_moves=80,
+    )
+    rng = random.Random(0)
     valid_outcomes = {0.0, 0.5, 1.0}
-    for _, outcome in db.all_pairs():
-        assert outcome in valid_outcomes, f"Unexpected outcome: {outcome}"
+    for _ in range(opts.num_games):
+        record = collect_mod._play_game(opts, rng)
+        assert record is not None
+        assert record.outcome in valid_outcomes, f"Unexpected outcome: {record.outcome}"
 
 
 @pytest.mark.slow
