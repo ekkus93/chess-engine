@@ -615,3 +615,21 @@ class TestOpeningBookSeedReproducibility:
 
         assert move_first == move_second, \
             "Seed-controlled move should be stable despite global RNG changes"
+
+    def test_seeded_call_does_not_mutate_global_rng(self):
+        """A seeded get_best_move must not mutate module-global random state.
+
+        The opening-book/tie-break randomness uses a local random.Random so that
+        seeded reproducibility does not leak into global RNG (a full-suite
+        contamination vector). This test pins that behavior.
+        """
+        board = Board()
+        state_before = random.getstate()
+        get_best_move(
+            board,
+            depth=2,
+            book_options=BestMoveOptions(use_opening_book=False, rng_seed=123),
+        )
+        state_after = random.getstate()
+        assert state_before == state_after, \
+            "Seeded get_best_move must not mutate global random state"

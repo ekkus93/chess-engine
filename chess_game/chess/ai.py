@@ -344,6 +344,7 @@ class SearchContext:
     position_counts: Optional[dict[str, int]] = None
     weights: Optional[EvalWeights] = None
     deterministic: bool = False
+    rng: Optional[random.Random] = None
 
 
 @dataclass
@@ -599,13 +600,17 @@ def _tie_break(
     move: Move,
     current_best: Optional[LegalMove],
     deterministic: bool,
+    rng: Optional[random.Random] = None,
 ) -> bool:
     """Return True when the new move should replace the current best on equal score."""
     if deterministic:
         if current_best is None:
             return True
         return _move_sort_key(move) < _move_sort_key(current_best)
-    return random.random() < 0.5
+    # Use the search-local RNG when available so seeded runs are reproducible
+    # without mutating the module-global random state.
+    chooser = rng if rng is not None else random
+    return chooser.random() < 0.5
 
 
 def _search_move_loop(
@@ -632,7 +637,8 @@ def _search_move_loop(
             is_better = child_score < search_best_score
             is_tie = child_score == search_best_score
         is_det = params.context is not None and params.context.deterministic
-        if is_better or (is_tie and _tie_break(move, search_best_move, is_det)):
+        tie_rng = params.context.rng if params.context is not None else None
+        if is_better or (is_tie and _tie_break(move, search_best_move, is_det, tie_rng)):
             search_best_score = child_score
             search_best_move = LegalMove(move.start, move.end, move.promotion)
         if len(params.line_history) == 1:
@@ -647,12 +653,12 @@ def _search_move_loop(
             if params.is_maximizing:
                 replace_selected_move = child_score > selected_score or (
                     child_score == selected_score
-                    and _tie_break(move, root_selected_move, is_det)
+                    and _tie_break(move, root_selected_move, is_det, tie_rng)
                 )
             else:
                 replace_selected_move = child_score < selected_score or (
                     child_score == selected_score
-                    and _tie_break(move, root_selected_move, is_det)
+                    and _tie_break(move, root_selected_move, is_det, tie_rng)
                 )
         if root_selected_move is None or replace_selected_move:
             selected_score = child_score
@@ -1088,13 +1094,14 @@ def get_best_move(
     if not legal_moves:
         return None
     options = book_options or BestMoveOptions()
-    # Apply seed early to control all random choices, including opening-book selection
-    if options.rng_seed is not None:
-        random.seed(options.rng_seed)
+    # Local RNG controls all random choices (opening-book selection and tie-breaks)
+    # without mutating module-global random state. random.Random(None) seeds from
+    # OS entropy, preserving unseeded random behavior.
+    rng = random.Random(options.rng_seed)
     if options.use_opening_book:
         book = options.opening_book or get_bundled_opening_book()
         if options.random_opening_book:
-            book_move = book.find_book_move_random(board)
+            book_move = book.find_book_move_random(board, rng=rng)
         else:
             book_move = book.find_book_move(board)
         if book_move is not None:
@@ -1107,6 +1114,7 @@ def get_best_move(
         position_counts=_search_position_counts(board, position_counts, _shared_position_key),
         weights=effective_weights,
         deterministic=options.deterministic,
+        rng=rng,
     )
     is_maximizing = board.turn == Color.WHITE
     return _iterative_deepening_best_move(board, depth, is_maximizing, context)

@@ -358,7 +358,9 @@ class OpeningBook:
         sorted_candidates = sorted(candidates, key=sort_key)
         return sorted_candidates[0].move
 
-    def find_book_move_random(self, board: Board) -> Optional[LegalMove]:
+    def find_book_move_random(
+        self, board: Board, rng: Optional[random.Random] = None
+    ) -> Optional[LegalMove]:
         """Sample a book move for the current position proportional to candidate weights.
 
         This produces varied self-play games while still favouring higher-weighted
@@ -366,12 +368,16 @@ class OpeningBook:
         restricted to responses that are valid for the current position, so a
         Sicilian Defence will only appear if White played 1.e4, a King's Indian
         only if White played 1.d4, etc.
+
+        When ``rng`` is provided, selection draws from that local generator so
+        seeded callers are reproducible without mutating module-global RNG state.
         """
         candidates = self.candidates_for(board)
         if not candidates:
             return None
         weights = [c.weight for c in candidates]
-        chosen = random.choices(candidates, weights=weights, k=1)[0]
+        chooser = rng if rng is not None else random
+        chosen = chooser.choices(candidates, weights=weights, k=1)[0]
         return chosen.move
 
 

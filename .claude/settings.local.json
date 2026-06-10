@@ -47,7 +47,8 @@
       "Bash(uv sync *)",
       "Bash(git stash *)",
       "Bash(git checkout *)",
-      "Bash(tee /tmp/fast_suite_output.log)"
+      "Bash(tee /tmp/fast_suite_output.log)",
+      "Bash(grep -v \"^\\\\*\\\\*\\\\*\\\\|^-\\\\|^Your\\\\|^$\")"
     ]
   }
 }
