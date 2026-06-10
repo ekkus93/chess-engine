@@ -1050,9 +1050,13 @@ def test_tt_stores_normal_scores():
 # Alpha-beta pruning behavior tests
 
 
+@pytest.mark.slow
 def test_alpha_beta_tight_window_visits_no_more_nodes_than_wide_window():
     """
     Tight alpha-beta windows should not visit more nodes than wide windows.
+
+    Marked slow: runs two depth-3 root searches (Problem-5 slow-marker policy —
+    real engine search at depth 3 or higher belongs in the slow suite).
     """
     board = make_mate_in_one_white_position()
 

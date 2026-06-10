@@ -41,21 +41,19 @@ added (the spec said not to block this patch on end-to-end coverage).
 Per the Fix 8 reply guidance (do not chase sub-second optimizations; document
 justified slightly-over-2s tests when the suite is comfortably under target):
 
-- `tests/test_ai_search.py::test_tt_does_not_overwrite_deeper_entry` — ~2.4s.
-  Real search at **depth 2**; a transposition-table correctness invariant.
-- `tests/test_ai_search.py::test_alpha_beta_tight_window_visits_no_more_nodes_than_wide_window`
-  — ~2.3s. Runs two **depth-3** minimax searches on a mate-in-one position to
-  assert an alpha-beta node-count pruning invariant.
+- `tests/test_ai_search.py::test_tt_does_not_overwrite_deeper_entry` — ~2.5s.
+  Real search at **depth 2**; a transposition-table correctness invariant. Does
+  not trigger the "depth 3+ -> slow" rule; left fast as a justified
+  slightly-over-2s case. Now the slowest non-slow test.
 - `tests/test_opening_book_search_integration.py::test_book_to_offbook_transition_keeps_repetition_aware_search`
   — ~2.0s. Book/search integration invariant.
 
-Honest flag: the alpha-beta test does depth-3 real search, which by the strict
-Problem-5 slow-marker policy ("real engine search at depth 3 or higher") could
-be slow-marked. It was left fast because (a) it is a search-correctness
-invariant rather than an engine-strength regression, (b) the full suite already
-meets the runtime target, and (c) Fix 8's reply guidance was explicitly to
-document such cases rather than start a broad slow-marking pass. If the reviewer
-prefers, slow-marking it is a one-line change; flagged here for that decision.
+Resolved: `test_alpha_beta_tight_window_visits_no_more_nodes_than_wide_window`
+ran two **depth-3** searches, violating the strict Problem-5 policy ("real
+engine search at depth 3 or higher"). Per owner decision to follow the policy
+literally, it is now `@pytest.mark.slow` (excluded from the fast suite; passes
+under `-m slow` in ~2.3s). Fast suite after this change: 1030 passed, 170
+deselected, ~34.5s.
 
 ## Verified intact / revalidated
 
