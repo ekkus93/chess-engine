@@ -49,7 +49,10 @@
       "Bash(git checkout *)",
       "Bash(tee /tmp/fast_suite_output.log)",
       "Bash(grep -v \"^\\\\*\\\\*\\\\*\\\\|^-\\\\|^Your\\\\|^$\")",
-      "Bash(sort -t= -k2 -rn)"
+      "Bash(sort -t= -k2 -rn)",
+      "Bash(awk '$1+0 >= 1.0')",
+      "Bash(awk '/def test_tt_does_not_overwrite_deeper_entry/,/^def [a-z]/' tests/test_ai_search.py)",
+      "Bash(awk '/def test_alpha_beta_tight_window_visits_no_more_nodes_than_wide_window/,/^def [a-z]/' tests/test_ai_search.py)"
     ]
   }
 }
