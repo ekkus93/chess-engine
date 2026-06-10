@@ -1517,3 +1517,41 @@ IMPORTANT for future sessions: the slow suite was apparently not run green for a
 while; these failures are latent debt, NOT introduced by FIX7/FIX8. The cheap,
 safe one is the collect test assertion bug. The 8 engine-strength ones need a
 separate engine-tuning effort. Detail recorded in docs/FIX8_FAST_SUITE_STATUS.md.
+
+## 2026-06-10T07:01:55Z - Claude Opus 4.8 - OPEN: 8 pre-existing engine-strength regressions (slow suite) — revisit later
+
+Surfaced by running the full slow suite during FIX8 (see entry above). These are
+PRE-EXISTING (proven not caused by FIX7/FIX8: test files unchanged since
+b7ecf3e; representative cases still fail with ai.py/opening_book.py restored to
+pre-FIX7; strategy8 fails 3/3 deterministically so it is not flaky tie-break).
+They are eval/search-strength drift from earlier tuning commits (e.g. STRATEGY15)
+and are OUT OF SCOPE for the test-runtime fixes. To be tackled as a dedicated
+engine-tuning patch later, likely with ChatGPT 5.5.
+
+Current slow-suite status after the FIX8 collect-test fix: 8 failed, 161 passed,
+1031 deselected. The 8 failing tests:
+
+1. tests/test_ai_endgame1_regressions.py::test_endgame1_search_prefers_cutoff_before_starting_pawn_race
+2. tests/test_ai_quality.py::test_simple_quality_benchmark_prefers_hanging_rook_capture
+3. tests/test_ai_strategy6_regressions.py::test_strategy6_search_keeps_king_safer_than_g_pawn_lunge_in_transition
+4. tests/test_ai_strategy6_regressions.py::test_strategy6_search_prefers_clearer_knight_route_over_na7_in_transition
+5. tests/test_ai_strategy6_regressions.py::test_strategy6_search_prefers_clean_rook_capture_during_conversion
+6. tests/test_ai_strategy7_regressions.py::test_strategy7_search_prefers_only_blockade_move_in_passer_race
+7. tests/test_ai_strategy7_regressions.py::test_strategy7_search_prefers_stopping_enemy_race_over_wrong_side_check
+8. tests/test_ai_strategy8_regressions.py::test_strategy8_search_demotes_flank_poke_when_castling_is_available
+
+Known detail: #8 — get_best_move(board, depth=2) returns a2a4 (b2... flank/edge
+pawn push) where the test asserts it should NOT; engine genuinely scores the
+"wrong" move best (deterministic), so this is an evaluation/move-ordering issue,
+not search nondeterminism. The others are similar depth-2/3 "search should prefer
+move X" engine-strength assertions (move ordering / positional eval).
+
+How to triage when we return:
+- These tests do NOT set deterministic=True; confirm whether any failures are
+  tie-break sensitivity vs genuine eval preference (run each in isolation a few
+  times — strategy8 already shown deterministic).
+- Bisect against earlier tuning commits to find which eval/ordering change moved
+  each one; decide per-test whether the engine regressed or the assertion is now
+  outdated (the engine may have legitimately changed its preference).
+- Full reproduce: `uv run --extra dev python -m pytest -m slow -q` (~48 min), or
+  run the 8 files individually. Detail also in docs/FIX8_FAST_SUITE_STATUS.md.
