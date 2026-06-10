@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from chess_game.chess.ai import BestMoveOptions, get_best_move
+from chess_game.chess.ai_board_utils import get_legal_moves
 from chess_game.chess.board import Board
 from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.move import parse_move_notation
@@ -27,6 +28,28 @@ def apply_moves(board: Board, *moves: str) -> None:
         move = parse_move_notation(move_text)
         result = board.make_move(move.start, move.end, move.promotion)
         assert result, f"Failed to apply move: {move_text}"
+
+
+class _FakeMultiCandidateBook:
+    """Minimal opening book with several equally-weighted candidates.
+
+    Used to test seeded selection deterministically: get_best_move() passes its
+    local random.Random into find_book_move_random(rng=...), so selection is
+    reproducible per seed and varies across seeds without touching global RNG.
+    """
+
+    def __init__(self, candidates):
+        self._candidates = list(candidates)
+
+    def find_book_move(self, board):
+        """Deterministic (non-random) selection returns the first candidate."""
+        return self._candidates[0]
+
+    def find_book_move_random(self, board, rng=None):
+        """Weighted-random selection from the local rng (falls back to global)."""
+        chooser = rng if rng is not None else random
+        weights = [1] * len(self._candidates)
+        return chooser.choices(self._candidates, weights=weights, k=1)[0]
 
 
 def move_to_text(move: LegalMove) -> str:
@@ -527,58 +550,58 @@ class TestOpeningBookSeedReproducibility:
         )
         assert move1 == move2, "Same seed should produce same move"
 
-    def test_different_seeds_produce_deterministic_selection(self):
-        """Different seeds produce deterministic (reproducible) selections.
+    def test_different_seeds_can_select_different_moves(self):
+        """Different seeds select different book moves under a multi-candidate book.
 
-        This verifies the seed mechanism works by checking that seed=N always
-        produces the same move consistently, even with different seeds.
+        Uses a controlled fake book with several equally-weighted legal
+        candidates so the assertion is non-vacuous (the real bundled book may
+        have a dominant candidate that every seed picks). Replaces a prior
+        `assert True` placeholder.
         """
         board = Board()
-        book = get_bundled_opening_book()
+        candidates = get_legal_moves(board)[:4]
+        assert len(candidates) >= 2, "need multiple candidates for a meaningful test"
+        book = _FakeMultiCandidateBook(candidates)
 
-        # Collect moves for same seed run twice (should be identical)
-        move_seed_42_run1 = get_best_move(
-            board,
-            depth=1,
-            book_options=BestMoveOptions(
-                use_opening_book=True,
-                opening_book=book,
-                random_opening_book=True,
-                rng_seed=42,
-            ),
-        )
-        move_seed_42_run2 = get_best_move(
-            board,
-            depth=1,
-            book_options=BestMoveOptions(
-                use_opening_book=True,
-                opening_book=book,
-                random_opening_book=True,
-                rng_seed=42,
-            ),
-        )
+        def move_for(seed: int):
+            return get_best_move(
+                board,
+                depth=1,
+                book_options=BestMoveOptions(
+                    use_opening_book=True,
+                    opening_book=book,
+                    random_opening_book=True,
+                    rng_seed=seed,
+                ),
+            )
 
-        # Collect move for different seed
-        move_seed_99 = get_best_move(
-            board,
-            depth=1,
-            book_options=BestMoveOptions(
-                use_opening_book=True,
-                opening_book=book,
-                random_opening_book=True,
-                rng_seed=99,
-            ),
-        )
+        moves = [move_for(seed) for seed in range(20)]
+        distinct = {(m.start, m.end) for m in moves}
 
-        # Same seed should be reproducible (non-vacuous: fails if they differ)
-        assert move_seed_42_run1 == move_seed_42_run2, \
-            "Same seed should produce same move reproducibly"
+        # Non-vacuous: across seeds, more than one distinct move is selected.
+        assert len(distinct) > 1, "different seeds should be able to select different moves"
 
-        # Different seeds may produce different moves (if book has multiple options)
-        # This test documents that seeding is implemented, even if same position
-        # has only one book move
-        if move_seed_42_run1 is not None or move_seed_99 is not None:
-            assert True, "Seed mechanism is working (moves selected from book)"
+    def test_same_seed_selects_same_move_with_fake_book(self):
+        """Same seed reproduces the same selection under the controlled fake book."""
+        board = Board()
+        candidates = get_legal_moves(board)[:4]
+        book = _FakeMultiCandidateBook(candidates)
+
+        def move_for(seed: int):
+            return get_best_move(
+                board,
+                depth=1,
+                book_options=BestMoveOptions(
+                    use_opening_book=True,
+                    opening_book=book,
+                    random_opening_book=True,
+                    rng_seed=seed,
+                ),
+            )
+
+        first = move_for(7)
+        second = move_for(7)
+        assert (first.start, first.end) == (second.start, second.end)
 
     def test_global_rng_independence(self):
         """Seeded move selection should be independent of global RNG state."""
