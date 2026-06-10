@@ -211,75 +211,55 @@ class TestLossOptions:
 
 
 class TestTexelLossKParameter:
-    """Tests for Texel loss k parameter behavior."""
+    """Tests proving Texel loss k parameter actually affects MSE.
 
-    def test_non_default_k_parameter_accepted(self) -> None:
-        """Non-default k should be accepted and used in MSE calculation."""
-        from chess_game.texel.loss import LossOptions
+    A nonzero-eval position is required: at the starting position eval is ~0,
+    sigmoid(0, k) == 0.5 for every k, so k has no measurable effect there.
+    The spec's queen-up FEN (4k3/8/8/8/8/8/8/4KQ2) evaluates to ~+8600cp, which
+    saturates the sigmoid to ~1.0 for every k (MSE pinned at 0.25). A modest
+    one-pawn edge keeps the sigmoid in its sensitive range so k matters.
+    """
+
+    # Black is missing the h7 pawn: White is up a pawn (~+86cp static eval).
+    WHITE_UP_PAWN_FEN = "rnbqkbnr/ppppppp1/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+
+    def test_non_default_k_changes_mse(self) -> None:
+        """Doubling k changes MSE for a nonzero-eval position (k is not ignored)."""
+        import pytest
+        from chess_game.texel.loss import DEFAULT_K
+
         weights = EvalWeights.default()
-        pairs = [(STARTING_FEN, 0.5)]
+        pairs = [(self.WHITE_UP_PAWN_FEN, 0.5)]
 
-        # MSE with default k
-        mse_default = mean_squared_error(pairs, weights)
-        # MSE with k=1.0 (explicit, should match default)
-        mse_k1 = mean_squared_error(pairs, weights, opts=LossOptions(k=1.0))
-        # MSE with k=0.5
-        mse_k0_5 = mean_squared_error(pairs, weights, opts=LossOptions(k=0.5))
-        # MSE with k=2.0
-        mse_k2 = mean_squared_error(pairs, weights, opts=LossOptions(k=2.0))
+        # Sanity: the position genuinely has a nonzero static eval.
+        assert evaluate(Board.from_fen(self.WHITE_UP_PAWN_FEN), weights) != 0
 
-        # k=1.0 should match default
-        assert abs(mse_default - mse_k1) < 1e-12
+        mse_default = mean_squared_error(pairs, weights, k=DEFAULT_K)
+        mse_other = mean_squared_error(pairs, weights, k=DEFAULT_K * 2)
 
-        # All k values should produce valid MSE (>= 0)
-        assert mse_k0_5 >= 0.0
-        assert mse_k1 >= 0.0
-        assert mse_k2 >= 0.0
+        assert mse_default != pytest.approx(mse_other)
 
-        # Verify k parameter is being used (different k can give different results)
-        # with varied pairs
-        pairs_varied = [
-            (STARTING_FEN, 1.0),
-            (STARTING_FEN, 0.0),
-        ]
-        mse_varied_k1 = mean_squared_error(pairs_varied, weights, opts=LossOptions(k=1.0))
-        mse_varied_k2 = mean_squared_error(pairs_varied, weights, opts=LossOptions(k=2.0))
-        # With diverse outcomes, different k should produce different MSE
-        assert mse_varied_k1 >= 0.0
-        assert mse_varied_k2 >= 0.0
-
-    def test_k_parameter_backward_compatibility(self) -> None:
-        """mean_squared_error(pairs, weights, k=...) should match k in LossOptions."""
-        weights = EvalWeights.default()
-        pairs = [(STARTING_FEN, 0.5)]
-        k_test = 1.5
-
-        # Using positional k parameter (if it still exists)
-        # This tests that both APIs work
-        from chess_game.texel.loss import LossOptions
-        mse_via_options = mean_squared_error(
-            pairs,
-            weights,
-            opts=LossOptions(k=k_test),
-        )
-
-        # Both should be valid (no assertion on equality, just that both work)
-        assert mse_via_options >= 0.0
-
-    def test_k_parameter_affects_sigmoid_scaling(self) -> None:
-        """K parameter is used in sigmoid function (replaced vacuous assertion)."""
+    def test_k_kwarg_matches_loss_options(self) -> None:
+        """mean_squared_error(k=) must equal mean_squared_error(opts=LossOptions(k=))."""
         import pytest
         from chess_game.texel.loss import LossOptions
 
         weights = EvalWeights.default()
-        pairs = [(STARTING_FEN, 1.0), (STARTING_FEN, 0.0)]
+        pairs = [(self.WHITE_UP_PAWN_FEN, 0.5)]
 
-        # All k values should produce valid MSE >= 0
-        for k in [0.5, 1.0, 1.5, 2.0]:
-            mse = mean_squared_error(pairs, weights, opts=LossOptions(k=k))
-            assert mse >= 0.0, f"MSE with k={k} should be non-negative"
+        mse_k_kwarg = mean_squared_error(pairs, weights, k=1.5)
+        mse_opts = mean_squared_error(pairs, weights, opts=LossOptions(k=1.5))
 
-        # k=1.0 (default) should match no k parameter specified
-        mse_default = mean_squared_error(pairs, weights)
-        mse_k1 = mean_squared_error(pairs, weights, opts=LossOptions(k=1.0))
-        assert mse_default == pytest.approx(mse_k1, rel=1e-12)
+        assert mse_k_kwarg == pytest.approx(mse_opts)
+
+    def test_default_k_used_when_unspecified(self) -> None:
+        """Omitting k uses DEFAULT_K (explicit DEFAULT_K matches the default call)."""
+        import pytest
+        from chess_game.texel.loss import DEFAULT_K
+
+        weights = EvalWeights.default()
+        pairs = [(self.WHITE_UP_PAWN_FEN, 0.5)]
+
+        assert mean_squared_error(pairs, weights) == pytest.approx(
+            mean_squared_error(pairs, weights, k=DEFAULT_K)
+        )
