@@ -1,7 +1,10 @@
 """Unit tests for PositionDB."""
 from __future__ import annotations
 
+import json
 from pathlib import Path
+
+import pytest
 
 from chess_game.texel.position_db import GameRecord, PositionDB
 
@@ -104,21 +107,52 @@ class TestPositionDB:
         assert abs(pairs[0][1] - 0.75) < 1e-9
 
     def test_old_jsonl_duplicate_aggregation(self, tmp_path: Path) -> None:
-        """Old JSONL format with duplicate FENs should aggregate."""
+        """Hand-authored old-format JSONL with duplicate FENs aggregates raw stats.
+
+        Asserts count/total/mean via get_stats(), not just the all_pairs() mean,
+        to directly prove old-format on-disk compatibility.
+        """
         save_path = tmp_path / "old_duplicate.jsonl"
         fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-        old_lines = (
-            f'{{"pos": "{fen}", "outcome": 1.0}}\n'
-            f'{{"pos": "{fen}", "outcome": 0.5}}\n'
-            f'{{"pos": "{fen}", "outcome": 0.0}}\n'
+        save_path.write_text(
+            "\n".join(
+                [
+                    json.dumps({"pos": fen, "outcome": 1.0}),
+                    json.dumps({"pos": fen, "outcome": 0.5}),
+                    json.dumps({"pos": fen, "outcome": 0.0}),
+                ]
+            )
+            + "\n",
+            encoding="utf-8",
         )
-        save_path.write_text(old_lines)
 
         db = PositionDB.load(save_path)
-        assert len(db) == 1
-        pairs = db.all_pairs()
-        # Mean of 1.0, 0.5, 0.0 = 0.5
-        assert abs(pairs[0][1] - 0.5) < 1e-9
+        stats = db.get_stats(fen)
+        assert stats is not None
+        assert stats.count == 3
+        assert stats.total == pytest.approx(1.5)
+        assert stats.mean == pytest.approx(0.5)
+
+    def test_new_jsonl_direct_load_raw_stats(self, tmp_path: Path) -> None:
+        """Hand-authored new-format JSONL loads total/count directly (not via save).
+
+        The spec requires proving the loader reads on-disk total/count rather
+        than only round-tripping the current writer, so this file is authored
+        by hand with a count (4) that differs from the number of lines (1).
+        """
+        save_path = tmp_path / "new_direct.jsonl"
+        fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        save_path.write_text(
+            json.dumps({"pos": fen, "total": 3.0, "count": 4}) + "\n",
+            encoding="utf-8",
+        )
+
+        db = PositionDB.load(save_path)
+        stats = db.get_stats(fen)
+        assert stats is not None
+        assert stats.count == 4
+        assert stats.total == pytest.approx(3.0)
+        assert stats.mean == pytest.approx(0.75)
 
     def test_new_jsonl_format_with_explicit_counts(self, tmp_path: Path) -> None:
         """New JSONL format should preserve total and count separately."""
