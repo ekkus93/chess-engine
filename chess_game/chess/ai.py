@@ -649,14 +649,21 @@ def _search_move_loop(
                 selected_score,
                 best_root_tiebreak,
             )
-            if replace_selected_move and not is_better and not is_tie:
-                # child_score may be an alpha-beta fail-low/high *bound* (the move
-                # was searched against a window raised by a strictly better
-                # sibling), not the move's true value. Re-search it with a full
-                # window to get the exact score before letting it win the root
-                # tie-break, so a bounded-worse move cannot masquerade as a
-                # near-tie (FIX9: a2a4 returned a fail-low bound of 3919 with a
-                # true value of 2256 and the tie-break override promoted it).
+            if replace_selected_move and not is_better:
+                # A non-improving root move's child_score is only an alpha-beta
+                # *bound*, not its exact value, so it must be re-searched with a
+                # full window before the root tie-break may promote it:
+                #   * a strictly-worse move searched against a window raised by a
+                #     better sibling returns a fail-low/high bound (FIX9: a2a4
+                #     returned a fail-low bound of 3919 with a true value of
+                #     2256), and
+                #   * a move that merely *ties* the running best is sitting
+                #     exactly on the alpha/beta cutoff boundary: the child search
+                #     stopped as soon as it proved "no better than best", so the
+                #     reported tie can hide a far worse true value (FIX9:
+                #     Bb4-e1 returned -266 == beta but is truly +305).
+                # Only improving moves keep their exact in-window score, so the
+                # re-search is gated on ``not is_better``.
                 child_score, root_tiebreak = _evaluate_child_move(
                     board, move, params, -INF, INF
                 )

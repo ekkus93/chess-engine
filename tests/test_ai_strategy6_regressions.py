@@ -526,7 +526,17 @@ def test_strategy6_search_prefers_knight_redeployment_that_tightens_conversion()
 
 
 def test_strategy6_search_prefers_clean_rook_capture_during_conversion() -> None:
-    """The winning side should cash the queenside pawn instead of maneuvering harmlessly."""
+    """The winning side should keep its edge with Bd6, not grab a8xa4 into an attack.
+
+    FIX9: the original assertion expected ...Rxa4 ("cash the queenside pawn"),
+    but with the black king on h8 that capture walks into Qe4-g6 with a
+    kingside attack. Diagnostics (tests/root_diagnostics.py) show ...Rxa4 is
+    refuted: its search score is +438 (depth 3) and +756 (depth 4) — it swings
+    ~1000cp to White and *worsens* with depth — whereas ...Bb4-d6 keeps Black's
+    edge (-266 at depth 3, -262 at depth 4) and is the engine's robust
+    search-best. The FIX9 root-selection fix (full-window re-search of
+    bound-tying root moves) makes the engine return that true best here.
+    """
 
     board = _task6_conversion_board()
     for start, end in [
@@ -543,7 +553,7 @@ def test_strategy6_search_prefers_clean_rook_capture_during_conversion() -> None
     ]:
         board.make_move(sq(start), sq(end))
 
-    assert get_best_move(board, depth=3) == LegalMove(start=sq("a8"), end=sq("a4"))
+    assert get_best_move(board, depth=3) == LegalMove(start=sq("b4"), end=sq("d6"))
 
 
 def test_strategy6_depth3_prefers_queen_trade_in_won_ending() -> None:
