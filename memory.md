@@ -1555,3 +1555,52 @@ How to triage when we return:
   outdated (the engine may have legitimately changed its preference).
 - Full reproduce: `uv run --extra dev python -m pytest -m slow -q` (~48 min), or
   run the 8 files individually. Detail also in docs/FIX8_FAST_SUITE_STATUS.md.
+
+## 2026-06-10T16:15:28Z - Claude Opus 4.8 (1M context) - FIX9 progress: 6 of 8 slow-strength failures resolved
+FIX9 (CHESS_ENGINE_SLOW_STRENGTH_FIX9) triage, following replies14.md (bisect
+first, fix narrowly, no net regressions, rewrite over-specific tests only when
+diagnostics prove the engine's move is objectively reasonable). Built
+tests/root_diagnostics.py::debug_root_candidates (per-move full-window depth-N
+score + tie-break + static + qsearch, using the engine's own _evaluate_child_move).
+
+RESOLVED 6 of 8:
+- ENGINE FIXES (committed 85e74fe, bd9318f):
+  1. hanging-rook (test_ai_quality): added capped _material_realization_bonus to
+     root_stability_adjustment (ai_search_helpers.py) so concrete captures win
+     the exact-score tie over speculative attack nudges.
+  2. strategy8 flank-poke: re-search-with-full-window in ai.py _search_move_loop
+     when the tie-break override fires on a non-improving move (its child_score
+     was an alpha-beta fail-low BOUND, not exact value).
+- OVER-SPECIFIC TEST REWRITES (committed d3c0c95, test-only, diagnostics-proven):
+  3. strategy6 keeps_king_safer: engine's Nh6-g4 (-1035) is search-best, 72cp >
+     bishop devs, stable; honors intent. Widened acceptable set.
+  4. strategy6 clearer_knight_route: engine's e4-e3 (-941) is search-best, 82cp >
+     Nb5-d6/c3, better than the Na7 rim retreat guarded against. Widened.
+  5. strategy7 stopping_enemy_race: Qe5 already covers b8 via diagonal; Kf7
+     (-8622) is search-best. Widened to accept the king move.
+  6. endgame1 cutoff_before_race: R+P vs K won by any reasonable move; Kd4-e5
+     (6957) is search-best, +244cp. Widened to accept the king escort.
+
+REMAINING 2 (genuine root-selection / search-window defect, NOT over-specific):
+- strategy6 prefers_clean_rook_capture: engine plays Bb4-e1 (full-window score
+  +305) when its OWN search-best is Bb4-d6 (-266) — a 571cp swing that flips the
+  eval sign (a real blunder, NOT reclassify-able). The test's expected Rxa4 ALSO
+  scores +438 (engine thinks it drops material to a tactic). Test is doubly
+  broken: expected move is bad AND engine plays a different bad move instead of
+  its best Bd6.
+- strategy7 only_blockade: engine plays Ra5 (-5304, winning) when search-best is
+  Kf7 (-5359); the test's "only blockade move" premise is factually wrong — many
+  rook moves win this R-vs-P. Reclassify-able (engine move is winning) but also
+  shows the same divergence.
+
+ROOT CAUSE of the remaining 2: get_best_move does NOT return the move its own
+full-window per-move search rates best (debug_root_candidates disagrees with the
+real root pick). The real root loop uses move ordering + aspiration windows +
+the tie-break override, so the selected move can be scored on an alpha-beta
+bound rather than its exact value (the strategy8 re-search guard does not cover
+these cases — likely aspiration-window / LMR interplay, not just the override).
+A clean fix (e.g. full-window re-search of the final root candidate vs
+search_best_move) is plausible but HIGH RIPPLE RISK: changes root behavior and
+needs full slow-suite validation (~17 min/iteration) against the 161 passing
+slow tests. Deferred for a decision with ChatGPT 5.5 — fix the root selection
+(risky) vs reclassify S7-only_blockade + skip/rewrite the broken T3 test.
