@@ -109,15 +109,16 @@ Failure breakdown:
   - `test_ai_strategy7_regressions::test_strategy7_search_prefers_only_blockade_move_in_passer_race`
   - `test_ai_strategy7_regressions::test_strategy7_search_prefers_stopping_enemy_race_over_wrong_side_check`
   - `test_ai_strategy8_regressions::test_strategy8_search_demotes_flank_poke_when_castling_is_available`
-- **1 buggy slow test**: `test_collect.py::test_collect_games_outcomes_are_valid`
-  asserts every `all_pairs()` value is in {0.0, 0.5, 1.0}, but `all_pairs()`
+- **1 buggy slow test** (now FIXED): `test_collect.py::test_collect_games_outcomes_are_valid`
+  asserted every `all_pairs()` value is in {0.0, 0.5, 1.0}, but `all_pairs()`
   returns aggregated **means** (total/count). With `skip_opening_plies=0` the
   start position is recorded in all 3 games, so its mean is frequently
-  fractional (observed 0.6667). The assertion is mathematically wrong; this
-  test was not modified by Fix 7/Fix 8 and uses OS-random self-play (seed=None),
-  so it is inherently flaky. A correct cheap fix is available (assert each
-  position's `get_stats().mean` is within [0,1], or assert raw per-game
-  outcomes, not aggregated means) — pending owner decision.
+  fractional (observed 0.6667), and it used OS-random self-play (seed=None) so
+  it was inherently flaky. Rewritten to check the real invariant — each raw
+  per-game outcome from `_play_game` is in {0.0, 0.5, 1.0} — with a seeded RNG
+  (`random.Random(0)`) for determinism. Verified passing on two consecutive
+  runs (120.6s, 114.3s; identical result). This was the one in-scope, clearly
+  correct fix; the 8 engine-strength regressions remain a separate effort.
 
 Net: Fix 8's deliverable (fast-suite runtime) is complete; the slow suite has
 pre-existing breakage that predates this patch and is out of its scope. Logged
