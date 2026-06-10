@@ -52,7 +52,26 @@
       "Bash(sort -t= -k2 -rn)",
       "Bash(awk '$1+0 >= 1.0')",
       "Bash(awk '/def test_tt_does_not_overwrite_deeper_entry/,/^def [a-z]/' tests/test_ai_search.py)",
-      "Bash(awk '/def test_alpha_beta_tight_window_visits_no_more_nodes_than_wide_window/,/^def [a-z]/' tests/test_ai_search.py)"
+      "Bash(awk '/def test_alpha_beta_tight_window_visits_no_more_nodes_than_wide_window/,/^def [a-z]/' tests/test_ai_search.py)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(git worktree *)",
+      "Bash(PYTHONPATH=/tmp/fix9bisect /home/phil/work/chess-engine/.venv/bin/python -c 'import chess_game; print\\('\\\\''loaded from:'\\\\'', chess_game.__file__\\)')",
+      "Bash(PYTHONPATH=/tmp/fix9bisect /home/phil/work/chess-engine/.venv/bin/python /tmp/fix9_probe.py)",
+      "Bash(/home/phil/work/chess-engine/.venv/bin/python /tmp/fix9_probe2.py)",
+      "Bash(awk '/^def _prefer_root_move/,/^def [a-z]/' chess_game/chess/ai.py)",
+      "Bash(awk '/^def _root_stability_adjustment/,/^def [a-z]/' chess_game/chess/ai.py)",
+      "Bash(awk '/def prefer_root_move/,/^def [a-z]/' chess_game/chess/ai_search_helpers.py)",
+      "Bash(awk '/def root_stability_adjustment/,/^def [a-z]/' chess_game/chess/ai_search_helpers.py)",
+      "Bash(awk '/def _attacking_root_bonus/,/^def [a-z]/' chess_game/chess/ai_search_helpers.py)",
+      "Bash(/home/phil/work/chess-engine/.venv/bin/python /tmp/fix9_probe_s8.py)",
+      "Bash(awk '/def test_search_plays_active_queen_move_with_pawn_threat/,/assert/' tests/test_ai_opening_strategy.py)",
+      "Bash(awk '/def test_strategy7_search_rejects_a5_and_stays_on_b_file/,/get_best_move/' tests/test_ai_strategy7_regressions.py)",
+      "Bash(awk '/def test_strategy7_search_rejects_a5_and_stays_on_b_file/,/^def [a-z]/' tests/test_ai_strategy7_regressions.py)",
+      "Bash(timeout 590 env *)",
+      "Bash(env *)",
+      "Bash(echo \"exit=$?  lines=$\\(wc -l < /tmp/fix9_t3_out.txt\\)\")",
+      "Bash(break)",
+      "Bash(ps -eo pid,etime,cmd)"
     ]
   }
 }
