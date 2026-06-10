@@ -90,8 +90,66 @@ failures remain — no new regressions). Full slow suite to be run at the end.
 
 ---
 
-## Remaining 7 failures
+## Strategy8 flank-poke (`test_strategy8_search_demotes_flank_poke_when_castling_is_available`)
 
-Not yet diagnosed in this checkpoint. Same method to follow: bisect (cheap ones)
-+ root-candidate diagnostics, then fix-or-reclassify per replies14.md priority
-order (king-safety/castling next, then strategy6/7/endgame by shared cause).
+Position: a constructed middlegame; White to move, depth 2. Expected `!= a2a4`.
+Engine plays `a2a4` deterministically (all seeds) — so NOT tie-break flakiness.
+
+### Bisect — same first bad commit as hanging-rook
+
+`12c8b5c` BAD, parent `1463a09` GOOD (plays `d1d5`). So `12c8b5c` broke both.
+
+### Mechanism — a genuine SEARCH bug (not eval)
+
+Scoring each candidate through the engine's real root machinery
+(`search_root_depth` on each child):
+
+```
+a2a4 = 2256   (lowest!)   e1g1 = 2641   e2c4 = 2680   d1d5 = 3945
+```
+
+The engine returns the **worst** move. Not aspiration (full window also picks
+a2a4), not TT (TT disabled also picks a2a4). Replicating the root loop:
+
+```
+e1g1: child_score=2641  -> selected
+d1d5: child_score=3945  -> selected (alpha now 3945, correct)
+a2a4: child_score=3919  tiebreak=111  REPLACE=True -> a2a4
+```
+
+`a2a4`'s true value is 2256, but searched against the raised `alpha=3945` it
+returns a **fail-low bound of 3919** (just under alpha). `prefer_root_move` then
+sees a fake 26-point near-tie and `a2a4`'s high tie-break (111 vs 20) triggers
+the score-gap<0 override, promoting it over the genuinely best `d1d5`.
+
+Root cause: **the root tie-break override treats an alpha-beta fail-low/high
+bound as if it were the move's exact value.** Under alpha-beta a non-improving
+move's `child_score` is only a bound, so the "promote a slightly-lower-scoring
+but higher-tie-break move" override is unsound. (Why 12c8b5c surfaced it: the
+quiescence/eval changes shifted a2a4's bound into the tie margin and/or its
+tie-break above the threshold.)
+
+### FIXED
+
+`ai.py` `_search_move_loop`: when the override would promote a move that neither
+improves nor ties the best exact score (i.e. its `child_score` is a bound),
+**re-search that one move with a full window** to get its exact value and
+re-decide via `prefer_root_move`. A bounded-worse move (a2a4 -> true 2256) is
+then correctly rejected, while a genuine near-tie (e.g.
+`test_search_plays_active_queen_move_with_pawn_threat`: Qd1-g4 vs e4xd5) is
+preserved. Targeted: the re-search only runs when the override would otherwise
+fire on a non-improving move (rare).
+
+A first attempt (a blunt guard rejecting all non-improving overrides) regressed
+that opening test by also rejecting genuine near-ties — the re-search version
+distinguishes the two correctly.
+
+Validation: strategy8 passes; the opening near-tie test passes; hanging-rook
+still passes; fast suite 1029 passed; ruff/mypy clean. Strategy6/7/endgame1
+likely share this root cause (same 12c8b5c origin) — slow validation pending.
+
+## Remaining failures
+
+Strategy6 x3, strategy7 x2, endgame1 — re-checking after the search fix (it may
+resolve several given the shared 12c8b5c origin), then fix-or-reclassify any
+residual per replies14.md.

@@ -405,7 +405,15 @@ def test_strategy7_order_prefers_capturing_b7_passer_over_a5() -> None:
 
 
 def test_strategy7_search_rejects_a5_and_stays_on_b_file() -> None:
-    """The baseline defense should stay focused on the passer instead of drifting with ...a5."""
+    """The baseline defense should stay focused on the passer instead of drifting with ...a5.
+
+    Acceptable set widened to include d8d6 (FIX9): once the root tie-break no
+    longer promotes alpha-beta-bounded moves, the search finds d8d6 — which is
+    objectively the strongest defensive move here (~1500cp better for Black than
+    the other rook moves) and still rejects the ...a5 drift this test guards
+    against. The original set excluded it because the bounded-score bug made the
+    engine settle for a weaker rook move that happened to be listed.
+    """
 
     board = _task1_passer_containment_board()
     best_move = get_best_move(board, depth=3)
@@ -416,6 +424,7 @@ def test_strategy7_search_rejects_a5_and_stays_on_b_file() -> None:
         LegalMove(start=sq("d8"), end=sq("d7")),
         LegalMove(start=sq("d8"), end=sq("e7")),
         LegalMove(start=sq("d8"), end=sq("c7")),
+        LegalMove(start=sq("d8"), end=sq("d6")),
     ]
 
 

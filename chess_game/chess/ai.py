@@ -649,6 +649,24 @@ def _search_move_loop(
                 selected_score,
                 best_root_tiebreak,
             )
+            if replace_selected_move and not is_better and not is_tie:
+                # child_score may be an alpha-beta fail-low/high *bound* (the move
+                # was searched against a window raised by a strictly better
+                # sibling), not the move's true value. Re-search it with a full
+                # window to get the exact score before letting it win the root
+                # tie-break, so a bounded-worse move cannot masquerade as a
+                # near-tie (FIX9: a2a4 returned a fail-low bound of 3919 with a
+                # true value of 2256 and the tie-break override promoted it).
+                child_score, root_tiebreak = _evaluate_child_move(
+                    board, move, params, -INF, INF
+                )
+                replace_selected_move = _prefer_root_move(
+                    params.is_maximizing,
+                    child_score,
+                    root_tiebreak,
+                    selected_score,
+                    best_root_tiebreak,
+                )
         else:
             if params.is_maximizing:
                 replace_selected_move = child_score > selected_score or (
