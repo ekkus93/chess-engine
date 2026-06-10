@@ -1468,3 +1468,26 @@ The two most plausible original causes (subprocess meta-tests; global RNG
 mutation) are BOTH now addressed (slow-marked in FIX6; localized RNG in FIX7).
 Remaining uncertainty is environmental and needs the sandbox's timeout/coredata
 to resolve definitively.
+
+## 2026-06-10T05:08:05Z - Claude Opus 4.8 - FIX8: fast-suite runtime (TUI 3s waits removed)
+
+Test-only patch; no engine/TUI production code changed. Made the "fast" suite
+genuinely fast and sandbox-resilient.
+
+- **Root cause (confirms Problem 1 / H1):** three `await pilot.pause(delay=3.0)`
+  waits in `tests/test_tui.py::TestHumanMoveInput` waited for a real depth-1
+  engine reply in the `@work(thread=True)` worker — ~3.6s each (~11s) on EVERY
+  machine, the dominant fast-suite cost and the likely sandbox-timeout cause.
+- **Fix:** two tests assert human-side state (pawn on e4 / input cleared) true
+  immediately after the move -> short `await pilot.pause()`, no fake. The third
+  needs a reply -> monkeypatch `chess_game.tui.get_best_move` with an instant
+  first-legal-move fake + a new `wait_until(predicate, timeout, interval)` poll
+  helper (waits for state, not wall-clock). All three stay fast; none slow-marked.
+- **Result:** test_tui.py 18.2s -> 9.6s; full fast suite ~45s -> ~35-36s
+  (1031 passed). Engine-reply test 5/5 stable ~0.74s.
+- **Documented, not changed (per replies13.md "don't chase"):** two ~2.3s
+  test_ai_search.py invariants (one does depth-3 search — flagged for optional
+  slow-marking) + one ~2.0s book/search integration test. See
+  docs/FIX8_FAST_SUITE_STATUS.md.
+- FIX7 behavior tests reconfirmed intact (85 passed). Meta-tests still excluded
+  from fast. signal.alarm in self_play.py left alone (out of scope, no leak seen).
