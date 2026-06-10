@@ -203,11 +203,13 @@ exact in-window score. After the fix the engine returns Bb4-d6 (true best,
   — Rb8, Ra5, Kf7 all win; only Ra6/Ra4/Ra2 (~-3591) throw the win away. Test
   widened to the winning moves.
 
-## Status: 8 of 8 resolved
+## Status: 8 of 8 resolved — CONFIRMED
 
-2 engine fixes (hanging-rook 85e74fe; strategy8 fail-low bound bd9318f; root
+3 engine fixes (hanging-rook 85e74fe; strategy8 fail-low bound bd9318f; root
 false-tie 5f2d25a) + 6 over-specific/wrong-premise test reclassifications
-(d3c0c95, 5f2d25a). Full slow-suite no-net-regression validation: the prior run
-after the first two engine fixes was 2 failed / 169 passed (only the last 2
-known cases failing, zero regressions); a final full slow run after the root
-false-tie fix is the last gate.
+(d3c0c95, 5f2d25a).
+
+**Final no-net-regression gate (2026-06-10): full slow suite = 171 passed, 0
+failed, 1029 deselected (53m31s).** Up from the pre-fix baseline of 169 passed /
+2 failed — all previously-passing slow tests still pass and the last 2 holdouts
+now pass. ruff/mypy clean, pylint `chess_game` 10.00/10, fast suite 1029 passed.

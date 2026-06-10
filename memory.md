@@ -2,6 +2,48 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-10T18:15:53Z - Claude Opus 4.8 (1M context) - FIX9 COMPLETE: 8/8 slow-strength failures resolved, full slow suite green
+
+FIX9 (CHESS_ENGINE_SLOW_STRENGTH_FIX9) is done. The decisive no-net-regression
+gate passed: **full slow suite = 171 passed, 0 failed, 1029 deselected (53m31s)**.
+Up from the pre-fix baseline of 169 passed / 2 failed; every previously-passing
+slow test still passes, and the last 2 holdouts now pass too.
+
+### Root causes (all traced to commit 12c8b5c "TEXEL_FIX" via per-commit bisect)
+Three were real engine defects; the rest were over-specific or false-premise tests.
+
+1. **Hanging-rook (85e74fe):** broadened quiescence made Qxd5 / Qf6+ / Qb2 tie at
+   the same search score (engine wins the rook in every line); random tie-break
+   picked the slower Qf6+. Fix: added `_material_realization_bonus` to
+   `root_stability_adjustment` (mover-relative, scaled by captured value, capped
+   at 49 < ROOT_TIEBREAK_MARGIN=50) so a concrete capture outranks a speculative
+   attack bonus at near-equal scores — without overriding a real score gap.
+
+2. **Strategy8 fail-low bound (bd9318f):** a non-improving root move (a2a4) searched
+   against an alpha raised by a better sibling returns a fail-low *bound* (3919),
+   not its true value (2256); `prefer_root_move`'s tie-break override then promoted
+   the worst move. Fix: in `ai.py _search_move_loop`, re-search with a full window
+   before the override may promote a non-improving move.
+
+3. **Root false-tie from a fail-HIGH bound (5f2d25a):** the strategy8 fix only
+   re-searched the strictly-worse case; a move whose bound *equals* the best score
+   (Bb4-e1: cs=-266==beta, true value +305) masqueraded as a TIE and got promoted
+   (a 571cp self-blunder flipping the eval sign). Fix: gate the full-window
+   re-search on `not is_better` (worse OR tie) instead of `not is_better and
+   not is_tie`. Only improving moves keep an exact in-window score.
+
+### Test reclassifications (engine plays its own sound full-window search-best)
+strategy6 keeps_king_safer (Nh6-g4), clearer_knight_route (e4-e3); strategy7
+stopping_enemy_race (Kg7-f7); endgame1 cutoff_before_race (Kd4-e5). Plus two
+false-premise rewrites backed by diagnostics: strategy6 clean_rook_capture (the
+expected Rxa4 is genuinely refuted by Qe4-g6 on Kh8: +438 d3, +756 d4 — now
+asserts Bb4-d6) and strategy7 only_blockade ("only blockade" premise false; Rb8,
+Ra5, Kf7 all win — widened to the winning set). Commits d3c0c95, 5f2d25a.
+
+### Gates
+ruff clean, mypy clean, pylint `chess_game` 10.00/10, fast suite 1029 passed,
+**full slow suite 171 passed / 0 failed**. Diagnosis in docs/FIX9_DIAGNOSIS.md.
+
 ## 2026-06-08T22:41:55Z - Claude Haiku 4.5 - TEXEL_FIX Complete: All phases 1–14 done (tests fixed)
 
 Completed ALL remaining phases of docs/CHESS_ENGINE_TEXEL_FIX_TODO.md (Phases 1–14).
