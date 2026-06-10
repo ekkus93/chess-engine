@@ -1323,3 +1323,27 @@ Added automatic weight improvement after every self-play game (CLI and TUI).
 - `chess_game/self_play.py` — `_SelfPlayOptions.online_learning=True` triggers `_maybe_learn()` at game end; enabled from CLI with `--learn` flag
 - `chess_game/tui.py` — `_board_fens` list collects FENs each ply; `_trigger_online_learning()` spawns daemon thread after self-play game ends; doesn't block UI
 - `invalidate_weights_cache()` exported from `ai_weight_cache.py` so tuned weights reload immediately on next `get_best_move` call
+
+## 2026-06-10T02:18:53Z - Claude Opus 4.8 - TEXEL_FIX7: localized RNG fix + real behavior tests
+
+Acceptance-hardening patch. Engine logic largely unchanged; focus was test
+reliability/quality and removing test theater from prior fixes (FIX5/FIX6
+completion reports had overclaimed — same problems recurred).
+
+- **Localized RNG fix** (`chess_game/chess/ai.py`, `opening_book.py`): replaced
+  global `random.seed(options.rng_seed)` in `get_best_move()` with a local
+  `random.Random(rng_seed)` threaded through `SearchContext.rng` into
+  `_tie_break()` and into `OpeningBook.find_book_move_random(board, rng=...)`.
+  Seeded selection stays reproducible; global RNG state no longer mutated
+  (regression test: `test_seeded_call_does_not_mutate_global_rng`).
+- **Collection behavior tests** (`tests/test_collect.py`): replaced config-only
+  theater with real tests via monkeypatched `get_best_move`/`_play_game` —
+  weights propagation, max-move draw=0.5, discard=None/empty, seed reproducibility.
+- **PositionDB** (`tests/test_position_db.py`): hand-authored old/new JSONL with
+  direct `get_stats()` count/total/mean assertions (new-format count=4 on 1 line).
+- **Loss k** (`tests/test_loss.py`): real k-sensitivity on a one-pawn-edge FEN
+  (queen-up FEN saturates sigmoid) + `k=`/`opts=LossOptions(k=)` equivalence.
+- **Opening book** (`tests/test_opening_book.py`): removed `assert True`; added
+  `_FakeMultiCandidateBook` to prove different seeds select different moves.
+- Full fast suite reliable as one command: 1031 passed, ~46s. Problem-1 timeout
+  not reproduced. Signal/alarm: no usages in tests (no-op). Status: docs/TEXEL_FIX7_STATUS.md.
