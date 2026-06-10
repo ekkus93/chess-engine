@@ -1347,3 +1347,124 @@ completion reports had overclaimed — same problems recurred).
   `_FakeMultiCandidateBook` to prove different seeds select different moves.
 - Full fast suite reliable as one command: 1031 passed, ~46s. Problem-1 timeout
   not reproduced. Signal/alarm: no usages in tests (no-op). Status: docs/TEXEL_FIX7_STATUS.md.
+
+## 2026-06-10T02:25:24Z - Claude Opus 4.8 - TEXEL_FIX7 Problem 1 (full fast-suite "timeout"): detailed investigation note
+
+This note is written to be self-contained for an external reviewer (ChatGPT 5.5).
+It records exactly what Problem 1 claimed, what was observed locally, and the
+competing hypotheses, so the discrepancy can be discussed without the original
+chat transcript.
+
+### What Problem 1 claimed (from CHESS_ENGINE_TEXEL_FIX7_SPEC.md)
+
+The Fix 7 spec asserted that the full fast suite, run as ONE command:
+
+    uv run --extra dev python -m pytest -m "not slow"
+
+"still timed out." The spec's supporting evidence was that splitting the
+collected suite into two contiguous chunks both passed:
+
+    First collected block:    713 passed,  29 deselected in 28.93s
+    Remaining collected block: 322 passed,   3 deselected in 19.72s
+
+From this the spec inferred a *full-suite interaction* (state leakage between
+tests) rather than one slow test, and listed suspects: signal/alarm leakage,
+global RNG mutation, subprocess lifecycle, background threads, monkeypatch
+leakage, temp-file/global-cache leakage.
+
+### What was actually observed locally (this repo, this session)
+
+The one-command fast suite completes RELIABLY and does not hang:
+
+    FIX7 Phase 0: 43.55s / 43.61s / 43.55s  (1035 passed, 169 deselected) - 3 consecutive runs
+    FIX7 Phase 7: 45.59s real, 31.77s user  (1031 passed, 169 deselected) - final validation
+    (FIX6 baseline, before any FIX7 change, was the same ~43-44s.)
+
+Test count moved 1035 -> 1031 only because Phase 2 removed redundant collection
+"theater" tests and added fewer real ones; it is not related to the timeout.
+
+Local machine: 16 cores. Note `real (45.6s) > user (31.8s)`: pytest runs the
+suite SERIALLY (no pytest-xdist / `-n` parallelism), so ~32s is single-threaded
+CPU and the rest is I/O / process wait. There is no parallelism masking a hang.
+
+Problem 1 was therefore NOT reproduced. I explicitly did not invent a hang or
+"fix" an unobservable one (this was a direct instruction in the user's
+docs/replies12.md).
+
+### Key environmental fact from the user (docs/replies12.md, section 1)
+
+"The latest review that reported a timeout was run in a constrained sandbox
+environment with an external execution timeout. I do not have a stronger
+reproduction than that."
+
+So the reviewer's "timeout" was an EXTERNAL wall-clock kill in a constrained
+sandbox, not a pytest-internal hang detection. This reframes the whole problem.
+
+### What changed during FIX6 + FIX7 that bears on this
+
+1. FIX6 marked `tests/test_test_runtime_markers_integration.py` with
+   `pytestmark = pytest.mark.slow`. That file is a META-test suite: each test
+   spawns a NEW `python -m pytest tests/ --co` (full-collection) SUBPROCESS to
+   assert marker contracts. Collecting ~1200 tests in a child process, several
+   times, is expensive and was the prime FIX6 fast-suite suspect. It is now
+   excluded from the fast suite (deselects in 0.02s; passes under `-m slow`).
+   THIS is the most likely original culprit: in a slow/constrained sandbox,
+   repeated full-collection subprocesses could easily push total wall-clock
+   past an external timeout (and nested pytest subprocesses under CPU/pipe
+   constraints are exactly the kind of thing that stalls in a sandbox).
+
+2. FIX7 Phase 1 removed a global-state contamination vector: `get_best_move()`
+   called `random.seed(options.rng_seed)` (chess_game/chess/ai.py:1093),
+   mutating module-global RNG. Replaced with a local `random.Random(seed)`
+   threaded through `SearchContext.rng` into `_tie_break()` and
+   `OpeningBook.find_book_move_random(rng=...)`. This is the kind of global
+   mutation the spec flagged as an order-sensitivity suspect. Pinned by
+   `test_seeded_call_does_not_mutate_global_rng` (asserts global getstate()
+   unchanged across a seeded search).
+
+### Competing hypotheses for the original sandbox timeout (for discussion)
+
+H1 (most likely): NOT a hang — wall-clock overrun. The pre-FIX6 fast suite
+   included the subprocess-spawning meta-tests. ~32s single-core CPU locally,
+   plus N full-collection child processes, on a throttled/single-core sandbox
+   with a short external timeout (e.g. 60s/120s) = killed. FIX6's slow-marking
+   already removes this from the fast path. Prediction: re-running the current
+   tree in the same sandbox would now pass (or at least be far faster).
+
+H2: Genuine order-dependent interaction via global RNG. The `random.seed()`
+   mutation could make some test's outcome depend on suite order. But locally
+   the suite is stable across 4 runs (same order pytest uses), so if this
+   existed it didn't manifest here. FIX7 Phase 1 removes the vector regardless.
+
+H3: Subprocess pipe-buffer deadlock in the meta-tests under the sandbox. The
+   meta-tests use `subprocess.run(..., capture_output=True)`; a child producing
+   large collection output under constrained pipes could stall. Again only in
+   the fast suite pre-FIX6; now slow-only.
+
+H4: Sandbox resource limits (memory) causing swap/slowdown unrelated to code.
+
+### Why I cannot fully close this myself
+
+I have no access to the constrained sandbox or its exact timeout value, command,
+core count, or whether it observed progress-then-kill vs a true stall. Without
+that, H1 vs H2/H3 cannot be definitively separated. Locally everything points to
+H1 (wall-clock, driven by the now-slow meta-tests), with H2 pre-emptively closed
+by the RNG fix.
+
+### Concrete questions worth resolving with the external reviewer
+
+- What was the sandbox's external timeout (seconds) and core count?
+- Did the reviewer see progress dots up to a point then a kill (=> wall-clock,
+  H1/H4), or a true stall with no progress (=> deadlock, H3)?
+- Was the timed-out run BEFORE or AFTER FIX6 slow-marked the meta-tests? (If
+  before, H1 is almost certainly the answer.)
+- Would the reviewer re-run `pytest -m "not slow"` on the current HEAD in the
+  same sandbox to confirm it now completes within the timeout?
+
+### Bottom line
+
+Locally: fast suite reliable as one command (~44-46s, 1031 passed), 4 runs.
+The two most plausible original causes (subprocess meta-tests; global RNG
+mutation) are BOTH now addressed (slow-marked in FIX6; localized RNG in FIX7).
+Remaining uncertainty is environmental and needs the sandbox's timeout/coredata
+to resolve definitively.
