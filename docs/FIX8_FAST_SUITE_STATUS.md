@@ -76,8 +76,49 @@ prefers, slow-marking it is a one-line change; flagged here for that decision.
   Out of Fix 8 scope and left unchanged; no test-state leak observed (fast suite
   stable across repeated full runs).
 
-## Deferred / limitation
+## Slow suite: run in full — 9 PRE-EXISTING failures found
 
-- Slow suite (~15-20 min, depth-3+ engine-strength regressions) remains isolated
-  from the fast suite and was not run in full here; run separately with
-  `uv run --extra dev python -m pytest -m slow`.
+`uv run --extra dev python -m pytest -m slow -q` was run to completion
+(2870s / 47:50): **9 failed, 160 passed, 1031 deselected**.
+
+These failures are **pre-existing and unrelated to Fix 7 / Fix 8**. Proof:
+
+- The only production-code change in all of Fix 7 + Fix 8 is the Fix 7 RNG
+  commit (`4d7a33a`, local `random.Random` for tie-break + book selection).
+  Fix 8 is test-only.
+- The failing test files were not modified by Fix 7/Fix 8
+  (`git diff b7ecf3e HEAD -- <files>` empty for the strategy/quality/endgame
+  tests).
+- Restoring `ai.py` + `opening_book.py` to their pre-Fix-7 state (`b7ecf3e`)
+  and re-running representative failures still fails:
+  - `test_strategy8_search_demotes_flank_poke_when_castling_is_available`: 2/2 fail
+  - `test_simple_quality_benchmark_prefers_hanging_rook_capture`: fails
+  - The strategy8 test also fails deterministically 3/3 on HEAD (not flaky
+    tie-break) — the engine genuinely scores the "wrong" move best, which the
+    RNG change cannot affect (it only alters tie-breaks among equal scores).
+
+Failure breakdown:
+
+- **8 engine-strength regressions** (eval/search drift from earlier tuning
+  commits, e.g. STRATEGY15), out of Fix 8 scope (no engine heuristic work):
+  - `test_ai_endgame1_regressions::test_endgame1_search_prefers_cutoff_before_starting_pawn_race`
+  - `test_ai_quality::test_simple_quality_benchmark_prefers_hanging_rook_capture`
+  - `test_ai_strategy6_regressions::test_strategy6_search_keeps_king_safer_than_g_pawn_lunge_in_transition`
+  - `test_ai_strategy6_regressions::test_strategy6_search_prefers_clearer_knight_route_over_na7_in_transition`
+  - `test_ai_strategy6_regressions::test_strategy6_search_prefers_clean_rook_capture_during_conversion`
+  - `test_ai_strategy7_regressions::test_strategy7_search_prefers_only_blockade_move_in_passer_race`
+  - `test_ai_strategy7_regressions::test_strategy7_search_prefers_stopping_enemy_race_over_wrong_side_check`
+  - `test_ai_strategy8_regressions::test_strategy8_search_demotes_flank_poke_when_castling_is_available`
+- **1 buggy slow test**: `test_collect.py::test_collect_games_outcomes_are_valid`
+  asserts every `all_pairs()` value is in {0.0, 0.5, 1.0}, but `all_pairs()`
+  returns aggregated **means** (total/count). With `skip_opening_plies=0` the
+  start position is recorded in all 3 games, so its mean is frequently
+  fractional (observed 0.6667). The assertion is mathematically wrong; this
+  test was not modified by Fix 7/Fix 8 and uses OS-random self-play (seed=None),
+  so it is inherently flaky. A correct cheap fix is available (assert each
+  position's `get_stats().mean` is within [0,1], or assert raw per-game
+  outcomes, not aggregated means) — pending owner decision.
+
+Net: Fix 8's deliverable (fast-suite runtime) is complete; the slow suite has
+pre-existing breakage that predates this patch and is out of its scope. Logged
+so it is not mistaken for a Fix 8 regression and can be scheduled separately.

@@ -1491,3 +1491,29 @@ genuinely fast and sandbox-resilient.
   docs/FIX8_FAST_SUITE_STATUS.md.
 - FIX7 behavior tests reconfirmed intact (85 passed). Meta-tests still excluded
   from fast. signal.alarm in self_play.py left alone (out of scope, no leak seen).
+
+## 2026-06-10T06:45:31Z - Claude Opus 4.8 - FIX8 Phase 6.5: slow suite run surfaced 9 PRE-EXISTING failures
+
+Ran the full slow suite to completion (option a): `pytest -m slow` ->
+**9 failed, 160 passed, 1031 deselected in 2870s (47:50)**.
+
+Investigated whether FIX7/FIX8 caused them. They did NOT — all 9 are pre-existing:
+- Only production change in FIX7+FIX8 is the FIX7 RNG commit (4d7a33a); FIX8 is
+  test-only. The failing test files are unchanged since b7ecf3e (pre-FIX7).
+- Restored ai.py + opening_book.py to b7ecf3e and representative failures still
+  fail: test_strategy8...flank_poke (2/2), test_simple_quality_benchmark...rook
+  (fail). strategy8 also fails 3/3 deterministically on HEAD -> not flaky
+  tie-break; engine genuinely scores the "wrong" move best, which the RNG change
+  cannot affect (it only breaks ties among EQUAL scores).
+
+Breakdown: 8 engine-strength regressions (eval/search drift from earlier tuning
+commits like STRATEGY15 — out of FIX8 scope) + 1 buggy slow test
+(test_collect_games_outcomes_are_valid asserts all_pairs() means in {0,0.5,1},
+but all_pairs returns total/count means; with skip_opening_plies=0 the start
+position aggregates 3 games -> often fractional, e.g. 0.6667; inherently flaky,
+not mine).
+
+IMPORTANT for future sessions: the slow suite was apparently not run green for a
+while; these failures are latent debt, NOT introduced by FIX7/FIX8. The cheap,
+safe one is the collect test assertion bug. The 8 engine-strength ones need a
+separate engine-tuning effort. Detail recorded in docs/FIX8_FAST_SUITE_STATUS.md.
