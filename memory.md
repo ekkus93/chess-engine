@@ -2,6 +2,49 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-11T18:19:53Z - Claude Opus 4.8 (1M context) - ai_search_helpers.py split into 5 modules (behavior-preserving refactor)
+
+Split `chess_game/chess/ai_search_helpers.py` from **1129 -> 141 lines (-88%)**.
+It is now a thin `__all__` facade re-exporting 22 names + six small standalone
+helpers (record_root_research/record_depth_timing, same_legal_move,
+record_selective_extension, promotion_order_score, defensive_capture_bonus).
+
+New modules (each imports only downward, no cycles):
+- `ai_root_selection.py` (145) — ROOT_TIEBREAK_* constants + initial_root_window,
+  rerun_full_window_if_needed, prefer_root_move (+ _strong_root_tiebreak_override /
+  _is_clearly_winning_choice), update_best_result, update_alpha_beta. Pure logic.
+- `ai_repetition_tracking.py` (105) — RepetitionPolicy, search_position_counts,
+  position_occurrence_count, repetition_score, _repetition_penalty, _side_to_move_score.
+- `ai_root_stability.py` (493) — root_stability_adjustment + ~18 _*_root_bonus/_penalty
+  helpers, _material_realization_bonus, _endgame_phase, _is_simple_endgame,
+  _has_genuine_tactical_payoff + the root-bonus constants; carries ~20 guidance imports.
+- `ai_selective_extensions.py` (378) — selective_extension_bonus/check_extension +
+  the _is_*_extension predicates; imports _is_simple_endgame from ai_root_stability.
+
+Order: root_selection, repetition (small/pure) first; then root_stability; then
+selective_extensions (needs _is_simple_endgame from root_stability). The two big
+groups are INTERLEAVED in the file, so used an **AST-based extractor**
+(/tmp/extract_module.py: ast end_lineno for precise boundaries; copies the import
+block, ruff --fix trims) instead of hand-counting sed ranges. ruff trimmed 37
+now-unused guidance imports from ai_search_helpers after root_stability moved out.
+
+LESSON: hand sed line-range deletion clipped same_legal_move's def (off-by-one on
+an adjacent function start) — the AST facade guard caught it (one name missing);
+reverted that file to HEAD with `git checkout HEAD -- <file>` and redid with the
+AST extractor. Always run the AST guard (parse every repo file's
+`from chess_game.chess.ai_search_helpers import ...`, multi-line included) after
+each extraction. Also: pylint rejects the `import X as X` re-export idiom
+(C0414/W0611) even though ruff accepts it — use `__all__`, not `as`.
+
+Validation: at each of the 4 commits ruff/mypy clean, **pylint chess_game 10.00/10**
+(only the 3 pre-existing R0911 + 1 C0415, relocated), fast suite **1033 passed**, AST
+guard all 22 names resolve. Fixed one self-introduced C0305 (trailing newlines from
+blank-collapse) in the final commit. The full slow suite was NOT run to completion
+for this split (stopped at user request to keep refactoring); the ai.py-split slow
+run (171/0) remains the last recorded green engine-strength baseline.
+
+Commits f640ba0, cf1ff82, 0b48f18, ed0f01a.
+
 ## 2026-06-11T13:12:43Z - Claude Opus 4.8 (1M context) - ai.py split into 5 modules (behavior-preserving refactor, full slow suite green)
 
 Split `chess_game/chess/ai.py` from **1281 -> 594 lines (-54%)** by extracting five
