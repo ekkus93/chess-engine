@@ -2,6 +2,38 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-11T18:48:47Z - Claude Opus 4.8 (1M context) - ai_move_ordering.py split (constants + check-quality), behavior-preserving
+
+Split `chess_game/chess/ai_move_ordering.py` **1073 -> 799 lines** (moderate scope),
+extracting two modules; ai_move_ordering gained an explicit `__all__` facade
+re-exporting its 6 externally-imported names (make_quiet_order_context,
+quiet_strategy_order_score, is_prophylactic_h_luft, QUIET_PROPHYLACTIC_LUFT_BONUS,
+_bishop_passive_retreat_penalty, _knight_threatens_minor_bonus).
+
+- `ai_quiet_ordering_constants.py` (50) — the ~45 QUIET_*/ENDGAME_ORDER/_ADVANTAGE_*
+  tuning constants. NOTE: extracting constants slightly GREW ai_move_ordering (the
+  45-name import-back + __all__ is longer than the 45 const lines); value is
+  "tuning knobs in one place", not line count.
+- `ai_check_ordering.py` (307) — check-quality scoring. Key technique: moved the
+  TRANSITIVE CLOSURE of the check group (computed via ast call-graph walk), not just
+  the obvious check funcs, because _move_creates_material_threat -> _offers_major_piece_trade
+  (shared with non-check helpers) -> _attacks_any_target/_is_materially_ahead/_piece_value/
+  _rook_attacks_delta/_queen_attacks_delta. Moving the whole closure makes the module
+  self-contained (never calls back) so ai_move_ordering only imports FROM it (re-imports
+  the 3 still used: _check_quality_bonus, _offers_major_piece_trade, _piece_value). No cycle.
+
+EXTRACTOR BUG FIXED (/tmp/extract_module.py): ast ClassDef/FunctionDef `.lineno`
+points to the `class`/`def` line, NOT the decorator above it. First run left an
+orphaned `@dataclass(frozen=True)` in ai_move_ordering and dropped CheckQuality's
+decorator. Fixed with a `node_start()` that uses min(decorator_list lineno). Always
+account for decorators when extracting by line range. (Restored from /tmp backup,
+re-ran.)
+
+Validation per commit: ruff/mypy clean, pylint chess_game 10.00/10, fast suite 1033
+passed, AST facade guard (all 6 names resolve). Full slow suite NOT run (user asked
+to keep moving with fast tests only); ai.py-split 171/0 remains the last recorded
+green engine-strength baseline. Commits 5edda44, 2d1547d.
+
 ## 2026-06-11T18:19:53Z - Claude Opus 4.8 (1M context) - ai_search_helpers.py split into 5 modules (behavior-preserving refactor)
 
 Split `chess_game/chess/ai_search_helpers.py` from **1129 -> 141 lines (-88%)**.
