@@ -9,11 +9,7 @@ import time
 
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import (
-    is_dead_position as _gs_is_dead_position,
-    is_fifty_move_rule as _gs_is_fifty_move_rule,
     is_in_check as _gs_is_in_check,
-    is_insufficient_material as _gs_is_insufficient_material,
-    is_seventy_five_move_rule as _gs_is_seventy_five_move_rule,
 )
 from chess_game.chess.ai_capture_ordering import capture_order_score as _shared_capture_order_score
 from chess_game.chess.ai_search_types import (
@@ -28,17 +24,21 @@ from chess_game.chess.ai_search_types import (
     QuiescenceParams,
     SearchContext,
     SearchStats,
+    TTFlag,
 )
 from chess_game.chess.ai_transposition import (
     _check_tt_cache,
+    _is_mate_score,
     _record_tt_hit,
     _store_tt_cache,
     position_key,
 )
-from chess_game.chess.ai_transposition import _is_mate_score as _is_mate_score
-# Re-exported for callers that import TTFlag from chess_game.chess.ai (the public
-# search facade); no longer referenced inside ai.py after the TT split.
-from chess_game.chess.ai_search_types import TTFlag as TTFlag
+from chess_game.chess.ai_search_eval import (
+    _ctx_evaluate,
+    _make_evaluate_fn,
+    _progress_score,
+    _terminal_score,
+)
 from chess_game.chess.ai_board_utils import (
     clone_with_move as _make_copy_with_move,
     get_legal_moves,
@@ -103,6 +103,40 @@ _quiescence_check_score = _quiescence_check_score_impl
 _quiescence_structure_follow_up_score = _quiescence_structure_follow_up_score_impl
 _quiescence_tactical_score = _quiescence_tactical_score_impl
 
+# Public search facade. ai.py re-exports names that moved into the extracted
+# low-level modules (ai_search_types, ai_transposition, ai_search_eval); declaring
+# them here marks the intentional re-exports for the linters and documents the
+# surface that tests and tooling import from chess_game.chess.ai.
+__all__ = [
+    "get_best_move",
+    "minimax",
+    "minimax_no_prune",
+    "quiescence",
+    "search_root_depth",
+    "evaluate",
+    "get_evaluation_breakdown",
+    "invalidate_weights_cache",
+    "get_legal_moves",
+    "BestMoveOptions",
+    "MinimaxParams",
+    "SearchContext",
+    "SearchStats",
+    "TTFlag",
+    "INF",
+    "MATE_SCORE",
+    "DRAW_SCORE",
+    "position_key",
+    "_evaluate_child_move",
+    "_is_mate_score",
+    "_move_order_score",
+    "_quiescence_capture_score",
+    "_quiescence_check_score",
+    "_quiescence_tactical_score",
+    "_root_stability_adjustment",
+    "_store_tt_cache",
+    "_terminal_score",
+]
+
 
 def _get_effective_weights(weights: Optional[EvalWeights]) -> EvalWeights:
     """Resolve the effective weights to use, loading from disk if needed."""
@@ -122,27 +156,6 @@ def invalidate_weights_cache() -> None:
     _invalidate_weights_cache()
 
 
-def _progress_score(board: Board) -> int:
-    """Return the progress component used to discourage empty repetitions."""
-
-    return _get_evaluation_breakdown(board)["progress"]
-
-
-def _ctx_evaluate(board: Board, context: Optional[SearchContext]) -> int:
-    """Evaluate board using the weights stored in context (or defaults)."""
-    weights = context.weights if context is not None else None
-    return evaluate(board, weights)
-
-
-def _make_evaluate_fn(context: Optional[SearchContext]):
-    """Return an evaluate callable that captures context weights."""
-
-    def _fn(board: Board) -> int:
-        return _ctx_evaluate(board, context)
-
-    return _fn
-
-
 def _record_search_node(context: Optional[SearchContext]) -> None:
     """Increment node counters when diagnostics are enabled."""
 
@@ -159,51 +172,6 @@ def _record_quiescence_node(context: Optional[SearchContext]) -> None:
 
     if context is not None and context.stats is not None:
         context.stats.quiescence_nodes += 1
-
-
-def _terminal_score(
-    board: Board,
-    legal_moves: list[Move],
-    ply: int = 0,
-    position_counts: Optional[dict[str, int]] = None,
-) -> Optional[int]:
-    """Return a terminal score for draws and checkmate; None when non-terminal.
-
-    Covers all draw states supported by the board/game-state API:
-    - fifty-move rule
-    - seventy-five move rule
-    - insufficient material
-    - dead position
-    - fivefold repetition (if position_counts provided)
-    - stalemate
-    - checkmate (via ply-adjusted mate score)
-    """
-
-    # Draw states checked before legal move availability
-    if _gs_is_fifty_move_rule(board):
-        return DRAW_SCORE
-    if _gs_is_seventy_five_move_rule(board):
-        return DRAW_SCORE
-    if _gs_is_insufficient_material(board):
-        return DRAW_SCORE
-    if _gs_is_dead_position(board):
-        return DRAW_SCORE
-    if position_counts is not None:
-        from chess_game.chess.board.game_state import is_fivefold_repetition as _gs_is_fivefold
-        if _gs_is_fivefold(board, position_counts):
-            return DRAW_SCORE
-
-    # If legal moves exist, position is not terminal
-    if legal_moves:
-        return None
-
-    # No legal moves: either checkmate or stalemate
-    if _gs_is_in_check(board, board.turn):
-        # Side to move is checkmated; prefer closer mates
-        return -MATE_SCORE + ply if board.turn == Color.WHITE else MATE_SCORE - ply
-
-    # Stalemate: no legal moves and not in check
-    return DRAW_SCORE
 
 
 def minimax(
@@ -601,7 +569,9 @@ def _quiescence(board: Board, params: QuiescenceParams) -> int:
     )
 
     # Check for terminal/draw states early
-    terminal_score = _terminal_score(board, legal_moves, ply, context.position_counts if context else None)
+    terminal_score = _terminal_score(
+        board, legal_moves, ply, context.position_counts if context else None
+    )
     if terminal_score is not None:
         return terminal_score
 
