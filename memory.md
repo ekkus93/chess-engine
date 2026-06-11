@@ -2,6 +2,29 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-11T21:44:35Z - Claude Opus 4.8 (1M context) - conversion_guidance.py: constants extracted; function-level split not viable
+
+Extracted the ~35 conversion tuning constants from
+`chess_game/chess/conversion_guidance.py` into a new leaf module
+`conversion_guidance_constants.py` (commit de4e997). conversion_guidance gained an
+`__all__` facade re-exporting its 8 externally-imported names. Behaviour-preserving;
+ruff/mypy clean, pylint chess_game 10.00/10, fast suite 1033 passed.
+
+FINDING (do not retry without restructuring): conversion_guidance is a tightly
+COUPLED single concern, NOT cleanly splittable at the function level. The
+low-material "subsystem" call-graph closure is 58 of ~58 functions — it routes
+through `_conversion_context` (the hub that builds the central `ConversionContext`
+dataclass that almost every function consumes). The only function-independent leaf
+helpers total ~56 lines and are mostly 2-line utilities (_color_sign, _opponent,
+_square_tuple_to_constant, ...) or conversion-specific predicates — not a cohesive
+module; extracting them would hurt locality. A real further split would require a
+risky restructure (move ConversionContext/ConversionSideState to a types module +
+~20 _*_score helpers to a scoring module) — deferred as low value / higher risk.
+Same caution likely applies to the other large guidance/eval modules
+(endgame_evaluation.py, etc.): cohesive single concerns, line-count-large but not
+tangled. Prefer splitting search/orchestration files (done: ai.py, ai_search_helpers,
+ai_move_ordering) over single-concern guidance modules.
+
 ## 2026-06-11T18:48:47Z - Claude Opus 4.8 (1M context) - ai_move_ordering.py split (constants + check-quality), behavior-preserving
 
 Split `chess_game/chess/ai_move_ordering.py` **1073 -> 799 lines** (moderate scope),
