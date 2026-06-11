@@ -10,7 +10,9 @@ from __future__ import annotations
 
 from typing import Optional
 
+from chess_game.chess.ai_search_helpers import RepetitionPolicy
 from chess_game.chess.ai_search_types import DRAW_SCORE, MATE_SCORE, SearchContext
+from chess_game.chess.ai_transposition import position_key
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import (
     is_dead_position as _gs_is_dead_position,
@@ -22,6 +24,11 @@ from chess_game.chess.board.game_state import (
 from chess_game.chess.evaluation import (
     evaluate,
     get_evaluation_breakdown as _get_evaluation_breakdown,
+)
+from chess_game.chess.evaluation_tables import (
+    REPETITION_PROGRESS_ONLY_THRESHOLD,
+    REPETITION_PROGRESS_THRESHOLD,
+    VOLUNTARY_REPETITION_PENALTY,
 )
 from chess_game.chess.move import Move
 from chess_game.chess.types import Color
@@ -46,6 +53,19 @@ def _make_evaluate_fn(context: Optional[SearchContext]):
         return _ctx_evaluate(board, context)
 
     return _fn
+
+
+def make_repetition_policy(context: Optional[SearchContext]) -> RepetitionPolicy:
+    """Build the repetition policy shared by the main search and quiescence."""
+
+    return RepetitionPolicy(
+        position_key=position_key,
+        evaluate=_make_evaluate_fn(context),
+        progress=_progress_score,
+        threshold=REPETITION_PROGRESS_THRESHOLD,
+        progress_threshold=REPETITION_PROGRESS_ONLY_THRESHOLD,
+        penalty=VOLUNTARY_REPETITION_PENALTY,
+    )
 
 
 def _terminal_score(

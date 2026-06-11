@@ -8,17 +8,12 @@ import random
 import time
 
 from chess_game.chess.board import Board
-from chess_game.chess.board.game_state import (
-    is_in_check as _gs_is_in_check,
-)
 from chess_game.chess.ai_search_types import (
     ASPIRATION_WINDOW,
     BestMoveOptions,
     DRAW_SCORE,
     INF,
     MATE_SCORE,
-    MAX_QUIESCENCE_DEPTH,
-    MAX_QUIESCENCE_MOVES,
     MinimaxParams,
     QuiescenceParams,
     SearchContext,
@@ -33,17 +28,15 @@ from chess_game.chess.ai_transposition import (
     position_key,
 )
 from chess_game.chess.ai_search_eval import (
-    _ctx_evaluate,
-    _make_evaluate_fn,
-    _progress_score,
     _terminal_score,
+    make_repetition_policy,
 )
 from chess_game.chess.ai_search_ordering import (
-    _capture_order_score,
     _move_order_score,
     _move_sort_key,
     _order_moves,
 )
+from chess_game.chess.ai_quiescence_search import _quiescence, quiescence
 from chess_game.chess.ai_board_utils import (
     clone_with_move as _make_copy_with_move,
     get_legal_moves,
@@ -53,10 +46,8 @@ from chess_game.chess.ai_quiescence_helpers import (
     _quiescence_check_score as _quiescence_check_score_impl,
     _quiescence_structure_follow_up_score as _quiescence_structure_follow_up_score_impl,
     _quiescence_tactical_score as _quiescence_tactical_score_impl,
-    select_quiescence_moves as _select_quiescence_moves,
 )
 from chess_game.chess.ai_search_helpers import (
-    RepetitionPolicy,
     initial_root_window as _initial_root_window,
     record_depth_timing as _record_depth_timing,
     record_root_research as _record_root_research,
@@ -84,11 +75,6 @@ from chess_game.chess.evaluation import (
 from chess_game.texel.weights_io import (
     TUNED_WEIGHTS_PATH as _TUNED_WEIGHTS_PATH,
     load_weights_or_default as _load_weights_or_default,
-)
-from chess_game.chess.evaluation_tables import (
-    REPETITION_PROGRESS_ONLY_THRESHOLD,
-    REPETITION_PROGRESS_THRESHOLD,
-    VOLUNTARY_REPETITION_PENALTY,
 )
 from chess_game.chess.move import Move
 from chess_game.chess.opening_book import get_bundled_opening_book
@@ -165,13 +151,6 @@ def _record_search_node(context: Optional[SearchContext]) -> None:
         context.stats.nodes += 1
 
 
-def _record_quiescence_node(context: Optional[SearchContext]) -> None:
-    """Increment quiescence counters when diagnostics are enabled."""
-
-    if context is not None and context.stats is not None:
-        context.stats.quiescence_nodes += 1
-
-
 def minimax(
     board: Board,
     params: MinimaxParams,
@@ -183,14 +162,7 @@ def minimax(
         board,
         params.context,
         params.line_history,
-        RepetitionPolicy(
-            position_key=position_key,
-            evaluate=_make_evaluate_fn(params.context),
-            progress=_progress_score,
-            threshold=REPETITION_PROGRESS_THRESHOLD,
-            progress_threshold=REPETITION_PROGRESS_ONLY_THRESHOLD,
-            penalty=VOLUNTARY_REPETITION_PENALTY,
-        ),
+        make_repetition_policy(params.context),
     )
     if repetition_score is not None:
         return (repetition_score, None)
@@ -467,205 +439,6 @@ def _record_cutoff(context: Optional[SearchContext], move: Move) -> None:
     killer_move = (move.start, move.end, move.promotion)
     if killer_move not in context.killer_moves:
         context.killer_moves.append(killer_move)
-
-
-def quiescence(
-    board: Board,
-    alpha: int,
-    beta: int,
-    is_maximizing: bool,
-    *,
-    context: Optional[SearchContext] = None,
-    depth_remaining: int = MAX_QUIESCENCE_DEPTH,
-) -> int:
-    """Extend tactical leaf nodes through captures and promotions."""
-
-    return _quiescence(
-        board,
-        QuiescenceParams(
-            alpha=alpha,
-            beta=beta,
-            is_maximizing=is_maximizing,
-            context=context,
-            depth_remaining=depth_remaining,
-        ),
-    )
-
-
-def _quiescence_evasion_search(
-    board: Board,
-    params: QuiescenceParams,
-    ply: int,
-    legal_moves: list[Move],
-) -> int:
-    """Search all legal evasions when the side to move is in check."""
-    if not legal_moves:
-        return -MATE_SCORE + ply if board.turn == Color.WHITE else MATE_SCORE - ply
-    alpha = params.alpha
-    beta = params.beta
-    context = params.context
-    best_score = -INF if params.is_maximizing else INF
-    order_params = MinimaxParams(
-        depth=0,
-        alpha=alpha,
-        beta=beta,
-        is_maximizing=params.is_maximizing,
-        context=context,
-    )
-    for move in _order_moves(board, legal_moves, order_params):
-        child_board = _make_copy_with_move(board, move)
-        child_score = _quiescence(
-            child_board,
-            QuiescenceParams(
-                alpha=alpha,
-                beta=beta,
-                is_maximizing=not params.is_maximizing,
-                context=context,
-                depth_remaining=params.depth_remaining - 1,
-                line_history=params.line_history + (position_key(child_board),),
-            ),
-        )
-        if params.is_maximizing:
-            best_score = max(best_score, child_score)
-            alpha = max(alpha, best_score)
-        else:
-            best_score = min(best_score, child_score)
-            beta = min(beta, best_score)
-        if alpha >= beta:
-            break
-    return best_score
-
-
-def _quiescence(board: Board, params: QuiescenceParams) -> int:
-    """Internal quiescence implementation with bounded recursion."""
-
-    alpha = params.alpha
-    beta = params.beta
-    context = params.context
-    ply = len(params.line_history)
-    _record_quiescence_node(context)
-    repetition_score = _repetition_score(
-        board,
-        context,
-        params.line_history,
-        RepetitionPolicy(
-            position_key=position_key,
-            evaluate=_make_evaluate_fn(context),
-            progress=_progress_score,
-            threshold=REPETITION_PROGRESS_THRESHOLD,
-            progress_threshold=REPETITION_PROGRESS_ONLY_THRESHOLD,
-            penalty=VOLUNTARY_REPETITION_PENALTY,
-        ),
-    )
-    if repetition_score is not None:
-        return repetition_score
-
-    # Get legal moves once for reuse
-    legal_moves = (
-        list(params.legal_moves) if params.legal_moves is not None
-        else get_legal_moves(board)
-    )
-
-    # Check for terminal/draw states early
-    terminal_score = _terminal_score(
-        board, legal_moves, ply, context.position_counts if context else None
-    )
-    if terminal_score is not None:
-        return terminal_score
-
-    # Check-evasion path: no stand-pat when in check — search all legal evasions
-    if _gs_is_in_check(board, board.turn):
-        return _quiescence_evasion_search(board, params, ply, legal_moves)
-
-    # Normal stand-pat path — not in check
-    stand_pat = _ctx_evaluate(board, context)
-    best_score, alpha, beta = _stand_pat_bounds(
-        stand_pat,
-        alpha,
-        beta,
-        params.is_maximizing,
-    )
-    if _is_quiescence_cutoff(stand_pat, alpha, beta, params.is_maximizing):
-        return stand_pat
-    if params.depth_remaining <= 0:
-        return stand_pat
-
-    tactical_moves = _select_quiescence_moves(
-        board,
-        legal_moves,
-        _capture_order_score,
-        MAX_QUIESCENCE_MOVES,
-    )
-    if not tactical_moves:
-        return stand_pat
-    _record_tactical_width(context, len(tactical_moves))
-
-    move_order_params = MinimaxParams(
-        depth=0,
-        alpha=alpha,
-        beta=beta,
-        is_maximizing=params.is_maximizing,
-        context=context,
-    )
-    for move in _order_moves(board, tactical_moves, move_order_params):
-        child_board = _make_copy_with_move(board, move)
-        child_score = _quiescence(
-            child_board,
-            QuiescenceParams(
-                alpha=alpha,
-                beta=beta,
-                is_maximizing=not params.is_maximizing,
-                context=context,
-                depth_remaining=params.depth_remaining - 1,
-                line_history=params.line_history + (position_key(child_board),),
-            ),
-        )
-        if params.is_maximizing:
-            best_score = max(best_score, child_score)
-            alpha = max(alpha, best_score)
-        else:
-            best_score = min(best_score, child_score)
-            beta = min(beta, best_score)
-        if alpha >= beta:
-            break
-    return best_score
-
-
-def _stand_pat_bounds(
-    stand_pat: int,
-    alpha: int,
-    beta: int,
-    is_maximizing: bool,
-) -> tuple[int, int, int]:
-    """Seed quiescence bounds from the stand-pat evaluation."""
-
-    if is_maximizing:
-        return stand_pat, max(alpha, stand_pat), beta
-    return stand_pat, alpha, min(beta, stand_pat)
-
-
-def _is_quiescence_cutoff(
-    stand_pat: int,
-    alpha: int,
-    beta: int,
-    is_maximizing: bool,
-) -> bool:
-    """Return True when quiescence can terminate before exploring captures."""
-
-    if is_maximizing:
-        return stand_pat >= beta
-    return stand_pat <= alpha
-
-
-def _record_tactical_width(context: Optional[SearchContext], width: int) -> None:
-    """Record tactical branching diagnostics."""
-
-    if context is None or context.stats is None:
-        return
-    context.stats.tactical_positions += 1
-    context.stats.tactical_move_sum += width
-    context.stats.tactical_max_width = max(context.stats.tactical_max_width, width)
-
 
 
 def _iterative_deepening_best_move(

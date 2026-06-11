@@ -56,7 +56,8 @@ max-locals = 20
 max-args = 6
 
 [tool.pylint.format]
-# ai.py is a large, self-contained search module; splitting it would hurt locality.
+# The search is split across ai.py and ai_search_*/ai_transposition/ai_quiescence_*
+# modules; this generous ceiling covers the remaining heuristic-heavy files.
 max-module-lines = 1200
 
 [tool.pylint.basic]
