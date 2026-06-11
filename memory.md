@@ -2,6 +2,50 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-11T13:12:43Z - Claude Opus 4.8 (1M context) - ai.py split into 5 modules (behavior-preserving refactor, full slow suite green)
+
+Split `chess_game/chess/ai.py` from **1281 -> 594 lines (-54%)** by extracting five
+new lower-level modules. ai.py keeps the recursive hot core (minimax,
+_search_move_loop, _evaluate_child_move, _fold_search_best, root driver,
+get_best_move) and re-exports the public facade.
+
+New modules (each imports only downward, no cycles):
+- `ai_search_types.py` (271) — INF/MATE_SCORE/DRAW_SCORE/ASPIRATION_WINDOW/
+  MAX_QUIESCENCE_* constants, LegalMoveKey, TTFlag/TTEntry/diagnostics/SearchStats,
+  BestMoveOptions/SearchContext/MinimaxParams/QuiescenceParams.
+- `ai_transposition.py` (149) — position_key/_position_key/_fen_key, _is_mate_score,
+  _check_tt_cache/_store_tt_cache, _record_tt_hit/_record_tt_usage.
+- `ai_search_eval.py` (113) — eval glue (_ctx_evaluate/_make_evaluate_fn/
+  _progress_score), _terminal_score, and shared make_repetition_policy().
+- `ai_search_ordering.py` (104) — _move_sort_key/_order_moves/_move_order_score/
+  _capture_order_score/_tt_best_move.
+- `ai_quiescence_search.py` (242) — quiescence/_quiescence/_quiescence_evasion_search/
+  _stand_pat_bounds/_is_quiescence_cutoff + quiescence node/width counters.
+
+Key technique — **facade preservation**: ai.py is the stable public module
+(`chess_game.chess.ai`); 27 names (incl. private `_`-prefixed test helpers) are
+imported from it across tests + production. Declared them in an explicit `__all__`
+so ruff AND pylint treat the re-exports as used (the `import X as X` form is
+accepted by ruff but pylint flags it C0414/W0611 — do NOT use it; use `__all__`).
+An AST-based guard (parse every repo file's `from chess_game.chess.ai import ...`,
+multi-line included) caught two real re-export drops by `ruff --fix` (TTFlag, then
+DRAW_SCORE/evaluate) — always run that guard after each extraction.
+
+Gates at every commit: ruff/mypy clean, pylint chess_game 10.00/10 (the 3
+pre-existing R0911 on _check_tt_cache/_terminal_score/_quiescence + 1 C0415 lazy
+import just relocated; deduped the one R0801 the split surfaced via
+make_repetition_policy), fast suite 1033 passed. Final no-regression gate: **full
+slow suite 171 passed / 0 failed (1:00:03)** — identical to the FIX10 baseline.
+
+Commits 303f6d2, e668abf, c28ae33, 3481f97, f6f39ef. Updated the stale
+pyproject.toml [tool.pylint.format] comment that claimed splitting ai.py would hurt
+locality.
+
+CAUTION learned: never `git stash` in this repo — there are pre-existing
+worktree-agent stashes; `git stash pop` applied an unrelated one and conflicted.
+To compare against an older state, use `git show <rev>:path` or a throwaway
+worktree, never stash.
+
 ## 2026-06-10T21:52:17Z - Claude Opus 4.8 (1M context) - FIX10 COMPLETE: root re-search bookkeeping fix + tests; full slow suite green (no net regression)
 
 FIX10 (CHESS_ENGINE_SLOW_STRENGTH_FIX10) is done. Key finding: the FIX10 SPEC was
