@@ -98,9 +98,8 @@ the new fail-loud behavior (e.g. `test_validate.py`, `test_online_learning.py`).
   **91 passed**.
 - Prior hardening: `test_root_research_bookkeeping.py`, `test_opening_book.py` —
   **44 passed**; `test_tui.py` (Fix 8 runtime) — **31 passed**.
+- Slow AI-regression suite `pytest -m slow` — **171 passed** (0:56:13).
 
 ## Limitations / not claimed
-- **Slow suite (`pytest -m slow`) was not run** as part of this patch. No claim is made
-  about slow AI-regression status here.
 - No search or evaluation behavior was changed; `get_best_move`'s own internal fallback
   was intentionally left untouched.

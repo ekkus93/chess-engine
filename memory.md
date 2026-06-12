@@ -1945,6 +1945,6 @@ record_game_and_update_weights_result, bool wrapper kept, removed never-implemen
 keep_rejected_candidate), plus P6 CollectionOptions numeric validation
 (num_games/depth/max_moves>=1, skip_opening_plies>=0 and < max_moves).
 Status doc: docs/TEXEL_FAIL_LOUD_STATUS.md. Gates: ruff/mypy clean, pylint 10.00/10,
-fast suite 1093 passed. Slow suite NOT run (not claimed). load_weights_or_default
+fast suite 1093 passed, slow suite 171 passed (0:56:13). load_weights_or_default
 retained intentionally only for the auto tuned-weight cache (ai.py:130) and online
 learning's default cache path.
