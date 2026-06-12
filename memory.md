@@ -2,6 +2,16 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-12T02:18:38Z - Claude Opus 4.8 (1M context) - Full slow suite GREEN after all refactoring: 171/0
+
+Re-established the engine-strength baseline after the whole multi-file refactor
+(ai.py, ai_search_helpers, ai_move_ordering, conversion_guidance, evaluation,
+board.py splits — ~15 commits validated only by fast tests + lint until now).
+**Full slow suite = 171 passed, 0 failed, 1033 deselected (57:03)** — identical to
+the ai.py-split baseline, confirming every split is behaviour-preserving at the
+engine level. All committed/pushed (HEAD ccfd53d); tree clean. This now supersedes
+the "slow suite not run since ai.py split" caveat in the entries below.
+
 ## 2026-06-12T01:19:02Z - Claude Opus 4.8 (1M context) - All source files now under 800 lines (conversion/evaluation/board splits)
 
 Goal: get every chess_game/*.py under ~700-800 lines (user: "not sure how things got
