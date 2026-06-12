@@ -2,6 +2,28 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-12T10:53:23Z - Claude Opus 4.8 (1M context) - All source files now under 700 lines
+
+Pushed the last over-700 files under 700 (largest now defensive_endgame_guidance 685):
+- endgame_evaluation 755 -> 266: helper layer (40 funcs + constants) -> endgame_evaluation_helpers (515); 9 evaluate_* entries stay; __all__ re-exports 14.
+- board/board.py 737 -> 677: _fen_* module helpers -> board/board_fen.py (Board under
+  TYPE_CHECKING to avoid runtime cycle); added board.py __all__ to preserve the
+  create_piece re-export (it became internally-unused once _fen_parse_placement moved).
+- passer_race_guidance 708 -> 206: ~46 helpers + 31 constants -> passer_race_helpers (565).
+- opening_development 715 -> 602: 13 leaf predicates -> opening_development_helpers (132).
+
+NEW GOTCHA (important, update the AST guard): the import-resolution guard only checks
+`from M import N`. It does NOT catch `import M as x; x.N` ATTRIBUTE access. A test read
+`passer_race_guidance._ENEMY_PASSER_DANGER_BONUS` by attribute -> AttributeError after
+the constant moved (fast suite caught it, AST guard didn't). FIX APPLIED: when splitting
+a guidance/eval module, re-export ALL moved module-level constants via __all__ (tests
+read tuning constants by attribute), and additionally grep tests for
+`<alias>\.<NAME>` / `<module>\.<NAME>` attribute patterns, not just imports.
+
+Commits cb254ba, 33099f7, c44e2fe. Gates per commit: ruff/mypy clean, pylint
+chess_game 10.00/10, fast suite 1033. Slow suite last green 2026-06-12 (171/0) — these
+splits are pure code-moves, fast suite green; re-run slow before release if desired.
+
 ## 2026-06-12T08:05:09Z - Claude Opus 4.8 (1M context) - ai_move_ordering + tui split further (top two files)
 
 Proactively split the two largest files (before more features land):
