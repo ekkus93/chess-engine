@@ -104,7 +104,6 @@ class TestOnlineLearningConfigValidationGate:
         cfg = OnlineLearningConfig()
         assert cfg.require_validation_improvement is True
         assert cfg.min_validation_mse_improvement == 0.0
-        assert cfg.keep_rejected_candidate is False
         assert cfg.validation_fraction == 0.20
         assert cfg.validation_seed == 0
 
@@ -113,13 +112,11 @@ class TestOnlineLearningConfigValidationGate:
         cfg = OnlineLearningConfig(
             require_validation_improvement=False,
             min_validation_mse_improvement=0.001,
-            keep_rejected_candidate=True,
             validation_fraction=0.25,
             validation_seed=42,
         )
         assert cfg.require_validation_improvement is False
         assert cfg.min_validation_mse_improvement == 0.001
-        assert cfg.keep_rejected_candidate is True
         assert cfg.validation_fraction == 0.25
         assert cfg.validation_seed == 42
 
@@ -365,7 +362,6 @@ class TestOnlineLearningMockedBehavior:
                         weights_path=weights_path,
                         min_positions=50,
                         require_validation_improvement=True,
-                        keep_rejected_candidate=False,  # Memory-only mode
                     )
 
                     result = record_game_and_update_weights(_make_record(1), cfg)
@@ -579,26 +575,6 @@ class TestOnlineLearningMockedBehavior:
                         if result:
                             assert mock_save.called, "4.1: save_weights called for backup/promotion"
                             assert mock_invalidate.called, "4.1: cache invalidated after backup"
-
-    def test_4_5_keep_rejected_candidate_field(self, tmp_path: Path) -> None:
-        """4.5: keep_rejected_candidate field controls candidate persistence."""
-        db_path = tmp_path / "positions.jsonl"
-        weights_path = tmp_path / "weights.json"
-
-        # Verify the field exists and is configurable
-        cfg_keep_false = OnlineLearningConfig(
-            db_path=db_path,
-            weights_path=weights_path,
-            keep_rejected_candidate=False,
-        )
-        assert cfg_keep_false.keep_rejected_candidate is False, "4.5: keep_rejected_candidate=False"
-
-        cfg_keep_true = OnlineLearningConfig(
-            db_path=db_path,
-            weights_path=weights_path,
-            keep_rejected_candidate=True,
-        )
-        assert cfg_keep_true.keep_rejected_candidate is True, "4.5: keep_rejected_candidate=True"
 
     def test_5_2_weights_propagation_to_search(self, tmp_path: Path) -> None:
         """5.2: CollectionOptions.weights propagated to get_best_move."""
