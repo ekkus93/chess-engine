@@ -9,7 +9,7 @@ from chess_game.texel.collect import CollectionOptions, collect_games
 from chess_game.texel.loss import LossOptions, calibrate_and_save_k, mean_squared_error
 from chess_game.texel.position_db import PositionDB
 from chess_game.texel.spsa import SPSAOptions, optimize
-from chess_game.texel.weights_io import load_weights_or_default, save_weights
+from chess_game.texel.weights_io import load_optional_weights, save_weights
 
 
 @dataclasses.dataclass
@@ -51,8 +51,9 @@ def run_tuning(config: TuningConfig) -> EvalWeights:
     if config.verbose:
         print(f"DB size: {len(db)} positions")
 
-    # Step 2: load initial weights
-    weights = load_weights_or_default(config.initial_weights_path)
+    # Step 2: load initial weights. The path is optional (None -> defaults), but an
+    # explicitly supplied initial_weights_path must exist and be valid (fail loud).
+    weights = load_optional_weights(config.initial_weights_path)
 
     # Step 3: calibrate k and build LossOptions
     k = 1.13

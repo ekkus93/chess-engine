@@ -115,7 +115,7 @@ if __name__ == "__main__":
     import argparse
 
     from chess_game.texel.position_db import PositionDB
-    from chess_game.texel.weights_io import load_weights_or_default
+    from chess_game.texel.weights_io import load_optional_weights
 
     _parser = argparse.ArgumentParser(description="Calibrate Texel tuning K constant")
     _parser.add_argument("--db", required=True, help="Path to position DB")
@@ -123,6 +123,7 @@ if __name__ == "__main__":
     _parser.add_argument("--output", required=True, help="Output path for K value")
     _args = _parser.parse_args()
     _db = PositionDB.load(Path(_args.db))
-    _weights = load_weights_or_default(Path(_args.weights) if _args.weights else None)
+    # --weights is optional (None -> defaults), but if supplied it must exist (fail loud).
+    _weights = load_optional_weights(Path(_args.weights) if _args.weights else None)
     _k = calibrate_and_save_k(_db, _weights, Path(_args.output))
     print(f"Calibrated k = {_k:.4f}")

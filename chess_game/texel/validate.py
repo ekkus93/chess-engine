@@ -18,7 +18,7 @@ from chess_game.chess.board.game_state import (
 from chess_game.chess.constants import Color
 from chess_game.chess.eval_weights import EvalWeights
 from chess_game.chess.position_utils import position_key as _position_key_fn
-from chess_game.texel.weights_io import load_weights_or_default
+from chess_game.texel.weights_io import load_weights
 
 
 @dataclasses.dataclass
@@ -151,7 +151,9 @@ if __name__ == "__main__":
     _parser.add_argument("--games", type=int, default=100)
     _parser.add_argument("--depth", type=int, default=2)
     _args = _parser.parse_args()
-    _weights = load_weights_or_default(Path(_args.weights))
+    # --weights is an explicit, required user path: load strictly so a typo or
+    # malformed file fails loudly instead of silently validating default weights.
+    _weights = load_weights(Path(_args.weights))
     _result = run_validation_match(_weights, _args.games, _args.depth, verbose=True)
     print(
         f"\nResult: {_result.tuned_wins}W/{_result.baseline_wins}L/{_result.draws}D "
