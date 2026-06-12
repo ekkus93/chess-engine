@@ -37,7 +37,7 @@ async def wait_until(predicate, *, timeout: float = 2.0, interval: float = 0.01)
 
 
 def _fake_engine_first_legal_move(board, depth, position_counts=None, book_options=None):
-    """Deterministic, instant fake for chess_game.tui.get_best_move.
+    """Deterministic, instant fake for chess_game.tui_game.get_best_move.
 
     Returns the first legal move for the position so the engine reply is legal
     regardless of board state, without running a real search.
@@ -257,7 +257,7 @@ class TestHumanMoveInput:
         state rather than sleeping for a real search.
         """
         monkeypatch.setattr(
-            "chess_game.tui.get_best_move", _fake_engine_first_legal_move
+            "chess_game.tui_game.get_best_move", _fake_engine_first_legal_move
         )
         async with _HumanGameApp().run_test() as pilot:
             await pilot.pause()
