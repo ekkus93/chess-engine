@@ -56,9 +56,11 @@ max-locals = 20
 max-args = 6
 
 [tool.pylint.format]
-# The search is split across ai.py and ai_search_*/ai_transposition/ai_quiescence_*
-# modules; this generous ceiling covers the remaining heuristic-heavy files.
-max-module-lines = 1200
+# Keep modules at one-concern size. Files that grew into 800-1300 line "hubs" were
+# split (2026-06); this ceiling (enforced via the pylint 10.00/10 gate, and mirrored
+# by tests/test_module_size_limit.py) fails the build if a module creeps back over it.
+# Split the file into a helper/constants/types module rather than raising this.
+max-module-lines = 800
 
 [tool.pylint.basic]
 # TODO is used for deferred correctness work (e.g. TT mate-score normalization).
