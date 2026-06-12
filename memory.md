@@ -2,6 +2,39 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-12T01:19:02Z - Claude Opus 4.8 (1M context) - All source files now under 800 lines (conversion/evaluation/board splits)
+
+Goal: get every chess_game/*.py under ~700-800 lines (user: "not sure how things got
+so out of hand; we'll talk about preventing it"). DONE — largest file is now
+ai_move_ordering.py at 799; nothing exceeds 800. Validated fast-tests-only per user.
+
+This session's splits (each behaviour-preserving; ruff/mypy clean, pylint chess_game
+10.00/10, fast suite 1033 at every commit; full slow suite NOT run since the ai.py
+split — ai.py 171/0 is the last recorded engine-strength baseline):
+- conversion_guidance 967 -> 378: constants (de4e997) + conversion_scoring (2118620,
+  the cycle-free helper layer below the entry/hub: dataclasses + predicates + scoring
+  + low-material logic; entry layer re-imports the 30 names it uses). NOTE: my earlier
+  "not further splittable" note was wrong — the entry-vs-helper-layer partition works;
+  the FROM-entry closure (58/58) doesn't, but seeding from the helpers does.
+- evaluation 870 -> 628 (3dfcf04): evaluation_helpers (6 shared board-query primitives,
+  leaf) + evaluation_king_safety (12-func component). No public-API change.
+- board/board.py 881 -> 737 (59165bc): create_piece + create_starting_grid (old
+  Board._create_board, never used self) -> board/board_setup.py; board.py re-imports
+  create_piece so both import paths still work. Board public API unchanged.
+
+REUSABLE TOOL: /tmp/extract_module.py — AST-based extractor (precise lineno/end_lineno
+incl. decorators; copies SRC import block, ruff --fix trims; de-dups
+`from __future__ import annotations`). Workflow per split: (1) AST closure/partition
+analysis to find a cycle-free cut, (2) extract, (3) ruff --fix new module, (4) add
+re-imports (or __all__ facade if private/_-prefixed names are externally imported),
+(5) ruff --fix + collapse blanks + strip trailing newlines, (6) AST guard that every
+`from <module> import ...` across the repo still resolves, (7) mypy+pylint+fast suite.
+
+PREVENTION (to discuss): files grew because new heuristics kept being appended to
+ai.py/ai_search_helpers/ai_move_ordering/evaluation/conversion. Consider a soft
+pylint max-module-lines gate (currently 1200) lowered toward ~800, and a convention
+of one concern per module + a constants/types leaf per subsystem.
+
 ## 2026-06-11T21:44:35Z - Claude Opus 4.8 (1M context) - conversion_guidance.py: constants extracted; function-level split not viable
 
 Extracted the ~35 conversion tuning constants from
