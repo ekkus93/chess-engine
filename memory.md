@@ -2,6 +2,15 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-12T13:15:15Z - Claude Opus 4.8 (1M context) - Slow suite green (171/0) after the under-700 splits
+
+Validated the under-700 round (endgame_evaluation, board.py, opening_development,
+passer_race_guidance splits — commits cb254ba/33099f7/c44e2fe) at engine level:
+**full slow suite = 171 passed, 0 failed, 1033 deselected (1:00:55)** — identical to
+baseline, no regressions. All pushed (HEAD dddf6b9). Every chess_game/*.py is now
+under 700 lines (largest defensive_endgame_guidance 685). Supersedes the
+"re-run slow before release" note in the entry below.
+
 ## 2026-06-12T10:53:23Z - Claude Opus 4.8 (1M context) - All source files now under 700 lines
 
 Pushed the last over-700 files under 700 (largest now defensive_endgame_guidance 685):
