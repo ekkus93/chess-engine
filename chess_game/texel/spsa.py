@@ -102,7 +102,13 @@ def optimize(
     db: PositionDB,
     options: SPSAOptions,
 ) -> EvalWeights:
-    """Run SPSA optimization and return the tuned weights."""
+    """Run SPSA optimization and return the tuned weights.
+
+    Raises ``ValueError`` if the DB has no training positions, rather than silently
+    returning the unchanged input weights.
+    """
+    if len(db) == 0:
+        raise ValueError("SPSA optimize requires at least one training position")
     w = weights.to_flat_list()
     a = options.initial_step_size
     alpha = options.step_decay

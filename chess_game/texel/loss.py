@@ -82,7 +82,12 @@ def calibrate_k(
     k_max: float = 2.0,
     steps: int = 30,
 ) -> float:
-    """Find the k value that minimises MSE via grid search."""
+    """Find the k value that minimises MSE via grid search.
+
+    Raises ``ValueError`` on empty input rather than silently returning ``k_min``.
+    """
+    if not pairs:
+        raise ValueError("Cannot calibrate Texel k with no positions")
     best_k = k_min
     best_mse = float("inf")
     for i in range(steps + 1):

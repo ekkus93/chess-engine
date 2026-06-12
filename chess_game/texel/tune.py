@@ -51,6 +51,13 @@ def run_tuning(config: TuningConfig) -> EvalWeights:
     if config.verbose:
         print(f"DB size: {len(db)} positions")
 
+    # Fail loud on empty data: an empty (loaded or freshly collected) DB must not
+    # produce a tuned-weights file that looks like a successful run.
+    if len(db) == 0:
+        raise ValueError(
+            "Texel tuning DB has no positions; refusing to write tuned weights"
+        )
+
     # Step 2: load initial weights. The path is optional (None -> defaults), but an
     # explicitly supplied initial_weights_path must exist and be valid (fail loud).
     weights = load_optional_weights(config.initial_weights_path)
