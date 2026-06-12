@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import math
 import random
 from pathlib import Path
 from typing import Callable, Optional
@@ -23,9 +24,20 @@ __all__ = [
 LossFn = Callable[[list[tuple[str, float]], EvalWeights], float]
 
 
+def _require_finite_positive(name: str, value: float) -> None:
+    """Raise unless *value* is a finite number strictly greater than zero."""
+    if not math.isfinite(value) or value <= 0:
+        raise ValueError(f"SPSAOptions.{name} must be a finite number > 0, got {value!r}")
+
+
 @dataclasses.dataclass
 class SPSAOptions:
-    """Configuration for the SPSA optimiser."""
+    """Configuration for the SPSA optimiser.
+
+    Invalid values that would silently no-op or crash later (zero iterations, zero
+    perturbation size, zero checkpoint interval, empty batch) are rejected at
+    construction. ``seed`` makes a run reproducible by seeding the perturbation RNG.
+    """
 
     max_iterations: int = 5000
     initial_step_size: float = 5.0
@@ -38,6 +50,31 @@ class SPSAOptions:
     checkpoint_path: Optional[Path] = None
     verbose: bool = True
     loss_options: Optional[LossOptions] = None
+    seed: Optional[int] = None
+
+    def __post_init__(self) -> None:
+        """Reject unsafe option values at construction time."""
+        if self.max_iterations < 1:
+            raise ValueError(
+                f"SPSAOptions.max_iterations must be >= 1, got {self.max_iterations}"
+            )
+        _require_finite_positive("initial_step_size", self.initial_step_size)
+        _require_finite_positive("step_decay", self.step_decay)
+        _require_finite_positive("perturbation_size", self.perturbation_size)
+        _require_finite_positive("perturbation_decay", self.perturbation_decay)
+        if not math.isfinite(self.stability_constant) or self.stability_constant < 0:
+            raise ValueError(
+                f"SPSAOptions.stability_constant must be finite >= 0, "
+                f"got {self.stability_constant!r}"
+            )
+        if self.batch_size is not None and self.batch_size < 1:
+            raise ValueError(
+                f"SPSAOptions.batch_size must be None or >= 1, got {self.batch_size}"
+            )
+        if self.checkpoint_every < 1:
+            raise ValueError(
+                f"SPSAOptions.checkpoint_every must be >= 1, got {self.checkpoint_every}"
+            )
 
 
 def _clip_weights(w: list[float]) -> list[float]:
@@ -69,10 +106,12 @@ def _spsa_step(
     a_k: float,
     c_k: float,
     loss_fn: LossFn,
+    *,
+    rng: random.Random,
 ) -> list[float]:
     """Execute one SPSA gradient step; return the updated weight vector."""
     n = len(w)
-    delta = [1.0 if random.random() < 0.5 else -1.0 for _ in range(n)]
+    delta = [1.0 if rng.random() < 0.5 else -1.0 for _ in range(n)]
     w_plus = _clip_weights([w[i] + c_k * delta[i] for i in range(n)])
     w_minus = _clip_weights([w[i] - c_k * delta[i] for i in range(n)])
     loss_plus = loss_fn(pairs, EvalWeights.from_flat_list(w_plus))
@@ -116,6 +155,9 @@ def optimize(
     gamma = options.perturbation_decay
     cap_a = options.stability_constant
     loss_fn = _make_loss_fn(options)
+    # Local RNG for perturbation deltas: seeded runs are reproducible, unseeded
+    # (seed=None) still draws from system entropy as before.
+    rng = random.Random(options.seed)
 
     for k in range(1, options.max_iterations + 1):
         a_k = a / (k + cap_a) ** alpha
@@ -127,7 +169,7 @@ def optimize(
         )
         if not pairs:
             break
-        w = _spsa_step(w, pairs, a_k, c_k, loss_fn)
+        w = _spsa_step(w, pairs, a_k, c_k, loss_fn, rng=rng)
         if options.verbose and k % 100 == 0:
             mse = loss_fn(pairs, EvalWeights.from_flat_list(w))
             print(f"  iter {k:5d}: MSE={mse:.6f} a_k={a_k:.4f}")
