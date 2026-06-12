@@ -615,6 +615,7 @@ class TestOnlineLearningMockedBehavior:
             num_games=1,
             depth=1,
             max_moves=1,
+            skip_opening_plies=0,
             max_move_result="discard",
         )
 

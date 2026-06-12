@@ -21,6 +21,12 @@ from chess_game.chess.position_utils import position_key as _position_key_fn
 from chess_game.texel.position_db import GameRecord, PositionDB
 
 
+def _require_at_least(name: str, value: int, minimum: int) -> None:
+    """Raise unless integer *value* is at least *minimum*."""
+    if value < minimum:
+        raise ValueError(f"CollectionOptions.{name} must be >= {minimum}, got {value}")
+
+
 @dataclasses.dataclass
 class CollectionOptions:
     """Options controlling self-play game collection."""
@@ -36,10 +42,19 @@ class CollectionOptions:
     max_move_result: str = "draw"
 
     def __post_init__(self) -> None:
-        """Validate max_move_result is one of the allowed values."""
+        """Reject option values that would silently collect nothing or crash."""
         if self.max_move_result not in {"draw", "discard"}:
             raise ValueError(
                 f"max_move_result must be 'draw' or 'discard', got '{self.max_move_result}'"
+            )
+        _require_at_least("num_games", self.num_games, 1)
+        _require_at_least("depth", self.depth, 1)
+        _require_at_least("max_moves", self.max_moves, 1)
+        _require_at_least("skip_opening_plies", self.skip_opening_plies, 0)
+        if self.skip_opening_plies >= self.max_moves:
+            raise ValueError(
+                f"skip_opening_plies ({self.skip_opening_plies}) must be < "
+                f"max_moves ({self.max_moves}); otherwise every game is skipped"
             )
 
 

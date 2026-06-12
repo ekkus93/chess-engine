@@ -1934,3 +1934,17 @@ search_best_move) is plausible but HIGH RIPPLE RISK: changes root behavior and
 needs full slow-suite validation (~17 min/iteration) against the 161 passing
 slow tests. Deferred for a decision with ChatGPT 5.5 — fix the root selection
 (risky) vs reclassify S7-only_blockade + skip/rewrite the broken T3 test.
+
+## 2026-06-12T21:51:12Z - Claude Opus 4.8 (1M context) - Texel Fail-Loud safety patch (Phases 1-9)
+Implemented docs/CHESS_ENGINE_TEXEL_FAIL_LOUD_SPEC.md / _TODO.md per ChatGPT 5.5
+decisions in docs/replies16.md. Makes Texel + explicit weight loading fail loudly;
+search/eval untouched. Commits: 72da5e5 (P1 strict weights_io), 5fb628c (P2 empty-data
+raise), 53c5709 (P3 PositionDB row validation w/ line numbers), 455d4fe (P4 SPSAOptions
+__post_init__ validation + reproducible seed), e76a595 (P5 OnlineLearningResult +
+record_game_and_update_weights_result, bool wrapper kept, removed never-implemented
+keep_rejected_candidate), plus P6 CollectionOptions numeric validation
+(num_games/depth/max_moves>=1, skip_opening_plies>=0 and < max_moves).
+Status doc: docs/TEXEL_FAIL_LOUD_STATUS.md. Gates: ruff/mypy clean, pylint 10.00/10,
+fast suite 1093 passed. Slow suite NOT run (not claimed). load_weights_or_default
+retained intentionally only for the auto tuned-weight cache (ai.py:130) and online
+learning's default cache path.
