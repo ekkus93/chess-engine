@@ -2,6 +2,32 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-12T08:05:09Z - Claude Opus 4.8 (1M context) - ai_move_ordering + tui split further (top two files)
+
+Proactively split the two largest files (before more features land):
+- ai_move_ordering 799 -> 131: moved the QuietOrderContext builder + 35 quiet-scoring
+  helpers to ai_quiet_scoring (674); kept the quiet_strategy_order_score orchestrator +
+  __all__ facade. (Layered cut: orchestrator stays, cycle-free helper layer moves.)
+- tui 781 -> 165: moved GameScreen (~480 lines) + its widgets/leaves (_render_board_rich,
+  _GameConfig, EngineMoveMessage, ResignConfirmScreen + the board-style/engine-label/
+  skip-ply module constants) to tui_game (618); kept MainMenuScreen/ChessApp/main +
+  __all__ re-export.
+
+GOTCHA (test monkeypatch follows the code): test_tui patched
+`chess_game.tui.get_best_move`, but GameScreen moved to tui_game so it now uses
+`chess_game.tui_game.get_best_move`. Updated the monkeypatch target accordingly
+(patch where the symbol is USED). When moving a function that tests monkeypatch by
+string path, grep tests for `<oldmodule>.<name>` and repoint them. Also: the AST
+extractor only moves funcs/classes, NOT module-level constant Assigns — after a
+class/func extraction, grep the new module for F821 undefined names (constants the
+moved code referenced) and move those constants too.
+
+Gates per commit: ruff/mypy clean, pylint chess_game 10.00/10, fast suite 1033
+(commits 92d0db0, 9bca416). Slow suite not re-run (last green: 2026-06-12 171/0,
+recorded above). Files still in the 700-755 band (within the user's "reasonable
+700-800"): endgame_evaluation 755, board.py 737, opening_development 715,
+passer_race_guidance 708 — all cohesive single concerns, left as-is.
+
 ## 2026-06-12T02:18:38Z - Claude Opus 4.8 (1M context) - Full slow suite GREEN after all refactoring: 171/0
 
 Re-established the engine-strength baseline after the whole multi-file refactor
