@@ -12,13 +12,13 @@ Keep this patch narrow. Do **not** change search/eval behavior, engine-strength 
 
 ## 0.1 Static checks
 
-- [ ] `uv run --extra dev python -m ruff check chess_game tests`
-- [ ] `uv run --extra dev python -m mypy chess_game`
-- [ ] `uv run --extra dev python -m pylint chess_game --score=y`
+- [x] `uv run --extra dev python -m ruff check chess_game tests`
+- [x] `uv run --extra dev python -m mypy chess_game`
+- [x] `uv run --extra dev python -m pylint chess_game --score=y`
 
 ## 0.2 Fast suite
 
-- [ ] `uv run --extra dev python -m pytest -m "not slow"`
+- [x] `uv run --extra dev python -m pytest -m "not slow"`
 
 ## 0.3 Texel test baseline
 
@@ -36,12 +36,12 @@ uv run --extra dev python -m pytest \
   -m "not slow" -q
 ```
 
-- [ ] Record pass/fail.
-- [ ] Record any currently expected behavior that this patch intentionally changes.
+- [x] Record pass/fail.
+- [x] Record any currently expected behavior that this patch intentionally changes.
 
 ## 0.4 Root bookkeeping preservation
 
-- [ ] `uv run --extra dev python -m pytest tests/test_root_research_bookkeeping.py -q`
+- [x] `uv run --extra dev python -m pytest tests/test_root_research_bookkeeping.py -q`
 
 ---
 
@@ -57,12 +57,12 @@ grep -R "load_weights_or_default" -n chess_game tests
 
 Classify every call site:
 
-- [ ] automatic optional tuned-weight cache,
-- [ ] explicit user-supplied path,
-- [ ] CLI required path,
-- [ ] tuning initial weights path,
-- [ ] online-learning initial/current weights path,
-- [ ] test fixture.
+- [x] automatic optional tuned-weight cache,
+- [x] explicit user-supplied path,
+- [x] CLI required path,
+- [x] tuning initial weights path,
+- [x] online-learning initial/current weights path,
+- [x] test fixture.
 
 ## 1.2 Define strict helper semantics
 
@@ -72,9 +72,9 @@ Ensure these semantics exist:
 load_weights(path: Path) -> EvalWeights
 ```
 
-- [ ] Raises `FileNotFoundError` if missing.
-- [ ] Raises clear error if JSON malformed.
-- [ ] Raises clear error if weights invalid.
+- [x] Raises `FileNotFoundError` if missing.
+- [x] Raises clear error if JSON malformed.
+- [x] Raises clear error if weights invalid.
 
 Optional helper if useful:
 
@@ -82,8 +82,8 @@ Optional helper if useful:
 load_optional_weights(path: Path | None) -> EvalWeights
 ```
 
-- [ ] Returns defaults only when `path is None`.
-- [ ] Raises if `path` is provided but missing.
+- [x] Returns defaults only when `path is None`.
+- [x] Raises if `path` is provided but missing.
 
 Keep:
 
@@ -97,37 +97,37 @@ only for explicitly optional auto-load behavior.
 
 In Texel validation CLI:
 
-- [ ] Replace `load_weights_or_default(Path(args.weights))` with strict `load_weights(Path(args.weights))`.
-- [ ] Missing `--weights` path should fail loudly.
-- [ ] Malformed weights should fail loudly.
-- [ ] Do not silently validate default weights when user supplied a path.
+- [x] Replace `load_weights_or_default(Path(args.weights))` with strict `load_weights(Path(args.weights))`.
+- [x] Missing `--weights` path should fail loudly.
+- [x] Malformed weights should fail loudly.
+- [x] Do not silently validate default weights when user supplied a path.
 
 ## 1.4 Fix tuning initial weights
 
 In `run_tuning()`:
 
-- [ ] If `initial_weights_path is None`, use default weights.
-- [ ] If `initial_weights_path` is provided, call strict `load_weights(path)`.
-- [ ] Missing supplied initial weights path raises.
+- [x] If `initial_weights_path is None`, use default weights.
+- [x] If `initial_weights_path` is provided, call strict `load_weights(path)`.
+- [x] Missing supplied initial weights path raises.
 
 ## 1.5 Fix online-learning weight load if needed
 
 For online learning:
 
-- [ ] Decide whether missing current weights path is valid first-run behavior.
-- [ ] If missing current path is allowed, make that explicit in the result reason.
-- [ ] If a user explicitly supplies a path that should exist, fail loudly.
-- [ ] Do not hide missing paths behind default fallback without reporting.
+- [x] Decide whether missing current weights path is valid first-run behavior.
+- [x] If missing current path is allowed, make that explicit in the result reason.
+- [x] If a user explicitly supplies a path that should exist, fail loudly.
+- [x] Do not hide missing paths behind default fallback without reporting.
 
 ## 1.6 Tests
 
 Add tests:
 
-- [ ] `validate --weights missing.json` raises/fails.
-- [ ] `run_tuning(initial_weights_path=missing)` raises.
-- [ ] optional default path still returns defaults when intentionally optional.
-- [ ] malformed weights still raise.
-- [ ] valid explicit weights still load.
+- [x] `validate --weights missing.json` raises/fails.
+- [x] `run_tuning(initial_weights_path=missing)` raises.
+- [x] optional default path still returns defaults when intentionally optional.
+- [x] malformed weights still raise.
+- [x] valid explicit weights still load.
 
 ---
 
@@ -137,40 +137,40 @@ Add tests:
 
 In `run_tuning()`:
 
-- [ ] After loading or collecting DB, check position count.
-- [ ] If DB has no positions, raise:
-  - [ ] `ValueError("Texel tuning DB has no positions; refusing to write tuned weights")`
-- [ ] Do not write output weights when DB is empty.
+- [x] After loading or collecting DB, check position count.
+- [x] If DB has no positions, raise:
+  - [x] `ValueError("Texel tuning DB has no positions; refusing to write tuned weights")`
+- [x] Do not write output weights when DB is empty.
 
 ## 2.2 Collected empty DB
 
 If `collect_games()` returns/stores zero positions:
 
-- [ ] `run_tuning()` should treat this as empty DB and fail.
-- [ ] Error message should distinguish empty collected DB if easy.
+- [x] `run_tuning()` should treat this as empty DB and fail.
+- [x] Error message should distinguish empty collected DB if easy.
 
 ## 2.3 `optimize()` empty pairs
 
 In `spsa.optimize()`:
 
-- [ ] If `db.all_pairs()` is empty, raise `ValueError`.
-- [ ] Do not silently return unchanged weights.
+- [x] If `db.all_pairs()` is empty, raise `ValueError`.
+- [x] Do not silently return unchanged weights.
 
 ## 2.4 `calibrate_k()` / calibration entry points
 
-- [ ] If calibration pairs are empty, raise `ValueError`.
-- [ ] Do not silently choose `k_min`.
-- [ ] Ensure CLI/helper calibration paths also fail loudly.
+- [x] If calibration pairs are empty, raise `ValueError`.
+- [x] Do not silently choose `k_min`.
+- [x] Ensure CLI/helper calibration paths also fail loudly.
 
 ## 2.5 Tests
 
 Add tests:
 
-- [ ] `run_tuning()` with empty existing DB raises and writes no weights.
-- [ ] `run_tuning()` with collection producing zero positions raises and writes no weights.
-- [ ] `optimize()` with empty DB raises.
-- [ ] `calibrate_k([])` or equivalent raises.
-- [ ] Existing non-empty tuning tests still pass.
+- [x] `run_tuning()` with empty existing DB raises and writes no weights.
+- [x] `run_tuning()` with collection producing zero positions raises and writes no weights.
+- [x] `optimize()` with empty DB raises.
+- [x] `calibrate_k([])` or equivalent raises.
+- [x] Existing non-empty tuning tests still pass.
 
 ---
 
@@ -180,10 +180,10 @@ Add tests:
 
 In `position_db.py`, add internal validation helper(s):
 
-- [ ] validate non-empty `pos` string.
-- [ ] validate old-format `outcome`.
-- [ ] validate new-format `total` and `count`.
-- [ ] include file path and line number in errors.
+- [x] validate non-empty `pos` string.
+- [x] validate old-format `outcome`.
+- [x] validate new-format `total` and `count`.
+- [x] include file path and line number in errors.
 
 Suggested error pattern:
 
@@ -201,11 +201,11 @@ For rows like:
 
 Validate:
 
-- [ ] `pos` exists.
-- [ ] `pos` is non-empty string.
-- [ ] `outcome` exists.
-- [ ] `outcome` is finite.
-- [ ] `0.0 <= outcome <= 1.0`.
+- [x] `pos` exists.
+- [x] `pos` is non-empty string.
+- [x] `outcome` exists.
+- [x] `outcome` is finite.
+- [x] `0.0 <= outcome <= 1.0`.
 
 ## 3.3 New format validation
 
@@ -217,20 +217,20 @@ For rows like:
 
 Validate:
 
-- [ ] `pos` exists.
-- [ ] `pos` is non-empty string.
-- [ ] `total` exists.
-- [ ] `total` is finite.
-- [ ] `count` exists.
-- [ ] `count` is int.
-- [ ] `count > 0`.
-- [ ] `0.0 <= total <= count`.
+- [x] `pos` exists.
+- [x] `pos` is non-empty string.
+- [x] `total` exists.
+- [x] `total` is finite.
+- [x] `count` exists.
+- [x] `count` is int.
+- [x] `count > 0`.
+- [x] `0.0 <= total <= count`.
 
 ## 3.4 JSON errors
 
-- [ ] Catch `json.JSONDecodeError`.
-- [ ] Re-raise as `ValueError` with path and line number.
-- [ ] Preserve useful original error info in message or exception chaining.
+- [x] Catch `json.JSONDecodeError`.
+- [x] Re-raise as `ValueError` with path and line number.
+- [x] Preserve useful original error info in message or exception chaining.
 
 ## 3.5 Ambiguous/mixed rows
 
@@ -242,7 +242,7 @@ Decide and test behavior for rows containing both:
 
 Recommended:
 
-- [ ] reject ambiguous rows.
+- [x] reject ambiguous rows.
 
 Also reject rows with neither valid old nor valid new format.
 
@@ -250,28 +250,28 @@ Also reject rows with neither valid old nor valid new format.
 
 Add tests for valid data:
 
-- [ ] valid old JSONL loads.
-- [ ] valid old duplicate rows aggregate.
-- [ ] valid new JSONL loads.
-- [ ] valid round-trip still works.
+- [x] valid old JSONL loads.
+- [x] valid old duplicate rows aggregate.
+- [x] valid new JSONL loads.
+- [x] valid round-trip still works.
 
 Add tests for invalid data:
 
-- [ ] invalid JSON.
-- [ ] missing `pos`.
-- [ ] empty `pos`.
-- [ ] non-string `pos`.
-- [ ] missing `outcome`/`total`/`count`.
-- [ ] outcome below 0.
-- [ ] outcome above 1.
-- [ ] non-finite outcome.
-- [ ] count 0.
-- [ ] negative count.
-- [ ] non-int count.
-- [ ] total below 0.
-- [ ] total greater than count.
-- [ ] non-finite total.
-- [ ] ambiguous old+new row.
+- [x] invalid JSON.
+- [x] missing `pos`.
+- [x] empty `pos`.
+- [x] non-string `pos`.
+- [x] missing `outcome`/`total`/`count`.
+- [x] outcome below 0.
+- [x] outcome above 1.
+- [x] non-finite outcome.
+- [x] count 0.
+- [x] negative count.
+- [x] non-int count.
+- [x] total below 0.
+- [x] total greater than count.
+- [x] non-finite total.
+- [x] ambiguous old+new row.
 
 Each invalid test should assert line-numbered error text.
 
@@ -283,22 +283,22 @@ Each invalid test should assert line-numbered error text.
 
 In `SPSAOptions`, validate:
 
-- [ ] `max_iterations >= 1`
-- [ ] `initial_step_size > 0`
-- [ ] `step_decay > 0`
-- [ ] `perturbation_size > 0`
-- [ ] `perturbation_decay > 0`
-- [ ] `stability_constant >= 0`
-- [ ] `batch_size is None or batch_size >= 1`
-- [ ] `checkpoint_every >= 1`
+- [x] `max_iterations >= 1`
+- [x] `initial_step_size > 0`
+- [x] `step_decay > 0`
+- [x] `perturbation_size > 0`
+- [x] `perturbation_decay > 0`
+- [x] `stability_constant >= 0`
+- [x] `batch_size is None or batch_size >= 1`
+- [x] `checkpoint_every >= 1`
 
 Also validate floats are finite:
 
-- [ ] `initial_step_size`
-- [ ] `step_decay`
-- [ ] `perturbation_size`
-- [ ] `perturbation_decay`
-- [ ] `stability_constant`
+- [x] `initial_step_size`
+- [x] `step_decay`
+- [x] `perturbation_size`
+- [x] `perturbation_decay`
+- [x] `stability_constant`
 
 ## 4.2 Optional seed
 
@@ -310,9 +310,9 @@ seed: int | None = None
 
 and use local RNG for perturbations.
 
-- [ ] `rng = random.Random(options.seed)`
-- [ ] do not use global `random.random()` for perturbations.
-- [ ] tests cover reproducible perturbation/tuning behavior if feasible.
+- [x] `rng = random.Random(options.seed)`
+- [x] do not use global `random.random()` for perturbations.
+- [x] tests cover reproducible perturbation/tuning behavior if feasible.
 
 If not implemented, document as future work.
 
@@ -320,21 +320,21 @@ If not implemented, document as future work.
 
 Add invalid-option tests:
 
-- [ ] `max_iterations=0`
-- [ ] `initial_step_size=0`
-- [ ] `step_decay=0`
-- [ ] `perturbation_size=0`
-- [ ] `perturbation_decay=0`
-- [ ] `stability_constant=-1`
-- [ ] `batch_size=0`
-- [ ] `checkpoint_every=0`
-- [ ] NaN/inf float values.
+- [x] `max_iterations=0`
+- [x] `initial_step_size=0`
+- [x] `step_decay=0`
+- [x] `perturbation_size=0`
+- [x] `perturbation_decay=0`
+- [x] `stability_constant=-1`
+- [x] `batch_size=0`
+- [x] `checkpoint_every=0`
+- [x] NaN/inf float values.
 
 Add valid-option tests:
 
-- [ ] default options construct.
-- [ ] valid custom options construct.
-- [ ] existing SPSA behavior tests still pass.
+- [x] default options construct.
+- [x] valid custom options construct.
+- [x] existing SPSA behavior tests still pass.
 
 ---
 
@@ -385,13 +385,13 @@ def record_game_and_update_weights(...) -> bool:
 
 Return distinct reasons for at least:
 
-- [ ] `disabled`
-- [ ] `not_enough_positions`
-- [ ] `empty_training_split`
-- [ ] `empty_validation_split`
-- [ ] `candidate_not_better`
-- [ ] `candidate_below_threshold`
-- [ ] `updated`
+- [x] `disabled`
+- [x] `not_enough_positions`
+- [x] `empty_training_split`
+- [x] `empty_validation_split`
+- [x] `candidate_not_better`
+- [x] `candidate_below_threshold`
+- [x] `updated`
 
 If some categories are not applicable to current implementation, document why.
 
@@ -407,29 +407,31 @@ Choose one:
 
 ### Option A: implement
 
-- [ ] If rejected and `keep_rejected_candidate=True`, preserve candidate file.
-- [ ] Set `candidate_path` in result.
-- [ ] If rejected and `False`, delete candidate file if created.
+- [ ] If rejected and `keep_rejected_candidate=True`, preserve candidate file. — N/A (Option B chosen)
+- [ ] Set `candidate_path` in result. — N/A as file-persistence (the field exists in OnlineLearningResult but is always None)
+- [ ] If rejected and `False`, delete candidate file if created. — N/A (Option B chosen)
 
-### Option B: remove
+### Option B: remove (chosen — per docs/replies16.md)
 
-- [ ] Remove config field.
-- [ ] Remove tests/docs referencing it.
+- [x] Remove config field.
+- [x] Remove tests/docs referencing it.
 
 Preferred: implement if candidate files already exist in the flow.
+Decision: candidate weights are in-memory only (no candidate file ever written), so
+Option B (remove) was chosen.
 
 ## 5.5 Tests
 
 Add tests:
 
-- [ ] disabled returns `updated=False`, reason `disabled`.
-- [ ] not enough positions returns reason.
-- [ ] empty validation split returns reason.
-- [ ] rejected candidate returns reason and MSEs.
-- [ ] accepted candidate returns `updated=True`, reason `updated`.
-- [ ] bool wrapper still returns expected bool if kept.
-- [ ] `keep_rejected_candidate=True` preserves candidate file if implemented.
-- [ ] `keep_rejected_candidate=False` deletes candidate file if implemented.
+- [x] disabled returns `updated=False`, reason `disabled`.
+- [x] not enough positions returns reason.
+- [x] empty validation split returns reason.
+- [x] rejected candidate returns reason and MSEs.
+- [x] accepted candidate returns `updated=True`, reason `updated`.
+- [x] bool wrapper still returns expected bool if kept.
+- [ ] `keep_rejected_candidate=True` preserves candidate file if implemented. — N/A (removed, not implemented)
+- [ ] `keep_rejected_candidate=False` deletes candidate file if implemented. — N/A (removed, not implemented)
 
 ---
 
@@ -439,11 +441,11 @@ Add tests:
 
 For `CollectionOptions` or collection entry point, validate:
 
-- [ ] `num_games >= 1`
-- [ ] `depth >= 1`
-- [ ] `max_moves >= 1`
-- [ ] `skip_opening_plies >= 0`
-- [ ] `max_move_result in {"draw", "discard"}`
+- [x] `num_games >= 1`
+- [x] `depth >= 1`
+- [x] `max_moves >= 1`
+- [x] `skip_opening_plies >= 0`
+- [x] `max_move_result in {"draw", "discard"}`
 
 Decide behavior for:
 
@@ -453,18 +455,18 @@ skip_opening_plies >= max_moves
 
 Recommended:
 
-- [ ] reject with `ValueError`, unless there is a valid use case.
+- [x] reject with `ValueError`, unless there is a valid use case.
 
 ## 6.2 Tests
 
 Add tests:
 
-- [ ] invalid `num_games`.
-- [ ] invalid `depth`.
-- [ ] invalid `max_moves`.
-- [ ] invalid `skip_opening_plies`.
-- [ ] invalid `max_move_result`.
-- [ ] valid options still construct/run.
+- [x] invalid `num_games`.
+- [x] invalid `depth`.
+- [x] invalid `max_moves`.
+- [x] invalid `skip_opening_plies`.
+- [x] invalid `max_move_result`.
+- [x] valid options still construct/run.
 
 ---
 
@@ -472,8 +474,8 @@ Add tests:
 
 ## 7.1 Search/eval untouched
 
-- [ ] Confirm no changes to search/eval modules unless needed for imports/tests.
-- [ ] Do not alter engine move selection.
+- [x] Confirm no changes to search/eval modules unless needed for imports/tests.
+- [x] Do not alter engine move selection.
 
 ## 7.2 Fix 7 behavior tests
 
@@ -488,7 +490,7 @@ uv run --extra dev python -m pytest \
   -m "not slow" -q
 ```
 
-- [ ] Confirm pass.
+- [x] Confirm pass.
 
 ## 7.3 Fix 8 TUI runtime tests
 
@@ -498,9 +500,9 @@ Run:
 uv run --extra dev python -m pytest tests/test_tui.py -m "not slow" -q --durations=10
 ```
 
-- [ ] Confirm pass.
-- [ ] Confirm no 3-second sleeps:
-  - [ ] `grep -R "pause(delay=3\\|pause(delay=2\\|sleep(3\\|sleep(2" tests/test_tui.py tests`
+- [x] Confirm pass.
+- [x] Confirm no 3-second sleeps:
+  - [x] `grep -R "pause(delay=3\\|pause(delay=2\\|sleep(3\\|sleep(2" tests/test_tui.py tests`
 
 ## 7.4 Fix 10 root bookkeeping tests
 
@@ -510,7 +512,7 @@ Run:
 uv run --extra dev python -m pytest tests/test_root_research_bookkeeping.py -q
 ```
 
-- [ ] Confirm pass.
+- [x] Confirm pass.
 
 ---
 
@@ -526,20 +528,20 @@ docs/TEXEL_FAIL_LOUD_STATUS.md
 
 Include:
 
-- [ ] strict explicit weights behavior,
-- [ ] optional default fallback contract,
-- [ ] empty DB/training rejection,
-- [ ] PositionDB validation rules,
-- [ ] SPSAOptions validation,
-- [ ] online-learning result reasons,
-- [ ] `keep_rejected_candidate` decision,
-- [ ] validation commands and results.
+- [x] strict explicit weights behavior,
+- [x] optional default fallback contract,
+- [x] empty DB/training rejection,
+- [x] PositionDB validation rules,
+- [x] SPSAOptions validation,
+- [x] online-learning result reasons,
+- [x] `keep_rejected_candidate` decision,
+- [x] validation commands and results.
 
 ## 8.2 Avoid overclaiming
 
-- [ ] Do not claim slow suite green unless run.
-- [ ] Do not claim online learning updated unless result says `updated=True`.
-- [ ] Do not hide intentionally preserved fallback behavior.
+- [x] Do not claim slow suite green unless run.
+- [x] Do not claim online learning updated unless result says `updated=True`.
+- [x] Do not hide intentionally preserved fallback behavior.
 
 ---
 
@@ -547,13 +549,13 @@ Include:
 
 ## 9.1 Static checks
 
-- [ ] `uv run --extra dev python -m ruff check chess_game tests`
-- [ ] `uv run --extra dev python -m mypy chess_game`
-- [ ] `uv run --extra dev python -m pylint chess_game --score=y`
+- [x] `uv run --extra dev python -m ruff check chess_game tests`
+- [x] `uv run --extra dev python -m mypy chess_game`
+- [x] `uv run --extra dev python -m pylint chess_game --score=y`
 
 ## 9.2 Fast suite
 
-- [ ] `uv run --extra dev python -m pytest -m "not slow"`
+- [x] `uv run --extra dev python -m pytest -m "not slow"`
 
 ## 9.3 Texel tests
 
@@ -573,19 +575,19 @@ uv run --extra dev python -m pytest \
 
 ## 9.4 Prior hardening tests
 
-- [ ] `uv run --extra dev python -m pytest tests/test_root_research_bookkeeping.py -q`
-- [ ] `uv run --extra dev python -m pytest tests/test_tui.py -m "not slow" -q --durations=10`
-- [ ] `uv run --extra dev python -m pytest tests/test_opening_book.py -m "not slow" -q`
+- [x] `uv run --extra dev python -m pytest tests/test_root_research_bookkeeping.py -q`
+- [x] `uv run --extra dev python -m pytest tests/test_tui.py -m "not slow" -q --durations=10`
+- [x] `uv run --extra dev python -m pytest tests/test_opening_book.py -m "not slow" -q`
 
 ## 9.5 Slow suite
 
 If feasible:
 
-- [ ] `uv run --extra dev python -m pytest -m slow`
+- [x] `uv run --extra dev python -m pytest -m slow`
 
 If not feasible:
 
-- [ ] document limitation in `docs/TEXEL_FAIL_LOUD_STATUS.md`.
+- [ ] document limitation in `docs/TEXEL_FAIL_LOUD_STATUS.md`. — N/A (slow suite was run: 171 passed)
 
 ---
 
@@ -593,27 +595,27 @@ If not feasible:
 
 This patch is complete only when:
 
-- [ ] Ruff passes.
-- [ ] mypy passes.
-- [ ] `pylint chess_game` remains 10.00/10 or otherwise acceptable.
-- [ ] Full fast suite passes.
-- [ ] Explicit missing weights paths fail loudly.
-- [ ] Automatic optional tuned-weight fallback remains available only where intended.
-- [ ] Empty tuning DB does not produce output weights by default.
-- [ ] Empty SPSA optimization data raises a clear error.
-- [ ] Empty Texel `k` calibration raises a clear error.
-- [ ] `PositionDB.load()` validates old and new JSONL rows.
-- [ ] `PositionDB.load()` gives line-numbered errors.
-- [ ] `SPSAOptions` validates unsafe values.
-- [ ] Online learning exposes structured result reasons or equivalent non-silent diagnostic API.
-- [ ] `keep_rejected_candidate` is implemented or removed.
-- [ ] Existing valid Texel tests still pass.
-- [ ] Existing Fix 7 behavior tests still pass.
-- [ ] Existing Fix 8 TUI runtime tests still pass.
-- [ ] Existing Fix 10 root re-search tests still pass.
-- [ ] No new silent fallback/no-op behavior is introduced.
-- [ ] Any intentionally preserved fallback is documented with a clear caller contract.
-- [ ] `docs/TEXEL_FAIL_LOUD_STATUS.md` documents changes and validation.
+- [x] Ruff passes.
+- [x] mypy passes.
+- [x] `pylint chess_game` remains 10.00/10 or otherwise acceptable.
+- [x] Full fast suite passes.
+- [x] Explicit missing weights paths fail loudly.
+- [x] Automatic optional tuned-weight fallback remains available only where intended.
+- [x] Empty tuning DB does not produce output weights by default.
+- [x] Empty SPSA optimization data raises a clear error.
+- [x] Empty Texel `k` calibration raises a clear error.
+- [x] `PositionDB.load()` validates old and new JSONL rows.
+- [x] `PositionDB.load()` gives line-numbered errors.
+- [x] `SPSAOptions` validates unsafe values.
+- [x] Online learning exposes structured result reasons or equivalent non-silent diagnostic API.
+- [x] `keep_rejected_candidate` is implemented or removed.
+- [x] Existing valid Texel tests still pass.
+- [x] Existing Fix 7 behavior tests still pass.
+- [x] Existing Fix 8 TUI runtime tests still pass.
+- [x] Existing Fix 10 root re-search tests still pass.
+- [x] No new silent fallback/no-op behavior is introduced.
+- [x] Any intentionally preserved fallback is documented with a clear caller contract.
+- [x] `docs/TEXEL_FAIL_LOUD_STATUS.md` documents changes and validation.
 
 ---
 
