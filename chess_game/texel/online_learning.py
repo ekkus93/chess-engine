@@ -8,7 +8,7 @@ from pathlib import Path
 from chess_game.chess.ai_weight_cache import invalidate_weights_cache
 from chess_game.texel.loss import LossOptions, mean_squared_error
 from chess_game.texel.position_db import GameRecord, PositionDB
-from chess_game.texel.spsa import SPSAOptions, optimize
+from chess_game.texel.spsa import SPSAOptions, make_spsa_options, optimize
 from chess_game.texel.weights_io import (
     TUNED_WEIGHTS_PATH,
     load_weights_or_default,
@@ -83,19 +83,10 @@ def _load_or_create_db(db_path: Path) -> PositionDB:
     return PositionDB.load(db_path) if db_path.exists() else PositionDB()
 
 
-def _train_db_from_pairs(train_pairs: list[tuple[str, float]]) -> PositionDB:
-    train_db = PositionDB()
-    for pos, outcome in train_pairs:
-        train_db.add_game(GameRecord(positions=[pos], outcome=outcome))
-    return train_db
-
-
 def _spsa_options(config: OnlineLearningConfig) -> SPSAOptions:
-    return SPSAOptions(
+    return make_spsa_options(
         max_iterations=config.spsa_iterations,
         batch_size=config.spsa_batch_size,
-        verbose=False,
-        checkpoint_path=None,
         loss_options=config.loss_options,
     )
 
@@ -164,7 +155,7 @@ def record_game_and_update_weights_result(
         if val_pairs
         else None
     )
-    candidate = optimize(weights, _train_db_from_pairs(train_pairs), _spsa_options(config))
+    candidate = optimize(weights, PositionDB.from_pairs(train_pairs), _spsa_options(config))
     candidate_mse = (
         mean_squared_error(val_pairs, candidate, opts=config.loss_options)
         if val_pairs

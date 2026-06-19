@@ -77,6 +77,28 @@ class SPSAOptions:
             )
 
 
+def make_spsa_options(
+    *,
+    max_iterations: int,
+    batch_size: int,
+    loss_options: LossOptions,
+    seed: Optional[int] = None,
+) -> SPSAOptions:
+    """Build SPSAOptions for an unattended tune: quiet, no checkpoint file.
+
+    Shared by the online and batch learning loops so the "headless tune" option
+    set lives in exactly one place.
+    """
+    return SPSAOptions(
+        max_iterations=max_iterations,
+        batch_size=batch_size,
+        verbose=False,
+        checkpoint_path=None,
+        loss_options=loss_options,
+        seed=seed,
+    )
+
+
 def _clip_weights(w: list[float]) -> list[float]:
     """Clip weights to sane bounds to prevent divergence."""
     result = list(w)

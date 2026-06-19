@@ -2,6 +2,35 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-19T04:52:08Z - Claude Opus 4.8 (1M context) - Persistent learning loop + truthful self-play learning message
+
+Closed the "Texel saves data the engine never uses" gap discovered while analysing the
+100-game depth-3 self-play run (/tmp/selfplay_depth3_20260613T041455Z): both colors play
+via get_best_move(weights=None), which loads ONLY chess_game/chess/data/tuned_weights.json
+(ai.py:125 _get_effective_weights). That file did not exist, so play used EvalWeights.default()
+the whole run; the online-learning weights were written to /tmp (different path) and never read.
+Final 100-game tally: Black 34, White 25, 27 draws, 14 hit the 200-move cap — within ~1.2σ of a
+coin flip (no learning loop, so not a real Black edge). Final tune showed 0.0% MSE improvement.
+
+Changes (fast suite 1111 passed; ruff/mypy clean; pylint 10.00/10):
+- self_play.py: _maybe_learn now calls record_game_and_update_weights_result and prints the REAL
+  reason via new _format_learning_message (was hard-coded "not enough positions yet" for EVERY
+  non-update; the actual reason was usually candidate_not_better). tests/test_self_play_learning_message.py.
+- New chess_game/texel/learn_loop.py: persistent batch loop (collect -> validation-gated tune ->
+  promote-on-improvement). Starts each round from current canonical weights and grows the on-disk DB,
+  so improvements compound; a candidate that fails held-out MSE is discarded (engine never gets worse).
+  LearnLoopConfig defaults to canonical DB+weights. CLI: python -m chess_game.texel.learn_loop. tests/test_learn_loop.py.
+- Structural dedup (no pragmas): added PositionDB.from_pairs (position_db.py) replacing online_learning's
+  private _train_db_from_pairs; added spsa.make_spsa_options factory shared by online_learning and learn_loop
+  (fixed an R0801 duplicate-code regression to keep pylint 10.00).
+
+Running: isolated real batch in /tmp/learn_loop_20260619T045149Z (seeded from a COPY of the 886-position
+canonical positions.jsonl; weights isolated to that dir, NOT canonical) — rounds=4, games/round=40, depth=1,
+1000 SPSA iters, seed 7. Ran isolated to avoid a long unattended run mutating the git-tracked positions.jsonl.
+If any round improves held-out val MSE, promote tuned_weights.json to chess_game/chess/data/ (engine reads it
+automatically; invalidate_weights_cache on next process). NOTE: depth-1 labels are noisy and prior k calibrated
+to the 0.5 floor, so promotion is genuinely uncertain. Code changes NOT yet committed.
+
 ## 2026-06-12T13:15:15Z - Claude Opus 4.8 (1M context) - Slow suite green (171/0) after the under-700 splits
 
 Validated the under-700 round (endgame_evaluation, board.py, opening_development,

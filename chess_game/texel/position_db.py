@@ -104,6 +104,18 @@ class PositionDB:
                 self._data[pos] = PositionStats()
             self._data[pos].add(record.outcome)
 
+    @classmethod
+    def from_pairs(cls, pairs: list[tuple[str, float]]) -> PositionDB:
+        """Build a PositionDB from (fen, outcome) pairs.
+
+        Each pair becomes a single-position game record. Useful for turning a
+        train/validation split back into a DB that :func:`optimize` can consume.
+        """
+        db = cls()
+        for pos, outcome in pairs:
+            db.add_game(GameRecord(positions=[pos], outcome=outcome))
+        return db
+
     def save(self, path: Path) -> None:
         """Save the database to a JSON-lines file."""
         path.parent.mkdir(parents=True, exist_ok=True)

@@ -19,7 +19,17 @@ from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.opening_book import OpeningBook, OpeningBookError, get_bundled_opening_book
 from chess_game.chess.types import Color, LegalMove, PieceType
 from chess_game.texel.game_result import outcome_from_message
-from chess_game.texel.online_learning import OnlineLearningConfig, record_game_and_update_weights
+from chess_game.texel.online_learning import (
+    REASON_CANDIDATE_BELOW_THRESHOLD,
+    REASON_CANDIDATE_NOT_BETTER,
+    REASON_EMPTY_TRAINING_SPLIT,
+    REASON_EMPTY_VALIDATION_SPLIT,
+    REASON_NOT_ENOUGH_POSITIONS,
+    REASON_UPDATED,
+    OnlineLearningConfig,
+    OnlineLearningResult,
+    record_game_and_update_weights_result,
+)
 from chess_game.texel.position_db import GameRecord
 
 _SKIP_OPENING_PLIES = 10
@@ -144,6 +154,38 @@ def _print_played_move(board: Board, move_number: int, side: str, best_move) -> 
     print()
 
 
+def _format_learning_message(
+    result: OnlineLearningResult,
+    cfg: OnlineLearningConfig,
+) -> str:
+    """Render a truthful one-line summary of an online-learning attempt.
+
+    Reports the *actual* reason the candidate was or was not promoted, instead of
+    always blaming an insufficient position count.
+    """
+    base = "Learning from game..."
+    if result.reason == REASON_UPDATED:
+        return (
+            f"{base} weights updated and saved to {cfg.weights_path} "
+            f"(val MSE {result.baseline_val_mse:.6f} -> {result.candidate_val_mse:.6f}, "
+            f"{result.positions} positions)."
+        )
+    if result.reason == REASON_NOT_ENOUGH_POSITIONS:
+        return (
+            f"{base} {result.positions}/{cfg.min_positions} positions collected, "
+            f"skipped tuning."
+        )
+    if result.reason in (REASON_CANDIDATE_NOT_BETTER, REASON_CANDIDATE_BELOW_THRESHOLD):
+        return (
+            f"{base} candidate did not beat current weights on validation "
+            f"(val MSE {result.candidate_val_mse:.6f} vs baseline "
+            f"{result.baseline_val_mse:.6f}); kept existing weights."
+        )
+    if result.reason in (REASON_EMPTY_TRAINING_SPLIT, REASON_EMPTY_VALIDATION_SPLIT):
+        return f"{base} train/validation split was empty; skipped tuning."
+    return f"{base} no update ({result.reason})."
+
+
 def _maybe_learn(
     game_over_message: str,
     fens: list[str],
@@ -161,12 +203,9 @@ def _maybe_learn(
         return
     record = GameRecord(positions=fens, outcome=outcome)
     cfg = options.learning_config or OnlineLearningConfig()
-    updated = record_game_and_update_weights(record, cfg)
+    result = record_game_and_update_weights_result(record, cfg)
     if options.verbose:
-        if updated:
-            print("Learning from game... weights updated.")
-        else:
-            print("Learning from game... (not enough positions yet, skipped tuning).")
+        print(_format_learning_message(result, cfg))
 
 
 def _run_self_play_internal(
