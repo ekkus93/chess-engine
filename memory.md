@@ -25,7 +25,27 @@ ruff/mypy clean; pylint 10.00):
   validator objects. Removed _init_validators method + its 3 call sites (__init__, clone, from_fen).
 - chess_game/chess/types.py: Piece -> @dataclass(slots=True) (10M allocations/search).
 
-Result: clean midgame benchmark mid1@d3 36.3s -> 22.2s (~1.64x). Committed.
+Result: clean midgame benchmark mid1@d3 36.3s -> 22.2s (~1.64x). Committed add55a8 (pushed).
+
+## 2026-06-19T10:37:54Z - Claude Opus 4.8 (1M context) - Engine speedup phase 2: make/unmake + iter inline (~2.17x total)
+
+Continued the perf work (user: "keep optimizing"). Two more behavior-preserving changes, verified
+(golden guard 14/14 byte-identical; Kiwipete perft(1)=48; fast suite 1111; SLOW suite 171 passed in
+34:52 -- itself down from 49:51 pre-speedup; ruff/mypy/pylint 10.00):
+- chess_game/chess/board/move_validation.py: _would_expose_king_to_check now simulates the move
+  in place (make/unmake on the live board grid) and restores it in a finally, instead of cloning
+  the whole board for every candidate move (~305k clones/search eliminated). Safe because find_king
+  and the _is_square_attacked_by_color helpers read ONLY grid coordinates, never piece.square.
+- chess_game/chess/strategy_utils.py: iter_color_pieces scans the grid directly instead of
+  delegating to iter_board_pieces (one generator frame, not two; ~9.5M yields/search).
+
+Result: mid1@d3 17.2s clean (36.3 -> 17.2 = ~2.1x cumulative); golden total 191 -> 174s.
+NOTE on the next tier: the make/unmake bypasses set_piece (mutates grid directly), so any incremental
+king-position / piece-list cache must be updated in make/unmake too, or it goes stale during
+simulation -> illegal moves. New hot path (cProfile 42.5s): board-scan trio iter_board_pieces(3.1s)/
+find_king(2.8s)/iter_color_pieces(2.5s) shared across eval+ordering+legal-gen; then full evaluation
+per quiescence leaf (get_evaluation_breakdown 17s cum). At ~17s/move, depth-3 is ~15min/game ->
+~40-50 games/hour across 16 cores, making parallel depth-3 self-play training practical again.
 NEXT (not done, bigger + riskier, needs per-change validation): (1) node-cached move ordering —
 quiet_strategy_order_score runs ~25 strategic heuristics PER MOVE that recompute board-invariant
 state; hoist into make_quiet_order_context (behavior-preserving, ~17s cumulative). (2) pin-based

@@ -26,11 +26,16 @@ def iter_board_pieces(board: Board):
 
 
 def iter_color_pieces(board: Board, color: Color):
-    """Yield occupied squares for one color."""
+    """Yield occupied squares for one color.
 
-    for piece, row, col in iter_board_pieces(board):
-        if piece.color == color:
-            yield piece, row, col
+    Scans the grid directly rather than delegating to ``iter_board_pieces`` so the
+    millions of per-search color iterations pay for one generator frame, not two.
+    """
+
+    for row_index, row in enumerate(board.board):
+        for col_index, piece in enumerate(row):
+            if piece is not None and piece.color == color:
+                yield piece, row_index, col_index
 
 
 def legal_move_count(board: Board, color: Color) -> int:

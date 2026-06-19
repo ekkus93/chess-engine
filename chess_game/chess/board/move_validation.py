@@ -235,22 +235,29 @@ class MoveValidator:
     def _would_expose_king_to_check(
         self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
     ) -> bool:
-        """Check if making the move would expose the piece's king to check."""
-        temp_board = self.board.clone()
-        temp_piece = Piece(
-            color=piece.color,
-            kind=piece.kind,
-            _square=to_square,
-        )
-        temp_board.set_piece(to_square, temp_piece)
-        temp_board.clear_square(from_square)
+        """Check if making the move would expose the piece's king to check.
 
-        king_square = temp_board.find_king(piece.color)
-        if king_square is None:
-            return False
-
-        enemy_color = Color.BLACK if piece.color == Color.WHITE else Color.WHITE
-        return self._is_square_attacked_by_color(temp_board, king_square, enemy_color)
+        Simulates the move in place (make / unmake) on the live board grid rather
+        than cloning the whole board for every candidate move. The grid is fully
+        restored in the ``finally`` before returning, and the attack scan reads only
+        grid coordinates, so the result is identical to the prior clone-based check.
+        """
+        grid = self.board.board
+        from_row, from_col = int(from_square.row), int(from_square.col)
+        to_row, to_col = int(to_square.row), int(to_square.col)
+        moving = grid[from_row][from_col]
+        captured = grid[to_row][to_col]
+        grid[to_row][to_col] = moving
+        grid[from_row][from_col] = None
+        try:
+            king_square = self.board.find_king(piece.color)
+            if king_square is None:
+                return False
+            enemy_color = Color.BLACK if piece.color == Color.WHITE else Color.WHITE
+            return self._is_square_attacked_by_color(self.board, king_square, enemy_color)
+        finally:
+            grid[from_row][from_col] = moving
+            grid[to_row][to_col] = captured
 
     def _would_expose_king_to_check_en_passant(
         self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
