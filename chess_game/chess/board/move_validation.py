@@ -45,7 +45,10 @@ class MoveValidator:
         return self.is_valid_move(from_square, to_square)
 
     def is_valid_move(
-        self, from_square: ConstantSquare, to_square: ConstantSquare
+        self,
+        from_square: ConstantSquare,
+        to_square: ConstantSquare,
+        pseudo_legal: Optional[List[ConstantSquare]] = None,
     ) -> bool:
         """Check if a move is valid.
 
@@ -60,6 +63,11 @@ class MoveValidator:
         7. Simulate the move on a cloned state.
         8. Reject if it leaves the moving side's king in check.
         9. Otherwise return True.
+
+        ``pseudo_legal`` lets a caller that already generated the piece's
+        pseudo-legal squares (e.g. legal-move enumeration) pass them in so step 6
+        does not recompute them per candidate move. It must be exactly
+        ``PieceMovers.get_valid_moves(piece, board)`` for the current position.
         """
         piece = self._get_source_piece(from_square, to_square)
         if piece is None:
@@ -74,8 +82,9 @@ class MoveValidator:
             return self._validate_en_passant(piece, from_square, to_square)
 
         # 6. Pseudo-legal geometry via PieceMovers
-        valid_moves = self.piece_movers.get_valid_moves(piece, self.board)
-        if to_square not in valid_moves:
+        if pseudo_legal is None:
+            pseudo_legal = self.piece_movers.get_valid_moves(piece, self.board)
+        if to_square not in pseudo_legal:
             return False
 
         # 7-8. Simulate and reject if it leaves king in check
@@ -205,13 +214,17 @@ class MoveValidator:
         from_square: ConstantSquare,
     ) -> List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]]:
         """Get all legal moves for a given piece from a given square."""
-        valid_moves = self.piece_movers.get_valid_moves(piece, self.board)
-        if piece.kind == PieceType.KING:
-            valid_moves.extend(self._get_castling_moves(piece))
+        pseudo_legal = self.piece_movers.get_valid_moves(piece, self.board)
+        castling_moves = (
+            self._get_castling_moves(piece) if piece.kind == PieceType.KING else []
+        )
 
         moves: List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]] = []
-        for to_square in valid_moves:
-            if self.is_valid_move(from_square, to_square):
+        for to_square in (*pseudo_legal, *castling_moves):
+            # pseudo_legal is reused so is_valid_move's geometry check does not
+            # regenerate the piece's moves for every candidate (castling squares
+            # are handled by is_valid_move's castling branch before that check).
+            if self.is_valid_move(from_square, to_square, pseudo_legal):
                 if piece.kind == PieceType.PAWN:
                     if self._is_promotion_dest(piece, to_square):
                         for pt in PROMOTION_PIECES:

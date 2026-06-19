@@ -192,7 +192,26 @@ class Board:
         return piece.kind if piece else None
 
     def find_king(self, color: Color) -> Optional[ConstantSquare]:
-        """Find king of given color."""
+        """Find king of given color.
+
+        Uses a self-validating cache: the king's last known square is remembered,
+        but every lookup re-checks that the king is *still* on that square before
+        trusting it. If the king has moved (a real move, or a temporary make/unmake
+        simulation), the check fails and the board is rescanned. This can never
+        return a stale square, so it needs no invalidation hooks in the mutators.
+        """
+        cache = self.__dict__.get("_king_cache")
+        if cache is not None:
+            cached = cache.get(color)
+            if cached is not None:
+                cached_row, cached_col = cached
+                piece = self.board[cached_row][cached_col]
+                if (
+                    piece is not None
+                    and piece.color == color
+                    and piece.kind == PieceType.KING
+                ):
+                    return get_square_constant(cached_row, cached_col)
         for row in range(8):
             for col in range(8):
                 piece = self.board[row][col]
@@ -201,6 +220,10 @@ class Board:
                     and piece.color == color
                     and piece.kind == PieceType.KING
                 ):
+                    if cache is None:
+                        cache = {}
+                        self.__dict__["_king_cache"] = cache
+                    cache[color] = (row, col)
                     return get_square_constant(row, col)
         return None
 

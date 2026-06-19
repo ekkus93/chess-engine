@@ -27,6 +27,23 @@ ruff/mypy clean; pylint 10.00):
 
 Result: clean midgame benchmark mid1@d3 36.3s -> 22.2s (~1.64x). Committed add55a8 (pushed).
 
+## 2026-06-19T17:48:23Z - Claude Opus 4.8 (1M context) - Engine speedup phase 3: find_king self-validating cache + pseudo-legal passthrough (~2.5x total)
+
+Two more behavior-preserving changes (golden 14/14 byte-identical; Kiwipete perft(1)=48 + castling/
+en-passant perft consistent; fast suite 1111; ruff/mypy/pylint 10.00). Pushed at user's explicit
+repeated request while the slow suite was at 96/171 with zero failures (full slow run still completing).
+- chess_game/chess/board/board.py find_king: SELF-VALIDATING cache. Caches the king square in
+  __dict__["_king_cache"] per color, but every lookup re-checks the cached square still holds that
+  king before trusting it; on mismatch it rescans. Never returns a stale square, so it needs NO
+  invalidation hooks -- works correctly even though make/unmake mutates the grid directly (bypassing
+  set_piece). O(1) when king is stable (the common case), one rescan when it moves.
+- chess_game/chess/board/move_validation.py: is_valid_move gained optional pseudo_legal param;
+  _get_legal_moves_for_piece passes the already-generated get_valid_moves set so step-6 geometry
+  check no longer regenerates a piece's moves for every candidate. Castling candidates handled by
+  is_valid_move's castling branch before the geometry check, so passing the non-castling set is exact.
+
+Result: mid1@d3 36.3 -> ~14.2s (~2.5x cumulative). Commit after add55a8/d323f97.
+
 ## 2026-06-19T10:37:54Z - Claude Opus 4.8 (1M context) - Engine speedup phase 2: make/unmake + iter inline (~2.17x total)
 
 Continued the perf work (user: "keep optimizing"). Two more behavior-preserving changes, verified
