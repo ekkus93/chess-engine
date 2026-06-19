@@ -2,7 +2,6 @@
 
 from enum import IntEnum
 from typing import NamedTuple, TypeAlias, Union
-from pydantic import BaseModel
 
 # Board geometry constants
 BOARD_SIZE = 8
@@ -212,14 +211,19 @@ COL_G = ColConstant(6)  # file g
 COL_H = ColConstant(7)  # file h
 
 
-# ConstantSquare is a Pydantic model for type-safe square coordinates
-class ConstantSquare(BaseModel):
+# ConstantSquare: a plain, slotted value type for square coordinates.
+# It was previously a Pydantic BaseModel, but it is constructed millions of times
+# during search and Pydantic validation dominated the profile. It carries only a
+# (row, col) pair and needs no validation, so a slotted class is a drop-in that
+# removes that hot-path cost while preserving the same attributes and semantics.
+class ConstantSquare:
     """Type-safe representation of a board square using constant coordinate objects."""
 
-    model_config = {"arbitrary_types_allowed": True}
+    __slots__ = ("row", "col")
 
-    row: RowConstant
-    col: ColConstant
+    def __init__(self, row: RowConstant, col: ColConstant) -> None:
+        self.row = row
+        self.col = col
 
     def __hash__(self) -> int:
         return hash((self.row, self.col))

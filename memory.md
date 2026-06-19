@@ -2,6 +2,36 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-19T08:57:24Z - Claude Opus 4.8 (1M context) - Engine search speedup (~1.64x), behavior-preserving
+
+Self-play data generation was infeasible because the engine searches ~45s/move at depth 3
+(>60 min/game; one midgame depth-3 search = 36.3s). Profiled with cProfile (start pos = 3.1s
+but midgame = 36s) and found the hot path is Pydantic objects + redundant recomputation, NOT an
+algorithmic bug. Top costs were get_piece (9.1M calls), ConstantSquare Pydantic validation (8.18M),
+castling is_square_attacked (32s cum), and full-board scans.
+
+Five behavior-preserving changes (each verified: golden-move guard /tmp/golden_moves.py = 14
+positions at depth 2&3 all BYTE-IDENTICAL; fast suite 1111 passed; SLOW suite 171 passed in 49:51;
+ruff/mypy clean; pylint 10.00):
+- chess_game/chess/constants.py: ConstantSquare BaseModel -> plain __slots__ class (nothing used
+  Pydantic API on it; it's just row/col). Removed `from pydantic import BaseModel` (was the only
+  Pydantic use in the whole chess package).
+- chess_game/chess/board/castling.py: is_square_attacked iterates only the <=16 enemy pieces in
+  the same row-major order (identical first-attacker) instead of constructing a ConstantSquare for
+  all 64 squares every call. Dropped now-unused get_col_constant import.
+- chess_game/chess/board/board.py: get_piece coerces row/col to int once (was 4x); validators made
+  LAZY via a `_validators` property caching in __dict__["_validators_cache"] — clones (342k/search,
+  ~305k are throwaway king-safety clones in _would_expose_king_to_check) no longer eagerly build 5
+  validator objects. Removed _init_validators method + its 3 call sites (__init__, clone, from_fen).
+- chess_game/chess/types.py: Piece -> @dataclass(slots=True) (10M allocations/search).
+
+Result: clean midgame benchmark mid1@d3 36.3s -> 22.2s (~1.64x). Committed.
+NEXT (not done, bigger + riskier, needs per-change validation): (1) node-cached move ordering —
+quiet_strategy_order_score runs ~25 strategic heuristics PER MOVE that recompute board-invariant
+state; hoist into make_quiet_order_context (behavior-preserving, ~17s cumulative). (2) pin-based
+legality to avoid the per-move board clone in _would_expose_king_to_check (~17s cum). Reusable
+profilers: /tmp/profile_mid.py, golden guard /tmp/golden_moves.py (record|check).
+
 ## 2026-06-19T04:52:08Z - Claude Opus 4.8 (1M context) - Persistent learning loop + truthful self-play learning message
 
 Closed the "Texel saves data the engine never uses" gap discovered while analysing the

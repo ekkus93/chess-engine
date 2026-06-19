@@ -18,7 +18,7 @@ from chess_game.chess.constants import (
     COL_H,
     ConstantSquare,
     get_row_constant,
-    get_col_constant,
+    get_square_constant,
 )
 from chess_game.chess.types import PieceType, CastlingRights
 from chess_game.chess.board.attack_utils import piece_attacks_square
@@ -263,16 +263,20 @@ class CastlingValidator:
     def is_square_attacked(
         board: Board, square: ConstantSquare, by_color: Color
     ) -> bool:
-        """Check if a square is attacked by pieces of the given color."""
+        """Check if a square is attacked by pieces of the given color.
+
+        Iterates only occupied attacker squares in the same row-major order as a
+        full board scan, so the first attacker found (and the result) is identical
+        to checking every square — without constructing 64 squares per call.
+        """
+        board_grid = board.board
         for row in range(8):
+            board_row = board_grid[row]
             for col in range(8):
-                piece_square = ConstantSquare(
-                    row=get_row_constant(row), col=get_col_constant(col)
-                )
-                piece = board.get_piece(piece_square)
+                piece = board_row[col]
                 if piece is None or piece.color != by_color:
                     continue
-
+                piece_square = get_square_constant(row, col)
                 if piece_attacks_square(piece, piece_square, square, board):
                     return True
         return False

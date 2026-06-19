@@ -90,20 +90,28 @@ class Board:
         self.board: List[List[Optional[Piece]]] = create_starting_grid()
         self.turn = Color.WHITE
         self._state = GameMetadata()
-        self._validators: BoardValidators
         self._move_history: List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]] = []
 
-        self._init_validators()
+    @property
+    def _validators(self) -> BoardValidators:
+        """Validator bundle, built lazily on first use.
 
-    def _init_validators(self) -> None:
-        """Initialize internal validator instances."""
-        self._validators = BoardValidators(
-            move_validator=MoveValidator(self),
-            move_executor=MoveExecutor(self),
-            promotion_validator=PromotionValidator(self),
-            en_passant_validator=EnPassantValidator(self),
-            piece_move_checker=PieceMoveChecker(self),
-        )
+        The search clones the board hundreds of thousands of times per move just to
+        test king safety, and those throwaway clones never touch the validators.
+        Building them eagerly in ``clone()`` was pure waste, so they are created on
+        first access and cached instead.
+        """
+        validators = self.__dict__.get("_validators_cache")
+        if validators is None:
+            validators = BoardValidators(
+                move_validator=MoveValidator(self),
+                move_executor=MoveExecutor(self),
+                promotion_validator=PromotionValidator(self),
+                en_passant_validator=EnPassantValidator(self),
+                piece_move_checker=PieceMoveChecker(self),
+            )
+            self.__dict__["_validators_cache"] = validators
+        return validators
 
     @property
     def piece_move_checker(self) -> PieceMoveChecker:
@@ -147,9 +155,11 @@ class Board:
             square = ConstantSquare(
                 row=get_row_constant(square[0]), col=get_col_constant(square[1])
             )
-        if not (0 <= int(square.row) < 8 and 0 <= int(square.col) < 8):
-            return None
-        return self.board[int(square.row)][int(square.col)]
+        row = int(square.row)
+        col = int(square.col)
+        if 0 <= row < 8 and 0 <= col < 8:
+            return self.board[row][col]
+        return None
 
     def set_piece(self, square: ConstantSquare, piece: Optional[Piece]) -> None:
         """Set piece at square."""
@@ -307,7 +317,6 @@ class Board:
             ),
         )
         cloned.__dict__["_move_history"] = self._move_history_copy()
-        Board._init_validators(cloned)
         return cloned
 
     def _move_history_copy(
@@ -673,5 +682,4 @@ class Board:
         board.__dict__["_move_history"] = []
         _fen_init_state(board, fields)
         _fen_parse_placement(board, cls._FEN_TO_PIECE, fields[0])
-        Board._init_validators(board)
         return board

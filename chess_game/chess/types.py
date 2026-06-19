@@ -19,9 +19,13 @@ if TYPE_CHECKING:
     from chess_game.chess.board.piece_validation import PieceMoveChecker
 
 
-@dataclass
+@dataclass(slots=True)
 class Piece:
-    """A chess piece with its color, kind, and current board square."""
+    """A chess piece with its color, kind, and current board square.
+
+    Slotted: pieces are allocated and cloned millions of times per search, so
+    avoiding per-instance ``__dict__`` cuts both allocation cost and memory.
+    """
 
     color: Color
     kind: PieceType
