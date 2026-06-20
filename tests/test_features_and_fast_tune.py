@@ -152,7 +152,7 @@ class TestOptimizeAdam:
         outcomes = np.random.uniform(0, 1, 30).astype(np.float64)
         w0 = np.zeros(5, dtype=np.float64)
         k = 1.0
-        cfg = AdamConfig(n_iter=500, learning_rate=1.0)
+        cfg = AdamConfig(n_iter=500, learning_rate=1.0, freeze_material=False, freeze_bonus=False)
         w_opt = optimize_adam(feat, outcomes, w0, k, cfg)
         assert fast_mse(feat, outcomes, w_opt, k) < fast_mse(feat, outcomes, w0, k)
 
@@ -160,7 +160,8 @@ class TestOptimizeAdam:
         feat = np.zeros((10, 7), dtype=np.float64)
         outcomes = np.full(10, 0.5, dtype=np.float64)
         w0 = np.zeros(7, dtype=np.float64)
-        w_out = optimize_adam(feat, outcomes, w0, k=1.0, config=AdamConfig(n_iter=5))
+        cfg = AdamConfig(n_iter=5, freeze_material=False, freeze_bonus=False)
+        w_out = optimize_adam(feat, outcomes, w0, k=1.0, config=cfg)
         assert w_out.shape == (7,)
 
 

@@ -108,9 +108,9 @@ def _clip_weights(w: list[float]) -> list[float]:
     # Piece-square table values (next 384) capped at [-200, 200]
     for i in range(5, 5 + 384):
         result[i] = max(-200.0, min(200.0, result[i]))
-    # All remaining scalar weights: cap at [-500, 500]
+    # All remaining scalar weights: cap at [-200, 200]
     for i in range(5 + 384, len(result)):
-        result[i] = max(-500.0, min(500.0, result[i]))
+        result[i] = max(-200.0, min(200.0, result[i]))
     return result
 
 

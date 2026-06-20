@@ -26,7 +26,7 @@ from chess_game.chess.ai_weight_cache import invalidate_weights_cache
 from chess_game.chess.eval_weights import EvalWeights
 from chess_game.texel.features import FeatureMatrix
 from chess_game.texel.learn_loop import RoundResult
-from chess_game.texel.spsa import _clip_weights
+
 from chess_game.texel.weights_io import TUNED_WEIGHTS_PATH, save_weights
 
 
@@ -76,11 +76,9 @@ def calibrate_k_fast(
 
 
 def _clip_w(w: np.ndarray) -> np.ndarray:
-    """Apply the same weight clipping as SPSA._clip_weights, vectorised."""
+    """Absolute safety clip: material/bonus are frozen upstream; PST bounded at ±200."""
     result = w.copy()
-    result[:5] = np.maximum(result[:5], 1.0)
     result[5:5 + 384] = np.clip(result[5:5 + 384], -200.0, 200.0)
-    result[5 + 384:] = np.clip(result[5 + 384:], -500.0, 500.0)
     return result
 
 
@@ -93,11 +91,14 @@ class AdamConfig:
     """Hyper-parameters for the Adam optimiser used in fast Texel tuning."""
 
     n_iter: int = 200_000
-    learning_rate: float = 0.5
+    learning_rate: float = 0.05
     beta1: float = 0.9
     beta2: float = 0.999
     epsilon: float = 1e-8
-    log_every: int = 0   # 0 = silent
+    log_every: int = 0        # 0 = silent
+    freeze_material: bool = True   # keep indices 0-4 (piece values) fixed
+    freeze_bonus: bool = True      # keep indices 389+ (positional bonuses) fixed
+    l2_lambda: float = 1e-6        # L2 reg toward w_init; 1e-6 → equilibrium ~20 cp from defaults
 
 
 def optimize_adam(
@@ -108,6 +109,11 @@ def optimize_adam(
     config: AdamConfig | None = None,
 ) -> np.ndarray:
     """Run Adam gradient descent on the fast linearised Texel loss.
+
+    Material weights (indices 0-4) are frozen when ``config.freeze_material``
+    is True (default).  L2 regularisation toward ``w_init`` is applied with
+    strength ``config.l2_lambda`` (default 0.001) to keep the candidate close
+    to the starting point where the linear approximation is valid.
 
     Args:
         feat: Feature matrix (N, D) — rows are positions, columns are weights.
@@ -120,7 +126,8 @@ def optimize_adam(
         Optimised weight vector (D,).
     """
     cfg = config or AdamConfig()
-    w = w_init.astype(np.float64).copy()
+    w_ref = w_init.astype(np.float64).copy()
+    w = w_ref.copy()
     m = np.zeros_like(w)
     v = np.zeros_like(w)
     feat64 = feat.astype(np.float64)
@@ -128,6 +135,12 @@ def optimize_adam(
 
     for t in range(1, cfg.n_iter + 1):
         g = fast_gradient(feat64, out64, w, k)
+        if cfg.l2_lambda:
+            g = g + 2.0 * cfg.l2_lambda * (w - w_ref)
+        if cfg.freeze_material:
+            g[:5] = 0.0
+        if cfg.freeze_bonus:
+            g[5 + 384:] = 0.0
         m = cfg.beta1 * m + (1.0 - cfg.beta1) * g
         v = cfg.beta2 * v + (1.0 - cfg.beta2) * g ** 2
         m_hat = m / (1.0 - cfg.beta1 ** t)
@@ -206,7 +219,7 @@ def fast_tune(
 
     if promoted:
         candidate_weights = EvalWeights.from_flat_list(
-            [float(x) for x in _clip_weights(list(w_candidate))]
+            [float(x) for x in w_candidate]
         )
         save_weights(candidate_weights, cfg.weights_path)
         invalidate_weights_cache()
