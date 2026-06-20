@@ -44,7 +44,7 @@ class EvalTuneConfig:
 
     validation_fraction: float = 0.20
     validation_seed: int = 0
-    ridge_lambda: float = 5000.0   # L2 penalty toward w0_pst; limits PST changes to ~10 cp
+    ridge_lambda: float = 50_000.0  # L2 toward w0_pst; lower values break quality tests
     weights_path: Path = dataclasses.field(default_factory=lambda: TUNED_WEIGHTS_PATH)
     verbose: bool = True
 
