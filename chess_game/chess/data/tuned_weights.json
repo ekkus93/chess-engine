@@ -1,0 +1,595 @@
+{
+  "material": {
+    "pawn": 100,
+    "knight": 320,
+    "bishop": 330,
+    "rook": 500,
+    "queen": 900
+  },
+  "tables": {
+    "pawn_table": [
+      [
+        -8,
+        -8,
+        -8,
+        -8,
+        -8,
+        -8,
+        -8,
+        -8
+      ],
+      [
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1
+      ],
+      [
+        1,
+        2,
+        1,
+        3,
+        2,
+        3,
+        1,
+        2
+      ],
+      [
+        2,
+        3,
+        1,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      [
+        2,
+        3,
+        1,
+        2,
+        3,
+        1,
+        2,
+        2
+      ],
+      [
+        1,
+        1,
+        2,
+        1,
+        2,
+        1,
+        1,
+        0
+      ],
+      [
+        -1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        -1
+      ],
+      [
+        -8,
+        -8,
+        -8,
+        -8,
+        -8,
+        -8,
+        -8,
+        -8
+      ]
+    ],
+    "knight_table": [
+      [
+        -3,
+        -2,
+        -1,
+        0,
+        0,
+        -1,
+        -2,
+        -3
+      ],
+      [
+        -2,
+        0,
+        1,
+        1,
+        1,
+        1,
+        0,
+        -2
+      ],
+      [
+        -1,
+        1,
+        3,
+        3,
+        3,
+        3,
+        1,
+        -1
+      ],
+      [
+        0,
+        1,
+        4,
+        4,
+        4,
+        4,
+        1,
+        0
+      ],
+      [
+        0,
+        2,
+        4,
+        4,
+        4,
+        4,
+        2,
+        0
+      ],
+      [
+        0,
+        1,
+        3,
+        4,
+        4,
+        3,
+        1,
+        0
+      ],
+      [
+        -2,
+        -1,
+        2,
+        3,
+        3,
+        2,
+        0,
+        -2
+      ],
+      [
+        -3,
+        -2,
+        -1,
+        0,
+        0,
+        -1,
+        -1,
+        -3
+      ]
+    ],
+    "bishop_table": [
+      [
+        -5,
+        -4,
+        -3,
+        -2,
+        -2,
+        -3,
+        -4,
+        -5
+      ],
+      [
+        -3,
+        -2,
+        1,
+        3,
+        2,
+        1,
+        -2,
+        -3
+      ],
+      [
+        2,
+        2,
+        1,
+        1,
+        1,
+        1,
+        2,
+        2
+      ],
+      [
+        2,
+        3,
+        1,
+        5,
+        5,
+        1,
+        3,
+        2
+      ],
+      [
+        0,
+        1,
+        3,
+        2,
+        2,
+        2,
+        1,
+        0
+      ],
+      [
+        -2,
+        2,
+        3,
+        4,
+        4,
+        3,
+        2,
+        -2
+      ],
+      [
+        -3,
+        2,
+        3,
+        4,
+        4,
+        3,
+        2,
+        -3
+      ],
+      [
+        -5,
+        -4,
+        -3,
+        -2,
+        -2,
+        -3,
+        -3,
+        -5
+      ]
+    ],
+    "rook_table": [
+      [
+        -3,
+        -3,
+        -3,
+        -3,
+        -3,
+        -3,
+        -3,
+        -3
+      ],
+      [
+        -2,
+        -2,
+        -1,
+        -1,
+        -1,
+        -1,
+        -2,
+        -2
+      ],
+      [
+        -1,
+        -1,
+        1,
+        3,
+        4,
+        3,
+        -1,
+        -1
+      ],
+      [
+        -2,
+        1,
+        3,
+        7,
+        7,
+        3,
+        1,
+        -2
+      ],
+      [
+        -1,
+        2,
+        5,
+        8,
+        8,
+        5,
+        2,
+        -1
+      ],
+      [
+        2,
+        3,
+        6,
+        9,
+        9,
+        6,
+        3,
+        2
+      ],
+      [
+        4,
+        1,
+        3,
+        2,
+        3,
+        4,
+        1,
+        5
+      ],
+      [
+        -2,
+        -4,
+        -3,
+        -3,
+        -3,
+        -3,
+        -3,
+        -3
+      ]
+    ],
+    "queen_table": [
+      [
+        -2,
+        1,
+        2,
+        2,
+        2,
+        2,
+        1,
+        -2
+      ],
+      [
+        -3,
+        -2,
+        2,
+        4,
+        4,
+        2,
+        -2,
+        -3
+      ],
+      [
+        0,
+        0,
+        2,
+        3,
+        6,
+        3,
+        2,
+        0
+      ],
+      [
+        -5,
+        1,
+        3,
+        5,
+        8,
+        8,
+        3,
+        1
+      ],
+      [
+        1,
+        4,
+        7,
+        9,
+        10,
+        8,
+        7,
+        4
+      ],
+      [
+        -2,
+        5,
+        8,
+        8,
+        8,
+        8,
+        5,
+        -2
+      ],
+      [
+        -2,
+        1,
+        3,
+        5,
+        6,
+        5,
+        3,
+        -2
+      ],
+      [
+        -3,
+        -4,
+        -2,
+        -2,
+        -2,
+        -2,
+        -4,
+        -3
+      ]
+    ],
+    "king_table": [
+      [
+        -8,
+        -7,
+        -6,
+        -4,
+        -2,
+        0,
+        1,
+        3
+      ],
+      [
+        -7,
+        -6,
+        -4,
+        -2,
+        -1,
+        1,
+        2,
+        3
+      ],
+      [
+        -7,
+        -5,
+        0,
+        2,
+        5,
+        5,
+        2,
+        5
+      ],
+      [
+        2,
+        1,
+        3,
+        4,
+        4,
+        4,
+        2,
+        2
+      ],
+      [
+        2,
+        3,
+        3,
+        5,
+        6,
+        5,
+        3,
+        2
+      ],
+      [
+        -4,
+        -3,
+        0,
+        0,
+        0,
+        0,
+        -1,
+        -3
+      ],
+      [
+        -6,
+        -5,
+        -3,
+        -1,
+        -1,
+        0,
+        -2,
+        -4
+      ],
+      [
+        -9,
+        -8,
+        -6,
+        -5,
+        -4,
+        -3,
+        -4,
+        -7
+      ]
+    ]
+  },
+  "pawns": {
+    "isolated_pawn_penalty": 12,
+    "doubled_pawn_penalty": 10,
+    "backward_pawn_penalty": 8,
+    "pawn_island_penalty": 7,
+    "weak_chain_pawn_penalty": 6,
+    "connected_passed_pawn_bonus": 10,
+    "candidate_passed_pawn_bonus": 8,
+    "central_duo_bonus": 12,
+    "pawn_majority_endgame_bonus": 10,
+    "blocked_central_pawn_penalty": 8,
+    "king_shelter_loosening_penalty": 10,
+    "_passed_pawn_bonuses": [
+      0,
+      6,
+      12,
+      20,
+      32,
+      50,
+      80
+    ]
+  },
+  "pieces": {
+    "bishop_pair_bonus": 28,
+    "rook_open_file_bonus": 18,
+    "rook_semi_open_file_bonus": 10,
+    "rook_seventh_rank_bonus": 12,
+    "rook_trapped_penalty": 18,
+    "connected_rooks_bonus": 14,
+    "queen_rook_battery_bonus": 10,
+    "knight_outpost_bonus": 18,
+    "knight_strong_square_bonus": 16,
+    "knight_rim_penalty": 14,
+    "bad_bishop_pawn_penalty": 4,
+    "long_diagonal_bishop_bonus": 8,
+    "central_minor_piece_bonus": 6,
+    "minor_coordination_bonus": 10,
+    "space_advantage_bonus": 4,
+    "cramped_piece_penalty": 3,
+    "_mobility": [
+      4,
+      4
+    ]
+  },
+  "king": {
+    "castled_king_bonus": 22,
+    "pawn_shield_bonus": 7,
+    "open_king_file_penalty": 9,
+    "exposed_central_king_penalty": 16,
+    "king_zone_attack_penalty": 5,
+    "back_rank_tension_penalty": 10,
+    "central_king_with_queens_penalty": 14,
+    "heavy_file_pressure_penalty": 10,
+    "defender_distance_penalty": 6
+  },
+  "development": {
+    "early_queen_move_penalty": 10,
+    "early_rook_move_penalty": 7,
+    "early_flank_raid_penalty": 10,
+    "early_queen_raid_penalty": 16,
+    "undeveloped_minor_piece_penalty": 5
+  },
+  "endgame": {
+    "space_advantage_bonus": 4,
+    "voluntary_repetition_penalty": 32,
+    "repetition_progress_threshold": 120,
+    "repetition_progress_only_threshold": 24,
+    "active_king_endgame_bonus": 24,
+    "blockaded_passed_pawn_bonus": 10,
+    "simplification_bonus_scale": 14,
+    "queens_off_when_ahead_bonus": 18,
+    "rooks_off_when_ahead_bonus": 10,
+    "luft_progress_bonus": 8
+  },
+  "mating": {
+    "mating_edge_bonus": 24,
+    "mating_king_distance_bonus": 8,
+    "heavy_piece_coordination_bonus": 12,
+    "king_cutoff_bonus": 14,
+    "rook_behind_passed_pawn_bonus": 18,
+    "king_escort_passed_pawn_bonus": 12,
+    "promotion_square_control_bonus": 10,
+    "enemy_king_box_bonus": 6,
+    "counterplay_reduction_bonus": 8,
+    "heavy_piece_activity_bonus": 8,
+    "_mating_bases": [
+      250,
+      180,
+      260,
+      320
+    ]
+  }
+}
