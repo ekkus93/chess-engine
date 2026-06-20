@@ -78,9 +78,9 @@ def mean_squared_error(
 def calibrate_k(
     pairs: list[tuple[str, float]],
     weights: EvalWeights,
-    k_min: float = 0.5,
+    k_min: float = 0.01,
     k_max: float = 2.0,
-    steps: int = 30,
+    steps: int = 100,
 ) -> float:
     """Find the k value that minimises MSE via grid search.
 
