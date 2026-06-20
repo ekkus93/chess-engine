@@ -2,6 +2,29 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-20T10:51:55Z - claude-sonnet-4-6 - First successful Texel tune; fast Adam tuner
+
+Investigated why SPSA Texel tuning always returned 0.000000 improvement:
+1. calibrate_k was clamped: k_min=0.5 but true optimum was k≈0.03 (eval scores ±1000–13000cp,
+   53% draws). Fixed k_min→0.01, steps 30→100 in loss.py:calibrate_k.
+2. At k=0.03 the MSE gradient per weight is ~6e-6 per cp. With a=5 and 2000 SPSA iters,
+   total weight movement < 0.001 cp — literally zero. SPSA is infeasible at this eval scale.
+3. eval() takes 1.2ms each → 2000 SPSA iters = 52 min. 100k iters = 43 hours.
+
+Solution: precompute the (N × D) feature matrix F where F[n,i] = ∂eval_n/∂w_i (eval is
+linear in weights at fixed board state). Features extracted once in ~2 min on 14 cores,
+cached to .npz. Then Adam gradient descent uses matrix products (microseconds/iter).
+
+New modules: chess_game/texel/features.py (extraction), chess_game/texel/fast_tune.py (Adam).
+Added numpy>=1.26 to dependencies.
+
+Result on 2561-position combined DB (70 depth-3 games):
+  k=0.0299  val_mse 0.086208 → 0.057366  improvement=+0.028841  PROMOTED
+  Adam: 200k iters in 59s. Weights written to chess_game/chess/data/tuned_weights.json.
+
+Feature cache: /tmp/train_d3_20260619T182558Z/features.npz (75KB, 2561×463 float32).
+Commit: 944821a (fast tuner) on branch master.
+
 ## 2026-06-19T08:57:24Z - Claude Opus 4.8 (1M context) - Engine search speedup (~1.64x), behavior-preserving
 
 Self-play data generation was infeasible because the engine searches ~45s/move at depth 3
