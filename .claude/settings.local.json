@@ -132,7 +132,12 @@
       "Bash(sed -n '128,132p' chess_game/chess/board/board.py)",
       "Bash(sed -i '63,131d' chess_game/chess/board/board.py)",
       "Bash(awk '$1>=700 && $2!=\"total\"')",
-      "Bash(git fetch *)"
+      "Bash(git fetch *)",
+      "Bash(sed -n '18,24p;145,160p' chess_game/texel/validate.py)",
+      "Bash(sed -n '10,14p;50,57p' chess_game/texel/tune.py)",
+      "Bash(grep -n 'Black wins' __CMDSUB_OUTPUT__/run.log)",
+      "Bash(grep -c 'White wins' __CMDSUB_OUTPUT__/run.log)",
+      "Bash(grep -c 'Black wins' __CMDSUB_OUTPUT__/run.log)"
     ]
   }
 }
