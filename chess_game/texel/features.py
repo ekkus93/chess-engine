@@ -14,14 +14,18 @@ from __future__ import annotations
 
 import multiprocessing as mp
 from pathlib import Path
-from typing import NamedTuple
+from typing import TYPE_CHECKING, NamedTuple, Optional
 
 import numpy as np
 
 from chess_game.chess import Board
 from chess_game.chess.eval_weights import EvalWeights
 from chess_game.chess.evaluation import evaluate
+from chess_game.texel.loss import sigmoid
 from chess_game.texel.position_db import PositionDB
+
+if TYPE_CHECKING:
+    from chess_game.texel.annotated_position_db import AnnotatedPositionDB
 
 
 class FeatureMatrix(NamedTuple):
@@ -106,3 +110,75 @@ def compute_feature_matrix(
     f_matrix = np.vstack(results).astype(np.float32)
     outcomes_arr = np.array([o for _, o in pairs], dtype=np.float32)
     return FeatureMatrix(F=f_matrix, outcomes=outcomes_arr)
+
+
+# ---------------------------------------------------------------------------
+# Stockfish-targeted feature matrix
+# ---------------------------------------------------------------------------
+
+
+def outcomes_from_sf(
+    annotated_pairs: list[tuple[str, int]],
+    k: float,
+) -> np.ndarray:
+    """Convert Stockfish centipawn scores to sigmoid win-probability targets.
+
+    Args:
+        annotated_pairs: ``(fen, sf_score_cp)`` pairs — must not contain None scores.
+        k: Sigmoid steepness (calibrated by ``calibrate_k_fast``).
+
+    Returns:
+        float32 array of shape (N,) with values in (0, 1).
+    """
+    return np.array(
+        [sigmoid(float(cp), k) for _, cp in annotated_pairs], dtype=np.float32
+    )
+
+
+def compute_sf_feature_matrix(
+    annotated_db: "AnnotatedPositionDB",
+    weights: EvalWeights,
+    k: float,
+    *,
+    eps: float = 1.0,
+    n_jobs: int = 14,
+) -> Optional[FeatureMatrix]:
+    """Compute a FeatureMatrix using Stockfish scores as outcome targets.
+
+    Filters to positions where ``sf_score_cp`` is not ``None`` (excludes mate
+    positions).  Computes ``F`` via the same finite-difference method as
+    ``compute_feature_matrix``, then sets ``outcomes`` to
+    ``sigmoid(sf_score_cp, k)`` rather than game outcomes.
+
+    Args:
+        annotated_db: Annotated position database with ``sf_scores`` populated.
+        weights: Current weights (F matrix is valid near these values).
+        k: Sigmoid steepness for converting cp scores to win probabilities.
+        eps: Perturbation size in centipawns (default 1.0).
+        n_jobs: Parallel workers (default 14).
+
+    Returns:
+        FeatureMatrix, or None if no annotated positions are available.
+    """
+    annotated_pairs: list[tuple[str, int]] = [
+        (fen, score)
+        for fen, score in annotated_db.annotated_pairs()
+        if score is not None
+    ]
+    if not annotated_pairs:
+        return None
+
+    # Reuse existing extraction logic by wrapping as (fen, dummy_outcome) pairs.
+    dummy_pairs = [(fen, 0.0) for fen, _ in annotated_pairs]
+    weights_flat = weights.to_flat_list()
+    n = len(dummy_pairs)
+    chunk_size = max(1, (n + n_jobs - 1) // n_jobs)
+    chunks = [dummy_pairs[i: i + chunk_size] for i in range(0, n, chunk_size)]
+    worker_args = [(chunk, weights_flat, eps) for chunk in chunks]
+
+    with mp.Pool(n_jobs) as pool:
+        results = pool.map(_extract_chunk, worker_args)
+
+    f_matrix = np.vstack(results).astype(np.float32)
+    sf_outcomes = outcomes_from_sf(annotated_pairs, k)
+    return FeatureMatrix(F=f_matrix, outcomes=sf_outcomes)

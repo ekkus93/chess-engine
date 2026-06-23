@@ -124,6 +124,14 @@ class PositionDB:
                 entry = {"pos": pos_key, "total": stats.total, "count": stats.count}
                 f.write(json.dumps(entry) + "\n")
 
+    def _read_rows(self, path: Path) -> None:
+        """Read all JSONL rows from *path* into this DB via ``_ingest_row``."""
+        with path.open("r", encoding="utf-8") as f:
+            for line_no, raw in enumerate(f, start=1):
+                line = raw.strip()
+                if line:
+                    self._ingest_row(path, line_no, line)
+
     @classmethod
     def load(cls, path: Path) -> PositionDB:
         """Load a database from a JSON-lines file.
@@ -133,12 +141,7 @@ class PositionDB:
         ``{"pos": ..., "total": ..., "count": ...}`` format.
         """
         db = cls()
-        with path.open("r", encoding="utf-8") as f:
-            for line_no, raw in enumerate(f, start=1):
-                line = raw.strip()
-                if not line:
-                    continue
-                db._ingest_row(path, line_no, line)
+        db._read_rows(path)
         return db
 
     def _ingest_row(self, path: Path, line_no: int, line: str) -> None:

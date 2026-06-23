@@ -2,6 +2,18 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-23T11:30:20Z - claude-sonnet-4-6 - Stockfish annotator and SF-targeted tuning infrastructure
+
+Phases 0-4 of STOCKFISH1_TODO.md implemented:
+- Stockfish 16 installed at /usr/games/stockfish (~610k nps at depth 15)
+- chess_game/texel/stockfish_annotate.py: StockfishProcess (ExitStack-based context manager), annotate_fens, annotate_db
+- chess_game/texel/annotated_position_db.py: AnnotatedPositionDB (sf_scores dict, annotated_pairs, save/load with sf_score_cp field), save_annotated
+- chess_game/texel/features.py: outcomes_from_sf, compute_sf_feature_matrix (both added)
+- chess_game/texel/eval_tune_sf.py: run_sf_tuning end-to-end pipeline
+- position_db.py refactored: _read_rows helper extracted to enable clean subclass load override
+- 17 new fast tests (1203 total), ruff clean, mypy clean, pylint 10.00/10
+Remaining: phase 4.5 (annotate existing 1828-pos DB), phase 5 (position generation), phases 6-8 (tuning + validation)
+
 ## 2026-06-23T08:30:57Z - claude-sonnet-4-6 - UCI protocol implemented
 
 Full UCI implementation in chess_game/uci.py (454 lines). Supported commands:
