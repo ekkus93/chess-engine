@@ -2,6 +2,117 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-23T08:30:57Z - claude-sonnet-4-6 - UCI protocol implemented
+
+Full UCI implementation in chess_game/uci.py (454 lines). Supported commands:
+uci, isready, ucinewgame, position (startpos + fen + moves), go (depth/movetime/wtime+btime/infinite), stop, debug, quit.
+Threading: go movetime/wtime/btime runs search on a daemon thread; stop signals via threading.Event.
+Opening book integration: book moves emit a synthetic `info depth 1 score cp 0` line.
+Time allocation: remaining_ms / 30 + increment, clamped to [100ms, 80% remaining].
+Depth from time: <500ms→2, <2000ms→3, <8000ms→4, else 5.
+46 tests in tests/test_uci.py covering all phases.
+Console script added: chess-uci = chess_game.uci:uci_loop in pyproject.toml.
+All checks pass: ruff, mypy, pylint 10.00/10, 1186 tests.
+
+## 2026-06-22T05:25:35Z - claude-sonnet-4-6 - Second collection run; depth-3 self-play hits diversity ceiling
+
+Ran 14 workers × 10 games = 140 games at depth=3 (~639 min).
+Output: /tmp/train_d3_20260620T191327Z/ — 1828 unique positions.
+Outcome balance much improved: 34W / 77D / 29B (vs 9W / 38D / 23B from previous 70-game run).
+Quiescence eval mean: +376 cp (White-biased now, vs -207 cp before).
+
+However, eval_tune (λ=50000, EvalWeights() start) produced IDENTICAL weights to bbe5013.
+The ridge solution only moves 14 PST entries by ±1 cp — same as last time.
+
+Root cause: depth-3 self-play converges rapidly to a small repeated set of positions.
+140 games → only 1828 unique positions (fewer than 70 games → 2561 before) because
+more games just revisit the same positions, not explore new ones.
+
+Conclusion: depth-3 self-play with overlapping seeds has hit a diversity ceiling.
+More games of the same type will not improve tuning. Meaningful improvement needs:
+- Very different opening randomization (wider book diversity or random starting positions)
+- Human game data (e.g. Lichess games) for position variety
+- Stockfish annotations of the existing positions (better eval targets, less noise)
+- Lower λ (risky — λ=5000 breaks 3 quality tests)
+
+## 2026-06-20T17:53:35Z - claude-sonnet-4-6 - Verification match result; tuned weights committed
+
+20-game depth-3 match: Tuned 10.5/20 (52%), 5W 11D 4L vs default.
+Marginal edge, not statistically significant at N=20 games.
+Committed tuned_weights.json (commit bbe5013) — best we have from 2561-position depth-3 dataset.
+
+Next steps to improve:
+- More training data (currently only 2561 positions) is the binding constraint
+- Dataset bias (mean=-207 cp, Black-heavy) limits what ridge regression can learn
+- Better data collection (e.g. more games, less Black-biased) would help most
+
+## 2026-06-20T15:34:25Z - claude-sonnet-4-6 - Ridge lambda calibrated; eval-tune first real promotion pending match
+
+Benchmarked search depth vs timing on 6 typical middlegame positions:
+- depth=3: avg 12.2s/pos  (so depth-4 or depth-5 self-play is not feasible)
+- depth=4: avg 114s/pos
+- depth=5: avg 500s/pos
+
+The "better data" plan is blocked: depth-5 would take months per game.
+
+Root cause of the 3 failing quality tests (λ=5000):
+- Tests use depth=1 (pure static eval); even 1 cp PST shift can flip the decision
+- Quiescence targets biased toward Black (mean=-207 cp) → PST shifts hurt castling,
+  central recapture, and queen trades (all White-advantageous ideas)
+- Binary search over λ: minimum safe value is λ=50,000
+
+Updated EvalTuneConfig.ridge_lambda default: 5000 → 50000 (commit 366192d).
+At λ=50000: val-RMSE improves 3898→3877 cp (+21 cp) AND all 1140 tests pass.
+
+Promoted weights file (chess_game/chess/data/tuned_weights.json) written but not committed;
+waiting on 20-game depth-3 verification match result before committing.
+
+## 2026-06-20T13:57:27Z - claude-sonnet-4-6 - Eval-target tuning: quiescence evals also insufficient with current dataset
+
+Built eval_targets.py (parallel quiescence eval, 7.8s for 2561 positions) and eval_tune.py
+(ridge-regression least squares, <1s). Quiescence evals have std=1429 cp and mean=-207 cp
+(biased toward Black winning from noisy depth-3 self-play). Even with ridge_lambda=5000
+(~11 cp mean PST change), 3 quality tests fail because the bias corrupts PST values.
+
+Removed bad tuned_weights.json (commit be77cec, pawn=1514, bishop=1) from repo — was
+causing 3-10 quality test failures whenever present. Engine defaults to EvalWeights() now.
+
+All modules now pass ruff/mypy/pylint 10.00/10 and 1140 fast tests. Commit: 4142d87.
+
+NEXT STEP: Better training data is prerequisite for any Texel tuning to work.
+Options ranked by ease: (1) collect 500+ position DB from depth-5 games; (2) annotate
+existing DB with Stockfish evals; (3) load Lichess puzzles as positions with eval targets.
+
+## 2026-06-20T13:34:01Z - claude-sonnet-4-6 - Texel weight verification: dataset insufficient for reliable PST tuning
+
+Verification match (20 games, depth 3): first "promoted" weights (val_mse 0.086→0.057) lost ALL 20 games.
+Root cause: material weights exploded (pawn 100→1514, bishop 330→1, queen 900→3294) because the feature
+matrix is a linear approximation valid only near w0. Adam with lr=0.5 and 200k steps moved weights
+thousands of units from the valid region.
+
+Iterative fixes applied (commit 9b2e02f):
+- freeze_material=True: material weights (indices 0-4) never updated
+- freeze_bonus=True: positional bonus weights (389-462) never updated; also at risk of saturation
+- l2_lambda=1e-6: soft L2 regularization toward w_ref
+- bonus clip tightened in spsa.py: ±500 → ±200
+
+Deeper investigation: the self-play dataset (2561 positions, k≈0.03) gives PST gradients ~10⁻⁷
+per weight. Adam normalizes gradients so every weight moves at rate lr regardless of gradient size,
+driving all weights to clip boundaries. With L2 to prevent saturation, max PST change ≈ 2 cp (mean 0.07).
+Test suite still fails 4-10 tests with any attempted promotion, requiring deletion of tuned weights.
+
+CONCLUSION: The dataset (2561 depth-3 self-play positions, 53% draws) is insufficient for reliable
+Texel PST tuning. Symptoms:
+- k≈0.03 (flat sigmoid) → tiny gradients from game outcomes
+- Signal-to-noise ratio too low after averaging over balanced positions
+- Any promoted weights either saturate at clips or make essentially zero change
+
+NEXT STEP REQUIRED: Better training data. Options:
+  A) 500+ games at depth 5-7 (fewer but higher-quality positions)
+  B) Use engine EVAL as target instead of game outcome (allows larger k, much stronger gradient)
+  C) Use human game database (Lichess puzzle/game PGN → FEN positions)
+Option B (position evals as targets) is the highest-leverage change and doesn't require deeper search.
+
 ## 2026-06-20T10:51:55Z - claude-sonnet-4-6 - First successful Texel tune; fast Adam tuner
 
 Investigated why SPSA Texel tuning always returned 0.000000 improvement:
