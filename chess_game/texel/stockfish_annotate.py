@@ -25,6 +25,8 @@ from chess_game.chess.board import Board
 from chess_game.chess.types import Color
 from chess_game.texel.position_db import PositionDB
 
+_NONE_MOVE = "(none)"
+
 _STOCKFISH_PATH = "stockfish"
 
 
@@ -133,6 +135,32 @@ class StockfishProcess:
         if board.turn == Color.BLACK:
             last_score_cp = -last_score_cp
         return last_score_cp
+
+    def find_best_move(
+        self, start_fen: str, move_history: list[str]
+    ) -> Optional[str]:
+        """Return the best-move UCI string from *start_fen* after *move_history*.
+
+        Returns ``None`` if the position has no legal moves.
+        """
+        if move_history:
+            position_cmd = f"position fen {start_fen} moves {' '.join(move_history)}"
+        else:
+            position_cmd = f"position fen {start_fen}"
+        self._send(position_cmd)
+        self._send(f"go depth {self._depth}")
+        while True:
+            line = self._readline().strip()
+            if line.startswith("bestmove"):
+                parts = line.split()
+                if len(parts) >= 2 and parts[1] != _NONE_MOVE:
+                    return parts[1]
+                return None
+
+    @property
+    def depth(self) -> int:
+        """Search depth configured for this process."""
+        return self._depth
 
 
 def annotate_fens(

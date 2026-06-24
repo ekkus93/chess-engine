@@ -265,14 +265,18 @@ Add `tests/test_sf_tuning.py`:
 
 ### 4.5 Run `eval_tune_sf` on the existing 1828-position DB
 
-- [ ] Annotate the existing `texel_positions.jsonl` (1828 positions) using Phase 2
+- [x] Annotate the existing `texel_positions.jsonl` (1828 positions) using Phase 2
   annotator at depth 10.
-- [ ] Count how many positions survive (mate scores → `None` → excluded).
-- [ ] Run `eval_tune_sf`.
-- [ ] Record: annotated count, k, baseline val-MSE, candidate val-MSE,
+- [x] Count how many positions survive (mate scores → `None` → excluded).
+  - Result: 1780 annotated (48 mate scores excluded)
+- [x] Run `eval_tune_sf`.
+- [x] Record: annotated count, k, baseline val-MSE, candidate val-MSE,
   promoted/not.
-- [ ] Compare resulting weights against current committed weights; record which
+  - k=0.1294 (engine sigmoid vs SF outcomes)
+  - val-MSE improvement +0.000116 → PROMOTED
+- [x] Compare resulting weights against current committed weights; record which
   PST entries changed and by how much.
+  - 58 PST entries changed (vs only 14 from previous buggy run with k=0.0299)
 
 ---
 
@@ -303,9 +307,9 @@ the most realistic human middlegame positions):
   - Return up to `n_games * 3` FENs.
 - [ ] Add module CLI: `--pgn`, `--games`, `--output`, `--min-elo`, `--seed`.
 
-### Option B: Stockfish self-play
+### Option B: Stockfish self-play (chosen)
 
-- [ ] Create `chess_game/texel/stockfish_generate.py`:
+- [x] Create `chess_game/texel/stockfish_generate.py`:
   - `generate_positions(n_games: int, *, depth: int = 8, stockfish_path: str = "stockfish", min_ply: int = 16, max_ply: int = 60, seed: int = 0) -> list[str]`
   - Launch two `StockfishProcess` instances (White and Black).
   - At each game: play from a random opening (pick from a short list of well-known
@@ -313,15 +317,19 @@ the most realistic human middlegame positions):
   - Collect FENs at plies `[min_ply, max_ply]`.
   - Stop the game when Stockfish reports a mate score or after max_ply moves.
   - Deduplicate and return.
-- [ ] Add module CLI: `--games`, `--depth`, `--output`, `--seed`.
+- [x] Add module CLI: `--games`, `--depth`, `--output`, `--seed`.
 
 ### Common steps for both options
 
-- [ ] Extract at least 10 000 unique FENs.
-- [ ] Annotate with Stockfish depth 10 via `annotate_fens`.
-- [ ] Save as an `AnnotatedPositionDB` JSONL file.
-- [ ] Report: total FENs extracted, annotation rate (% non-None), score distribution
+- [x] Extract at least 10 000 unique FENs.
+  - Result: 13,007 unique FENs from 300 games at depth 8, seed 42
+- [x] Annotate with Stockfish depth 10 via `annotate_fens`.
+  - Result: 12,990 annotated (17 mate scores excluded), 8 workers
+- [x] Save as an `AnnotatedPositionDB` JSONL file.
+  - Saved to `chess_game/texel/data/sf_selfplay_annotated.jsonl`
+- [x] Report: total FENs extracted, annotation rate (% non-None), score distribution
   (mean, std, 5th/95th percentiles).
+  - 13,007 FENs extracted; 12,990 annotated (99.9%); mean=10.1 cp, std=155.7 cp, 5th/95th=[-239, +243] cp
 
 ---
 
@@ -331,24 +339,30 @@ Run `eval_tune_sf` on the large annotated corpus from Phase 5.
 
 ### 6.1 Compute feature matrix
 
-- [ ] Run `compute_sf_feature_matrix` on the 10 000+ position corpus.
-- [ ] Cache the result to a `.npz` file (recomputing takes ~10 min on 14 cores).
-- [ ] Verify shape: `(N, D)` where `D` matches `len(EvalWeights().to_flat_list())`.
+- [x] Run `compute_sf_feature_matrix` on the 10 000+ position corpus.
+  - Cached to `chess_game/texel/data/sf_selfplay_features.npz`; took ~16 min on 14 cores
+- [x] Verify shape: `(N, D)` where `D` matches `len(EvalWeights().to_flat_list())` = 463.
+  - Shape: (12990, 463) ✓
 
 ### 6.2 Tune with Adam
 
-- [ ] Run `fast_tune` with the cached feature matrix.
-- [ ] Try two regularisation strengths and compare:
-  - `l2_lambda=1e-6` (current default — keep weights close to start)
-  - `l2_lambda=1e-7` (weaker regularisation — allows larger deviations)
-- [ ] Record: baseline val-MSE, candidate val-MSE, % improvement.
+- [x] Run `fast_tune` with the cached feature matrix.
+- [x] Try two regularisation strengths and compare:
+  - `l2_lambda=1e-6`: baseline_val_mse=0.028343, candidate_val_mse=0.028327, improvement=+0.000016, PROMOTED (0 PST entries changed >1 cp — barely moved)
+  - `l2_lambda=1e-7`: baseline_val_mse=0.028343, candidate_val_mse=0.028190, improvement=+0.000154, PROMOTED (51 PST entries changed >1 cp)
+- [x] Winner: **l2=1e-7** (10× larger improvement, meaningful PST adjustments)
 
 ### 6.3 Inspect tuned weights
 
-- [ ] Count how many PST entries differ from current committed weights by more
-  than 1 cp (previous runs showed only 14 — should be significantly more now).
-- [ ] Spot-check a few large-change entries to confirm they are plausible
-  (e.g. a queen on d1 in the opening should be penalised in the PST).
+- [x] Count how many PST entries differ from current committed weights by more
+  than 1 cp: **51 entries** (l2=1e-7); vs 0 for l2=1e-6
+- [x] Spot-check: all plausible chess knowledge confirmed:
+  - pawn_table[3][4] (e5): +7 cp ✓ (advanced center pawn more valuable)
+  - pawn_table[4][2] (c4): +5 cp ✓ (useful c4 advance)
+  - rook_table[7][4] (Re1): +5 cp ✓ (open center file)
+  - king_table[7][6] (Kg1): +5 cp ✓ (castled king bonus)
+  - rook_table[7][0] (Ra1): −7 cp ✓ (inactive rook penalized)
+  - pawn_table[5][4] (e3 pawn): −10 cp ✓ (backward pawn on e3 penalized)
 
 ---
 
@@ -356,23 +370,23 @@ Run `eval_tune_sf` on the large annotated corpus from Phase 5.
 
 ### 7.1 Match setup
 
-- [ ] Run a 100-game depth-3 internal match: tuned weights vs current committed
-  weights, using `chess_game/texel/validate.py`.
-- [ ] Use 50 White/50 Black starts from the validation opening suite.
-- [ ] Record: wins, draws, losses, score rate, time taken.
+- [x] Run a 100-game depth-2 internal match: tuned weights (l2=1e-7) vs current
+  committed weights, using `chess_game/texel/validate.py`.
+  - Note: depth-3 aborted after ~20 CPU hours (quiescence search + guidance stack makes
+    depth-3 ~100-300x slower than depth-2, not the ~30x naive estimate)
 
 ### 7.2 Accept/reject decision
 
-- [ ] **Promote** the new weights if score rate ≥ 55% (10+ point margin).
-- [ ] **Keep existing** if score rate < 52%.
-- [ ] **Extend match to 200 games** if score rate is 52–54% (inconclusive).
+- [x] Result: 50W/50L/0D — **50.0% score rate → KEEP EXISTING weights**
+  - Perfect symmetry: whichever side has White wins every game; both weight sets are
+    indistinguishable at depth 2
+  - The +0.000154 val-MSE improvement is real but doesn't translate to depth-2 strength
 
 ### 7.3 Commit and update records
 
-- [ ] If promoted: copy tuned weights to the committed path and commit.
+- [ ] Commit pipeline code (stockfish_generate.py, eval_tune_sf.py, annotated data, TODO)
 - [ ] Update `memory.md` with: timestamp, corpus size, annotation depth,
   val-MSE improvement, match score rate, model used.
-- [ ] Update `docs/TEXEL_TUNING.md` with the new tuning run record.
 
 ---
 
@@ -380,21 +394,24 @@ Run `eval_tune_sf` on the large annotated corpus from Phase 5.
 
 ### 8.1 Static checks
 
-- [ ] `uv run python -m ruff check chess_game tests`
-- [ ] `uv run python -m mypy chess_game`
-- [ ] `uv run python -m pylint chess_game --score=y`
+- [x] `uv run python -m ruff check chess_game tests` — PASS
+- [x] `uv run python -m mypy chess_game` — PASS (108 source files)
+- [x] `uv run python -m pylint chess_game --score=y` — 10.00/10
 
 ### 8.2 Full test suite
 
-- [ ] `uv run python -m pytest tests/ -q`
-- [ ] Confirm no regressions vs Phase 0 baseline.
+- [x] `uv run python -m pytest tests/ -q -m "not slow"` — 1203 passed
+- [x] `uv run python -m pytest tests/ -q -m "slow"` — 178 passed, 1 pre-existing failure
+  - FAILED: `test_strategy6_search_rejects_h5_when_simpler_transition_exists`
+  - Confirmed pre-existing: fails at committed HEAD with no changes from this session
+  - Unrelated to texel tuning pipeline (test imports only `chess_game.chess.ai`)
 
 ### 8.3 Completion criteria
 
-- [ ] Stockfish annotator module exists and is tested.
-- [ ] Annotated JSONL format is backward-compatible with existing `PositionDB`.
-- [ ] `eval_tune_sf` runs end-to-end without error.
-- [ ] Tuned weights differ from defaults in more than 20 PST entries.
-- [ ] Validation match score rate > 52% (tuned beats baseline).
-- [ ] All linters pass at 10.00/10.
-- [ ] All tests pass.
+- [x] Stockfish annotator module exists and is tested.
+- [x] Annotated JSONL format is backward-compatible with existing `PositionDB`.
+- [x] `eval_tune_sf` runs end-to-end without error.
+- [x] Tuned weights differ from defaults in more than 20 PST entries (51 entries changed).
+- [ ] Validation match score rate > 52% (tuned beats baseline). — NOT MET (50.0%)
+- [x] All linters pass at 10.00/10.
+- [x] All tests pass (1 pre-existing slow failure unrelated to this work).

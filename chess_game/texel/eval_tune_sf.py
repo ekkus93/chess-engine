@@ -20,7 +20,7 @@ import numpy as np
 
 from chess_game.chess.eval_weights import EvalWeights
 from chess_game.texel.annotated_position_db import AnnotatedPositionDB
-from chess_game.texel.fast_tune import FastTuneConfig, calibrate_k_fast, fast_tune
+from chess_game.texel.fast_tune import AdamConfig, FastTuneConfig, calibrate_k_fast, fast_tune
 from chess_game.texel.features import (
     FeatureMatrix,
     compute_sf_feature_matrix,
@@ -33,7 +33,6 @@ from chess_game.texel.weights_io import TUNED_WEIGHTS_PATH, load_optional_weight
 def _load_or_compute_matrix(
     db: AnnotatedPositionDB,
     weights: EvalWeights,
-    w0: np.ndarray,
     features_path: Path | None,
     *,
     n_jobs: int,
@@ -49,13 +48,14 @@ def _load_or_compute_matrix(
     if verbose:
         print(f"Computing SF feature matrix ({annotated} positions, {n_jobs} workers) …")
 
+    # SF outcomes are converted with a fixed k=1.13.  The k returned by
+    # calibrate_k_fast is for our engine's sigmoid vs these targets, not for
+    # re-converting SF scores — so we must NOT recompute outcomes with it.
     result = compute_sf_feature_matrix(db, weights, k=1.13, n_jobs=n_jobs)
     if result is None:
         return None
 
-    k = calibrate_k_fast(result.F.astype(np.float64), result.outcomes.astype(np.float64), w0)
-    result2 = compute_sf_feature_matrix(db, weights, k=k, n_jobs=n_jobs)
-    matrix = result2 if result2 is not None else result
+    matrix = result
 
     if features_path is not None:
         save_features(matrix, features_path)
@@ -69,10 +69,9 @@ def run_sf_tuning(
     db_path: Path,
     weights_path: Path | None = None,
     features_path: Path | None = None,
-    output_path: Path = TUNED_WEIGHTS_PATH,
+    config: FastTuneConfig | None = None,
     *,
     n_jobs: int = 14,
-    verbose: bool = True,
 ) -> None:
     """End-to-end Stockfish-targeted tuning run.
 
@@ -83,10 +82,13 @@ def run_sf_tuning(
             the project's committed tuned weights.
         features_path: Optional path to cache the SF feature matrix (.npz).
             If the file already exists it is loaded instead of recomputed.
-        output_path: Where to write the promoted weights.
+        config: Tuning options (output path, verbose, l2_lambda via adam_config).
+            Defaults to ``FastTuneConfig()``.
         n_jobs: Parallel workers for feature-matrix computation.
-        verbose: Print progress to stdout.
     """
+    cfg = config or FastTuneConfig()
+    verbose = cfg.verbose
+
     if verbose:
         print(f"Loading annotated DB from {db_path} …")
     db: AnnotatedPositionDB = AnnotatedPositionDB.load(db_path)
@@ -102,7 +104,7 @@ def run_sf_tuning(
     weights = load_optional_weights(weights_path)
     w0 = np.array(weights.to_flat_list(), dtype=np.float64)
 
-    matrix = _load_or_compute_matrix(db, weights, w0, features_path, n_jobs=n_jobs, verbose=verbose)
+    matrix = _load_or_compute_matrix(db, weights, features_path, n_jobs=n_jobs, verbose=verbose)
     if matrix is None:
         print("No annotated positions available after filtering mate scores.")
         return
@@ -110,12 +112,12 @@ def run_sf_tuning(
     if verbose:
         print(f"Feature matrix: {matrix.F.shape}, outcomes mean={matrix.outcomes.mean():.4f}")
 
+    # Calibrate k for our engine's sigmoid against the fixed SF-based outcomes.
     k = calibrate_k_fast(matrix.F.astype(np.float64), matrix.outcomes.astype(np.float64), w0)
     if verbose:
-        print(f"Calibrated k = {k:.4f}")
+        print(f"Calibrated k (engine sigmoid vs SF outcomes) = {k:.4f}")
 
-    config = FastTuneConfig(weights_path=output_path, verbose=verbose)
-    result_r = fast_tune(matrix, weights, config)
+    result_r = fast_tune(matrix, weights, cfg)
 
     if verbose:
         status = "PROMOTED" if result_r.promoted else "not promoted (kept existing)"
@@ -146,14 +148,23 @@ if __name__ == "__main__":
     _parser.add_argument(
         "--jobs", type=int, default=14, help="Parallel workers for feature computation."
     )
+    _parser.add_argument(
+        "--l2-lambda", type=float, default=1e-6,
+        help="L2 regularisation strength (default 1e-6).",
+    )
     _parser.add_argument("--verbose", action="store_true")
     _args = _parser.parse_args()
 
+    _adam_cfg = AdamConfig(l2_lambda=_args.l2_lambda)
+    _config = FastTuneConfig(
+        weights_path=_args.output,
+        verbose=_args.verbose,
+        adam_config=_adam_cfg,
+    )
     run_sf_tuning(
         db_path=_args.db,
         weights_path=_args.weights,
         features_path=_args.features,
-        output_path=_args.output,
+        config=_config,
         n_jobs=_args.jobs,
-        verbose=_args.verbose,
     )

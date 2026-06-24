@@ -2,6 +2,24 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-24T12:15:12Z - claude-sonnet-4-6 - STOCKFISH1_TODO phases 5-8 complete (pipeline done, weights not promoted)
+
+Large-scale SF-targeted Texel tuning run (STOCKFISH1_TODO phases 5-8):
+- stockfish_generate.py: generate_positions() via SF self-play; 300 games depth-8 → 13,007 unique FENs
+- Annotated 12,990 positions at depth 10 (17 mate scores excluded); saved to chess_game/texel/data/sf_selfplay_annotated.jsonl
+- Score stats: mean=10.1 cp, std=155.7 cp, 5th/95th=[-239, +243] cp
+- Feature matrix (12990, 463) cached to chess_game/texel/data/sf_selfplay_features.npz (~16 min, 14 workers)
+- eval_tune_sf.py refactored: FastTuneConfig param replaces separate output/verbose/l2_lambda (fixes R0913)
+- Two regularisation strengths compared:
+  - l2=1e-6: improvement +0.000016, 0 PST entries changed >1 cp (weight leash too tight)
+  - l2=1e-7: improvement +0.000154, 51 PST entries changed — WINNER
+- Plausible PST changes: e5 pawn +7 cp, c4 pawn +5 cp, Re1 +5 cp, Kg1 +5 cp, Ra1 -7 cp
+- 100-game depth-2 validation match: 50W/50L/0D (50.0%) — BELOW 52% THRESHOLD, weights NOT promoted
+- Reason not promoted: at depth-2 both sets indistinguishable (White wins every game regardless)
+- Depth-3 match aborted: quiescence + guidance stack makes depth-3 ~100-300x slower than depth-2
+- Pre-existing slow test failure: test_strategy6_search_rejects_h5_when_simpler_transition_exists (confirmed pre-existing)
+- Pipeline code committed; tuned weights kept as chess_game/texel/data/sf_tuned_1e7.json for future reference
+
 ## 2026-06-23T11:30:20Z - claude-sonnet-4-6 - Stockfish annotator and SF-targeted tuning infrastructure
 
 Phases 0-4 of STOCKFISH1_TODO.md implemented:
