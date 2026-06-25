@@ -217,6 +217,22 @@ def _tie_break(
     return chooser.random() < 0.5
 
 
+def _anchored_selected_score(
+    is_maximizing: bool,
+    selected_score: int,
+    search_best_score: int,
+) -> int:
+    """Return the better of selected_score and search_best_score.
+
+    Prevents tiebreak cascades: if a prior tiebreak replacement left
+    selected_score worse than the alpha-beta winner, subsequent candidates
+    are compared against the true best to stop further degradation.
+    """
+    if is_maximizing:
+        return max(selected_score, search_best_score)
+    return min(selected_score, search_best_score)
+
+
 def _fold_search_best(
     params: MinimaxParams,
     child_score: int,
@@ -272,11 +288,24 @@ def _search_move_loop(
             move,
         )
         if len(params.line_history) == 1:
+            # For non-improving moves: clamp the reference score to the alpha-beta
+            # winner so that tiebreak replacements cannot cascade. Once a weaker
+            # move wins the root tiebreak and selected_score drifts, subsequent
+            # candidates are compared against the true best rather than the
+            # tiebreak-degraded selection score. Improving moves (is_better=True)
+            # use selected_score directly so a genuinely better move always wins.
+            ref_score = (
+                selected_score
+                if is_better
+                else _anchored_selected_score(
+                    params.is_maximizing, selected_score, search_best_score
+                )
+            )
             replace_selected_move = _prefer_root_move(
                 params.is_maximizing,
                 child_score,
                 root_tiebreak,
-                selected_score,
+                ref_score,
                 best_root_tiebreak,
             )
             if replace_selected_move and not is_better:
@@ -312,11 +341,14 @@ def _search_move_loop(
                     search_best_move,
                     move,
                 )
+                ref_score = _anchored_selected_score(
+                    params.is_maximizing, selected_score, search_best_score
+                )
                 replace_selected_move = _prefer_root_move(
                     params.is_maximizing,
                     child_score,
                     root_tiebreak,
-                    selected_score,
+                    ref_score,
                     best_root_tiebreak,
                 )
         else:
