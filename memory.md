@@ -2,6 +2,22 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-25T08:09:26Z - claude-sonnet-4-6 - Fix root tiebreak cascade (test_strategy6_search_rejects_h5)
+
+Root cause: `prefer_root_move` compared candidates against `selected_score` (the
+tiebreak winner), not `search_best_score` (the alpha-beta winner). When a weaker
+move won the tiebreak and selected_score drifted, subsequent weaker moves could also
+win by comparing against the degraded reference — a cascade.
+
+In `test_strategy6_search_rejects_h5_when_simpler_transition_exists` (depth=3):
+chain a5b4→c7c5→h7h6→Qd8d7→f8e8→h7h5 let h7h5 (100 cp worse than Qd8d7) appear
+only 50 cp worse than each intermediate selection.
+
+Fix in `_search_move_loop` (`ai.py`): for non-improving moves (not is_better), use
+`_anchored_selected_score(is_max, selected, search_best)` = min/max of the two as
+reference. Improving moves (is_better=True) keep using `selected_score` directly so
+legitimate tiebreaks still work (endgame king-shelter test preserved). Committed f801bd9.
+
 ## 2026-06-24T12:15:12Z - claude-sonnet-4-6 - STOCKFISH1_TODO phases 5-8 complete (pipeline done, weights not promoted)
 
 Large-scale SF-targeted Texel tuning run (STOCKFISH1_TODO phases 5-8):
