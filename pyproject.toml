@@ -16,7 +16,7 @@ dependencies = [
 chess-uci = "chess_game.uci:uci_loop"
 
 [project.optional-dependencies]
-test = ["pytest"]
+test = ["pytest", "pytest-asyncio>=0.23"]
 lint = [
     "mypy",
     "pylint",
