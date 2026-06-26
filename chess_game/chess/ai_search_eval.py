@@ -17,6 +17,7 @@ from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import (
     is_dead_position as _gs_is_dead_position,
     is_fifty_move_rule as _gs_is_fifty_move_rule,
+    is_fivefold_repetition as _gs_is_fivefold,
     is_in_check as _gs_is_in_check,
     is_insufficient_material as _gs_is_insufficient_material,
     is_seventy_five_move_rule as _gs_is_seventy_five_move_rule,
@@ -68,6 +69,19 @@ def make_repetition_policy(context: Optional[SearchContext]) -> RepetitionPolicy
     )
 
 
+def _is_forced_draw(
+    board: Board,
+    position_counts: Optional[dict[str, int]],
+) -> bool:
+    return (
+        _gs_is_fifty_move_rule(board)
+        or _gs_is_seventy_five_move_rule(board)
+        or _gs_is_insufficient_material(board)
+        or _gs_is_dead_position(board)
+        or (position_counts is not None and _gs_is_fivefold(board, position_counts))
+    )
+
+
 def _terminal_score(
     board: Board,
     legal_moves: list[Move],
@@ -85,29 +99,10 @@ def _terminal_score(
     - stalemate
     - checkmate (via ply-adjusted mate score)
     """
-
-    # Draw states checked before legal move availability
-    if _gs_is_fifty_move_rule(board):
+    if _is_forced_draw(board, position_counts):
         return DRAW_SCORE
-    if _gs_is_seventy_five_move_rule(board):
-        return DRAW_SCORE
-    if _gs_is_insufficient_material(board):
-        return DRAW_SCORE
-    if _gs_is_dead_position(board):
-        return DRAW_SCORE
-    if position_counts is not None:
-        from chess_game.chess.board.game_state import is_fivefold_repetition as _gs_is_fivefold
-        if _gs_is_fivefold(board, position_counts):
-            return DRAW_SCORE
-
-    # If legal moves exist, position is not terminal
     if legal_moves:
         return None
-
-    # No legal moves: either checkmate or stalemate
     if _gs_is_in_check(board, board.turn):
-        # Side to move is checkmated; prefer closer mates
         return -MATE_SCORE + ply if board.turn == Color.WHITE else MATE_SCORE - ply
-
-    # Stalemate: no legal moves and not in check
     return DRAW_SCORE

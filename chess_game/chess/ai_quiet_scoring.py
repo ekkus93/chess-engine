@@ -39,6 +39,7 @@ from chess_game.chess.rook_endgame_guidance import non_king_piece_kinds
 from chess_game.chess.strategy_utils import (
     center_distance,
     iter_color_pieces,
+    king_coordinates,
     non_king_material_lead,
     non_king_piece_count_at_most,
     path_clear_between,
@@ -328,20 +329,10 @@ def _lines_up_with_enemy_king(board: Board, move: Move) -> bool:
     """Return True when a heavy piece move increases pressure on the enemy king."""
 
     enemy_color = Color.BLACK if board.turn == Color.WHITE else Color.WHITE
-    enemy_king = next(
-        (
-            piece.square
-            for row in board.board
-            for piece in row
-            if piece is not None
-            and piece.color == enemy_color
-            and piece.kind == PieceType.KING
-        ),
-        None,
-    )
-    if enemy_king is None:
+    enemy_king_coords = king_coordinates(board, enemy_color)
+    if enemy_king_coords is None:
         return False
-    return int(move.end.row) == int(enemy_king.row) or int(move.end.col) == int(enemy_king.col)
+    return int(move.end.row) == enemy_king_coords[0] or int(move.end.col) == enemy_king_coords[1]
 
 def _improves_king_cutoff(board: Board, move: Move) -> bool:
     enemy_color = Color.BLACK if board.turn == Color.WHITE else Color.WHITE

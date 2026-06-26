@@ -80,11 +80,10 @@ def _active_king_score(board: Board, endgame_phase: int, weights: EvalWeights) -
     return scale_signed(score, endgame_phase)
 
 def _heavy_endgame_king_activity_score(board: Board, endgame_phase: int) -> int:
-    material_without_kings = _material_without_kings(board)
-    lead = material_without_kings[Color.WHITE] - material_without_kings[Color.BLACK]
-    if lead == 0:
+    result = _material_advantage(board)
+    if result is None:
         return 0
-    leading_color = Color.WHITE if lead > 0 else Color.BLACK
+    _, leading_color = result
     bonus = _heavy_endgame_king_activity_bonus(board, leading_color)
     return _color_sign(leading_color) * ((bonus * endgame_phase) // 100)
 
@@ -358,6 +357,16 @@ def _material_without_kings(board: Board) -> dict[Color, int]:
         if piece.kind != PieceType.KING:
             material[piece.color] += MATERIAL_VALUES[piece.kind]
     return material
+
+
+def _material_advantage(board: Board) -> tuple[int, Color] | None:
+    """Return (lead_value, leading_color) or None if material is equal."""
+    material = _material_without_kings(board)
+    lead = material[Color.WHITE] - material[Color.BLACK]
+    if lead == 0:
+        return None
+    return abs(lead), Color.WHITE if lead > 0 else Color.BLACK
+
 
 def _total_non_pawn_material(board: Board) -> int:
     total = 0

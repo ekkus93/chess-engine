@@ -38,6 +38,7 @@ from chess_game.chess.endgame_evaluation_helpers import (
     _heavy_piece_activity_score,
     _king_cutoff_score,
     _king_escort_passed_pawn_score,
+    _material_advantage,
     _mating_material_score,
     _material_without_kings,
     _opponent,
@@ -95,12 +96,10 @@ def evaluate_conversion(
 
     if weights is None:
         weights = EvalWeights.default()
-    material_without_kings = _material_without_kings(board)
-    lead = material_without_kings[Color.WHITE] - material_without_kings[Color.BLACK]
-    if lead == 0:
+    result = _material_advantage(board)
+    if result is None:
         return 0
-    leading_color = Color.WHITE if lead > 0 else Color.BLACK
-    lead_value = abs(lead)
+    lead_value, leading_color = result
     total_non_pawn_material = _total_non_pawn_material(board)
     simplification = max(0, STARTING_NON_PAWN_MATERIAL - total_non_pawn_material)
     bonus = (lead_value * simplification) // (STARTING_NON_PAWN_MATERIAL * 2)

@@ -173,9 +173,8 @@ def _quiescence(board: Board, params: QuiescenceParams) -> int:
         beta,
         params.is_maximizing,
     )
-    if _is_quiescence_cutoff(stand_pat, alpha, beta, params.is_maximizing):
-        return stand_pat
-    if params.depth_remaining <= 0:
+    cutoff = _is_quiescence_cutoff(stand_pat, alpha, beta, params.is_maximizing)
+    if cutoff or params.depth_remaining <= 0:
         return stand_pat
 
     tactical_moves = _select_quiescence_moves(

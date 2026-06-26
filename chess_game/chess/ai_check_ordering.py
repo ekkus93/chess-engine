@@ -20,6 +20,7 @@ from chess_game.chess.defensive_priorities import (
 )
 from chess_game.chess.move import Move
 from chess_game.chess.strategy_utils import (
+    king_coordinates,
     path_clear_between,
 )
 from chess_game.chess.types import Color, PieceType
@@ -156,23 +157,8 @@ def _check_quality(board: Board, kind: PieceType, move: Move) -> CheckQuality | 
     """Classify checks as mating-net, forcing, driving, simplifying, or empty."""
 
     enemy_color = Color.BLACK if board.turn == Color.WHITE else Color.WHITE
-    enemy_king = next(
-        (
-            piece.square
-            for row in board.board
-            for piece in row
-            if piece is not None
-            and piece.color == enemy_color
-            and piece.kind == PieceType.KING
-        ),
-        None,
-    )
-    if enemy_king is None or not _move_gives_check(
-        board,
-        kind,
-        move,
-        (int(enemy_king.row), int(enemy_king.col)),
-    ):
+    enemy_king_coords = king_coordinates(board, enemy_color)
+    if enemy_king_coords is None or not _move_gives_check(board, kind, move, enemy_king_coords):
         return None
     child_board = board.clone()
     if not child_board.apply_legal_move(move.start, move.end, promotion=move.promotion):

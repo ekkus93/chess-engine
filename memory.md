@@ -2,6 +2,32 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-06-26T09:02:03Z - claude-sonnet-4-6 - Fix CI/CD pylint exit-code-24 violations
+
+Five structural fixes to eliminate R0911, C0415, R0801 violations (no pragma disables):
+
+1. `ai_search_eval.py`: Moved `is_fivefold_repetition` import to top level (C0415). Extracted
+   `_is_forced_draw(board, position_counts) -> bool` helper (single `or`-chained return).
+   `_terminal_score` reduced from 8 to 4 returns (R0911).
+
+2. `ai_transposition.py`: Combined `entry is None or entry.depth < params.depth` guard with
+   `_is_mate_score(entry.score)` guard into one condition → 7→6 returns in `_check_tt_cache` (R0911).
+
+3. `ai_quiescence_search.py`: Introduced `cutoff` local, combined quiescence-cutoff and depth-
+   remaining guards → 7→6 returns in `_quiescence` (R0911).
+
+4. R0801 pair 1 (`ai_check_ordering.py` + `ai_quiet_scoring.py`): Replaced inline enemy-king
+   `next(...)` loop with `king_coordinates(board, enemy_color)` from `strategy_utils`.
+   Added `king_coordinates` import to each file.
+
+5. R0801 pair 2 (`endgame_evaluation.py` + `endgame_evaluation_helpers.py`): Extracted
+   `_material_advantage(board) -> tuple[int, Color] | None` helper in helpers file.
+   (Note: existing `_material_lead(board, color)` at line 409 had a different signature —
+   used `_material_advantage` to avoid collision.)
+   Both duplicate 5-line blocks replaced with 3-line helper call + unpack.
+
+Pylint exit code 0, score 10.00/10. ruff, mypy clean. Full test suite pending.
+
 ## 2026-06-25T08:09:26Z - claude-sonnet-4-6 - Fix root tiebreak cascade (test_strategy6_search_rejects_h5)
 
 Root cause: `prefer_root_move` compared candidates against `selected_score` (the

@@ -89,10 +89,7 @@ def _check_tt_cache(
     if context is None or context.transposition_table is None:
         return None
     entry = context.transposition_table.get(position_key(board))
-    if entry is None or entry.depth < params.depth:
-        return None
-    if _is_mate_score(entry.score):
-        # Mate scores are not stored/used until normalization exists
+    if entry is None or entry.depth < params.depth or _is_mate_score(entry.score):
         return None
     if entry.flag == TTFlag.EXACT:
         _record_tt_usage(context, entry)
