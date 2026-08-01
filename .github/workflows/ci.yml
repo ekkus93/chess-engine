@@ -17,6 +17,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  python-baseline:
+    name: Python reference baseline
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Capture frozen Python baseline
+        env:
+          RUN_SLOW: "1"
+        run: bash scripts/capture-rust-port-python-baseline.sh
+
+      - name: Upload Python baseline evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-port-python-baseline-${{ github.sha }}
+          path: artifacts/rust-port-python-baseline/${{ github.sha }}/
+          if-no-files-found: error
+          retention-days: 30
+
   rust-quality:
     name: Rust workspace quality
     runs-on: ubuntu-24.04
@@ -46,25 +72,40 @@ jobs:
         with:
           shared-key: rust-engine
 
+      - name: Generate lockfile
+        run: cargo generate-lockfile
+
+      - name: Validate workspace metadata
+        run: cargo metadata --locked --format-version 1 --no-deps
+
       - name: Check formatting
         run: cargo fmt --all -- --check
 
       - name: Check workspace
-        run: cargo check --workspace --all-targets --all-features
+        run: cargo check --locked --workspace --all-targets --all-features
 
       - name: Run Clippy
-        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
 
       - name: Run tests
-        run: cargo test --workspace --all-features
+        run: cargo test --locked --workspace --all-features
 
       - name: Build documentation
         env:
           RUSTDOCFLAGS: -D warnings
-        run: cargo doc --workspace --all-features --no-deps
+        run: cargo doc --locked --workspace --all-features --no-deps
 
       - name: Build debug workspace
-        run: cargo build --workspace --all-features
+        run: cargo build --locked --workspace --all-features
 
       - name: Build release workspace
-        run: cargo build --workspace --all-features --release
+        run: cargo build --locked --workspace --all-features --release
+
+      - name: Upload generated Cargo lockfile
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo-lock-${{ github.sha }}
+          path: Cargo.lock
+          if-no-files-found: error
+          retention-days: 30
