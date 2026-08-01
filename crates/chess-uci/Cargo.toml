@@ -1,0 +1,15 @@
+[package]
+name = "chess-uci"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish.workspace = true
+description = "Standalone Universal Chess Interface adapter for the Rust chess engine."
+
+[lints]
+workspace = true
+
+[dependencies]
+chess-search = { path = "../chess-search" }
