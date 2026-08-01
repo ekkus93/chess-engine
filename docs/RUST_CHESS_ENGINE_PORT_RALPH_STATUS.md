@@ -3,7 +3,7 @@
 **Updated:** 2026-08-01  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 0 and Task 1 CI execution in progress
+**Current phase:** Final Task 0 and Task 1 exact-head validation pending
 
 ---
 
@@ -20,34 +20,30 @@
 
 ---
 
-## Current CI execution model
+## First CI evidence
 
-The default branch keeps Python validation in `.github/workflows/python-ci.yml` and registers `.github/workflows/ci.yml` under the exact workflow name `CI`. The status publisher monitors that name and the dispatcher targets `ci.yml` with `ref=rust-engine`.
+Run `30719636049` validated candidate `edd5a94685d23a04df15c69dafed5f077fd3fc74`.
 
-The `rust-engine` CI workflow performs:
+- Rust job `91421155314`: all metadata, formatting, check, Clippy, tests, rustdoc, debug build, release build, and lockfile artifact steps passed on Rust 1.97.1 / Ubuntu 24.04.4.
+- Python job `91421155337`: source equivalence, environment capture, dependency sync, and fast suite passed (`1203 passed, 179 deselected in 44.43s`); the slow suite was cancelled by newer branch commits before perft and UCI.
+- Reviewed artifacts:
+  - Python partial evidence: `8824498772`.
+  - Cargo lockfile: `8824440027`.
 
-- frozen Python baseline capture, including fast tests, slow tests, perft, and UCI smoke;
-- complete Rust workspace metadata, formatting, check, Clippy, test, rustdoc, debug-build, and release-build gates;
-- generated `Cargo.lock` artifact upload;
-- Python baseline evidence artifact upload.
+The full Rust log exposed two first-party repository findings that step summaries did not fail:
 
----
+- member manifests did not inherit `workspace.package.license`, so Cargo metadata reported `license: null`;
+- an orphaned `.claude/worktrees/agent-a04f1cae54e4430d6` gitlink caused checkout cleanup to report a missing `.gitmodules` URL.
 
-## Task 0 status
-
-**In progress.** Source inventory, decision records, defect exclusions, and capture tooling are complete. Runtime evidence is delegated to the `Python reference baseline` GitHub Actions job.
-
-Task 0 remains open until the current exact-SHA job passes and its evidence artifact is reviewed.
+The member manifests now use `license.workspace = true`, and the CI-generated `Cargo.lock` is committed. The orphaned gitlink removal is the final tree correction before the exact-head run.
 
 ---
 
-## Task 1 status
+## Task status
 
-**Implemented; CI verification in progress.** The seven-crate Cargo workspace, dependency policy, strict warning policy, MIT metadata, architecture documentation, Linux Rust CI, lockfile generation, and artifact upload are present.
-
-The first Rust CI execution passed all Cargo gates but exposed two first-party repository defects in full logs: missing member-level license inheritance and an orphaned `.claude/worktrees` gitlink. Both are being corrected before final exact-SHA validation.
-
-Task 1 remains open until the exact candidate SHA passes all Rust steps without first-party repository warnings, the generated `Cargo.lock` is committed, and a final exact-SHA CI rerun is green.
+- **Task 0:** Open pending complete slow-suite, perft, UCI, and final artifact evidence.
+- **Task 1:** Open pending exact-head verification of MIT metadata, clean checkout cleanup, and all Rust gates with committed `Cargo.lock`.
+- **Task 2:** Not started.
 
 ---
 
