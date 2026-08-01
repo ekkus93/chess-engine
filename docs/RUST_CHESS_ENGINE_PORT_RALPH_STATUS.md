@@ -3,7 +3,7 @@
 **Updated:** 2026-08-01  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 3 â€” `Position` and invariants
+**Current phase:** Task 3 implemented; strict CI pending
 
 ## Completed prerequisites
 
@@ -33,6 +33,8 @@ Task 2 added portable core value types and exhaustive contract tests:
 
 Task 2 gate is closed.
 
-## Next operation
+## Task 3 â€” implemented, CI pending
 
-Begin Task 3 by implementing the private hybrid `Position` representation, constructors, mutation boundary, invariant checker, logical equality, and restoration-oriented tests. No branch or pull request was created.
+The current candidate adds the private hybrid `Position`, standard and crate-internal construction, read-only accessors, atomic internal editing, redundant-state validation, logical equality, snapshot cloning policy, and transition/invariant tests.
+
+The Task 3 gate remains open until the exact candidate passes lockfile verification, metadata, rustfmt, Cargo check, Clippy with warnings denied, tests, rustdoc with warnings denied, debuYÈZ[[™™[X\ÙHZ[ˆ›Èœ˜[˜ÚÜˆ[™\]Y\İØ\ÈÜ™X]Y‚

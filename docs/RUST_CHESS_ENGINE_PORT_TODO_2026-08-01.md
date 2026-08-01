@@ -1,308 +1,137 @@
 # Rust Chess Engine Port TODO — Live Status Tracker
 
 **Status:** In progress  
-**Date created:** 2026-08-01  
-**Last status update:** 2026-08-01  
-**Target branch:** `rust-engine`  
-**Authoritative specification:** `docs/RUST_CHESS_ENGINE_PORT_SPEC_2026-08-01.md`  
-**Full task definitions:** `docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md`  
-**Ralph Loop status:** `docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md`
-
----
+**Updated:** 2026-08-01  
+**Branch:** `rust-engine`  
+**Specification:** `docs/RUST_CHESS_ENGINE_PORT_SPEC_2026-08-01.md`  
+**Detailed definitions:** `docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md`
 
 ## Status rules
 
-- `[x]` means implementation or evidence exists in the repository.
-- `[ ]` means incomplete, unverified, deferred, blocked, or not started.
-- A task gate remains open until its implementation and exact evidence requirements pass.
-- Every first-party compiler, Clippy, rustdoc, formatting, lint, and test finding is a bug and must be fixed at its source.
+- `[x]` is complete with repository or CI evidence.
+- `[ ]` is incomplete, unverified, deferred, blocked, or not started.
 - GitHub Actions is the authoritative Rust execution environment.
-- Update this file whenever implementation or validation changes a task or subtask status.
+- Every first-party formatting, compiler, Clippy, test, or rustdoc finding is a bug and must be fixed at source.
+- Update this file whenever any task or subtask status changes.
 
----
+## Program summary
 
-## Current task summary
+| Task | Status |
+|---:|---|
+| 0 | **Complete** — frozen Python baseline captured and reviewed. |
+| 1 | **Complete** — workspace and strict CI validated. |
+| 2 | **Complete** — core value types and exact-SHA CI complete. |
+| 3 | **Implemented; CI pending** — hybrid `Position`, invariants, tests, and docs committed. |
+| 4–24 | **Not started**. |
+| 25 | **Partial** — Linux strict CI and initial docs/workflows exist. |
+| 26–27 | **Not started**. |
 
-| Task | Status | Current result |
-|---:|---|---|
-| 0 | **Complete** | Frozen Python baseline, fast/slow suites, perft, UCI smoke, inventory, exclusions, and evidence are complete. |
-| 1 | **Complete** | Seven-crate workspace, boundaries, policy, license, lockfile, CI, and exact-SHA Rust validation are complete. |
-| 2 | **Complete** | Core value types, coordinate contract, packed move identity, exhaustive tests, documentation, and exact-SHA CI are complete. |
-| 3 | **Not started** | `Position` and invariants remain open. |
-| 4 | **Not started** | Strict FEN and UCI move notation remain open. |
-| 5 | **Not started** | Attack generation remains open. |
-| 6 | **Not started** | Pseudo-legal generation remains open. |
-| 7 | **Not started** | Complete legal generation remains open. |
-| 8 | **Not started** | Make/unmake remains open. |
-| 9 | **Not started** | Zobrist hashing and repetition identity remain open. |
-| 10 | **Not started** | `Game`, history, and draw semantics remain open. |
-| 11 | **Not started** | Rust perft and differential validation remain open. |
-| 12 | **Not started** | Baseline evaluation remains open. |
-| 13 | **Not started** | Reference search and alpha-beta remain open. |
-| 14 | **Not started** | Quiescence and move ordering remain open. |
-| 15 | **Not started** | Fixed-capacity transposition table remains open. |
-| 16 | **Not started** | Iterative deepening, PV, limits, and cancellation remain open. |
-| 17 | **Not started** | Linux UCI behavior remains open. |
-| 18 | **Not started** | Safe API, C ABI, and JNI remain open. |
-| 19 | **Not started** | Opening-book infrastructure remains open. |
-| 20 | **Not started** | Self-play and datasets remain open. |
-| 21 | **Not started** | Named-schema tuning remains open. |
-| 22 | **Not started** | Advanced classical terms remain open. |
-| 23 | **Not started** | Property/fuzz/sanitizer robustness remains open. |
-| 24 | **Not started** | Performance hardening remains open. |
-| 25 | **Partial** | Linux CI, architecture docs, strict gates, dispatch, and one full-validation command exist; the complete matrix/workflow remains open. |
-| 26 | **Not started** | v0.1 signoff remains open. |
-| 27 | **Not started** | Full port signoff remains open. |
+## Tasks 0–2 — complete
 
----
+- [x] Task 0 gate. Evidence: SHA `7ca6f8dc0d2577ca552a6bfe115828eb668d2133`, run `30722127447`, Python job `91427510964`, artifact `8825590703`; fast `1203 passed`, slow `179 passed`; perft `20/400/8902/197281`; UCI passed.
+- [x] Task 1 gate. Evidence: SHA `7ca6f8dc0d2577ca552a6bfe115828eb668d2133`, run `30722127447`, Rust job `91427510938`; metadata/fmt/check/Clippy/tests/rustdoc/debug/release passed.
+- [x] Task 2 gate. Implementation `878f9090af3d5fdee77ca87aaea24761a8df0312`; formatting fix `f29524599134a14d34121af2fefb04cd90e78df0`; run `30723748100`, job `91431648799`; 16 tests passed; exact closure SHA `b5f462aa73a69efcdc847ee215231a5064029902`, run `30723952076`, job `91432161445` passed.
 
-# Task 0: Establish the port baseline and decision record
+# Task 3: `Position` and invariants
 
-**Task status:** Complete.
+**Task status:** Implemented; exact-SHA CI pending.
 
-## 0.1 Preserve the Python baseline
+## 3.1 Hybrid representation
+- [x] Private 64-square mailbox.
+- [x] Piece bitboards by color and kind.
+- [x] Color occupancy and combined occupancy.
+- [x] Cached king squares.
+- [x] Side, castling rights, en-passant state, typed counters, and Zobrist placeholder/state.
 
-- [x] Freeze the pre-Rust Python source baseline at `f743013a84173b551eac5488c638cb48098ec6d0`.
-- [x] Prove current Python source/test/dependency inputs are byte-equivalent to the frozen baseline.
-- [x] Run and record the fast Python suite.
-- [x] Run and record the slow Python suite with Stockfish available.
-- [x] Record starting-position perft depths 1–4 and timings.
-- [x] Record UCI handshake and depth-one smoke behavior.
-- [x] Record historical engine-strength, self-play, and tuning artifacts as comparison-only evidence.
+## 3.2 Constructors
+- [x] Crate-private empty builder for parser/tests.
+- [x] Standard starting position.
+- [x] Playable construction requires exactly one king per color.
+- [x] No weakened analysis-position constructor added.
 
-## 0.2 Python-reference inventory
+## 3.3 Accessors and mutation boundary
+- [x] Read-only piece, bitboard, occupancy, king, and metadata accessors.
+- [x] Direct placement remains private to the position module.
+- [x] Atomic internal add/remove/move primitives update every redundant representation.
+- [x] Adapters cannot mutate mailbox or bitboards directly.
 
-- [x] Inventory rules and board state.
-- [x] Inventory FEN and notation.
-- [x] Inventory search and evaluation.
-- [x] Inventory opening-book, self-play, and tuning code.
-- [x] Inventory UCI and CLI/TUI adapters.
-- [x] Inventory and exclude transcript-specific guidance.
-- [x] Map retained concepts to Rust milestones.
+## 3.4 Invariant checker
+- [x] Mailbox/bitboard agreement.
+- [x] Occupancy agreement and no color overlap.
+- [x] Combined occupancy agreement.
+- [x] Exactly one king per color and correct king caches.
+- [x] En-passant target rank and emptiness validation.
+- [x] Zobrist recomputation explicitly deferred to Task 9.
+- [x] Every state-transition test runs invariant validation.
 
-## 0.3 Defects Rust must not copy
+## 3.5 Equality and clone
+- [x] Complete logical equality for restoration tests.
+- [x] Clone for snapshots/tests.
+- [x] Explicit prohibition on clone-per-node production search.
 
-- [x] Record all fourteen fixed non-copy constraints, including clone-per-child search, string keys, permissive FEN, implicit queen promotion, unbounded TT storage, missing mate normalization, unsafe castling attack-state checks, and automatic tuned-weight discovery.
+## 3.6 Documentation and gate
+- [x] Position representation/invariant documentation.
+- [x] Starting-position, construction, metadata, mutation, failure atomicity, king relocation, equality, and invariant tests.
+- [ ] rustfmt exact-SHA pass.
+- [ ] Cargo check exact-SHA pass.
+- [ ] Clippy `-D warnings` exact-SHA pass.
+- [ ] Unit tests exact-SHA pass.
+- [ ] rustdoc `-D warnings` exact-SHA pass.
+- [ ] Debug/release exact-SHA builds.
+- [ ] Task 3 gate.
 
-## 0.4 Completion evidence
+# Tasks 4–24 — not started
 
-- [x] Baseline record and fail-loud capture tooling committed.
-- [x] Exact commands, environment, logs, timings, and CI artifact reviewed.
-- [x] Task 0 gate.
+- [ ] Task 4: strict FEN and UCI move notation — 4.1 errors; 4.2 parser; 4.3 serializer; 4.4 UCI moves; 4.5 properties; gate.
+- [ ] Task 5: attack generation — 5.1 leapers; 5.2 sliders; 5.3 geometry; 5.4 position queries; 5.5 differential fixtures; gate.
+- [ ] Task 6: pseudo-legal generation — 6.1 pawns; 6.2 pieces; 6.3 castling candidates; 6.4 move list; 6.5 tests; gate.
+- [ ] Task 7: legal generation/special rules — 7.1 king safety; 7.2 evasions; 7.3 castling; 7.4 en passant; 7.5 promotions; 7.6 initial perft; gate.
+- [ ] Task 8: make/unmake — 8.1 undo; 8.2 application; 8.3 restoration; 8.4 sequences; gate.
+- [ ] Task 9: Zobrist/repetition — 9.1 tables; 9.2 full hash; 9.3 incremental; 9.4 canonical en passant; 9.5 verification; gate.
+- [ ] Task 10: game/history/draws — 10.1 game state; 10.2 mate/stalemate; 10.3 claims; 10.4 automatic; 10.5 dead position; 10.6 search history; gate.
+- [ ] Task 11: perft/differential — 11.1 suite; 11.2 slow; 11.3 divide; 11.4 oracle; 11.5 corpus; gate.
+- [ ] Task 12: evaluation — 12.1 score; 12.2 terms; 12.3 efficiency; 12.4 trace; 12.5 weights; 12.6 exclusions; gate.
+- [ ] Task 13: reference search/alpha-beta — 13.1 reference; 13.2 negamax; 13.3 equivalence; 13.4 immutability; 13.5 terminals; gate.
+- [ ] Task 14: quiescence/ordering — 14.1 quiescence; 14.2 tactical; 14.3 quiet; 14.4 tests; 14.5 exclusions; gate.
+- [ ] Task 15: transposition table — 15.1 entries; 15.2 storage; 15.3 mate normalization; 15.4 probes; 15.5 replacement; 15.6 diagnostics; gate.
+- [ ] Task 16: iterative deepening/limits — 16.1 ID; 16.2 aspirations; 16.3 PV; 16.4 limits; 16.5 cancellation; 16.6 result API; 16.7 extension; gate.
+- [ ] Task 17: Linux UCI — 17.1 loop; 17.2 worker; 17.3 time; 17.4 output; 17.5 integration; gate.
+- [ ] Task 18: safe API/C ABI/JNI — 18.1 facade; 18.2 C ABI; 18.3 C tests; 18.4 JNI; 18.5 Android harness; gate.
+- [ ] Task 19: opening book — 19.1 abstraction; 19.2 format; 19.3 policies; 19.4 integration; 19.5 tests; gate.
+- [ ] Task 20: self-play/datasets — 20.1 config; 20.2 records; 20.3 schema; 20.4 quality; gate.
+- [ ] Task 21: tuning — 21.1 weights; 21.2 loss; 21.3 optimizer; 21.4 reports; 21.5 validation; gate.
+- [ ] Task 22: advanced classical terms — 22.1 protocol; 22.2 candidates; 22.3 exclusions; gate.
+- [ ] Task 23: robustness — 23.1 properties; 23.2 fuzz; 23.3 runtime analysis; 23.4 failure preservation; gate.
+- [ ] Task 24: performance — 24.1 benchmarks; 24.2 profiling; 24.3 measured optimization; 24.4 regression policy; 24.5 Android; gate.
 
-### Task 0 completion note
+# Task 25: CI, documentation, and workflows — partial
 
-- Frozen source baseline: `f743013a84173b551eac5488c638cb48098ec6d0`.
-- Final evidence candidate: `7ca6f8dc0d2577ca552a6bfe115828eb668d2133`.
-- Final CI run/job: `30722127447` / `91427510964`.
-- Fast suite: `1203 passed, 179 deselected in 43.92s`.
-- Slow suite: `179 passed, 1203 deselected in 2449.87s (0:40:49)`.
-- Perft: `depths 1–4 = 20, 400, 8902, 197281`.
-- UCI: `handshake, ready check, and depth-one `bestmove g1f3` passed`.
-- Artifact: `ID 8825590703; SHA-256 ed44f43246e5176479825a3fef25aee6595b91af573453ad74f367a6c634d900`.
-- Deviations: none.
-
----
-
-# Task 1: Create the Cargo workspace and dependency boundaries
-
-**Task status:** Complete.
-
-## 1.1 Workspace skeleton
-
-- [x] Add root Cargo workspace configuration.
-- [x] Add `chess-core`, `chess-search`, `chess-uci`, `chess-ffi`, `chess-jni`, `chess-tools`, and `chess-tune`.
-- [x] Document each crate's responsibility and allowed dependencies.
-- [x] Keep every feature-empty crate buildable.
-
-## 1.2 Toolchain and policy
-
-- [x] Use Rust 2021 and document MSRV 1.75.
-- [x] Configure stable rustfmt and Clippy.
-- [x] Forbid unsafe code in `chess-core` and `chess-search`.
-- [x] Deny first-party warnings in workspace policy and CI.
-- [x] Add MIT license metadata consistently to all seven packages.
-- [x] Commit and verify `Cargo.lock`.
-
-## 1.3 Architecture enforcement
-
-- [x] Keep `chess-core` independent of search and adapters.
-- [x] Keep `chess-search` dependent only on portable lower-level code.
-- [x] Keep UCI, FFI, JNI, tools, and tuning as outward adapters.
-- [x] Document the dependency graph.
-- [x] Remove and ignore tracked local Claude worktrees.
-
-## 1.4 Initial CI
-
-- [x] Add formatting, metadata, check, Clippy, test, rustdoc, debug-build, and release-build gates.
-- [x] Keep Python validation on `master` during migration.
-- [x] Add deterministic `rust-engine` workflow dispatch and status publishing.
-- [x] Validate Linux x86-64 debug and release builds.
-- [ ] Add AArch64 and Android compile jobs when those toolchains are configured; tracked under Task 25.
-- [x] Task 1 gate.
-
-### Task 1 completion note
-
-- Final evidence candidate: `7ca6f8dc0d2577ca552a6bfe115828eb668d2133`.
-- Final CI run/job: `30722127447` / `91427510938`.
-- Rust toolchain/runner: `Rust 1.97.1 on Ubuntu 24.04.4`.
-- Result: metadata, formatting, check, Clippy, tests, rustdoc, debug build, release build, lockfile verification, MIT metadata, and checkout cleanup passed.
-- Accepted external notices: third-party GitHub Action runtime deprecations only.
-- Deviations: AArch64 and Android compile jobs remain deferred to Task 25.
-
----
-
-# Task 2: Implement core value types and coordinate contracts
-
-**Task status:** Complete.
-
-## 2.1 Color and piece types
-
-- [x] Implement `Color` with stable indexing, `opposite()`, pawn direction, and rank helpers.
-- [x] Implement `PieceKind` without `Empty`.
-- [x] Implement compact `Piece { color, kind }` without square ownership.
-- [x] Add stable conversion and display tests.
-
-## 2.2 Square
-
-- [x] Implement validated transparent `Square(u8)`.
-- [x] Preserve `a8 = 0`, `h8 = 7`, `a1 = 56`, and `h1 = 63`.
-- [x] Implement file, rank, row, and index accessors.
-- [x] Implement strict lowercase algebraic parse/format.
-- [x] Test all 64 squares round-trip.
-- [x] Keep unchecked construction crate-private and audited.
-
-## 2.3 Bitboard
-
-- [x] Implement transparent `Bitboard(u64)`.
-- [x] Implement set, clear, contains, pop-LSB, iteration, count, and bitwise operations.
-- [x] Implement rank/file masks and eight non-wrapping shifts.
-- [x] Add exhaustive basic and edge-operation tests.
-
-## 2.4 Move encoding
-
-- [x] Document private packed `u16` move layout.
-- [x] Encode source, destination, promotion identity, and 14 semantic move kinds.
-- [x] Implement source, destination, kind, promotion, and capture accessors.
-- [x] Derive stable equality, hash, and order behavior.
-- [x] Test every move kind round-trip.
-- [x] Keep all four promotions and promotion captures distinct.
-- [x] Keep packed layout out of the external ABI contract.
-
-## 2.5 Castling rights and counters
-
-- [x] Implement validated four-bit `CastlingRights`.
-- [x] Implement color/side query, set, clear, and clear-color helpers.
-- [x] Implement checked typed `HalfmoveClock` and nonzero `FullmoveNumber`.
-
-- [x] Task 2 gate: exact-SHA format, metadata, compiler, Clippy, tests, rustdoc, debug, and release validation.
-
-### Task 2 implementation note
-
-- Files: `crates/chess-core/src/{lib,piece,square,bitboard,move_encoding,castling,counters}.rs` and `docs/RUST_CORE_VALUE_TYPES.md`.
-- No dependencies added.
-- No unsafe code or lint suppression added.
-- Production search architecture remains untouched.
-
-### Task 2 completion evidence
-
-- Implementation commit: `878f9090af3d5fdee77ca87aaea24761a8df0312`.
-- Formatting fix: `f29524599134a14d34121af2fefb04cd90e78df0`.
-- CI run/job: `30723748100` / `91431648799`.
-- Tests: `16 passed, 0 failed`; all other workspace crates and doctests passed with zero tests.
-- Formatting, lockfile verification, metadata, Cargo check, Clippy with `-D warnings`, tests, rustdoc with `-D warnings`, debug build, and release build passed.
-- First-party warnings: none. Third-party GitHub Action runtime deprecation notices only.
-- Deviations: none.
-
-**Task 2 gate:** **CLOSED.**
-
----
-
-# Tasks 3–24: Numbered subtask status
-
-Every action in these tasks remains open.
-
-- [ ] Task 3: `Position` and invariants — subsections 3.1–3.5 and gate open.
-- [ ] Task 4: strict FEN and UCI move notation — subsections 4.1–4.5 and gate open.
-- [ ] Task 5: attack-generation infrastructure — subsections 5.1–5.5 and gate open.
-- [ ] Task 6: pseudo-legal move generation — subsections 6.1–6.5 and gate open.
-- [ ] Task 7: complete legal generation and special rules — subsections 7.1–7.6 and gate open.
-- [ ] Task 8: make/unmake and incremental state — subsections 8.1–8.4 and gate open.
-- [ ] Task 9: Zobrist hashing and repetition identity — subsections 9.1–9.5 and gate open.
-- [ ] Task 10: `Game`, history, and draw semantics — subsections 10.1–10.6 and gate open.
-- [ ] Task 11: Rust perft and differential validation — subsections 11.1–11.5 and gate open.
-- [ ] Task 12: baseline evaluator and trace — subsections 12.1–12.6 and gate open.
-- [ ] Task 13: reference search and alpha-beta — subsections 13.1–13.5 and gate open.
-- [ ] Task 14: quiescence and move ordering — subsections 14.1–14.5 and gate open.
-- [ ] Task 15: fixed-capacity TT — subsections 15.1–15.6 and gate open.
-- [ ] Task 16: iterative deepening/PV/limits/cancellation — subsections 16.1–16.7 and gate open.
-- [ ] Task 17: Linux UCI — subsections 17.1–17.5 and gate open.
-- [ ] Task 18: safe API/C ABI/JNI — subsections 18.1–18.5 and gate open.
-- [ ] Task 19: opening-book infrastructure — subsections 19.1–19.5 and gate open.
-- [ ] Task 20: self-play and datasets — subsections 20.1–20.4 and gate open.
-- [ ] Task 21: named-schema tuning — subsections 21.1–21.5 and gate open.
-- [ ] Task 22: advanced classical terms — subsections 22.1–22.3 and gate open.
-- [ ] Task 23: property/fuzz/sanitizer robustness — subsections 23.1–23.4 and gate open.
-- [ ] Task 24: performance hardening — subsections 24.1–24.5 and gate open.
-
----
-
-# Task 25: Complete CI, documentation, and developer workflows
-
-**Task status:** Partial.
-
-## 25.1 CI matrix
-
-- [x] Linux debug tests, Clippy all targets/features, rustdoc, debug build, and release build.
-- [x] Preserve Python validation until migration signoff.
-- [x] Maintain deterministic Rust CI dispatch and exact-SHA status publishing.
-- [ ] Linux release tests/perft.
-- [ ] AArch64 and Android AArch64 builds.
-- [ ] JNI instrumented smoke.
-- [ ] Miri, sanitizer, and fuzz smoke jobs.
-- [ ] Slow/nightly Rust perft and optional scheduled performance/strength jobs.
+## 25.1 CI
+- [x] Linux strict formatting/check/Clippy/tests/rustdoc/debug/release gates.
+- [x] Python validation preserved separately.
+- [x] Exact-SHA status publisher and deterministic dispatcher.
+- [ ] Release tests/perft, AArch64, Android, JNI, Miri, sanitizer, fuzz, nightly perft, and scheduled strength.
 
 ## 25.2 Documentation
-
 - [x] Workspace architecture.
-- [x] Core coordinate system, value types, bitboards, packed move identity, castling bits, and counters.
-- [ ] Position invariants, make/unmake, notation, draws, hashing, search, TT, evaluation, UCI, FFI/JNI, perft/fuzz, self-play, and tuning documentation.
+- [x] Core values/coordinates/move layout.
+- [x] Position representation and invariants.
+- [ ] Make/unmake, FEN, draws, hashing, search, TT, evaluation, UCI, ABI/JNI, perft/fuzz, self-play, and tuning docs.
 
-## 25.3 Developer commands
-
-- [x] One full Task 0/1 validation command.
+## 25.3 Commands and artifacts
+- [x] Full Task 0/1 validation command; committed lockfile; targets/worktrees ignored.
 - [ ] Bootstrap, fast validation, perft, UCI, Android, self-play, and tuning commands.
-
-## 25.4 Generated artifacts
-
-- [x] Ignore Cargo targets and local Claude worktrees.
-- [x] Commit the intentional Cargo lockfile.
-- [ ] Complete versioned schema/fixture/generated-artifact policy.
-
+- [ ] Versioned schema/fixture/generated-artifact policy.
 - [ ] Task 25 gate.
 
----
+# Tasks 26–27 — not started
 
-# Task 26: v0.1 functional-engine signoff
-
-- [ ] Rules signoff.
-- [ ] Search signoff.
-- [ ] Adapter signoff.
-- [ ] Quality signoff.
-- [ ] Evidence report and Task 26 gate.
-
-# Task 27: Full port-program signoff
-
-- [ ] Optional capability completion.
-- [ ] Migration decision.
-- [ ] Final implementation report.
-- [ ] Final release gate.
-
----
+- [ ] Task 26: rules, search, adapter, quality, evidence, and v0.1 gate.
+- [ ] Task 27: optional capabilities, migration decision, final report, and release gate.
 
 ## Immediate next operations
 
-1. Begin Task 3: `Position` and invariants.
-2. Implement the hybrid mailbox/bitboard representation and private mutation boundary.
-3. Add starting-position construction, king caches, invariant checks, equality, and restoration-oriented tests.
-4. Ralph Loop Task 3 through exact-SHA strict CI.
+1. Run strict exact-SHA CI for Task 3.
+2. Fix every first-party finding and rerun until green.
+3. Close Task 3 with exact run/job/test evidence.
+4. Begin Task 4 only after Task 3 closes.
