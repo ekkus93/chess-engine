@@ -17,6 +17,7 @@ htmlcov/
 # Build artifacts
 dist/
 *.egg-info/
+target/
 
 run_opencode.sh
 run_copilot.sh
