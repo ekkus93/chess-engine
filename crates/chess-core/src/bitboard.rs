@@ -256,14 +256,38 @@ mod tests {
 
     #[test]
     fn shifts_follow_board_geometry_without_file_wrapping() {
-        assert_eq!(Bitboard::from(square("d4")).north(), Bitboard::from(square("d5")));
-        assert_eq!(Bitboard::from(square("d4")).south(), Bitboard::from(square("d3")));
-        assert_eq!(Bitboard::from(square("d4")).east(), Bitboard::from(square("e4")));
-        assert_eq!(Bitboard::from(square("d4")).west(), Bitboard::from(square("c4")));
-        assert_eq!(Bitboard::from(square("d4")).north_east(), Bitboard::from(square("e5")));
-        assert_eq!(Bitboard::from(square("d4")).north_west(), Bitboard::from(square("c5")));
-        assert_eq!(Bitboard::from(square("d4")).south_east(), Bitboard::from(square("e3")));
-        assert_eq!(Bitboard::from(square("d4")).south_west(), Bitboard::from(square("c3")));
+        assert_eq!(
+            Bitboard::from(square("d4")).north(),
+            Bitboard::from(square("d5"))
+        );
+        assert_eq!(
+            Bitboard::from(square("d4")).south(),
+            Bitboard::from(square("d3"))
+        );
+        assert_eq!(
+            Bitboard::from(square("d4")).east(),
+            Bitboard::from(square("e4"))
+        );
+        assert_eq!(
+            Bitboard::from(square("d4")).west(),
+            Bitboard::from(square("c4"))
+        );
+        assert_eq!(
+            Bitboard::from(square("d4")).north_east(),
+            Bitboard::from(square("e5"))
+        );
+        assert_eq!(
+            Bitboard::from(square("d4")).north_west(),
+            Bitboard::from(square("c5"))
+        );
+        assert_eq!(
+            Bitboard::from(square("d4")).south_east(),
+            Bitboard::from(square("e3"))
+        );
+        assert_eq!(
+            Bitboard::from(square("d4")).south_west(),
+            Bitboard::from(square("c3"))
+        );
 
         assert_eq!(Bitboard::from(square("h4")).east(), Bitboard::EMPTY);
         assert_eq!(Bitboard::from(square("a4")).west(), Bitboard::EMPTY);
