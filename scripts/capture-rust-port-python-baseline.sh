@@ -24,7 +24,7 @@ RUN_PYTHON_LINT="${RUN_PYTHON_LINT:-0}"
 repo_root="$(git rev-parse --show-toplevel)"
 cd "${repo_root}"
 
-current_sha="$(git rev-parse HEAD)"
+capture_sha="$(git rev-parse HEAD)"
 current_branch="$(git branch --show-current)"
 
 if [[ -n "$(git status --porcelain)" ]]; then
@@ -39,15 +39,43 @@ if [[ "${current_branch}" != "${EXPECTED_BRANCH}" ]]; then
   exit 2
 fi
 
-if [[ "${current_sha}" != "${FROZEN_BASELINE_SHA}" ]]; then
-  cat >&2 <<EOF
-The current checkout is not the frozen pre-Rust baseline.
-Expected: ${FROZEN_BASELINE_SHA}
-Actual:   ${current_sha}
+if ! git cat-file -e "${FROZEN_BASELINE_SHA}^{commit}"; then
+  printf 'Frozen baseline commit %s is not available locally.\n' \
+    "${FROZEN_BASELINE_SHA}" >&2
+  exit 2
+fi
 
-Create a detached worktree at the expected SHA and run this script there, or
-explicitly revise the baseline decision record before collecting replacement evidence.
+if ! git merge-base --is-ancestor "${FROZEN_BASELINE_SHA}" "${capture_sha}"; then
+  cat >&2 <<EOF
+The current rust-engine checkout is not descended from the frozen baseline.
+Frozen baseline: ${FROZEN_BASELINE_SHA}
+Capture SHA:     ${capture_sha}
 EOF
+  exit 2
+fi
+
+# Later Rust-port documentation, scripts, and workflow commits are allowed. The
+# executable Python baseline is valid only while its source, tests, dependency
+# declaration, and lockfile remain identical to the frozen SHA.
+python_baseline_paths=(
+  chess_game
+  tests
+  pyproject.toml
+  uv.lock
+)
+
+if ! git diff --quiet \
+  "${FROZEN_BASELINE_SHA}" "${capture_sha}" -- "${python_baseline_paths[@]}"; then
+  cat >&2 <<EOF
+Python baseline inputs have changed since the frozen baseline.
+Frozen baseline: ${FROZEN_BASELINE_SHA}
+Capture SHA:     ${capture_sha}
+
+Review this diff and either restore the Python reference tree or explicitly
+revise the baseline decision record before collecting evidence:
+EOF
+  git diff --stat \
+    "${FROZEN_BASELINE_SHA}" "${capture_sha}" -- "${python_baseline_paths[@]}" >&2
   exit 2
 fi
 
@@ -56,7 +84,7 @@ if ! command -v uv >/dev/null 2>&1; then
   exit 2
 fi
 
-output_dir="${repo_root}/artifacts/rust-port-python-baseline/${current_sha}"
+output_dir="${repo_root}/artifacts/rust-port-python-baseline/${capture_sha}"
 mkdir -p "${output_dir}"
 
 summary_file="${output_dir}/RESULTS.md"
@@ -93,7 +121,9 @@ run_timed() {
 
 {
   printf 'captured_at_utc=%s\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-  printf 'baseline_sha=%s\n' "${current_sha}"
+  printf 'frozen_baseline_sha=%s\n' "${FROZEN_BASELINE_SHA}"
+  printf 'capture_sha=%s\n' "${capture_sha}"
+  printf 'python_tree_matches_frozen_baseline=yes\n'
   printf 'branch=%s\n' "${current_branch}"
   printf 'os=%s\n' "$(uname -a)"
   printf 'cpu=%s\n' "$(uname -m)"
@@ -105,7 +135,9 @@ run_timed() {
   fi
 } >"${environment_file}"
 
-record_status BASELINE_SHA "${current_sha}"
+record_status FROZEN_BASELINE_SHA "${FROZEN_BASELINE_SHA}"
+record_status CAPTURE_SHA "${capture_sha}"
+record_status PYTHON_TREE_MATCHES_FROZEN_BASELINE "yes"
 record_status BRANCH "${current_branch}"
 record_status RUN_SLOW "${RUN_SLOW}"
 record_status RUN_PYTHON_LINT "${RUN_PYTHON_LINT}"
@@ -236,7 +268,9 @@ source "${status_file}"
 cat >"${summary_file}" <<EOF
 # Python Reference Baseline Results
 
-**Baseline SHA:** \`${current_sha}\`  
+**Frozen Python source baseline:** \`${FROZEN_BASELINE_SHA}\`  
+**Evidence capture SHA:** \`${capture_sha}\`  
+**Python tree matches frozen baseline:** \`yes\`  
 **Branch:** \`${current_branch}\`  
 **Captured:** \`$(date -u +'%Y-%m-%dT%H:%M:%SZ')\`
 
