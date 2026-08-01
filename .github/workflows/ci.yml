@@ -2,9 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [ master ]
+    branches:
+      - master
+      - rust-engine
   pull_request:
-    branches: [ master ]
+    branches:
+      - master
+      - rust-engine
 
 jobs:
   build:
