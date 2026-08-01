@@ -83,6 +83,8 @@ jobs:
         run: |
           set -euo pipefail
 
+          jq_filter=".workflow_runs | map(select(.created_at >= \"${DISPATCHED_AT}\")) | sort_by(.created_at) | last | if . == null then \"\" else \"\(.id)|\(.head_sha)|\(.status)\" end"
+
           for attempt in $(seq 1 30); do
             run_record="$(
               gh api \
@@ -91,12 +93,7 @@ jobs:
                 -f branch=rust-engine \
                 -f event=workflow_dispatch \
                 -f per_page=10 \
-                --jq --arg dispatched_at "${DISPATCHED_AT}" \
-                  '.workflow_runs
-                   | map(select(.created_at >= $dispatched_at))
-                   | sort_by(.created_at)
-                   | last
-                   | if . == null then "" else "\(.id)|\(.head_sha)|\(.status)" end'
+                --jq "${jq_filter}"
             )"
 
             if [[ -n "${run_record}" ]]; then
