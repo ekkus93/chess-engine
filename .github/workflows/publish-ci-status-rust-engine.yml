@@ -1,0 +1,552 @@
+name: Publish CI Status - rust-engine
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - requested
+      - in_progress
+      - completed
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+
+concurrency:
+  group: publish-ci-status-ci-rust-engine
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: Publish latest CI status
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      ISSUE_NUMBER: "1"
+      MONITORED_BRANCH: rust-engine
+      PUBLISHER_FILE: .github/workflows/publish-ci-status-rust-engine.yml
+      WORKFLOW_ID: ${{ github.event.workflow_run.workflow_id }}
+      WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+      RUN_ID: ${{ github.event.workflow_run.id }}
+      RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+      RUN_URL: ${{ github.event.workflow_run.html_url }}
+      RUN_STATUS: ${{ github.event.workflow_run.status }}
+      RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+      RUN_EVENT: ${{ github.event.workflow_run.event }}
+      HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+      HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+      CREATED_AT: ${{ github.event.workflow_run.created_at }}
+      UPDATED_AT: ${{ github.event.workflow_run.updated_at }}
+
+    steps:
+      - name: Publish authoritative status snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${HEAD_BRANCH:-}" != "${MONITORED_BRANCH}" ]]; then
+            printf 'Ignoring workflow run for unrelated branch %s; publisher monitors %s.\n' \
+              "${HEAD_BRANCH:-<none>}" "${MONITORED_BRANCH}"
+            exit 0
+          fi
+
+          latest_run="$(
+            gh api \
+              --method GET \
+              "repos/${REPOSITORY}/actions/workflows/${WORKFLOW_ID}/runs" \
+              -f branch="${MONITORED_BRANCH}" \
+              -f per_page=1 \
+              --jq '.workflow_runs[0] | "\(.id)|\(.run_attempt)|\(.status)|\(.conclusion // "pending")"'
+          )"
+
+          if [[ -z "${latest_run}" ]]; then
+            printf 'No applicable run was returned for workflow %s on %s.\n' \
+              "${WORKFLOW_ID}" "${MONITORED_BRANCH}" >&2
+            exit 1
+          fi
+
+          IFS='|' read -r latest_run_id latest_run_attempt \
+            latest_run_status latest_run_conclusion <<<"${latest_run}"
+          event_conclusion="${RUN_CONCLUSION:-pending}"
+
+          if [[ "${latest_run_id}" != "${RUN_ID}" ]] ||
+             [[ "${latest_run_attempt}" != "${RUN_ATTEMPT}" ]] ||
+             [[ "${latest_run_status}" != "${RUN_STATUS}" ]] ||
+             [[ "${latest_run_conclusion}" != "${event_conclusion}" ]]; then
+            printf 'Skipping stale state for run %s attempt %s (%s/%s); latest is %s attempt %s (%s/%s).\n' \
+              "${RUN_ID}" "${RUN_ATTEMPT}" "${RUN_STATUS}" "${event_conclusion}" \
+              "${latest_run_id}" "${latest_run_attempt}" \
+              "${latest_run_status}" "${latest_run_conclusion}"
+            exit 0
+          fi
+
+          jobs_file="${RUNNER_TEMP}/jobs-pages.json"
+          artifacts_file="${RUNNER_TEMP}/artifacts-pages.json"
+          issue_file="${RUNNER_TEMP}/issue.json"
+          body_file="${RUNNER_TEMP}/status.md"
+          patch_file="${RUNNER_TEMP}/issue-patch.json"
+
+          gh api \
+            --method GET \
+            --paginate \
+            --slurp \
+            "repos/${REPOSITORY}/actions/runs/${RUN_ID}/jobs?filter=latest&per_page=100" \
+            >"${jobs_file}"
+
+          if [[ "${RUN_STATUS}" == "completed" ]]; then
+            gh api \
+              --method GET \
+              --paginate \
+              --slurp \
+              "repos/${REPOSITORY}/actions/runs/${RUN_ID}/artifacts?per_page=100" \
+              >"${artifacts_file}"
+          else
+            printf '%s\n' '[]' >"${artifacts_file}"
+          fi
+
+          gh api \
+            --method GET \
+            "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}" \
+            >"${issue_file}"
+
+          python3 - "${jobs_file}" "${artifacts_file}" "${issue_file}" \
+            "${body_file}" "${patch_file}" <<'PY'
+          import copy
+          import datetime as dt
+          import json
+          import os
+          import pathlib
+          import sys
+          from typing import Any
+
+          ABNORMAL = {
+              "failure",
+              "cancelled",
+              "timed_out",
+              "action_required",
+              "startup_failure",
+              "stale",
+          }
+          MAX_BODY_CHARS = 60_000
+
+          jobs_path, artifacts_path, issue_path, body_path, patch_path = map(
+              pathlib.Path, sys.argv[1:]
+          )
+
+          def required_env(name: str) -> str:
+              value = os.environ.get(name)
+              if value is None or value == "":
+                  raise RuntimeError(f"missing required environment variable: {name}")
+              return value
+
+          def integer_env(name: str) -> int:
+              value = required_env(name)
+              try:
+                  return int(value)
+              except ValueError as exc:
+                  raise RuntimeError(f"{name} must be an integer") from exc
+
+          def load_json(path: pathlib.Path) -> Any:
+              try:
+                  return json.loads(path.read_text(encoding="utf-8"))
+              except (OSError, json.JSONDecodeError) as exc:
+                  raise RuntimeError(f"invalid JSON input: {path}") from exc
+
+          def clean_text(value: Any, field: str) -> str:
+              if not isinstance(value, str):
+                  raise RuntimeError(f"{field} must be a string")
+              return "".join(
+                  character
+                  for character in value
+                  if character in "\t\n\r" or ord(character) >= 0x20
+              )
+
+          def nullable_text(value: Any, field: str) -> str | None:
+              if value is None:
+                  return None
+              return clean_text(value, field)
+
+          def nullable_integer(value: Any, field: str) -> int | None:
+              if value is None:
+                  return None
+              if isinstance(value, bool) or not isinstance(value, int):
+                  raise RuntimeError(f"{field} must be an integer or null")
+              return value
+
+          def code(value: Any) -> str:
+              text = str(value).replace("\\", "\\\\").replace("`", "\\`")
+              text = text.replace("\r", " ").replace("\n", " ")
+              return f"`{text}`"
+
+          def read_pages(path: pathlib.Path, collection_key: str) -> list[dict[str, Any]]:
+              pages = load_json(path)
+              if not isinstance(pages, list):
+                  raise RuntimeError(f"{path} must contain a JSON array of pages")
+              items: list[dict[str, Any]] = []
+              for page_number, page in enumerate(pages, start=1):
+                  if not isinstance(page, dict):
+                      raise RuntimeError(f"{path} page {page_number} must be an object")
+                  collection = page.get(collection_key)
+                  if not isinstance(collection, list):
+                      raise RuntimeError(
+                          f"{path} page {page_number} lacks list field {collection_key}"
+                      )
+                  for item_number, item in enumerate(collection, start=1):
+                      if not isinstance(item, dict):
+                          raise RuntimeError(
+                              f"{path} page {page_number} item {item_number} "
+                              "must be an object"
+                          )
+                      items.append(item)
+              return items
+
+          issue = load_json(issue_path)
+          if not isinstance(issue, dict):
+              raise RuntimeError("issue response must be an object")
+
+          publisher_file = required_env("PUBLISHER_FILE")
+          marker = f"<!-- maintained by {publisher_file} -->"
+          issue_body = issue.get("body")
+          if not isinstance(issue_body, str) or not issue_body.startswith(marker):
+              raise RuntimeError("refusing to overwrite issue without publisher marker")
+          if issue.get("state") != "open":
+              raise RuntimeError("refusing to publish to a closed status issue")
+
+          raw_jobs = read_pages(jobs_path, "jobs")
+          raw_artifacts = (
+              read_pages(artifacts_path, "artifacts")
+              if required_env("RUN_STATUS") == "completed"
+              else []
+          )
+
+          jobs: list[dict[str, Any]] = []
+          problem_steps: list[dict[str, Any]] = []
+          problem_jobs: list[dict[str, Any]] = []
+
+          for job_index, raw_job in enumerate(raw_jobs, start=1):
+              job_id = nullable_integer(raw_job.get("id"), f"job[{job_index}].id")
+              if job_id is None:
+                  raise RuntimeError(f"job[{job_index}].id is required")
+
+              name = clean_text(raw_job.get("name"), f"job[{job_index}].name")
+              status = clean_text(raw_job.get("status"), f"job[{job_index}].status")
+              conclusion = nullable_text(
+                  raw_job.get("conclusion"), f"job[{job_index}].conclusion"
+              )
+              raw_steps = raw_job.get("steps", [])
+              if not isinstance(raw_steps, list):
+                  raise RuntimeError(f"job[{job_index}].steps must be a list")
+
+              steps: list[dict[str, Any]] = []
+              for step_index, raw_step in enumerate(raw_steps, start=1):
+                  if not isinstance(raw_step, dict):
+                      raise RuntimeError(
+                          f"job[{job_index}].steps[{step_index}] must be an object"
+                      )
+                  number = nullable_integer(
+                      raw_step.get("number"),
+                      f"job[{job_index}].steps[{step_index}].number",
+                  )
+                  if number is None:
+                      raise RuntimeError(
+                          f"job[{job_index}].steps[{step_index}].number is required"
+                      )
+                  step_name = clean_text(
+                      raw_step.get("name"),
+                      f"job[{job_index}].steps[{step_index}].name",
+                  )
+                  step_status = clean_text(
+                      raw_step.get("status"),
+                      f"job[{job_index}].steps[{step_index}].status",
+                  )
+                  step_conclusion = nullable_text(
+                      raw_step.get("conclusion"),
+                      f"job[{job_index}].steps[{step_index}].conclusion",
+                  )
+                  step = {
+                      "number": number,
+                      "name": step_name,
+                      "status": step_status,
+                      "conclusion": step_conclusion,
+                      "started_at": nullable_text(
+                          raw_step.get("started_at"),
+                          f"job[{job_index}].steps[{step_index}].started_at",
+                      ),
+                      "completed_at": nullable_text(
+                          raw_step.get("completed_at"),
+                          f"job[{job_index}].steps[{step_index}].completed_at",
+                      ),
+                  }
+                  steps.append(step)
+                  if step_conclusion in ABNORMAL:
+                      problem_steps.append(
+                          {
+                              "job_id": job_id,
+                              "job": name,
+                              "step_number": number,
+                              "step": step_name,
+                              "conclusion": step_conclusion,
+                          }
+                      )
+
+              job = {
+                  "id": job_id,
+                  "name": name,
+                  "status": status,
+                  "conclusion": conclusion,
+                  "started_at": nullable_text(
+                      raw_job.get("started_at"), f"job[{job_index}].started_at"
+                  ),
+                  "completed_at": nullable_text(
+                      raw_job.get("completed_at"), f"job[{job_index}].completed_at"
+                  ),
+                  "runner_name": nullable_text(
+                      raw_job.get("runner_name"), f"job[{job_index}].runner_name"
+                  ),
+                  "runner_group_name": nullable_text(
+                      raw_job.get("runner_group_name"),
+                      f"job[{job_index}].runner_group_name",
+                  ),
+                  "steps": steps,
+              }
+              jobs.append(job)
+
+              if conclusion in ABNORMAL:
+                  problem_jobs.append(
+                      {
+                          "id": job_id,
+                          "name": name,
+                          "conclusion": conclusion,
+                      }
+                  )
+
+          artifacts: list[dict[str, Any]] = []
+          for artifact_index, raw_artifact in enumerate(raw_artifacts, start=1):
+              artifact_id = nullable_integer(
+                  raw_artifact.get("id"), f"artifact[{artifact_index}].id"
+              )
+              if artifact_id is None:
+                  raise RuntimeError(f"artifact[{artifact_index}].id is required")
+              expired = raw_artifact.get("expired")
+              if not isinstance(expired, bool):
+                  raise RuntimeError(
+                      f"artifact[{artifact_index}].expired must be a boolean"
+                  )
+              size = nullable_integer(
+                  raw_artifact.get("size_in_bytes"),
+                  f"artifact[{artifact_index}].size_in_bytes",
+              )
+              if size is None:
+                  raise RuntimeError(
+                      f"artifact[{artifact_index}].size_in_bytes is required"
+                  )
+              artifacts.append(
+                  {
+                      "id": artifact_id,
+                      "name": clean_text(
+                          raw_artifact.get("name"),
+                          f"artifact[{artifact_index}].name",
+                      ),
+                      "size_in_bytes": size,
+                      "expired": expired,
+                      "created_at": nullable_text(
+                          raw_artifact.get("created_at"),
+                          f"artifact[{artifact_index}].created_at",
+                      ),
+                      "expires_at": nullable_text(
+                          raw_artifact.get("expires_at"),
+                          f"artifact[{artifact_index}].expires_at",
+                      ),
+                  }
+              )
+
+          run_status = required_env("RUN_STATUS")
+          run_conclusion = os.environ.get("RUN_CONCLUSION") or None
+          observed_at = dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
+
+          payload: dict[str, Any] = {
+              "schema_version": 1,
+              "publisher": {
+                  "workflow_file": publisher_file,
+                  "issue_number": integer_env("ISSUE_NUMBER"),
+                  "monitored_branch": required_env("MONITORED_BRANCH"),
+              },
+              "workflow": {
+                  "name": required_env("WORKFLOW_NAME"),
+                  "workflow_id": integer_env("WORKFLOW_ID"),
+                  "run_id": integer_env("RUN_ID"),
+                  "run_attempt": integer_env("RUN_ATTEMPT"),
+                  "run_url": required_env("RUN_URL"),
+                  "event": required_env("RUN_EVENT"),
+                  "status": run_status,
+                  "conclusion": run_conclusion,
+                  "head_branch": required_env("HEAD_BRANCH"),
+                  "head_sha": required_env("HEAD_SHA"),
+                  "created_at": required_env("CREATED_AT"),
+                  "updated_at": required_env("UPDATED_AT"),
+              },
+              "observed_at": observed_at,
+              "jobs_available": bool(jobs),
+              "jobs_state": (
+                  "available"
+                  if jobs
+                  else (
+                      "unavailable_after_completion"
+                      if run_status == "completed"
+                      else "pending"
+                  )
+              ),
+              "problem_jobs": problem_jobs,
+              "problem_steps": problem_steps,
+              "jobs": jobs,
+              "artifacts_available": run_status == "completed",
+              "artifacts": artifacts,
+              "details_compacted": False,
+              "compaction_reason": None,
+          }
+
+          completed_jobs = sum(job["status"] == "completed" for job in jobs)
+          running_jobs = sum(job["status"] == "in_progress" for job in jobs)
+          queued_jobs = sum(job["status"] == "queued" for job in jobs)
+          failed_jobs = sum(job["conclusion"] in ABNORMAL for job in jobs)
+          jobs_summary = (
+              f"{completed_jobs} completed, {failed_jobs} abnormal, "
+              f"{running_jobs} running, {queued_jobs} queued"
+          )
+
+          summary_lines = [
+              marker,
+              "# Latest CI status - rust-engine",
+              "",
+              f"- **Workflow:** {code(required_env('WORKFLOW_NAME'))}",
+              f"- **Status:** {code(run_status)}",
+              f"- **Conclusion:** {code(run_conclusion or 'pending')}",
+              f"- **Run:** {code(required_env('RUN_ID'))}",
+              f"- **Attempt:** {code(required_env('RUN_ATTEMPT'))}",
+              f"- **Commit:** {code(required_env('HEAD_SHA'))}",
+              (
+                  f"- **Branch/event:** {code(required_env('HEAD_BRANCH'))} / "
+                  f"{code(required_env('RUN_EVENT'))}"
+              ),
+              f"- **Jobs:** {code(jobs_summary)}",
+              f"- **Problem steps:** {code(len(problem_steps))}",
+              f"- **Artifacts:** {code(len(artifacts))}",
+              f"- **Observed:** {code(observed_at)}",
+              "",
+          ]
+
+          if problem_steps:
+              summary_lines.append("## Problem steps")
+              for problem in problem_steps[:25]:
+                  summary_lines.append(
+                      "- "
+                      f"{code(problem['job'])} / {code(problem['step'])} - "
+                      f"{code(problem['conclusion'])} "
+                      f"(job {code(problem['job_id'])}, step "
+                      f"{code(problem['step_number'])})"
+                  )
+              if len(problem_steps) > 25:
+                  summary_lines.append(
+                      f"- {code(len(problem_steps) - 25)} additional problem steps "
+                      "are preserved in the JSON block."
+                  )
+              summary_lines.append("")
+          elif problem_jobs:
+              summary_lines.append("## Problem jobs")
+              for problem in problem_jobs[:25]:
+                  summary_lines.append(
+                      f"- {code(problem['name'])} - {code(problem['conclusion'])} "
+                      f"(job {code(problem['id'])})"
+                  )
+              summary_lines.append("")
+          else:
+              summary_lines.extend(["## Problem steps", "None.", ""])
+
+          def step_summary(job: dict[str, Any]) -> dict[str, int]:
+              steps = job.get("steps", [])
+              return {
+                  "total": len(steps),
+                  "completed": sum(step["status"] == "completed" for step in steps),
+                  "abnormal": sum(step["conclusion"] in ABNORMAL for step in steps),
+                  "skipped": sum(step["conclusion"] == "skipped" for step in steps),
+              }
+
+          def compact_payload(
+              source: dict[str, Any], abnormal_only_for_all: bool
+          ) -> dict[str, Any]:
+              compacted = copy.deepcopy(source)
+              compacted["details_compacted"] = True
+              compacted["compaction_reason"] = "issue_body_size_limit"
+              for job in compacted["jobs"]:
+                  summary = step_summary(job)
+                  is_problem = job["conclusion"] in ABNORMAL
+                  if abnormal_only_for_all or not is_problem:
+                      job["steps"] = [
+                          step
+                          for step in job["steps"]
+                          if step["conclusion"] in ABNORMAL
+                      ]
+                      job["steps_compacted"] = True
+                      job["step_summary"] = summary
+              return compacted
+
+          def render(candidate: dict[str, Any], pretty: bool) -> str:
+              if pretty:
+                  encoded = json.dumps(
+                      candidate, indent=2, ensure_ascii=False, sort_keys=True
+                  )
+              else:
+                  encoded = json.dumps(
+                      candidate,
+                      ensure_ascii=False,
+                      sort_keys=True,
+                      separators=(",", ":"),
+                  )
+              return (
+                  "\n".join(summary_lines)
+                  + "## Machine-readable status\n\n"
+                  + "```json\n"
+                  + encoded
+                  + "\n```\n\n"
+                  + "This issue is overwritten whenever the latest applicable run "
+                  + "changes state. It is not a historical log.\n"
+              )
+
+          candidates = [
+              (payload, True),
+              (compact_payload(payload, False), True),
+              (compact_payload(payload, True), True),
+              (compact_payload(payload, True), False),
+          ]
+
+          body = ""
+          for candidate, pretty in candidates:
+              body = render(candidate, pretty)
+              if len(body) <= MAX_BODY_CHARS:
+                  break
+          else:
+              raise RuntimeError(
+                  "status issue body remains too large after safe compaction"
+              )
+
+          body_path.write_text(body, encoding="utf-8")
+          patch_path.write_text(
+              json.dumps({"body": body}, ensure_ascii=False),
+              encoding="utf-8",
+          )
+          PY
+
+          gh api \
+            --method PATCH \
+            "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}" \
+            --input "${patch_file}" \
+            >/dev/null
+
+          printf 'Published run %s attempt %s to issue #%s (%s bytes).\n' \
+            "${RUN_ID}" "${RUN_ATTEMPT}" "${ISSUE_NUMBER}" \
+            "$(wc -c <"${body_file}")"
