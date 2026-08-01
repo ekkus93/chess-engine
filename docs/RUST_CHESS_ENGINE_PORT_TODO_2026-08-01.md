@@ -25,8 +25,8 @@
 
 | Task | Status | Current result |
 |---:|---|---|
-| 0 | **In progress — CI executing** | Source inventory, decision record, defect record, capture tooling, and a GitHub Actions baseline job are present; exact-SHA runtime evidence is pending. |
-| 1 | **Implemented — CI executing** | Seven-crate workspace, dependency policy, MIT metadata, architecture documentation, strict Rust gates, lockfile generation, and artifact upload are present; exact-SHA CI evidence and committed `Cargo.lock` are pending. |
+| 0 | **In progress — final CI pending** | Frozen source equivalence and the fast Python suite passed; the slow suite, perft, and UCI evidence were interrupted by concurrency and require an uninterrupted exact-head rerun. |
+| 1 | **Implemented — final CI pending** | All Rust gates passed once. The generated lockfile is committed, member license inheritance is fixed, and an orphaned worktree gitlink is being removed before final exact-head validation. |
 | 2 | **Not started** | Core value types have not been implemented. |
 | 3 | **Not started** | `Position` and invariants have not been implemented. |
 | 4 | **Not started** | Strict FEN and UCI move notation have not been implemented. |
@@ -50,7 +50,7 @@
 | 22 | **Not started** | Advanced classical terms have not been evaluated under the Rust protocol. |
 | 23 | **Not started** | Property, fuzz, sanitizer, and robustness gates have not been implemented. |
 | 24 | **Not started** | Performance hardening and regression budgets have not been implemented. |
-| 25 | **Partial** | Workspace architecture, dedicated Python CI, registered Rust `CI`, persistent dispatch infrastructure, Linux Rust gates, and artifact collection exist; the complete matrix and developer workflow remain open. |
+| 25 | **Partial** | Workspace architecture, dedicated Python CI, registered Rust `CI`, deterministic dispatch, Linux Rust gates, and artifact collection exist; the complete matrix and developer workflow remain open. |
 | 26 | **Not started** | v0.1 signoff has not begun. |
 | 27 | **Not started** | Full port-program signoff has not begun. |
 
@@ -83,14 +83,17 @@
 
 # Task 0: Establish the port baseline and decision record
 
-**Task status:** In progress — source-grounded work is complete; GitHub Actions runtime evidence is executing.
+**Task status:** In progress — fast evidence passed; remaining runtime evidence requires an uninterrupted final run.
 
 ## 0.1 Preserve the Python baseline
 
 - [x] Record the `rust-engine` SHA before Rust source changes.
   - Frozen baseline: `f743013a84173b551eac5488c638cb48098ec6d0`.
-- [ ] Run and record the current fast Python test suite.
+- [x] Run and record the current fast Python test suite.
+  - Run `30719636049`, job `91421155337`, candidate `edd5a94685d23a04df15c69dafed5f077fd3fc74`.
+  - Result: `1203 passed, 179 deselected in 44.43s`.
 - [ ] Run and record the current slow Python test suite when practical.
+  - **Partial:** execution began and was cancelled by branch concurrency after 73 tests had reported progress; no pass result is claimed.
 - [ ] Record current Python perft results and timings for existing exact positions.
 - [ ] Record current UCI smoke behavior.
 - [x] Record useful engine-strength/self-play artifacts as historical comparison only.
@@ -133,9 +136,10 @@
 - [x] Avoid architectural migration through Python-internal edits.
 - [x] Add fail-loud Python baseline capture tooling.
 - [x] Add a GitHub Actions `Python reference baseline` job.
-  - Explicitly checks out branch `rust-engine` with full history.
-  - Runs `RUN_SLOW=1 bash scripts/capture-rust-port-python-baseline.sh`.
-  - Uploads the exact-SHA baseline evidence artifact even when the capture fails.
+- [x] Review the first baseline artifact.
+  - Artifact ID `8824498772`, SHA-256 `045b8f3f395189095beca42c34991338b174b53a3426e8205bea7a879b418d63`.
+  - Confirmed Python tree equivalence, runner environment, `uv sync`, and fast-suite success.
+  - Slow/perft/UCI evidence absent because the job was cancelled.
 
 ### Task 0 completion note — gate open
 
@@ -144,10 +148,8 @@
   - `a579aa28f072934a67df082cbf830ea51831c971`
   - `fba5ca2e0ca6139a943f4018dadb925e2c37a88d`
   - `7ed9fa063ea512ca94f5f100e3192578da3fce3a`
-- **CI workflow commits:**
-  - `6b1927612dd5a2f4963dcfcb625dc5f70e8580c5`
-  - `cfca3479ddc18fce477e0603a1b48f16791b4eb9`
-- **Pending evidence:** fast tests, slow tests, exact perft/timings, UCI smoke, environment, and reviewed artifact.
+- **First evidence run:** `30719636049` at `edd5a94685d23a04df15c69dafed5f077fd3fc74`.
+- **Remaining evidence:** complete slow suite, exact perft counts/timings, UCI smoke, and final exact-head artifact.
 
 **Task 0 gate:** **OPEN.**
 
@@ -155,7 +157,7 @@
 
 # Task 1: Create the Cargo workspace and dependency boundaries
 
-**Task status:** Implemented; GitHub Actions verification is executing.
+**Task status:** Implemented; all Rust commands passed once, with first-run metadata/repository findings corrected before final validation.
 
 ## 1.1 Workspace skeleton
 
@@ -168,8 +170,8 @@
 - [x] Add `crates/chess-tools`.
 - [x] Add `crates/chess-tune`.
 - [x] Add minimal crate-level responsibility/dependency documentation.
-- [ ] Keep all optional/future crates buildable while feature-empty.
-  - **Partial:** Manifests and entry points exist; exact-SHA Cargo execution is pending.
+- [x] Keep all optional/future crates buildable while feature-empty.
+  - All seven packages passed check, Clippy, tests, rustdoc, debug build, and release build at `edd5a94685d23a04df15c69dafed5f077fd3fc74`.
 
 ## 1.2 Toolchain and policy
 
@@ -180,9 +182,12 @@
 - [x] Add `#![forbid(unsafe_code)]` to `chess-core` and `chess-search`.
 - [x] Deny first-party warnings in workspace policy and CI.
 - [x] Add consistent license and package metadata.
-  - MIT license file: commit `95668271f60f0fabee13a6fa70950ecc61ad2eec`.
-  - Shared Cargo `license = "MIT"`: commit `4bf9c478d5e5dc459dcaea8b76fbd08f1dd68f81`.
-  - All crates remain `publish = false`.
+  - MIT license file and shared Cargo metadata are present.
+  - First CI metadata showed `license: null` in every member, revealing that inheritance was incomplete.
+  - `license.workspace = true` has now been added to every member manifest; final CI metadata must confirm `MIT`.
+- [x] Commit the CI-generated `Cargo.lock`.
+  - Source artifact ID `8824440027`, digest `acc3a519b466d4df8f903fb230ac730aa3acc03fb3a77b8d7dafcf0405fda14c`.
+  - Reviewed contents contain only the seven local workspace packages and expected path dependencies.
 
 ## 1.3 Architecture enforcement
 
@@ -190,36 +195,33 @@
 - [x] Confirm `chess-search` depends only on portable core/support crates.
 - [x] Confirm UCI, FFI, JNI, tools, and tuning are outward adapters.
 - [x] Add architecture/dependency documentation.
-  - `docs/RUST_WORKSPACE_ARCHITECTURE.md`
+- [ ] Confirm checkout/post-job cleanup has no first-party repository warning.
+  - **Fix pending final verification:** remove orphaned `.claude/worktrees/agent-a04f1cae54e4430d6` gitlink that caused `fatal: No url found ... in .gitmodules` during checkout cleanup.
 
 ## 1.4 Initial CI and local validation
 
 - [x] Add formatting, Clippy, tests, and docs to Rust CI.
 - [x] Preserve Python validation on `master` in `.github/workflows/python-ci.yml`.
-- [x] Register `.github/workflows/ci.yml` under exact workflow name `CI` on `master` so `workflow_dispatch` and the status publisher resolve the Rust branch workflow correctly.
+- [x] Register `.github/workflows/ci.yml` under exact workflow name `CI` on `master`.
 - [x] Add Linux x86-64 debug and release build coverage.
 - [ ] Add AArch64 and Android compile jobs when toolchains are configured.
 - [x] Add Cargo lockfile generation and `--locked` validation.
 - [x] Add Cargo metadata validation.
 - [x] Upload generated `Cargo.lock` as an exact-SHA artifact.
-- [x] Add persistent dispatch/status infrastructure on `master` under the user's explicit authorization.
+- [x] Add deterministic issue-triggered Rust CI dispatch infrastructure on `master` under explicit authorization.
+- [x] Execute the first complete Rust CI gate.
+  - Run `30719636049`, job `91421155314`, Rust `1.97.1` on Ubuntu `24.04.4`.
+  - Formatting, metadata, check, Clippy, tests, rustdoc, debug build, release build, and artifact upload all passed.
+  - Rust packages currently contain no behavioral tests; Task 2 adds the first exhaustive value-type tests.
+- [ ] Execute final exact-head CI after committing corrections and lockfile.
 
 ### Task 1 completion note — gate open
 
 - **Workspace implementation range:** `11c7d5d14add069a99cc7347a65e0dd677ab3f37` through `ddb54105aff8ad54c40db436872fceec968bfa06`.
-- **CI evidence implementation:**
-  - `6b1927612dd5a2f4963dcfcb625dc5f70e8580c5`
-  - `cfca3479ddc18fce477e0603a1b48f16791b4eb9`
-- **Default-branch CI infrastructure:**
-  - dedicated Python CI: `4609d9a4cd65170612ac338ddb753148bdedd505`
-  - registered `CI` identity: `27dac7ff5d229d2a686bc1dae92c00d87c426c6c`
-  - persistent dispatcher and fallbacks are present on `master`.
-- **Pending evidence:**
-  - exact-SHA Rust job result;
-  - reviewed generated `Cargo.lock` artifact;
-  - committed `Cargo.lock`;
-  - final exact-SHA green rerun;
-  - updated pass counts and run/job IDs.
+- **First successful Rust job:** run `30719636049`, job `91421155314`, candidate `edd5a94685d23a04df15c69dafed5f077fd3fc74`.
+- **Third-party warnings accepted:** Node/action deprecation messages emitted by GitHub-maintained actions and `Swatinem/rust-cache` are outside first-party source control.
+- **First-party findings fixed/pending verification:** crate license inheritance and orphaned worktree gitlink.
+- **Pending evidence:** final exact-head Rust success, metadata license confirmation, warning-free checkout cleanup, and final status issue update.
 
 **Task 1 gate:** **OPEN.**
 
@@ -421,10 +423,10 @@ Every action in the full task-definition file remains open unless stated otherwi
 **Task status:** Partial.
 
 ## 25.1 CI matrix
-- [ ] Linux debug tests — configured; exact-SHA pass pending.
-- [ ] Linux release tests/perft — release build configured; release tests/perft pending.
-- [ ] Clippy all targets/features — configured; exact-SHA pass pending.
-- [ ] rustdoc — configured; exact-SHA pass pending.
+- [x] Linux debug tests for the Task 1 skeleton.
+- [ ] Linux release tests/perft — release build passes; release tests/perft remain future-task work.
+- [x] Clippy all targets/features for the Task 1 skeleton.
+- [x] rustdoc for the Task 1 skeleton.
 - [ ] AArch64 cross-build.
 - [ ] Android AArch64 build.
 - [ ] JNI smoke/instrumented job.
@@ -436,7 +438,7 @@ Every action in the full task-definition file remains open unless stated otherwi
 - [x] Preserve Python validation until migration signoff.
 - [x] Separate Python CI and Rust `CI` workflow identities on `master`.
 - [x] Add exact-SHA baseline and lockfile artifacts.
-- [x] Add persistent Rust CI dispatch infrastructure.
+- [x] Add deterministic issue-triggered Rust CI dispatch.
 
 ## 25.2 Documentation
 - [x] Workspace architecture.
@@ -469,7 +471,7 @@ Every action in the full task-definition file remains open unless stated otherwi
 
 ## 25.4 Generated artifacts
 - [ ] Prevent unintended transient benchmark/output commits.
-  - **Partial:** `target/` is ignored; CI uploads evidence and `Cargo.lock` deliberately.
+  - **Partial:** `target/` is ignored; CI uploads evidence deliberately; orphaned worktree gitlink cleanup awaits final verification.
 - [ ] Version schemas and fixtures intentionally.
 - [ ] Document generated Zobrist/book/weight artifacts.
 
@@ -496,14 +498,13 @@ Every action in the full task-definition file remains open unless stated otherwi
 
 ## Immediate next operations
 
-1. Read the exact current-head `CI` run and job logs.
-2. Fix every first-party failure directly on `rust-engine`.
-3. Commit each fix and repeat the CI loop.
-4. Download and review the generated Python baseline and `Cargo.lock` artifacts.
-5. Commit reviewed `Cargo.lock`.
-6. Run final exact-SHA CI.
-7. Close Task 0 and Task 1 only after all corresponding checkboxes and exact-SHA evidence are complete.
-8. Begin Task 2 after Task 0/1 closure.
+1. Complete removal of the orphaned worktree gitlink.
+2. Trigger one uninterrupted exact-head `CI` run through issue dispatch.
+3. Verify complete Python slow/perft/UCI evidence.
+4. Verify Rust metadata reports `MIT` for all seven packages and checkout cleanup has no first-party warning.
+5. Review the final artifacts and status issue.
+6. Close Task 0 and Task 1 only after all exact-head evidence is complete.
+7. Begin Task 2 after Task 0/1 closure.
 
 ---
 
