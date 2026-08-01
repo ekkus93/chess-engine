@@ -1,1301 +1,478 @@
-# Rust Chess Engine Port TODO
+# Rust Chess Engine Port TODO — Live Status Tracker
 
-**Status:** Not started  
-**Date:** 2026-08-01  
+**Status:** In progress  
+**Date created:** 2026-08-01  
+**Last status update:** 2026-08-01  
 **Target branch:** `rust-engine`  
-**Authoritative specification:** `docs/RUST_CHESS_ENGINE_PORT_SPEC_2026-08-01.md`
+**Authoritative specification:** `docs/RUST_CHESS_ENGINE_PORT_SPEC_2026-08-01.md`  
+**Full task definitions:** `docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md`  
+**Ralph Loop status:** `docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md`
 
 ---
 
-## Goal
+## Status rules
 
-Build a new portable Rust chess engine using the useful behavior and engineering lessons from the Python implementation while deliberately rejecting its unsuitable architecture, known rules defects, clone-heavy search model, and accumulated narrow heuristic patches.
-
-The completed program must provide:
-
-- a correct Rust rules core;
-- a usable classical search engine;
-- a Linux UCI executable;
-- a stable portable Rust API;
-- a C ABI and Android JNI adapter;
-- exact perft, property, differential, fuzz, and regression coverage;
-- optional opening-book support;
-- offline self-play and versioned evaluation tuning;
-- reproducible diagnostics, benchmarks, and release evidence.
-
-This TODO is dependency-ordered. Later tasks may be prototyped early, but they must not be declared complete before their prerequisites and phase gates pass.
+- `[x]` means the action is complete and supported by repository evidence.
+- `[ ]` means the action is incomplete, blocked, unverified, or not started.
+- A note beginning with **Partial** identifies work that exists but does not yet satisfy the complete wording of the checkbox.
+- A task gate stays open until every required action and its exact-SHA validation evidence are complete.
+- The full task-definition file preserves every original action item. When an entire subsection below is marked not started, every action item in that subsection remains open.
+- Update this file in the same change set, or immediately after it, whenever implementation, testing, CI, documentation, or evidence changes a task or subtask status.
 
 ---
 
-## Program rules
+## Current task summary
 
-- [ ] Work only on the `rust-engine` branch unless an explicitly named follow-up branch is created.
-- [ ] Treat the Rust specification as authoritative for the new implementation.
-- [ ] Treat Python code and tests as reference material, not as an API-compatibility contract.
-- [ ] Do not delete or broadly rewrite the Python engine during the port.
-- [ ] Do not mark a task complete merely because it compiles.
-- [ ] Add tests with every behavioral implementation task.
-- [ ] Preserve every discovered rules mismatch as a fixed Rust regression.
-- [ ] Do not add advanced search pruning until the unpruned and baseline alpha-beta paths agree at shallow depths.
-- [ ] Do not add transcript-specific guidance modules to the Rust evaluator or ordering layer.
-- [ ] Do not use clone-per-child as the production search architecture.
-- [ ] Do not use string position keys in Rust search or repetition tracking.
-- [ ] Do not silently load weights, opening books, or configuration from conventional paths.
-- [ ] Do not allow Rust panics to cross C or JNI boundaries.
-- [ ] Record exact commands, results, benchmark environment, and commit SHA for every major completion gate.
+| Task | Status | Current result |
+|---:|---|---|
+| 0 | **In progress** | Source inventory, decision record, defect record, and capture tooling complete; fresh Python runtime evidence pending. |
+| 1 | **Implemented, unverified** | Seven-crate workspace and initial CI are present; Rust execution evidence, `Cargo.lock` review, license decision, and exact-SHA CI remain pending. |
+| 2 | **Not started** | Core value types have not been implemented. |
+| 3 | **Not started** | `Position` and invariants have not been implemented. |
+| 4 | **Not started** | Strict FEN and UCI move notation have not been implemented. |
+| 5 | **Not started** | Attack-generation infrastructure has not been implemented. |
+| 6 | **Not started** | Pseudo-legal move generation has not been implemented. |
+| 7 | **Not started** | Complete legal move generation and special rules have not been implemented. |
+| 8 | **Not started** | Make/unmake and incremental state have not been implemented. |
+| 9 | **Not started** | Zobrist hashing and canonical repetition identity have not been implemented. |
+| 10 | **Not started** | `Game`, history, and Rust draw semantics have not been implemented. |
+| 11 | **Not started** | Authoritative Rust perft and differential validation have not been implemented. |
+| 12 | **Not started** | Baseline Rust evaluation has not been implemented. |
+| 13 | **Not started** | Reference search and negamax alpha-beta have not been implemented. |
+| 14 | **Not started** | Quiescence and principled move ordering have not been implemented. |
+| 15 | **Not started** | Fixed-capacity transposition table has not been implemented. |
+| 16 | **Not started** | Iterative deepening, PV, limits, and cancellation have not been implemented. |
+| 17 | **Not started** | Linux UCI behavior has not been implemented beyond an empty crate placeholder. |
+| 18 | **Not started** | Safe API, C ABI, and Android JNI behavior have not been implemented beyond empty crate placeholders. |
+| 19 | **Not started** | Optional Rust opening-book infrastructure has not been implemented. |
+| 20 | **Not started** | Rust self-play and dataset tooling have not been implemented. |
+| 21 | **Not started** | Rust named-schema tuning has not been implemented. |
+| 22 | **Not started** | Advanced classical terms have not been evaluated under the Rust protocol. |
+| 23 | **Not started** | Property, fuzz, sanitizer, and robustness gates have not been implemented. |
+| 24 | **Not started** | Performance hardening and regression budgets have not been implemented. |
+| 25 | **Partial** | Workspace architecture documentation and initial Linux Rust CI configuration exist; the full matrix and developer workflow remain open. |
+| 26 | **Not started** | v0.1 signoff has not begun. |
+| 27 | **Not started** | Full port-program signoff has not begun. |
 
 ---
 
-## Standard validation commands
+## Program rules — ongoing constraints
 
-These commands become mandatory as soon as the referenced crates and targets exist:
+These are continuing rules rather than one-time completion items. They remain applicable until final signoff.
 
-```bash
-cargo fmt --all -- --check
-cargo clippy --workspace --all-targets --all-features -- -D warnings
-cargo test --workspace --all-features
-cargo doc --workspace --no-deps
-```
-
-Release/perft gates:
-
-```bash
-cargo test -p chess-core --release perft
-cargo run --release -p chess-tools -- perft --suite standard
-cargo run --release -p chess-tools -- divide --fen "<FEN>" --depth <N>
-```
-
-Cross-platform gates, once configured:
-
-```bash
-cargo build --workspace --target aarch64-unknown-linux-gnu
-cargo build -p chess-jni --target aarch64-linux-android
-```
-
-The exact Android command may use `cargo-ndk`; document the final supported workflow rather than maintaining multiple undocumented paths.
+- Work only on the `rust-engine` branch unless the user explicitly requests another branch.
+- Treat the Rust specification as authoritative for the new implementation.
+- Treat Python code and tests as reference material, not as an API-compatibility contract.
+- Do not delete or broadly rewrite the Python engine during the port.
+- Do not mark a task complete merely because it compiles.
+- Add tests with every behavioral implementation task.
+- Preserve every discovered rules mismatch as a fixed Rust regression.
+- Do not add advanced pruning before reference and baseline alpha-beta paths agree at shallow depths.
+- Do not add transcript-specific guidance modules to Rust evaluation or ordering.
+- Do not use clone-per-child as production search architecture.
+- Do not use string position keys in Rust search or repetition tracking.
+- Do not silently load weights, books, or configuration from conventional paths.
+- Do not allow Rust panics to cross C or JNI boundaries.
+- Record exact commands, results, environment, and commit SHA for every major gate.
+- Keep this TODO's task and subtask statuses synchronized with repository reality.
 
 ---
 
 # Task 0: Establish the port baseline and decision record
 
+**Task status:** In progress — source-grounded work is complete; runtime evidence is pending.
+
 ## 0.1 Preserve the Python baseline
 
-- [ ] Record the current `rust-engine` branch SHA before Rust source changes.
+- [x] Record the current `rust-engine` branch SHA before Rust source changes.
+  - Frozen baseline: `f743013a84173b551eac5488c638cb48098ec6d0`.
 - [ ] Run and record the current fast Python test suite.
 - [ ] Run and record the current slow Python test suite when practical.
 - [ ] Record current Python perft results and timings for existing exact positions.
 - [ ] Record current UCI smoke behavior.
-- [ ] Record current engine-strength/self-play artifacts that are useful as historical comparison only.
+- [x] Record current engine-strength/self-play artifacts useful as historical comparison only.
+  - Historical self-play, tuning, Stockfish-annotation, and validation evidence is summarized in the baseline record.
 
 ## 0.2 Create a Python-reference inventory
 
-- [ ] Inventory Python modules by category:
-  - [ ] rules and board state;
-  - [ ] FEN and notation;
-  - [ ] search;
-  - [ ] evaluation;
-  - [ ] opening book;
-  - [ ] self-play and tuning;
-  - [ ] UCI;
-  - [ ] CLI/TUI;
-  - [ ] transcript-specific guidance.
-- [ ] Map each retained concept to the relevant Rust milestone.
-- [ ] Mark excluded modules explicitly so they are not accidentally translated later.
+- [x] Inventory Python modules by category:
+  - [x] rules and board state;
+  - [x] FEN and notation;
+  - [x] search;
+  - [x] evaluation;
+  - [x] opening book;
+  - [x] self-play and tuning;
+  - [x] UCI;
+  - [x] CLI/TUI;
+  - [x] transcript-specific guidance.
+- [x] Map each retained concept to the relevant Rust milestone.
+- [x] Mark excluded modules explicitly so they are not accidentally translated later.
 
 ## 0.3 Record known Python defects that Rust must not copy
 
-- [ ] Add fixed design notes for:
-  - [ ] incorrect dead-position and insufficient-material shortcuts;
-  - [ ] castling transit/destination safety evaluated with the source king still blocking lines;
-  - [ ] clone-per-child search;
-  - [ ] string position keys;
-  - [ ] raw en-passant field included in every repetition key;
-  - [ ] permissive FEN parsing;
-  - [ ] implicit queen promotion in core execution;
-  - [ ] multiple internal move representations;
-  - [ ] unbounded per-search dictionary TT;
-  - [ ] missing TT mate-score normalization;
-  - [ ] root heuristic/tie-break interactions with alpha-beta bounds;
-  - [ ] automatic tuned-weight file discovery;
-  - [ ] global UCI control/output state;
-  - [ ] narrow transcript-driven evaluator and move-ordering patches.
+- [x] Add fixed design notes for:
+  - [x] incorrect dead-position and insufficient-material shortcuts;
+  - [x] castling transit/destination safety evaluated with the source king still blocking lines;
+  - [x] clone-per-child search;
+  - [x] string position keys;
+  - [x] raw en-passant field included in every repetition key;
+  - [x] permissive FEN parsing;
+  - [x] implicit queen promotion in core execution;
+  - [x] multiple internal move representations;
+  - [x] unbounded per-search dictionary TT;
+  - [x] missing TT mate-score normalization;
+  - [x] root heuristic/tie-break interactions with alpha-beta bounds;
+  - [x] automatic tuned-weight file discovery;
+  - [x] global UCI control/output state;
+  - [x] narrow transcript-driven evaluator and move-ordering patches.
 
 ## 0.4 Completion evidence
 
-- [ ] Commit the baseline/decision record.
-- [ ] Record the commit SHA in this task's completion note.
-- [ ] Do not begin architectural migration by editing Python internals.
+- [x] Commit the baseline/decision record.
+- [x] Record the commit SHA in this task's completion note.
+- [x] Do not begin architectural migration by editing Python internals.
 
-**Task 0 gate:** The existing implementation is reproducibly described, known bad behavior is documented, and retained/excluded concepts are traceable.
+### Task 0 completion note — gate still open
+
+- **Baseline commit:** `234e26c1597756aac01ef24b085624c2a834d4e6`
+- **Capture-tool commits:**
+  - `a579aa28f072934a67df082cbf830ea51831c971`
+  - `fba5ca2e0ca6139a943f4018dadb925e2c37a88d`
+- **Files:**
+  - `docs/RUST_CHESS_ENGINE_PORT_BASELINE_2026-08-01.md`
+  - `scripts/capture-rust-port-python-baseline.sh`
+- **Commands still required:**
+
+  ```bash
+  bash scripts/capture-rust-port-python-baseline.sh
+  RUN_SLOW=1 bash scripts/capture-rust-port-python-baseline.sh
+  ```
+
+- **Evidence status:** Source inventory and decision evidence complete; runtime evidence not yet captured.
+- **Remaining risk:** The current Python reference SHA has not received fresh fast-test, slow-test, timed-perft, and UCI-smoke execution evidence.
+
+**Task 0 gate:** **OPEN.** Do not claim completion until the pending runtime evidence is committed and reviewed.
 
 ---
 
 # Task 1: Create the Cargo workspace and dependency boundaries
 
+**Task status:** Implemented but unverified.
+
 ## 1.1 Workspace skeleton
 
-- [ ] Add root `Cargo.toml` workspace configuration.
-- [ ] Add crates:
-  - [ ] `crates/chess-core`;
-  - [ ] `crates/chess-search`;
-  - [ ] `crates/chess-uci`;
-  - [ ] `crates/chess-ffi`;
-  - [ ] `crates/chess-jni`;
-  - [ ] `crates/chess-tools`;
-  - [ ] `crates/chess-tune`.
-- [ ] Add minimal crate-level documentation describing responsibility and allowed dependencies.
+- [x] Add root `Cargo.toml` workspace configuration.
+- [x] Add crates:
+  - [x] `crates/chess-core`;
+  - [x] `crates/chess-search`;
+  - [x] `crates/chess-uci`;
+  - [x] `crates/chess-ffi`;
+  - [x] `crates/chess-jni`;
+  - [x] `crates/chess-tools`;
+  - [x] `crates/chess-tune`.
+- [x] Add minimal crate-level documentation describing responsibility and allowed dependencies.
 - [ ] Keep optional or future crates buildable even if initially feature-empty.
+  - **Partial:** All crate manifests and entry points exist, but successful Cargo builds have not been executed at the current SHA.
 
 ## 1.2 Toolchain and policy
 
-- [ ] Pin or document the minimum supported Rust version.
-- [ ] Add `rustfmt` and Clippy configuration only where justified.
-- [ ] Add `#![forbid(unsafe_code)]` to `chess-core` and `chess-search`.
-- [ ] Add workspace lints and deny warnings in CI.
+- [x] Pin or document the minimum supported Rust version.
+  - MSRV: Rust `1.75`.
+- [x] Add `rustfmt` and Clippy configuration only where justified.
+- [x] Add `#![forbid(unsafe_code)]` to `chess-core` and `chess-search`.
+- [x] Add workspace lints and deny warnings in CI.
+  - `.github/workflows/ci.yml` runs Clippy with `-D warnings` and rustdoc with `RUSTDOCFLAGS=-D warnings`.
 - [ ] Add license and package metadata consistently.
+  - **Partial:** Package metadata is inherited consistently and every crate is `publish = false`; the repository owner has not selected or recorded a license.
 
 ## 1.3 Architecture enforcement
 
-- [ ] Confirm `chess-core` has no dependency on search or adapters.
-- [ ] Confirm `chess-search` depends only on portable core/support crates.
-- [ ] Confirm UCI, FFI, JNI, tools, and tuning are outward adapters.
-- [ ] Add an architecture document or dependency diagram.
+- [x] Confirm `chess-core` has no dependency on search or adapters.
+- [x] Confirm `chess-search` depends only on portable core/support crates.
+- [x] Confirm UCI, FFI, JNI, tools, and tuning are outward adapters.
+- [x] Add an architecture document or dependency diagram.
+  - Evidence: `docs/RUST_WORKSPACE_ARCHITECTURE.md`.
 
 ## 1.4 Initial CI
 
-- [ ] Add GitHub Actions jobs for formatting, Clippy, tests, and docs.
-- [ ] Keep existing Python CI intact during the port.
-- [ ] Add Linux x86-64 debug and release build coverage.
+- [x] Add GitHub Actions jobs for formatting, Clippy, tests, and docs.
+- [x] Keep existing Python CI intact during the port.
+  - Python validation remains on `master`; no Python source or test was removed.
+- [x] Add Linux x86-64 debug and release build coverage.
+  - The workflow contains debug and release workspace build steps on `ubuntu-24.04`.
 - [ ] Add AArch64 and Android compile jobs when toolchains are configured.
 
-**Task 1 gate:** Empty/minimal workspace passes format, Clippy, tests, and docs without violating dependency direction.
+### Task 1 completion note — gate still open
+
+- **Implementation range:** `11c7d5d14add069a99cc7347a65e0dd677ab3f37` through `ddb54105aff8ad54c40db436872fceec968bfa06`
+- **Status/report commits:**
+  - `273b83555c09e6cabea086780be6bc5499646eb2`
+  - `4c16e879ec13eff983d86b01defa5129349f82ec`
+- **Key files:**
+  - `Cargo.toml`
+  - `rust-toolchain.toml`
+  - `rustfmt.toml`
+  - `.github/workflows/ci.yml`
+  - `crates/*/Cargo.toml`
+  - `crates/*/src/`
+  - `docs/RUST_WORKSPACE_ARCHITECTURE.md`
+  - `docs/RUST_WORKSPACE_TASK1_VALIDATION_2026-08-01.md`
+- **Static result:** Manifest parsing, exact dependency-set checks, unsafe-policy checks, and changed-path audit passed.
+- **Dynamic commands still required:**
+
+  ```bash
+  cargo fmt --all -- --check
+  cargo check --workspace --all-targets --all-features
+  cargo clippy --workspace --all-targets --all-features -- -D warnings
+  cargo test --workspace --all-features
+  RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
+  cargo build --workspace --all-features
+  cargo build --workspace --all-features --release
+  ```
+
+- **Remaining risks:**
+  - no current-SHA Rust command execution;
+  - no reviewed/generated `Cargo.lock`;
+  - no recorded license decision;
+  - CI issue `#1` does not yet report an exact passing Task 1 SHA;
+  - Task 0 runtime evidence remains open.
+
+**Task 1 gate:** **OPEN.** The workspace must pass all dynamic gates at one exact SHA before Task 1 is marked complete.
 
 ---
 
-# Task 2: Implement core value types and coordinate contracts
-
-## 2.1 Color and piece types
-
-- [ ] Implement `Color` with stable indexing and `opposite()`.
-- [ ] Implement `PieceKind` without an `Empty` variant.
-- [ ] Implement compact `Piece { color, kind }` without a mutable square.
-- [ ] Add conversion/display tests.
-
-## 2.2 Square
-
-- [ ] Implement validated `Square(u8)`.
-- [ ] Retain canonical mapping:
-  - [ ] `a8 = 0`;
-  - [ ] `h8 = 7`;
-  - [ ] `a1 = 56`;
-  - [ ] `h1 = 63`.
-- [ ] Implement file/rank/row/index accessors.
-- [ ] Implement algebraic parse/format.
-- [ ] Test all 64 squares round-trip.
-- [ ] Keep unchecked construction private or tightly scoped.
-
-## 2.3 Bitboard
-
-- [ ] Implement a `Bitboard` newtype.
-- [ ] Add set, clear, contains, pop-lsb, iteration, and count operations.
-- [ ] Add edge-mask and shift helpers that cannot wrap across files.
-- [ ] Add exhaustive basic-operation tests.
-
-## 2.4 Move encoding
-
-- [ ] Choose and document packed `Move` layout.
-- [ ] Encode source, destination, promotion, and move kind.
-- [ ] Implement accessors and stable equality/hash/order behavior.
-- [ ] Implement encode/decode round-trip tests for every move kind.
-- [ ] Ensure all four promotion and promotion-capture identities remain distinct.
-- [ ] Do not expose the bit layout as a stable external ABI.
-
-## 2.5 Castling rights and counters
-
-- [ ] Implement four-bit `CastlingRights`.
-- [ ] Add color/side query and clearing helpers.
-- [ ] Add typed move-counter handling.
-
-**Task 2 gate:** All core value types are compact, documented, exhaustive tests pass, and there is one internal move identity.
-
----
-
-# Task 3: Implement `Position` and invariants
-
-## 3.1 Hybrid representation
-
-- [ ] Implement private mailbox storage.
-- [ ] Implement piece bitboards by color and kind.
-- [ ] Implement color occupancy and all occupancy.
-- [ ] Cache king squares.
-- [ ] Store side to move, castling rights, en-passant state, counters, and Zobrist placeholder/state.
-
-## 3.2 Constructors
-
-- [ ] Implement an empty internal builder for parser/tests.
-- [ ] Implement standard starting position.
-- [ ] Ensure playable constructors require exactly one king per side.
-- [ ] Provide explicit analysis-position construction only if needed; do not weaken default invariants.
-
-## 3.3 Accessors and mutation boundary
-
-- [ ] Implement read-only piece lookup.
-- [ ] Keep direct piece placement private or test-only.
-- [ ] Implement internal add/remove/move primitives that update all redundant structures.
-- [ ] Prevent adapters from mutating mailbox/bitboards directly.
-
-## 3.4 Invariant checker
-
-- [ ] Implement debug/test invariant validation for:
-  - [ ] mailbox/bitboard agreement;
-  - [ ] occupancy agreement;
-  - [ ] no overlap;
-  - [ ] one king per side;
-  - [ ] correct cached king squares;
-  - [ ] valid en-passant state;
-  - [ ] correct hash once hashing exists.
-- [ ] Run invariant checks in all state-transition tests.
-
-## 3.5 Equality and clone
-
-- [ ] Implement logical equality suitable for restoration tests.
-- [ ] Allow `Clone` for tests/application snapshots.
-- [ ] Add an explicit comment that production recursive search must not clone per node.
-
-**Task 3 gate:** Starting and constructed positions satisfy invariants and redundant representations cannot diverge through public APIs.
-
----
-
-# Task 4: Implement strict FEN and UCI move notation
-
-## 4.1 Structured errors
-
-- [ ] Define `FenError`, `MoveParseError`, and related error categories.
-- [ ] Include field/rank/token context without exposing internal panics.
-
-## 4.2 Strict FEN parser
-
-- [ ] Parse exactly eight ranks and eight files each.
-- [ ] Validate piece characters.
-- [ ] Validate active color exactly.
-- [ ] Validate castling syntax and duplicates.
-- [ ] Validate en-passant syntax and target rank.
-- [ ] Validate halfmove and fullmove counters.
-- [ ] Require exactly one king per side for normal playable parsing.
-- [ ] Define and test pawn-on-promotion-rank policy.
-- [ ] Reject malformed FEN without partially mutating an existing position.
-
-## 4.3 Canonical FEN serializer
-
-- [ ] Emit all six fields.
-- [ ] Emit deterministic castling ordering.
-- [ ] Round-trip starting and curated positions.
-- [ ] Preserve counters and en-passant field according to FEN semantics.
-
-## 4.4 UCI move strings
-
-- [ ] Parse four-character normal moves.
-- [ ] Parse five-character promotions.
-- [ ] Reject invalid files, ranks, lengths, and promotion suffixes.
-- [ ] Resolve parsed coordinates against legal moves later without synthesizing an unchecked move.
-- [ ] Format every internal legal move correctly.
-
-## 4.5 Property tests
-
-- [ ] FEN parse/serialize/parse stability.
-- [ ] Square and move notation round-trip.
-- [ ] No parser panic on arbitrary input.
-
-**Task 4 gate:** Strict parsing is fail-loud, canonical serialization is stable, and malformed input cannot create partial state.
-
----
-
-# Task 5: Implement attack-generation infrastructure
-
-## 5.1 Leaper attacks
-
-- [ ] Precompute pawn attacks for both colors and all squares.
-- [ ] Precompute knight attacks for all squares.
-- [ ] Precompute king attacks for all squares.
-- [ ] Add exhaustive edge/corner tests.
-
-## 5.2 Sliding attacks
-
-- [ ] Implement correct rook attacks for arbitrary occupancy.
-- [ ] Implement correct bishop attacks for arbitrary occupancy.
-- [ ] Implement queen attacks as combined sliding attacks.
-- [ ] Begin with clear ray scans if necessary.
-- [ ] Add blocker-before, blocker-on-target, edge, and empty-board tests.
-
-## 5.3 Geometric tables
-
-- [ ] Add ray, line, and between-square helpers where useful.
-- [ ] Test collinearity and intermediate-square masks.
-
-## 5.4 Position attack queries
-
-- [ ] Implement attackers-to-square.
-- [ ] Implement square-attacked-by-color.
-- [ ] Implement checkers-to-king.
-- [ ] Implement pinned-piece discovery or equivalent supporting data.
-- [ ] Ensure pawn attack semantics do not depend on occupancy.
-
-## 5.5 Differential attack fixtures
-
-- [ ] Compare representative attack maps against a trusted oracle or independently generated fixtures.
-
-**Task 5 gate:** All attack primitives are exhaustively tested and independent of move-legality assumptions.
-
----
-
-# Task 6: Implement pseudo-legal move generation
-
-## 6.1 Pawn moves
-
-- [ ] Single pushes.
-- [ ] Double pushes with start-rank and intermediate-square checks.
-- [ ] Captures.
-- [ ] En-passant candidates.
-- [ ] Four quiet promotions.
-- [ ] Four capture promotions.
-
-## 6.2 Piece moves
-
-- [ ] Knights.
-- [ ] Bishops.
-- [ ] Rooks.
-- [ ] Queens.
-- [ ] Kings without final king-safety filtering.
-
-## 6.3 Castling candidates
-
-- [ ] Generate only when basic occupancy/right conditions permit.
-- [ ] Leave complete safety validation to the legal layer.
-
-## 6.4 Move list
-
-- [ ] Use bounded stack-friendly storage where practical.
-- [ ] Avoid per-move heap allocation.
-- [ ] Define deterministic generation order for testing, without treating it as a strength feature.
-
-## 6.5 Tests
-
-- [ ] Starting-position pseudo-legal counts.
-- [ ] Promotions and underpromotions.
-- [ ] Edge pawns and knights.
-- [ ] Sliding blockers.
-- [ ] En-passant candidate geometry.
-
-**Task 6 gate:** Pseudo-legal generation is complete, allocation-conscious, and preserves exact move identity.
-
----
-
-# Task 7: Implement complete legal move generation and special rules
-
-## 7.1 King-safety filtering
-
-- [ ] Implement a correctness-first legal filter using make/check/unmake or direct masks.
-- [ ] Reject every move that leaves the moving king attacked.
-- [ ] Reject king moves into attacked squares.
-- [ ] Never generate king captures.
-
-## 7.2 Check evasions
-
-- [ ] Single-check capture.
-- [ ] Single-check block.
-- [ ] King move.
-- [ ] Double-check king-only moves.
-- [ ] Pinned-piece restrictions.
-
-## 7.3 Castling correctness
-
-- [ ] Validate current king not in check.
-- [ ] Validate transit square.
-- [ ] Validate destination square.
-- [ ] Validate correct king and rook placement.
-- [ ] Validate empty path.
-- [ ] Validate castling right.
-- [ ] Add regression where vacating the king source reveals a sliding attack.
-- [ ] Add all four legal castling cases.
-- [ ] Add moved-away-and-back king/rook regressions.
-
-## 7.4 En-passant correctness
-
-- [ ] Validate target and captured pawn.
-- [ ] Remove both source pawn and captured pawn before king-safety evaluation.
-- [ ] Add horizontal and diagonal discovered-check regressions.
-- [ ] Add en-passant target expiry tests.
-
-## 7.5 Promotion correctness
-
-- [ ] Require explicit promotion identity in internal legal moves.
-- [ ] Reject non-pawn promotion flags.
-- [ ] Reject promotion on a non-promotion rank.
-- [ ] Preserve all underpromotions through generation and application.
-
-## 7.6 Initial legal perft
-
-- [ ] Starting position D1-D4 exact.
-- [ ] Add `perft` recursive helper using make/unmake.
-- [ ] Add `divide` output.
-
-**Task 7 gate:** Exact starting perft passes, special rules have direct regressions, and no unresolved legal-move mismatch remains in the initial fixture set.
-
----
-
-# Task 8: Complete make/unmake and incremental state
-
-## 8.1 Undo structure
-
-- [ ] Store captured piece and square.
-- [ ] Store prior castling rights.
-- [ ] Store prior en-passant state.
-- [ ] Store prior clocks.
-- [ ] Store prior hash or complete reversible hash delta.
-- [ ] Restore promotion, castling rook move, and king-square cache correctly.
-
-## 8.2 Move application paths
-
-- [ ] Public checked move application.
-- [ ] Internal generated-legal move application.
-- [ ] No partial mutation on public failure.
-- [ ] Exact side-to-move and fullmove transitions.
-- [ ] Halfmove reset on pawn move and capture.
-
-## 8.3 Restoration tests
-
-For every move category:
-
-- [ ] snapshot position;
-- [ ] make move;
-- [ ] validate invariants;
-- [ ] unmake move;
-- [ ] assert field-for-field logical equality with snapshot;
-- [ ] assert hash equality after Task 9.
-
-Move categories:
-
-- [ ] quiet;
-- [ ] double pawn push;
-- [ ] normal capture;
-- [ ] en passant;
-- [ ] king castle;
-- [ ] queen castle;
-- [ ] each promotion;
-- [ ] promotion capture;
-- [ ] rook capture that changes castling rights.
-
-## 8.4 Sequence restoration
-
-- [ ] Random legal playout then complete reverse unmake.
-- [ ] Repeated make/unmake under property tests.
-- [ ] No clone-per-child in perft/search paths.
-
-**Task 8 gate:** Every legal move category reverses exactly, and random sequences return to the original position with all invariants intact.
-
----
-
-# Task 9: Implement Zobrist hashing and canonical repetition identity
-
-## 9.1 Zobrist tables
-
-- [ ] Deterministically generate or embed piece-square keys.
-- [ ] Add side-to-move key.
-- [ ] Add castling-state keys.
-- [ ] Add en-passant file/square keys under documented canonical policy.
-- [ ] Version or document generated constants.
-
-## 9.2 Full hash computation
-
-- [ ] Implement authoritative recomputation.
-- [ ] Test stable hash for known fixtures.
-
-## 9.3 Incremental updates
-
-- [ ] Quiet moves.
-- [ ] Captures.
-- [ ] Double pawn pushes.
-- [ ] En passant.
-- [ ] Castling.
-- [ ] Promotions.
-- [ ] Castling-right changes.
-- [ ] Side-to-move changes.
-
-## 9.4 Canonical en-passant identity
-
-- [ ] Define when en-passant changes the repetition key.
-- [ ] Ensure positions with a non-capturable FEN en-passant target compare correctly for repetition.
-- [ ] Add capturable/non-capturable target regressions.
-
-## 9.5 Hash verification
-
-- [ ] Compare incremental and recomputed hash after every move in randomized tests.
-- [ ] Verify unmake restores the exact prior hash.
-
-**Task 9 gate:** No randomized hash mismatch remains and repetition identity is not based on allocated strings.
-
----
-
-# Task 10: Implement `Game`, repetition history, and correct draw semantics
-
-## 10.1 `Game` state
-
-- [ ] Own current `Position`.
-- [ ] Own played move/undo history as needed.
-- [ ] Own position-hash history.
-- [ ] Track repetition counts or equivalent efficient history.
-- [ ] Expose reset, set-position, play, undo, and status operations.
-
-## 10.2 Mate and stalemate
-
-- [ ] Checkmate when no legal moves and side to move is in check.
-- [ ] Stalemate when no legal moves and side to move is not in check.
-- [ ] Add canonical fixtures.
-
-## 10.3 Claimable draws
-
-- [ ] Threefold repetition.
-- [ ] Fifty-move rule.
-- [ ] Expose claimability without silently ending the game unless caller policy chooses to claim.
-
-## 10.4 Automatic draws
-
-- [ ] Fivefold repetition.
-- [ ] Seventy-five-move rule.
-- [ ] Dead position.
-- [ ] Checkmate precedence on the threshold move.
-
-## 10.5 Conservative dead-position logic
-
-- [ ] Implement only cases proven to be dead.
-- [ ] Bare kings.
-- [ ] King and single bishop versus king.
-- [ ] King and single knight versus king.
-- [ ] Bishop-only same-color-complex cases where mate is impossible.
-- [ ] Add non-dead regressions for two bishops, bishop+knight, and two-knight constructions where mate is reachable with cooperation.
-- [ ] Document any intentionally unsupported exact dead-position cases.
-- [ ] Never declare a potentially mate-reachable position automatically drawn.
-
-## 10.6 Search-facing history
-
-- [ ] Provide root history to search.
-- [ ] Maintain reversible line history without growing string tuples.
-- [ ] Define draw score and optional future contempt separately from rules status.
-
-**Task 10 gate:** Claimable and automatic conditions are distinct, known Python draw bugs are rejected by tests, and game/search histories agree.
-
----
-
-# Task 11: Build authoritative perft and differential validation
-
-## 11.1 Standard exact perft suite
-
-Implement the specification's exact D1-D4 counts for:
-
-- [ ] starting position;
-- [ ] Kiwipete;
-- [ ] en-passant/rook-ending stress position;
-- [ ] castling/promotion/pin stress position;
-- [ ] promotion/check-evasion stress position;
-- [ ] tactical positional stress position.
-
-## 11.2 Slow perft
-
-- [ ] Add higher-depth counts to slow/nightly tests where runtime permits.
-- [ ] Keep fast CI bounded.
-
-## 11.3 Divide tool
-
-- [ ] Accept FEN and depth.
-- [ ] Print canonical UCI root moves and child counts.
-- [ ] Print total and elapsed time.
-- [ ] Stable output suitable for comparison scripts.
-
-## 11.4 Differential oracle harness
-
-- [ ] Add a development tool using `python-chess` or another trusted oracle.
-- [ ] Compare legal UCI move sets.
-- [ ] Compare post-move FEN.
-- [ ] Compare perft.
-- [ ] Run seeded random legal playouts.
-- [ ] Save failing FEN, move sequence, seed, and both results.
-- [ ] Convert every resolved mismatch into a Rust regression.
-
-## 11.5 Corpus gate
-
-- [ ] Build a committed corpus of tricky positions.
-- [ ] Include all special-rule and discovered-bug fixtures.
-- [ ] Record oracle/tool version used to generate expectations.
-
-**Task 11 gate:** All exact perft positions pass and the accepted differential corpus has zero unresolved mismatches.
-
----
-
-# Task 12: Implement the baseline evaluator and trace
-
-## 12.1 Evaluation score convention
-
-- [ ] Score from side-to-move or documented internal negamax perspective.
-- [ ] Define centipawn units.
-- [ ] Reserve mate-score band outside normal evaluation range.
-- [ ] Add color/mirror symmetry tests.
-
-## 12.2 Baseline terms
-
-- [ ] Material.
-- [ ] Tapered middlegame/endgame phase.
-- [ ] Piece-square tables.
-- [ ] Mobility.
-- [ ] Isolated pawns.
-- [ ] Doubled pawns.
-- [ ] Passed pawns.
-- [ ] Connected pawns/passers.
-- [ ] Bishop pair.
-- [ ] Rook open/semi-open files.
-- [ ] Rook seventh-rank activity.
-- [ ] King safety by phase.
-- [ ] Space or central control.
-- [ ] Endgame king activity.
-
-## 12.3 Evaluation efficiency
-
-- [ ] Avoid heap allocation in normal evaluation.
-- [ ] Reuse attack and pawn information where practical.
-- [ ] Benchmark each major term.
-
-## 12.4 Evaluation trace
-
-- [ ] Add opt-in named component breakdown.
-- [ ] Ensure normal search does not allocate trace maps/strings.
-- [ ] Add sum-of-components consistency tests.
-
-## 12.5 Named weight schema
-
-- [ ] Define versioned Rust weight structures.
-- [ ] Add explicit defaults.
-- [ ] Add validated serialization/deserialization in an adapter/tool crate.
-- [ ] Reject incompatible schema versions.
-- [ ] Include weight-set identifier/checksum.
-- [ ] Do not auto-load files.
-
-## 12.6 Exclusion audit
-
-- [ ] Confirm no review-loop, anti-drift, transcript-specific, or exact-scenario guidance was ported.
-
-**Task 12 gate:** Compact evaluator is symmetric, traced, benchmarked, explicitly configured, and free of narrow Python patch modules.
-
----
-
-# Task 13: Implement reference search and negamax alpha-beta
-
-## 13.1 Reference search
-
-- [ ] Implement shallow no-prune negamax/minimax for tests.
-- [ ] Count nodes.
-- [ ] Handle terminal scores and draws consistently.
-
-## 13.2 Negamax alpha-beta
-
-- [ ] Implement recursive negamax.
-- [ ] Remove maximizing/minimizing dual branches.
-- [ ] Use side-to-move score convention.
-- [ ] Implement mate distance by ply.
-- [ ] Return a legal best move.
-- [ ] Integrate game and line repetition.
-
-## 13.3 Equivalence tests
-
-- [ ] Compare no-prune and alpha-beta scores at shallow depths.
-- [ ] Compare chosen moves when scores are uniquely best.
-- [ ] Confirm alpha-beta visits no more nodes than reference on curated trees.
-
-## 13.4 Search immutability
-
-- [ ] Search root position is unchanged after completion.
-- [ ] Root position is unchanged after cancellation.
-- [ ] Invariant and hash checks pass after every search in debug tests.
-
-## 13.5 Terminal fixtures
-
-- [ ] Mate in one.
-- [ ] Mated position.
-- [ ] Stalemate.
-- [ ] Claimable and automatic draws.
-- [ ] Shorter mate preferred.
-- [ ] Longer survival preferred when being mated.
-
-**Task 13 gate:** Baseline alpha-beta is score-equivalent to the reference search at accepted shallow depths and leaves root state untouched.
-
----
-
-# Task 14: Implement quiescence and principled move ordering
-
-## 14.1 Quiescence
-
-- [ ] Stand-pat only when not in check.
-- [ ] All legal evasions when in check.
-- [ ] Captures.
-- [ ] Promotions.
-- [ ] Alpha-beta bounds.
-- [ ] Repetition/draw handling.
-- [ ] Cancellation checks.
-- [ ] Bounded depth/explosion guard.
-
-## 14.2 Tactical ordering
-
-- [ ] TT move hook, initially no-op until TT exists.
-- [ ] Promotions.
-- [ ] MVV-LVA capture ordering.
-- [ ] Optional static exchange evaluation only after baseline works.
-
-## 14.3 Quiet ordering
-
-- [ ] Killer moves by ply.
-- [ ] History heuristic by side/from/to or piece/to.
-- [ ] Stable encoded-move tie-break.
-- [ ] Optional previous-PV move.
-
-## 14.4 Correctness tests
-
-- [ ] Horizon capture sequence.
-- [ ] In-check leaf may not stand pat.
-- [ ] Promotion sequence.
-- [ ] Poisoned capture where qsearch changes evaluation.
-- [ ] Quiescence boundedness.
-
-## 14.5 Explicit exclusions
-
-- [ ] No transcript review-loop ordering.
-- [ ] No anti-drift scenario scoring.
-- [ ] No root heuristic that can override a better exact score.
-- [ ] No large strategic evaluation duplicated inside ordering.
-
-**Task 14 gate:** Tactical leaf behavior is correct, ordering reduces nodes in benchmark positions, and search score semantics remain unchanged.
-
----
-
-# Task 15: Implement the fixed-capacity transposition table
-
-## 15.1 Entry design
-
-- [ ] Verification key/hash fragment.
-- [ ] Depth.
-- [ ] exact/lower/upper bound.
-- [ ] normalized score.
-- [ ] best move.
-- [ ] age/generation.
-
-## 15.2 Storage layout
-
-- [ ] Fixed memory configured in MiB.
-- [ ] Bucket/cluster design.
-- [ ] Predictable allocation failure behavior.
-- [ ] Explicit clear/new-generation operations.
-
-## 15.3 Mate normalization
-
-- [ ] Normalize ply-relative mate scores on store.
-- [ ] Denormalize on probe.
-- [ ] Test same TT entry reached at different plies.
-
-## 15.4 Probe semantics
-
-- [ ] Depth sufficiency.
-- [ ] Exact hit.
-- [ ] Lower-bound cutoff.
-- [ ] Upper-bound cutoff.
-- [ ] Best-move use even when score cannot be reused.
-- [ ] Safe handling of repetition-sensitive nodes.
-
-## 15.5 Replacement policy
-
-- [ ] Depth-preferred replacement.
-- [ ] Age awareness.
-- [ ] Document collision behavior.
-- [ ] Add deterministic tests.
-
-## 15.6 Diagnostics and benchmarks
-
-- [ ] probes;
-- [ ] hits;
-- [ ] exact/bound hits;
-- [ ] replacement counts if useful;
-- [ ] hash fullness estimate;
-- [ ] probe/store microbenchmarks.
-
-**Task 15 gate:** TT is bounded, mate-safe, correctly flagged, measurably useful, and has no unbounded production map fallback.
-
----
-
-# Task 16: Add iterative deepening, aspiration windows, PV, limits, and cancellation
-
-## 16.1 Iterative deepening
-
-- [ ] Search depth 1 through requested maximum.
-- [ ] Preserve completed result after each iteration.
-- [ ] Reuse TT/history appropriately.
-- [ ] Report per-depth diagnostics.
-
-## 16.2 Aspiration windows
-
-- [ ] Center on prior iteration score.
-- [ ] Detect fail-low and fail-high.
-- [ ] Re-search with a safe expanded/full window.
-- [ ] Record retry diagnostics.
-- [ ] Add regression proving a bound cannot be mistaken for an exact root score.
-
-## 16.3 Principal variation
-
-- [ ] Reconstruct PV from search data safely.
-- [ ] Validate every PV move is legal in sequence.
-- [ ] Avoid TT collision loops.
-- [ ] Return ponder move when available.
-
-## 16.4 Search limits
-
-- [ ] depth;
-- [ ] nodes;
-- [ ] soft time;
-- [ ] hard time;
-- [ ] infinite;
-- [ ] explicit stop flag.
-
-## 16.5 Responsive cancellation
-
-- [ ] Check inside the tree at bounded node intervals.
-- [ ] Stop before arbitrary full-depth completion.
-- [ ] Preserve root position.
-- [ ] Return last fully completed iteration.
-- [ ] Define fallback when no iteration completed.
-- [ ] Benchmark cancellation latency.
-
-## 16.6 Search result API
-
-- [ ] best move;
-- [ ] ponder move;
-- [ ] typed score;
-- [ ] completed depth;
-- [ ] selective depth;
-- [ ] nodes and qnodes;
-- [ ] elapsed time;
-- [ ] PV;
-- [ ] termination reason.
-
-## 16.7 Optional check extension
-
-- [ ] Add a bounded check extension only after baseline tests pass.
-- [ ] Prevent unbounded extension chains.
-- [ ] Record extension diagnostics.
-
-**Task 16 gate:** Fixed-depth/node searches are deterministic, timed searches cancel responsively, PVs are legal, and aspiration recovery never promotes an inexact inferior move.
-
----
-
-# Task 17: Implement the Linux UCI executable
-
-## 17.1 Protocol loop
-
-- [ ] `uci`.
-- [ ] `isready`.
-- [ ] `ucinewgame`.
-- [ ] `setoption` for supported options.
-- [ ] `position startpos`.
-- [ ] `position fen` with six fields.
-- [ ] replay `moves`.
-- [ ] `go depth`.
-- [ ] `go nodes`.
-- [ ] `go movetime`.
-- [ ] clock/increment/moves-to-go search.
-- [ ] `go infinite`.
-- [ ] `stop`.
-- [ ] `quit`.
-
-## 17.2 UCI search worker
-
-- [ ] Adapter-owned worker thread.
-- [ ] No process-global mutable search control.
-- [ ] Explicit stop token.
-- [ ] Clean shutdown and join behavior.
-- [ ] Safe new-game/position replacement rules.
-
-## 17.3 Time manager
-
-- [ ] Convert clocks into soft/hard budgets, not fixed depth.
-- [ ] Reserve safety margin.
-- [ ] Account for increment and moves-to-go.
-- [ ] Unit-test boundary cases and low-time behavior.
-
-## 17.4 Output
-
-- [ ] periodic `info depth`;
-- [ ] typed `score cp` or `score mate`;
-- [ ] nodes;
-- [ ] nps;
-- [ ] time;
-- [ ] hashfull when available;
-- [ ] PV;
-- [ ] `bestmove` and optional ponder.
-
-## 17.5 Integration tests
-
-- [ ] Handshake transcript.
-- [ ] Start position and FEN setup.
-- [ ] Illegal move input handling.
-- [ ] Fixed-depth legal best move.
-- [ ] Mate/stalemate `bestmove 0000` or documented compliant representation.
-- [ ] `stop` interrupts active search.
-- [ ] `quit` exits cleanly.
-- [ ] No stdout redirection or global state leakage between test sessions.
-
-**Task 17 gate:** Common UCI GUI workflows pass integration tests and stop works during a depth.
-
----
-
-# Task 18: Implement the safe API, C ABI, and Android JNI adapter
-
-## 18.1 Safe Rust facade
-
-- [ ] `EngineConfig`.
-- [ ] `Engine::new`.
-- [ ] set/reset position.
-- [ ] canonical FEN retrieval.
-- [ ] legal moves.
-- [ ] play move.
-- [ ] game status.
-- [ ] search.
-- [ ] cancellation handle.
-- [ ] version and weight identity.
-- [ ] ownership and thread-safety rustdoc.
-
-## 18.2 C ABI
-
-- [ ] Opaque engine handle.
-- [ ] ABI version query.
-- [ ] create/destroy.
-- [ ] UTF-8 input with explicit lengths.
-- [ ] structured result codes.
-- [ ] error-message retrieval.
-- [ ] output buffer ownership/free contract.
-- [ ] null/invalid-handle checks.
-- [ ] no Rust layout exposure.
-- [ ] `catch_unwind` at every externally callable boundary.
-
-## 18.3 C ABI tests
-
-- [ ] Native C or Rust-through-ABI smoke harness.
-- [ ] Repeated create/destroy.
-- [ ] Invalid input.
-- [ ] Search and cancellation.
-- [ ] Buffer lifecycle.
-- [ ] Panic containment test using an injected test-only fault.
-
-## 18.4 Android JNI
-
-- [ ] Build AArch64 shared library.
-- [ ] Kotlin wrapper class with deterministic native-handle ownership.
-- [ ] Position setup and legal moves.
-- [ ] Move application and status.
-- [ ] Search from a background dispatcher/thread.
-- [ ] Cancellation.
-- [ ] Error mapping.
-- [ ] Native resource close/finalization policy.
-
-## 18.5 Android test harness
-
-- [ ] Host JVM contract tests where possible.
-- [ ] Instrumented or emulator smoke test.
-- [ ] Verify no search on main thread in sample integration.
-- [ ] Verify repeated lifecycle create/search/stop/destroy.
-- [ ] Record Android target/toolchain instructions.
-
-**Task 18 gate:** Linux C ABI and Android JNI smoke paths can create an engine, set a position, obtain legal moves, search, stop, and destroy without leaks, crashes, or UI-thread blocking.
-
----
-
-# Task 19: Implement optional opening-book infrastructure
-
-## 19.1 Core abstraction
-
-- [ ] Define adapter-facing `OpeningBook`/`BookProvider` trait outside `chess-core`.
-- [ ] Define `BookMove` with move, weight, and optional metadata.
-- [ ] Ensure no filesystem dependency enters core/search crates.
-
-## 19.2 Backend format
-
-- [ ] Choose Polyglot or a versioned project-specific indexed format.
-- [ ] Document version and endianness.
-- [ ] Validate checksums/schema where applicable.
-- [ ] Reject corrupt input loudly.
-
-## 19.3 Selection policies
-
-- [ ] deterministic highest weight;
-- [ ] weighted random;
-- [ ] explicit local RNG seed;
-- [ ] legal-move validation before return.
-
-## 19.4 Adapter integration
-
-- [ ] UCI option to enable/disable book.
-- [ ] Safe API configuration.
-- [ ] Android asset-supplied book example.
-- [ ] Normal operation when no book exists.
-
-## 19.5 Tests
-
-- [ ] invalid move rejected from book;
-- [ ] deterministic tie ordering;
-- [ ] seeded weighted selection reproducibility;
-- [ ] corrupt/unsupported data error;
-- [ ] no auto-discovery.
-
-**Task 19 gate:** Book support is optional, explicit, legal, reproducible, and platform adapters supply all I/O.
-
----
-
-# Task 20: Implement self-play and versioned dataset tooling
-
-## 20.1 Self-play configuration
-
-- [ ] Independent engine config per side.
-- [ ] Fixed depth/node/time limits.
-- [ ] Fixed seed.
-- [ ] Opening diversification source.
-- [ ] Maximum ply policy.
-- [ ] Draw/adjudication policy.
-- [ ] Output path supplied explicitly.
-
-## 20.2 Game records
-
-- [ ] Moves and final result.
-- [ ] Initial position/opening identifier.
-- [ ] engine version per side.
-- [ ] evaluator/weight identity per side.
-- [ ] search limits.
-- [ ] seed.
-- [ ] termination/adjudication reason.
-- [ ] reproducible replay command.
-
-## 20.3 Position dataset schema
-
-- [ ] Versioned record format.
-- [ ] Lossless FEN or equivalent.
-- [ ] Outcome.
-- [ ] Side to move.
-- [ ] Game ID and ply.
-- [ ] Engine/evaluator metadata.
-- [ ] Filtering metadata.
-- [ ] Explicit train/validation/test split.
-
-## 20.4 Data quality
-
-- [ ] Reject empty output as success.
-- [ ] Define duplicate handling.
-- [ ] Exclude or mark opening positions according to explicit policy.
-- [ ] Define treatment of max-ply games; do not silently call all of them valid draws.
-- [ ] Add deterministic small-run integration test.
-
-**Task 20 gate:** A seeded self-play run can be replayed and produces a validated, versioned dataset with complete provenance.
-
----
-
-# Task 21: Implement named-schema Texel-style tuning and validation
-
-## 21.1 Weight schema integration
-
-- [ ] Enumerate tunable named parameters.
-- [ ] Preserve non-tunable structural constants separately.
-- [ ] Version serialization.
-- [ ] Include checksum and training metadata.
-
-## 21.2 Loss pipeline
-
-- [ ] Logistic result mapping.
-- [ ] Explicit `K` calibration.
-- [ ] Mean-squared or documented objective.
-- [ ] Train/validation separation.
-- [ ] Empty/malformed dataset failure.
-
-## 21.3 Optimizer
-
-- [ ] Implement SPSA or another documented optimizer.
-- [ ] Seed optimizer randomness.
-- [ ] Bounds/regularization for nonsensical weights.
-- [ ] Checkpoint support.
-- [ ] Resume validation.
-
-## 21.4 Reports
-
-- [ ] Initial training loss.
-- [ ] Initial validation loss.
-- [ ] Final training loss.
-- [ ] Final validation loss.
-- [ ] Parameter deltas.
-- [ ] Dataset and engine identifiers.
-- [ ] Exact command/config.
-
-## 21.5 Candidate validation
-
-- [ ] Candidate-versus-baseline match.
-- [ ] Color-balanced openings.
-- [ ] Fixed seeds/opening set.
-- [ ] Sufficient sample size documented.
-- [ ] Tactical/perft/rules suites rerun.
-- [ ] Reject candidate on correctness regression.
-- [ ] Do not auto-activate candidate output.
-
-**Task 21 gate:** Tuned weights are named, versioned, reproducible, validated out-of-sample, and explicitly activated.
-
----
-
-# Task 22: Evaluate and add advanced classical terms selectively
-
-This task covers only concepts from the retained good-items list that are not already adequately represented in the compact baseline.
-
-## 22.1 Candidate-term protocol
-
-For each proposed term:
-
-- [ ] write a concise chess definition;
-- [ ] identify overlap with existing terms;
-- [ ] add isolated fixtures;
-- [ ] verify mirror/color symmetry;
-- [ ] benchmark evaluation cost;
-- [ ] run fixed-node search comparison;
-- [ ] run controlled candidate-versus-baseline matches;
-- [ ] accept, revise, or reject with recorded evidence.
-
-## 22.2 Candidate areas
-
-- [ ] richer pawn-majority and candidate-passer modeling;
-- [ ] improved king-zone attack units;
-- [ ] defender coordination where not duplicated by king safety;
-- [ ] rook/queen battery activity;
-- [ ] minor-piece outposts and bad bishops;
-- [ ] endgame king/passer races;
-- [ ] simplification incentives encoded generally rather than scenario patches;
-- [ ] endgame phase-specific PSTs or material scaling.
-
-## 22.3 Explicit exclusions
-
-- [ ] Do not port `review_loop_guidance`.
-- [ ] Do not port `anti_drift_guidance`.
-- [ ] Do not port exact transcript move preferences.
-- [ ] Do not add hard-coded windows solely for one historical self-play position.
-- [ ] Do not add a term without measurable evidence.
-
-**Task 22 gate:** Every advanced term has an evidence record; rejected Python concepts remain excluded rather than silently reappearing under new names.
-
----
-
-# Task 23: Add property testing, fuzzing, sanitizers, and robustness gates
-
-## 23.1 Property tests
-
-- [ ] all 64 square conversions;
-- [ ] move encode/decode;
-- [ ] FEN round-trip;
-- [ ] make/unmake restoration;
-- [ ] incremental/full hash equality;
-- [ ] generated legal move accepted;
-- [ ] legal move preserves king safety;
-- [ ] internal occupancy invariants;
-- [ ] evaluator symmetry;
-- [ ] legal PV sequence.
-
-## 23.2 Fuzz targets
-
-- [ ] FEN parser;
-- [ ] UCI move parser;
-- [ ] random legal sequence plus reverse unmake;
-- [ ] game-history/repetition transitions;
-- [ ] weight parser;
-- [ ] opening-book parser;
-- [ ] C ABI buffers and handles.
-
-## 23.3 Runtime analysis
-
-- [ ] Miri-compatible core test subset.
-- [ ] Address sanitizer where supported.
-- [ ] Undefined-behavior sanitizer where supported.
-- [ ] Leak checks for FFI/JNI lifecycle harness.
-- [ ] Thread sanitizer if multi-threaded adapter code warrants it.
-
-## 23.4 Failure preservation
-
-- [ ] Every crash or mismatch gets a minimized seed/input.
-- [ ] Add regression before closing the defect.
-- [ ] Store corpus inputs under a documented path.
-
-**Task 23 gate:** Core parsers/state transitions survive fuzz smoke gates, FFI lifecycle has no known leak/UB, and all minimized failures are permanent regressions.
-
----
-
-# Task 24: Performance hardening and regression budgets
-
-## 24.1 Baseline benchmark suite
-
-- [ ] leaper attacks;
-- [ ] sliding attacks;
-- [ ] legal move generation;
-- [ ] make/unmake;
-- [ ] full and incremental hash;
-- [ ] evaluation;
-- [ ] perft positions;
-- [ ] fixed-node search set;
-- [ ] TT probe/store;
-- [ ] cancellation latency;
-- [ ] FFI legal-move/search calls.
-
-## 24.2 Profiling
-
-- [ ] Profile release perft.
-- [ ] Profile fixed-node search.
-- [ ] Identify allocation counts.
-- [ ] Confirm no recursive board clone.
-- [ ] Confirm no normal-evaluation trace allocation.
-- [ ] Confirm no string key construction in search.
-
-## 24.3 Optimizations after measurement
-
-Potential optimizations, only if justified:
-
-- [ ] direct legal generation with check/pin masks;
-- [ ] faster sliding attacks;
-- [ ] static exchange evaluation;
-- [ ] incremental evaluation components;
-- [ ] compact move-list storage;
-- [ ] TT packing improvements.
-
-## 24.4 Regression policy
-
-- [ ] Record reference hardware/toolchain.
-- [ ] Establish stable medians and variance.
-- [ ] Define acceptable regression tolerance.
-- [ ] Add non-flaky CI or scheduled performance comparison.
-- [ ] Keep correctness gates independent and mandatory.
-
-## 24.5 Android measurements
-
-- [ ] AArch64 nodes/second.
-- [ ] peak memory by hash size.
-- [ ] cancellation latency.
-- [ ] JNI overhead.
-- [ ] lifecycle stability.
-- [ ] sample app main-thread compliance.
-
-**Task 24 gate:** Performance is measured, bounded, and protected; optimizations do not weaken exact perft, restoration, hash, or differential results.
+# Tasks 2–24: Implementation status by numbered subtask
+
+Every action item in the full task-definition file remains open unless a partial cross-cutting note is stated below.
+
+## Task 2: Core value types and coordinate contracts — NOT STARTED
+
+- [ ] 2.1 Color and piece types — all action items open.
+- [ ] 2.2 Square — all action items open.
+- [ ] 2.3 Bitboard — all action items open.
+- [ ] 2.4 Move encoding — all action items open.
+- [ ] 2.5 Castling rights and counters — all action items open.
+- [ ] Task 2 gate.
+
+## Task 3: `Position` and invariants — NOT STARTED
+
+- [ ] 3.1 Hybrid representation — all action items open.
+- [ ] 3.2 Constructors — all action items open.
+- [ ] 3.3 Accessors and mutation boundary — all action items open.
+- [ ] 3.4 Invariant checker — all action items open.
+- [ ] 3.5 Equality and clone — all action items open.
+- [ ] Task 3 gate.
+
+## Task 4: Strict FEN and UCI move notation — NOT STARTED
+
+- [ ] 4.1 Structured errors — all action items open.
+- [ ] 4.2 Strict FEN parser — all action items open.
+- [ ] 4.3 Canonical FEN serializer — all action items open.
+- [ ] 4.4 UCI move strings — all action items open.
+- [ ] 4.5 Property tests — all action items open.
+- [ ] Task 4 gate.
+
+## Task 5: Attack-generation infrastructure — NOT STARTED
+
+- [ ] 5.1 Leaper attacks — all action items open.
+- [ ] 5.2 Sliding attacks — all action items open.
+- [ ] 5.3 Geometric tables — all action items open.
+- [ ] 5.4 Position attack queries — all action items open.
+- [ ] 5.5 Differential attack fixtures — all action items open.
+- [ ] Task 5 gate.
+
+## Task 6: Pseudo-legal move generation — NOT STARTED
+
+- [ ] 6.1 Pawn moves — all action items open.
+- [ ] 6.2 Piece moves — all action items open.
+- [ ] 6.3 Castling candidates — all action items open.
+- [ ] 6.4 Move list — all action items open.
+- [ ] 6.5 Tests — all action items open.
+- [ ] Task 6 gate.
+
+## Task 7: Complete legal move generation and special rules — NOT STARTED
+
+- [ ] 7.1 King-safety filtering — all action items open.
+- [ ] 7.2 Check evasions — all action items open.
+- [ ] 7.3 Castling correctness — all action items open.
+- [ ] 7.4 En-passant correctness — all action items open.
+- [ ] 7.5 Promotion correctness — all action items open.
+- [ ] 7.6 Initial legal perft — all action items open.
+- [ ] Task 7 gate.
+
+## Task 8: Make/unmake and incremental state — NOT STARTED
+
+- [ ] 8.1 Undo structure — all action items open.
+- [ ] 8.2 Move application paths — all action items open.
+- [ ] 8.3 Restoration tests — all action items open.
+- [ ] 8.4 Sequence restoration — all action items open.
+- [ ] Task 8 gate.
+
+## Task 9: Zobrist hashing and canonical repetition identity — NOT STARTED
+
+- [ ] 9.1 Zobrist tables — all action items open.
+- [ ] 9.2 Full hash computation — all action items open.
+- [ ] 9.3 Incremental updates — all action items open.
+- [ ] 9.4 Canonical en-passant identity — all action items open.
+- [ ] 9.5 Hash verification — all action items open.
+- [ ] Task 9 gate.
+
+## Task 10: `Game`, repetition history, and draw semantics — NOT STARTED
+
+- [ ] 10.1 `Game` state — all action items open.
+- [ ] 10.2 Mate and stalemate — all action items open.
+- [ ] 10.3 Claimable draws — all action items open.
+- [ ] 10.4 Automatic draws — all action items open.
+- [ ] 10.5 Conservative dead-position logic — all action items open.
+- [ ] 10.6 Search-facing history — all action items open.
+- [ ] Task 10 gate.
+
+## Task 11: Authoritative perft and differential validation — NOT STARTED
+
+- [ ] 11.1 Standard exact perft suite — all action items open.
+- [ ] 11.2 Slow perft — all action items open.
+- [ ] 11.3 Divide tool — all action items open.
+- [ ] 11.4 Differential oracle harness — all action items open.
+- [ ] 11.5 Corpus gate — all action items open.
+- [ ] Task 11 gate.
+
+## Task 12: Baseline evaluator and trace — NOT STARTED
+
+- [ ] 12.1 Evaluation score convention — all action items open.
+- [ ] 12.2 Baseline terms — all action items open.
+- [ ] 12.3 Evaluation efficiency — all action items open.
+- [ ] 12.4 Evaluation trace — all action items open.
+- [ ] 12.5 Named weight schema — all action items open.
+- [ ] 12.6 Exclusion audit — all action items open.
+- [ ] Task 12 gate.
+
+## Task 13: Reference search and negamax alpha-beta — NOT STARTED
+
+- [ ] 13.1 Reference search — all action items open.
+- [ ] 13.2 Negamax alpha-beta — all action items open.
+- [ ] 13.3 Equivalence tests — all action items open.
+- [ ] 13.4 Search immutability — all action items open.
+- [ ] 13.5 Terminal fixtures — all action items open.
+- [ ] Task 13 gate.
+
+## Task 14: Quiescence and principled move ordering — NOT STARTED
+
+- [ ] 14.1 Quiescence — all action items open.
+- [ ] 14.2 Tactical ordering — all action items open.
+- [ ] 14.3 Quiet ordering — all action items open.
+- [ ] 14.4 Correctness tests — all action items open.
+- [ ] 14.5 Explicit exclusions — all action items open.
+- [ ] Task 14 gate.
+
+## Task 15: Fixed-capacity transposition table — NOT STARTED
+
+- [ ] 15.1 Entry design — all action items open.
+- [ ] 15.2 Storage layout — all action items open.
+- [ ] 15.3 Mate normalization — all action items open.
+- [ ] 15.4 Probe semantics — all action items open.
+- [ ] 15.5 Replacement policy — all action items open.
+- [ ] 15.6 Diagnostics and benchmarks — all action items open.
+- [ ] Task 15 gate.
+
+## Task 16: Iterative deepening, PV, limits, and cancellation — NOT STARTED
+
+- [ ] 16.1 Iterative deepening — all action items open.
+- [ ] 16.2 Aspiration windows — all action items open.
+- [ ] 16.3 Principal variation — all action items open.
+- [ ] 16.4 Search limits — all action items open.
+- [ ] 16.5 Responsive cancellation — all action items open.
+- [ ] 16.6 Search result API — all action items open.
+- [ ] 16.7 Optional check extension — all action items open.
+- [ ] Task 16 gate.
+
+## Task 17: Linux UCI executable — NOT STARTED
+
+- [ ] 17.1 Protocol loop — all behavioral action items open.
+- [ ] 17.2 UCI search worker — all action items open.
+- [ ] 17.3 Time manager — all action items open.
+- [ ] 17.4 Output — all action items open.
+- [ ] 17.5 Integration tests — all action items open.
+- [ ] Task 17 gate.
+
+**Note:** The `chess-uci` crate placeholder exists under Task 1, but no Task 17 behavior is implemented.
+
+## Task 18: Safe API, C ABI, and Android JNI adapter — NOT STARTED
+
+- [ ] 18.1 Safe Rust facade — all action items open.
+- [ ] 18.2 C ABI — all action items open.
+- [ ] 18.3 C ABI tests — all action items open.
+- [ ] 18.4 Android JNI — all action items open.
+- [ ] 18.5 Android test harness — all action items open.
+- [ ] Task 18 gate.
+
+**Note:** The `chess-ffi` and `chess-jni` crate placeholders exist under Task 1, but no Task 18 ABI/JNI behavior is implemented.
+
+## Task 19: Optional opening-book infrastructure — NOT STARTED
+
+- [ ] 19.1 Core abstraction — all action items open.
+- [ ] 19.2 Backend format — all action items open.
+- [ ] 19.3 Selection policies — all action items open.
+- [ ] 19.4 Adapter integration — all action items open.
+- [ ] 19.5 Tests — all action items open.
+- [ ] Task 19 gate.
+
+## Task 20: Self-play and versioned dataset tooling — NOT STARTED
+
+- [ ] 20.1 Self-play configuration — all action items open.
+- [ ] 20.2 Game records — all action items open.
+- [ ] 20.3 Position dataset schema — all action items open.
+- [ ] 20.4 Data quality — all action items open.
+- [ ] Task 20 gate.
+
+## Task 21: Named-schema Texel-style tuning — NOT STARTED
+
+- [ ] 21.1 Weight schema integration — all action items open.
+- [ ] 21.2 Loss pipeline — all action items open.
+- [ ] 21.3 Optimizer — all action items open.
+- [ ] 21.4 Reports — all action items open.
+- [ ] 21.5 Candidate validation — all action items open.
+- [ ] Task 21 gate.
+
+## Task 22: Advanced classical terms — NOT STARTED
+
+- [ ] 22.1 Candidate-term protocol — all action items open.
+- [ ] 22.2 Candidate areas — all action items open.
+- [ ] 22.3 Explicit exclusions — all action items open.
+- [ ] Task 22 gate.
+
+## Task 23: Property testing, fuzzing, sanitizers, and robustness — NOT STARTED
+
+- [ ] 23.1 Property tests — all action items open.
+- [ ] 23.2 Fuzz targets — all action items open.
+- [ ] 23.3 Runtime analysis — all action items open.
+- [ ] 23.4 Failure preservation — all action items open.
+- [ ] Task 23 gate.
+
+## Task 24: Performance hardening and regression budgets — NOT STARTED
+
+- [ ] 24.1 Baseline benchmark suite — all action items open.
+- [ ] 24.2 Profiling — all action items open.
+- [ ] 24.3 Optimizations after measurement — all action items open.
+- [ ] 24.4 Regression policy — all action items open.
+- [ ] 24.5 Android measurements — all action items open.
+- [ ] Task 24 gate.
 
 ---
 
 # Task 25: Complete CI, documentation, and developer workflows
 
+**Task status:** Partial — initial Linux CI and workspace architecture documentation exist.
+
 ## 25.1 CI matrix
 
 - [ ] Linux debug tests.
+  - **Partial:** A debug `cargo test --workspace --all-features` step is configured but has not passed at the current SHA.
 - [ ] Linux release tests/perft.
+  - **Partial:** Release workspace build is configured; release tests/perft are not configured or verified.
 - [ ] Clippy all targets/features.
+  - **Partial:** Configured with `-D warnings`; not yet verified at the current SHA.
 - [ ] rustdoc.
+  - **Partial:** Configured with `RUSTDOCFLAGS=-D warnings`; not yet verified at the current SHA.
 - [ ] AArch64 cross-build.
 - [ ] Android AArch64 build.
 - [ ] JNI smoke/instrumented job where infrastructure supports it.
@@ -1304,25 +481,27 @@ Potential optimizations, only if justified:
 - [ ] fuzz smoke job.
 - [ ] slow/nightly perft.
 - [ ] optional strength/performance scheduled job.
-- [ ] keep Python validation until migration signoff.
+- [x] keep Python validation until migration signoff.
+  - Python implementation, tests, and master-branch validation remain preserved.
 
 ## 25.2 Documentation
 
-- [ ] workspace architecture;
-- [ ] coordinate system;
-- [ ] move encoding;
-- [ ] position invariants;
-- [ ] make/unmake;
-- [ ] FEN and move notation;
-- [ ] draw semantics;
-- [ ] hashing/repetition;
-- [ ] search and score convention;
-- [ ] TT policy;
-- [ ] evaluation terms and weights;
-- [ ] UCI usage;
-- [ ] C ABI ownership;
-- [ ] Android integration;
-- [ ] perft/differential/fuzz commands;
+- [x] workspace architecture.
+  - Evidence: `docs/RUST_WORKSPACE_ARCHITECTURE.md`.
+- [ ] coordinate system.
+- [ ] move encoding.
+- [ ] position invariants.
+- [ ] make/unmake.
+- [ ] FEN and move notation.
+- [ ] draw semantics.
+- [ ] hashing/repetition.
+- [ ] search and score convention.
+- [ ] TT policy.
+- [ ] evaluation terms and weights.
+- [ ] UCI usage.
+- [ ] C ABI ownership.
+- [ ] Android integration.
+- [ ] perft/differential/fuzz commands.
 - [ ] self-play/tuning reproducibility.
 
 ## 25.3 Developer commands
@@ -1339,126 +518,48 @@ Potential optimizations, only if justified:
 ## 25.4 Generated artifacts
 
 - [ ] Do not commit transient benchmark/output files unintentionally.
+  - **Partial:** Cargo `target/` is ignored; the full generated-artifact policy is not complete.
 - [ ] Version schemas and fixtures intentionally.
 - [ ] Document generated Zobrist/book/weight artifacts.
 
-**Task 25 gate:** A new developer can build, test, run UCI, run perft, and build Android integration from repository documentation.
+**Task 25 gate:** **OPEN.** Initial foundations exist, but the complete matrix, documentation set, and developer workflow do not.
 
 ---
 
-# Task 26: v0.1 functional-engine signoff
+# Task 26: v0.1 functional-engine signoff — NOT STARTED
 
-Complete every v0.1 item from the specification.
+- [ ] 26.1 Rules signoff — all action items open.
+- [ ] 26.2 Search signoff — all action items open.
+- [ ] 26.3 Adapter signoff — all action items open.
+- [ ] 26.4 Quality signoff — all action items open.
+- [ ] 26.5 Evidence report — all action items open.
+- [ ] Task 26 gate.
 
-## 26.1 Rules signoff
+# Task 27: Full port-program signoff — NOT STARTED
 
-- [ ] strict FEN;
-- [ ] legal move generation;
-- [ ] special moves;
-- [ ] exact make/unmake;
-- [ ] correct hash;
-- [ ] mate/stalemate;
-- [ ] claimable/automatic draws;
-- [ ] exact perft suite;
-- [ ] differential corpus clean.
-
-## 26.2 Search signoff
-
-- [ ] baseline evaluator;
-- [ ] reference search;
-- [ ] negamax alpha-beta;
-- [ ] quiescence;
-- [ ] ordering;
-- [ ] TT;
-- [ ] iterative deepening;
-- [ ] aspiration recovery;
-- [ ] legal PV;
-- [ ] responsive cancellation;
-- [ ] deterministic fixed-limit result.
-
-## 26.3 Adapter signoff
-
-- [ ] UCI integration suite;
-- [ ] safe Rust API documentation/tests;
-- [ ] C ABI lifecycle suite;
-- [ ] Android JNI smoke.
-
-## 26.4 Quality signoff
-
-- [ ] format;
-- [ ] Clippy;
-- [ ] all workspace tests;
-- [ ] release perft;
-- [ ] docs;
-- [ ] cross-builds;
-- [ ] no prohibited port pattern;
-- [ ] no unresolved P0/P1 correctness defect.
-
-## 26.5 Evidence report
-
-- [ ] Create `docs/RUST_CHESS_ENGINE_V0_1_IMPLEMENTATION_REPORT.md`.
-- [ ] Include exact commit SHA.
-- [ ] Include exact command outputs.
-- [ ] Include perft table.
-- [ ] Include differential corpus statistics.
-- [ ] Include benchmark environment/results.
-- [ ] Include UCI transcript.
-- [ ] Include C ABI/JNI evidence.
-- [ ] Include known limitations and deferred features.
-
-**Task 26 gate:** The Rust engine is a correct, playable, portable v0.1 chess engine and can become the preferred implementation for new integrations.
+- [ ] 27.1 Optional capability completion — all action items open.
+- [ ] 27.2 Migration decision — all action items open.
+- [ ] 27.3 Final implementation report — all action items open.
+- [ ] 27.4 Final release gate — all action items open.
+- [ ] Task 27 gate.
 
 ---
 
-# Task 27: Full port-program signoff
+## Immediate next operations
 
-This final task covers retained good-list capabilities intentionally scheduled after the first playable engine.
-
-## 27.1 Optional capability completion
-
-- [ ] opening-book abstraction and backend;
-- [ ] self-play tool;
-- [ ] versioned position dataset;
-- [ ] named-schema tuning;
-- [ ] candidate-versus-baseline validation;
-- [ ] accepted advanced evaluation terms;
-- [ ] performance regression controls;
-- [ ] sustained Android lifecycle and performance evidence.
-
-## 27.2 Migration decision
-
-- [ ] Decide whether Python remains supported, becomes reference-only, or is archived.
-- [ ] Update README to identify the authoritative engine.
-- [ ] Preserve Python history and useful fixtures.
-- [ ] Do not delete Python implementation without a separate reviewed migration task.
-
-## 27.3 Final implementation report
-
-- [ ] Create `docs/RUST_CHESS_ENGINE_PORT_IMPLEMENTATION_REPORT.md`.
-- [ ] Map every specification section to implementation paths and tests.
-- [ ] Map every TODO checkbox to evidence.
-- [ ] List all Python concepts retained, redesigned, and rejected.
-- [ ] Record final crate/API versions.
-- [ ] Record Linux and Android build/test evidence.
-- [ ] Record self-play/tuning schema versions.
-- [ ] Record performance baselines.
-- [ ] Record remaining deferred roadmap items.
-
-## 27.4 Final release gate
-
-- [ ] Exact final SHA passes all required CI.
-- [ ] No documentation-only follow-up commit is used to claim code evidence from another SHA without explicit mapping.
-- [ ] All P0/P1 issues are closed.
-- [ ] Known P2/P3 issues are documented and do not invalidate stated guarantees.
-- [ ] The full port is declared complete only in the implementation report and README after all evidence is available.
-
-**Task 27 gate:** Everything retained from the good-items list and additional-features list is implemented, validated, documented, or explicitly rejected with evidence under the final Rust architecture.
+1. Capture Task 0 runtime evidence from a clean runnable `rust-engine` checkout.
+2. Run the complete Task 1 Rust command sequence.
+3. Fix every first-party warning or failure at its source.
+4. Review and commit `Cargo.lock` if generated.
+5. Record the repository license decision.
+6. Verify the CI status issue reports the exact candidate SHA.
+7. Update every affected checkbox and completion note in this file.
+8. Close Task 0 and Task 1 only after their gates pass.
+9. Begin Task 2 only after the dependency gates are satisfied or an explicit exception is recorded.
 
 ---
 
 ## Completion-note template
-
-Use this structure under each completed major task:
 
 ```text
 Completion note:
