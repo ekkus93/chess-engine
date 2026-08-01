@@ -1,42 +1,19 @@
-name: Python CI
+name: CI
 
 on:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
   workflow_dispatch:
 
 permissions:
   contents: read
 
-concurrency:
-  group: python-ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  python-quality:
-    name: Python 3.11 quality
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+  registration:
+    name: CI registration stub
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-      - name: Install dependencies
+      - name: Explain branch-specific CI
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e .[lint,test]
-      - name: Run linters
-        run: |
-          python -m ruff check chess_game tests
-          python -m mypy chess_game
-          python -m pylint chess_game
-      - name: Run tests
-        run: |
-          python -m pytest tests -q -m "not slow"
+          echo "The authoritative CI implementation is defined on the rust-engine branch."
+          echo "Dispatch this workflow with ref=rust-engine to validate the Rust workspace."
