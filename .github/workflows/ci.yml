@@ -24,6 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: rust-engine
           fetch-depth: 0
 
       - name: Install uv
