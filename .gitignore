@@ -19,6 +19,9 @@ dist/
 *.egg-info/
 target/
 
+# Local agent worktrees
+.claude/worktrees/
+
 run_opencode.sh
 run_copilot.sh
 run_claude.sh
