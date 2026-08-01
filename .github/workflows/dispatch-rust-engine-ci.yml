@@ -1,0 +1,29 @@
+name: Dispatch Rust Engine CI
+
+on:
+  issue_comment:
+    types:
+      - created
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    if: >-
+      github.event.issue.number == 1 &&
+      github.event.comment.body == '/dispatch-rust-engine-ci'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Dispatch CI on rust-engine
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh api \
+            --method POST \
+            "repos/${REPOSITORY}/actions/workflows/ci.yml/dispatches" \
+            -f ref=rust-engine
