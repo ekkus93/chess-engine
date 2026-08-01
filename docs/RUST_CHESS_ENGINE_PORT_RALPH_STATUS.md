@@ -45,7 +45,9 @@ Task 0 remains open until the current exact-SHA job passes and its evidence arti
 
 **Implemented; CI verification in progress.** The seven-crate Cargo workspace, dependency policy, strict warning policy, MIT metadata, architecture documentation, Linux Rust CI, lockfile generation, and artifact upload are present.
 
-Task 1 remains open until the exact candidate SHA passes all Rust steps, the generated `Cargo.lock` is reviewed and committed, and a final exact-SHA CI rerun is green.
+The first Rust CI execution passed all Cargo gates but exposed two first-party repository defects in full logs: missing member-level license inheritance and an orphaned `.claude/worktrees` gitlink. Both are being corrected before final exact-SHA validation.
+
+Task 1 remains open until the exact candidate SHA passes all Rust steps without first-party repository warnings, the generated `Cargo.lock` is committed, and a final exact-SHA CI rerun is green.
 
 ---
 
