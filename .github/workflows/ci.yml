@@ -3,35 +3,68 @@ name: CI
 on:
   push:
     branches:
-      - master
       - rust-engine
   pull_request:
     branches:
-      - master
       - rust-engine
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: rust-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.11]
+  rust-quality:
+    name: Rust workspace quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: "1"
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+
+      - name: Verify Cargo workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -f Cargo.toml ]]; then
+            echo "::error file=Cargo.toml::The rust-engine branch does not yet contain a Cargo workspace. Complete Task 1 of docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md."
+            exit 1
+          fi
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e .[lint,test]
-      - name: Run linters
-        run: |
-          python -m ruff check chess_game tests
-          python -m mypy chess_game
-          python -m pylint chess_game
+          components: rustfmt, clippy
+
+      - name: Cache Cargo data
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-engine
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check workspace
+        run: cargo check --workspace --all-targets --all-features
+
+      - name: Run Clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
       - name: Run tests
-        run: |
-          python -m pytest tests -q -m "not slow"
+        run: cargo test --workspace --all-features
+
+      - name: Build documentation
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --workspace --all-features --no-deps
+
+      - name: Build debug workspace
+        run: cargo build --workspace --all-features
+
+      - name: Build release workspace
+        run: cargo build --workspace --all-features --release
