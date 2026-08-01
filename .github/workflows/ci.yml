@@ -2,18 +2,66 @@ name: CI
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'
 
 permissions:
+  actions: write
   contents: read
+  issues: write
 
 jobs:
-  registration:
-    name: CI registration stub
+  dispatch-rust-engine:
+    name: Dispatch pending rust-engine validation
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      ISSUE_NUMBER: '1'
     steps:
-      - name: Explain branch-specific CI
+      - name: Resolve one-shot dispatch command
+        id: command
+        shell: bash
         run: |
-          echo "The authoritative CI implementation is defined on the rust-engine branch."
-          echo "Dispatch this workflow with ref=rust-engine to validate the Rust workspace."
+          set -euo pipefail
+          latest_comment="$(
+            gh api \
+              --method GET \
+              "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/comments" \
+              -f per_page=100 \
+              --jq 'last | "\(.id)|\(.body)"'
+          )"
+          IFS='|' read -r comment_id comment_body <<<"${latest_comment}"
+
+          if [[ "${comment_body}" != "/dispatch-rust-engine-ci" ]]; then
+            echo 'No pending rust-engine dispatch command.'
+            echo 'dispatch=false' >>"${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          echo 'dispatch=true' >>"${GITHUB_OUTPUT}"
+          echo "comment_id=${comment_id}" >>"${GITHUB_OUTPUT}"
+
+      - name: Dispatch CI at rust-engine
+        if: steps.command.outputs.dispatch == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api \
+            --method POST \
+            "repos/${REPOSITORY}/actions/workflows/ci.yml/dispatches" \
+            -f ref=rust-engine
+
+      - name: Consume dispatch command
+        if: steps.command.outputs.dispatch == 'true'
+        shell: bash
+        env:
+          COMMENT_ID: ${{ steps.command.outputs.comment_id }}
+        run: |
+          set -euo pipefail
+          gh api \
+            --method PATCH \
+            "repos/${REPOSITORY}/issues/comments/${COMMENT_ID}" \
+            -f body='/dispatch-rust-engine-ci — dispatched'
