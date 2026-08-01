@@ -25,8 +25,8 @@
 
 | Task | Status | Current result |
 |---:|---|---|
-| 0 | **In progress** | Source inventory, decision record, defect record, capture tooling, and unified gate tooling complete; fresh Python runtime evidence pending. |
-| 1 | **Implemented, unverified** | Seven-crate workspace, dependency policy, MIT metadata, architecture documentation, Rust CI, and unified local gate are present; dynamic execution, `Cargo.lock` review, and exact-SHA CI remain pending. |
+| 0 | **In progress — CI executing** | Source inventory, decision record, defect record, capture tooling, and a GitHub Actions baseline job are present; exact-SHA runtime evidence is pending. |
+| 1 | **Implemented — CI executing** | Seven-crate workspace, dependency policy, MIT metadata, architecture documentation, strict Rust gates, lockfile generation, and artifact upload are present; exact-SHA CI evidence and committed `Cargo.lock` are pending. |
 | 2 | **Not started** | Core value types have not been implemented. |
 | 3 | **Not started** | `Position` and invariants have not been implemented. |
 | 4 | **Not started** | Strict FEN and UCI move notation have not been implemented. |
@@ -50,7 +50,7 @@
 | 22 | **Not started** | Advanced classical terms have not been evaluated under the Rust protocol. |
 | 23 | **Not started** | Property, fuzz, sanitizer, and robustness gates have not been implemented. |
 | 24 | **Not started** | Performance hardening and regression budgets have not been implemented. |
-| 25 | **Partial** | Workspace architecture, initial Linux Rust CI, and one full local validation command exist; the full matrix and developer workflow remain open. |
+| 25 | **Partial** | Workspace architecture, dedicated Python CI, registered Rust `CI`, persistent dispatch infrastructure, Linux Rust gates, and artifact collection exist; the complete matrix and developer workflow remain open. |
 | 26 | **Not started** | v0.1 signoff has not begun. |
 | 27 | **Not started** | Full port-program signoff has not begun. |
 
@@ -58,7 +58,7 @@
 
 ## Program rules — ongoing constraints
 
-- Work only on `rust-engine` unless the user explicitly requests another branch.
+- Work only on `rust-engine` unless the user explicitly authorizes a narrowly scoped CI-support change on `master`.
 - Do not create a branch or pull request without explicit user instruction.
 - Treat the Rust specification as authoritative.
 - Treat Python code/tests as reference material, not an API compatibility contract.
@@ -74,14 +74,16 @@
 - Do not use string position keys in Rust search/repetition tracking.
 - Do not silently auto-load weights, books, or configuration.
 - Do not allow Rust panics across C or JNI boundaries.
-- Record exact commands, results, environment, and commit SHA for every major gate.
+- Use GitHub Actions as the authoritative Rust execution environment.
+- Commit each fix directly to `rust-engine`, inspect CI feedback, and repeat until the exact SHA is green.
+- Record exact commands, results, environment, artifacts, run IDs, job IDs, and commit SHA for every major gate.
 - Keep this TODO synchronized with repository reality.
 
 ---
 
 # Task 0: Establish the port baseline and decision record
 
-**Task status:** In progress — source-grounded work and execution tooling are complete; runtime evidence is pending.
+**Task status:** In progress — source-grounded work is complete; GitHub Actions runtime evidence is executing.
 
 ## 0.1 Preserve the Python baseline
 
@@ -130,10 +132,10 @@
 - [x] Record its SHA.
 - [x] Avoid architectural migration through Python-internal edits.
 - [x] Add fail-loud Python baseline capture tooling.
-- [x] Add a unified Task 0/1 validation gate.
-  - `scripts/validate-rust-port-task0-task1.sh`
-  - Commit: `7ed9fa063ea512ca94f5f100e3192578da3fce3a`
-  - The script passed a disposable-repository dry run covering success propagation, evidence generation, lockfile handling, and dirty-tree rejection.
+- [x] Add a GitHub Actions `Python reference baseline` job.
+  - Explicitly checks out branch `rust-engine` with full history.
+  - Runs `RUN_SLOW=1 bash scripts/capture-rust-port-python-baseline.sh`.
+  - Uploads the exact-SHA baseline evidence artifact even when the capture fails.
 
 ### Task 0 completion note — gate open
 
@@ -142,16 +144,10 @@
   - `a579aa28f072934a67df082cbf830ea51831c971`
   - `fba5ca2e0ca6139a943f4018dadb925e2c37a88d`
   - `7ed9fa063ea512ca94f5f100e3192578da3fce3a`
-- **Required command:**
-
-  ```bash
-  bash scripts/validate-rust-port-task0-task1.sh
-  ```
-
-- **Evidence output:**
-  - `artifacts/rust-port-python-baseline/<candidate-sha>/`
-  - `artifacts/rust-port-task0-task1/<candidate-sha>/`
-- **Remaining risk:** No fresh fast, slow, timed-perft, or UCI-smoke output has been captured for the frozen Python-equivalent tree.
+- **CI workflow commits:**
+  - `6b1927612dd5a2f4963dcfcb625dc5f70e8580c5`
+  - `cfca3479ddc18fce477e0603a1b48f16791b4eb9`
+- **Pending evidence:** fast tests, slow tests, exact perft/timings, UCI smoke, environment, and reviewed artifact.
 
 **Task 0 gate:** **OPEN.**
 
@@ -159,7 +155,7 @@
 
 # Task 1: Create the Cargo workspace and dependency boundaries
 
-**Task status:** Implemented but unverified.
+**Task status:** Implemented; GitHub Actions verification is executing.
 
 ## 1.1 Workspace skeleton
 
@@ -173,7 +169,7 @@
 - [x] Add `crates/chess-tune`.
 - [x] Add minimal crate-level responsibility/dependency documentation.
 - [ ] Keep all optional/future crates buildable while feature-empty.
-  - **Partial:** Manifests and entry points exist; actual Cargo execution is pending.
+  - **Partial:** Manifests and entry points exist; exact-SHA Cargo execution is pending.
 
 ## 1.2 Toolchain and policy
 
@@ -199,38 +195,31 @@
 ## 1.4 Initial CI and local validation
 
 - [x] Add formatting, Clippy, tests, and docs to Rust CI.
-- [x] Preserve Python validation on `master` without running Python gates in the Rust CI job.
+- [x] Preserve Python validation on `master` in `.github/workflows/python-ci.yml`.
+- [x] Register `.github/workflows/ci.yml` under exact workflow name `CI` on `master` so `workflow_dispatch` and the status publisher resolve the Rust branch workflow correctly.
 - [x] Add Linux x86-64 debug and release build coverage.
 - [ ] Add AArch64 and Android compile jobs when toolchains are configured.
-- [x] Add a one-command local Task 0/1 validation gate.
-  - Generates `Cargo.lock`.
-  - Scans first-party Rust/Cargo sources for `allow`/`expect` lint suppression.
-  - Uses `RUSTFLAGS=-Dwarnings` and `RUSTDOCFLAGS=-Dwarnings`.
-  - Runs Cargo metadata, fmt, check, Clippy, tests, docs, debug build, and release build.
-  - Uses `--locked` after lockfile generation.
-  - Records exact SHA, environment, command logs, durations, and final status.
-  - Continues Rust evidence collection even when the historical Python gate fails.
+- [x] Add Cargo lockfile generation and `--locked` validation.
+- [x] Add Cargo metadata validation.
+- [x] Upload generated `Cargo.lock` as an exact-SHA artifact.
+- [x] Add persistent dispatch/status infrastructure on `master` under the user's explicit authorization.
 
 ### Task 1 completion note — gate open
 
 - **Workspace implementation range:** `11c7d5d14add069a99cc7347a65e0dd677ab3f37` through `ddb54105aff8ad54c40db436872fceec968bfa06`.
-- **Unified validation script:** `7ed9fa063ea512ca94f5f100e3192578da3fce3a`.
-- **License commits:**
-  - `95668271f60f0fabee13a6fa70950ecc61ad2eec`
-  - `4bf9c478d5e5dc459dcaea8b76fbd08f1dd68f81`
-- **Static result:** Exact dependency-set, manifest, unsafe-policy, lint-suppression, and changed-path audits found no first-party source defect.
-- **Required command:**
-
-  ```bash
-  bash scripts/validate-rust-port-task0-task1.sh
-  ```
-
-- **Still required after local success:**
-  - review and commit generated `Cargo.lock`;
-  - review and commit Task 0/1 evidence;
-  - manually run the `CI` workflow for `rust-engine`;
-  - verify issue `#1` reports the exact passing candidate SHA;
-  - update this TODO with exact pass counts and evidence paths.
+- **CI evidence implementation:**
+  - `6b1927612dd5a2f4963dcfcb625dc5f70e8580c5`
+  - `cfca3479ddc18fce477e0603a1b48f16791b4eb9`
+- **Default-branch CI infrastructure:**
+  - dedicated Python CI: `4609d9a4cd65170612ac338ddb753148bdedd505`
+  - registered `CI` identity: `27dac7ff5d229d2a686bc1dae92c00d87c426c6c`
+  - persistent dispatcher and fallbacks are present on `master`.
+- **Pending evidence:**
+  - exact-SHA Rust job result;
+  - reviewed generated `Cargo.lock` artifact;
+  - committed `Cargo.lock`;
+  - final exact-SHA green rerun;
+  - updated pass counts and run/job IDs.
 
 **Task 1 gate:** **OPEN.**
 
@@ -432,10 +421,10 @@ Every action in the full task-definition file remains open unless stated otherwi
 **Task status:** Partial.
 
 ## 25.1 CI matrix
-- [ ] Linux debug tests — configured, exact-SHA pass pending.
+- [ ] Linux debug tests — configured; exact-SHA pass pending.
 - [ ] Linux release tests/perft — release build configured; release tests/perft pending.
-- [ ] Clippy all targets/features — configured, exact-SHA pass pending.
-- [ ] rustdoc — configured, exact-SHA pass pending.
+- [ ] Clippy all targets/features — configured; exact-SHA pass pending.
+- [ ] rustdoc — configured; exact-SHA pass pending.
 - [ ] AArch64 cross-build.
 - [ ] Android AArch64 build.
 - [ ] JNI smoke/instrumented job.
@@ -445,6 +434,9 @@ Every action in the full task-definition file remains open unless stated otherwi
 - [ ] Slow/nightly perft.
 - [ ] Optional strength/performance scheduled job.
 - [x] Preserve Python validation until migration signoff.
+- [x] Separate Python CI and Rust `CI` workflow identities on `master`.
+- [x] Add exact-SHA baseline and lockfile artifacts.
+- [x] Add persistent Rust CI dispatch infrastructure.
 
 ## 25.2 Documentation
 - [x] Workspace architecture.
@@ -477,7 +469,7 @@ Every action in the full task-definition file remains open unless stated otherwi
 
 ## 25.4 Generated artifacts
 - [ ] Prevent unintended transient benchmark/output commits.
-  - **Partial:** `target/` is ignored; the unified script records `git-status.txt` for evidence review.
+  - **Partial:** `target/` is ignored; CI uploads evidence and `Cargo.lock` deliberately.
 - [ ] Version schemas and fixtures intentionally.
 - [ ] Document generated Zobrist/book/weight artifacts.
 
@@ -504,20 +496,13 @@ Every action in the full task-definition file remains open unless stated otherwi
 
 ## Immediate next operations
 
-1. From a clean, current `rust-engine` checkout, run:
-
-   ```bash
-   git switch rust-engine
-   git pull --ff-only
-   bash scripts/validate-rust-port-task0-task1.sh
-   ```
-
-2. Fix every first-party failure or warning and rerun the complete script.
-3. Review `Cargo.lock` and all generated evidence.
-4. Commit `Cargo.lock`, evidence, and the updated TODO directly to `rust-engine`.
-5. In GitHub Actions, select workflow **CI**, choose branch **rust-engine**, and run it.
-6. Verify issue `#1` reports the exact candidate SHA and a successful Rust workspace job.
-7. Close Task 0 and Task 1 only after those exact-SHA gates pass.
+1. Read the exact current-head `CI` run and job logs.
+2. Fix every first-party failure directly on `rust-engine`.
+3. Commit each fix and repeat the CI loop.
+4. Download and review the generated Python baseline and `Cargo.lock` artifacts.
+5. Commit reviewed `Cargo.lock`.
+6. Run final exact-SHA CI.
+7. Close Task 0 and Task 1 only after all corresponding checkboxes and exact-SHA evidence are complete.
 8. Begin Task 2 after Task 0/1 closure.
 
 ---
