@@ -17,44 +17,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  python-baseline:
-    name: Python reference baseline
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: rust-engine
-          fetch-depth: 0
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v6
-
-      - name: Install Stockfish prerequisite
-        shell: bash
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install --yes stockfish
-          echo '/usr/games' >>"${GITHUB_PATH}"
-          /usr/games/stockfish <<'EOF'
-          quit
-          EOF
-
-      - name: Capture frozen Python baseline
-        env:
-          RUN_SLOW: "1"
-        run: bash scripts/capture-rust-port-python-baseline.sh
-
-      - name: Upload Python baseline evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: rust-port-python-baseline-${{ github.sha }}
-          path: artifacts/rust-port-python-baseline/${{ github.sha }}/
-          if-no-files-found: error
-          retention-days: 30
-
   rust-quality:
     name: Rust workspace quality
     runs-on: ubuntu-24.04
@@ -69,10 +31,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ ! -f Cargo.toml ]]; then
-            echo "::error file=Cargo.toml::The rust-engine branch does not yet contain a Cargo workspace. Complete Task 1 of docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md."
-            exit 1
-          fi
+          test -f Cargo.toml
+          test -f Cargo.lock
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -84,8 +44,26 @@ jobs:
         with:
           shared-key: rust-engine
 
-      - name: Generate lockfile
-        run: cargo generate-lockfile
+      - name: Reject first-party lint suppression
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep \
+            --recursive \
+            --line-number \
+            --include='*.rs' \
+            --extended-regexp '#!\[(allow|expect)|#\[(allow|expect)' \
+            crates; then
+            echo '::error::First-party Rust lint suppression is forbidden.'
+            exit 1
+          fi
+
+      - name: Verify committed lockfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo generate-lockfile
+          git diff --exit-code -- Cargo.lock
 
       - name: Validate workspace metadata
         run: cargo metadata --locked --format-version 1 --no-deps
@@ -112,12 +90,3 @@ jobs:
 
       - name: Build release workspace
         run: cargo build --locked --workspace --all-features --release
-
-      - name: Upload generated Cargo lockfile
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: cargo-lock-${{ github.sha }}
-          path: Cargo.lock
-          if-no-files-found: error
-          retention-days: 30

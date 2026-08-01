@@ -3,7 +3,7 @@
 **Updated:** 2026-08-01  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Final Task 0 and Task 1 exact-head validation pending
+**Current phase:** Task 2 implemented; strict CI pending
 
 ---
 
@@ -11,42 +11,69 @@
 
 - Work directly on `rust-engine`.
 - Do not create branches or pull requests without explicit user instruction.
-- Every first-party compiler, Clippy, rustdoc, formatting, lint, and test finding is a bug.
-- Fix first-party findings at their source; do not hide, suppress, downgrade, ignore, or filter them.
-- Third-party, dependency, generated-vendor, and vendored-code warnings are outside the first-party rule unless caused by this repository's integration code.
-- Keep the authoritative TODO synchronized with repository reality.
 - Use GitHub Actions as the authoritative Rust execution environment.
-- Commit each fix directly to `rust-engine`, inspect CI feedback, and repeat until the exact SHA is green.
+- Treat every first-party compiler, Clippy, rustdoc, formatting, lint, and test finding as a bug.
+- Fix findings at source; do not suppress, filter, downgrade, or ignore them.
+- Keep the authoritative TODO synchronized with repository reality.
 
 ---
 
-## First CI evidence
+## Task 0 — complete
 
-Run `30719636049` validated candidate `edd5a94685d23a04df15c69dafed5f077fd3fc74`.
+The frozen Python baseline is fully captured and reviewed.
 
-- Rust job `91421155314`: all metadata, formatting, check, Clippy, tests, rustdoc, debug build, release build, and lockfile artifact steps passed on Rust 1.97.1 / Ubuntu 24.04.4.
-- Python job `91421155337`: source equivalence, environment capture, dependency sync, and fast suite passed (`1203 passed, 179 deselected in 44.43s`); the slow suite was cancelled by newer branch commits before perft and UCI.
-- Reviewed artifacts:
-  - Python partial evidence: `8824498772`.
-  - Cargo lockfile: `8824440027`.
+- Frozen Python source: `f743013a84173b551eac5488c638cb48098ec6d0`
+- Evidence SHA: `7ca6f8dc0d2577ca552a6bfe115828eb668d2133`
+- CI run: `30722127447`
+- Python job: `91427510964`
+- Artifact: `8825590703`
+- Artifact digest: `ed44f43246e5176479825a3fef25aee6595b91af573453ad74f367a6c634d900`
+- Fast suite: `1203 passed, 179 deselected in 43.92s`
+- Slow suite: `179 passed, 1203 deselected in 2449.87s (0:40:49)`
+- Perft: `20`, `400`, `8902`, `197281`
+- UCI handshake and depth-one search: passed
+- Python source equivalence: passed
+- Stockfish integration prerequisite: installed and passed
 
-The full Rust log exposed two first-party repository findings that step summaries did not fail:
-
-- member manifests did not inherit `workspace.package.license`, so Cargo metadata reported `license: null`;
-- an orphaned `.claude/worktrees/agent-a04f1cae54e4430d6` gitlink caused checkout cleanup to report a missing `.gitmodules` URL.
-
-The member manifests now use `license.workspace = true`, and the CI-generated `Cargo.lock` is committed. The orphaned gitlink removal is the final tree correction before the exact-head run.
-
----
-
-## Task status
-
-- **Task 0:** Open pending complete slow-suite, perft, UCI, and final artifact evidence.
-- **Task 1:** Open pending exact-head verification of MIT metadata, clean checkout cleanup, and all Rust gates with committed `Cargo.lock`.
-- **Task 2:** Not started.
+Task 0 gate is closed.
 
 ---
 
-## Candidate identity rule
+## Task 1 — complete
 
-The authoritative candidate is always the current `rust-engine` branch head reported by the `CI` workflow and status issue `#1`. Do not copy a provisional or unreferenced Git object SHA into this file.
+The seven-crate Cargo workspace and strict quality policy passed at the same exact SHA.
+
+- CI run: `30722127447`
+- Rust job: `91427510938`
+- Cargo metadata: passed with MIT metadata on all members
+- rustfmt: passed
+- Cargo check: passed
+- Clippy with `-D warnings`: passed
+- Tests: passed
+- rustdoc with warnings denied: passed
+- Debug build: passed
+- Release build: passed
+- Reviewed `Cargo.lock`: committed
+- Tracked local worktree gitlinks: removed and ignored
+- First-party warnings: none
+
+Task 1 gate is closed.
+
+---
+
+## Task 2 — implemented, CI pending
+
+The current candidate adds:
+
+- `Color`, `PieceKind`, and compact `Piece`;
+- validated `Square` using `a8 = 0`;
+- `Bitboard` operations and non-wrapping shifts;
+- one packed `Move(u16)` identity with all 14 semantic move kinds;
+- distinct quiet/capture promotion identities;
+- four-bit `CastlingRights`;
+- typed halfmove and fullmove counters;
+- exhaustive unit tests and compact-size assertions;
+- core-value and coordinate documentation;
+- post-baseline Rust-only CI with lockfile verification and suppression rejection.
+
+Task 2 remains open until the exact candidate passes formatting, check, Clippy, tests, rustdoc, and debug/release builds.
