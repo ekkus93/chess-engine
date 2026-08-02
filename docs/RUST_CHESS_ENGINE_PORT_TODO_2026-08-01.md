@@ -1,7 +1,7 @@
 # Rust Chess Engine Port TODO — Live Status Tracker
 
 **Status:** In progress  
-**Updated:** 2026-08-01  
+**Updated:** 2026-08-02  
 **Branch:** `rust-engine`  
 **Specification:** `docs/RUST_CHESS_ENGINE_PORT_SPEC_2026-08-01.md`  
 **Full definitions:** `docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md`  
@@ -34,7 +34,7 @@
 | 10 | **Complete** — game history and draw semantics. |
 | 11 | **Complete** — authoritative perft and differential validation. |
 | 12 | **Complete** — baseline evaluator and trace. |
-| 13 | **Active** — reference search and alpha-beta; implementation remains not started pending review-fix closure. |
+| 13 | **Active** — reference search and alpha-beta; implementation is not started and may now begin. |
 | 14–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
@@ -304,6 +304,35 @@
 
 ---
 
+## Pre-Task-13 review-fix closure — COMPLETE
+
+- [x] Search-safe opaque legal-move tokens are available to `chess-search` without legal-list regeneration.
+- [x] Tokens bind exact move identity, Zobrist, side, castling, en-passant, and counters.
+- [x] Stale and wrong-origin tokens fail before mutation.
+- [x] Legal-token make/unmake restores exact position and hash state.
+- [x] `Game::reset_to_starting` and `Game::set_position` establish fresh root history.
+- [x] Divide output includes stable `elapsed_nanos` timing.
+- [x] FEN analysis-position policy is explicit and tested.
+- [x] Task 25 and immediate-next-operation tracking is current.
+- [x] Review-fix implementation gate passed.
+- [x] Temporary workflows/scripts were removed.
+
+Evidence:
+
+- Starting code/documentation SHA: `52377d09b713541044e24c8e3559be3f12002cc1`.
+- Validated implementation SHA: `81a7cd4a58a52695eca2ede10d5c73c803851d17`.
+- One-shot implementation control run: `30738801841`.
+- Permanent implementation CI run/job: `30739166607` / `91473334960`.
+- Results: rustfmt, Cargo check, strict Clippy, 112 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc, debug/release builds, and independent differential validation passed.
+- Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- Clean code/workflow SHA `9c27d2c1c4a39a975b30d3357b69b6c96bb64c68` compared with the validated candidate with zero changed files.
+- Later commits finalize documentation only; they do not alter the validated Rust or permanent workflow tree.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime and dependency `punycode` deprecation notices only.
+- Task 13 remains active and not started.
+
+---
+
 # Task 13: Reference search and alpha-beta — ACTIVE, NOT STARTED
 - [ ] 13.1 Reference search.
 - [ ] 13.2 Negamax alpha-beta.
@@ -456,8 +485,9 @@
 
 ## Immediate next operations
 
-1. Complete and validate `docs/RUST_ENGINE_REVIEW_FIX_TODO_2026-08-02.md`.
-2. Confirm the search-safe legal-token API, game root replacement, divide timing, FEN policy, and tracker cleanup on an exact green SHA.
-3. Begin Task 13 reference search only after the review-fix gate passes.
-4. Implement no-prune reference search before alpha-beta.
-5. Validate terminal scoring, line repetition, and exact search immutability before Task 13 completion.
+1. Begin Task 13 with an unpruned reference minimax/negamax search.
+2. Define terminal checkmate, stalemate, claimable-draw, automatic-draw, and repetition scoring.
+3. Use public legal tokens plus make/unmake and detached line history; do not clone per child.
+4. Implement negamax alpha-beta only after the reference path and fixtures are stable.
+5. Prove shallow score equivalence, uniquely best-move equivalence, node-count improvement, and exact root/history restoration.
+6. Run the full exact-head strict gate before marking Task 13 complete.
