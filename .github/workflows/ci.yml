@@ -154,12 +154,12 @@ jobs:
             -f state=closed \
             -f state_reason=completed
 
-  apply-task-14-1:
-    name: Apply Task 14.1 quiescence patch
+  fix-task14-closure:
+    name: Fix Task 14.1 closure transition
     if: >-
       github.ref == 'refs/heads/master' &&
       github.event_name == 'issues' &&
-      github.event.issue.title == '[apply-task-14-1]'
+      github.event.issue.title == '[fix-task14-closure-now]'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
@@ -177,16 +177,17 @@ jobs:
         with:
           ref: rust-engine
           path: target
-      - name: Install Rust formatter
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt
-      - name: Apply and format
+      - name: Guard closure head
         working-directory: target
         run: |
           set -euo pipefail
-          python ../control/.github/apply_task_14_1.py .
-          cargo fmt --all
+          test "$(git rev-parse HEAD)" = 'e18c3cbeec1c221f8dfcb902cf552c8857766b8b'
+      - name: Correct stale transition text
+        working-directory: target
+        run: |
+          set -euo pipefail
+          python ../control/.github/fix_task14_closure.py .
+          git diff --check
       - name: Commit and push
         id: commit
         working-directory: target
@@ -194,13 +195,9 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add crates/chess-search/src/alpha_beta.rs \
-                  crates/chess-search/src/lib.rs \
-                  crates/chess-search/src/quiescence.rs \
-                  crates/chess-search/src/search_common.rs \
-                  crates/chess-search/tests/search_quiescence.rs \
-                  docs/RUST_QUIESCENCE_SEARCH.md
-          git commit -m 'feat: implement Task 14.1 quiescence search'
+          git add docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md \
+                  docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
+          git commit -m 'docs: align Task 14.1 transition status'
           git push origin HEAD:rust-engine
           echo "sha=$(git rev-parse HEAD)" >>"${GITHUB_OUTPUT}"
       - name: Report and close
@@ -210,7 +207,7 @@ jobs:
           set -euo pipefail
           gh api --method POST \
             "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/comments" \
-            -f body="Applied and rustfmt-formatted Task 14.1 candidate at ${SHA}."
+            -f body="Aligned the remaining Task 14.1 transition text at documentation-only SHA ${SHA}."
           gh api --method PATCH \
             "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}" \
             -f state=closed \
