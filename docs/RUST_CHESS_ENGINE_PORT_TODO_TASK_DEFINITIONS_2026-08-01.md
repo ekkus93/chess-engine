@@ -816,12 +816,12 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 15.6 Diagnostics and benchmarks
 
-- [ ] probes;
-- [ ] hits;
-- [ ] exact/bound hits;
-- [ ] replacement counts if useful;
-- [ ] hash fullness estimate;
-- [ ] probe/store microbenchmarks.
+- [x] probes;
+- [x] hits;
+- [x] exact/bound hits;
+- [x] replacement counts if useful;
+- [x] hash fullness estimate;
+- [x] probe/store microbenchmarks.
 
 **Task 15 gate:** TT is bounded, mate-safe, correctly flagged, measurably useful, and has no unbounded production map fallback.
 

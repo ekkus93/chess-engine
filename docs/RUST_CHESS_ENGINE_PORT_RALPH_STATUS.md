@@ -3,7 +3,7 @@
 **Updated:** 2026-08-02  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Tasks 15.1–15.5 complete; Task 15.6 diagnostics and benchmarks is next
+**Current phase:** Tasks 15.1–15.6 complete; overall Task 15 production integration gate is next
 
 ## Completed gates
 
@@ -38,6 +38,7 @@
 | 15.3 | `ac68b99db53546c31f3aae68ad7337ba256eb982` | `30766126491` / `91545080021` | ply-correct mate normalization, typed conversion failures, six focused tests, 171 Rust tests, depth-four perft, and differential oracle green |
 | 15.4 | `b6a015e6cc519aa0bbc8e7bde7dde06bdd660b44` | `30766760085` / `91546779835` | complete-key, depth- and bound-safe probes, repetition suppression, eight focused tests, 179 Rust tests, depth-four perft, and differential oracle green |
 | 15.5 | `775013a6e11aad7625c88b0cd3b258819211e839` | `30767556904` / `91548869513` | deterministic same-key updates and depth/age replacement, five focused tests, 184 Rust tests, depth-four perft, and differential oracle green |
+| 15.6 | `bd4d5d581c0e82f892435b2874732ac632c2e1f5` | `30768512470` / `91551420579` | bounded counters and hash-full sampling, reproducible probe/store benchmark, four focused tests, 188 Rust tests, depth-four perft, and differential oracle green |
 
 ## Task 12 completion
 
@@ -402,7 +403,7 @@ Evidence:
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
 - Mate normalization, probe semantics, and replacement policy are complete; diagnostics and search integration remain intentionally outside Task 15.2.
-- Task 15.6 diagnostics and benchmarks is next.
+- The overall Task 15 production integration gate is next.
 
 ## Task 15.3 completion
 
@@ -426,7 +427,7 @@ Evidence:
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
 - Probe semantics and replacement are complete; diagnostics and production search integration remain intentionally outside Task 15.3.
-- Task 15.6 diagnostics and benchmarks is next.
+- The overall Task 15 production integration gate is next.
 
 
 ## Task 15.4 completion
@@ -453,7 +454,7 @@ Evidence:
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
 - Deterministic insertion and replacement are complete; diagnostics and production search integration remain intentionally outside Task 15.4.
-- Task 15.6 diagnostics and benchmarks is next.
+- The overall Task 15 production integration gate is next.
 
 ## Task 15.5 completion
 
@@ -478,7 +479,32 @@ Evidence:
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
 - The first two validation iterations exposed only a test-only import scope issue and a strict-Clippy fixture-loop issue; both were corrected without suppressions or policy changes.
 - Diagnostics, hash-full estimation, microbenchmarks, and production search integration remain intentionally outside Task 15.5.
-- Task 15.6 diagnostics and benchmarks is next.
+- The overall Task 15 production integration gate is next.
+
+## Task 15.6 completion
+
+Implemented and validated:
+
+- saturating fixed-size probe, hit, score-reuse, store, and replacement counters in `crates/chess-search/src/transposition/diagnostics.rs`;
+- complete-key hit accounting separated from exact/lower/upper score reuse accounting;
+- deterministic diagnostic snapshots and reset without table-state mutation;
+- bounded current-generation hash-full sampling over at most 1,000 evenly distributed slots;
+- a release-mode `chess-tools tt-bench ITERATIONS` command over fixed one-MiB store and probe fixtures;
+- deterministic benchmark checksums with timing treated as informational;
+- three diagnostics/hash-full regressions and one benchmark reproducibility regression;
+- `docs/RUST_TRANSPOSITION_TABLE_DIAGNOSTICS.md`.
+
+Evidence:
+
+- Exact validated implementation SHA: `bd4d5d581c0e82f892435b2874732ac632c2e1f5`.
+- Permanent CI run/job: `30768512470` / `91551420579`.
+- Results: workspace assets, Task 14.5 audit over 12 production Rust files, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy, 188 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- Benchmark smoke: 100,000 stores in `3,064,736 ns`, checksum `7,945,805,154,409,997,841`; 100,000 probes in `1,339,856 ns`, checksum `405,729,600`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- The initial compiler iteration found only a test-only import in production scope; the next control iteration found only a temporary patch-matcher mismatch. Neither required a lint suppression or semantic change.
+- Production search integration remains intentionally outside Task 15.6 and is the unchecked overall Task 15 gate.
 
 ## Task 15 active scope
 
@@ -487,7 +513,7 @@ Evidence:
 - [x] Implement Task 15.3 mate-score normalization.
 - [x] Implement Task 15.4 safe probe semantics.
 - [x] Implement Task 15.5 deterministic replacement.
-- [ ] Implement Task 15.6 diagnostics and benchmarks.
+- [x] Implement Task 15.6 diagnostics and benchmarks.
 - [ ] Pass the overall Task 15 gate.
 
 ## Task 14 completed scope
@@ -516,4 +542,4 @@ Evidence:
 - [x] Add mate-in-one, mated, stalemate, draw, shorter-mate, and longer-survival fixtures.
 - [x] Pass exact-head rustfmt, Cargo check, Clippy, tests, rustdoc, debug, release, perft, and differential gates.
 
-No pull request has been created; work remains on `rust-engine`. Task 15.6 transposition-table diagnostics and benchmarks is the next operation.
+No pull request has been created; work remains on `rust-engine`. The overall Task 15 production alpha-beta integration gate is the next operation.
