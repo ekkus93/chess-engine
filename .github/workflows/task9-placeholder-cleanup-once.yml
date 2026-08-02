@@ -1,0 +1,69 @@
+name: Task 9 placeholder cleanup once
+
+on:
+  push:
+    branches:
+      - rust-engine
+    paths:
+      - .github/workflows/task9-placeholder-cleanup-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Remove obsolete placeholder hash seam
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              Path("crates/chess-core/src/position/builder.rs"): [
+                  (
+                      "\n    pub(super) const fn with_zobrist(self, _zobrist: u64) -> Self {\n        self\n    }\n",
+                      "",
+                  ),
+              ],
+              Path("crates/chess-core/src/position/mod.rs"): [
+                  (
+                      ".with_fullmove_number(FullmoveNumber::ONE)\n            .with_zobrist(0);",
+                      ".with_fullmove_number(FullmoveNumber::ONE);",
+                  ),
+              ],
+              Path("crates/chess-core/src/position/fen.rs"): [
+                  (
+                      ".with_fullmove_number(parse_fullmove(fullmove)?)\n            .with_zobrist(0);",
+                      ".with_fullmove_number(parse_fullmove(fullmove)?);",
+                  ),
+              ],
+          }
+
+          for path, edits in replacements.items():
+              text = path.read_text()
+              for old, new in edits:
+                  count = text.count(old)
+                  if count != 1:
+                      raise SystemExit(f"expected exactly one match in {path}, found {count}")
+                  text = text.replace(old, new)
+              path.write_text(text)
+          PY
+          cargo fmt --all
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add crates/chess-core/src/position
+          git commit -m "refactor(core): remove placeholder hash builder seam"
+          git push origin HEAD:rust-engine
