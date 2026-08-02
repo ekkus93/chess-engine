@@ -23,7 +23,7 @@
 | 2 | **Complete** — core value types and exact-SHA CI complete. |
 | 3 | **Complete** — hybrid `Position`, invariants, tests, documentation, and exact-SHA CI complete. |
 | 4 | **Complete** — strict FEN and UCI notation, robustness tests, documentation, and exact-SHA CI complete. |
-| 5 | **In progress** — attack-generation implementation is the current milestone. |
+| 5 | **Implemented, CI pending** — attack primitives, position queries, independent tests, and documentation are present. |
 | 6–24 | **Not started**. |
 | 25 | **Partial** — Linux strict CI and initial docs/workflows exist. |
 | 26–27 | **Not started**. |
@@ -149,37 +149,39 @@
 - Accepted external notices: GitHub Action Node runtime and `punycode` deprecation notices only.
 - Deviations: none.
 
-# Task 5: Attack-generation infrastructure — IN PROGRESS
+# Task 5: Attack-generation infrastructure — IMPLEMENTED, CI PENDING
 
 ## 5.1 Leaper attacks
-- [ ] Precompute pawn attacks for both colors and all squares.
-- [ ] Precompute knight attacks for all squares.
-- [ ] Precompute king attacks for all squares.
-- [ ] Add exhaustive edge/corner tests.
+- [x] Precompute pawn attacks for both colors and all squares.
+- [x] Precompute knight attacks for all squares.
+- [x] Precompute king attacks for all squares.
+- [x] Add exhaustive edge/corner and all-square oracle tests.
 
 ## 5.2 Sliding attacks
-- [ ] Implement correct rook attacks for arbitrary occupancy.
-- [ ] Implement correct bishop attacks for arbitrary occupancy.
-- [ ] Implement queen attacks as combined sliding attacks.
-- [ ] Begin with clear audited ray scans; no premature magic/PEXT optimization.
-- [ ] Add blocker-before, blocker-on-target, edge, and empty-board tests.
+- [x] Implement correct rook attacks for arbitrary occupancy.
+- [x] Implement correct bishop attacks for arbitrary occupancy.
+- [x] Implement queen attacks as combined sliding attacks.
+- [x] Use clear audited ray scans; no premature magic/PEXT optimization.
+- [x] Add blocker-before, blocker-on-target, edge, empty-board, full-board, and patterned-occupancy tests.
 
 ## 5.3 Geometric tables
-- [ ] Add ray, line, and between-square helpers where useful.
-- [ ] Test collinearity and intermediate-square masks.
+- [x] Add precomputed 64-by-64 ray, line, and between-square tables.
+- [x] Define identical and non-collinear endpoint behavior explicitly.
+- [x] Test every one of the 4,096 square pairs against an independent oracle.
 
 ## 5.4 Position attack queries
-- [ ] Implement attackers-to-square.
-- [ ] Implement square-attacked-by-color.
-- [ ] Implement checkers-to-king.
-- [ ] Implement pinned-piece discovery or equivalent supporting data.
-- [ ] Ensure pawn attack semantics do not depend on occupancy.
+- [x] Implement `Position::attackers_to`.
+- [x] Implement `Position::is_square_attacked`.
+- [x] Implement `Position::checkers_to_king`.
+- [x] Implement absolute `Position::pinned_pieces` discovery.
+- [x] Ensure pawn attack semantics do not depend on occupancy.
 
 ## 5.5 Differential attack fixtures
-- [ ] Compare representative attack maps against an independently generated oracle/fixture implementation.
+- [x] Compare all target/color attack maps for representative positions against an independent coordinate/path oracle.
+- [x] Add double-check, single-pin, two-blocker non-pin, edge, and pawn-occupancy fixtures.
 
 ## 5.6 Documentation and gate
-- [ ] Document attack geometry, blocker inclusion, geometric helper semantics, and pin semantics.
+- [x] Document attack geometry, blocker inclusion, geometric helper semantics, and pin semantics in `docs/RUST_ATTACK_GENERATION.md`.
 - [ ] Exact-head rustfmt pass.
 - [ ] Exact-head Cargo check pass.
 - [ ] Exact-head Clippy `-D warnings` pass.
@@ -187,6 +189,13 @@
 - [ ] Exact-head rustdoc `-D warnings` pass.
 - [ ] Exact-head debug/release builds.
 - [ ] Task 5 gate.
+
+### Task 5 implementation evidence
+
+- Attached source implementation: `af649ba40ecaa22c196f0bcbb726fe7a33fce48e`.
+- Status synchronization: `694b4f737ed4050d0cb831e1758ff2db5369a71e`.
+- Current status head includes the complete source tree and documentation.
+- Exact CI evidence remains pending.
 
 # Tasks 6–24 — not started
 
@@ -223,7 +232,7 @@
 - [x] Core values/coordinates/move layout.
 - [x] Position representation and invariants.
 - [x] Strict FEN and UCI move notation.
-- [ ] Attack generation.
+- [x] Attack-generation contract.
 - [ ] Make/unmake, draws, hashing, search, TT, evaluation, ABI/JNI, perft/fuzz, self-play, and tuning docs.
 
 ## 25.3 Commands and artifacts
@@ -239,8 +248,8 @@
 
 ## Immediate next operations
 
-1. Implement Task 5 attack primitives and position queries in `chess-core`.
-2. Add exhaustive, blocker, geometry, pin, check, and independent differential tests.
-3. Document the public contracts and exact blocker/geometry semantics.
-4. Ralph Loop Task 5 through strict exact-SHA CI.
-5. Close Task 5 only after every implementation and evidence checkbox is complete.
+1. Run strict CI at the current exact `rust-engine` head.
+2. Fix every Task 5 first-party formatting, compiler, Clippy, test, rustdoc, or build finding at source.
+3. Record the exact green SHA, run ID, job ID, and test count.
+4. Close Task 5 only after every gate checkbox is complete.
+5. Begin Task 6 pseudo-legal move generation after Task 5 closure.
