@@ -1,0 +1,53 @@
+name: Close Task 14.5
+
+on:
+  push:
+    branches:
+      - rust-engine
+    paths:
+      - ".github/workflows/close-task-14-5.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: close-task-14-5
+  cancel-in-progress: false
+
+jobs:
+  close:
+    name: Close Task 14.5 and Task 14
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+
+      - name: Patch trackers
+        run: python3 scripts/close_task_14_5.py "$GITHUB_WORKSPACE"
+
+      - name: Remove temporary closure controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm \
+            .github/workflows/close-task-14-5.yml \
+            scripts/close_task_14_5.py \
+            docs/TASK_14_5_PENDING_VALIDATION.md \
+            docs/TASK_14_5_PENDING_VALIDATION_2.md \
+            docs/TASK_14_5_PENDING_VALIDATION_3.md
+
+      - name: Commit clean closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md \
+            docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md \
+            docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
+          git diff --cached --check
+          git commit -m "docs: close Task 14 search and ordering"
+          git push origin HEAD:rust-engine
