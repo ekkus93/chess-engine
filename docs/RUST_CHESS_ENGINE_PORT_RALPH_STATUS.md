@@ -3,7 +3,7 @@
 **Updated:** 2026-08-02  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Tasks 13.1–13.4 complete; Task 13.5 terminal fixtures are next
+**Current phase:** Task 13 complete; Task 14.1 quiescence is next
 
 ## Completed gates
 
@@ -27,6 +27,7 @@
 | 13.2 | `d662ca07cae6b0044c1ce620a0dc4f3249784d6c` | `30741988672` / `91480926153` | negamax alpha-beta, 124 Rust tests, depth-four perft, and differential oracle green |
 | 13.3 | `bdf98a8e7c5cb6aadc55ba3638cd3af2f4ba9e91` | `30743024471` / `91483729312` | shallow equivalence, 127 Rust tests, depth-four perft, and differential oracle green |
 | 13.4 | `3644e032504b604c210796f1e6c7ef056d05e94b` | `30743519630` / `91485044296` | completion/cancellation immutability, 131 Rust tests, depth-four perft, and differential oracle green |
+| 13.5 / 13 | `7ca429b0c883bbb8484d3eb3a4af7d96cdb57201` | `30745120833` / `91489299233` | terminal/mate-distance fixtures and full Task 13 gate, 135 Rust tests, depth-four perft, and differential oracle green |
 
 ## Task 12 completion
 
@@ -187,9 +188,33 @@ Evidence:
 - Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 13.5 remains not started; Task 16 still owns full limits, stop-token, iterative-deepening, and partial-result policy.
+- Task 13.5 and the overall Task 13 gate are complete; Task 16 still owns full limits, stop-token, iterative-deepening, and partial-result policy.
 
-## Task 13 active scope
+## Task 13.5 and Task 13 completion
+
+Implemented and validated:
+
+- fixed one-node terminal roots for checkmate precedence, stalemate, dead position, fifty/seventy-five-move draws, and threefold/fivefold repetition draws;
+- exact reference/alpha-beta score, best-move, and node-count agreement;
+- a shorter-mate witness where `f7e8` is `mate_in(1)` and `f7a7` is `mate_in(3)`;
+- a longer-survival witness where `h8g7` is `mated_in(6)` and `h8h7` is `mated_in(4)`;
+- deterministic immediate-mate selection at the winning root and unique `h8g7` selection at the forced-loss root;
+- explicit one-ply mate normalization for independently searched child roots;
+- exact logical-position, detached-history, invariant, and incremental/recomputed-Zobrist restoration after every full-root and per-move oracle search;
+- `crates/chess-search/tests/search_terminals.rs`;
+- `docs/RUST_SEARCH_TERMINAL_FIXTURES.md`.
+
+Evidence:
+
+- Exact validated implementation SHA: `7ca429b0c883bbb8484d3eb3a4af7d96cdb57201`.
+- Permanent CI run/job: `30745120833` / `91489299233`.
+- Results: workspace assets, lockfile, metadata, rustfmt, Cargo check, Clippy with `-D warnings`, 135 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with `-D warnings`, debug build, release build, and independent differential validation passed.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 13 is complete; Task 14.1 quiescence is next.
+
+## Task 13 completed scope
 
 - [x] Implement an unpruned reference minimax/negamax search.
 - [x] Count nodes and define terminal/draw scoring.
@@ -198,7 +223,7 @@ Evidence:
 - [x] Prove shallow reference/alpha-beta score equivalence.
 - [x] Compare uniquely best moves and node counts.
 - [x] Prove search restores the root position, Zobrist key, and history exactly.
-- [ ] Add mate-in-one, mated, stalemate, draw, shorter-mate, and longer-survival fixtures.
-- [ ] Pass exact-head rustfmt, Cargo check, Clippy, tests, rustdoc, debug, release, perft, and differential gates.
+- [x] Add mate-in-one, mated, stalemate, draw, shorter-mate, and longer-survival fixtures.
+- [x] Pass exact-head rustfmt, Cargo check, Clippy, tests, rustdoc, debug, release, perft, and differential gates.
 
 No pull request has been created; work remains on `rust-engine`.

@@ -34,7 +34,7 @@
 | 10 | **Complete** — game history and draw semantics. |
 | 11 | **Complete** — authoritative perft and differential validation. |
 | 12 | **Complete** — baseline evaluator and trace. |
-| 13 | **Active** — Tasks 13.1–13.4 complete; Task 13.5 terminal fixtures are next. |
+| 13 | **Complete** — reference negamax, alpha-beta, shallow equivalence, immutability, and terminal/mate-distance fixtures. |
 | 14–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
@@ -333,13 +333,13 @@ Evidence:
 
 ---
 
-# Task 13: Reference search and alpha-beta — ACTIVE
+# Task 13: Reference search and alpha-beta — COMPLETE
 - [x] 13.1 Reference search.
 - [x] 13.2 Negamax alpha-beta.
 - [x] 13.3 Shallow equivalence.
 - [x] 13.4 Immutability.
-- [ ] 13.5 Terminal fixtures.
-- [ ] Task 13 gate.
+- [x] 13.5 Terminal fixtures.
+- [x] Task 13 gate.
 
 ### Task 13.1 completion evidence
 
@@ -405,7 +405,25 @@ Evidence:
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 13.5 is next; the overall Task 13 gate remains open.
+- Task 13.5 and the overall Task 13 gate are complete.
+
+### Task 13.5 and Task 13 gate completion evidence
+
+- Integration suite: `crates/chess-search/tests/search_terminals.rs`.
+- Contract documentation: `docs/RUST_SEARCH_TERMINAL_FIXTURES.md`.
+- Exact validated implementation SHA: `7ca429b0c883bbb8484d3eb3a4af7d96cdb57201`.
+- Permanent CI run/job: `30745120833` / `91489299233`.
+- Results: rustfmt, Cargo check, strict Clippy, 135 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc, debug/release builds, and independent differential validation passed.
+- Terminal roots cover checkmate precedence at halfmove `150`, stalemate, dead position, claimable fifty-move draw, automatic seventy-five-move draw, claimable threefold repetition, and automatic fivefold repetition. Every terminal/draw root returns one node and no best move.
+- Shorter-mate fixture `7k/5Q2/6K1/8/8/8/8/8 w - - 0 1` proves `f7e8` scores `mate_in(1)`, `f7a7` scores `mate_in(3)`, and the full root selects an immediate mate.
+- Longer-survival fixture `4Q2k/8/4K3/8/8/8/8/8 b - - 0 1` proves `h8g7` scores `mated_in(6)`, `h8h7` scores `mated_in(4)`, and the full root selects `h8g7`.
+- Reference and alpha-beta search agree on exact scores and deterministic root best moves; alpha-beta visits no more nodes than reference search on paired full-root fixtures.
+- Individual root-move oracles normalize separately searched child-root mate scores by one ply before comparing them at the parent root.
+- Every full-root and individual-root-move invocation restores logical position, detached history, incremental/recomputed Zobrist identity, and enforceable invariants exactly.
+- Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 13 is complete. Task 14.1 quiescence is next.
 
 # Task 14: Quiescence and ordering — NOT STARTED
 - [ ] 14.1 Quiescence.
@@ -551,9 +569,9 @@ Evidence:
 
 ## Immediate next operations
 
-1. Implement Task 13.5 as a dedicated terminal and mate-distance fixture suite.
-2. Cover mate in one, already mated, stalemate, claimable draws, and automatic draws for both reference and alpha-beta search.
-3. Add a position with multiple forced mates and prove the shorter mate receives the higher score and is selected.
-4. Add a forced-loss position with multiple continuations and prove the engine selects the line that delays mate longest.
-5. Reconfirm exact reference/alpha-beta scores, legal best moves, and root position/Zobrist/history restoration for every terminal fixture.
-6. Close the overall Task 13 gate only after Task 13.5 passes the full exact-head permanent validation suite.
+1. Begin Task 14.1 with a correctness-first quiescence-search contract over the existing alpha-beta search.
+2. Define the stand-pat convention, tactical move scope, terminal/draw handling, and mate-distance propagation before adding heuristics.
+3. Search legal captures, promotions, and required check evasions through source-bound legal tokens and exact make/unmake; do not use clone-per-child.
+4. Add a reference tactical-leaf oracle and fixed horizon-effect fixtures before integrating quiescence into normal alpha-beta leaves.
+5. Preserve Task 13 score, cancellation, history, Zobrist, and restoration contracts at every quiescence exit path.
+6. Keep Task 14.2 tactical ordering, Task 14.3 quiet ordering, transposition tables, and production limits out of Task 14.1.
