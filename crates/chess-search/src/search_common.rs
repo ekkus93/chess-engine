@@ -46,8 +46,7 @@ pub(crate) fn resolved_node_score(
     depth: u16,
     ply: u16,
 ) -> Result<Option<Score>, UnsupportedMatePly> {
-    if let Some(score) =
-        resolved_terminal_or_draw_score(position, history, legal_moves_empty, ply)?
+    if let Some(score) = resolved_terminal_or_draw_score(position, history, legal_moves_empty, ply)?
     {
         return Ok(Some(score));
     }

@@ -122,7 +122,9 @@ fn reference_quiescence(
             .unmake_move(position_undo)
             .expect("oracle position restores");
 
-        nodes = nodes.checked_add(child.nodes).expect("oracle node count fits");
+        nodes = nodes
+            .checked_add(child.nodes)
+            .expect("oracle node count fits");
         let score = -child.score;
         let replace_best = match best_score {
             Some(previous) => score > previous,
@@ -208,8 +210,8 @@ fn quiescence_move_score(root: &Position, text: &str) -> Score {
         .make_legal_token(token)
         .expect("root legal token applies");
     let history_undo = history.push_position(&position);
-    let child = quiescence_search(&mut position, &mut history)
-        .expect("quiescence child search succeeds");
+    let child =
+        quiescence_search(&mut position, &mut history).expect("quiescence child search succeeds");
     history
         .pop_position(history_undo)
         .expect("quiescence child history restores");
@@ -287,8 +289,8 @@ fn poisoned_capture_is_rejected_after_the_forced_recapture() {
     let mut history = SearchHistory::from_position(&position);
     let history_snapshot = history.clone();
 
-    let searched = alpha_beta_search(&mut position, &mut history, 1)
-        .expect("one-ply alpha-beta succeeds");
+    let searched =
+        alpha_beta_search(&mut position, &mut history, 1).expect("one-ply alpha-beta succeeds");
 
     assert_ne!(searched.best_move(), Some(poisoned));
     assert!(searched.score() > poisoned_score);

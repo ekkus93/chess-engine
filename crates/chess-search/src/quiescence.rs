@@ -1,9 +1,11 @@
 use chess_core::{Move, Position, SearchHistory};
 
 use crate::{
-    alpha_beta::{AlphaBetaSearchError, AlphaBetaSearchResult}, cancellation::NeverCancelled,
-    evaluate, search_common::resolved_terminal_or_draw_score, Score, SearchCancellationProbe,
-    MAX_MATE_PLY,
+    alpha_beta::{AlphaBetaSearchError, AlphaBetaSearchResult},
+    cancellation::NeverCancelled,
+    evaluate,
+    search_common::resolved_terminal_or_draw_score,
+    Score, SearchCancellationProbe, MAX_MATE_PLY,
 };
 
 /// Default maximum number of tactical plies searched beyond an alpha-beta leaf.
@@ -22,12 +24,7 @@ pub fn quiescence_search(
     history: &mut SearchHistory,
 ) -> Result<QuiescenceSearchResult, AlphaBetaSearchError> {
     let mut cancellation = NeverCancelled;
-    quiescence_search_with_cancellation(
-        position,
-        history,
-        MAX_QUIESCENCE_PLY,
-        &mut cancellation,
-    )
+    quiescence_search_with_cancellation(position, history, MAX_QUIESCENCE_PLY, &mut cancellation)
 }
 
 /// Searches the tactical continuation with a caller-selected tactical-ply guard.
@@ -110,16 +107,12 @@ where
     }
 
     let tokens = position.legal_move_tokens()?;
-    if let Some(score) = resolved_terminal_or_draw_score(
-        position,
-        history,
-        tokens.is_empty(),
-        ply,
-    )
-    .map_err(|error| AlphaBetaSearchError::DepthTooLarge {
-        depth: error.ply(),
-        maximum: MAX_MATE_PLY,
-    })? {
+    if let Some(score) = resolved_terminal_or_draw_score(position, history, tokens.is_empty(), ply)
+        .map_err(|error| AlphaBetaSearchError::DepthTooLarge {
+            depth: error.ply(),
+            maximum: MAX_MATE_PLY,
+        })?
+    {
         return Ok(AlphaBetaSearchResult {
             score,
             best_move: None,
