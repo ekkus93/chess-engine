@@ -8,6 +8,8 @@ It does not add move-ordering heuristics.
 
 Public entry points:
 
+- `reference_search_with_quiescence` as the unpruned tactical-leaf oracle;
+- `reference_search_with_quiescence_and_cancellation`;
 - `quiescence_search`;
 - `quiescence_search_with_limit`;
 - `quiescence_search_with_cancellation`;
@@ -93,7 +95,8 @@ policy. Task 16 retains those responsibilities.
 
 The regression suite includes:
 
-- an unpruned tactical-leaf oracle compared with alpha-beta quiescence;
+- an independent fixture-level tactical oracle and the production unpruned
+  `reference_search_with_quiescence` oracle compared with alpha-beta quiescence;
 - a hanging-rook horizon fixture;
 - a checked leaf whose legal evasions are quiet;
 - a quiet promotion fixture;

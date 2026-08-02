@@ -1,5 +1,5 @@
 use chess_core::{Game, Move, Position, SearchHistory, UciMove};
-use chess_search::{alpha_beta_search, reference_search, Score};
+use chess_search::{alpha_beta_search, reference_search_with_quiescence, Score};
 
 #[derive(Clone, Copy)]
 struct Fixture {
@@ -98,7 +98,7 @@ fn reference_root_scores(
             .make_legal_token(token)
             .expect("root token applies");
         let history_undo = history.push_position(position);
-        let child = reference_search(position, history, depth - 1);
+        let child = reference_search_with_quiescence(position, history, depth - 1);
         let history_restore = history.pop_position(history_undo);
         let position_restore = position.unmake_move(position_undo);
 
@@ -129,7 +129,7 @@ fn curated_shallow_scores_match_and_alpha_beta_never_visits_more_nodes() {
         let reference_snapshot = reference_position.clone();
         let mut reference_history = SearchHistory::from_position(&reference_position);
         let reference_history_snapshot = reference_history.clone();
-        let reference = reference_search(
+        let reference = reference_search_with_quiescence(
             &mut reference_position,
             &mut reference_history,
             fixture.depth,
@@ -204,8 +204,9 @@ fn uniquely_best_tactical_move_matches_the_independent_root_score_oracle() {
 
     let mut reference_position = oracle_position.clone();
     let mut reference_history = SearchHistory::from_position(&reference_position);
-    let reference = reference_search(&mut reference_position, &mut reference_history, 1)
-        .expect("reference search succeeds");
+    let reference =
+        reference_search_with_quiescence(&mut reference_position, &mut reference_history, 1)
+            .expect("reference search succeeds");
 
     let mut alpha_beta_position = oracle_position;
     let mut alpha_beta_history = SearchHistory::from_position(&alpha_beta_position);
@@ -233,8 +234,9 @@ fn repetition_aware_searches_are_equivalent_and_restore_game_history() {
     let reference_snapshot = reference_position.clone();
     let mut reference_history = root_history.clone();
     let reference_history_snapshot = reference_history.clone();
-    let reference = reference_search(&mut reference_position, &mut reference_history, 3)
-        .expect("reference repetition search succeeds");
+    let reference =
+        reference_search_with_quiescence(&mut reference_position, &mut reference_history, 3)
+            .expect("reference repetition search succeeds");
     assert_root_restored(
         "repetition-reference",
         &reference_position,

@@ -27,8 +27,8 @@ pub use quiescence::{
     QuiescenceSearchResult, MAX_QUIESCENCE_PLY,
 };
 pub use reference::{
-    reference_search, reference_search_with_cancellation, ReferenceSearchError,
-    ReferenceSearchResult,
+    reference_search, reference_search_with_cancellation, reference_search_with_quiescence,
+    reference_search_with_quiescence_and_cancellation, ReferenceSearchError, ReferenceSearchResult,
 };
 pub use score::{Score, MATE_SCORE, MAX_EVALUATION, MAX_MATE_PLY};
 pub use weights::{

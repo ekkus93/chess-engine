@@ -1,6 +1,7 @@
 use chess_core::{Game, Move, Position, SearchHistory, UciMove};
 use chess_search::{
-    alpha_beta_search, reference_search, AlphaBetaSearchResult, ReferenceSearchResult, Score,
+    alpha_beta_search, reference_search_with_quiescence, AlphaBetaSearchResult,
+    ReferenceSearchResult, Score,
 };
 
 const SHORTER_MATE_FEN: &str = "7k/5Q2/6K1/8/8/8/8/8 w - - 0 1";
@@ -64,8 +65,9 @@ fn search_pair(
     let reference_snapshot = reference_position.clone();
     let mut reference_history = root_history.clone();
     let reference_history_snapshot = reference_history.clone();
-    let reference = reference_search(&mut reference_position, &mut reference_history, depth)
-        .expect("reference search succeeds");
+    let reference =
+        reference_search_with_quiescence(&mut reference_position, &mut reference_history, depth)
+            .expect("reference search succeeds");
     assert_restored(
         &format!("{label} reference"),
         &reference_position,
@@ -152,7 +154,7 @@ fn reference_move_score(
         .make_legal_token(token)
         .expect("root legal token applies");
     let history_undo = history.push_position(&position);
-    let child = reference_search(&mut position, &mut history, depth - 1)
+    let child = reference_search_with_quiescence(&mut position, &mut history, depth - 1)
         .expect("reference child search succeeds");
     history
         .pop_position(history_undo)

@@ -2,7 +2,10 @@ use core::fmt;
 
 use chess_core::{LegalMoveError, Move, Position, SearchHistory, SearchHistoryError};
 
-use crate::{cancellation::NeverCancelled, evaluate, Score, SearchCancellationProbe, MAX_MATE_PLY};
+use crate::{
+    cancellation::NeverCancelled, evaluate, search_common::resolved_terminal_or_draw_score, Score,
+    SearchCancellationProbe, MAX_MATE_PLY, MAX_QUIESCENCE_PLY,
+};
 
 const CLAIMABLE_REPETITION_COUNT: usize = 3;
 const CLAIMABLE_HALFMOVE_COUNT: u16 = 100;
@@ -58,6 +61,13 @@ pub enum ReferenceSearchError {
     },
     /// Cooperative cancellation was requested.
     Cancelled,
+    /// The reference quiescence guard was reached while the side to move remained in check.
+    QuiescenceDepthLimitReachedInCheck {
+        /// Tactical ply at which expansion stopped.
+        quiescence_ply: u16,
+        /// Selected tactical-ply maximum.
+        maximum: u16,
+    },
     /// Recursive node accumulation exceeded `u64`.
     NodeCountOverflow,
     /// A non-terminal searched node unexpectedly produced no best move.
@@ -81,6 +91,13 @@ impl fmt::Display for ReferenceSearchError {
                 "reference-search depth {depth} exceeds supported maximum {maximum}"
             ),
             Self::Cancelled => formatter.write_str("reference search cancelled"),
+            Self::QuiescenceDepthLimitReachedInCheck {
+                quiescence_ply,
+                maximum,
+            } => write!(
+                formatter,
+                "reference quiescence depth limit {maximum} reached in check at tactical ply {quiescence_ply}"
+            ),
             Self::NodeCountOverflow => formatter.write_str("reference-search node count overflow"),
             Self::MissingBestMove => {
                 formatter.write_str("non-terminal reference-search node has no best move")
@@ -141,6 +158,60 @@ pub fn reference_search_with_cancellation<Probe>(
 where
     Probe: SearchCancellationProbe + ?Sized,
 {
+    reference_search_internal(
+        position,
+        history,
+        depth,
+        ReferenceLeafMode::Static,
+        cancellation,
+    )
+}
+
+/// Searches the complete legal tree and uses unpruned quiescence at leaves.
+pub fn reference_search_with_quiescence(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    depth: u16,
+) -> Result<ReferenceSearchResult, ReferenceSearchError> {
+    let mut cancellation = NeverCancelled;
+    reference_search_with_quiescence_and_cancellation(position, history, depth, &mut cancellation)
+}
+
+/// Searches the complete legal tree with unpruned quiescence and cancellation.
+pub fn reference_search_with_quiescence_and_cancellation<Probe>(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    depth: u16,
+    cancellation: &mut Probe,
+) -> Result<ReferenceSearchResult, ReferenceSearchError>
+where
+    Probe: SearchCancellationProbe + ?Sized,
+{
+    reference_search_internal(
+        position,
+        history,
+        depth,
+        ReferenceLeafMode::Quiescence,
+        cancellation,
+    )
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ReferenceLeafMode {
+    Static,
+    Quiescence,
+}
+
+fn reference_search_internal<Probe>(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    depth: u16,
+    leaf_mode: ReferenceLeafMode,
+    cancellation: &mut Probe,
+) -> Result<ReferenceSearchResult, ReferenceSearchError>
+where
+    Probe: SearchCancellationProbe + ?Sized,
+{
     if depth > MAX_MATE_PLY {
         return Err(ReferenceSearchError::DepthTooLarge {
             depth,
@@ -159,7 +230,7 @@ where
     let initial_history_len = history.len();
     let initial_line_len = history.line_len();
     let initial_zobrist = position.zobrist();
-    let result = search_node(position, history, depth, 0, cancellation);
+    let result = search_node(position, history, depth, 0, leaf_mode, cancellation);
 
     debug_assert_eq!(history.len(), initial_history_len);
     debug_assert_eq!(history.line_len(), initial_line_len);
@@ -175,6 +246,7 @@ fn search_node<Probe>(
     history: &mut SearchHistory,
     depth: u16,
     ply: u16,
+    leaf_mode: ReferenceLeafMode,
     cancellation: &mut Probe,
 ) -> Result<ReferenceSearchResult, ReferenceSearchError>
 where
@@ -182,6 +254,10 @@ where
 {
     if cancellation.should_cancel() {
         return Err(ReferenceSearchError::Cancelled);
+    }
+
+    if depth == 0 && leaf_mode == ReferenceLeafMode::Quiescence {
+        return search_quiescence_node(position, history, ply, 0, MAX_QUIESCENCE_PLY, cancellation);
     }
 
     let tokens = position.legal_move_tokens()?;
@@ -230,7 +306,14 @@ where
         let current = token.move_made();
         let position_undo = position.make_legal_token(token)?;
         let history_undo = history.push_position(position);
-        let child = search_node(position, history, depth - 1, ply + 1, cancellation);
+        let child = search_node(
+            position,
+            history,
+            depth - 1,
+            ply + 1,
+            leaf_mode,
+            cancellation,
+        );
         let history_restore = history.pop_position(history_undo);
         let position_restore = position.unmake_move(position_undo);
 
@@ -264,6 +347,123 @@ where
         }),
         _ => Err(ReferenceSearchError::MissingBestMove),
     }
+}
+
+fn search_quiescence_node<Probe>(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    ply: u16,
+    quiescence_ply: u16,
+    maximum_quiescence_ply: u16,
+    cancellation: &mut Probe,
+) -> Result<ReferenceSearchResult, ReferenceSearchError>
+where
+    Probe: SearchCancellationProbe + ?Sized,
+{
+    if cancellation.should_cancel() {
+        return Err(ReferenceSearchError::Cancelled);
+    }
+
+    let tokens = position.legal_move_tokens()?;
+    if let Some(score) = resolved_terminal_or_draw_score(position, history, tokens.is_empty(), ply)
+        .map_err(|error| ReferenceSearchError::DepthTooLarge {
+            depth: error.ply(),
+            maximum: MAX_MATE_PLY,
+        })?
+    {
+        return Ok(ReferenceSearchResult {
+            score,
+            best_move: None,
+            nodes: 1,
+        });
+    }
+
+    let in_check = position.is_in_check(position.side_to_move());
+    let mut best_score = None;
+    let mut best_move = None;
+
+    if in_check {
+        if quiescence_ply >= maximum_quiescence_ply {
+            return Err(ReferenceSearchError::QuiescenceDepthLimitReachedInCheck {
+                quiescence_ply,
+                maximum: maximum_quiescence_ply,
+            });
+        }
+    } else {
+        best_score = Some(evaluate(position));
+        if quiescence_ply >= maximum_quiescence_ply {
+            return Ok(ReferenceSearchResult {
+                score: best_score.expect("stand-pat exists outside check"),
+                best_move: None,
+                nodes: 1,
+            });
+        }
+    }
+
+    let mut nodes = 1_u64;
+    for token in tokens.iter() {
+        let current = token.move_made();
+        if !in_check && !is_tactical(current) {
+            continue;
+        }
+        if cancellation.should_cancel() {
+            return Err(ReferenceSearchError::Cancelled);
+        }
+
+        let child_ply = ply
+            .checked_add(1)
+            .filter(|next| *next <= MAX_MATE_PLY)
+            .ok_or(ReferenceSearchError::DepthTooLarge {
+                depth: ply.saturating_add(1),
+                maximum: MAX_MATE_PLY,
+            })?;
+        let position_undo = position.make_legal_token(token)?;
+        let history_undo = history.push_position(position);
+        let child = search_quiescence_node(
+            position,
+            history,
+            child_ply,
+            quiescence_ply + 1,
+            maximum_quiescence_ply,
+            cancellation,
+        );
+        let history_restore = history.pop_position(history_undo);
+        let position_restore = position.unmake_move(position_undo);
+
+        if let Err(error) = position_restore {
+            return Err(error.into());
+        }
+        if let Err(error) = history_restore {
+            return Err(error.into());
+        }
+
+        let child = child?;
+        nodes = nodes
+            .checked_add(child.nodes)
+            .ok_or(ReferenceSearchError::NodeCountOverflow)?;
+        let score = -child.score;
+        let replace_best = match best_score {
+            Some(previous) => score > previous,
+            None => true,
+        };
+        if replace_best {
+            best_score = Some(score);
+            best_move = Some(current);
+        }
+    }
+
+    match best_score {
+        Some(score) => Ok(ReferenceSearchResult {
+            score,
+            best_move,
+            nodes,
+        }),
+        None => Err(ReferenceSearchError::MissingBestMove),
+    }
+}
+
+const fn is_tactical(current: Move) -> bool {
+    current.kind().is_capture() || current.promotion().is_some()
 }
 
 fn is_search_draw(position: &Position, history: &SearchHistory) -> bool {
