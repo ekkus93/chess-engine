@@ -254,8 +254,7 @@ mod tests {
         let history_snapshot = history.clone();
         let expected = evaluate(&position);
 
-        let result =
-            alpha_beta_search(&mut position, &mut history, 0).expect("search succeeds");
+        let result = alpha_beta_search(&mut position, &mut history, 0).expect("search succeeds");
 
         assert_eq!(result.score(), expected);
         assert_eq!(result.best_move(), None);
@@ -273,8 +272,7 @@ mod tests {
         let mut history = SearchHistory::from_position(&position);
         let history_snapshot = history.clone();
 
-        let result =
-            alpha_beta_search(&mut position, &mut history, 3).expect("search succeeds");
+        let result = alpha_beta_search(&mut position, &mut history, 3).expect("search succeeds");
 
         assert!(result.nodes() < COMPLETE_DEPTH_THREE_TREE);
         let best_move = result.best_move().expect("non-terminal root has a move");
@@ -311,8 +309,7 @@ mod tests {
         let snapshot = position.clone();
         let mut history = SearchHistory::from_position(&position);
 
-        let result =
-            alpha_beta_search(&mut position, &mut history, 1).expect("search succeeds");
+        let result = alpha_beta_search(&mut position, &mut history, 1).expect("search succeeds");
 
         assert_eq!(result.score(), Score::mate_in(1).expect("supported ply"));
         let best_move = result.best_move().expect("mate has a root move");
@@ -344,8 +341,8 @@ mod tests {
         let repeated_snapshot = repeated.clone();
         let mut history = game.search_history();
         let history_snapshot = history.clone();
-        let draw = alpha_beta_search(&mut repeated, &mut history, 3)
-            .expect("repetition search succeeds");
+        let draw =
+            alpha_beta_search(&mut repeated, &mut history, 3).expect("repetition search succeeds");
         assert_eq!(history.repetition_count(&repeated), 3);
         assert_eq!(draw.score(), Score::ZERO);
         assert_eq!(draw.best_move(), None);
