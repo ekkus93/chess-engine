@@ -3,8 +3,11 @@ use core::fmt;
 use chess_core::{LegalMoveError, Move, Position, SearchHistory, SearchHistoryError};
 
 use crate::{
-    cancellation::NeverCancelled, evaluate, search_common::resolved_terminal_or_draw_score, Score,
-    SearchCancellationProbe, MAX_MATE_PLY, MAX_QUIESCENCE_PLY,
+    cancellation::NeverCancelled,
+    evaluate,
+    move_ordering::{ordered_legal_moves, MoveOrdering},
+    search_common::resolved_terminal_or_draw_score,
+    Score, SearchCancellationProbe, MAX_MATE_PLY, MAX_QUIESCENCE_PLY,
 };
 
 const CLAIMABLE_REPETITION_COUNT: usize = 3;
@@ -294,11 +297,12 @@ where
         });
     }
 
+    let ordered_tokens = ordered_legal_moves(position, &tokens, MoveOrdering::Generation);
     let mut nodes = 1_u64;
     let mut best_score = None;
     let mut best_move = None;
 
-    for token in tokens.iter() {
+    for token in ordered_tokens.iter() {
         if cancellation.should_cancel() {
             return Err(ReferenceSearchError::Cancelled);
         }
@@ -400,8 +404,9 @@ where
         }
     }
 
+    let ordered_tokens = ordered_legal_moves(position, &tokens, MoveOrdering::Generation);
     let mut nodes = 1_u64;
-    for token in tokens.iter() {
+    for token in ordered_tokens.iter() {
         let current = token.move_made();
         if !in_check && !is_tactical(current) {
             continue;

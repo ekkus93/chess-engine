@@ -4,6 +4,7 @@ use crate::{
     alpha_beta::{AlphaBetaSearchError, AlphaBetaSearchResult},
     cancellation::NeverCancelled,
     evaluate,
+    move_ordering::{ordered_legal_moves, MoveOrdering},
     search_common::resolved_terminal_or_draw_score,
     Score, SearchCancellationProbe, MAX_MATE_PLY,
 };
@@ -81,7 +82,15 @@ where
         quiescence_ply: 0,
         maximum_quiescence_ply,
     };
-    let result = search_quiescence_node(position, history, context, alpha, beta, cancellation);
+    let result = search_quiescence_node(
+        position,
+        history,
+        context,
+        alpha,
+        beta,
+        MoveOrdering::Tactical,
+        cancellation,
+    );
 
     debug_assert_eq!(history.len(), initial_history_len);
     debug_assert_eq!(history.line_len(), initial_line_len);
@@ -98,6 +107,7 @@ pub(crate) fn search_quiescence_node<Probe>(
     context: QuiescenceContext,
     mut alpha: Score,
     beta: Score,
+    ordering: MoveOrdering,
     cancellation: &mut Probe,
 ) -> Result<QuiescenceSearchResult, AlphaBetaSearchError>
 where
@@ -156,8 +166,9 @@ where
         }
     }
 
+    let ordered_tokens = ordered_legal_moves(position, &tokens, ordering);
     let mut nodes = 1_u64;
-    for token in tokens.iter() {
+    for token in ordered_tokens.iter() {
         let current = token.move_made();
         if !in_check && !is_tactical(current) {
             continue;
@@ -187,6 +198,7 @@ where
             child_context,
             -beta,
             -alpha,
+            ordering,
             cancellation,
         );
         let history_restore = history.pop_position(history_undo);
@@ -232,4 +244,68 @@ where
 
 const fn is_tactical(current: Move) -> bool {
     current.kind().is_capture() || current.promotion().is_some()
+}
+
+#[cfg(test)]
+mod ordering_tests {
+    use chess_core::{Position, SearchHistory};
+
+    use super::{search_quiescence_node, QuiescenceContext, MAX_QUIESCENCE_PLY};
+    use crate::{cancellation::NeverCancelled, move_ordering::MoveOrdering, Score};
+
+    fn search_with_ordering(
+        root: &Position,
+        ordering: MoveOrdering,
+    ) -> super::QuiescenceSearchResult {
+        let mut position = root.clone();
+        let snapshot = position.clone();
+        let mut history = SearchHistory::from_position(&position);
+        let history_snapshot = history.clone();
+        let context = QuiescenceContext {
+            ply: 0,
+            quiescence_ply: 0,
+            maximum_quiescence_ply: MAX_QUIESCENCE_PLY,
+        };
+        let mut cancellation = NeverCancelled;
+        let result = search_quiescence_node(
+            &mut position,
+            &mut history,
+            context,
+            Score::from_evaluation(-700),
+            Score::from_evaluation(700),
+            ordering,
+            &mut cancellation,
+        )
+        .expect("ordering benchmark search succeeds");
+
+        assert_eq!(position, snapshot);
+        assert_eq!(history, history_snapshot);
+        assert_eq!(position.zobrist(), position.recomputed_zobrist());
+        result
+    }
+
+    #[test]
+    fn tactical_ordering_reduces_a_fixed_cutoff_tree_without_changing_the_result() {
+        let root: Position = "7k/8/8/1p2q3/2P1Q3/8/K7/8 w - - 0 1"
+            .parse()
+            .expect("ordering benchmark FEN is valid");
+        let generation = search_with_ordering(&root, MoveOrdering::Generation);
+        let tactical = search_with_ordering(&root, MoveOrdering::Tactical);
+
+        assert_eq!(tactical.score(), generation.score());
+        assert_eq!(tactical.best_move(), generation.best_move());
+        assert_eq!(
+            tactical
+                .best_move()
+                .expect("benchmark has a cutoff move")
+                .to_uci(),
+            "e4e5"
+        );
+        assert!(
+            tactical.nodes() < generation.nodes(),
+            "tactical ordering visited {} nodes versus generation order {}",
+            tactical.nodes(),
+            generation.nodes()
+        );
+    }
 }

@@ -7,6 +7,7 @@
 mod alpha_beta;
 mod cancellation;
 mod evaluation;
+mod move_ordering;
 mod quiescence;
 mod reference;
 mod score;

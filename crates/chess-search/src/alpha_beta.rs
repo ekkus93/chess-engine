@@ -4,6 +4,7 @@ use chess_core::{LegalMoveError, Move, Position, SearchHistory, SearchHistoryErr
 
 use crate::{
     cancellation::NeverCancelled,
+    move_ordering::{ordered_legal_moves, MoveOrdering},
     quiescence::{search_quiescence_node, QuiescenceContext},
     search_common::resolved_node_score,
     Score, SearchCancellationProbe, MAX_MATE_PLY, MAX_QUIESCENCE_PLY,
@@ -138,8 +139,9 @@ pub fn alpha_beta_search(
 /// The search uses the same side-to-move score, mate-distance, terminal, draw,
 /// and repetition semantics as [`crate::reference_search`]. At depth-zero
 /// leaves it invokes correctness-first quiescence search over captures,
-/// promotions, and every legal check evasion. Legal moves retain their
-/// deterministic generation order, and equal scores keep the first move. The
+/// promotions, and every legal check evasion. Legal moves use deterministic
+/// tactical ordering: the future TT hook, promotions, MVV-LVA captures, then
+/// generation-stable quiet moves. Equal scores keep the first searched move. The
 /// root uses the complete supported score window, so its returned score is exact
 /// rather than a bound.
 ///
@@ -178,7 +180,16 @@ where
     let initial_zobrist = position.zobrist();
     let alpha = Score::mated_in(0).expect("zero-ply mate score is supported");
     let beta = Score::mate_in(0).expect("zero-ply mate score is supported");
-    let result = search_node(position, history, depth, 0, alpha, beta, cancellation);
+    let window = AlphaBetaWindow { alpha, beta };
+    let result = search_node(
+        position,
+        history,
+        depth,
+        0,
+        window,
+        MoveOrdering::Tactical,
+        cancellation,
+    );
 
     debug_assert_eq!(history.len(), initial_history_len);
     debug_assert_eq!(history.line_len(), initial_line_len);
@@ -189,18 +200,26 @@ where
     result
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct AlphaBetaWindow {
+    alpha: Score,
+    beta: Score,
+}
+
 fn search_node<Probe>(
     position: &mut Position,
     history: &mut SearchHistory,
     depth: u16,
     ply: u16,
-    mut alpha: Score,
-    beta: Score,
+    window: AlphaBetaWindow,
+    ordering: MoveOrdering,
     cancellation: &mut Probe,
 ) -> Result<AlphaBetaSearchResult, AlphaBetaSearchError>
 where
     Probe: SearchCancellationProbe + ?Sized,
 {
+    let mut alpha = window.alpha;
+    let beta = window.beta;
     if cancellation.should_cancel() {
         return Err(AlphaBetaSearchError::Cancelled);
     }
@@ -211,7 +230,15 @@ where
             quiescence_ply: 0,
             maximum_quiescence_ply: MAX_QUIESCENCE_PLY,
         };
-        return search_quiescence_node(position, history, context, alpha, beta, cancellation);
+        return search_quiescence_node(
+            position,
+            history,
+            context,
+            alpha,
+            beta,
+            ordering,
+            cancellation,
+        );
     }
 
     let tokens = position.legal_move_tokens()?;
@@ -228,11 +255,12 @@ where
         });
     }
 
+    let ordered_tokens = ordered_legal_moves(position, &tokens, ordering);
     let mut nodes = 1_u64;
     let mut best_score = None;
     let mut best_move = None;
 
-    for token in tokens.iter() {
+    for token in ordered_tokens.iter() {
         if cancellation.should_cancel() {
             return Err(AlphaBetaSearchError::Cancelled);
         }
@@ -240,13 +268,17 @@ where
         let current = token.move_made();
         let position_undo = position.make_legal_token(token)?;
         let history_undo = history.push_position(position);
+        let child_window = AlphaBetaWindow {
+            alpha: -beta,
+            beta: -alpha,
+        };
         let child = search_node(
             position,
             history,
             depth - 1,
             ply + 1,
-            -beta,
-            -alpha,
+            child_window,
+            ordering,
             cancellation,
         );
         let history_restore = history.pop_position(history_undo);
