@@ -17,7 +17,7 @@
 | 5 | `78e9315369ff4552e5500d1a820767a1fd228f29` | `30727553897` / `91441947625` | closure green; implementation `42 passed` |
 | 6 | `cb7124c5712f6b3f8f4540e9e8fabaa2aa242bc0` | `30727972433` | closure green; implementation `49 passed` |
 | 7 | `334dc79b3ce0cbc1e7b5096387218c90a8365204` | `30730100518` / `91448776834` | closure green; implementation `59 passed` |
-| 8 | `cfc68a4ff775d6d4b73c0bfa192e00c1fd7b910f` | `30730803320` / `91450780156` | implementation green; `67 passed` |
+| 8 | `cecc39b9c9dcd8c90f9cdbdb4284be13c480bbd6` | `30730891252` / `91451022194` | closure green; implementation `67 passed` |
 
 ## Task 8 completion
 
@@ -41,6 +41,8 @@ Evidence:
 - Restoration and sequence tests: `crates/chess-core/src/position/make_unmake_tests.rs`.
 - Validated implementation head: `cfc68a4ff775d6d4b73c0bfa192e00c1fd7b910f`.
 - Implementation CI run/job: `30730803320` / `91450780156`.
+- Closure SHA: `cecc39b9c9dcd8c90f9cdbdb4284be13c480bbd6`.
+- Closure CI run/job: `30730891252` / `91451022194`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime and dependency `punycode` deprecation notices only.
 - Task 9 owns real Zobrist computation and incremental key updates; Task 8 stores and restores the current hash field exactly.
