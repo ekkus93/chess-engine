@@ -35,7 +35,7 @@
 
 ## Task 5 implementation
 
-Implementation commit prepared: `bc420dcc5847c7080a6f46a805b8b8ac84a7f815`.
+Current implementation candidate: `1ed6cbd17186584ee61aed980a2a00b8bdbc86fc`.
 
 Implemented:
 
