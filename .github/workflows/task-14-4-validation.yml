@@ -1,0 +1,58 @@
+name: Task 14.4 validation
+
+on:
+  push:
+    branches:
+      - rust-engine
+    paths:
+      - "crates/chess-search/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    name: Task 14.4 focused
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Formatting
+        run: cargo fmt --all -- --check
+      - name: Strict chess-search Clippy
+        run: cargo clippy -p chess-search --all-targets --all-features -- -D warnings
+      - name: Chess-search tests
+        run: cargo test -p chess-search --all-features
+
+  closure:
+    name: Task 14.4 full closure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Cargo metadata
+        run: cargo metadata --locked --format-version 1 >/dev/null
+      - name: Formatting
+        run: cargo fmt --all -- --check
+      - name: Strict workspace Clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+      - name: Workspace tests
+        run: cargo test --workspace --all-features
+      - name: Release perft tests
+        run: cargo test -p chess-core --release perft
+      - name: Authoritative depth-four perft suite
+        run: cargo run --release -p chess-tools -- suite 4
+      - name: Rustdoc warnings denied
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --workspace --no-deps
+      - name: Debug build
+        run: cargo build --workspace --all-features
+      - name: Release build
+        run: cargo build --workspace --all-features --release
