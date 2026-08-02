@@ -40,6 +40,7 @@ jobs:
 
       - name: Reconstruct, apply, and validate Task 14.3
         id: validation
+        continue-on-error: true
         shell: bash
         run: |
           set +e
@@ -58,42 +59,7 @@ jobs:
             cargo clippy --version
             cat .github/task14_3_parts/part{00..04} > /tmp/apply_task_14_3.py
             echo 'b9d3c144d610175a6f9562773825c6e2806737a882e107425bf0c9dfcdfb3c93  /tmp/apply_task_14_3.py' | sha256sum --check
-            python3 - <<'PY'
-            from pathlib import Path
-
-            path = Path('/tmp/apply_task_14_3.py')
-            text = path.read_text()
-            old = '''text = replace_once(
-                text,
-                """            MoveOrdering::Tactical,
-                        Some(tt_move),
-                    )""",
-                """            MoveOrdering::Tactical,
-                        0,
-                        None,
-                        Some(tt_move),
-                        None,
-                    )""",
-                "existing TT test call",
-            )'''
-            new = '''text = replace_once(
-                text,
-                "order_legal_moves_with_hints(&root, &tokens, MoveOrdering::Tactical, Some(tt_move))",
-                """order_legal_moves_with_hints(
-                            &root,
-                            &tokens,
-                            MoveOrdering::Tactical,
-                            0,
-                            None,
-                            Some(tt_move),
-                            None,
-                        )""",
-                "existing TT test call",
-            )'''
-            if text.count(old) != 1:
-                raise SystemExit(f'applicator matcher repair expected one block, found {text.count(old)}')
-            path.write_text(text.replace(old, new))
-            PY
+            python3 -c 'import base64; from pathlib import Path; p=Path("/tmp/apply_task_14_3.py"); s=p.read_text(); old=base64.b64decode("dGV4dCA9IHJlcGxhY2Vfb25jZSgKICAgIHRleHQsCiAgICAiIiIgICAgICAgICAgICBNb3ZlT3JkZXJpbmc6OlRhY3RpY2FsLAogICAgICAgICAgICBTb21lKHR0X21vdmUpLAogICAgICAgICkiIiIsCiAgICAiIiIgICAgICAgICAgICBNb3ZlT3JkZXJpbmc6OlRhY3RpY2FsLAogICAgICAgICAgICAwLAogICAgICAgICAgICBOb25lLAogICAgICAgICAgICBTb21lKHR0X21vdmUpLAogICAgICAgICAgICBOb25lLAogICAgICAgICkiIiIsCiAgICAiZXhpc3RpbmcgVFQgdGVzdCBjYWxsIiwKKQ==").decode(); new=base64.b64decode("dGV4dCA9IHJlcGxhY2Vfb25jZSgKICAgIHRleHQsCiAgICAib3JkZXJfbGVnYWxfbW92ZXNfd2l0aF9oaW50cygmcm9vdCwgJnRva2VucywgTW92ZU9yZGVyaW5nOjpUYWN0aWNhbCwgU29tZSh0dF9tb3ZlKSkiLAogICAgIiIib3JkZXJfbGVnYWxfbW92ZXNfd2l0aF9oaW50cygKICAgICAgICAgICAgICAgICZyb290LAogICAgICAgICAgICAgICAgJnRva2VucywKICAgICAgICAgICAgICAgIE1vdmVPcmRlcmluZzo6VGFjdGljYWwsCiAgICAgICAgICAgICAgICAwLAogICAgICAgICAgICAgICAgTm9uZSwKICAgICAgICAgICAgICAgIFNvbWUodHRfbW92ZSksCiAgICAgICAgICAgICAgICBOb25lLAogICAgICAgICAgICApIiIiLAogICAgImV4aXN0aW5nIFRUIHRlc3QgY2FsbCIsCik=").decode(); assert s.count(old)==1, s.count(old); p.write_text(s.replace(old,new))'
             echo '8b6bab7bd745473b18f1098d544158a6ffb922bbb5ed5e4a21df7a32cfb4923d  /tmp/apply_task_14_3.py' | sha256sum --check
             python3 /tmp/apply_task_14_3.py "$GITHUB_WORKSPACE"
             cargo fmt --all
@@ -110,18 +76,22 @@ jobs:
           exit 0
 
       - name: Commit fail-visible diagnostics
-        if: steps.validation.outputs.status != '0'
+        if: steps.validation.outcome == 'failure' || steps.validation.outputs.status != '0'
         shell: bash
         run: |
           set -euo pipefail
           git reset --hard HEAD
-          cp /tmp/task14_3_validation.log .github/task14_3_failure.txt
+          if test -f /tmp/task14_3_validation.log; then
+            cp /tmp/task14_3_validation.log .github/task14_3_failure.txt
+          else
+            printf 'validation shell failed before log creation\n' > .github/task14_3_failure.txt
+          fi
           git add .github/task14_3_failure.txt
           git commit -m "ci: record Task 14.3 validation failure"
           git push origin HEAD:rust-engine
 
       - name: Commit implementation and remove applicator
-        if: steps.validation.outputs.status == '0'
+        if: steps.validation.outcome == 'success' && steps.validation.outputs.status == '0'
         shell: bash
         run: |
           set -euo pipefail
