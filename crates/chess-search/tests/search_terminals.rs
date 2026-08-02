@@ -106,7 +106,8 @@ fn search_pair(
 
 fn legal_move(position: &Position, text: &str) -> Move {
     let syntax = text.parse::<UciMove>().expect("fixture UCI is valid");
-    position
+    let mut scratch = position.clone();
+    scratch
         .legal_moves()
         .expect("fixture legal generation succeeds")
         .iter()
