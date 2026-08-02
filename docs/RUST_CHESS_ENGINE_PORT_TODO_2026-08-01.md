@@ -30,8 +30,11 @@
 | 6 | **Complete** — pseudo-legal move generation. |
 | 7 | **Complete** — legal move generation, special rules, reversible validation, and initial perft. |
 | 8 | **Complete** — formal checked/generated make/unmake, exact restoration, and randomized reversal. |
-| 9 | **Active, not started** — Zobrist hashing and repetition identity. |
-| 10–24 | **Not started**. |
+| 9 | **Complete** — Zobrist hashing and repetition identity. |
+| 10 | **Complete** — game history and draw semantics. |
+| 11 | **Complete** — authoritative perft and differential validation. |
+| 12 | **Active** — baseline evaluator and trace. |
+| 13–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
 

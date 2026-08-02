@@ -321,11 +321,7 @@ impl fmt::Display for WeightValidationError {
 
 impl std::error::Error for WeightValidationError {}
 
-fn write_phased(
-    values: &mut [i16; WEIGHT_VALUE_COUNT],
-    index: &mut usize,
-    weight: PhasedWeight,
-) {
+fn write_phased(values: &mut [i16; WEIGHT_VALUE_COUNT], index: &mut usize, weight: PhasedWeight) {
     values[*index] = weight.middlegame;
     values[*index + 1] = weight.endgame;
     *index += 2;

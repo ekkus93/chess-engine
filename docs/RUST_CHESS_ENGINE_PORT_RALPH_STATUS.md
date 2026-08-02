@@ -3,7 +3,7 @@
 **Updated:** 2026-08-01  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 12 baseline evaluator and trace active; implementation not started
+**Current phase:** Task 12 baseline evaluator and trace active; implementation candidate under validation
 
 ## Completed gates
 

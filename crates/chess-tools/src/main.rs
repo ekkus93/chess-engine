@@ -106,8 +106,7 @@ fn run(arguments: &[String]) -> Result<(), String> {
             println!("total\t{}", trace.total);
         }
         "eval-bench" => {
-            let iterations =
-                parse_iterations(arguments.get(1).ok_or_else(|| usage().to_owned())?)?;
+            let iterations = parse_iterations(arguments.get(1).ok_or_else(|| usage().to_owned())?)?;
             let fen = optional_fen(arguments, 2)?;
             for row in benchmark_evaluation(fen, iterations).map_err(|error| error.to_string())? {
                 println!(

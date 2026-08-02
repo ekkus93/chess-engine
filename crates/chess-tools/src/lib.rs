@@ -1,10 +1,22 @@
 #![forbid(unsafe_code)]
 //! Deterministic offline validation primitives for the Rust chess engine.
 
+mod weights_io;
+
 use core::fmt;
-use std::io::{BufRead, Write};
+use std::{
+    hint::black_box,
+    io::{BufRead, Write},
+    time::Instant,
+};
 
 use chess_core::{Move, Position, UciMove};
+use chess_search::{
+    evaluate_term, evaluate_trace as search_evaluate_trace, EvaluationTerm, EvaluationTrace,
+    EvaluationWeightSet,
+};
+
+pub use weights_io::{deserialize_weight_set, serialize_weight_set};
 
 /// Canonical standard starting-position FEN.
 pub const STARTING_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -171,6 +183,62 @@ pub fn suite(max_depth: u8) -> Result<Vec<String>, ToolError> {
                 fixture.name, depth, actual, fixture.fen
             ));
         }
+    }
+    Ok(rows)
+}
+
+/// One stable evaluator benchmark result.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct EvaluationBenchmarkRow {
+    /// Stable coarse evaluator term name.
+    pub term: &'static str,
+    /// Number of evaluations performed.
+    pub iterations: u64,
+    /// Wall-clock duration in nanoseconds.
+    pub elapsed_nanos: u128,
+    /// Deterministic accumulator preventing dead-code elimination.
+    pub checksum: i64,
+}
+
+/// Returns the named static-evaluation trace for `fen`.
+pub fn evaluation_trace(fen: &str) -> Result<EvaluationTrace, ToolError> {
+    let position = parse_position(fen)?;
+    Ok(search_evaluate_trace(&position))
+}
+
+/// Benchmarks every major evaluator group and the complete evaluation.
+pub fn benchmark_evaluation(
+    fen: &str,
+    iterations: u64,
+) -> Result<Vec<EvaluationBenchmarkRow>, ToolError> {
+    if iterations == 0 {
+        return Err(ToolError::new(
+            "evaluation benchmark requires at least one iteration",
+        ));
+    }
+    let position = parse_position(fen)?;
+    let weight_set = EvaluationWeightSet::baseline();
+    weight_set
+        .validate()
+        .map_err(|error| ToolError::new(error.to_string()))?;
+    let mut rows = Vec::with_capacity(EvaluationTerm::ALL.len());
+    for term in EvaluationTerm::ALL {
+        let started = Instant::now();
+        let mut checksum = 0_i64;
+        for _ in 0..iterations {
+            let score = evaluate_term(
+                black_box(&position),
+                black_box(&weight_set.weights),
+                black_box(term),
+            );
+            checksum = checksum.wrapping_add(i64::from(black_box(score.centipawns())));
+        }
+        rows.push(EvaluationBenchmarkRow {
+            term: term.name(),
+            iterations,
+            elapsed_nanos: started.elapsed().as_nanos(),
+            checksum,
+        });
     }
     Ok(rows)
 }

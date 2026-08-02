@@ -117,7 +117,11 @@ pub fn evaluate(position: &Position) -> Score {
 /// Evaluates `position` with caller-supplied weights.
 #[must_use]
 pub fn evaluate_with_weights(position: &Position, weights: &EvaluationWeights) -> Score {
-    Score::from_evaluation(raw_evaluation(position, weights).to_trace(position.side_to_move()).total)
+    Score::from_evaluation(
+        raw_evaluation(position, weights)
+            .to_trace(position.side_to_move())
+            .total,
+    )
 }
 
 /// Returns the allocation-free named trace for the baseline weights.
@@ -475,9 +479,7 @@ fn king_shield_count(position: &Position, color: Color, king: Square) -> u8 {
     let end = (king.file() + 1).min(7);
     for file in start..=end {
         let square = Square::from_row_file(row, file).expect("shield square is on board");
-        if position.piece_at(square)
-            == Some(chess_core::Piece::new(color, PieceKind::Pawn))
-        {
+        if position.piece_at(square) == Some(chess_core::Piece::new(color, PieceKind::Pawn)) {
             count += 1;
         }
     }
@@ -571,9 +573,7 @@ mod tests {
 
     #[test]
     fn trace_components_sum_to_the_normal_evaluation() {
-        let current = position(
-            "r3k2r/pp1n1ppp/2pbpn2/3p4/3P4/2PBPN2/PP1N1PPP/R3K2R w KQkq - 0 10",
-        );
+        let current = position("r3k2r/pp1n1ppp/2pbpn2/3p4/3P4/2PBPN2/PP1N1PPP/R3K2R w KQkq - 0 10");
         let trace = evaluate_trace(&current);
         assert_eq!(trace.component_sum(), trace.total);
         assert_eq!(trace.total, evaluate(&current).centipawns());
@@ -590,9 +590,7 @@ mod tests {
 
     #[test]
     fn coarse_benchmark_groups_reconstruct_the_full_score() {
-        let current = position(
-            "r2q1rk1/pp1nbppp/2p1pn2/3p4/3P4/2N1PN2/PPQ1BPPP/R3K2R w KQ - 4 10",
-        );
+        let current = position("r2q1rk1/pp1nbppp/2p1pn2/3p4/3P4/2N1PN2/PPQ1BPPP/R3K2R w KQ - 4 10");
         let weights = EvaluationWeights::DEFAULT;
         let grouped = [
             EvaluationTerm::MaterialAndPieceSquare,
