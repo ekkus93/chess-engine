@@ -99,10 +99,7 @@ impl Position {
     }
 
     /// Returns whether `candidate` is one of the exact generated legal moves.
-    pub fn is_legal_move(
-        &mut self,
-        candidate: Move,
-    ) -> Result<bool, LegalMoveError> {
+    pub fn is_legal_move(&mut self, candidate: Move) -> Result<bool, LegalMoveError> {
         Ok(self
             .legal_moves()?
             .iter()
