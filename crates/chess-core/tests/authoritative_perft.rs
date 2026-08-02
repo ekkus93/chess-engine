@@ -37,11 +37,7 @@ fn assert_fixture_depth(fixture: PerftFixture<'_>, depth: u8) {
     let snapshot = position.clone();
     let expected = fixture.expected[usize::from(depth - 1)];
     let actual = position.perft(depth).expect("authoritative perft succeeds");
-    assert_eq!(
-        actual, expected,
-        "{} depth {depth} diverged",
-        fixture.name
-    );
+    assert_eq!(actual, expected, "{} depth {depth} diverged", fixture.name);
     assert_eq!(
         position, snapshot,
         "{} depth {depth} did not restore the position",
