@@ -1,0 +1,40 @@
+name: Task 11 formatter once
+
+on:
+  push:
+    branches:
+      - rust-engine
+    paths:
+      - .github/workflows/task11-format-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Apply rustfmt exactly once
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all
+          git diff --check
+          if git diff --quiet; then
+            echo "::error::Task 11 formatter had no changes to apply."
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add crates/chess-core/tests/authoritative_perft.rs crates/chess-tools/src/lib.rs crates/chess-tools/src/main.rs
+          git commit -m "style(tools): format Task 11 validation code"
+          git push origin HEAD:rust-engine
