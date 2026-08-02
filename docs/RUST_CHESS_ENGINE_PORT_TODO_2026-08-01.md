@@ -679,7 +679,7 @@ Evidence:
 - Results: permanent exclusion audit, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy without suppressions, 193 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - The clean implementation delta contains only three Rust modules, one integration-test file, and one contract document; no temporary workflow, script, unbounded map, or fallback remains.
-- Task 15 is complete. Task 16.1 iterative deepening is next.
+- Task 15 and Task 16.1 are complete. Task 16.2 aspiration windows is next.
 
 # Task 16: Iterative deepening, PV, limits, cancellation — ACTIVE
 - [x] 16.1 Iterative deepening.
