@@ -7,6 +7,7 @@
 mod alpha_beta;
 mod cancellation;
 mod evaluation;
+mod iterative_deepening;
 mod move_ordering;
 mod quiescence;
 mod reference;
@@ -26,6 +27,10 @@ pub use cancellation::SearchCancellationProbe;
 pub use evaluation::{
     evaluate, evaluate_term, evaluate_trace, evaluate_trace_with_weights, evaluate_with_weights,
     EvaluationTerm, EvaluationTrace,
+};
+pub use iterative_deepening::{
+    iterative_deepening_search, iterative_deepening_search_with_transposition_table,
+    IterativeDeepeningIteration, IterativeDeepeningSearchError, IterativeDeepeningSearchResult,
 };
 pub use quiescence::{
     quiescence_search, quiescence_search_with_cancellation, quiescence_search_with_limit,
