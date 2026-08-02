@@ -28,10 +28,7 @@ pub enum FenError {
     /// En-passant field was not `-` or a valid lowercase square.
     InvalidEnPassantSquare { value: String },
     /// En-passant target rank is inconsistent with the active color.
-    InvalidEnPassantRank {
-        side_to_move: Color,
-        square: Square,
-    },
+    InvalidEnPassantRank { side_to_move: Color, square: Square },
     /// Halfmove clock must be an unsigned 16-bit integer.
     InvalidHalfmoveClock { value: String },
     /// Fullmove number must be an unsigned nonzero 16-bit integer.
@@ -47,17 +44,26 @@ impl fmt::Display for FenError {
                 write!(formatter, "FEN must contain six fields, found {found}")
             }
             Self::RankCount { found } => {
-                write!(formatter, "FEN placement must contain eight ranks, found {found}")
+                write!(
+                    formatter,
+                    "FEN placement must contain eight ranks, found {found}"
+                )
             }
             Self::RankWidth { rank, files } => {
-                write!(formatter, "FEN rank {rank} expands to {files} files instead of eight")
+                write!(
+                    formatter,
+                    "FEN rank {rank} expands to {files} files instead of eight"
+                )
             }
             Self::InvalidPlacementCharacter { rank, file, value } => write!(
                 formatter,
                 "invalid FEN placement character {value:?} at rank {rank}, file {file}"
             ),
             Self::PawnOnPromotionRank { square, color } => {
-                write!(formatter, "{color} pawn is not allowed on promotion-rank square {square}")
+                write!(
+                    formatter,
+                    "{color} pawn is not allowed on promotion-rank square {square}"
+                )
             }
             Self::InvalidActiveColor { value } => {
                 write!(formatter, "invalid FEN active-color field {value:?}")
@@ -204,13 +210,11 @@ fn parse_placement(value: &str) -> Result<PositionBuilder, FenError> {
                 continue;
             }
 
-            let piece = Piece::from_fen_char(token).ok_or(
-                FenError::InvalidPlacementCharacter {
-                    rank: rank_number,
-                    file: file.saturating_add(1),
-                    value: token,
-                },
-            )?;
+            let piece = Piece::from_fen_char(token).ok_or(FenError::InvalidPlacementCharacter {
+                rank: rank_number,
+                file: file.saturating_add(1),
+                value: token,
+            })?;
             if file >= 8 {
                 return Err(FenError::RankWidth {
                     rank: rank_number,
