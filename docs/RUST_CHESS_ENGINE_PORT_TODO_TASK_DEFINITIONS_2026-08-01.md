@@ -800,12 +800,12 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 15.4 Probe semantics
 
-- [ ] Depth sufficiency.
-- [ ] Exact hit.
-- [ ] Lower-bound cutoff.
-- [ ] Upper-bound cutoff.
-- [ ] Best-move use even when score cannot be reused.
-- [ ] Safe handling of repetition-sensitive nodes.
+- [x] Depth sufficiency.
+- [x] Exact hit.
+- [x] Lower-bound cutoff.
+- [x] Upper-bound cutoff.
+- [x] Best-move use even when score cannot be reused.
+- [x] Safe handling of repetition-sensitive nodes.
 
 ## 15.5 Replacement policy
 

@@ -3,7 +3,7 @@
 **Updated:** 2026-08-02  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Tasks 15.1–15.3 complete; Task 15.4 safe probe semantics is next
+**Current phase:** Tasks 15.1–15.4 complete; Task 15.5 deterministic replacement is next
 
 ## Completed gates
 
@@ -36,6 +36,7 @@
 | 15.1 | `65ef70bfbff3d0bf5fd6e6a19ba20ed5214c3e26` | `30764647127` / `91541116562` | complete TT entry payload, five focused tests, 160 Rust tests, depth-four perft, and differential oracle green |
 | 15.2 | `6b2ee0081cd47fd9069aeabb0d3ccb1d3659fea9` | `30765303745` / `91542820537` | fixed MiB storage, four-entry clusters, typed allocation failures, clear/generation operations, 165 Rust tests, depth-four perft, and differential oracle green |
 | 15.3 | `ac68b99db53546c31f3aae68ad7337ba256eb982` | `30766126491` / `91545080021` | ply-correct mate normalization, typed conversion failures, six focused tests, 171 Rust tests, depth-four perft, and differential oracle green |
+| 15.4 | `b6a015e6cc519aa0bbc8e7bde7dde06bdd660b44` | `30766760085` / `91546779835` | complete-key, depth- and bound-safe probes, repetition suppression, eight focused tests, 179 Rust tests, depth-four perft, and differential oracle green |
 
 ## Task 12 completion
 
@@ -400,7 +401,7 @@ Evidence:
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
 - Mate normalization is complete; probe semantics, replacement policy, diagnostics, and search integration remain intentionally outside Task 15.2.
-- Task 15.4 safe probe semantics is next.
+- Task 15.4 safe probe semantics is complete; Task 15.5 deterministic replacement is next.
 
 ## Task 15.3 completion
 
@@ -423,15 +424,42 @@ Evidence:
 - Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Probe semantics, repetition-sensitive reuse, replacement, diagnostics, and production search integration remain intentionally outside Task 15.3.
+- Probe semantics are complete; replacement, diagnostics, and production search integration remain intentionally outside Task 15.3.
 - Task 15.4 safe probe semantics is next.
+
+
+## Task 15.4 completion
+
+Implemented and validated:
+
+- a public, storage-only `TranspositionTable::probe` boundary in `crates/chess-search/src/transposition/probe.rs`;
+- complete 64-bit verification-key matching after deterministic cluster selection;
+- stored-depth sufficiency before score reuse;
+- exact-score returns and fail-high/fail-low bound cutoffs at the correct beta/alpha edges;
+- current-ply mate-score denormalization before comparison or return;
+- verified best-move delivery even when depth or bounds do not permit score reuse;
+- explicit `SuppressedForRepetition` handling that disables cached scores while retaining move ordering;
+- typed invalid-window and score-conversion failures;
+- eight focused probe regressions;
+- `docs/RUST_TRANSPOSITION_TABLE_PROBE_SEMANTICS.md`.
+
+Evidence:
+
+- Exact validated implementation SHA: `b6a015e6cc519aa0bbc8e7bde7dde06bdd660b44`.
+- Permanent CI run/job: `30766760085` / `91546779835`.
+- Results: workspace assets, Task 14.5 audit over 12 production search modules, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy, 179 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Insertion, same-key updates, depth/age replacement, diagnostics, and production search integration remain intentionally outside Task 15.4.
+- Task 15.5 deterministic replacement is next.
 
 ## Task 15 active scope
 
 - [x] Complete Task 15.1 entry design.
 - [x] Implement Task 15.2 fixed-memory storage.
 - [x] Implement Task 15.3 mate-score normalization.
-- [ ] Implement Task 15.4 safe probe semantics.
+- [x] Implement Task 15.4 safe probe semantics.
 - [ ] Implement Task 15.5 deterministic replacement.
 - [ ] Implement Task 15.6 diagnostics and benchmarks.
 - [ ] Pass the overall Task 15 gate.
@@ -462,4 +490,4 @@ Evidence:
 - [x] Add mate-in-one, mated, stalemate, draw, shorter-mate, and longer-survival fixtures.
 - [x] Pass exact-head rustfmt, Cargo check, Clippy, tests, rustdoc, debug, release, perft, and differential gates.
 
-No pull request has been created; work remains on `rust-engine`. Task 15.4 safe transposition-table probe semantics is the next operation.
+No pull request has been created; work remains on `rust-engine`. Task 15.5 deterministic transposition-table replacement is the next operation.
