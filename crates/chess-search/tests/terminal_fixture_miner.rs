@@ -144,7 +144,9 @@ fn mine_task_13_5_distance_fixtures() {
                     if side == Color::Black
                         && result.score().centipawns() < 0
                         && mate_scores.len() >= 2
-                        && scores.iter().all(|(_, score)| score.is_mate() && score.centipawns() < 0)
+                        && scores
+                            .iter()
+                            .all(|(_, score)| score.is_mate() && score.centipawns() < 0)
                         && survival.is_none()
                     {
                         survival = Some((fen.clone(), depth, result, scores.clone()));
