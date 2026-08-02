@@ -105,12 +105,10 @@ fn mine_task_13_5_distance_fixtures() {
 
                 for side in [Color::White, Color::Black] {
                     let fen = kqk_fen(white_king, white_queen, black_king, side);
-                    let Ok(mut position) = fen.parse::<Position>() else {
+                    let Ok(mut position) = Position::from_fen(&fen) else {
                         continue;
                     };
-                    if position.enforce_invariants().is_err()
-                        || position.is_in_check(side.opposite())
-                    {
+                    if position.is_in_check(side.opposite()) {
                         continue;
                     }
 
