@@ -35,7 +35,7 @@
 
 ## Task 5 implementation
 
-Current implementation candidate: `1ed6cbd17186584ee61aed980a2a00b8bdbc86fc`.
+Current implementation candidate: `d99b3482f5bea6c94d228cf03deecf6b9d6fe938`.
 
 Implemented:
 
