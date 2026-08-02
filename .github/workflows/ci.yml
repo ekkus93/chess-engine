@@ -10,7 +10,7 @@ on:
 
 permissions:
   actions: write
-  contents: write
+  contents: read
   issues: write
 
 jobs:
@@ -151,65 +151,5 @@ jobs:
           gh api \
             --method PATCH \
             "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE_NUMBER}" \
-            -f state=closed \
-            -f state_reason=completed
-
-  close-task-14-2:
-    name: Close Task 14.2 trackers
-    if: >-
-      github.ref == 'refs/heads/master' &&
-      github.event_name == 'issues' &&
-      github.event.issue.title == '[close-task-14-2]'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    env:
-      GH_TOKEN: ${{ github.token }}
-      REPOSITORY: ${{ github.repository }}
-      ISSUE_NUMBER: ${{ github.event.issue.number }}
-    steps:
-      - name: Check out control files
-        uses: actions/checkout@v4
-        with:
-          ref: master
-          path: control
-      - name: Check out rust-engine
-        uses: actions/checkout@v4
-        with:
-          ref: rust-engine
-          path: target
-      - name: Guard exact validated implementation head
-        working-directory: target
-        run: |
-          set -euo pipefail
-          test "$(git rev-parse HEAD)" = '3688cb8e89a7da0c7fd34c3756d52d0fcc8d3d33'
-      - name: Patch authoritative trackers
-        working-directory: target
-        run: |
-          set -euo pipefail
-          python ../control/.github/close_task_14_2.py .
-          git diff --check
-      - name: Commit and push documentation closure
-        id: commit
-        working-directory: target
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md \
-                  docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
-          git diff --cached --quiet && { echo 'No tracker changes produced.' >&2; exit 1; }
-          git commit -m 'docs: close Task 14.2 tactical ordering'
-          git push origin HEAD:rust-engine
-          echo "sha=$(git rev-parse HEAD)" >>"${GITHUB_OUTPUT}"
-      - name: Report and close issue
-        env:
-          SHA: ${{ steps.commit.outputs.sha }}
-        run: |
-          set -euo pipefail
-          gh api --method POST \
-            "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/comments" \
-            -f body="Closed Task 14.2 trackers at documentation-only SHA ${SHA}; exact validated implementation remains 3688cb8e89a7da0c7fd34c3756d52d0fcc8d3d33, CI 30753873602 / 91512570865."
-          gh api --method PATCH \
-            "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}" \
             -f state=closed \
             -f state_reason=completed
