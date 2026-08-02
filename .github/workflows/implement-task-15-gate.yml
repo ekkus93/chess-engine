@@ -119,3 +119,5 @@ Production alpha-beta TT integration, strict gates, release witnesses, perft, ru
           gh issue create \
             --title "[task-15-gate-implementation-failed]" \
             --body "Run: $GITHUB_RUN_ID" || true
+
+# dispatch: 2026-08-02T14:58:00-07:00
