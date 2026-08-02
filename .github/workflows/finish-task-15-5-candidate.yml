@@ -1,0 +1,53 @@
+name: Finish Task 15.5 candidate
+
+on:
+  push:
+    branches:
+      - rust-engine
+    paths:
+      - ".github/workflows/finish-task-15-5-candidate.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: finish-task-15-5-candidate
+  cancel-in-progress: false
+
+jobs:
+  finish:
+    name: Apply Task 15.5 candidate
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Apply and format candidate
+        run: python3 scripts/finish_task_15_5_candidate.py "$GITHUB_WORKSPACE"
+
+      - name: Remove temporary candidate controls
+        run: |
+          set -euo pipefail
+          git rm \
+            .github/workflows/finish-task-15-5-candidate.yml \
+            scripts/finish_task_15_5_candidate.py
+
+      - name: Commit clean Task 15.5 candidate
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            crates/chess-search/src/lib.rs \
+            crates/chess-search/src/transposition.rs \
+            crates/chess-search/src/transposition/store.rs \
+            docs/RUST_TRANSPOSITION_TABLE_REPLACEMENT.md
+          git diff --cached --check
+          git commit -m "feat: add deterministic TT replacement"
+          git push origin HEAD:rust-engine
