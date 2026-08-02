@@ -1,0 +1,83 @@
+name: Task 14.2 Apply
+
+on:
+  issues:
+    types:
+      - opened
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  apply:
+    if: >-
+      github.event.issue.title == '[apply-task-14-2-now]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+    steps:
+      - name: Check out control files
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          path: control
+      - name: Check out rust-engine
+        uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          path: target
+      - name: Guard exact Task 14.1 closure head
+        working-directory: target
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 'e18c3cbeec1c221f8dfcb902cf552c8857766b8b'
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Apply and format Task 14.2
+        working-directory: target
+        run: |
+          set -euo pipefail
+          python ../control/.github/apply_task_14_2.py .
+          cargo fmt --all
+          git diff --check
+      - name: Run focused search validation
+        working-directory: target
+        run: |
+          set -euo pipefail
+          cargo check --locked -p chess-search --all-targets --all-features
+          cargo clippy --locked -p chess-search --all-targets --all-features -- -D warnings
+          cargo test --locked -p chess-search --all-features
+      - name: Commit and push implementation
+        id: commit
+        working-directory: target
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add crates/chess-search/src/alpha_beta.rs \
+                  crates/chess-search/src/lib.rs \
+                  crates/chess-search/src/move_ordering.rs \
+                  crates/chess-search/src/quiescence.rs \
+                  crates/chess-search/src/reference.rs \
+                  docs/RUST_TACTICAL_MOVE_ORDERING.md
+          git commit -m 'feat: implement Task 14.2 tactical ordering'
+          git push origin HEAD:rust-engine
+          echo "sha=$(git rev-parse HEAD)" >>"${GITHUB_OUTPUT}"
+      - name: Report success
+        env:
+          SHA: ${{ steps.commit.outputs.sha }}
+        run: |
+          set -euo pipefail
+          gh api --method POST \
+            "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/comments" \
+            -f body="Applied Task 14.2 tactical ordering at ${SHA}; permanent rust-engine CI will provide authoritative evidence."
+          gh api --method PATCH \
+            "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}" \
+            -f state=closed \
+            -f state_reason=completed
