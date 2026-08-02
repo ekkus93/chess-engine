@@ -4,7 +4,7 @@ use chess_core::{LegalMoveError, Move, Position, SearchHistory, SearchHistoryErr
 
 use crate::{
     cancellation::NeverCancelled,
-    move_ordering::{ordered_legal_moves, MoveOrdering},
+    move_ordering::{ordered_legal_moves_with_state, MoveOrdering, QuietOrderingState},
     quiescence::{search_quiescence_node, QuiescenceContext},
     search_common::resolved_node_score,
     Score, SearchCancellationProbe, MAX_MATE_PLY, MAX_QUIESCENCE_PLY,
@@ -140,9 +140,10 @@ pub fn alpha_beta_search(
 /// and repetition semantics as [`crate::reference_search`]. At depth-zero
 /// leaves it invokes correctness-first quiescence search over captures,
 /// promotions, and every legal check evasion. Legal moves use deterministic
-/// tactical ordering: the future TT hook, promotions, MVV-LVA captures, then
-/// generation-stable quiet moves. Equal scores keep the first searched move. The
-/// root uses the complete supported score window, so its returned score is exact
+/// deterministic ordering: the future TT and previous-PV hooks, promotions,
+/// MVV-LVA captures, bounded killer and history heuristics, then a stable packed
+/// quiet-move tie-break. The root uses the complete supported score window, so
+/// its returned score is exact
 /// rather than a bound.
 ///
 /// The supplied history must end at `position`. Every child is applied through
@@ -181,15 +182,13 @@ where
     let alpha = Score::mated_in(0).expect("zero-ply mate score is supported");
     let beta = Score::mate_in(0).expect("zero-ply mate score is supported");
     let window = AlphaBetaWindow { alpha, beta };
-    let result = search_node(
-        position,
-        history,
-        depth,
-        0,
-        window,
-        MoveOrdering::Tactical,
+    let mut quiet_ordering = QuietOrderingState::new();
+    let mut context = AlphaBetaContext {
+        ordering: MoveOrdering::Quiet,
+        quiet_ordering: &mut quiet_ordering,
         cancellation,
-    );
+    };
+    let result = search_node(position, history, depth, 0, window, &mut context);
 
     debug_assert_eq!(history.len(), initial_history_len);
     debug_assert_eq!(history.line_len(), initial_line_len);
@@ -206,26 +205,34 @@ struct AlphaBetaWindow {
     beta: Score,
 }
 
+struct AlphaBetaContext<'a, Probe>
+where
+    Probe: SearchCancellationProbe + ?Sized,
+{
+    ordering: MoveOrdering,
+    quiet_ordering: &'a mut QuietOrderingState,
+    cancellation: &'a mut Probe,
+}
+
 fn search_node<Probe>(
     position: &mut Position,
     history: &mut SearchHistory,
     depth: u16,
     ply: u16,
     window: AlphaBetaWindow,
-    ordering: MoveOrdering,
-    cancellation: &mut Probe,
+    context: &mut AlphaBetaContext<'_, Probe>,
 ) -> Result<AlphaBetaSearchResult, AlphaBetaSearchError>
 where
     Probe: SearchCancellationProbe + ?Sized,
 {
     let mut alpha = window.alpha;
     let beta = window.beta;
-    if cancellation.should_cancel() {
+    if context.cancellation.should_cancel() {
         return Err(AlphaBetaSearchError::Cancelled);
     }
 
     if depth == 0 {
-        let context = QuiescenceContext {
+        let quiescence_context = QuiescenceContext {
             ply,
             quiescence_ply: 0,
             maximum_quiescence_ply: MAX_QUIESCENCE_PLY,
@@ -233,11 +240,11 @@ where
         return search_quiescence_node(
             position,
             history,
-            context,
+            quiescence_context,
             alpha,
             beta,
-            ordering,
-            cancellation,
+            context.ordering,
+            &mut *context.cancellation,
         );
     }
 
@@ -255,13 +262,19 @@ where
         });
     }
 
-    let ordered_tokens = ordered_legal_moves(position, &tokens, ordering);
+    let ordered_tokens = ordered_legal_moves_with_state(
+        position,
+        &tokens,
+        context.ordering,
+        ply,
+        context.quiet_ordering,
+    );
     let mut nodes = 1_u64;
     let mut best_score = None;
     let mut best_move = None;
 
     for token in ordered_tokens.iter() {
-        if cancellation.should_cancel() {
+        if context.cancellation.should_cancel() {
             return Err(AlphaBetaSearchError::Cancelled);
         }
 
@@ -272,15 +285,7 @@ where
             alpha: -beta,
             beta: -alpha,
         };
-        let child = search_node(
-            position,
-            history,
-            depth - 1,
-            ply + 1,
-            child_window,
-            ordering,
-            cancellation,
-        );
+        let child = search_node(position, history, depth - 1, ply + 1, child_window, context);
         let history_restore = history.pop_position(history_undo);
         let position_restore = position.unmake_move(position_undo);
 
@@ -308,6 +313,14 @@ where
             alpha = score;
         }
         if alpha >= beta {
+            if context.ordering == MoveOrdering::Quiet {
+                context.quiet_ordering.record_quiet_cutoff(
+                    position.side_to_move(),
+                    current,
+                    depth,
+                    ply,
+                );
+            }
             break;
         }
     }
@@ -319,6 +332,147 @@ where
             nodes,
         }),
         _ => Err(AlphaBetaSearchError::MissingBestMove),
+    }
+}
+
+#[cfg(test)]
+mod ordering_tests {
+    use chess_core::{LegalMoveToken, Move, Position, SearchHistory};
+
+    use super::{search_node, AlphaBetaContext, AlphaBetaSearchResult, AlphaBetaWindow};
+    use crate::{
+        cancellation::NeverCancelled,
+        move_ordering::{MoveOrdering, QuietOrderingState},
+        Score,
+    };
+
+    fn full_window() -> AlphaBetaWindow {
+        AlphaBetaWindow {
+            alpha: Score::mated_in(0).expect("zero-ply mate score is supported"),
+            beta: Score::mate_in(0).expect("zero-ply mate score is supported"),
+        }
+    }
+
+    fn search_with_ordering(
+        root: &Position,
+        depth: u16,
+        window: AlphaBetaWindow,
+        ordering: MoveOrdering,
+        seeded_killer: Option<Move>,
+    ) -> AlphaBetaSearchResult {
+        let mut position = root.clone();
+        let snapshot = position.clone();
+        let mut history = SearchHistory::from_position(&position);
+        let history_snapshot = history.clone();
+        let mut quiet_ordering = QuietOrderingState::new();
+        if let Some(current) = seeded_killer {
+            quiet_ordering.record_quiet_cutoff(position.side_to_move(), current, depth, 0);
+        }
+        let mut cancellation = NeverCancelled;
+        let mut context = AlphaBetaContext {
+            ordering,
+            quiet_ordering: &mut quiet_ordering,
+            cancellation: &mut cancellation,
+        };
+        let result = search_node(&mut position, &mut history, depth, 0, window, &mut context)
+            .expect("ordering benchmark search succeeds");
+
+        assert_eq!(position, snapshot);
+        assert_eq!(history, history_snapshot);
+        assert_eq!(position.zobrist(), position.recomputed_zobrist());
+        result
+    }
+
+    fn root_move_score(
+        position: &mut Position,
+        history: &mut SearchHistory,
+        token: LegalMoveToken,
+    ) -> Score {
+        let position_undo = position
+            .make_legal_token(token)
+            .expect("benchmark token applies");
+        let history_undo = history.push_position(position);
+        let mut quiet_ordering = QuietOrderingState::new();
+        let mut cancellation = NeverCancelled;
+        let mut context = AlphaBetaContext {
+            ordering: MoveOrdering::Generation,
+            quiet_ordering: &mut quiet_ordering,
+            cancellation: &mut cancellation,
+        };
+        let child = search_node(position, history, 0, 1, full_window(), &mut context);
+        history
+            .pop_position(history_undo)
+            .expect("benchmark history restores");
+        position
+            .unmake_move(position_undo)
+            .expect("benchmark position restores");
+        -child.expect("benchmark child search succeeds").score()
+    }
+
+    fn quiet_cutoff_witness(root: &Position) -> (Move, Score, usize) {
+        let mut position = root.clone();
+        let snapshot = position.clone();
+        let mut history = SearchHistory::from_position(&position);
+        let history_snapshot = history.clone();
+        let tokens = position
+            .legal_move_tokens()
+            .expect("benchmark legal tokens generate");
+        let mut best_before = Score::mated_in(0).expect("zero-ply mate score is supported");
+        let mut witness = None;
+
+        for (index, token) in tokens.iter().enumerate() {
+            let current = token.move_made();
+            let score = root_move_score(&mut position, &mut history, token);
+            let quiet = !current.kind().is_capture() && current.promotion().is_none();
+            if index > 0 && quiet && score > best_before {
+                witness = Some((current, score, index));
+            }
+            if score > best_before {
+                best_before = score;
+            }
+        }
+
+        assert_eq!(position, snapshot);
+        assert_eq!(history, history_snapshot);
+        assert_eq!(position.zobrist(), position.recomputed_zobrist());
+        witness.expect("fixed benchmark contains a later improving quiet move")
+    }
+
+    #[test]
+    fn quiet_ordering_preserves_full_window_result_deterministically() {
+        let root: Position = "7k/8/8/1p2q3/2P1Q3/8/K7/8 w - - 0 1"
+            .parse()
+            .expect("ordering benchmark FEN is valid");
+        let tactical = search_with_ordering(&root, 2, full_window(), MoveOrdering::Tactical, None);
+        let first_quiet = search_with_ordering(&root, 2, full_window(), MoveOrdering::Quiet, None);
+        let second_quiet = search_with_ordering(&root, 2, full_window(), MoveOrdering::Quiet, None);
+
+        assert_eq!(first_quiet.score(), tactical.score());
+        assert_eq!(first_quiet.best_move(), tactical.best_move());
+        assert_eq!(first_quiet, second_quiet);
+    }
+
+    #[test]
+    fn seeded_quiet_cutoff_reduces_a_fixed_narrow_window_tree() {
+        let root = Position::starting();
+        let (witness, score, generation_index) = quiet_cutoff_witness(&root);
+        let alpha = Score::from_raw(score.centipawns() - 1)
+            .expect("benchmark cutoff score has a predecessor");
+        let window = AlphaBetaWindow { alpha, beta: score };
+        let generation = search_with_ordering(&root, 1, window, MoveOrdering::Generation, None);
+        let quiet = search_with_ordering(&root, 1, window, MoveOrdering::Quiet, Some(witness));
+
+        assert!(generation_index > 0);
+        assert_eq!(generation.score(), score);
+        assert_eq!(generation.best_move(), Some(witness));
+        assert_eq!(quiet.score(), generation.score());
+        assert_eq!(quiet.best_move(), generation.best_move());
+        assert!(
+            quiet.nodes() < generation.nodes(),
+            "quiet ordering visited {} nodes versus generation order {}",
+            quiet.nodes(),
+            generation.nodes()
+        );
     }
 }
 

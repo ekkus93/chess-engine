@@ -1,4 +1,7 @@
-nal, draw, make/unmake, legal-token, or fail-soft alpha-beta semantics.
+# Rust Quiet Move Ordering
+
+Task 14.3 adds deterministic bounded quiet ordering without changing score,
+terminal, draw, make/unmake, legal-token, or fail-soft alpha-beta semantics.
 
 Production alpha-beta order is: future TT hook, explicit previous-PV hook,
 promotions, MVV-LVA captures, primary/secondary killer moves, descending history
@@ -13,6 +16,3 @@ The reference search retains exact generation order. Task 14.2 tactical ordering
 remains a control policy. Tests cover hook no-ops, stable packed ties, killer and
 history priority, capture exclusion, deterministic reruns, and exact restoration.
 Task 14.4 owns consolidated search correctness and benchmark closure.
-"""
-)
-print("Task 14.3 patch applied")
