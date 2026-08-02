@@ -2,7 +2,9 @@ use core::fmt;
 
 use chess_core::{LegalMoveError, Move, Position, SearchHistory, SearchHistoryError};
 
-use crate::{evaluate, Score, MAX_MATE_PLY};
+use crate::{
+    cancellation::NeverCancelled, evaluate, Score, SearchCancellationProbe, MAX_MATE_PLY,
+};
 
 const CLAIMABLE_REPETITION_COUNT: usize = 3;
 const CLAIMABLE_HALFMOVE_COUNT: u16 = 100;
@@ -56,6 +58,8 @@ pub enum ReferenceSearchError {
         /// Largest supported depth in plies.
         maximum: u16,
     },
+    /// Cooperative cancellation was requested.
+    Cancelled,
     /// Recursive node accumulation exceeded `u64`.
     NodeCountOverflow,
     /// A non-terminal searched node unexpectedly produced no best move.
@@ -78,6 +82,7 @@ impl fmt::Display for ReferenceSearchError {
                 formatter,
                 "reference-search depth {depth} exceeds supported maximum {maximum}"
             ),
+            Self::Cancelled => formatter.write_str("reference search cancelled"),
             Self::NodeCountOverflow => formatter.write_str("reference-search node count overflow"),
             Self::MissingBestMove => {
                 formatter.write_str("non-terminal reference-search node has no best move")
@@ -102,6 +107,20 @@ impl From<SearchHistoryError> for ReferenceSearchError {
 
 /// Searches the complete legal tree to `depth` without pruning or move ordering.
 ///
+/// This convenience entry point never requests cancellation. Use
+/// [`reference_search_with_cancellation`] when an external stop probe is
+/// required.
+pub fn reference_search(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    depth: u16,
+) -> Result<ReferenceSearchResult, ReferenceSearchError> {
+    let mut cancellation = NeverCancelled;
+    reference_search_with_cancellation(position, history, depth, &mut cancellation)
+}
+
+/// Searches the complete legal tree with cooperative cancellation.
+///
 /// Scores use the crate's side-to-move negamax convention. Checkmate and
 /// stalemate are resolved before draw rules, preserving checkmate precedence on
 /// a halfmove threshold. Claimable repetition and fifty-move draws are scored as
@@ -111,13 +130,19 @@ impl From<SearchHistoryError> for ReferenceSearchError {
 ///
 /// The supplied history must end at `position`. Every child is applied through
 /// a source-bound legal token, pushed onto the detached line history, searched,
-/// then popped and unmade before the next child. The function performs no
-/// clone-per-child operation.
-pub fn reference_search(
+/// then popped and unmade before the next child. Cancellation is checked at
+/// node and child boundaries. A cancellation error is returned only after every
+/// active child move and line-history entry has been restored. The function
+/// performs no clone-per-child operation.
+pub fn reference_search_with_cancellation<Probe>(
     position: &mut Position,
     history: &mut SearchHistory,
     depth: u16,
-) -> Result<ReferenceSearchResult, ReferenceSearchError> {
+    cancellation: &mut Probe,
+) -> Result<ReferenceSearchResult, ReferenceSearchError>
+where
+    Probe: SearchCancellationProbe + ?Sized,
+{
     if depth > MAX_MATE_PLY {
         return Err(ReferenceSearchError::DepthTooLarge {
             depth,
@@ -136,7 +161,7 @@ pub fn reference_search(
     let initial_history_len = history.len();
     let initial_line_len = history.line_len();
     let initial_zobrist = position.zobrist();
-    let result = search_node(position, history, depth, 0);
+    let result = search_node(position, history, depth, 0, cancellation);
 
     debug_assert_eq!(history.len(), initial_history_len);
     debug_assert_eq!(history.line_len(), initial_line_len);
@@ -147,12 +172,20 @@ pub fn reference_search(
     result
 }
 
-fn search_node(
+fn search_node<Probe>(
     position: &mut Position,
     history: &mut SearchHistory,
     depth: u16,
     ply: u16,
-) -> Result<ReferenceSearchResult, ReferenceSearchError> {
+    cancellation: &mut Probe,
+) -> Result<ReferenceSearchResult, ReferenceSearchError>
+where
+    Probe: SearchCancellationProbe + ?Sized,
+{
+    if cancellation.should_cancel() {
+        return Err(ReferenceSearchError::Cancelled);
+    }
+
     let tokens = position.legal_move_tokens()?;
 
     if tokens.is_empty() {
@@ -192,10 +225,14 @@ fn search_node(
     let mut best_move = None;
 
     for token in tokens.iter() {
+        if cancellation.should_cancel() {
+            return Err(ReferenceSearchError::Cancelled);
+        }
+
         let current = token.move_made();
         let position_undo = position.make_legal_token(token)?;
         let history_undo = history.push_position(position);
-        let child = search_node(position, history, depth - 1, ply + 1);
+        let child = search_node(position, history, depth - 1, ply + 1, cancellation);
         let history_restore = history.pop_position(history_undo);
         let position_restore = position.unmake_move(position_undo);
 
