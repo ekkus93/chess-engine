@@ -1,0 +1,88 @@
+name: Implement Task 15.6
+
+on:
+  push:
+    branches:
+      - rust-engine
+    paths:
+      - ".github/workflows/implement-task-15-6.yml"
+      - "scripts/implement_task_15_6.py"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: implement-task-15-6
+  cancel-in-progress: false
+
+jobs:
+  implement:
+    name: Implement diagnostics and benchmarks
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Apply Task 15.6 implementation
+        run: python3 scripts/implement_task_15_6.py "$GITHUB_WORKSPACE"
+
+      - name: Format
+        run: cargo fmt --all
+
+      - name: Check workspace
+        run: cargo check --locked --workspace --all-targets --all-features
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+
+      - name: Run tests
+        run: cargo test --locked --workspace --all-features
+
+      - name: Smoke release transposition benchmark
+        run: |
+          set -euo pipefail
+          cargo run --locked -p chess-tools --release -- tt-bench 100000 | tee /tmp/tt-bench.tsv
+          test "$(wc -l < /tmp/tt-bench.tsv)" -eq 2
+          awk -F '\t' '
+            NF != 4 { exit 1 }
+            NR == 1 && $1 != "store" { exit 1 }
+            NR == 2 && $1 != "probe" { exit 1 }
+            $2 != 100000 { exit 1 }
+            $3 !~ /^[0-9]+$/ { exit 1 }
+            $4 !~ /^[0-9]+$/ { exit 1 }
+          ' /tmp/tt-bench.tsv
+
+      - name: Build documentation
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --locked --workspace --all-features --no-deps
+
+      - name: Remove temporary implementation controls
+        run: |
+          git rm \
+            .github/workflows/implement-task-15-6.yml \
+            scripts/implement_task_15_6.py
+
+      - name: Commit clean implementation
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            crates/chess-search/src/lib.rs \
+            crates/chess-search/src/transposition.rs \
+            crates/chess-search/src/transposition/diagnostics.rs \
+            crates/chess-search/src/transposition/probe.rs \
+            crates/chess-search/src/transposition/store.rs \
+            crates/chess-tools/src/lib.rs \
+            crates/chess-tools/src/main.rs \
+            docs/RUST_TRANSPOSITION_TABLE_DIAGNOSTICS.md
+          git diff --cached --check
+          git commit -m "feat: add TT diagnostics and benchmarks"
+          git push origin HEAD:rust-engine
