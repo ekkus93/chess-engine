@@ -3,7 +3,10 @@ use crate::{
     PieceKind, Square,
 };
 
-use super::{LegalMoveError, Position};
+use super::{
+    zobrist::{castling_state_key, piece_square_key, side_to_move_key},
+    LegalMoveError, Position,
+};
 
 /// Opaque state required to reverse one successfully applied move.
 ///
@@ -111,6 +114,10 @@ impl Position {
             previous_side_to_move: moving_side,
             previous_zobrist: self.zobrist(),
         };
+        let mut next_zobrist = self.zobrist()
+            ^ self.canonical_en_passant_key()
+            ^ castling_state_key(self.castling_rights())
+            ^ move_hash_delta(current, moving_piece, captured, moving_side);
 
         if let Some((capture_square, _)) = captured {
             self.editor().remove_piece(capture_square)?;
@@ -154,6 +161,11 @@ impl Position {
         self.halfmove_clock = next_halfmove;
         self.fullmove_number = next_fullmove;
         self.side_to_move = moving_side.opposite();
+        next_zobrist ^= castling_state_key(self.castling_rights());
+        next_zobrist ^= side_to_move_key();
+        next_zobrist ^= self.canonical_en_passant_key();
+        self.zobrist = next_zobrist;
+        debug_assert_eq!(self.zobrist(), self.recomputed_zobrist());
         Ok(undo)
     }
 
@@ -208,6 +220,7 @@ impl Position {
         self.fullmove_number = undo.previous_fullmove_number;
         self.side_to_move = undo.previous_side_to_move;
         self.zobrist = undo.previous_zobrist;
+        debug_assert_eq!(self.zobrist(), self.recomputed_zobrist());
         Ok(())
     }
 
@@ -352,6 +365,51 @@ impl Position {
         (self.piece_at(captured) == Some(Piece::new(side.opposite(), PieceKind::Pawn)))
             .then_some(captured)
     }
+}
+
+fn move_hash_delta(
+    current: Move,
+    moving_piece: Piece,
+    captured: Option<(Square, Piece)>,
+    moving_side: Color,
+) -> u64 {
+    let mut delta = piece_square_key(moving_piece, current.source());
+    if let Some((capture_square, captured_piece)) = captured {
+        delta ^= piece_square_key(captured_piece, capture_square);
+    }
+
+    match current.kind() {
+        MoveKind::KingCastle | MoveKind::QueenCastle => {
+            delta ^= piece_square_key(moving_piece, current.destination());
+            let rook = Piece::new(moving_side, PieceKind::Rook);
+            let (rook_source, rook_destination) = castle_rook_squares(current, moving_side);
+            delta ^= piece_square_key(rook, rook_source);
+            delta ^= piece_square_key(rook, rook_destination);
+        }
+        MoveKind::KnightPromotion
+        | MoveKind::BishopPromotion
+        | MoveKind::RookPromotion
+        | MoveKind::QueenPromotion
+        | MoveKind::KnightPromotionCapture
+        | MoveKind::BishopPromotionCapture
+        | MoveKind::RookPromotionCapture
+        | MoveKind::QueenPromotionCapture => {
+            let promoted = Piece::new(
+                moving_side,
+                current
+                    .promotion()
+                    .expect("promotion kinds carry promotion identity"),
+            );
+            delta ^= piece_square_key(promoted, current.destination());
+        }
+        MoveKind::Quiet
+        | MoveKind::DoublePawnPush
+        | MoveKind::Capture
+        | MoveKind::EnPassant => {
+            delta ^= piece_square_key(moving_piece, current.destination());
+        }
+    }
+    delta
 }
 
 fn updated_castling_rights(
