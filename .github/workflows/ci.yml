@@ -10,7 +10,7 @@ on:
 
 permissions:
   actions: write
-  contents: read
+  contents: write
   issues: write
 
 jobs:
@@ -153,3 +153,112 @@ jobs:
             "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE_NUMBER}" \
             -f state=closed \
             -f state_reason=completed
+
+  close-task-13-1:
+    name: Close Task 13.1 trackers
+    if: >-
+      github.ref == 'refs/heads/master' &&
+      github.event_name == 'issues' &&
+      github.event.issue.title == '[close-task-13-1]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      TRIGGER_ISSUE_NUMBER: ${{ github.event.issue.number }}
+      IMPLEMENTATION_SHA: 7cf7fb027bf86f0658c14f4c9b452bce2cdcbe98
+      CI_RUN: '30741414286'
+      CI_JOB: '91479443116'
+    steps:
+      - name: Check out exact Task 13.1 implementation
+        uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+
+      - name: Patch authoritative trackers
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${IMPLEMENTATION_SHA}"
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              count = text.count(old)
+              if count != 1:
+                  raise RuntimeError(f"{label}: expected one match, found {count}")
+              return text.replace(old, new, 1)
+
+          tracker_path = Path("docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md")
+          tracker = tracker_path.read_text(encoding="utf-8")
+          tracker = replace_once(
+              tracker,
+              "| 13 | **Active** — reference search and alpha-beta; implementation is not started and may now begin. |",
+              "| 13 | **Active** — Task 13.1 reference search complete; Task 13.2 alpha-beta is next. |",
+              "program summary",
+          )
+          tracker = replace_once(
+              tracker,
+              "- Task 13 remains active and not started.",
+              "- At review-fix closure, Task 13 remained active and not started; Task 13.1 is now complete.",
+              "review-fix historical status",
+          )
+          tracker = replace_once(
+              tracker,
+              "# Task 13: Reference search and alpha-beta — ACTIVE, NOT STARTED\n- [ ] 13.1 Reference search.\n- [ ] 13.2 Negamax alpha-beta.\n- [ ] 13.3 Shallow equivalence.\n- [ ] 13.4 Immutability.\n- [ ] 13.5 Terminal fixtures.\n- [ ] Task 13 gate.\n",
+              "# Task 13: Reference search and alpha-beta — ACTIVE\n- [x] 13.1 Reference search.\n- [ ] 13.2 Negamax alpha-beta.\n- [ ] 13.3 Shallow equivalence.\n- [ ] 13.4 Immutability.\n- [ ] 13.5 Terminal fixtures.\n- [ ] Task 13 gate.\n\n### Task 13.1 completion evidence\n\n- Public reference-search API: `reference_search`, `ReferenceSearchResult`, and `ReferenceSearchError`.\n- Implementation: `crates/chess-search/src/reference.rs`.\n- Public export: `crates/chess-search/src/lib.rs`.\n- Contract documentation: `docs/RUST_REFERENCE_SEARCH.md`.\n- Exact validated implementation SHA: `7cf7fb027bf86f0658c14f4c9b452bce2cdcbe98`.\n- Permanent CI run/job: `30741414286` / `91479443116`.\n- Results: rustfmt, Cargo check, strict Clippy, 118 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc, debug/release builds, and independent differential validation passed.\n- Reference-search coverage includes depth-zero evaluation, exact starting depth-two node count `421`, deterministic best-move selection, mate/stalemate precedence, ply-relative mate scoring, dead/fifty-move/seventy-five-move/repetition draws, mismatched-history failure, excessive-depth failure, and exact root/history restoration.\n- Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.\n- First-party warnings: none.\n- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.\n- Task 13.2 owns negamax alpha-beta over this reference implementation.\n",
+              "Task 13 section",
+          )
+          tracker = replace_once(
+              tracker,
+              "## Immediate next operations\n\n1. Begin Task 13 with an unpruned reference minimax/negamax search.\n2. Define terminal checkmate, stalemate, claimable-draw, automatic-draw, and repetition scoring.\n3. Use public legal tokens plus make/unmake and detached line history; do not clone per child.\n4. Implement negamax alpha-beta only after the reference path and fixtures are stable.\n5. Prove shallow score equivalence, uniquely best-move equivalence, node-count improvement, and exact root/history restoration.\n6. Run the full exact-head strict gate before marking Task 13 complete.\n",
+              "## Immediate next operations\n\n1. Implement Task 13.2 negamax alpha-beta over the Task 13.1 terminal and draw semantics.\n2. Use legal tokens, make/unmake, and detached line history without clone-per-child.\n3. Preserve deterministic first-best tie behavior for direct comparison with reference search.\n4. Record alpha-beta node counts and prove they never exceed the reference node count on the same fixture/depth.\n5. Complete Task 13.3 shallow score and uniquely-best-move equivalence.\n6. Expand Task 13.4–13.5 restoration and terminal fixtures before closing the Task 13 gate.\n",
+              "immediate operations",
+          )
+          tracker_path.write_text(tracker, encoding="utf-8")
+
+          status_path = Path("docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md")
+          status = status_path.read_text(encoding="utf-8")
+          status = replace_once(
+              status,
+              "**Current phase:** Pre-Task-13 review-fix complete; Task 13 search is active and not started",
+              "**Current phase:** Task 13.1 reference search complete; Task 13.2 negamax alpha-beta is next",
+              "Ralph current phase",
+          )
+          status = replace_once(
+              status,
+              "| Review fix | `81a7cd4a58a52695eca2ede10d5c73c803851d17` | `30739166607` / `91473334960` | strict gate, 112 Rust tests, depth-four perft, and differential oracle green |",
+              "| Review fix | `81a7cd4a58a52695eca2ede10d5c73c803851d17` | `30739166607` / `91473334960` | strict gate, 112 Rust tests, depth-four perft, and differential oracle green |\n| 13.1 | `7cf7fb027bf86f0658c14f4c9b452bce2cdcbe98` | `30741414286` / `91479443116` | unpruned reference negamax, 118 Rust tests, depth-four perft, and differential oracle green |",
+              "completed gate table",
+          )
+          status = replace_once(
+              status,
+              "## Task 13 active scope\n",
+              "## Task 13.1 completion\n\nImplemented and validated:\n\n- unpruned, full-tree reference negamax in `chess-search`;\n- public score, deterministic best-move, and node-count result API;\n- legal-token make/unmake with no clone-per-child;\n- detached root plus reversible line repetition history;\n- checkmate, stalemate, dead-position, repetition, fifty-move, and seventy-five-move scoring;\n- checkmate precedence over a simultaneous move-count threshold;\n- ply-relative mate scores;\n- fail-loud history/root mismatch, depth-domain, and node-overflow errors;\n- exact root position, Zobrist, and history restoration;\n- `docs/RUST_REFERENCE_SEARCH.md`.\n\nEvidence:\n\n- Exact validated implementation SHA: `7cf7fb027bf86f0658c14f4c9b452bce2cdcbe98`.\n- Permanent CI run/job: `30741414286` / `91479443116`.\n- Results: workspace assets, lockfile, metadata, rustfmt, Cargo check, Clippy with `-D warnings`, 118 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with `-D warnings`, debug build, release build, and independent differential validation passed.\n- Starting-position depth-two reference search visits exactly `421` nodes.\n- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.\n- First-party warnings: none.\n- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.\n- Task 13.2 remains not started.\n\n## Task 13 active scope\n",
+              "Task 13.1 completion section",
+          )
+          status = replace_once(
+              status,
+              "- [ ] Implement an unpruned reference minimax/negamax search.\n- [ ] Count nodes and define terminal/draw scoring.\n- [ ] Implement negamax alpha-beta using legal tokens and make/unmake.\n- [ ] Integrate detached root and reversible line repetition history.\n",
+              "- [x] Implement an unpruned reference minimax/negamax search.\n- [x] Count nodes and define terminal/draw scoring.\n- [ ] Implement negamax alpha-beta using legal tokens and make/unmake.\n- [x] Integrate detached root and reversible line repetition history.\n",
+              "Task 13 active checklist",
+          )
+          status_path.write_text(status, encoding="utf-8")
+          PY
+
+          git diff -- docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
+          git commit -m 'docs: close Task 13.1 reference search'
+          git push origin HEAD:rust-engine
+          echo "CLOSURE_SHA=$(git rev-parse HEAD)" >>"${GITHUB_ENV}"
+
+      - name: Report closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          body="Task 13.1 tracker closure committed at ${CLOSURE_SHA}. Exact implementation CI: ${CI_RUN} / ${CI_JOB} on ${IMPLEMENTATION_SHA}. Task 13.2 remains open."
+          gh api --method POST "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE_NUMBER}/comments" -f body="${body}"
+          gh api --method PATCH "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE_NUMBER}" -f state=closed -f state_reason=completed
