@@ -2,9 +2,7 @@ use core::fmt;
 
 use chess_core::{LegalMoveError, Move, Position, SearchHistory, SearchHistoryError};
 
-use crate::{
-    cancellation::NeverCancelled, evaluate, Score, SearchCancellationProbe, MAX_MATE_PLY,
-};
+use crate::{cancellation::NeverCancelled, evaluate, Score, SearchCancellationProbe, MAX_MATE_PLY};
 
 const CLAIMABLE_REPETITION_COUNT: usize = 3;
 const CLAIMABLE_HALFMOVE_COUNT: u16 = 100;

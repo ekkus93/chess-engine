@@ -3,8 +3,7 @@ use std::cell::Cell;
 use chess_core::{Game, Position, SearchHistory, UciMove};
 use chess_search::{
     alpha_beta_search, alpha_beta_search_with_cancellation, reference_search,
-    reference_search_with_cancellation, AlphaBetaSearchError, ReferenceSearchError,
-    MAX_MATE_PLY,
+    reference_search_with_cancellation, AlphaBetaSearchError, ReferenceSearchError, MAX_MATE_PLY,
 };
 
 fn position(fen: &str) -> Position {
@@ -48,7 +47,10 @@ fn assert_state_restored(
     history: &SearchHistory,
     history_snapshot: &SearchHistory,
 ) {
-    assert_eq!(position, position_snapshot, "position changed after {label}");
+    assert_eq!(
+        position, position_snapshot,
+        "position changed after {label}"
+    );
     assert_eq!(history, history_snapshot, "history changed after {label}");
     assert_position_valid(label, position);
     assert_eq!(
@@ -113,15 +115,14 @@ fn reference_cancellation_from_inside_the_tree_restores_every_active_state() {
         next >= 64
     };
 
-    let result = reference_search_with_cancellation(
-        &mut position,
-        &mut history,
-        4,
-        &mut cancellation,
-    );
+    let result =
+        reference_search_with_cancellation(&mut position, &mut history, 4, &mut cancellation);
 
     assert_eq!(result, Err(ReferenceSearchError::Cancelled));
-    assert!(checks.get() >= 64, "cancellation must occur inside the tree");
+    assert!(
+        checks.get() >= 64,
+        "cancellation must occur inside the tree"
+    );
     assert_state_restored(
         "mid-tree reference cancellation",
         &position,
@@ -145,15 +146,14 @@ fn alpha_beta_cancellation_from_inside_the_tree_restores_every_active_state() {
         next >= 64
     };
 
-    let result = alpha_beta_search_with_cancellation(
-        &mut position,
-        &mut history,
-        5,
-        &mut cancellation,
-    );
+    let result =
+        alpha_beta_search_with_cancellation(&mut position, &mut history, 5, &mut cancellation);
 
     assert_eq!(result, Err(AlphaBetaSearchError::Cancelled));
-    assert!(checks.get() >= 64, "cancellation must occur inside the tree");
+    assert!(
+        checks.get() >= 64,
+        "cancellation must occur inside the tree"
+    );
     assert_state_restored(
         "mid-tree alpha-beta cancellation",
         &position,
@@ -184,8 +184,7 @@ fn terminal_and_validation_error_paths_are_non_mutating_and_invariant_clean() {
             &history_snapshot,
         );
 
-        alpha_beta_search(&mut root, &mut history, 3)
-            .expect("terminal alpha-beta search succeeds");
+        alpha_beta_search(&mut root, &mut history, 3).expect("terminal alpha-beta search succeeds");
         assert_state_restored(
             "terminal alpha-beta completion",
             &root,
