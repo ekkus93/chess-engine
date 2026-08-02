@@ -3,38 +3,55 @@
 **Updated:** 2026-08-01  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 3 implemented; strict CI pending
+**Current phase:** Task 3 complete; Task 4 next
 
-## Completed prerequisites
+## Completed gates
 
-Task 0 and Task 1 are complete. The frozen Python baseline, all Python runtime evidence, seven-crate Cargo skeleton, dependency boundaries, strict warning policy, MIT metadata, committed lockfile, and exact-SHA Rust validation are recorded in the authoritative TODO.
+### Task 0 ‚Äî Python reference baseline
 
-## Task 2 ‚Äî complete
+- Evidence SHA: `7ca6f8dc0d2577ca552a6bfe115828eb668d2133`.
+- CI run/job: `30722127447` / `91427510964`.
+- Fast suite: `1203 passed`.
+- Slow suite: `179 passed`.
+- Perft: `20/400/8902/197281`.
+- UCI smoke: passed.
 
-Task 2 added portable core value types and exhaustive contract tests:
+### Task 1 ‚Äî Cargo workspace
 
-- `Color`, `PieceKind`, and compact `Piece`;
-- canonical validated `Square` with `a8 = 0` and `h1 = 63`;
-- `Bitboard` operations and non-wrapping shifts;
-- one packed `Move` identity with 14 semantic move kinds;
-- four-bit castling rights;
-- typed checked halfmove/fullmove counters;
-- coordinate/value-type documentation;
-- exhaustive public-contract tests.
+- Evidence SHA: `7ca6f8dc0d2577ca552a6bfe115828eb668d2133`.
+- CI run/job: `30722127447` / `91427510938`.
+- Metadata, rustfmt, check, Clippy, tests, rustdoc, debug build, and release build passed.
 
-## Task 2 evidence
+### Task 2 ‚Äî core values and coordinates
 
-- Implementation commit: `878f9090af3d5fdee77ca87aaea24761a8df0312`.
-- Formatting fix and green candidate: `f29524599134a14d34121af2fefb04cd90e78df0`.
+- Green implementation candidate: `f29524599134a14d34121af2fefb04cd90e78df0`.
 - CI run/job: `30723748100` / `91431648799`.
-- Unit tests: `16 passed, 0 failed`.
+- Unit tests: `16 passed`.
+- Exact closure SHA/run/job: `b5f462aa73a69efcdc847ee215231a5064029902` / `30723952076` / `91432161445`.
+
+### Task 3 ‚Äî `Position` and invariants
+
+- Initial implementation: `dd66b61b745d72f833802826b5d72f2b3f18232a`.
+- rustfmt correction: `b36e7e379e35a32aac6c707099bd9c2daa7067cd`.
+- Sealed editor capability fix: `bfef2ae3a08722a4215ba788273543c3ba244423`.
+- Green candidate: `00fd925dad807d822aa7878aade686ccc59ff9c5`.
+- CI run/job: `30724744784` / `91434236030`.
+- Unit tests: `24 passed, 0 failed`.
 - Lockfile verification, metadata, rustfmt, Cargo check, Clippy with warnings denied, tests, rustdoc with warnings denied, debug build, and release build passed.
 - First-party warnings: none.
+- External notices: GitHub Action Node runtime deprecation messages only.
 
-Task 2 gate is closed.
+Task 3 gate is closed.
 
-## Task 3 ‚Äî implemented, CI pending
+## Next operation
 
-The current candidate adds the private hybrid `Position`, standard and crate-internal construction, read-only accessors, atomic internal editing, redundant-state validation, logical equality, snapshot cloning policy, and transition/invariant tests.
+Verify the Task 3 closure documentation commit at its exact SHA, then begin Task 4:
 
-The Task 3 gate remains open until the exact candidate passes lockfile verification, metadata, rustfmt, Cargo check, Clippy with warnings denied, tests, rustdoc with warnings denied, debuY»ùZ[[ôô[X\ŸHùZ[àõ»úò[ò⁄‹à[ô\]Y\›ÿ\»‹ôX]YÇ
+- structured FEN and UCI move errors;
+- strict six-field FEN parser;
+- canonical FEN serializer;
+- UCI coordinate-move parse/format;
+- exhaustive invalid-input, round-trip, and property tests;
+- strict exact-SHA CI loop.
+
+No branch or pull request has been created.
