@@ -10,7 +10,7 @@ on:
 
 permissions:
   actions: write
-  contents: read
+  contents: write
   issues: write
 
 jobs:
@@ -151,5 +151,67 @@ jobs:
           gh api \
             --method PATCH \
             "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE_NUMBER}" \
+            -f state=closed \
+            -f state_reason=completed
+
+  apply-task-14-1:
+    name: Apply Task 14.1 quiescence patch
+    if: >-
+      github.ref == 'refs/heads/master' &&
+      github.event_name == 'issues' &&
+      github.event.issue.title == '[apply-task-14-1]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+    steps:
+      - name: Check out control files
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          path: control
+      - name: Check out rust-engine
+        uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          path: target
+      - name: Install Rust formatter
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Apply and format
+        working-directory: target
+        run: |
+          set -euo pipefail
+          python ../control/.github/apply_task_14_1.py .
+          cargo fmt --all
+      - name: Commit and push
+        id: commit
+        working-directory: target
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add crates/chess-search/src/alpha_beta.rs \
+                  crates/chess-search/src/lib.rs \
+                  crates/chess-search/src/quiescence.rs \
+                  crates/chess-search/src/search_common.rs \
+                  crates/chess-search/tests/search_quiescence.rs \
+                  docs/RUST_QUIESCENCE_SEARCH.md
+          git commit -m 'feat: implement Task 14.1 quiescence search'
+          git push origin HEAD:rust-engine
+          echo "sha=$(git rev-parse HEAD)" >>"${GITHUB_OUTPUT}"
+      - name: Report and close
+        env:
+          SHA: ${{ steps.commit.outputs.sha }}
+        run: |
+          set -euo pipefail
+          gh api --method POST \
+            "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/comments" \
+            -f body="Applied and rustfmt-formatted Task 14.1 candidate at ${SHA}."
+          gh api --method PATCH \
+            "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}" \
             -f state=closed \
             -f state_reason=completed
