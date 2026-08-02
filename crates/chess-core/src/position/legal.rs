@@ -87,10 +87,8 @@ impl Position {
             }
 
             let undo = self.make_generated_move(current)?;
-            let safe = !self.is_square_attacked(
-                self.king_square(moving_side),
-                moving_side.opposite(),
-            );
+            let safe =
+                !self.is_square_attacked(self.king_square(moving_side), moving_side.opposite());
             self.unmake_generated_move(current, undo)?;
             if safe {
                 legal.push(current)?;
@@ -101,8 +99,14 @@ impl Position {
     }
 
     /// Returns whether `candidate` is one of the exact generated legal moves.
-    pub fn is_legal_move(&mut self, candidate: Move) -> Result<bool, LegalMoveError> {
-        Ok(self.legal_moves()?.iter().any(|current| current == candidate))
+    pub fn is_legal_move(
+        &mut self,
+        candidate: Move,
+    ) -> Result<bool, LegalMoveError> {
+        Ok(self
+            .legal_moves()?
+            .iter()
+            .any(|current| current == candidate))
     }
 
     /// Counts legal leaf nodes at `depth` using reversible make/unmake.
@@ -233,21 +237,14 @@ impl Position {
         }
         let next_en_passant = if current.kind() == MoveKind::DoublePawnPush {
             Some(
-                Square::from_row_file(
-                    (source.row() + destination.row()) / 2,
-                    source.file(),
-                )
-                .expect("double-push midpoint is valid"),
+                Square::from_row_file((source.row() + destination.row()) / 2, source.file())
+                    .expect("double-push midpoint is valid"),
             )
         } else {
             None
         };
-        let next_castling = updated_castling_rights(
-            self.castling_rights(),
-            moving_piece,
-            source,
-            captured,
-        );
+        let next_castling =
+            updated_castling_rights(self.castling_rights(), moving_piece, source, captured);
         let undo = Undo {
             captured,
             previous_castling_rights: self.castling_rights(),
@@ -303,11 +300,7 @@ impl Position {
         Ok(undo)
     }
 
-    fn unmake_generated_move(
-        &mut self,
-        current: Move,
-        undo: Undo,
-    ) -> Result<(), LegalMoveError> {
+    fn unmake_generated_move(&mut self, current: Move, undo: Undo) -> Result<(), LegalMoveError> {
         let source = current.source();
         let destination = current.destination();
         let moving_side = undo.previous_side_to_move;
