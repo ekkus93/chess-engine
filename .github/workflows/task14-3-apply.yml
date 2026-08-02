@@ -1,0 +1,55 @@
+name: Task 14.3 Apply
+
+on:
+  push:
+    branches:
+      - rust-engine
+    paths:
+      - .github/task14_3_parts/**
+      - .github/workflows/task14-3-apply.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: task-14-3-apply-rust-engine
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: github.ref == 'refs/heads/rust-engine'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Reconstruct and apply Task 14.3
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .github/task14_3_parts/part{00..04} > /tmp/apply_task_14_3.py
+          echo 'b9d3c144d610175a6f9562773825c6e2806737a882e107425bf0c9dfcdfb3c93  /tmp/apply_task_14_3.py' | sha256sum --check
+          python3 /tmp/apply_task_14_3.py "$GITHUB_WORKSPACE"
+          cargo fmt --all
+          cargo check --locked -p chess-search --all-targets --all-features
+          cargo clippy --locked -p chess-search --all-targets --all-features -- -D warnings
+          cargo test --locked -p chess-search --all-features
+
+      - name: Commit implementation and remove applicator
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .github/task14_3_parts .github/workflows/task14-3-apply.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "search: implement Task 14.3 quiet ordering"
+          git push origin HEAD:rust-engine
