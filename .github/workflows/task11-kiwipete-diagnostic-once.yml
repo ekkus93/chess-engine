@@ -1,28 +1,29 @@
 name: Task 11 Kiwipete diagnostic once
 
 on:
-  push:
-    branches:
-      - rust-engine
-    paths:
-      - .github/workflows/task11-kiwipete-diagnostic-once.yml
+  issues:
+    types: [opened]
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   diagnose:
+    if: github.event.issue.title == '[task11-kiwipete-diagnostic]'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
       - name: Check supplied and canonical Kiwipete positions
+        id: diagnose
         shell: bash
         run: |
           set -euo pipefail
           python -m pip install --disable-pip-version-check chess==1.11.2
-          python - <<'PY'
+          python - <<'PY' > diagnostic.txt
           import chess
 
           supplied = "r3k2r/p1ppqpb1/bn2pnp1/2pP4/1p2P3/2N2N2/PPQBBPPP/R3K2R w KQkq - 0 1"
@@ -41,7 +42,23 @@ jobs:
           for name, fen in [("supplied", supplied), ("canonical", canonical)]:
               board = chess.Board(fen)
               print(f"{name} valid={board.is_valid()} fen={board.fen(en_passant='fen')}")
-              for depth in range(1, 4):
+              for depth in range(1, 5):
                   print(f"{name} d{depth}={perft(board, depth)}")
               print(f"{name} legal={','.join(sorted(move.uci() for move in board.legal_moves))}")
           PY
+
+      - name: Publish diagnostic
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo 'Pinned `chess==1.11.2` diagnostic:'
+            echo
+            echo '```text'
+            cat diagnostic.txt
+            echo '```'
+          } > comment.md
+          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file comment.md
