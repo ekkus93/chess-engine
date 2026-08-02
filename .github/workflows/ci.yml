@@ -154,19 +154,18 @@ jobs:
             -f state=closed \
             -f state_reason=completed
 
-  apply-task-14-2:
-    name: Apply Task 14.2 tactical ordering
+  close-task-14-2:
+    name: Close Task 14.2 trackers
     if: >-
       github.ref == 'refs/heads/master' &&
       github.event_name == 'issues' &&
-      github.event.issue.title == '[apply-task-14-2-main]'
+      github.event.issue.title == '[close-task-14-2]'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 10
     env:
       GH_TOKEN: ${{ github.token }}
       REPOSITORY: ${{ github.repository }}
       ISSUE_NUMBER: ${{ github.event.issue.number }}
-      TASK_LOG: /tmp/task14-2.log
     steps:
       - name: Check out control files
         uses: actions/checkout@v4
@@ -178,67 +177,39 @@ jobs:
         with:
           ref: rust-engine
           path: target
-      - name: Guard exact Task 14.1 closure head
+      - name: Guard exact validated implementation head
         working-directory: target
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = 'e18c3cbeec1c221f8dfcb902cf552c8857766b8b'
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-      - name: Apply and validate Task 14.2
+          test "$(git rev-parse HEAD)" = '3688cb8e89a7da0c7fd34c3756d52d0fcc8d3d33'
+      - name: Patch authoritative trackers
         working-directory: target
         run: |
-          set -o pipefail
-          {
-            set -euo pipefail
-            python ../control/.github/apply_task_14_2.py .
-            python ../control/.github/fix_task_14_2_window.py .
-            cargo fmt --all
-            git diff --check
-            cargo check --locked -p chess-search --all-targets --all-features
-            cargo clippy --locked -p chess-search --all-targets --all-features -- -D warnings
-            cargo test --locked -p chess-search --all-features
-          } 2>&1 | tee "${TASK_LOG}"
-      - name: Commit and push implementation
+          set -euo pipefail
+          python ../control/.github/close_task_14_2.py .
+          git diff --check
+      - name: Commit and push documentation closure
         id: commit
         working-directory: target
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add crates/chess-search/src/alpha_beta.rs \
-                  crates/chess-search/src/lib.rs \
-                  crates/chess-search/src/move_ordering.rs \
-                  crates/chess-search/src/quiescence.rs \
-                  crates/chess-search/src/reference.rs \
-                  docs/RUST_TACTICAL_MOVE_ORDERING.md
-          git commit -m 'feat: implement Task 14.2 tactical ordering'
+          git add docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md \
+                  docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
+          git diff --cached --quiet && { echo 'No tracker changes produced.' >&2; exit 1; }
+          git commit -m 'docs: close Task 14.2 tactical ordering'
           git push origin HEAD:rust-engine
           echo "sha=$(git rev-parse HEAD)" >>"${GITHUB_OUTPUT}"
-      - name: Report success
+      - name: Report and close issue
         env:
           SHA: ${{ steps.commit.outputs.sha }}
         run: |
           set -euo pipefail
           gh api --method POST \
             "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/comments" \
-            -f body="Applied Task 14.2 tactical ordering at ${SHA}; permanent rust-engine CI will provide authoritative evidence."
+            -f body="Closed Task 14.2 trackers at documentation-only SHA ${SHA}; exact validated implementation remains 3688cb8e89a7da0c7fd34c3756d52d0fcc8d3d33, CI 30753873602 / 91512570865."
           gh api --method PATCH \
             "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}" \
             -f state=closed \
             -f state_reason=completed
-      - name: Report failure
-        if: failure()
-        run: |
-          set -euo pipefail
-          if [[ -f "${TASK_LOG}" ]]; then
-            tail -n 180 "${TASK_LOG}" > /tmp/task14-2-tail.log
-          else
-            printf '%s\n' 'Task 14.2 failed before the validation log was created.' > /tmp/task14-2-tail.log
-          fi
-          body="$(printf 'Task 14.2 preflight failed. Tail of the focused log:\n\n```text\n%s\n```' "$(cat /tmp/task14-2-tail.log)")"
-          gh api --method POST \
-            "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/comments" \
-            -f body="${body}"
