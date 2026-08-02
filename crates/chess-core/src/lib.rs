@@ -26,7 +26,9 @@ pub use counters::{FullmoveNumber, HalfmoveClock};
 pub use move_encoding::{Move, MoveKind};
 pub use movegen::{MoveList, MoveListOverflow, MAX_PSEUDO_LEGAL_MOVES};
 pub use piece::{Color, Piece, PieceKind};
-pub use position::{FenError, Position, PositionBuildError, PositionInvariantError};
+pub use position::{
+    FenError, LegalMoveError, Position, PositionBuildError, PositionInvariantError,
+};
 #[doc(hidden)]
 pub use position::{PositionEditor, PositionMutationError};
 pub use square::{ParseSquareError, Square};

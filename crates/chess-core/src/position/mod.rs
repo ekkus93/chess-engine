@@ -2,6 +2,7 @@ mod builder;
 mod editor;
 mod error;
 mod fen;
+mod legal;
 #[cfg(test)]
 mod tests;
 
@@ -9,6 +10,7 @@ use builder::PositionBuilder;
 pub use editor::PositionEditor;
 pub use error::{PositionBuildError, PositionInvariantError, PositionMutationError};
 pub use fen::FenError;
+pub use legal::LegalMoveError;
 
 use crate::{
     Bitboard, CastlingRights, Color, FullmoveNumber, HalfmoveClock, Piece, PieceKind, Square,
