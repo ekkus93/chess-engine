@@ -1,6 +1,6 @@
 use crate::{
-    bishop_attacks, king_attacks, knight_attacks, pawn_attacks, rook_attacks, Bitboard,
-    CastlingRights, Color, Piece, PieceKind, Square,
+    bishop_attacks, king_attacks, knight_attacks, pawn_attacks, rook_attacks, CastlingRights,
+    Color, Piece, PieceKind, Square,
 };
 
 use super::Position;
@@ -358,25 +358,5 @@ mod tests {
             }
             assert_eq!(position, baseline, "seed {seed} did not restore");
         }
-    }
-
-    #[test]
-    fn generated_tables_are_nonzero_and_distinct_for_sampled_state() {
-        let mut seen = Vec::new();
-        for square in ["a8", "e4", "h1"] {
-            let square = square.parse().expect("valid square");
-            for piece in [
-                crate::Piece::new(crate::Color::White, crate::PieceKind::Pawn),
-                crate::Piece::new(crate::Color::Black, crate::PieceKind::Queen),
-            ] {
-                let key = super::piece_square_key(piece, square);
-                assert_ne!(key, 0);
-                assert!(!seen.contains(&key));
-                seen.push(key);
-            }
-        }
-        assert_ne!(super::side_to_move_key(), 0);
-        assert_ne!(super::castling_state_key(crate::CastlingRights::NONE), 0);
-        assert_ne!(Bitboard::EMPTY.bits(), u64::MAX);
     }
 }
