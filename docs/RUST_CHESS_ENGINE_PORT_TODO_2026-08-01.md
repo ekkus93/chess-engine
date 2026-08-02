@@ -29,14 +29,15 @@
 | 5 | **Complete** — attack generation. |
 | 6 | **Complete** — pseudo-legal move generation. |
 | 7 | **Complete** — legal move generation, special rules, reversible validation, and initial perft. |
-| 8 | **Active, not started** — formal make/unmake and incremental state. |
-| 9–24 | **Not started**. |
+| 8 | **Complete** — formal checked/generated make/unmake, exact restoration, and randomized reversal. |
+| 9 | **Active, not started** — Zobrist hashing and repetition identity. |
+| 10–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
 
 ---
 
-# Tasks 0–7 — complete
+# Tasks 0–8 — complete
 
 - [x] Task 0 gate. Evidence: SHA `7ca6f8dc0d2577ca552a6bfe115828eb668d2133`; run/job `30722127447` / `91427510964`; Python fast `1203`, slow `179`, perft `20/400/8902/197281`, UCI passed.
 - [x] Task 1 gate. Evidence: SHA `7ca6f8dc0d2577ca552a6bfe115828eb668d2133`; run/job `30722127447` / `91427510938`; strict workspace gates passed.
@@ -46,6 +47,7 @@
 - [x] Task 5 gate. Evidence: implementation `9922b0c725147fcabac3ce4c08f7c150c3ec6a1d`; run/job `30727440571` / `91441645867`; `42 passed`; closure `78e9315369ff4552e5500d1a820767a1fd228f29` green.
 - [x] Task 6 gate. Evidence: implementation `0dcf512d404ae248d5a99651543d9d0ca9687699`; run/job `30727874051` / `91442826957`; `49 passed`; closure `cb7124c5712f6b3f8f4540e9e8fabaa2aa242bc0` green.
 - [x] Task 7 gate. Implementation head `d6ea24eb6eeaea7b41dc309f866a5653aba687d5`, run/job `30729969574` / `91448384283`, `59 passed`; closure SHA `334dc79b3ce0cbc1e7b5096387218c90a8365204`, run/job `30730100518` / `91448776834`, all strict gates green.
+- [x] Task 8 gate. Implementation head `cfc68a4ff775d6d4b73c0bfa192e00c1fd7b910f`; run/job `30730803320` / `91450780156`; `67 passed`; all strict gates green.
 
 ---
 
@@ -129,14 +131,73 @@
 
 ---
 
-# Task 8: Make/unmake and incremental state — ACTIVE, NOT STARTED
-- [ ] 8.1 Public/internal formal undo structure and contract.
-- [ ] 8.2 Complete application/unapplication paths.
-- [ ] 8.3 Exact restoration tests for every move class.
-- [ ] 8.4 Long randomized legal-sequence restoration.
-- [ ] Task 8 gate.
+# Task 8: Make/unmake and incremental state — COMPLETE
 
-# Task 9: Zobrist hashing and repetition identity — NOT STARTED
+## 8.1 Formal undo structure and contract
+- [x] Replace the Task 7 validation-only undo record with opaque public `PositionUndo`.
+- [x] Bind each undo token to the exact packed move identity that produced it.
+- [x] Record the original moving piece and captured piece/square.
+- [x] Record prior castling rights, en-passant target, halfmove clock, fullmove number, side to move, and hash placeholder/state.
+- [x] Keep token fields private so callers cannot construct incomplete restoration state.
+- [x] Expose read-only `move_made()` and `captured()` inspection.
+- [x] Reject mismatched or out-of-order undo tokens before mutation.
+
+## 8.2 Checked and generated-legal move paths
+- [x] Public `Position::make_move` accepts only an exact currently legal packed move.
+- [x] Public `Position::unmake_move` consumes the opaque token.
+- [x] Crate-private generated-legal make/unmake avoids regenerating legality in perft and future search.
+- [x] Legal generation, perft, and divide use the formal make/unmake path.
+- [x] Illegal public moves fail without changing any position field.
+- [x] Counter-overflow failures are transactional and non-mutating.
+- [x] Side to move changes after every move.
+- [x] Fullmove number increments only after Black moves.
+- [x] Halfmove clock resets on pawn moves and captures, otherwise increments with overflow detection.
+- [x] En-passant, castling rights, rook relocation, promotion replacement, cached king squares, mailbox, bitboards, and occupancies update through one reversible path.
+
+## 8.3 Exact restoration coverage
+- [x] Quiet move.
+- [x] Double pawn push.
+- [x] Ordinary capture.
+- [x] En passant.
+- [x] King-side castling.
+- [x] Queen-side castling.
+- [x] All four quiet promotion identities.
+- [x] All four capture-promotion identities.
+- [x] Rook capture on a home square changing castling rights.
+- [x] Side, clocks, en-passant state, castling rights, captured piece, cached kings, redundant board representations, and stored hash state restore exactly.
+- [x] Every legal move in a curated position corpus passes make/invariant/unmake/equality checks.
+
+## 8.4 Long-sequence restoration and policy
+- [x] Deterministic legal playouts for eight seeds, up to 128 plies each.
+- [x] Validate invariants after every forward make and reverse unmake.
+- [x] Reverse every sequence in strict last-in, first-out order and recover exact starting equality.
+- [x] Production recursive paths use make/unmake rather than clone-per-child.
+- [x] `docs/RUST_MAKE_UNMAKE.md` documents the contract and Task 9 hash boundary.
+
+## 8.5 CI gate
+- [x] Exact-head rustfmt pass.
+- [x] Exact-head Cargo check pass.
+- [x] Exact-head Clippy `-D warnings` pass.
+- [x] Exact-head unit tests: `67 passed, 0 failed`.
+- [x] Exact-head rustdoc `-D warnings` pass.
+- [x] Exact-head debug and release builds.
+- [x] Task 8 gate.
+
+### Task 8 completion evidence
+
+- Formal make/unmake module: `crates/chess-core/src/position/make_unmake.rs`.
+- Restoration and deterministic sequence tests: `crates/chess-core/src/position/make_unmake_tests.rs`.
+- Contract documentation: `docs/RUST_MAKE_UNMAKE.md`.
+- Exact validated implementation head: `cfc68a4ff775d6d4b73c0bfa192e00c1fd7b910f`.
+- CI run/job: `30730803320` / `91450780156`.
+- Results: lockfile and metadata verification, rustfmt, Cargo check, Clippy with warnings denied, `67 passed`, rustdoc with warnings denied, debug build, and release build passed.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime deprecation and dependency `punycode` deprecation only.
+- Task 9 remains responsible for authoritative Zobrist computation, incremental key updates, and repetition identity; Task 8 stores and restores the existing hash field exactly.
+
+---
+
+# Task 9: Zobrist hashing and repetition identity — ACTIVE, NOT STARTED
 - [ ] 9.1 Deterministic tables.
 - [ ] 9.2 Full hash.
 - [ ] 9.3 Incremental updates.
@@ -281,7 +342,8 @@
 - [x] Attack generation.
 - [x] Pseudo-legal generation.
 - [x] Legal generation and initial perft.
-- [ ] Formal make/unmake, draws, hashing, search, TT, evaluation, ABI/JNI, differential perft/fuzz, self-play, and tuning.
+- [x] Formal make/unmake.
+- [ ] Draws, hashing, search, TT, evaluation, ABI/JNI, differential perft/fuzz, self-play, and tuning.
 
 ## 25.3 Commands and artifacts
 - [x] Full Task 0/1 validation command, committed lockfile, ignored targets/worktrees.
@@ -306,7 +368,8 @@
 
 ## Immediate next operations
 
-1. Extract Task 8's exact make/unmake and incremental-state contracts from the companion definitions.
-2. Replace the Task 7 private validation-only undo path with the formal reusable Task 8 API without weakening proven legality or perft behavior.
-3. Add exact restoration coverage for every move class and long deterministic randomized legal sequences.
-4. Run all strict gates and close Task 8 only at an exact green SHA.
+1. Verify this Task 8 status closure at its exact SHA through all strict CI gates.
+2. Begin Task 9 only after the closure head is green.
+3. Implement deterministic Zobrist tables, authoritative full recomputation, and incremental make/unmake updates.
+4. Define canonical en-passant repetition identity based on the existence of a legal en-passant capture.
+5. Compare incremental and recomputed keys after every make/unmake across curated and randomized sequences.
