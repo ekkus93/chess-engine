@@ -1,2 +1,39 @@
+rustc 1.97.1 (8bab26f4f 2026-07-14)
+cargo 1.97.1 (c980f4866 2026-06-30)
+rustfmt 1.9.0-stable (8bab26f4f6 2026-07-14)
+clippy 0.1.97 (8bab26f4f6 2026-07-14)
 /tmp/apply_task_14_3.py: OK
-existing TT test call: expected one match, found 0
+/tmp/apply_task_14_3.py: OK
+Task 14.3 patch applied
+[rust-engine 168239d] ci: Task 14.3 applied-and-formatted
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+To https://github.com/ekkus93/chess-engine
+   aa7cbe3..168239d  HEAD -> rust-engine
+    Checking chess-core v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-core)
+    Checking chess-search v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-search)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 5.52s
+[rust-engine 7741eff] ci: Task 14.3 cargo-check-passed
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+To https://github.com/ekkus93/chess-engine
+   168239d..7741eff  HEAD -> rust-engine
+    Checking chess-core v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-core)
+    Checking chess-search v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-search)
+error: this function has too many arguments (8/7)
+   --> crates/chess-search/src/alpha_beta.rs:212:1
+    |
+212 | / fn search_node<Probe>(
+213 | |     position: &mut Position,
+214 | |     history: &mut SearchHistory,
+215 | |     depth: u16,
+...   |
+222 | | where
+223 | |     Probe: SearchCancellationProbe + ?Sized,
+    | |____________________________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#too_many_arguments
+    = note: `-D clippy::too-many-arguments` implied by `-D clippy::all`
+    = help: to override `-D clippy::all` add `#[allow(clippy::too_many_arguments)]`
+
+error: could not compile `chess-search` (lib) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `chess-search` (lib test) due to 1 previous error
