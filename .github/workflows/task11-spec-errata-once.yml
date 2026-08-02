@@ -1,0 +1,53 @@
+name: Task 11 specification errata once
+
+on:
+  push:
+    branches:
+      - rust-engine
+    paths:
+      - .github/workflows/task11-spec-errata-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+
+      - name: Correct perft FENs and remove diagnostic assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("docs/RUST_CHESS_ENGINE_PORT_SPEC_2026-08-01.md")
+          text = path.read_text()
+          replacements = {
+              "r3k2r/p1ppqpb1/bn2pnp1/2pP4/1p2P3/2N2N2/PPQBBPPP/R3K2R w KQkq - 0 1":
+                  "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+              "r4rk1/1pp1qppp/p1np1n2/8/2B1P3/2N1B3/PPP2PPP/R2Q1RK1 w - - 0 10":
+                  "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
+          }
+          for old, new in replacements.items():
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"expected one specification occurrence of {old!r}, found {count}")
+              text = text.replace(old, new)
+          path.write_text(text)
+          PY
+          git rm .github/workflows/task11-kiwipete-diagnostic-once.yml
+          if test -f docs/TASK11_KIWIPETE_DIAGNOSTIC_TEMP.txt; then
+            git rm docs/TASK11_KIWIPETE_DIAGNOSTIC_TEMP.txt
+          fi
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/RUST_CHESS_ENGINE_PORT_SPEC_2026-08-01.md
+          git commit -m "docs(core): correct authoritative perft FENs"
+          git push origin HEAD:rust-engine
