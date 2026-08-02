@@ -1,0 +1,45 @@
+name: Format Task 15.3
+
+on:
+  push:
+    branches:
+      - rust-engine
+    paths:
+      - ".github/workflows/format-task-15-3.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: format-task-15-3
+  cancel-in-progress: false
+
+jobs:
+  format:
+    name: Apply rustfmt and remove control
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Format workspace
+        run: cargo fmt --all
+
+      - name: Remove temporary formatter
+        run: git rm .github/workflows/format-task-15-3.yml
+
+      - name: Commit formatter output
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add crates/chess-search/src/transposition_score.rs
+          git diff --cached --check
+          git commit -m "style: format Task 15.3 normalization"
+          git push origin HEAD:rust-engine
