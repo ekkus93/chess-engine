@@ -10,7 +10,7 @@ on:
 
 permissions:
   actions: write
-  contents: write
+  contents: read
   issues: write
 
 jobs:
@@ -153,46 +153,3 @@ jobs:
             "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE_NUMBER}" \
             -f state=closed \
             -f state_reason=completed
-
-  close-task-13:
-    name: Close Task 13 trackers
-    if: >-
-      github.ref == 'refs/heads/master' &&
-      github.event_name == 'issues' &&
-      github.event.issue.title == '[close-task-13]'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    env:
-      GH_TOKEN: ${{ github.token }}
-      REPOSITORY: ${{ github.repository }}
-      ISSUE_NUMBER: ${{ github.event.issue.number }}
-      EXPECTED_HEAD: 7ca429b0c883bbb8484d3eb3a4af7d96cdb57201
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Patch authoritative trackers
-        id: closure
-        shell: bash
-        run: |
-          set -euo pipefail
-          cp .github/close_task_13.py /tmp/close_task_13.py
-          git checkout rust-engine
-          test "$(git rev-parse HEAD)" = "${EXPECTED_HEAD}"
-          python3 /tmp/close_task_13.py "${PWD}"
-          git diff --check
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
-          git commit -m 'docs: close Task 13 reference search and alpha-beta'
-          git push origin HEAD:rust-engine
-          echo "sha=$(git rev-parse HEAD)" >>"${GITHUB_OUTPUT}"
-      - name: Report and close
-        env:
-          CLOSURE_SHA: ${{ steps.closure.outputs.sha }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          body="Task 13 tracker closure committed at ${CLOSURE_SHA}. Exact implementation CI: 30745120833 / 91489299233 on 7ca429b0c883bbb8484d3eb3a4af7d96cdb57201. Task 14.1 is next."
-          gh api --method POST "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/comments" -f body="${body}"
-          gh api --method PATCH "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}" -f state=closed -f state_reason=completed
