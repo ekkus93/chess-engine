@@ -1,0 +1,181 @@
+sition,
+    tokens: &LegalMoveTokenList,
+    ordering: MoveOrdering,
+    ply: u16,
+    quiet_state: Option<&QuietOrderingState>,
+    transposition_table_move: Option<Move>,
+    previous_pv_move: Option<Move>,
+) -> OrderedLegalMoves {
+    let mut ordered = OrderedLegalMoves::new();
+    for token in tokens.iter() {
+        let current = token.move_made();
+        let key = match ordering {
+            MoveOrdering::Generation => MoveOrderKey::GENERATION,
+            MoveOrdering::Tactical => tactical_key(
+                position,
+                current,
+                transposition_table_move,
+                None,
+                KillerMoves::default(),
+                0,
+                None,
+            ),
+            MoveOrdering::Quiet => {
+                let killers = quiet_state.map_or_else(KillerMoves::default, |state| state.killers(ply));
+                let history = quiet_state.map_or(0, |state| {
+                    state.history_score(position.side_to_move(), current)
+                });
+                tactical_key(
+                    position,
+                    current,
+                    transposition_table_move,
+                    previous_pv_move,
+                    killers,
+                    history,
+                    Some(Reverse(current)),
+                )
+            }
+        };
+        let entry = OrderedEntry { token, key };
+        let mut insertion = ordered.len;
+        while insertion > 0 {
+            let previous = ordered.entries[insertion - 1]
+                .expect("occupied ordered-move prefix contains entries");
+            if previous.key >= entry.key {
+                break;
+            }
+            ordered.entries[insertion] = Some(previous);
+            insertion -= 1;
+        }
+        ordered.entries[insertion] = Some(entry);
+        ordered.len += 1;
+    }
+    ordered
+}
+
+'''
+text = text[:start] + replacement + text[end:]
+old_start = text.index("fn tactical_key(")
+old_end = text.index("fn captured_piece_kind(", old_start)
+new_key = r'''fn tactical_key(
+    position: &Position,
+    current: Move,
+    transposition_table_move: Option<Move>,
+    previous_pv_move: Option<Move>,
+    killers: KillerMoves,
+    history: u32,
+    encoded_tie_break: Option<Reverse<Move>>,
+) -> MoveOrderKey {
+    let promotion = current.promotion();
+    let capture = current.kind().is_capture();
+    let quiet = is_quiet(current);
+    let category = if promotion.is_some() {
+        2
+    } else if capture {
+        1
+    } else {
+        0
+    };
+    let victim = if capture {
+        captured_piece_kind(position, current).map_or(0, piece_value)
+    } else {
+        0
+    };
+    let attacker_preference = if capture {
+        let attacker = position
+            .piece_at(current.source())
+            .expect("a legal move source is occupied")
+            .kind;
+        piece_value(PieceKind::King) - piece_value(attacker)
+    } else {
+        0
+    };
+    let killer = if quiet && killers.primary == Some(current) {
+        2
+    } else if quiet && killers.secondary == Some(current) {
+        1
+    } else {
+        0
+    };
+    MoveOrderKey {
+        transposition_table: u8::from(transposition_table_move == Some(current)),
+        previous_principal_variation: u8::from(previous_pv_move == Some(current)),
+        category,
+        promotion: promotion.map_or(0, piece_value),
+        victim,
+        attacker_preference,
+        killer,
+        history: if quiet { history } else { 0 },
+        encoded_tie_break: if quiet { encoded_tie_break } else { None },
+    }
+}
+
+'''
+text = text[:old_start] + new_key + text[old_end:]
+text = replace_once(
+    text,
+    "const fn piece_value(kind: PieceKind) -> u16 {",
+    """const fn is_quiet(current: Move) -> bool {
+    !current.kind().is_capture() && current.promotion().is_none()
+}
+
+const fn piece_value(kind: PieceKind) -> u16 {""",
+    "quiet predicate",
+)
+text = text.replace("order_legal_moves_with_tt_move", "order_legal_moves_with_hints")
+text = replace_once(
+    text,
+    """            MoveOrdering::Tactical,
+            Some(tt_move),
+        )""",
+    """            MoveOrdering::Tactical,
+            0,
+            None,
+            Some(tt_move),
+            None,
+        )""",
+    "existing TT test call",
+)
+text += r'''
+
+#[cfg(test)]
+mod quiet_tests {
+    use chess_core::{Color, Move, Position};
+
+    use super::{
+        ordered_legal_moves_with_state, previous_pv_move_hook, MoveOrdering,
+        QuietOrderingState,
+    };
+
+    fn legal_move(position: &mut Position, uci: &str) -> Move {
+        position
+            .legal_move_tokens()
+            .expect("legal tokens generate")
+            .iter()
+            .map(|token| token.move_made())
+            .find(|current| current.to_uci() == uci)
+            .expect("fixture move is legal")
+    }
+
+    #[test]
+    fn previous_pv_hook_is_an_explicit_no_op() {
+        assert_eq!(previous_pv_move_hook(0), None);
+    }
+
+    #[test]
+    fn quiet_ties_use_packed_move_order() {
+        let mut position = Position::starting();
+        let tokens = position
+            .legal_move_tokens()
+            .expect("legal tokens generate");
+        let mut expected: Vec<_> = tokens.iter().map(|token| token.move_made()).collect();
+        expected.sort_unstable();
+        let state = QuietOrderingState::new();
+        let actual: Vec<_> = ordered_legal_moves_with_state(
+            &position,
+            &tokens,
+            MoveOrdering::Quiet,
+            0,
+            &state,
+        )
+        .
