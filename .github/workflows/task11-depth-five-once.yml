@@ -8,7 +8,7 @@ on:
       - .github/workflows/task11-depth-five-once.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   depth-five:
@@ -22,6 +22,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: rust-engine
+          fetch-depth: 0
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -29,5 +30,17 @@ jobs:
         with:
           shared-key: rust-engine-task11-depth-five
 
-      - name: Run all six depth-five fixtures
-        run: cargo test --locked -p chess-core --release authoritative_perft_depth_five -- --ignored --exact
+      - name: Run all six depth-five fixtures and record evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "validated_sha=$(git rev-parse HEAD)"
+            cargo test --locked -p chess-core --release authoritative_perft_depth_five -- --ignored --exact
+          } 2>&1 | tee docs/TASK11_DEPTH5_TEMP.txt
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/TASK11_DEPTH5_TEMP.txt
+          git commit -m "test(core): record Task 11 depth-five evidence"
+          git push origin HEAD:rust-engine
