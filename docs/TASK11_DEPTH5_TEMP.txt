@@ -1,6 +1,10 @@
-validated_sha=45eff9478d2a4aa64780f6f2fac17a38cc1e770c
+validated_sha=e5c44147c8f6097f1d60c8d6d73a051da4fc13a1
+workflow_run=30733437572
+workflow_attempt=1
+job_id=91457637460
+aggregate_depth_five_leaves=469080960
 [1m[92m   Compiling[0m chess-core v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-core)
-[1m[92m    Finished[0m `release` profile [optimized] target(s) in 9.08s
+[1m[92m    Finished[0m `release` profile [optimized] target(s) in 3.15s
 [1m[92m     Running[0m unittests src/lib.rs (target/release/deps/chess_core-ac7713766cc8e08d)
 
 running 0 tests
@@ -12,5 +16,5 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 84 filtered out; fin
 running 1 test
 test authoritative_perft_depth_five ... ok
 
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 39.63s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 39.77s
 
