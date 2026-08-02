@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: task-14-3-apply-rust-engine
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   apply:
@@ -31,23 +31,45 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Reconstruct and apply Task 14.3
+      - name: Reconstruct, apply, and validate Task 14.3
+        id: validation
+        shell: bash
+        run: |
+          set +e
+          set -o pipefail
+          {
+            set -euo pipefail
+            cat .github/task14_3_parts/part{00..04} > /tmp/apply_task_14_3.py
+            echo 'b9d3c144d610175a6f9562773825c6e2806737a882e107425bf0c9dfcdfb3c93  /tmp/apply_task_14_3.py' | sha256sum --check
+            python3 /tmp/apply_task_14_3.py "$GITHUB_WORKSPACE"
+            cargo fmt --all
+            cargo check --locked -p chess-search --all-targets --all-features
+            cargo clippy --locked -p chess-search --all-targets --all-features -- -D warnings
+            cargo test --locked -p chess-search --all-features
+          } 2>&1 | tee /tmp/task14_3_validation.log
+          status=${PIPESTATUS[0]}
+          echo "status=${status}" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Commit fail-visible diagnostics
+        if: steps.validation.outputs.status != '0'
         shell: bash
         run: |
           set -euo pipefail
-          cat .github/task14_3_parts/part{00..04} > /tmp/apply_task_14_3.py
-          echo 'b9d3c144d610175a6f9562773825c6e2806737a882e107425bf0c9dfcdfb3c93  /tmp/apply_task_14_3.py' | sha256sum --check
-          python3 /tmp/apply_task_14_3.py "$GITHUB_WORKSPACE"
-          cargo fmt --all
-          cargo check --locked -p chess-search --all-targets --all-features
-          cargo clippy --locked -p chess-search --all-targets --all-features -- -D warnings
-          cargo test --locked -p chess-search --all-features
+          git reset --hard HEAD
+          cp /tmp/task14_3_validation.log .github/task14_3_failure.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/task14_3_failure.txt
+          git commit -m "ci: record Task 14.3 validation failure"
+          git push origin HEAD:rust-engine
 
       - name: Commit implementation and remove applicator
+        if: steps.validation.outputs.status == '0'
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf .github/task14_3_parts .github/workflows/task14-3-apply.yml
+          rm -rf .github/task14_3_parts .github/workflows/task14-3-apply.yml .github/task14_3_failure.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
