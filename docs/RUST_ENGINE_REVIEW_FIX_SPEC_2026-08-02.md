@@ -1,112 +1,77 @@
 # Rust Engine Review Fix Spec — 2026-08-02
 
-**Status:** Implemented; exact-head validation pending  
+**Status:** Complete  
 **Branch:** `rust-engine`  
 **Companion TODO:** `docs/RUST_ENGINE_REVIEW_FIX_TODO_2026-08-02.md`  
-**Origin:** Comprehensive Rust code review after Task 12 completion  
-**Primary tracker:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`
+**Primary tracker:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
+**Validated implementation SHA:** `81a7cd4a58a52695eca2ede10d5c73c803851d17`
 
 ---
 
 ## 1. Purpose
 
-This document specifies the fix pass required before beginning or completing Task 13, "Reference search and alpha-beta." The review found that Tasks 0 through 12 are broadly implemented correctly, but several issues should be resolved before search work depends on the current APIs and documentation.
+This specification defines the corrective pass completed after the comprehensive Rust review of Tasks 0–12 and before Task 13 search implementation.
 
-The most important issue is architectural: the efficient generated-legal make/unmake path exists inside `chess-core`, but it is not available to the separate `chess-search` crate. If Task 13 is implemented on top of the current public `Position::make_move` API, search will either regenerate legality for every child move or be forced to duplicate/reach around core internals. This would violate the intended no-clone-per-child and no-avoidable-regeneration search architecture.
+The pass resolved six findings:
 
-The remaining issues are smaller but still worth fixing now: literal `Game` API coverage, stable divide timing output, stale live TODO next-operation text, incomplete Task 25 status cleanup, and explicit documentation/tests for the FEN parser's analysis-position policy.
+1. `chess-search` needed a safe generated-legal make/unmake API that does not regenerate the legal move list.
+2. `Game` lacked explicit reset and set-position operations required by the detailed Task 10 contract.
+3. `chess-tools divide` lacked elapsed-time output required by Task 11.3.
+4. The live TODO footer still described Task 9 work instead of Task 13 preparation.
+5. Task 25's CI, documentation, and command checklist understated completed work.
+6. The FEN parser's strict structural analysis-position policy was not explicit.
 
----
-
-## 2. Scope
-
-This fix pass covers exactly these areas:
-
-1. Search-safe generated legal move application API.
-2. Explicit `Game` reset / set-position semantics.
-3. Stable elapsed-time output for `chess-tools divide`.
-4. Live TODO footer correction from stale Task 9 operations to Task 13 operations.
-5. Task 25 checklist cleanup to reflect actual CI, documentation, and command coverage.
-6. Explicit FEN policy documentation and tests for illegal-but-parseable analysis states.
-7. Exact validation evidence before the review-fix task is marked complete.
-
-This pass must not implement Task 13 search itself. It prepares the codebase so Task 13 can be implemented cleanly.
+Task 13 search itself was deliberately excluded. The result is a clean foundation on which reference search and alpha-beta can now be implemented.
 
 ---
 
-## 3. Non-goals
+## 2. Engineering constraints retained
 
-- Do not implement reference minimax, alpha-beta, quiescence, transposition tables, iterative deepening, UCI search, FFI, JNI, self-play, or tuning.
-- Do not rewrite the rules core broadly.
-- Do not weaken CI, lint, rustdoc, perft, or differential validation gates.
-- Do not add first-party `allow` or `expect` lint suppressions.
-- Do not add unsafe code to `chess-core` or `chess-search`.
-- Do not change Python reference code as part of this pass.
-- Do not introduce clone-per-child as a production search fallback.
-- Do not silently auto-load configuration, weights, opening books, or search settings.
+The completed pass preserves these contracts:
 
----
-
-## 4. Global engineering constraints
-
-The following constraints remain binding:
-
-- Work on `rust-engine` unless a follow-up branch is explicitly requested.
-- Keep `chess-core` independent of search, UCI, FFI, JNI, filesystems, and UI.
-- Keep `chess-search` dependent only on portable core/search-support crates.
-- Keep adapters outward-facing.
-- Keep normal rule/search operations deterministic and allocation-conscious.
-- Keep errors fail-loud and non-mutating on public failure paths.
-- Preserve exact make/unmake restoration of board state, counters, castling, en-passant, side to move, cached kings, redundant bitboards, and Zobrist state.
-- Preserve the existing score convention: positive scores favor the side to move.
-- Preserve CI's strict interpretation that any first-party rustfmt, compiler, Clippy, test, rustdoc, or build finding is a source bug.
+- `chess-core` remains independent of search, protocols, adapters, filesystems, and UI.
+- `chess-search` depends only on portable core/search support.
+- `chess-core` and `chess-search` continue to forbid unsafe code.
+- The public raw `Position::make_move(Move)` path remains fully legality checked.
+- Production recursive work is still expected to use make/unmake rather than clone-per-child.
+- Public failures remain fail-loud and non-mutating.
+- Position restoration remains exact across board state, counters, castling, en passant, side to move, cached kings, redundant bitboards, and Zobrist state.
+- No automatic weight, configuration, or opening-book loading was added.
+- No first-party lint suppression or weakened validation gate was added.
+- Task 13 and all later search capabilities remain outside this pass.
 
 ---
 
-## 5. Fix 1 — Search-safe generated legal move application
+## 3. Search-safe generated legal move API
 
-### 5.1 Problem
+### 3.1 Implemented public types
 
-`Position::make_move(current: Move)` is public and safe, but it calls `Position::is_legal_move`, which regenerates the current legal move list before applying the move. The efficient generated-legal path, `make_generated_legal_move`, is currently crate-private inside `chess-core`.
-
-That split is good for protecting arbitrary public callers, but it is not sufficient for Task 13. Search is implemented in `chess-search`, a separate crate. Search needs to iterate legal moves generated for the current node and apply each one without rechecking membership by regenerating the same list.
-
-### 5.2 Required outcome
-
-`chess-search` must be able to do this efficiently and safely:
-
-1. Ask the current `Position` for the legal moves at a node.
-2. Iterate those legal moves in deterministic order.
-3. Apply one of those legal moves without regenerating the legal move list.
-4. Search the child.
-5. Unmake using the returned `PositionUndo`.
-6. Prove the root/node position is restored exactly.
-
-The API must prevent external callers from constructing fake "trusted legal" identities that bypass legality. If a stale token or wrong-position token is used, the method must fail before mutation.
-
-### 5.3 Preferred design
-
-Use an additive token-based API rather than exposing the raw crate-private generated-legal function directly.
-
-Recommended shape:
+`chess-core` now exposes opaque, source-bound legal move tokens:
 
 ```rust
 pub struct LegalMoveToken { /* private fields */ }
-
-impl LegalMoveToken {
-    pub const fn move_made(&self) -> Move;
-}
-
 pub struct LegalMoveTokenList { /* fixed-capacity storage */ }
+```
+
+The public API is:
+
+```rust
+impl LegalMoveToken {
+    pub const fn move_made(self) -> Move;
+}
 
 impl LegalMoveTokenList {
     pub const fn len(&self) -> usize;
     pub const fn is_empty(&self) -> bool;
+    pub fn get(&self, index: usize) -> Option<LegalMoveToken>;
     pub fn iter(&self) -> impl ExactSizeIterator<Item = LegalMoveToken> + '_;
 }
 
 impl Position {
-    pub fn legal_move_tokens(&mut self) -> Result<LegalMoveTokenList, LegalMoveError>;
+    pub fn legal_move_tokens(
+        &mut self,
+    ) -> Result<LegalMoveTokenList, LegalMoveError>;
+
     pub fn make_legal_token(
         &mut self,
         token: LegalMoveToken,
@@ -114,110 +79,84 @@ impl Position {
 }
 ```
 
-Exact names may differ, but the semantics must be equivalent.
+### 3.2 Origin binding
 
-`LegalMoveToken` should include enough origin data to reject stale or wrong-position use before mutation. At minimum, it should bind to:
+Each token binds its exact packed move to the source position's:
 
-- the exact packed move identity;
-- the source position's canonical Zobrist key;
-- the source side to move.
+- canonical Zobrist key;
+- side to move;
+- castling rights;
+- raw en-passant target;
+- halfmove clock;
+- fullmove number.
 
-If practical, include additional cheap origin metadata such as fullmove number and halfmove clock. The Zobrist key is the core identity, but adding counters makes stale-token diagnostics more precise and avoids conflating repetition identity with full position state in this public safety boundary.
+Token fields are private, so external crates cannot construct a fake trusted move.
 
-### 5.4 Safety requirements
+### 3.3 Application semantics
 
-- `LegalMoveToken` fields must be private.
-- External crates must not be able to construct a token except by receiving it from the current position's legal-token generator.
-- `make_legal_token` must reject a token whose origin does not match the current position before any mutation.
-- `make_legal_token` must still validate that the encoded move matches the current board state before mutation.
-- Debug builds and tests should assert that the resulting position matches authoritative recomputation expectations, including Zobrist.
-- The existing safe public `make_move(Move)` should remain available for callers that only have a raw `Move`.
-- The existing crate-private generated path may remain as the internal primitive, but it must not become an unsafe public bypass.
+`Position::make_legal_token`:
 
-### 5.5 Performance requirements
+1. compares the token origin with the current position;
+2. returns `LegalMoveError::LegalMoveTokenMismatch` before mutation on mismatch;
+3. delegates valid tokens to the existing reversible generated-legal primitive;
+4. returns `PositionUndo` for exact LIFO restoration;
+5. does not regenerate the legal move list.
 
-- Token generation should reuse the legal move generation path; it should not create heap-heavy structures.
-- The token list should be bounded with the same or equivalent capacity as the existing move list.
-- Applying a valid token must not regenerate legal moves.
-- Search tests in `chess-search` must prove that the API is usable from outside `chess-core`.
+The raw public `Position::make_move(Move)` method remains unchanged for callers without a trusted token.
 
-### 5.6 Tests
+### 3.4 Storage and ordering
 
-Add tests for:
+The token list is fixed-capacity and stack-backed, using the same bounded maximum as the move list. Tokens retain deterministic legal generation order and do not introduce a per-move heap allocation.
 
-- token list length and move identities match `legal_moves()` for representative positions;
-- a legal token applies and unmakes exactly;
-- stale token after any move is rejected before mutation;
-- token from a different position is rejected before mutation;
-- token from the same board layout but different side/counters is handled according to the documented origin policy;
-- every accepted token in a curated corpus makes, validates invariants, unmakes, and restores exact equality;
-- `chess-search` can call the public token API without depending on crate-private core internals.
+### 3.5 Cross-crate proof
+
+A `chess-search` test generates a token, applies it, evaluates the child, unmakes it, and proves exact root equality and Zobrist recomputation. This demonstrates that Task 13 can use the public API without reaching into `chess-core` internals.
+
+### 3.6 Regression coverage
+
+Tests cover:
+
+- token identities matching legal move identities;
+- starting, castling-heavy, promotion, and en-passant positions;
+- valid token make/unmake and exact restoration;
+- stale token rejection;
+- wrong-position and wrong-side rejection;
+- non-mutating failure behavior;
+- curated all-token make/invariant/unmake/hash restoration;
+- use from the separate `chess-search` crate.
 
 ---
 
-## 6. Fix 2 — Explicit `Game` reset / set-position semantics
+## 4. Explicit `Game` root replacement
 
-### 6.1 Problem
-
-The detailed Task 10 definition requires reset, set-position, play, undo, and status operations. The current `Game` API supports construction, status, legal moves, play, undo, and detached search history. It does not expose explicit reset or set-position operations.
-
-This may be functionally replaceable by constructing a new `Game`, but the TODO's literal API requirement should either be implemented or intentionally revised. Implementing it is preferred because UCI and future adapter code will need explicit `ucinewgame` and `position fen ...` style state replacement.
-
-### 6.2 Required outcome
-
-Add explicit game state replacement APIs with unambiguous history semantics.
-
-Recommended shape:
+`Game` now exposes:
 
 ```rust
-impl Game {
-    pub fn reset_to_starting(&mut self);
-    pub fn set_position(&mut self, position: Position);
-}
+pub fn reset_to_starting(&mut self);
+pub fn set_position(&mut self, position: Position);
 ```
 
-The exact names may differ, but the behavior must be clear and tested.
+Both operations are infallible because `Position` is already validated.
 
-### 6.3 Semantics
+`reset_to_starting` replaces the game with a fresh standard starting game.
 
-`reset_to_starting`:
+`set_position` establishes the supplied position as a new root.
 
-- replaces the current position with `Position::starting()`;
-- clears played moves;
-- resets `position_hashes` to exactly one root hash for the starting position;
-- returns no error unless the chosen API has a broader fallible abstraction.
+Both operations:
 
-`set_position(position)`:
+- clear played moves;
+- replace position-hash history with exactly one root hash;
+- discard previous repetition history;
+- invalidate old history/undo context;
+- cause later status and search-history operations to use only the new root.
 
-- replaces the current position with the provided validated `Position`;
-- clears played moves;
-- resets `position_hashes` to exactly one root hash for the new root;
-- does not preserve previous repetition history;
-- does not silently merge old history with the new root.
-
-### 6.4 Tests
-
-Add tests proving:
-
-- reset after one or more moves returns to `Game::starting()` state;
-- set-position after moves clears move history and hash history;
-- status after set-position is computed from the new root;
-- search history created after set-position starts from the new root only;
-- stale `GameUndo` tokens from before reset/set-position are rejected or impossible to use successfully.
+Tests prove reset equality, cleared histories, correct new-root hash, correct new-root status, correct detached search history, and stale `GameUndo` rejection.
 
 ---
 
-## 7. Fix 3 — Stable elapsed-time output for divide
+## 5. Stable divide timing
 
-### 7.1 Problem
-
-The detailed Task 11 definition requires `divide` to print canonical UCI root moves, child counts, total, and elapsed time. The current `chess-tools divide` prints the rows and total but not elapsed time.
-
-### 7.2 Required outcome
-
-Add elapsed-time reporting to `chess-tools divide` while preserving stable machine-readable output.
-
-Recommended format:
+The `chess-tools divide` command preserves its existing sorted move rows and total, then appends a stable timing field:
 
 ```text
 <uci>\t<nodes>
@@ -226,202 +165,116 @@ total\t<nodes>
 elapsed_nanos\t<nanos>
 ```
 
-Use `elapsed_nanos` rather than human-readable duration text because it is deterministic in format and easy for scripts to parse. The value itself will naturally vary and should not be compared exactly in tests beyond being parseable and nonzero for nontrivial work.
+The measured interval covers divide calculation and total accumulation before output formatting. Tests verify:
 
-### 7.3 Compatibility policy
-
-- Keep existing move rows unchanged.
-- Keep `total\t<nodes>` unchanged.
-- Add elapsed output after total.
-- Update tests to account for the additional line.
-- Update documentation/examples that show divide output.
+- move rows remain sorted;
+- the total remains exact;
+- `elapsed_nanos` is present and parseable as an unsigned integer;
+- nontrivial work reports a positive duration;
+- depth-zero output remains a stable two-line summary.
 
 ---
 
-## 8. Fix 4 — Live TODO footer correction
+## 6. FEN validation policy
 
-### 8.1 Problem
+`Position::from_fen` is explicitly a strict syntax and structural **analysis-position** parser. It does not prove reachability from the standard starting position.
 
-The live TODO summary says Task 13 is active, but the bottom "Immediate next operations" section is stale and still describes Task 9 Zobrist work.
+It rejects:
 
-### 8.2 Required outcome
+- malformed field counts or placement;
+- invalid piece, active-color, castling, en-passant, or counter syntax;
+- pawns on rank one or rank eight;
+- invalid en-passant target rank;
+- occupied en-passant targets;
+- missing or multiple kings;
+- redundant-state invariant failures.
 
-Replace the stale footer with Task 13 preparation and implementation operations.
+It intentionally accepts structurally coherent analysis states that may be illegal or unreachable in actual play, including:
 
-Recommended replacement:
-
-1. Complete the review-fix pass in `docs/RUST_ENGINE_REVIEW_FIX_TODO_2026-08-02.md`.
-2. Add the search-safe legal-token make/unmake API required by Task 13.
-3. Begin Task 13 reference search only after the review-fix validation gate passes.
-4. Implement no-prune reference negamax/minimax first.
-5. Implement alpha-beta only after reference search and terminal fixtures are stable.
-6. Validate search immutability and exact root restoration before marking Task 13 complete.
-
----
-
-## 9. Fix 5 — Task 25 checklist cleanup
-
-### 9.1 Problem
-
-Task 25 is correctly marked partial, but some subitems appear stale. Since Tasks 11 and 12 added perft tooling, differential tooling, evaluation docs, and weight tooling, Task 25 should distinguish what now exists from what remains incomplete.
-
-### 9.2 Required outcome
-
-Update Task 25 in the live TODO to reflect current truth:
-
-Already present:
-
-- Linux rustfmt/check/Clippy/tests/rustdoc/debug/release CI;
-- Python validation preserved separately;
-- exact-SHA status publisher / dispatcher if still present and verified;
-- release depth-four perft in CI;
-- scheduled/manual slow depth-five perft workflow;
-- workspace architecture docs;
-- core values/coordinates/moves docs;
-- position/invariants docs;
-- FEN/UCI docs;
-- attack generation docs;
-- pseudo/legal generation docs;
-- make/unmake docs;
-- Zobrist/hash docs;
-- game/draw docs;
-- perft/differential docs;
-- baseline evaluator docs;
-- perft/divide/legal/play/suite/oracle CLI tooling;
-- eval/eval-bench/weight export/validate CLI tooling.
-
-Still incomplete unless separately verified:
-
-- AArch64 CI;
-- Android compile CI;
-- JNI CI;
-- Miri;
-- sanitizer;
-- fuzzing;
-- nightly/longer perft beyond current scheduled depth-five policy if required;
-- scheduled strength testing;
-- UCI executable commands;
-- Android commands;
-- self-play commands;
-- tuning commands;
-- versioned generated-artifact policy across all future artifacts;
-- Task 25 final gate.
-
-Do not mark Task 25 complete in this fix pass.
-
----
-
-## 10. Fix 6 — FEN analysis-position policy documentation and tests
-
-### 10.1 Problem
-
-The current FEN parser is strict about syntax and core structural invariants, but it is not a full reachability/legal-position validator. This is normal for engine analysis tooling, but the policy should be explicit because the TODO uses the phrase "strict playable FEN."
-
-Examples requiring explicit policy:
-
-- adjacent kings;
-- side not to move already attacking the side-to-move king in an impossible-history way;
-- castling rights present when the home king or rook is missing;
-- en-passant target with no legal en-passant capture;
-- both sides in check;
-- positions legal as analysis setups but unreachable from the standard initial position.
-
-### 10.2 Required outcome
-
-Document and test the parser policy. The project may choose either a stricter parser or an analysis-position parser, but the choice must be intentional.
-
-Preferred policy for an engine core:
-
-- Keep `Position::from_fen` as a strict syntax and structurally valid analysis-position parser.
-- Reject malformed syntax, invalid counters, invalid en-passant target rank, pawns on promotion ranks, missing kings, multiple kings, and redundant-state invariant failures.
-- Do not require proof of reachability from the standard initial position.
-- Do not require castling rights to imply the current presence of the matching home king and rook; legal move generation already refuses castling without the actual pieces and empty path.
-- Do not require the FEN en-passant target to be legally capturable; repetition Zobrist already canonicalizes non-capturable en-passant targets away.
-- Decide explicitly whether adjacent kings and both-kings-in-check states are rejected or accepted as analysis positions. If accepted, ensure legal move generation and status code fail safely and do not panic. If rejected, implement validation and add error variants.
-
-### 10.3 Documentation
-
-Add or update a rules/notation document to include a section named "FEN validation policy". It must define:
-
-- syntax validation;
-- structural validation;
-- analysis-state tolerance;
-- what is rejected;
-- what is intentionally accepted;
-- consequences for Zobrist, legal move generation, and differential corpus use.
-
-### 10.4 Tests
-
-Add tests that lock in the policy for:
-
-- castling rights without matching home rook;
-- castling rights without matching home king;
-- non-capturable en-passant target;
+- castling rights without matching home pieces;
+- a correctly ranked but non-capturable en-passant target;
 - adjacent kings;
 - both kings in check;
-- side-to-move already in check;
-- side-not-to-move in check;
-- malformed FEN still rejected without panic.
+- either side already being in check;
+- unusual or unreachable material configurations.
 
-If a case is intentionally accepted, the test must prove downstream operations do not panic. If a case is rejected, the test must assert the exact structured error category.
+Accepted analysis positions must remain safe for invariant validation, canonical FEN serialization, Zobrist recomputation, legal move generation, and depth-zero perft. Legal generation still forbids king capture and refuses invalid castling. Non-capturable en-passant targets remain excluded from canonical repetition identity.
 
----
-
-## 11. Documentation and tracker requirements
-
-This fix pass must update, at minimum:
-
-- `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`;
-- `docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md` if present and used as the live phase report;
-- relevant domain docs for make/unmake/search boundary, game history, divide tooling, and FEN policy.
-
-Do not claim Task 13 is started or complete merely because this fix pass prepares an API for Task 13.
+The committed independent differential corpus continues to use positions accepted as valid by the pinned oracle.
 
 ---
 
-## 12. Validation gate
+## 7. Tracker corrections
 
-Before marking this review-fix pass complete, run the strict existing gate on the exact final SHA:
+The implementation pass corrected the live port tracker by:
 
-```bash
-cargo fmt --all -- --check
-cargo check --locked --workspace --all-targets --all-features
-cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
-cargo test --locked --workspace --all-features
-RUSTDOCFLAGS="-D warnings" cargo doc --locked --workspace --all-features --no-deps
-cargo build --locked --workspace --all-features
-cargo build --locked --workspace --all-features --release
-cargo test --locked -p chess-core --release authoritative_perft_depth_four -- --ignored --exact
-python scripts/differential_oracle.py \
-  --binary target/release/chess-tools \
-  --corpus fixtures/differential_corpus.tsv \
-  --games 12 \
-  --plies 48 \
-  --seed 0xC0FFEE
-```
+- replacing stale Task 9 immediate-next operations with review-fix closure and Task 13 preparation;
+- retaining Task 13 as active and not started;
+- preserving Tasks 14–27 as incomplete according to their existing status;
+- recording release depth-four and scheduled/manual depth-five perft coverage;
+- recording existing hashing, draw, perft/differential, and evaluation documentation;
+- recording existing legal/play/perft/divide/suite/oracle and evaluation/weight tooling;
+- keeping AArch64, Android/JNI, Miri, sanitizer, fuzz, scheduled strength, UCI, self-play, tuning, and the Task 25 gate incomplete.
 
-If CI is used as the authoritative execution environment, record:
-
-- exact commit SHA;
-- workflow run ID;
-- job ID;
-- test count;
-- perft result;
-- differential corpus summary;
-- any accepted external warnings/notices.
+Task 25 remains partial.
 
 ---
 
-## 13. Completion criteria
+## 8. Validation evidence
 
-This fix pass is complete only when:
+### 8.1 Implementation candidate
 
-- `chess-search` has a safe efficient path to apply generated legal moves without public revalidation;
-- stale/wrong-position legal tokens fail before mutation;
-- `Game` reset/set-position semantics are explicit and tested, or the TODO is deliberately revised with a clear rationale;
-- `chess-tools divide` emits stable elapsed-time output;
-- the live TODO footer points to Task 13, not Task 9;
-- Task 25 accurately reflects completed versus remaining CI/docs/command work;
-- FEN policy is documented and covered by tests;
-- strict validation passes on the exact final SHA;
-- no temporary one-shot workflow or diagnostic artifact remains unless explicitly documented.
+- SHA: `81a7cd4a58a52695eca2ede10d5c73c803851d17`
+- One-shot implementation control run: `30738801841`
+- Permanent CI run/job: `30739166607` / `91473334960`
+
+### 8.2 Passed gates
+
+The exact implementation candidate passed:
+
+- committed workspace and validation asset checks;
+- first-party lint-suppression rejection;
+- lockfile verification;
+- workspace metadata validation;
+- `cargo fmt --all -- --check`;
+- Cargo check across workspace, all targets, and all features;
+- Clippy across workspace, all targets, and all features with `-D warnings`;
+- all Rust tests;
+- authoritative six-position release depth-four perft;
+- rustdoc with warnings denied;
+- debug workspace build;
+- release workspace build;
+- pinned independent differential corpus and seeded playout validation.
+
+### 8.3 Test and oracle totals
+
+- Executed non-doc Rust tests: `112`
+- Differential corpus positions: `15`
+- Child FENs compared: `293`
+- Oracle perft nodes: `272,991`
+- Seeded plies: `576`
+- Seed: `0xC0FFEE`
+
+### 8.4 Accepted external notices
+
+Only external GitHub Actions Node runtime and dependency `punycode` deprecation notices were accepted. No first-party warning was accepted.
+
+### 8.5 Clean repository state
+
+All temporary implementation and closure workflows/scripts were removed. The clean `rust-engine` tree at `9c27d2c1c4a39a975b30d3357b69b6c96bb64c68` is byte-for-byte equivalent to the validated implementation candidate tree. No temporary branch, generated build output, or first-party lint suppression remains.
+
+---
+
+## 9. Completion criteria
+
+This pass is complete because:
+
+- `chess-search` has a safe efficient generated-legal make/unmake boundary;
+- stale and wrong-origin tokens fail before mutation;
+- `Game` root replacement semantics are explicit and tested;
+- divide emits stable elapsed timing;
+- FEN policy is explicit and covered by safe downstream tests;
+- Task 25 and immediate-next-operation tracking reflect current reality;
+- the strict permanent gate passed with exact implementation evidence;
+- the final clean repository tree matches that validated candidate;
+- Task 13 remains active and not started.
