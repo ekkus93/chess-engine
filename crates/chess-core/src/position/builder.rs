@@ -10,7 +10,6 @@ pub(super) struct PositionBuilder {
     pub(super) en_passant: Option<Square>,
     pub(super) halfmove_clock: HalfmoveClock,
     pub(super) fullmove_number: FullmoveNumber,
-    pub(super) zobrist: u64,
 }
 
 impl PositionBuilder {
@@ -22,7 +21,6 @@ impl PositionBuilder {
             en_passant: None,
             halfmove_clock: HalfmoveClock::new(0),
             fullmove_number: FullmoveNumber::ONE,
-            zobrist: 0,
         }
     }
 
@@ -61,11 +59,6 @@ impl PositionBuilder {
 
     pub(super) const fn with_fullmove_number(mut self, fullmove_number: FullmoveNumber) -> Self {
         self.fullmove_number = fullmove_number;
-        self
-    }
-
-    pub(super) const fn with_zobrist(mut self, zobrist: u64) -> Self {
-        self.zobrist = zobrist;
         self
     }
 
