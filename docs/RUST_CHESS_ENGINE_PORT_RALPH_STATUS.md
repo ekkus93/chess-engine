@@ -3,7 +3,7 @@
 **Updated:** 2026-08-02  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Tasks 13.1–13.2 complete; Task 13.3 shallow equivalence is next
+**Current phase:** Tasks 13.1–13.3 complete; Task 13.4 immutability is next
 
 ## Completed gates
 
@@ -25,6 +25,7 @@
 | Review fix | `81a7cd4a58a52695eca2ede10d5c73c803851d17` | `30739166607` / `91473334960` | strict gate, 112 Rust tests, depth-four perft, and differential oracle green |
 | 13.1 | `7cf7fb027bf86f0658c14f4c9b452bce2cdcbe98` | `30741414286` / `91479443116` | unpruned reference negamax, 118 Rust tests, depth-four perft, and differential oracle green |
 | 13.2 | `d662ca07cae6b0044c1ce620a0dc4f3249784d6c` | `30741988672` / `91480926153` | negamax alpha-beta, 124 Rust tests, depth-four perft, and differential oracle green |
+| 13.3 | `bdf98a8e7c5cb6aadc55ba3638cd3af2f4ba9e91` | `30743024471` / `91483729312` | shallow equivalence, 127 Rust tests, depth-four perft, and differential oracle green |
 
 ## Task 12 completion
 
@@ -138,7 +139,29 @@ Evidence:
 - Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 13.3 remains not started.
+- Task 13.3 is complete.
+
+## Task 13.3 completion
+
+Implemented and validated:
+
+- curated shallow score equivalence across quiet, tactical, terminal-adjacent, terminal, rule-draw, and repetition-aware positions;
+- an independent root-child score oracle proving `d1d8` is the tactical fixture’s unique exact best move;
+- alpha-beta node counts no greater than reference counts on every fixture;
+- at least one strict pruning witness;
+- exact root position, incremental Zobrist, and detached-history restoration after each paired successful search;
+- `crates/chess-search/tests/search_equivalence.rs`;
+- `docs/RUST_SEARCH_EQUIVALENCE.md`.
+
+Evidence:
+
+- Exact validated implementation SHA: `bdf98a8e7c5cb6aadc55ba3638cd3af2f4ba9e91`.
+- Permanent CI run/job: `30743024471` / `91483729312`.
+- Results: workspace assets, lockfile, metadata, rustfmt, Cargo check, Clippy with `-D warnings`, 127 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with `-D warnings`, debug build, release build, and independent differential validation passed.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 13.4 remains not started.
 
 ## Task 13 active scope
 
@@ -146,8 +169,8 @@ Evidence:
 - [x] Count nodes and define terminal/draw scoring.
 - [x] Implement negamax alpha-beta using legal tokens and make/unmake.
 - [x] Integrate detached root and reversible line repetition history.
-- [ ] Prove shallow reference/alpha-beta score equivalence.
-- [ ] Compare uniquely best moves and node counts.
+- [x] Prove shallow reference/alpha-beta score equivalence.
+- [x] Compare uniquely best moves and node counts.
 - [ ] Prove search restores the root position, Zobrist key, and history exactly.
 - [ ] Add mate-in-one, mated, stalemate, draw, shorter-mate, and longer-survival fixtures.
 - [ ] Pass exact-head rustfmt, Cargo check, Clippy, tests, rustdoc, debug, release, perft, and differential gates.

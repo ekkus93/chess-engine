@@ -34,7 +34,7 @@
 | 10 | **Complete** — game history and draw semantics. |
 | 11 | **Complete** — authoritative perft and differential validation. |
 | 12 | **Complete** — baseline evaluator and trace. |
-| 13 | **Active** — Tasks 13.1–13.2 complete; Task 13.3 shallow equivalence is next. |
+| 13 | **Active** — Tasks 13.1–13.3 complete; Task 13.4 immutability is next. |
 | 14–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
@@ -336,7 +336,7 @@ Evidence:
 # Task 13: Reference search and alpha-beta — ACTIVE
 - [x] 13.1 Reference search.
 - [x] 13.2 Negamax alpha-beta.
-- [ ] 13.3 Shallow equivalence.
+- [x] 13.3 Shallow equivalence.
 - [ ] 13.4 Immutability.
 - [ ] 13.5 Terminal fixtures.
 - [ ] Task 13 gate.
@@ -371,7 +371,23 @@ Evidence:
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 13.3 owns direct shallow score, uniquely-best-move, and node-count equivalence against reference search.
+- Task 13.3 now provides direct shallow score, uniquely-best-move, and node-count equivalence against reference search.
+
+### Task 13.3 completion evidence
+
+- Integration suite: `crates/chess-search/tests/search_equivalence.rs`.
+- Contract documentation: `docs/RUST_SEARCH_EQUIVALENCE.md`.
+- Exact validated implementation SHA: `bdf98a8e7c5cb6aadc55ba3638cd3af2f4ba9e91`.
+- Permanent CI run/job: `30743024471` / `91483729312`.
+- Results: rustfmt, Cargo check, strict Clippy, 127 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc, debug/release builds, and independent differential validation passed.
+- Curated paired searches cover quiet opening, tactical material, mate-adjacent, mated, stalemate, fifty-move, and game-history repetition positions at depths one through three.
+- Every paired fixture returned an identical exact score; alpha-beta visited no more nodes than reference search on every fixture and strictly fewer on at least one.
+- The tactical fixture independently proved `d1d8` is the unique exact best move before requiring both searches to return it.
+- Every successful paired invocation restored the root position, incremental Zobrist identity, and detached history. Task 13.4 remains open for its broader immutability and cancellation contract.
+- Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 13.4 is next; Task 13.5 and the overall Task 13 gate remain open.
 
 # Task 14: Quiescence and ordering — NOT STARTED
 - [ ] 14.1 Quiescence.
@@ -517,9 +533,9 @@ Evidence:
 
 ## Immediate next operations
 
-1. Implement Task 13.3 curated shallow equivalence between reference and alpha-beta search.
-2. Compare exact scores at accepted depths across quiet, tactical, terminal-adjacent, draw, and repetition-aware positions.
-3. Require identical root moves only when the best score is unique; preserve deterministic tie diagnostics separately.
-4. Prove alpha-beta visits no more nodes than reference on every compared fixture and strictly fewer on at least one pruning fixture.
-5. Keep root position, Zobrist identity, and detached history unchanged after every paired search.
-6. Leave Task 13.4 cancellation restoration and the complete Task 13.5 terminal fixture set open until implemented.
+1. Implement Task 13.4 search immutability as a dedicated contract.
+2. Add cancellation support or the minimum cancellable search boundary required to prove cancellation restoration without prematurely implementing Task 16 limits.
+3. Require root position, Zobrist identity, and detached history to remain exact after normal completion, terminal completion, validation failure, and cancellation.
+4. Exercise repeated searches from the same root and verify no state or history drift accumulates.
+5. Keep Task 13.5 shorter-mate and longer-survival fixtures open until the immutability contract is complete.
+6. Do not close the overall Task 13 gate until Tasks 13.4 and 13.5 pass exact-head validation.
