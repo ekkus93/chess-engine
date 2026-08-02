@@ -10,7 +10,7 @@ on:
 
 permissions:
   actions: write
-  contents: read
+  contents: write
   issues: write
 
 jobs:
@@ -153,3 +153,57 @@ jobs:
             "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE_NUMBER}" \
             -f state=closed \
             -f state_reason=completed
+
+  close-task-13-4:
+    name: Close Task 13.4 trackers
+    if: >-
+      github.ref == 'refs/heads/master' &&
+      github.event_name == 'issues' &&
+      github.event.issue.title == '[close-task-13-4]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+      EXPECTED_HEAD: 3644e032504b604c210796f1e6c7ef056d05e94b
+    steps:
+      - name: Check out control files
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          path: control
+      - name: Check out engine branch
+        uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+          path: engine
+      - name: Apply closure patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C engine rev-parse HEAD)" = "${EXPECTED_HEAD}"
+          python3 control/.github/close_task_13_4.py engine
+          git -C engine diff --check
+          test "$(git -C engine diff --name-only | wc -l)" -eq 2
+      - name: Commit closure
+        id: commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C engine config user.name 'github-actions[bot]'
+          git -C engine config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C engine add docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
+          git -C engine commit -m 'docs: close Task 13.4 search immutability'
+          git -C engine push origin HEAD:rust-engine
+          echo "head=$(git -C engine rev-parse HEAD)" >>"${GITHUB_OUTPUT}"
+      - name: Report and close
+        shell: bash
+        env:
+          HEAD_SHA: ${{ steps.commit.outputs.head }}
+        run: |
+          set -euo pipefail
+          body="Task 13.4 tracker closure committed at ${HEAD_SHA}. Exact implementation CI: 30743519630 / 91485044296 on 3644e032504b604c210796f1e6c7ef056d05e94b. Task 13.5 remains open."
+          gh api --method POST "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/comments" -f body="${body}"
+          gh api --method PATCH "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}" -f state=closed -f state_reason=completed
