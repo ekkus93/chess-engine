@@ -150,22 +150,22 @@ fn en_passant_target_expires_and_double_push_creates_one() {
     let snapshot = position.clone();
     let quiet = Move::new(square("h1"), square("g1"), MoveKind::Quiet);
     let undo = position
-        .make_generated_move(quiet)
+        .make_generated_legal_move(quiet)
         .expect("generated quiet move");
     assert_eq!(position.en_passant(), None);
     position
-        .unmake_generated_move(quiet, undo)
+        .unmake_generated_legal_move(undo)
         .expect("unmake quiet move");
     assert_eq!(position, snapshot);
 
     let mut start = Position::starting();
     let double = Move::new(square("e2"), square("e4"), MoveKind::DoublePawnPush);
     let undo = start
-        .make_generated_move(double)
+        .make_generated_legal_move(double)
         .expect("generated double push");
     assert_eq!(start.en_passant(), Some(square("e3")));
     start
-        .unmake_generated_move(double, undo)
+        .unmake_generated_legal_move(undo)
         .expect("unmake double push");
     assert_eq!(start, Position::starting());
 }
