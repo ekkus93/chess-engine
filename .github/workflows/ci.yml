@@ -10,7 +10,7 @@ on:
 
 permissions:
   actions: write
-  contents: read
+  contents: write
   issues: write
 
 jobs:
@@ -153,3 +153,50 @@ jobs:
             "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE_NUMBER}" \
             -f state=closed \
             -f state_reason=completed
+
+  format-task-13-4:
+    name: Format Task 13.4 candidate
+    if: >-
+      github.ref == 'refs/heads/master' &&
+      github.event_name == 'issues' &&
+      github.event.issue.title == '[format-task-13-4]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+      EXPECTED_HEAD: 01350a81086415ab5f79e132add579f92ed84fbd
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Format and push
+        id: format
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${EXPECTED_HEAD}"
+          cargo fmt --all
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add crates/chess-search/src/reference.rs crates/chess-search/tests/search_immutability.rs
+          git diff --cached --quiet && { echo 'formatter produced no changes' >&2; exit 1; }
+          git commit -m 'style(search): format Task 13.4 implementation'
+          git push origin HEAD:rust-engine
+          echo "head=$(git rev-parse HEAD)" >>"${GITHUB_OUTPUT}"
+      - name: Report and close
+        shell: bash
+        env:
+          HEAD_SHA: ${{ steps.format.outputs.head }}
+        run: |
+          set -euo pipefail
+          gh api --method POST "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/comments" \
+            -f body="Formatted Task 13.4 candidate at ${HEAD_SHA}."
+          gh api --method PATCH "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}" \
+            -f state=closed -f state_reason=completed
