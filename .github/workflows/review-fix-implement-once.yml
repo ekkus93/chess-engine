@@ -1,0 +1,791 @@
+name: Rust review-fix implementation once
+
+on:
+  push:
+    branches:
+      - rust-engine
+    paths:
+      - .github/workflows/review-fix-implement-once.yml
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: rust-review-fix-implementation-once
+  cancel-in-progress: false
+
+jobs:
+  implement-and-validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: "1"
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Cargo data
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-engine-review-fix
+
+      - name: Install Python oracle runtime
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements/oracle.txt
+
+      - name: Apply review fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          def read(path: str) -> str:
+              return Path(path).read_text(encoding="utf-8")
+
+          def write(path: str, text: str) -> None:
+              Path(path).write_text(text, encoding="utf-8")
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              text = read(path)
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one replacement target, found {count}: {old[:120]!r}")
+              write(path, text.replace(old, new, 1))
+
+          def append_once(path: str, marker: str, addition: str) -> None:
+              text = read(path)
+              if marker in text:
+                  return
+              write(path, text.rstrip() + "\n\n" + addition.strip() + "\n")
+
+          legal = "crates/chess-core/src/position/legal.rs"
+          replace_once(
+              legal,
+              "use crate::{Color, Move, MoveKind, MoveList, MoveListOverflow, PositionMutationError, Square};\n\nuse super::Position;",
+              "use crate::{\n    CastlingRights, Color, FullmoveNumber, HalfmoveClock, Move, MoveKind, MoveList,\n    MoveListOverflow, PositionMutationError, Square, MAX_PSEUDO_LEGAL_MOVES,\n};\n\nuse super::{Position, PositionUndo};",
+          )
+          replace_once(
+              legal,
+              "    /// A caller requested a move that is not one of the exact legal identities.\n    IllegalMove { current: Move },\n    /// A generated move contradicted its encoded semantic identity.",
+              "    /// A caller requested a move that is not one of the exact legal identities.\n    IllegalMove { current: Move },\n    /// A legal-move token was generated for a different source position.\n    LegalMoveTokenMismatch { current: Move },\n    /// A generated move contradicted its encoded semantic identity.",
+          )
+          replace_once(
+              legal,
+              "            Self::IllegalMove { current } => {\n                write!(formatter, \"move {} is not legal\", current.to_uci())\n            }\n            Self::InvalidGeneratedMove { current } => write!(",
+              "            Self::IllegalMove { current } => {\n                write!(formatter, \"move {} is not legal\", current.to_uci())\n            }\n            Self::LegalMoveTokenMismatch { current } => write!(\n                formatter,\n                \"legal-move token for {} does not match the current position\",\n                current.to_uci()\n            ),\n            Self::InvalidGeneratedMove { current } => write!(",
+          )
+          token_types = r'''
+/// Opaque proof that one move was legal in one exact source position.
+///
+/// Tokens are created only by [`Position::legal_move_tokens`]. They bind the
+/// packed move identity to the complete non-board metadata and canonical hash
+/// of the source position, allowing search to apply generated legal moves
+/// without regenerating the legal move list.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct LegalMoveToken {
+    current: Move,
+    origin: LegalMoveOrigin,
+}
+
+impl LegalMoveToken {
+    /// Returns the exact packed move represented by this token.
+    #[must_use]
+    pub const fn move_made(self) -> Move {
+        self.current
+    }
+}
+
+/// Bounded stack-backed storage for legal-move tokens.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LegalMoveTokenList {
+    tokens: [Option<LegalMoveToken>; MAX_PSEUDO_LEGAL_MOVES],
+    len: usize,
+}
+
+impl LegalMoveTokenList {
+    const fn new() -> Self {
+        Self {
+            tokens: [None; MAX_PSEUDO_LEGAL_MOVES],
+            len: 0,
+        }
+    }
+
+    /// Returns the number of generated legal-move tokens.
+    #[must_use]
+    pub const fn len(&self) -> usize {
+        self.len
+    }
+
+    /// Returns whether no legal-move token was generated.
+    #[must_use]
+    pub const fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
+    /// Returns the token at `index`.
+    #[must_use]
+    pub fn get(&self, index: usize) -> Option<LegalMoveToken> {
+        self.tokens.get(index).copied().flatten()
+    }
+
+    /// Iterates in the deterministic order used by legal move generation.
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = LegalMoveToken> + '_ {
+        self.tokens[..self.len]
+            .iter()
+            .copied()
+            .map(|entry| entry.expect("occupied legal-token prefix contains tokens"))
+    }
+
+    fn push(&mut self, token: LegalMoveToken) {
+        debug_assert!(self.len < MAX_PSEUDO_LEGAL_MOVES);
+        self.tokens[self.len] = Some(token);
+        self.len += 1;
+    }
+}
+
+impl Default for LegalMoveTokenList {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct LegalMoveOrigin {
+    zobrist: u64,
+    side_to_move: Color,
+    castling_rights: CastlingRights,
+    en_passant: Option<Square>,
+    halfmove_clock: HalfmoveClock,
+    fullmove_number: FullmoveNumber,
+}
+
+impl LegalMoveOrigin {
+    const fn from_position(position: &Position) -> Self {
+        Self {
+            zobrist: position.zobrist(),
+            side_to_move: position.side_to_move(),
+            castling_rights: position.castling_rights(),
+            en_passant: position.en_passant(),
+            halfmove_clock: position.halfmove_clock(),
+            fullmove_number: position.fullmove_number(),
+        }
+    }
+
+    const fn matches(self, position: &Position) -> bool {
+        self.zobrist == position.zobrist()
+            && self.side_to_move == position.side_to_move()
+            && self.castling_rights.bits() == position.castling_rights().bits()
+            && self.en_passant == position.en_passant()
+            && self.halfmove_clock.get() == position.halfmove_clock().get()
+            && self.fullmove_number.get() == position.fullmove_number().get()
+    }
+}
+'''
+          replace_once(legal, "impl Position {\n    /// Generates every legal move", token_types + "\nimpl Position {\n    /// Generates every legal move")
+          token_methods = r'''
+    /// Generates opaque tokens for every legal move in the current position.
+    ///
+    /// The position is restored exactly before return. Each token records the
+    /// source position identity and can later be passed to
+    /// [`Position::make_legal_token`] without regenerating the legal move list.
+    pub fn legal_move_tokens(&mut self) -> Result<LegalMoveTokenList, LegalMoveError> {
+        let origin = LegalMoveOrigin::from_position(self);
+        let moves = self.legal_moves()?;
+        debug_assert!(origin.matches(self));
+        let mut tokens = LegalMoveTokenList::new();
+        for current in moves.iter() {
+            tokens.push(LegalMoveToken { current, origin });
+        }
+        Ok(tokens)
+    }
+
+    /// Applies one token generated for the exact current position.
+    ///
+    /// Origin mismatch is rejected before mutation. A valid token uses the
+    /// existing generated-legal reversible path and therefore does not
+    /// regenerate legal moves.
+    pub fn make_legal_token(
+        &mut self,
+        token: LegalMoveToken,
+    ) -> Result<PositionUndo, LegalMoveError> {
+        if !token.origin.matches(self) {
+            return Err(LegalMoveError::LegalMoveTokenMismatch {
+                current: token.current,
+            });
+        }
+        self.make_generated_legal_move(token.current)
+    }
+
+'''
+          replace_once(
+              legal,
+              "    /// Returns whether `candidate` is one of the exact generated legal moves.\n",
+              token_methods + "    /// Returns whether `candidate` is one of the exact generated legal moves.\n",
+          )
+
+          replace_once(
+              "crates/chess-core/src/position/mod.rs",
+              "pub use legal::LegalMoveError;",
+              "pub use legal::{LegalMoveError, LegalMoveToken, LegalMoveTokenList};",
+          )
+          replace_once(
+              "crates/chess-core/src/lib.rs",
+              "mod game;\nmod move_encoding;",
+              "mod game;\nmod game_reset;\nmod move_encoding;",
+          )
+          replace_once(
+              "crates/chess-core/src/lib.rs",
+              "    FenError, LegalMoveError, Position, PositionBuildError, PositionInvariantError, PositionUndo,\n",
+              "    FenError, LegalMoveError, LegalMoveToken, LegalMoveTokenList, Position, PositionBuildError,\n    PositionInvariantError, PositionUndo,\n",
+          )
+
+          Path("crates/chess-core/src/game_reset.rs").write_text(r'''use crate::{Game, Position};
+
+impl Game {
+    /// Replaces this game with the standard starting position and fresh history.
+    pub fn reset_to_starting(&mut self) {
+        *self = Self::starting();
+    }
+
+    /// Replaces this game root and discards all prior move and repetition history.
+    ///
+    /// `Position` is already validated, so replacement is infallible. The new
+    /// hash history contains exactly the supplied root position.
+    pub fn set_position(&mut self, position: Position) {
+        *self = Self::new(position);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Color, Game, GameError, GameStatus, Position, UciMove};
+
+    fn play(game: &mut Game, text: &str) -> crate::GameUndo {
+        let syntax = text.parse::<UciMove>().expect("test UCI syntax is valid");
+        let current = game
+            .legal_moves()
+            .expect("legal generation succeeds")
+            .iter()
+            .find(|candidate| syntax.matches(*candidate))
+            .expect("test move is legal");
+        game.make_move(current).expect("test move is playable")
+    }
+
+    #[test]
+    fn reset_to_starting_discards_position_and_history() {
+        let mut game = Game::starting();
+        let stale = play(&mut game, "e2e4");
+        let _reply = play(&mut game, "e7e5");
+
+        game.reset_to_starting();
+
+        assert_eq!(game, Game::starting());
+        assert_eq!(game.ply_count(), 0);
+        assert_eq!(game.position_hashes(), &[Position::starting().zobrist()]);
+        assert!(matches!(
+            game.unmake_move(stale),
+            Err(GameError::HistoryStateMismatch { .. })
+        ));
+    }
+
+    #[test]
+    fn set_position_establishes_one_new_root() {
+        let mut game = Game::starting();
+        let stale = play(&mut game, "g1f3");
+        let mate = Position::from_fen("7k/6Q1/6K1/8/8/8/8/8 b - - 0 1")
+            .expect("mate FEN is valid");
+        let expected_hash = mate.zobrist();
+
+        game.set_position(mate);
+
+        assert_eq!(game.ply_count(), 0);
+        assert!(game.moves().is_empty());
+        assert_eq!(game.position_hashes(), &[expected_hash]);
+        assert_eq!(
+            game.status(),
+            Ok(GameStatus::Checkmate {
+                winner: Color::White
+            })
+        );
+        let history = game.search_history();
+        assert_eq!(history.root_len(), 1);
+        assert_eq!(history.line_len(), 0);
+        assert_eq!(history.current_zobrist(), Some(expected_hash));
+        assert!(matches!(
+            game.unmake_move(stale),
+            Err(GameError::HistoryStateMismatch { .. })
+        ));
+    }
+}
+''', encoding="utf-8")
+
+          append_once(
+              "crates/chess-core/src/position/legal_tests.rs",
+              "fn legal_move_tokens_bind_move_and_source_position()",
+              r'''
+#[test]
+fn legal_move_tokens_bind_move_and_source_position() {
+    for fen in [
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+        "1r5k/P7/8/8/8/8/8/7K w - - 0 1",
+    ] {
+        let mut position = Position::from_fen(fen).expect("token fixture is valid");
+        let moves: Vec<_> = position
+            .legal_moves()
+            .expect("legal moves")
+            .iter()
+            .collect();
+        let tokens = position.legal_move_tokens().expect("legal tokens");
+        assert_eq!(tokens.len(), moves.len());
+        assert_eq!(
+            tokens.iter().map(|token| token.move_made()).collect::<Vec<_>>(),
+            moves
+        );
+    }
+}
+
+#[test]
+fn legal_move_tokens_apply_unmake_and_reject_stale_origins() {
+    let mut position = Position::starting();
+    let root = position.clone();
+    let tokens = position.legal_move_tokens().expect("legal tokens");
+    let e2e4 = tokens
+        .iter()
+        .find(|token| token.move_made().to_uci() == "e2e4")
+        .expect("e2e4 token");
+    let g1f3 = tokens
+        .iter()
+        .find(|token| token.move_made().to_uci() == "g1f3")
+        .expect("g1f3 token");
+
+    let undo = position.make_legal_token(e2e4).expect("token applies");
+    position.validate_invariants().expect("child invariants");
+    assert_eq!(position.zobrist(), position.recomputed_zobrist());
+    let child = position.clone();
+    assert_eq!(
+        position.make_legal_token(g1f3),
+        Err(LegalMoveError::LegalMoveTokenMismatch {
+            current: g1f3.move_made()
+        })
+    );
+    assert_eq!(position, child);
+    position.unmake_move(undo).expect("token move unmakes");
+    assert_eq!(position, root);
+    assert_eq!(position.zobrist(), position.recomputed_zobrist());
+
+    let mut different_side = Position::from_fen(
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1",
+    )
+    .expect("different-side FEN is valid");
+    let snapshot = different_side.clone();
+    assert_eq!(
+        different_side.make_legal_token(e2e4),
+        Err(LegalMoveError::LegalMoveTokenMismatch {
+            current: e2e4.move_made()
+        })
+    );
+    assert_eq!(different_side, snapshot);
+}
+
+#[test]
+fn every_curated_legal_token_restores_exactly() {
+    for fen in [
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+        "7k/8/8/3pP3/8/8/8/7K w - d6 0 1",
+        "1r5k/P7/8/8/8/8/8/7K w - - 0 1",
+    ] {
+        let mut position = Position::from_fen(fen).expect("curated token FEN is valid");
+        let snapshot = position.clone();
+        let tokens = position.legal_move_tokens().expect("legal tokens");
+        for token in tokens.iter() {
+            let undo = position.make_legal_token(token).expect("token applies");
+            position.validate_invariants().expect("child invariants");
+            assert_eq!(position.zobrist(), position.recomputed_zobrist());
+            position.unmake_move(undo).expect("token unmake succeeds");
+            assert_eq!(position, snapshot, "{} in {fen}", token.move_made());
+            assert_eq!(position.zobrist(), position.recomputed_zobrist());
+        }
+    }
+}
+''',
+          )
+
+          append_once(
+              "crates/chess-search/src/lib.rs",
+              "fn public_legal_token_api_supports_search_crate_make_unmake()",
+              r'''
+#[cfg(test)]
+mod core_api_tests {
+    use chess_core::Position;
+
+    use crate::evaluate;
+
+    #[test]
+    fn public_legal_token_api_supports_search_crate_make_unmake() {
+        let mut position = Position::starting();
+        let snapshot = position.clone();
+        let token = position
+            .legal_move_tokens()
+            .expect("legal tokens")
+            .iter()
+            .find(|token| token.move_made().to_uci() == "e2e4")
+            .expect("e2e4 token");
+
+        let undo = position.make_legal_token(token).expect("token applies");
+        let _child_score = evaluate(&position);
+        position.unmake_move(undo).expect("token move unmakes");
+
+        assert_eq!(position, snapshot);
+        assert_eq!(position.zobrist(), position.recomputed_zobrist());
+    }
+}
+''',
+          )
+
+          main = "crates/chess-tools/src/main.rs"
+          replace_once(
+              main,
+              "use std::{env, fs, io, process::ExitCode};",
+              "use std::{env, fs, io, process::ExitCode, time::Instant};",
+          )
+          divide_helper = r'''
+fn divide_output(fen: &str, depth: u8) -> Result<Vec<String>, String> {
+    let started = Instant::now();
+    let rows = divide(fen, depth).map_err(|error| error.to_string())?;
+    let total = rows
+        .iter()
+        .try_fold(0_u64, |sum, (_, nodes)| sum.checked_add(*nodes))
+        .ok_or_else(|| "divide total overflow".to_owned())?;
+    let elapsed_nanos = started.elapsed().as_nanos();
+    let mut output = Vec::with_capacity(rows.len() + 2);
+    output.extend(
+        rows.into_iter()
+            .map(|(current, nodes)| format!("{current}\t{nodes}")),
+    );
+    output.push(format!("total\t{total}"));
+    output.push(format!("elapsed_nanos\t{elapsed_nanos}"));
+    Ok(output)
+}
+
+'''
+          replace_once(main, "fn run(arguments: &[String]) -> Result<(), String> {", divide_helper + "fn run(arguments: &[String]) -> Result<(), String> {")
+          replace_once(
+              main,
+              '''        "divide" => {
+            let depth = parse_depth(arguments.get(1).ok_or_else(|| usage().to_owned())?)?;
+            let fen = optional_fen(arguments, 2)?;
+            let rows = divide(fen, depth).map_err(|error| error.to_string())?;
+            let total = rows
+                .iter()
+                .try_fold(0_u64, |sum, (_, nodes)| sum.checked_add(*nodes))
+                .ok_or_else(|| "divide total overflow".to_owned())?;
+            for (current, nodes) in rows {
+                println!("{current}\t{nodes}");
+            }
+            println!("total\t{total}");
+        }
+''',
+              '''        "divide" => {
+            let depth = parse_depth(arguments.get(1).ok_or_else(|| usage().to_owned())?)?;
+            let fen = optional_fen(arguments, 2)?;
+            for line in divide_output(fen, depth)? {
+                println!("{line}");
+            }
+        }
+''',
+          )
+          append_once(
+              main,
+              "fn divide_output_is_sorted_totalled_and_timed()",
+              r'''
+#[cfg(test)]
+mod tests {
+    use super::{divide_output, STARTING_FEN};
+
+    #[test]
+    fn divide_output_is_sorted_totalled_and_timed() {
+        let lines = divide_output(STARTING_FEN, 2).expect("divide output succeeds");
+        assert_eq!(lines.len(), 22);
+        assert!(lines[..20]
+            .windows(2)
+            .all(|pair| pair[0].split('\t').next() < pair[1].split('\t').next()));
+        assert_eq!(lines[20], "total\t400");
+        let elapsed = lines[21]
+            .strip_prefix("elapsed_nanos\t")
+            .expect("elapsed field exists")
+            .parse::<u128>()
+            .expect("elapsed value is an unsigned integer");
+        assert!(elapsed > 0);
+    }
+
+    #[test]
+    fn depth_zero_divide_keeps_stable_summary_shape() {
+        let lines = divide_output(STARTING_FEN, 0).expect("depth-zero divide succeeds");
+        assert_eq!(lines.len(), 2);
+        assert_eq!(lines[0], "total\t0");
+        assert!(lines[1].starts_with("elapsed_nanos\t"));
+    }
+}
+''',
+          )
+
+          append_once(
+              "crates/chess-core/src/position/fen_tests.rs",
+              "fn analysis_position_policy_is_explicit_and_safe()",
+              r'''
+#[test]
+fn analysis_position_policy_is_explicit_and_safe() {
+    let accepted = [
+        "4k3/8/8/8/8/8/8/4K3 w K - 0 1",
+        "4k3/8/8/8/8/8/8/3K3 w K - 0 1",
+        "4k3/8/8/3p4/8/8/8/4K3 w - d6 0 1",
+        "8/8/8/8/8/8/4k3/4K3 w - - 0 1",
+        "4k3/4R3/8/8/8/8/4r3/4K3 w - - 0 1",
+        "4r1k1/8/8/8/8/8/8/4K3 w - - 0 1",
+        "4k3/8/8/8/8/8/4R3/4K3 w - - 0 1",
+        "4k3/QQQQQQQQ/8/8/8/8/8/4K3 w - - 0 1",
+    ];
+
+    for fen in accepted {
+        let mut position = Position::from_fen(fen).expect("analysis FEN is accepted");
+        position
+            .validate_invariants()
+            .expect("analysis FEN satisfies structural invariants");
+        assert_eq!(position.to_fen(), fen);
+        assert_eq!(position.zobrist(), position.recomputed_zobrist());
+        let _moves = position.legal_moves().expect("analysis legal generation is safe");
+        assert_eq!(position.perft(0).expect("depth-zero perft succeeds"), 1);
+        assert_eq!(
+            Position::from_fen(&position.to_fen()).expect("canonical analysis FEN parses"),
+            position
+        );
+    }
+}
+''',
+          )
+
+          append_once(
+              "docs/RUST_MAKE_UNMAKE.md",
+              "## Public generated-legal token API",
+              r'''
+## Public generated-legal token API
+
+Task 13 lives in the separate `chess-search` crate, so the crate-private generated path cannot be called directly. `Position::legal_move_tokens()` exposes a bounded list of opaque `LegalMoveToken` values. Each token binds one exact packed move to the source position's canonical Zobrist key, side to move, castling rights, raw en-passant target, halfmove clock, and fullmove number.
+
+`Position::make_legal_token()` verifies this origin before mutation and then delegates to the existing generated-legal reversible primitive. A stale token or a token from a different source position returns `LegalMoveError::LegalMoveTokenMismatch` without changing any field. A valid token does not regenerate legal moves. The fully checked `Position::make_move(Move)` remains the public path for callers that have only a raw move identity.
+''',
+          )
+          append_once(
+              "docs/RUST_GAME_HISTORY_AND_DRAWS.md",
+              "## Root replacement",
+              r'''
+## Root replacement
+
+`Game::reset_to_starting()` replaces the game with a fresh standard starting position. `Game::set_position(Position)` establishes a caller-supplied validated position as a new root. Both operations clear the played-move list and replace position-hash history with exactly one root key. Prior repetition history is never merged into the new root, and old `GameUndo` tokens cannot be applied successfully after replacement.
+
+These APIs are infallible because `Position` values are already structurally validated. They provide the explicit state-replacement semantics needed by future UCI `ucinewgame` and `position` handling without exposing mutable access to the internal position.
+''',
+          )
+          replace_once(
+              "docs/RUST_PERFT_AND_DIFFERENTIAL_VALIDATION.md",
+              "Legal moves and divide rows are sorted by canonical UCI text. Divide emits one tab-delimited move/count row followed by a tab-delimited total, so a perft mismatch can be localized to a root move and compared mechanically.",
+              "Legal moves and divide rows are sorted by canonical UCI text. Divide emits one tab-delimited move/count row followed by `total\\t<N>` and `elapsed_nanos\\t<N>`. The stable timing field measures divide calculation and total accumulation before output, while the move rows remain mechanically comparable.",
+          )
+          append_once(
+              "docs/RUST_FEN_AND_UCI_NOTATION.md",
+              "## FEN validation policy",
+              r'''
+## FEN validation policy
+
+`Position::from_fen` is a strict syntax and structural **analysis-position** parser. It does not attempt to prove that a position is reachable from the standard initial position.
+
+It rejects malformed field counts and placement, invalid piece or counter syntax, pawns on rank one or eight, invalid en-passant target ranks, occupied en-passant targets, and positions without exactly one king of each color. It constructs a fresh position and validates mailbox, bitboard, occupancy, cached-king, en-passant, and hash invariants before returning.
+
+It intentionally accepts structurally coherent analysis states that may be illegal or unreachable in an actual game, including:
+
+- castling rights without the matching home rook or with the king away from its home square;
+- a correctly ranked but non-capturable en-passant target;
+- adjacent kings;
+- both kings in check;
+- either the side to move or the side not to move already being in check;
+- unusual material that cannot arise from the standard initial set.
+
+Legal move generation remains fail-safe for these states: it never permits king capture, refuses castling when required pieces or safety conditions are absent, and filters moves against king attack. Zobrist repetition identity includes an en-passant file only when a legal en-passant capture exists, so accepted non-capturable targets do not create a false repetition distinction. The committed differential corpus remains restricted to positions accepted as valid by the pinned independent oracle.
+''',
+          )
+
+          tracker = "docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md"
+          replace_once(
+              tracker,
+              "| 13 | **Active** — reference search and alpha-beta. |\n| 14–24 | **Not started**. |",
+              "| 13 | **Active** — reference search and alpha-beta; implementation remains not started pending review-fix closure. |\n| 14–24 | **Not started**. |",
+          )
+          replace_once(
+              tracker,
+              "## 25.1 CI\n- [x] Linux rustfmt/check/Clippy/tests/rustdoc/debug/release.\n- [x] Python validation preserved separately.\n- [x] Exact-SHA status publisher and deterministic dispatcher.\n- [ ] Release tests/perft, AArch64, Android, JNI, Miri, sanitizer, fuzz, nightly perft, and scheduled strength.",
+              "## 25.1 CI\n- [x] Linux rustfmt/check/Clippy/tests/rustdoc/debug/release.\n- [x] Python validation preserved separately.\n- [x] Exact-SHA status publisher and deterministic dispatcher.\n- [x] Release depth-four authoritative perft in permanent CI.\n- [x] Scheduled/manual depth-five authoritative perft.\n- [ ] AArch64 compile CI.\n- [ ] Android compile and JNI CI.\n- [ ] Miri, sanitizer, and fuzz gates.\n- [ ] Scheduled strength testing.",
+          )
+          replace_once(
+              tracker,
+              "- [ ] Draws, hashing, search, TT, evaluation, ABI/JNI, differential perft/fuzz, self-play, and tuning.",
+              "- [x] Zobrist hashing and repetition identity.\n- [x] Game history and draw semantics.\n- [x] Authoritative perft and differential validation.\n- [x] Baseline evaluator and trace.\n- [ ] Search and transposition table.\n- [ ] ABI/JNI.\n- [ ] Differential fuzzing.\n- [ ] Self-play and tuning.",
+          )
+          replace_once(
+              tracker,
+              "- [x] Full Task 0/1 validation command, committed lockfile, ignored targets/worktrees.\n- [ ] Bootstrap, fast validation, perft CLI, UCI, Android, self-play, and tuning commands.\n- [ ] Versioned schema/fixture/generated-artifact policy.\n- [ ] Task 25 gate.",
+              "- [x] Full Task 0/1 validation command, committed lockfile, ignored targets/worktrees.\n- [x] Perft, divide, legal, play, suite, and oracle commands.\n- [x] Evaluation trace, evaluation benchmark, weight export, and weight validation commands.\n- [ ] General bootstrap and fast-validation wrapper commands.\n- [ ] UCI, Android, self-play, and tuning commands.\n- [ ] Versioned schema/fixture/generated-artifact policy across all future artifacts.\n- [ ] Task 25 gate.",
+          )
+          replace_once(
+              tracker,
+              "## Immediate next operations\n\n1. Begin Task 9 deterministic Zobrist tables and versioned key contract.\n2. Implement authoritative full-position hash recomputation.\n3. Wire incremental key updates through every Task 8 make/unmake path.\n4. Canonicalize en-passant repetition identity based on whether a legal en-passant capture exists.\n5. Compare incremental and recomputed keys after every make/unmake across curated and randomized sequences.",
+              "## Immediate next operations\n\n1. Complete and validate `docs/RUST_ENGINE_REVIEW_FIX_TODO_2026-08-02.md`.\n2. Confirm the search-safe legal-token API, game root replacement, divide timing, FEN policy, and tracker cleanup on an exact green SHA.\n3. Begin Task 13 reference search only after the review-fix gate passes.\n4. Implement no-prune reference search before alpha-beta.\n5. Validate terminal scoring, line repetition, and exact search immutability before Task 13 completion.",
+          )
+
+          status = "docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md"
+          replace_once(
+              status,
+              "**Updated:** 2026-08-01  \n**Branch:** `rust-engine`  \n**Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  \n**Current phase:** Task 13 reference search and alpha-beta active; implementation not started",
+              "**Updated:** 2026-08-02  \n**Branch:** `rust-engine`  \n**Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  \n**Current phase:** Pre-Task-13 review-fix implementation candidate; Task 13 search remains not started",
+          )
+          replace_once(
+              status,
+              "## Task 13 active scope\n",
+              "## Pre-Task-13 review-fix implementation candidate\n\nImplemented pending exact-head closure validation:\n\n- opaque source-bound legal-move tokens usable by `chess-search`;\n- non-mutating stale/wrong-origin token rejection;\n- explicit `Game::reset_to_starting` and `Game::set_position`;\n- stable `elapsed_nanos` divide output;\n- explicit strict structural analysis-FEN policy and safety tests;\n- corrected Task 25 coverage and Task 13 next-operation text.\n\nTask 13 itself remains not started. Completion evidence will be recorded only after the strict permanent CI gate passes on the final clean SHA.\n\n## Task 13 active scope\n",
+          )
+
+          spec = "docs/RUST_ENGINE_REVIEW_FIX_SPEC_2026-08-02.md"
+          replace_once(spec, "**Status:** Ready for implementation", "**Status:** Implemented; exact-head validation pending")
+
+          todo = "docs/RUST_ENGINE_REVIEW_FIX_TODO_2026-08-02.md"
+          text = read(todo)
+          text = text.replace("**Status:** Not started", "**Status:** Implemented; exact-head validation pending", 1)
+          prefix, separator, suffix = text.partition("# RF-006: Review-fix validation and closure evidence")
+          if not separator:
+              raise SystemExit("review TODO RF-006 marker missing")
+          prefix = prefix.replace("- [ ]", "- [x]")
+          text = prefix + separator + suffix
+          for item in [
+              "- [ ] RF-000 baseline confirmation complete.",
+              "- [ ] RF-001 search-safe generated legal move API complete.",
+              "- [ ] RF-002 explicit `Game` reset/set-position APIs complete.",
+              "- [ ] RF-003 divide elapsed-time output complete.",
+              "- [ ] RF-004 FEN policy documentation/tests complete.",
+              "- [ ] RF-005 live TODO and Task 25 cleanup complete.",
+              "- [ ] Task 13 remains active/not started.",
+              "- [ ] No Tasks 14–27 are marked complete by this pass.",
+          ]:
+              text = text.replace(item, item.replace("[ ]", "[x]"), 1)
+          text = text.replace(
+              "# RF-006: Review-fix validation and closure evidence",
+              "## Implementation notes\n\n- Starting SHA: `52377d09b713541044e24c8e3559be3f12002cc1`.\n- All six reviewed issues remained valid at baseline inspection.\n- RF-001 through RF-005 are implemented in the candidate tree; RF-006 remains open until exact-head permanent CI and documentation closure complete.\n\n---\n\n# RF-006: Review-fix validation and closure evidence",
+              1,
+          )
+          write(todo, text)
+          PY
+
+          rm .github/workflows/review-fix-implement-once.yml
+
+      - name: Format and reject suppression
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all
+          if grep --recursive --line-number --include='*.rs' --extended-regexp '#!\[(allow|expect)|#\[(allow|expect)' crates; then
+            echo '::error::First-party Rust lint suppression is forbidden.'
+            exit 1
+          fi
+
+      - name: Verify lockfile and metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo generate-lockfile
+          git diff --exit-code -- Cargo.lock
+          cargo metadata --locked --format-version 1 --no-deps
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check workspace
+        run: cargo check --locked --workspace --all-targets --all-features
+
+      - name: Run Clippy
+        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+
+      - name: Run tests
+        run: cargo test --locked --workspace --all-features
+
+      - name: Run authoritative release perft
+        run: cargo test --locked -p chess-core --release authoritative_perft_depth_four -- --ignored --exact
+
+      - name: Build documentation
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --locked --workspace --all-features --no-deps
+
+      - name: Build debug workspace
+        run: cargo build --locked --workspace --all-features
+
+      - name: Build release workspace
+        run: cargo build --locked --workspace --all-features --release
+
+      - name: Install pinned differential oracle
+        run: python -m pip install --disable-pip-version-check --requirement requirements/oracle.txt
+
+      - name: Run differential corpus and seeded playouts
+        run: >-
+          python scripts/differential_oracle.py
+          --binary target/release/chess-tools
+          --corpus fixtures/differential_corpus.tsv
+          --games 12
+          --plies 48
+          --seed 0xC0FFEE
+
+      - name: Commit clean implementation candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git status --short
+          git add crates docs .github/workflows/review-fix-implement-once.yml
+          git commit -m "fix(rust): implement pre-Task-13 review fixes"
+          git push origin HEAD:rust-engine
+          echo "IMPLEMENTATION_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Report implementation run
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          head_sha="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
+          body=$(cat <<EOF
+          One-shot Rust review-fix implementation run.
+
+          - Result: ${{ job.status }}
+          - Workflow run: ${{ github.run_id }}
+          - Starting event SHA: ${{ github.sha }}
+          - Current checkout SHA: ${head_sha}
+          - Candidate SHA: ${IMPLEMENTATION_SHA:-not-created}
+          EOF
+          )
+          issue_url="$(gh issue create --repo "$GITHUB_REPOSITORY" --title "[review-fix-implementation] run ${{ github.run_id }}" --body "$body")"
+          issue_number="${issue_url##*/}"
+          gh issue close "$issue_number" --repo "$GITHUB_REPOSITORY" --reason completed
