@@ -334,7 +334,11 @@ fn evaluate_mobility_and_activity(
                 );
             }
         }
-        if position.piece_bitboard(color, PieceKind::Bishop).count() >= 2 {
+        if position
+            .piece_bitboard(color, PieceKind::Bishop)
+            .count()
+            >= 2
+        {
             raw.bishop_pair.add(weights.bishop_pair, sign);
         }
         let friendly_pawns = position.piece_bitboard(color, PieceKind::Pawn);
@@ -394,8 +398,12 @@ fn evaluate_king_and_space(
 fn game_phase(position: &Position) -> u8 {
     let mut phase = 0_u32;
     for color in [Color::White, Color::Black] {
-        phase += position.piece_bitboard(color, PieceKind::Knight).count();
-        phase += position.piece_bitboard(color, PieceKind::Bishop).count();
+        phase += position
+            .piece_bitboard(color, PieceKind::Knight)
+            .count();
+        phase += position
+            .piece_bitboard(color, PieceKind::Bishop)
+            .count();
         phase += 2 * position.piece_bitboard(color, PieceKind::Rook).count();
         phase += 4 * position.piece_bitboard(color, PieceKind::Queen).count();
     }
@@ -479,7 +487,9 @@ fn king_shield_count(position: &Position, color: Color, king: Square) -> u8 {
     let end = (king.file() + 1).min(7);
     for file in start..=end {
         let square = Square::from_row_file(row, file).expect("shield square is on board");
-        if position.piece_at(square) == Some(chess_core::Piece::new(color, PieceKind::Pawn)) {
+        if position.piece_at(square)
+            == Some(chess_core::Piece::new(color, PieceKind::Pawn))
+        {
             count += 1;
         }
     }
@@ -573,7 +583,9 @@ mod tests {
 
     #[test]
     fn trace_components_sum_to_the_normal_evaluation() {
-        let current = position("r3k2r/pp1n1ppp/2pbpn2/3p4/3P4/2PBPN2/PP1N1PPP/R3K2R w KQkq - 0 10");
+        let current = position(
+            "r3k2r/pp1n1ppp/2pbpn2/3p4/3P4/2PBPN2/PP1N1PPP/R3K2R w KQkq - 0 10",
+        );
         let trace = evaluate_trace(&current);
         assert_eq!(trace.component_sum(), trace.total);
         assert_eq!(trace.total, evaluate(&current).centipawns());
@@ -581,7 +593,7 @@ mod tests {
 
     #[test]
     fn pawn_trace_identifies_structure_without_hidden_terms() {
-        let current = position("4k3/8/8/3P4/2PP4/8/8/4K3 w - - 0 1");
+        let current = position("4k3/8/8/8/2PP4/8/8/4K3 w - - 0 1");
         let trace = evaluate_trace(&current);
         assert!(trace.passed_pawns > 0);
         assert!(trace.connected_pawns > 0);
@@ -590,7 +602,9 @@ mod tests {
 
     #[test]
     fn coarse_benchmark_groups_reconstruct_the_full_score() {
-        let current = position("r2q1rk1/pp1nbppp/2p1pn2/3p4/3P4/2N1PN2/PPQ1BPPP/R3K2R w KQ - 4 10");
+        let current = position(
+            "r2q1rk1/pp1nbppp/2p1pn2/3p4/3P4/2N1PN2/PPQ1BPPP/R3K2R w KQ - 4 10",
+        );
         let weights = EvaluationWeights::DEFAULT;
         let grouped = [
             EvaluationTerm::MaterialAndPieceSquare,
