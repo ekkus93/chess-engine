@@ -3,7 +3,7 @@
 **Updated:** 2026-08-01  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 8 make/unmake and incremental state active; implementation not started
+**Current phase:** Task 9 Zobrist hashing and repetition identity active; implementation not started
 
 ## Completed gates
 
@@ -17,42 +17,41 @@
 | 5 | `78e9315369ff4552e5500d1a820767a1fd228f29` | `30727553897` / `91441947625` | closure green; implementation `42 passed` |
 | 6 | `cb7124c5712f6b3f8f4540e9e8fabaa2aa242bc0` | `30727972433` | closure green; implementation `49 passed` |
 | 7 | `334dc79b3ce0cbc1e7b5096387218c90a8365204` | `30730100518` / `91448776834` | closure green; implementation `59 passed` |
+| 8 | `cfc68a4ff775d6d4b73c0bfa192e00c1fd7b910f` | `30730803320` / `91450780156` | implementation green; `67 passed` |
 
-## Task 7 completion
+## Task 8 completion
 
 Implemented and validated:
 
-- legal filtering through private reversible make/unmake;
-- single-check captures, blocks, and king evasions;
-- double-check king-only filtering;
-- absolute-pin enforcement;
-- king destination safety and no king captures;
-- complete castling source/transit/destination validation with source-vacated transient testing;
-- en-passant captured-pawn validation and horizontal/diagonal discovered-check rejection;
-- all quiet and capture promotion identities plus invalid-promotion rejection;
-- castling rights, en-passant, clocks, side, captures, promotions, rook movement, and hash-placeholder restoration;
-- starting-position perft depths 1–4: `20`, `400`, `8,902`, `197,281`;
-- deterministic divide plus exact restoration and invariant checks;
-- `docs/RUST_LEGAL_MOVE_GENERATION.md`;
-- lockfile and metadata verification, rustfmt, Cargo check, Clippy with `-D warnings`, `59 passed`, rustdoc with `-D warnings`, debug build, and release build.
+- opaque public `PositionUndo` with private complete restoration state;
+- move-bound undo tokens with mismatch and out-of-order rejection before mutation;
+- public checked `Position::make_move` and consuming `Position::unmake_move`;
+- crate-private generated-legal make/unmake for legal generation, perft, divide, and future search;
+- transactional illegal-move and counter-overflow failures;
+- exact updates and restoration for side, clocks, en-passant, castling rights, captures, castling rook movement, promotions, mailbox, bitboards, occupancies, cached kings, and stored hash state;
+- exact round trips for quiet moves, double pushes, captures, en passant, both castling directions, all quiet promotions, all capture promotions, and rook captures that alter castling rights;
+- every legal move in a curated position corpus checked through make, invariants, unmake, and exact equality;
+- deterministic random legal playouts for eight seeds and up to 128 plies, followed by complete reverse restoration;
+- `docs/RUST_MAKE_UNMAKE.md`;
+- lockfile and metadata verification, rustfmt, Cargo check, Clippy with `-D warnings`, `67 passed`, rustdoc with `-D warnings`, debug build, and release build.
 
 Evidence:
 
-- Shared bounded move-list mutation: `9baf2e299551f39dbb4cbee2a1510e35d68ac6c8`.
-- Legal generation/perft source: `beb6981520c16d07c2617a1c567eee7ed0a5212d`.
-- Validated implementation head: `d6ea24eb6eeaea7b41dc309f866a5653aba687d5`.
-- Implementation CI run/job: `30729969574` / `91448384283`.
-- Closure SHA: `334dc79b3ce0cbc1e7b5096387218c90a8365204`.
-- Closure CI run/job: `30730100518` / `91448776834`.
+- Formal make/unmake module: `crates/chess-core/src/position/make_unmake.rs`.
+- Restoration and sequence tests: `crates/chess-core/src/position/make_unmake_tests.rs`.
+- Validated implementation head: `cfc68a4ff775d6d4b73c0bfa192e00c1fd7b910f`.
+- Implementation CI run/job: `30730803320` / `91450780156`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime and dependency `punycode` deprecation notices only.
+- Task 9 owns real Zobrist computation and incremental key updates; Task 8 stores and restores the current hash field exactly.
 
-## Task 8 active scope
+## Task 9 active scope
 
-- [ ] Formalize the reusable undo structure and contract.
-- [ ] Complete move application and unapplication paths for every legal move class.
-- [ ] Add exact restoration tests for quiet moves, captures, double pushes, en passant, castling, and every promotion class.
-- [ ] Add long deterministic randomized legal-sequence make/unmake restoration.
+- [ ] Define deterministic versioned Zobrist tables.
+- [ ] Implement authoritative full-position hash recomputation.
+- [ ] Update keys incrementally through every make/unmake move class.
+- [ ] Canonicalize en-passant repetition identity only when a legal en-passant capture exists.
+- [ ] Compare incremental and recomputed keys after curated and randomized make/unmake sequences.
 - [ ] Pass exact-head rustfmt, Cargo check, Clippy, tests, rustdoc, debug, and release gates.
 
 No branch or pull request has been created.
