@@ -90,7 +90,7 @@ impl MoveList {
             .map(|entry| entry.expect("occupied move-list prefix contains moves"))
     }
 
-    fn push(&mut self, current: Move) -> Result<(), MoveListOverflow> {
+    pub(crate) fn push(&mut self, current: Move) -> Result<(), MoveListOverflow> {
         let slot = self.moves.get_mut(self.len).ok_or(MoveListOverflow {
             capacity: MAX_PSEUDO_LEGAL_MOVES,
         })?;
