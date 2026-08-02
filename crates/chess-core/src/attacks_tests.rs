@@ -1,8 +1,8 @@
 use crate::{Bitboard, Color, Piece, PieceKind, Position, Square};
 
 use super::{
-    between, bishop_attacks, king_attacks, knight_attacks, line, pawn_attacks, queen_attacks,
-    ray, rook_attacks,
+    between, bishop_attacks, king_attacks, knight_attacks, line, pawn_attacks, queen_attacks, ray,
+    rook_attacks,
 };
 
 const ORTHOGONAL: [(i8, i8); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
@@ -90,7 +90,11 @@ fn sliding_attacks_match_independent_oracle_for_representative_occupancies() {
             let bishop = oracle_slider(source, occupancy, &DIAGONAL);
             assert_eq!(rook_attacks(source, occupancy), rook, "rook {source}");
             assert_eq!(bishop_attacks(source, occupancy), bishop, "bishop {source}");
-            assert_eq!(queen_attacks(source, occupancy), rook | bishop, "queen {source}");
+            assert_eq!(
+                queen_attacks(source, occupancy),
+                rook | bishop,
+                "queen {source}"
+            );
         }
     }
 }
@@ -149,7 +153,10 @@ fn position_attack_queries_match_independent_fixture_oracle() {
                     expected,
                     "{fen}: {color} attackers to {target}"
                 );
-                assert_eq!(position.is_square_attacked(target, color), !expected.is_empty());
+                assert_eq!(
+                    position.is_square_attacked(target, color),
+                    !expected.is_empty()
+                );
             }
         }
     }
@@ -157,16 +164,14 @@ fn position_attack_queries_match_independent_fixture_oracle() {
 
 #[test]
 fn checker_and_absolute_pin_queries_are_exact() {
-    let double_check =
-        Position::from_fen("4r1k1/8/8/8/8/5n2/8/4K3 w - - 0 1").expect("valid FEN");
+    let double_check = Position::from_fen("4r1k1/8/8/8/8/5n2/8/4K3 w - - 0 1").expect("valid FEN");
     assert_eq!(
         double_check.checkers_to_king(Color::White),
         board(&["e8", "f3"])
     );
     assert_eq!(double_check.checkers_to_king(Color::Black), Bitboard::EMPTY);
 
-    let pinned =
-        Position::from_fen("4r1k1/8/8/8/8/8/4R3/4K3 w - - 0 1").expect("valid FEN");
+    let pinned = Position::from_fen("4r1k1/8/8/8/8/8/4R3/4K3 w - - 0 1").expect("valid FEN");
     assert_eq!(pinned.pinned_pieces(Color::White), board(&["e2"]));
     assert_eq!(pinned.pinned_pieces(Color::Black), Bitboard::EMPTY);
 
@@ -300,12 +305,7 @@ fn oracle_attackers_to(position: &Position, target: Square, color: Color) -> Bit
     result
 }
 
-fn oracle_piece_attacks(
-    position: &Position,
-    source: Square,
-    target: Square,
-    piece: Piece,
-) -> bool {
+fn oracle_piece_attacks(position: &Position, source: Square, target: Square, piece: Piece) -> bool {
     let row_delta = target.row() as i8 - source.row() as i8;
     let file_delta = target.file() as i8 - source.file() as i8;
     match piece.kind {
@@ -323,15 +323,33 @@ fn oracle_piece_attacks(
         PieceKind::King => row_delta.abs() <= 1 && file_delta.abs() <= 1,
         PieceKind::Bishop => {
             row_delta.abs() == file_delta.abs()
-                && clear_path(position, source, target, row_delta.signum(), file_delta.signum())
+                && clear_path(
+                    position,
+                    source,
+                    target,
+                    row_delta.signum(),
+                    file_delta.signum(),
+                )
         }
         PieceKind::Rook => {
             (row_delta == 0 || file_delta == 0)
-                && clear_path(position, source, target, row_delta.signum(), file_delta.signum())
+                && clear_path(
+                    position,
+                    source,
+                    target,
+                    row_delta.signum(),
+                    file_delta.signum(),
+                )
         }
         PieceKind::Queen => {
             (row_delta == 0 || file_delta == 0 || row_delta.abs() == file_delta.abs())
-                && clear_path(position, source, target, row_delta.signum(), file_delta.signum())
+                && clear_path(
+                    position,
+                    source,
+                    target,
+                    row_delta.signum(),
+                    file_delta.signum(),
+                )
         }
     }
 }

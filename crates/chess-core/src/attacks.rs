@@ -150,9 +150,7 @@ impl Position {
                             break;
                         }
                     } else {
-                        if piece.color != color
-                            && slider_matches_direction(piece.kind, diagonal)
-                        {
+                        if piece.color != color && slider_matches_direction(piece.kind, diagonal) {
                             pinned.set(candidate.expect("candidate was checked"));
                         }
                         break;
@@ -167,11 +165,7 @@ impl Position {
     }
 }
 
-fn sliding_attacks(
-    square: Square,
-    occupancy: Bitboard,
-    directions: &[(i8, i8)],
-) -> Bitboard {
+fn sliding_attacks(square: Square, occupancy: Bitboard, directions: &[(i8, i8)]) -> Bitboard {
     let mut attacks = Bitboard::EMPTY;
     for &(row_step, file_step) in directions {
         let mut row = square.row() as i8 + row_step;
@@ -203,8 +197,8 @@ const fn build_pawn_attacks(color: Color) -> [Bitboard; BOARD_SQUARES] {
             Color::White => -1,
             Color::Black => 1,
         };
-        let bits = coordinate_bit(row + row_step, file - 1)
-            | coordinate_bit(row + row_step, file + 1);
+        let bits =
+            coordinate_bit(row + row_step, file - 1) | coordinate_bit(row + row_step, file + 1);
         table[index] = Bitboard::from_bits(bits);
         index += 1;
     }

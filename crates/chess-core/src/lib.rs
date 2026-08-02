@@ -16,8 +16,8 @@ mod square;
 mod uci_move;
 
 pub use attacks::{
-    between, bishop_attacks, king_attacks, knight_attacks, line, pawn_attacks, queen_attacks,
-    ray, rook_attacks,
+    between, bishop_attacks, king_attacks, knight_attacks, line, pawn_attacks, queen_attacks, ray,
+    rook_attacks,
 };
 pub use bitboard::{Bitboard, BitboardIter};
 pub use castling::{CastleSide, CastlingRights};
