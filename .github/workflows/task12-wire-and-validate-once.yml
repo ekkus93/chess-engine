@@ -1,4 +1,4 @@
-name: Task 12 wire and validate once
+name: Task 12 format and validate once
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: task12-wire-and-validate-once
+  group: task12-format-and-validate-once
   cancel-in-progress: false
 
 jobs:
@@ -33,7 +33,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh issue comment 1 --body "Task 12 validator run $GITHUB_RUN_ID attempt $GITHUB_RUN_ATTEMPT started for $(git rev-parse HEAD)."
+          gh issue comment 1 --body "Task 12 formatter/validator run $GITHUB_RUN_ID attempt $GITHUB_RUN_ATTEMPT started for $(git rev-parse HEAD)."
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -43,133 +43,7 @@ jobs:
         with:
           shared-key: rust-engine-task12
 
-      - name: Wire tooling and status
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-
-          lib = Path("crates/chess-tools/src/lib.rs")
-          text = lib.read_text()
-          old_header = """#![forbid(unsafe_code)]
-          //! Deterministic offline validation primitives for the Rust chess engine.
-
-          use core::fmt;
-          use std::io::{BufRead, Write};
-
-          use chess_core::{Move, Position, UciMove};
-          """
-          new_header = """#![forbid(unsafe_code)]
-          //! Deterministic offline validation primitives for the Rust chess engine.
-
-          mod weights_io;
-
-          use core::fmt;
-          use std::{
-              hint::black_box,
-              io::{BufRead, Write},
-              time::Instant,
-          };
-
-          use chess_core::{Move, Position, UciMove};
-          use chess_search::{
-              evaluate_term, evaluate_trace as search_evaluate_trace, EvaluationTerm, EvaluationTrace,
-              EvaluationWeightSet,
-          };
-
-          pub use weights_io::{deserialize_weight_set, serialize_weight_set};
-          """
-          if text.count(old_header) != 1:
-              raise SystemExit("unexpected chess-tools header")
-          text = text.replace(old_header, new_header)
-          anchor = "fn sanitize_error(error: &ToolError) -> String {"
-          addition = '''/// One stable evaluator benchmark result.
-          #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-          pub struct EvaluationBenchmarkRow {
-              /// Stable coarse evaluator term name.
-              pub term: &'static str,
-              /// Number of evaluations performed.
-              pub iterations: u64,
-              /// Wall-clock duration in nanoseconds.
-              pub elapsed_nanos: u128,
-              /// Deterministic accumulator preventing dead-code elimination.
-              pub checksum: i64,
-          }
-
-          /// Returns the named static-evaluation trace for `fen`.
-          pub fn evaluation_trace(fen: &str) -> Result<EvaluationTrace, ToolError> {
-              let position = parse_position(fen)?;
-              Ok(search_evaluate_trace(&position))
-          }
-
-          /// Benchmarks every major evaluator group and the complete evaluation.
-          pub fn benchmark_evaluation(
-              fen: &str,
-              iterations: u64,
-          ) -> Result<Vec<EvaluationBenchmarkRow>, ToolError> {
-              if iterations == 0 {
-                  return Err(ToolError::new("evaluation benchmark requires at least one iteration"));
-              }
-              let position = parse_position(fen)?;
-              let weight_set = EvaluationWeightSet::baseline();
-              weight_set
-                  .validate()
-                  .map_err(|error| ToolError::new(error.to_string()))?;
-              let mut rows = Vec::with_capacity(EvaluationTerm::ALL.len());
-              for term in EvaluationTerm::ALL {
-                  let started = Instant::now();
-                  let mut checksum = 0_i64;
-                  for _ in 0..iterations {
-                      let score = evaluate_term(
-                          black_box(&position),
-                          black_box(&weight_set.weights),
-                          black_box(term),
-                      );
-                      checksum = checksum.wrapping_add(i64::from(black_box(score.centipawns())));
-                  }
-                  rows.push(EvaluationBenchmarkRow {
-                      term: term.name(),
-                      iterations,
-                      elapsed_nanos: started.elapsed().as_nanos(),
-                      checksum,
-                  });
-              }
-              Ok(rows)
-          }
-
-          '''
-          if text.count(anchor) != 1:
-              raise SystemExit("unexpected sanitize_error anchor")
-          lib.write_text(text.replace(anchor, addition + anchor))
-
-          todo = Path("docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md")
-          text = todo.read_text()
-          old_summary = """| 9 | **Active, not started** — Zobrist hashing and repetition identity. |
-          | 10–24 | **Not started**. |
-          | 25 | **Partial**. |
-          """
-          new_summary = """| 9 | **Complete** — Zobrist hashing and repetition identity. |
-          | 10 | **Complete** — game history and draw semantics. |
-          | 11 | **Complete** — authoritative perft and differential validation. |
-          | 12 | **Active** — baseline evaluator and trace. |
-          | 13–24 | **Not started**. |
-          | 25 | **Partial**. |
-          """
-          if text.count(old_summary) != 1:
-              raise SystemExit("unexpected TODO program summary")
-          todo.write_text(text.replace(old_summary, new_summary))
-
-          status = Path("docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md")
-          text = status.read_text()
-          old_phase = "**Current phase:** Task 12 baseline evaluator and trace active; implementation not started"
-          new_phase = "**Current phase:** Task 12 baseline evaluator and trace active; implementation candidate under validation"
-          if text.count(old_phase) != 1:
-              raise SystemExit("unexpected Ralph phase")
-          status.write_text(text.replace(old_phase, new_phase))
-          PY
-
-      - name: Format candidate
+      - name: Apply exact rustfmt output
         shell: bash
         run: |
           set -euo pipefail
@@ -177,17 +51,13 @@ jobs:
           git diff --check
           cargo generate-lockfile
           git diff --exit-code -- Cargo.lock
-
-      - name: Commit formatted candidate
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add crates/chess-search crates/chess-tools/src docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
-          git commit -m "feat(search): materialize Task 12 evaluator candidate"
-          git push origin HEAD:rust-engine
-          git push origin --delete task12-temp
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add crates
+            git commit -m "style(search): apply Task 12 rustfmt"
+            git push origin HEAD:rust-engine
+          fi
 
       - name: Run strict gates
         shell: bash
@@ -213,10 +83,10 @@ jobs:
         if: success()
         shell: bash
         run: |
-          gh issue comment 1 --body "Task 12 validator run $GITHUB_RUN_ID succeeded for candidate $(git rev-parse HEAD)."
+          gh issue comment 1 --body "Task 12 formatter/validator run $GITHUB_RUN_ID succeeded for candidate $(git rev-parse HEAD)."
 
       - name: Report validator failure
         if: failure()
         shell: bash
         run: |
-          gh issue comment 1 --body "Task 12 validator run $GITHUB_RUN_ID failed for candidate $(git rev-parse HEAD)."
+          gh issue comment 1 --body "Task 12 formatter/validator run $GITHUB_RUN_ID failed for candidate $(git rev-parse HEAD)."
