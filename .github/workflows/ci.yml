@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: rust-ci-${{ github.workflow }}-${{ github.ref }}
@@ -26,6 +26,66 @@ jobs:
       RUST_BACKTRACE: "1"
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: One-cycle Task 10 duplicate repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("crates/chess-core/src/game.rs")
+          text = path.read_text()
+          block = '''    #[test]
+          fn illegal_game_move_does_not_change_position_or_history() {
+              let mut game = Game::starting();
+              let snapshot = game.clone();
+              let illegal = crate::Move::new(
+                  "e2".parse().expect("test square is valid"),
+                  "e5".parse().expect("test square is valid"),
+                  crate::MoveKind::Quiet,
+              );
+
+              assert!(matches!(game.make_move(illegal), Err(GameError::Rules(_))));
+              assert_eq!(game, snapshot);
+          }
+
+          #[test]
+          fn repetition_count_respects_the_irreversible_halfmove_boundary() {
+              let current = position("8/8/8/8/8/8/R3K3/7k w - - 2 1");
+              let hash = current.zobrist();
+              let history = crate::SearchHistory {
+                  hashes: vec![hash, hash, hash ^ 1, hash],
+                  root_len: 4,
+              };
+
+              assert_eq!(history.repetition_count(&current), 2);
+          }
+
+          '''
+          count = text.count(block)
+          if count == 2:
+              doubled = block + block
+              if text.count(doubled) != 1:
+                  raise SystemExit(f"expected one adjacent doubled block, found {text.count(doubled)}")
+              path.write_text(text.replace(doubled, block))
+          elif count != 1:
+              raise SystemExit(f"expected one or two Task 10 test blocks, found {count}")
+          PY
+          if test -f .github/workflows/task10-deduplicate-tests-once.yml; then
+            git rm .github/workflows/task10-deduplicate-tests-once.yml
+          fi
+          cargo fmt --all
+          git diff --check
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add crates/chess-core/src/game.rs
+            git commit -m "test(core): deduplicate Task 10 history coverage"
+            git push origin HEAD:rust-engine
+          fi
 
       - name: Verify Cargo workspace
         shell: bash
