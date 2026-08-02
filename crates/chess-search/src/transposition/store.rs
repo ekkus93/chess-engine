@@ -68,42 +68,52 @@ impl TranspositionTable {
     /// shallowest entry; equal depths prefer the oldest modulo-256 generation,
     /// and a remaining tie selects the lowest slot index.
     pub fn store(&mut self, entry: TranspositionEntry) -> TranspositionStoreResult {
+        self.diagnostics.record_store();
         let entry = entry.with_generation(self.generation);
         let cluster_index = self.cluster_index(entry.verification_key());
         let cluster = &mut self.clusters[cluster_index];
 
-        if let Some(slot_index) = cluster.entries.iter().position(|slot| {
+        let result = if let Some(slot_index) = cluster.entries.iter().position(|slot| {
             slot.as_ref()
                 .is_some_and(|stored| stored.verification_key() == entry.verification_key())
         }) {
             let previous_entry = cluster.entries[slot_index]
                 .replace(entry)
                 .expect("matching transposition slot is occupied");
-            return TranspositionStoreResult::new(
+            TranspositionStoreResult::new(
                 cluster_index,
                 slot_index,
                 TranspositionStoreAction::UpdatedSameKey { previous_entry },
-            );
-        }
-
-        if let Some(slot_index) = cluster.entries.iter().position(Option::is_none) {
+            )
+        } else if let Some(slot_index) = cluster.entries.iter().position(Option::is_none) {
             cluster.entries[slot_index] = Some(entry);
-            return TranspositionStoreResult::new(
+            TranspositionStoreResult::new(
                 cluster_index,
                 slot_index,
                 TranspositionStoreAction::InsertedEmpty,
-            );
-        }
+            )
+        } else {
+            let slot_index = collision_victim_slot(cluster, self.generation);
+            let evicted_entry = cluster.entries[slot_index]
+                .replace(entry)
+                .expect("full transposition cluster has an occupied victim");
+            TranspositionStoreResult::new(
+                cluster_index,
+                slot_index,
+                TranspositionStoreAction::ReplacedCollision { evicted_entry },
+            )
+        };
 
-        let slot_index = collision_victim_slot(cluster, self.generation);
-        let evicted_entry = cluster.entries[slot_index]
-            .replace(entry)
-            .expect("full transposition cluster has an occupied victim");
-        TranspositionStoreResult::new(
-            cluster_index,
-            slot_index,
-            TranspositionStoreAction::ReplacedCollision { evicted_entry },
-        )
+        match result.action() {
+            TranspositionStoreAction::UpdatedSameKey { .. } => {
+                self.diagnostics.record_same_key_update();
+            }
+            TranspositionStoreAction::InsertedEmpty => self.diagnostics.record_empty_insert(),
+            TranspositionStoreAction::ReplacedCollision { .. } => {
+                self.diagnostics.record_collision_replacement();
+            }
+        }
+        result
     }
 }
 

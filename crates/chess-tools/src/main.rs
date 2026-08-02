@@ -9,12 +9,13 @@ use std::{env, fs, io, process::ExitCode, time::Instant};
 
 use chess_search::EvaluationWeightSet;
 use chess_tools::{
-    benchmark_evaluation, deserialize_weight_set, divide, evaluation_trace, legal_uci, perft,
-    play_uci, run_oracle, serialize_weight_set, suite, STARTING_FEN,
+    benchmark_evaluation, benchmark_transposition, deserialize_weight_set, divide,
+    evaluation_trace, legal_uci, perft, play_uci, run_oracle, serialize_weight_set, suite,
+    STARTING_FEN,
 };
 
 fn usage() -> &'static str {
-    "usage:\n  chess-tools legal [FEN]\n  chess-tools play UCI [FEN]\n  chess-tools perft DEPTH [FEN]\n  chess-tools divide DEPTH [FEN]\n  chess-tools suite MAX_DEPTH\n  chess-tools eval [FEN]\n  chess-tools eval-bench ITERATIONS [FEN]\n  chess-tools weights-export\n  chess-tools weights-validate PATH\n  chess-tools oracle"
+    "usage:\n  chess-tools legal [FEN]\n  chess-tools play UCI [FEN]\n  chess-tools perft DEPTH [FEN]\n  chess-tools divide DEPTH [FEN]\n  chess-tools suite MAX_DEPTH\n  chess-tools eval [FEN]\n  chess-tools eval-bench ITERATIONS [FEN]\n  chess-tools tt-bench ITERATIONS\n  chess-tools weights-export\n  chess-tools weights-validate PATH\n  chess-tools oracle"
 }
 
 fn parse_depth(value: &str) -> Result<u8, String> {
@@ -124,6 +125,18 @@ fn run(arguments: &[String]) -> Result<(), String> {
                 println!(
                     "{}\t{}\t{}\t{}",
                     row.term, row.iterations, row.elapsed_nanos, row.checksum
+                );
+            }
+        }
+        "tt-bench" => {
+            if arguments.len() != 2 {
+                return Err(usage().to_owned());
+            }
+            let iterations = parse_iterations(&arguments[1])?;
+            for row in benchmark_transposition(iterations).map_err(|error| error.to_string())? {
+                println!(
+                    "{}\t{}\t{}\t{}",
+                    row.operation, row.iterations, row.elapsed_nanos, row.checksum
                 );
             }
         }

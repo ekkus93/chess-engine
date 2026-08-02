@@ -35,10 +35,12 @@ pub use reference::{
 };
 pub use score::{Score, MATE_SCORE, MAX_EVALUATION, MAX_MATE_PLY};
 pub use transposition::{
-    TranspositionBound, TranspositionEntry, TranspositionProbeError, TranspositionProbeRequest,
-    TranspositionProbeResult, TranspositionProbeScore, TranspositionScore, TranspositionScoreReuse,
-    TranspositionStoreAction, TranspositionStoreResult, TranspositionTable,
-    TranspositionTableAllocationError, TRANSPOSITION_CLUSTER_SIZE,
+    TranspositionBound, TranspositionEntry, TranspositionHashFull, TranspositionProbeError,
+    TranspositionProbeRequest, TranspositionProbeResult, TranspositionProbeScore,
+    TranspositionScore, TranspositionScoreReuse, TranspositionStoreAction,
+    TranspositionStoreResult, TranspositionTable, TranspositionTableAllocationError,
+    TranspositionTableDiagnostics, TRANSPOSITION_CLUSTER_SIZE,
+    TRANSPOSITION_HASH_FULL_SAMPLE_LIMIT,
 };
 pub use transposition_score::TranspositionScoreConversionError;
 pub use weights::{

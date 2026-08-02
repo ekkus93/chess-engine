@@ -4,8 +4,12 @@ use chess_core::Move;
 
 use crate::Score;
 
+mod diagnostics;
 mod probe;
 mod store;
+pub use diagnostics::{
+    TranspositionHashFull, TranspositionTableDiagnostics, TRANSPOSITION_HASH_FULL_SAMPLE_LIMIT,
+};
 pub use probe::{
     TranspositionProbeError, TranspositionProbeRequest, TranspositionProbeResult,
     TranspositionProbeScore, TranspositionScoreReuse,
@@ -227,6 +231,7 @@ pub struct TranspositionTable {
     generation: u8,
     requested_mebibytes: usize,
     allocated_bytes: usize,
+    diagnostics: TranspositionTableDiagnostics,
 }
 
 impl TranspositionTable {
@@ -262,6 +267,7 @@ impl TranspositionTable {
             generation: 0,
             requested_mebibytes: mebibytes,
             allocated_bytes,
+            diagnostics: TranspositionTableDiagnostics::default(),
         })
     }
 

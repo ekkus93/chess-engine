@@ -180,7 +180,7 @@ impl TranspositionTable {
     /// upper bounds cut off only at alpha. Stored mate scores are denormalized at
     /// the current probe ply before any comparison or return.
     pub fn probe(
-        &self,
+        &mut self,
         request: TranspositionProbeRequest,
     ) -> Result<Option<TranspositionProbeResult>, TranspositionProbeError> {
         if request.alpha() >= request.beta() {
@@ -190,6 +190,7 @@ impl TranspositionTable {
             });
         }
 
+        self.diagnostics.record_probe();
         let cluster = &self.clusters[self.cluster_index(request.verification_key())];
         let Some(entry) = cluster
             .entries
@@ -201,7 +202,18 @@ impl TranspositionTable {
             return Ok(None);
         };
 
+        self.diagnostics.record_hit();
         let score = reusable_score(entry, request)?;
+        match score {
+            Some(TranspositionProbeScore::Exact(_)) => self.diagnostics.record_exact_hit(),
+            Some(TranspositionProbeScore::LowerBoundCutoff(_)) => {
+                self.diagnostics.record_lower_bound_cutoff();
+            }
+            Some(TranspositionProbeScore::UpperBoundCutoff(_)) => {
+                self.diagnostics.record_upper_bound_cutoff();
+            }
+            None => {}
+        }
         Ok(Some(TranspositionProbeResult::new(
             entry.best_move(),
             score,
@@ -486,7 +498,7 @@ mod tests {
 
     #[test]
     fn invalid_windows_fail_before_lookup() {
-        let table = TranspositionTable::new(1).expect("table allocates");
+        let mut table = TranspositionTable::new(1).expect("table allocates");
         let alpha = Score::from_evaluation(25);
         let beta = Score::from_evaluation(25);
         let request = TranspositionProbeRequest::new(

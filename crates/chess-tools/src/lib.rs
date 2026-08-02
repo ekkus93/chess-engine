@@ -13,7 +13,9 @@ use std::{
 use chess_core::{Move, Position, UciMove};
 use chess_search::{
     evaluate_term, evaluate_trace as search_evaluate_trace, EvaluationTerm, EvaluationTrace,
-    EvaluationWeightSet,
+    EvaluationWeightSet, Score, TranspositionBound, TranspositionEntry, TranspositionProbeRequest,
+    TranspositionProbeScore, TranspositionScore, TranspositionScoreReuse, TranspositionStoreAction,
+    TranspositionTable,
 };
 
 pub use weights_io::{deserialize_weight_set, serialize_weight_set};
@@ -243,6 +245,130 @@ pub fn benchmark_evaluation(
     Ok(rows)
 }
 
+/// One stable transposition-table microbenchmark result.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct TranspositionBenchmarkRow {
+    /// Stable operation name: `store` or `probe`.
+    pub operation: &'static str,
+    /// Number of timed operations performed.
+    pub iterations: u64,
+    /// Wall-clock duration in nanoseconds.
+    pub elapsed_nanos: u128,
+    /// Deterministic accumulator preventing dead-code elimination.
+    pub checksum: u64,
+}
+
+const TRANSPOSITION_BENCHMARK_MEBIBYTES: usize = 1;
+const TRANSPOSITION_BENCHMARK_FIXTURE_ENTRIES: usize = 4_096;
+
+fn transposition_benchmark_key(index: u64) -> u64 {
+    index.wrapping_mul(0x9e37_79b9_7f4a_7c15).rotate_left(17) ^ 0xd1b5_4a32_d192_ed03
+}
+
+/// Benchmarks deterministic fixed-fixture transposition stores and probes.
+///
+/// Timing is informational and is not a correctness threshold. The checksum,
+/// operation ordering, table size, fixture population, and three-hit/one-miss
+/// probe pattern are deterministic for a fixed iteration count.
+pub fn benchmark_transposition(
+    iterations: u64,
+) -> Result<Vec<TranspositionBenchmarkRow>, ToolError> {
+    if iterations == 0 {
+        return Err(ToolError::new(
+            "transposition benchmark requires at least one iteration",
+        ));
+    }
+
+    let normalized_zero = TranspositionScore::normalize(Score::ZERO, 0)
+        .map_err(|error| ToolError::new(error.to_string()))?;
+    let mut store_table = TranspositionTable::new(TRANSPOSITION_BENCHMARK_MEBIBYTES)
+        .map_err(|error| ToolError::new(error.to_string()))?;
+    let store_started = Instant::now();
+    let mut store_checksum = 0_u64;
+    for iteration in 0..iterations {
+        let key = black_box(transposition_benchmark_key(iteration));
+        let depth = u16::try_from(iteration % 64 + 1).expect("benchmark depth is bounded");
+        let entry = TranspositionEntry::new(
+            key,
+            depth,
+            TranspositionBound::Exact,
+            normalized_zero,
+            None,
+            0,
+        );
+        let result = black_box(store_table.store(black_box(entry)));
+        let action_code = match result.action() {
+            TranspositionStoreAction::UpdatedSameKey { .. } => 1_u64,
+            TranspositionStoreAction::InsertedEmpty => 2,
+            TranspositionStoreAction::ReplacedCollision { .. } => 3,
+        };
+        store_checksum = store_checksum
+            .wrapping_add(key)
+            .wrapping_add(result.cluster_index() as u64)
+            .wrapping_add(result.slot_index() as u64)
+            .wrapping_add(action_code);
+    }
+    let store_row = TranspositionBenchmarkRow {
+        operation: "store",
+        iterations,
+        elapsed_nanos: store_started.elapsed().as_nanos(),
+        checksum: black_box(store_checksum),
+    };
+
+    let mut probe_table = TranspositionTable::new(TRANSPOSITION_BENCHMARK_MEBIBYTES)
+        .map_err(|error| ToolError::new(error.to_string()))?;
+    let fixture_entries = probe_table
+        .entry_capacity()
+        .min(TRANSPOSITION_BENCHMARK_FIXTURE_ENTRIES);
+    for fixture_index in 0..fixture_entries {
+        let key = fixture_index as u64 * 2 + 1;
+        probe_table.store(TranspositionEntry::new(
+            key,
+            32,
+            TranspositionBound::Exact,
+            normalized_zero,
+            None,
+            0,
+        ));
+    }
+    probe_table.reset_diagnostics();
+
+    let probe_started = Instant::now();
+    let mut probe_checksum = 0_u64;
+    for iteration in 0..iterations {
+        let fixture_index = iteration % fixture_entries as u64;
+        let key = fixture_index * 2 + if iteration & 3 == 3 { 2 } else { 1 };
+        let request = TranspositionProbeRequest::new(
+            key,
+            16,
+            0,
+            Score::from_evaluation(-1_000),
+            Score::from_evaluation(1_000),
+            TranspositionScoreReuse::Allowed,
+        );
+        let result = black_box(probe_table.probe(black_box(request)))
+            .map_err(|error| ToolError::new(error.to_string()))?;
+        let result_code = match result {
+            None => 1_u64,
+            Some(hit) => match hit.score() {
+                Some(TranspositionProbeScore::Exact(_)) => 2,
+                Some(TranspositionProbeScore::LowerBoundCutoff(_)) => 3,
+                Some(TranspositionProbeScore::UpperBoundCutoff(_)) => 4,
+                None => 5,
+            },
+        };
+        probe_checksum = probe_checksum.wrapping_add(key).wrapping_add(result_code);
+    }
+    let probe_row = TranspositionBenchmarkRow {
+        operation: "probe",
+        iterations,
+        elapsed_nanos: probe_started.elapsed().as_nanos(),
+        checksum: black_box(probe_checksum),
+    };
+
+    Ok(vec![store_row, probe_row])
+}
+
 fn sanitize_error(error: &ToolError) -> String {
     error
         .to_string()
@@ -330,7 +456,10 @@ pub fn run_oracle<R: BufRead, W: Write>(reader: R, mut writer: W) -> Result<(), 
 mod tests {
     use std::io::Cursor;
 
-    use super::{divide, legal_uci, perft_fixtures, play_uci, run_oracle, STARTING_FEN};
+    use super::{
+        benchmark_transposition, divide, legal_uci, perft_fixtures, play_uci, run_oracle,
+        STARTING_FEN,
+    };
 
     #[test]
     fn fixture_manifest_is_complete_and_stable() {
@@ -370,5 +499,19 @@ mod tests {
         assert_eq!(lines[0], "ok\t400");
         assert!(lines[1].starts_with("ok\t"));
         assert_eq!(lines[2], "ok\tbye");
+    }
+
+    #[test]
+    fn transposition_benchmark_fixtures_and_checksums_are_reproducible() {
+        assert!(benchmark_transposition(0).is_err());
+        let first = benchmark_transposition(128).expect("benchmark succeeds");
+        let second = benchmark_transposition(128).expect("benchmark repeats");
+
+        assert_eq!(first.len(), 2);
+        assert_eq!(first[0].operation, "store");
+        assert_eq!(first[1].operation, "probe");
+        assert!(first.iter().all(|row| row.iterations == 128));
+        assert_eq!(first[0].checksum, second[0].checksum);
+        assert_eq!(first[1].checksum, second[1].checksum);
     }
 }
