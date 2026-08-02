@@ -1,1 +1,0 @@
-The actual trigger is a GitHub issue titled [apply-task-14-2].

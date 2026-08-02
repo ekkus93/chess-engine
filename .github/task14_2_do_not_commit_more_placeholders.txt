@@ -1,1 +1,0 @@
-Temporary control artifact; remove after Task 14.2.

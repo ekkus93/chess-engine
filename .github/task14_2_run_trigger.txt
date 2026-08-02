@@ -1,1 +1,0 @@
-Launch the one-shot Task 14.2 applicator. Remove this file during cleanup.
