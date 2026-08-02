@@ -33,7 +33,10 @@ pub use reference::{
     reference_search_with_quiescence_and_cancellation, ReferenceSearchError, ReferenceSearchResult,
 };
 pub use score::{Score, MATE_SCORE, MAX_EVALUATION, MAX_MATE_PLY};
-pub use transposition::{TranspositionBound, TranspositionEntry, TranspositionScore};
+pub use transposition::{
+    TranspositionBound, TranspositionEntry, TranspositionScore, TranspositionTable,
+    TranspositionTableAllocationError, TRANSPOSITION_CLUSTER_SIZE,
+};
 pub use weights::{
     EvaluationWeightSet, EvaluationWeights, PhasedWeight, WeightValidationError,
     BASELINE_WEIGHT_SET_ID, EVALUATION_WEIGHT_SCHEMA_VERSION, WEIGHT_VALUE_COUNT,
