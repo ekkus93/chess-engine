@@ -1,47 +1,155 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - master
+  workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'
+  issues:
+    types:
+      - opened
 
 permissions:
-  contents: write
+  actions: write
+  contents: read
+  issues: write
 
 jobs:
-  fix-task14-closure:
-    name: Fix Task 14.1 closure transition
+  dispatch-rust-engine:
+    name: Dispatch pending rust-engine validation
+    if: >-
+      github.ref == 'refs/heads/master' &&
+      (github.event_name == 'schedule' ||
+       (github.event_name == 'issues' &&
+        github.event.issue.title == '[dispatch-rust-engine-ci]'))
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      ISSUE_NUMBER: '1'
+      EVENT_NAME: ${{ github.event_name }}
+      TRIGGER_ISSUE_NUMBER: ${{ github.event.issue.number }}
     steps:
-      - name: Check out control files
-        uses: actions/checkout@v4
-        with:
-          ref: master
-          path: control
-      - name: Check out rust-engine
-        uses: actions/checkout@v4
-        with:
-          ref: rust-engine
-          path: target
-      - name: Guard closure head
-        working-directory: target
+      - name: Resolve dispatch request
+        id: command
+        shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = 'e18c3cbeec1c221f8dfcb902cf552c8857766b8b'
-      - name: Correct stale transition text
-        working-directory: target
+
+          if [[ "${EVENT_NAME}" == "issues" ]]; then
+            echo 'dispatch=true' >>"${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          latest_comment="$(
+            gh api \
+              --method GET \
+              "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/comments" \
+              -f per_page=100 \
+              --jq 'last | "\(.id)|\(.body)"'
+          )"
+          IFS='|' read -r comment_id comment_body <<<"${latest_comment}"
+
+          if [[ "${comment_body}" != "/dispatch-rust-engine-ci" ]]; then
+            echo 'No pending rust-engine dispatch command.'
+            echo 'dispatch=false' >>"${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          echo 'dispatch=true' >>"${GITHUB_OUTPUT}"
+          echo "comment_id=${comment_id}" >>"${GITHUB_OUTPUT}"
+
+      - name: Dispatch CI at rust-engine
+        if: steps.command.outputs.dispatch == 'true'
+        id: dispatch
+        shell: bash
         run: |
           set -euo pipefail
-          python ../control/.github/fix_task14_closure.py .
-          git diff --check
-      - name: Commit and push
-        working-directory: target
+          dispatched_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          gh api \
+            --method POST \
+            "repos/${REPOSITORY}/actions/workflows/ci.yml/dispatches" \
+            -f ref=rust-engine
+          echo "dispatched_at=${dispatched_at}" >>"${GITHUB_OUTPUT}"
+
+      - name: Resolve dispatched run ID
+        if: >-
+          steps.command.outputs.dispatch == 'true' &&
+          github.event_name == 'issues'
+        id: run
+        shell: bash
+        env:
+          DISPATCHED_AT: ${{ steps.dispatch.outputs.dispatched_at }}
         run: |
           set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md \
-                  docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
-          git commit -m 'docs: align Task 14.1 transition status'
-          git push origin HEAD:rust-engine
+
+          jq_filter=".workflow_runs | map(select(.created_at >= \"${DISPATCHED_AT}\")) | sort_by(.created_at) | last | if . == null then \"\" else \"\(.id)|\(.head_sha)|\(.status)\" end"
+
+          for attempt in $(seq 1 30); do
+            run_record="$(
+              gh api \
+                --method GET \
+                "repos/${REPOSITORY}/actions/workflows/ci.yml/runs" \
+                -f branch=rust-engine \
+                -f event=workflow_dispatch \
+                -f per_page=10 \
+                --jq "${jq_filter}"
+            )"
+
+            if [[ -n "${run_record}" ]]; then
+              IFS='|' read -r run_id head_sha run_status <<<"${run_record}"
+              echo "run_id=${run_id}" >>"${GITHUB_OUTPUT}"
+              echo "head_sha=${head_sha}" >>"${GITHUB_OUTPUT}"
+              echo "run_status=${run_status}" >>"${GITHUB_OUTPUT}"
+              exit 0
+            fi
+
+            sleep 2
+          done
+
+          echo 'Dispatched workflow run did not become visible within 60 seconds.' >&2
+          exit 1
+
+      - name: Report dispatched run
+        if: >-
+          steps.command.outputs.dispatch == 'true' &&
+          github.event_name == 'issues'
+        shell: bash
+        env:
+          RUN_ID: ${{ steps.run.outputs.run_id }}
+          HEAD_SHA: ${{ steps.run.outputs.head_sha }}
+          RUN_STATUS: ${{ steps.run.outputs.run_status }}
+        run: |
+          set -euo pipefail
+          body="Dispatched CI run ${RUN_ID} for rust-engine SHA ${HEAD_SHA}; initial status: ${RUN_STATUS}."
+          gh api \
+            --method POST \
+            "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE_NUMBER}/comments" \
+            -f body="${body}"
+
+      - name: Consume scheduled comment command
+        if: >-
+          steps.command.outputs.dispatch == 'true' &&
+          github.event_name == 'schedule'
+        shell: bash
+        env:
+          COMMENT_ID: ${{ steps.command.outputs.comment_id }}
+        run: |
+          set -euo pipefail
+          gh api \
+            --method PATCH \
+            "repos/${REPOSITORY}/issues/comments/${COMMENT_ID}" \
+            -f body='/dispatch-rust-engine-ci — dispatched'
+
+      - name: Close one-shot trigger issue
+        if: >-
+          steps.command.outputs.dispatch == 'true' &&
+          github.event_name == 'issues'
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api \
+            --method PATCH \
+            "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE_NUMBER}" \
+            -f state=closed \
+            -f state_reason=completed
