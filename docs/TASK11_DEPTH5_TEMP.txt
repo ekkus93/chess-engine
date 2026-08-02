@@ -1,0 +1,16 @@
+validated_sha=45eff9478d2a4aa64780f6f2fac17a38cc1e770c
+[1m[92m   Compiling[0m chess-core v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-core)
+[1m[92m    Finished[0m `release` profile [optimized] target(s) in 9.08s
+[1m[92m     Running[0m unittests src/lib.rs (target/release/deps/chess_core-ac7713766cc8e08d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 84 filtered out; finished in 0.00s
+
+[1m[92m     Running[0m tests/authoritative_perft.rs (target/release/deps/authoritative_perft-b061e2a916b97e45)
+
+running 1 test
+test authoritative_perft_depth_five ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 39.63s
+
