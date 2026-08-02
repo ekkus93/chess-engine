@@ -1,9 +1,6 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - master
   workflow_dispatch:
   schedule:
     - cron: '*/5 * * * *'
@@ -161,14 +158,15 @@ jobs:
     name: Apply Task 14.2 tactical ordering
     if: >-
       github.ref == 'refs/heads/master' &&
-      github.event_name == 'push' &&
-      contains(github.event.head_commit.message, '[run-task14-2]')
+      github.event_name == 'issues' &&
+      github.event.issue.title == '[apply-task-14-2-main]'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       GH_TOKEN: ${{ github.token }}
       REPOSITORY: ${{ github.repository }}
-      ISSUE_NUMBER: '127'
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+      TASK_LOG: /tmp/task14-2.log
     steps:
       - name: Check out control files
         uses: actions/checkout@v4
@@ -189,20 +187,19 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-      - name: Apply and format Task 14.2
+      - name: Apply and validate Task 14.2
         working-directory: target
         run: |
-          set -euo pipefail
-          python ../control/.github/apply_task_14_2.py .
-          cargo fmt --all
-          git diff --check
-      - name: Run focused search validation
-        working-directory: target
-        run: |
-          set -euo pipefail
-          cargo check --locked -p chess-search --all-targets --all-features
-          cargo clippy --locked -p chess-search --all-targets --all-features -- -D warnings
-          cargo test --locked -p chess-search --all-features
+          set -o pipefail
+          {
+            set -euo pipefail
+            python ../control/.github/apply_task_14_2.py .
+            cargo fmt --all
+            git diff --check
+            cargo check --locked -p chess-search --all-targets --all-features
+            cargo clippy --locked -p chess-search --all-targets --all-features -- -D warnings
+            cargo test --locked -p chess-search --all-features
+          } 2>&1 | tee "${TASK_LOG}"
       - name: Commit and push implementation
         id: commit
         working-directory: target
@@ -219,7 +216,7 @@ jobs:
           git commit -m 'feat: implement Task 14.2 tactical ordering'
           git push origin HEAD:rust-engine
           echo "sha=$(git rev-parse HEAD)" >>"${GITHUB_OUTPUT}"
-      - name: Report and close issue
+      - name: Report success
         env:
           SHA: ${{ steps.commit.outputs.sha }}
         run: |
@@ -231,3 +228,16 @@ jobs:
             "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}" \
             -f state=closed \
             -f state_reason=completed
+      - name: Report failure
+        if: failure()
+        run: |
+          set -euo pipefail
+          if [[ -f "${TASK_LOG}" ]]; then
+            tail -n 180 "${TASK_LOG}" > /tmp/task14-2-tail.log
+          else
+            printf '%s\n' 'Task 14.2 failed before the validation log was created.' > /tmp/task14-2-tail.log
+          fi
+          body="$(printf 'Task 14.2 preflight failed. Tail of the focused log:\n\n```text\n%s\n```' "$(cat /tmp/task14-2-tail.log)")"
+          gh api --method POST \
+            "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/comments" \
+            -f body="${body}"
