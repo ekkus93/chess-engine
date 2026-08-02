@@ -310,7 +310,10 @@ mod tests {
         let mut mate_history = SearchHistory::from_position(&mate);
         let mate_result =
             reference_search(&mut mate, &mut mate_history, 3).expect("mate search succeeds");
-        assert_eq!(mate_result.score(), Score::mated_in(0).expect("supported ply"));
+        assert_eq!(
+            mate_result.score(),
+            Score::mated_in(0).expect("supported ply")
+        );
         assert_eq!(mate_result.best_move(), None);
         assert_eq!(mate_result.nodes(), 1);
 
