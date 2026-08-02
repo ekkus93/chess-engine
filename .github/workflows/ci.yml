@@ -194,6 +194,7 @@ jobs:
           {
             set -euo pipefail
             python ../control/.github/apply_task_14_2.py .
+            python ../control/.github/fix_task_14_2_window.py .
             cargo fmt --all
             git diff --check
             cargo check --locked -p chess-search --all-targets --all-features
