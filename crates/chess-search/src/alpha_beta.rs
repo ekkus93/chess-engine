@@ -2,7 +2,10 @@ use core::fmt;
 
 use chess_core::{LegalMoveError, Move, Position, SearchHistory, SearchHistoryError};
 
-use crate::{search_common::resolved_node_score, Score, MAX_MATE_PLY};
+use crate::{
+    cancellation::NeverCancelled, search_common::resolved_node_score, Score,
+    SearchCancellationProbe, MAX_MATE_PLY,
+};
 
 /// Result of one full-window negamax alpha-beta search.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -53,6 +56,8 @@ pub enum AlphaBetaSearchError {
         /// Largest supported depth in plies.
         maximum: u16,
     },
+    /// Cooperative cancellation was requested.
+    Cancelled,
     /// Recursive node accumulation exceeded `u64`.
     NodeCountOverflow,
     /// A non-terminal searched node unexpectedly produced no best move.
@@ -75,6 +80,7 @@ impl fmt::Display for AlphaBetaSearchError {
                 formatter,
                 "alpha-beta depth {depth} exceeds supported maximum {maximum}"
             ),
+            Self::Cancelled => formatter.write_str("alpha-beta search cancelled"),
             Self::NodeCountOverflow => formatter.write_str("alpha-beta node count overflow"),
             Self::MissingBestMove => {
                 formatter.write_str("non-terminal alpha-beta node has no best move")
@@ -99,6 +105,20 @@ impl From<SearchHistoryError> for AlphaBetaSearchError {
 
 /// Searches to `depth` with recursive fail-soft negamax alpha-beta pruning.
 ///
+/// This convenience entry point never requests cancellation. Use
+/// [`alpha_beta_search_with_cancellation`] when an external stop probe is
+/// required.
+pub fn alpha_beta_search(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    depth: u16,
+) -> Result<AlphaBetaSearchResult, AlphaBetaSearchError> {
+    let mut cancellation = NeverCancelled;
+    alpha_beta_search_with_cancellation(position, history, depth, &mut cancellation)
+}
+
+/// Searches to `depth` with alpha-beta pruning and cooperative cancellation.
+///
 /// The search uses the same side-to-move score, mate-distance, terminal, draw,
 /// and repetition semantics as [`crate::reference_search`]. Legal moves retain
 /// their deterministic generation order, and equal scores keep the first move.
@@ -107,13 +127,19 @@ impl From<SearchHistoryError> for AlphaBetaSearchError {
 ///
 /// The supplied history must end at `position`. Every child is applied through
 /// a source-bound legal token, pushed onto the detached line history, searched,
-/// then popped and unmade before the next child. The function performs no
-/// clone-per-child operation.
-pub fn alpha_beta_search(
+/// then popped and unmade before the next child. Cancellation is checked at
+/// node and child boundaries. A cancellation error is returned only after every
+/// active child move and line-history entry has been restored. The function
+/// performs no clone-per-child operation.
+pub fn alpha_beta_search_with_cancellation<Probe>(
     position: &mut Position,
     history: &mut SearchHistory,
     depth: u16,
-) -> Result<AlphaBetaSearchResult, AlphaBetaSearchError> {
+    cancellation: &mut Probe,
+) -> Result<AlphaBetaSearchResult, AlphaBetaSearchError>
+where
+    Probe: SearchCancellationProbe + ?Sized,
+{
     if depth > MAX_MATE_PLY {
         return Err(AlphaBetaSearchError::DepthTooLarge {
             depth,
@@ -134,7 +160,7 @@ pub fn alpha_beta_search(
     let initial_zobrist = position.zobrist();
     let alpha = Score::mated_in(0).expect("zero-ply mate score is supported");
     let beta = Score::mate_in(0).expect("zero-ply mate score is supported");
-    let result = search_node(position, history, depth, 0, alpha, beta);
+    let result = search_node(position, history, depth, 0, alpha, beta, cancellation);
 
     debug_assert_eq!(history.len(), initial_history_len);
     debug_assert_eq!(history.line_len(), initial_line_len);
@@ -145,14 +171,22 @@ pub fn alpha_beta_search(
     result
 }
 
-fn search_node(
+fn search_node<Probe>(
     position: &mut Position,
     history: &mut SearchHistory,
     depth: u16,
     ply: u16,
     mut alpha: Score,
     beta: Score,
-) -> Result<AlphaBetaSearchResult, AlphaBetaSearchError> {
+    cancellation: &mut Probe,
+) -> Result<AlphaBetaSearchResult, AlphaBetaSearchError>
+where
+    Probe: SearchCancellationProbe + ?Sized,
+{
+    if cancellation.should_cancel() {
+        return Err(AlphaBetaSearchError::Cancelled);
+    }
+
     let tokens = position.legal_move_tokens()?;
     if let Some(score) = resolved_node_score(position, history, tokens.is_empty(), depth, ply)
         .map_err(|error| AlphaBetaSearchError::DepthTooLarge {
@@ -172,10 +206,22 @@ fn search_node(
     let mut best_move = None;
 
     for token in tokens.iter() {
+        if cancellation.should_cancel() {
+            return Err(AlphaBetaSearchError::Cancelled);
+        }
+
         let current = token.move_made();
         let position_undo = position.make_legal_token(token)?;
         let history_undo = history.push_position(position);
-        let child = search_node(position, history, depth - 1, ply + 1, -beta, -alpha);
+        let child = search_node(
+            position,
+            history,
+            depth - 1,
+            ply + 1,
+            -beta,
+            -alpha,
+            cancellation,
+        );
         let history_restore = history.pop_position(history_undo);
         let position_restore = position.unmake_move(position_undo);
 
