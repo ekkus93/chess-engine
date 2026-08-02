@@ -8,13 +8,17 @@ on:
       - .github/workflows/task11-kiwipete-diagnostic-once.yml
 
 permissions:
-  contents: read
-  issues: write
+  contents: write
 
 jobs:
   diagnose:
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -24,7 +28,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install --disable-pip-version-check chess==1.11.2
-          python - <<'PY' > diagnostic.txt
+          python - <<'PY' > docs/TASK11_KIWIPETE_DIAGNOSTIC_TEMP.txt
           import chess
 
           supplied = "r3k2r/p1ppqpb1/bn2pnp1/2pP4/1p2P3/2N2N2/PPQBBPPP/R3K2R w KQkq - 0 1"
@@ -40,6 +44,7 @@ jobs:
                   board.pop()
               return total
 
+          print(f"chess_version={chess.__version__}")
           for name, fen in [("supplied", supplied), ("canonical", canonical)]:
               board = chess.Board(fen)
               print(f"{name} valid={board.is_valid()} fen={board.fen(en_passant='fen')}")
@@ -47,18 +52,9 @@ jobs:
                   print(f"{name} d{depth}={perft(board, depth)}")
               print(f"{name} legal={','.join(sorted(move.uci() for move in board.legal_moves))}")
           PY
-
-      - name: Publish diagnostic
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          {
-            echo 'Pinned `chess==1.11.2` diagnostic:'
-            echo
-            echo '```text'
-            cat diagnostic.txt
-            echo '```'
-          } > comment.md
-          gh issue comment 50 --repo "$GITHUB_REPOSITORY" --body-file comment.md
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/TASK11_KIWIPETE_DIAGNOSTIC_TEMP.txt
+          git commit -m "test(core): record Kiwipete oracle diagnostic"
+          git push origin HEAD:rust-engine
