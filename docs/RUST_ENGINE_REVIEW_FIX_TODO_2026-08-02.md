@@ -1,387 +1,372 @@
 # Rust Engine Review Fix TODO — 2026-08-02
 
-**Status:** Implemented; exact-head validation pending  
+**Status:** Complete  
 **Branch:** `rust-engine`  
 **Spec:** `docs/RUST_ENGINE_REVIEW_FIX_SPEC_2026-08-02.md`  
 **Primary tracker:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Purpose:** Fix review findings before Task 13 search implementation.
+**Validated implementation SHA:** `81a7cd4a58a52695eca2ede10d5c73c803851d17`
 
 ---
 
 ## Status rules
 
-- `[x]` means implemented, documented, tested, and validated on the exact recorded SHA.
-- `[ ]` means incomplete, unverified, deferred, blocked, or not started.
-- Do not mark this review-fix pass complete until the final validation gate passes.
-- Do not mark Task 13 started or complete as part of this pass.
-- Every first-party rustfmt, compiler, Clippy, test, rustdoc, build, perft, or differential finding is a source bug.
-- No first-party lint suppression, ignored exit status, or downgraded gate is accepted.
+- `[x]` means implemented, documented, tested, and supported by recorded evidence.
+- `[ ]` remains incomplete and outside this review-fix pass.
+- This pass does not implement Task 13 search.
+- Every first-party formatting, compiler, Clippy, test, rustdoc, build, perft, or differential failure was treated as a source defect.
+- No first-party lint suppression or weakened validation gate was accepted.
 
 ---
 
-## Program guardrails
+# RF-000: Baseline confirmation — COMPLETE
 
-- [x] Work only on `rust-engine` unless the user explicitly requests a separate branch.
-- [x] Do not implement Task 13 search in this pass.
-- [x] Do not weaken `chess-core` or `chess-search` dependency boundaries.
-- [x] Do not add unsafe code to `chess-core` or `chess-search`.
-- [x] Do not add clone-per-child as a production search fallback.
-- [x] Do not add automatic config, weight, or book loading.
-- [x] Preserve the existing public safe `Position::make_move(Move)` path.
-- [x] Preserve exact make/unmake restoration.
-- [x] Preserve existing perft and differential corpus behavior except where a deliberate FEN policy change requires fixture updates.
+## RF-000.1 Review context
 
----
-
-# RF-000: Baseline confirmation
-
-## RF-000.1 Verify current review context
-
-- [x] Confirm `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md` still marks Tasks 0–12 complete and Task 13 active/not started.
-- [x] Confirm `crates/chess-search/src/lib.rs` still has no Task 13 search module.
-- [x] Confirm `crates/chess-core/src/position/make_unmake.rs` still keeps the generated-legal make path unavailable to `chess-search`.
-- [x] Confirm `chess-tools divide` still lacks elapsed output before editing.
-- [x] Confirm `Game` still lacks explicit reset/set-position APIs before editing.
-- [x] Record the starting SHA for this review-fix pass.
+- [x] Confirmed Tasks 0–12 were marked complete before this pass.
+- [x] Confirmed Task 13 was active and not started.
+- [x] Confirmed `chess-search` contained evaluation/score/weights but no Task 13 search implementation.
+- [x] Confirmed the efficient generated-legal make path was inaccessible to the separate `chess-search` crate.
+- [x] Confirmed `Game` lacked explicit reset/set-position APIs.
+- [x] Confirmed `chess-tools divide` lacked elapsed output.
+- [x] Confirmed the live TODO footer still contained stale Task 9 operations.
+- [x] Confirmed Task 25 understated existing CI, documentation, and commands.
+- [x] Confirmed the FEN analysis-position policy required explicit documentation/tests.
+- [x] Recorded the starting code/documentation SHA: `52377d09b713541044e24c8e3559be3f12002cc1`.
 
 ## RF-000.2 Failure preservation
 
-- [x] If any reviewed issue is already fixed by a newer commit, record the commit and do not duplicate the fix.
-- [x] If any reviewed issue is invalid after fresh inspection, document why in the completion notes.
-- [x] Convert every still-valid issue into tests or documented policy.
+- [x] Reinspected each review finding before implementation.
+- [x] Preserved valid findings as tests or documented contracts.
+- [x] Did not duplicate any finding already fixed by newer source.
+- [x] Kept Task 13 itself outside the pass.
 
 ---
 
-# RF-001: Search-safe generated legal move API
+# RF-001: Search-safe generated legal move API — COMPLETE
 
-## RF-001.1 API design
+## RF-001.1 Public API
 
-- [x] Add an externally usable legal-move token type or equivalent safe API.
-- [x] Keep token fields private.
-- [x] Ensure external crates cannot construct a fake token manually.
-- [x] Bind each token to the exact packed `Move` identity.
-- [x] Bind each token to enough source-position identity to reject stale/wrong-position use before mutation.
-- [x] Expose read-only token inspection, at least `move_made()` or equivalent.
-- [x] Preserve the existing raw `Move` public API for callers that need full revalidation.
-- [x] Keep the raw generated-legal primitive crate-private or otherwise inaccessible as an unsafe bypass.
+- [x] Added opaque `LegalMoveToken` with private fields.
+- [x] Added bounded `LegalMoveTokenList`.
+- [x] Added read-only `LegalMoveToken::move_made()`.
+- [x] Added `Position::legal_move_tokens()`.
+- [x] Added `Position::make_legal_token()`.
+- [x] Preserved public checked `Position::make_move(Move)`.
+- [x] Kept the raw generated-legal primitive crate-private.
+- [x] Did not add a dependency from `chess-core` to `chess-search`.
 
-## RF-001.2 Token generation
+## RF-001.2 Origin identity
 
-- [x] Add a legal-token generator on `Position`.
-- [x] Reuse the current legal move generator's legality filtering.
-- [x] Preserve deterministic move order.
-- [x] Preserve fixed-capacity or stack-friendly storage.
-- [x] Avoid heap-heavy token generation.
-- [x] Ensure token generation restores the position exactly before returning.
-- [x] Ensure token generation returns the same move identities as `legal_moves()` for representative positions.
+Each token is bound to:
 
-## RF-001.3 Token application
+- [x] exact packed `Move` identity;
+- [x] canonical source Zobrist key;
+- [x] source side to move;
+- [x] source castling rights;
+- [x] source raw en-passant target;
+- [x] source halfmove clock;
+- [x] source fullmove number.
 
-- [x] Add a public method to apply one token without regenerating legal moves.
-- [x] Reject stale tokens before any mutation.
-- [x] Reject tokens from another position before any mutation.
-- [x] Reject tokens whose move identity no longer matches current board state before any mutation.
-- [x] Return `PositionUndo` on success.
-- [x] Reuse the existing reversible make/unmake implementation internally.
-- [x] Preserve Zobrist incremental update and exact unmake restoration.
-- [x] Add debug/test assertions comparing incremental and recomputed Zobrist after token make/unmake.
+## RF-001.3 Generation and application
 
-## RF-001.4 Cross-crate search usability
+- [x] Token generation reuses legal move generation.
+- [x] Token order matches deterministic legal move order.
+- [x] Token storage is fixed-capacity and stack-backed.
+- [x] Token generation restores the source position exactly.
+- [x] Valid token application does not regenerate legal moves.
+- [x] Valid token application reuses the existing reversible primitive.
+- [x] Valid token application returns `PositionUndo`.
+- [x] Stale/wrong-origin tokens return `LegalMoveTokenMismatch` before mutation.
+- [x] Generated move/state consistency remains checked by the reversible primitive.
+- [x] Zobrist incremental state remains checked against recomputation in debug/tests.
 
-- [x] Add at least one `chess-search` test or helper that uses the public token API from outside `chess-core`.
-- [x] Prove `chess-search` can generate legal tokens, apply one, evaluate/search a child placeholder, and unmake.
-- [x] Do not expose `chess-core` crate-private internals to `chess-search`.
-- [x] Do not introduce a dependency from `chess-core` to `chess-search`.
+## RF-001.4 Cross-crate usability
 
-## RF-001.5 Tests
+- [x] Added a `chess-search` test using the public token API.
+- [x] The test generates a legal token, applies it, evaluates the child, unmakes it, and proves exact root restoration.
+- [x] `chess-search` does not depend on crate-private `chess-core` internals.
+- [x] No search algorithm beyond the API usability test was added.
 
-- [x] Starting position legal tokens match the legal move set.
-- [x] Kiwipete or another castling-heavy fixture legal tokens match the legal move set.
-- [x] Promotion fixture tokens preserve all underpromotion identities.
-- [x] En-passant fixture token applies and unmakes exactly.
-- [x] Stale token after a different move fails before mutation.
-- [x] Token from a different FEN fails before mutation.
-- [x] Wrong-side or mismatched-origin token fails before mutation.
-- [x] Every token in a curated corpus passes make, invariant validation, unmake, exact equality, and hash restoration.
-- [x] The public safe `make_move(Move)` behavior remains unchanged.
+## RF-001.5 Regression coverage
+
+- [x] Starting-position token identities match legal move identities.
+- [x] Castling-heavy token identities match legal move identities.
+- [x] Promotion and underpromotion identities are preserved.
+- [x] En-passant token make/unmake restores exactly.
+- [x] Stale token after another move fails before mutation.
+- [x] Token from another position fails before mutation.
+- [x] Wrong-side/mismatched-origin token fails before mutation.
+- [x] Curated all-token make/invariant/unmake/equality/hash coverage passes.
+- [x] Existing raw `make_move(Move)` behavior remains intact.
 
 ## RF-001 gate
 
-- [x] `chess-search` has an efficient generated-legal make/unmake path available without legal-list regeneration.
-- [x] Fake/stale/wrong-position bypass attempts are covered by tests and fail non-mutatingly.
-- [x] No search implementation is added beyond minimal API usability tests.
+- [x] `chess-search` has a safe efficient generated-legal make/unmake boundary without legal-list regeneration.
 
 ---
 
-# RF-002: Explicit `Game` reset and set-position APIs
+# RF-002: Explicit `Game` reset and set-position APIs — COMPLETE
 
-## RF-002.1 API implementation
+## RF-002.1 API
 
-- [x] Add explicit `Game` reset-to-starting API.
-- [x] Add explicit `Game` set-position API.
-- [x] Choose final method names and document them in rustdoc.
-- [x] Reset/set-position must clear played moves.
-- [x] Reset/set-position must reset position-hash history to exactly one root hash.
-- [x] Reset/set-position must not preserve previous repetition history.
-- [x] Reset/set-position must not preserve old undo tokens as valid history operations.
+- [x] Added `Game::reset_to_starting()`.
+- [x] Added `Game::set_position(Position)`.
+- [x] Documented both methods in rustdoc.
+- [x] Kept both methods infallible because `Position` is already validated.
 
-## RF-002.2 Semantics and errors
+## RF-002.2 State semantics
 
-- [x] Decide whether APIs are infallible because `Position` is already validated.
-- [x] If any API is fallible, define structured errors and non-mutating failure behavior.
-- [x] Ensure status after reset/set-position is computed from the new root.
-- [x] Ensure search history after reset/set-position starts from the new root only.
+Both methods:
+
+- [x] replace the current position;
+- [x] clear played moves;
+- [x] reset position-hash history to exactly one root hash;
+- [x] discard old repetition history;
+- [x] prevent old game undo context from remaining valid;
+- [x] cause status and search-history operations to use only the new root.
 
 ## RF-002.3 Tests
 
-- [x] Make moves, call reset, and assert equality with `Game::starting()`.
-- [x] Make moves, call set-position, and assert `ply_count() == 0`.
-- [x] Make moves, call set-position, and assert `moves().is_empty()`.
-- [x] Make moves, call set-position, and assert `position_hashes().len() == 1`.
-- [x] Assert the sole hash after set-position equals the new position's Zobrist key.
-- [x] Assert `status()` after set-position reflects the new position.
-- [x] Assert `search_history()` after set-position has the new root length and current hash.
-- [x] Assert stale `GameUndo` from before reset/set-position cannot be used successfully.
+- [x] Reset after moves equals `Game::starting()`.
+- [x] Set-position resets `ply_count()` to zero.
+- [x] Set-position clears `moves()`.
+- [x] Set-position leaves exactly one position hash.
+- [x] The sole hash equals the new root Zobrist key.
+- [x] Status reflects the new root.
+- [x] Search history starts at the new root.
+- [x] Stale `GameUndo` from before root replacement is rejected.
 
 ## RF-002.4 Documentation
 
-- [x] Update the game/history documentation with reset/set-position semantics.
-- [x] Update Task 10 completion notes if they mention Game API coverage.
+- [x] Updated game/history documentation with root replacement semantics.
+- [x] Satisfied the literal Task 10.1 reset/set-position requirement.
 
 ## RF-002 gate
 
-- [x] The literal Task 10.1 reset/set-position requirement is implemented and tested, or the live TODO explicitly documents a deliberate alternative with rationale.
+- [x] Explicit game root replacement is implemented, documented, and tested.
 
 ---
 
-# RF-003: Stable elapsed-time output for `chess-tools divide`
+# RF-003: Stable elapsed-time output for divide — COMPLETE
 
-## RF-003.1 Library/tooling design
+## RF-003.1 Output contract
 
-- [x] Decide whether elapsed timing belongs only in CLI output or also in a library return type.
-- [x] Preserve existing `divide(fen, depth) -> Vec<(String, u64)>` behavior unless a library type change is clearly justified.
-- [x] Use a stable machine-readable timing field.
-- [x] Prefer `elapsed_nanos\t<N>` as the final output line.
+`chess-tools divide` now emits:
 
-## RF-003.2 CLI implementation
+```text
+<uci>\t<nodes>
+...
+total\t<nodes>
+elapsed_nanos\t<nanos>
+```
 
-- [x] Start timing before the divide operation.
-- [x] Stop timing after root rows and total are computed, or document the exact measured region.
-- [x] Print every existing move row unchanged.
-- [x] Print `total\t<N>` unchanged.
-- [x] Print elapsed time after total.
-- [x] Ensure depth-zero behavior remains documented and stable.
-- [x] Ensure errors still exit nonzero and do not print partial success summaries.
+- [x] Existing sorted move rows are unchanged.
+- [x] Existing `total\t<N>` output is unchanged.
+- [x] `elapsed_nanos\t<N>` is appended after total.
+- [x] Timing covers divide calculation and total accumulation before output.
+- [x] Library `divide(fen, depth)` behavior remains unchanged.
+- [x] Errors remain nonzero/fail-loud.
 
-## RF-003.3 Tests
+## RF-003.2 Tests
 
-- [x] Update CLI/unit tests that parse divide output.
-- [x] Assert move rows remain sorted.
-- [x] Assert total remains correct.
-- [x] Assert elapsed line exists.
-- [x] Assert elapsed value parses as an unsigned integer.
-- [x] Avoid exact elapsed-value assertions.
+- [x] Move rows remain sorted.
+- [x] Total remains exact.
+- [x] Elapsed line exists.
+- [x] Elapsed value parses as `u128`.
+- [x] Nontrivial work reports a positive duration.
+- [x] Depth-zero output remains a stable two-line summary.
 
-## RF-003.4 Documentation
+## RF-003.3 Documentation
 
-- [x] Update perft/differential validation docs or tooling docs to show the new divide output format.
-- [x] Update Task 11.3 evidence if applicable.
+- [x] Updated perft/differential documentation with the timing field.
+- [x] Satisfied the detailed Task 11.3 elapsed-time requirement.
 
 ## RF-003 gate
 
-- [x] `chess-tools divide` satisfies the detailed Task 11 requirement: canonical root moves, child counts, total, and elapsed time.
+- [x] Divide provides canonical rows, total, and stable elapsed timing.
 
 ---
 
-# RF-004: FEN analysis-position policy
+# RF-004: FEN analysis-position policy — COMPLETE
 
-## RF-004.1 Policy decision
+## RF-004.1 Chosen policy
 
-- [x] Decide and document whether `Position::from_fen` is a strict reachable-game parser or a strict syntax/structural analysis-position parser.
-- [x] If keeping analysis-position tolerance, document that the parser does not prove reachability from the standard starting position.
-- [x] If tightening validation, add precise structured errors for newly rejected states.
-- [x] Preserve fail-loud malformed-input behavior.
+- [x] `Position::from_fen` is documented as a strict syntax and structural analysis-position parser.
+- [x] It does not attempt to prove reachability from the standard starting position.
+- [x] Malformed input remains fail-loud and panic-free.
 
-## RF-004.2 Required policy cases
+## RF-004.2 Rejected states
 
-Lock in parser behavior for each case:
+The parser continues to reject:
 
-- [x] Castling rights present while matching home rook is absent.
-- [x] Castling rights present while matching home king is absent or king is elsewhere.
-- [x] Non-capturable en-passant target with correct FEN target rank.
-- [x] Adjacent kings.
-- [x] Both kings in check.
-- [x] Side to move in check.
-- [x] Side not to move in check.
-- [x] Position unreachable from initial chess but structurally usable for analysis.
+- [x] malformed field count or placement;
+- [x] invalid piece, active-color, castling, en-passant, or counter syntax;
+- [x] pawns on rank one or rank eight;
+- [x] invalid en-passant target rank;
+- [x] occupied en-passant target;
+- [x] missing king;
+- [x] multiple kings;
+- [x] redundant-state invariant failures.
 
-## RF-004.3 Tests for accepted cases
+## RF-004.3 Intentionally accepted analysis states
 
-For every intentionally accepted case:
+Policy tests cover acceptance of:
 
-- [x] Assert `Position::from_fen` succeeds.
-- [x] Assert `validate_invariants()` succeeds.
-- [x] Assert `to_fen()` behavior is documented and stable.
-- [x] Assert `zobrist() == recomputed_zobrist()`.
-- [x] Assert `legal_moves()` does not panic.
-- [x] Assert `perft(0)` returns one leaf.
+- [x] castling rights without the matching home rook;
+- [x] castling rights without the matching home king position;
+- [x] correctly ranked but non-capturable en-passant target;
+- [x] adjacent kings;
+- [x] both kings in check;
+- [x] side to move already in check;
+- [x] side not to move already in check;
+- [x] unusual/unreachable analysis material.
 
-## RF-004.4 Tests for rejected cases
+## RF-004.4 Downstream safety tests
 
-For every intentionally rejected case:
+For accepted analysis states:
 
-- [x] Assert `Position::from_fen` fails.
-- [x] Assert the exact structured error category.
-- [x] Assert no panic occurs.
-- [x] Assert no partially mutated existing position is possible.
+- [x] FEN parsing succeeds.
+- [x] Structural invariants pass.
+- [x] Canonical FEN output is stable.
+- [x] Stored and recomputed Zobrist keys agree.
+- [x] Legal move generation does not panic.
+- [x] `perft(0)` returns one.
+- [x] Parse/serialize/parse equality holds.
 
-## RF-004.5 Documentation
+## RF-004.5 Rule consequences
 
-- [x] Add a "FEN validation policy" section to the FEN/notation documentation.
-- [x] Define syntax validation.
-- [x] Define structural validation.
-- [x] Define analysis-state tolerance.
-- [x] List accepted illegal/reachability-impossible analysis states, if any.
-- [x] List rejected states.
-- [x] Explain implications for legal move generation, Zobrist canonicalization, and differential corpus entries.
+- [x] Legal generation never permits king capture.
+- [x] Castling remains unavailable without required pieces/path/safety.
+- [x] Non-capturable en-passant targets are excluded from repetition identity.
+- [x] Differential corpus positions remain constrained by the pinned oracle.
+
+## RF-004.6 Documentation
+
+- [x] Added a “FEN validation policy” section to the FEN/UCI documentation.
+- [x] Documented syntax validation, structural validation, analysis tolerance, accepted states, rejected states, and downstream implications.
 
 ## RF-004 gate
 
-- [x] FEN parser policy is explicit, tested, and no longer ambiguous under the phrase "strict playable FEN."
+- [x] FEN parser semantics are explicit and regression-locked.
 
 ---
 
-# RF-005: Live TODO and Task 25 cleanup
+# RF-005: Live TODO and Task 25 cleanup — COMPLETE
 
-## RF-005.1 Fix stale immediate next operations
+## RF-005.1 Immediate operations
 
-- [x] Open `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`.
-- [x] Remove the stale Task 9 Zobrist "Immediate next operations" footer.
-- [x] Replace it with Task 13 preparation/next operations.
-- [x] Include this review-fix TODO as the prerequisite operation before Task 13 search.
-- [x] Do not mark Task 13 subtasks complete.
+- [x] Removed the stale Task 9 Zobrist next-operation footer.
+- [x] Added the review-fix pass as the prerequisite to Task 13.
+- [x] Added reference-search-first Task 13 sequencing.
+- [x] Added search immutability as a Task 13 completion requirement.
+- [x] Kept all Task 13 subtasks unchecked/not started.
 
-Suggested new next operations:
+## RF-005.2 Task 25 CI truth
 
-1. Complete `docs/RUST_ENGINE_REVIEW_FIX_TODO_2026-08-02.md`.
-2. Add search-safe generated-legal make/unmake API.
-3. Validate reset/set-position, divide timing, FEN policy, and tracker cleanup.
-4. Begin Task 13 reference search only after the review-fix gate passes.
-5. Implement no-prune reference search before alpha-beta.
-6. Validate search immutability before Task 13 completion.
+- [x] Preserved Task 25 as partial.
+- [x] Recorded Linux strict CI.
+- [x] Recorded release depth-four perft CI.
+- [x] Recorded scheduled/manual depth-five perft.
+- [x] Kept AArch64 incomplete.
+- [x] Kept Android/JNI CI incomplete.
+- [x] Kept Miri, sanitizer, and fuzz gates incomplete.
+- [x] Kept scheduled strength testing incomplete.
 
-## RF-005.2 Task 25 CI checklist cleanup
+## RF-005.3 Task 25 documentation truth
 
-- [x] Preserve Task 25 as `PARTIAL`.
-- [x] Mark release depth-four perft CI present if still verified.
-- [x] Mark scheduled/manual depth-five slow perft present if still verified.
-- [x] Keep AArch64 incomplete unless a current workflow proves it.
-- [x] Keep Android compile incomplete unless a current workflow proves it.
-- [x] Keep JNI incomplete unless a current workflow proves it.
-- [x] Keep Miri incomplete unless a current workflow proves it.
-- [x] Keep sanitizer incomplete unless a current workflow proves it.
-- [x] Keep fuzz incomplete unless a current workflow proves it.
-- [x] Keep scheduled strength incomplete unless a current workflow proves it.
+- [x] Recorded Zobrist/repetition documentation.
+- [x] Recorded game/draw documentation.
+- [x] Recorded perft/differential documentation.
+- [x] Recorded baseline evaluation documentation.
+- [x] Kept search/TT documentation incomplete.
+- [x] Kept ABI/JNI documentation incomplete.
+- [x] Kept fuzzing documentation incomplete.
+- [x] Kept self-play/tuning documentation incomplete.
 
-## RF-005.3 Task 25 documentation checklist cleanup
+## RF-005.4 Task 25 command truth
 
-- [x] Mark Zobrist/hash documentation present if verified.
-- [x] Mark game/draw documentation present if verified.
-- [x] Mark differential perft documentation present if verified.
-- [x] Mark baseline evaluation documentation present if verified.
-- [x] Keep search documentation incomplete until Task 13 docs exist.
-- [x] Keep TT documentation incomplete until Task 15 docs exist.
-- [x] Keep ABI/JNI documentation incomplete until Task 18 docs exist.
-- [x] Keep fuzz documentation incomplete until Task 23 docs exist.
-- [x] Keep self-play/tuning documentation incomplete until Tasks 20–21 docs exist.
+- [x] Recorded legal/play/perft/divide/suite/oracle tooling.
+- [x] Recorded eval/eval-bench/weight export/weight validation tooling.
+- [x] Kept UCI commands incomplete.
+- [x] Kept Android commands incomplete.
+- [x] Kept self-play and tuning commands incomplete.
+- [x] Kept the global generated-artifact policy incomplete.
+- [x] Kept the Task 25 gate incomplete.
 
-## RF-005.4 Task 25 command/artifact checklist cleanup
+## RF-005.5 Ralph status
 
-- [x] Mark perft CLI present if verified.
-- [x] Mark divide CLI present if verified after elapsed output fix.
-- [x] Mark legal/play/suite/oracle tooling present if verified.
-- [x] Mark eval/eval-bench/weights export/weights validate tooling present if verified.
-- [x] Keep UCI command incomplete until Task 17.
-- [x] Keep Android command incomplete until Task 18 or later.
-- [x] Keep self-play command incomplete until Task 20.
-- [x] Keep tuning command incomplete until Task 21.
-- [x] Keep global versioned artifact policy incomplete unless separately documented.
-- [x] Keep Task 25 gate incomplete.
-
-## RF-005.5 Ralph status update
-
-- [x] Update `docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md` to mention this review-fix pass.
-- [x] State that Task 13 remains active/not started until this pass closes.
-- [x] Record exact files changed and validation evidence after completion.
+- [x] Recorded the pre-Task-13 review-fix implementation scope.
+- [x] Kept Task 13 active and not started.
+- [x] Recorded source files, tests, and CI evidence in the final review documents.
 
 ## RF-005 gate
 
-- [x] Live trackers are internally consistent and no stale Task 9 next-operation instruction remains.
+- [x] Live planning no longer directs work back to completed Task 9.
 
 ---
 
-## Implementation notes
+# RF-006: Validation and closure evidence — COMPLETE
 
-- Starting code/documentation SHA: `52377d09b713541044e24c8e3559be3f12002cc1`.
-- Control-only workflow add/remove commits did not change Rust source or review documents.
-- All six reviewed issues remained valid at baseline inspection.
-- RF-001 through RF-005 are implemented in the candidate tree; RF-006 remains open until exact-head permanent CI and documentation closure complete.
+## RF-006.1 Strict validation
 
----
+The validated implementation candidate passed:
 
-# RF-006: Review-fix validation and closure evidence
+- [x] `cargo fmt --all -- --check`
+- [x] `cargo check --locked --workspace --all-targets --all-features`
+- [x] `cargo clippy --locked --workspace --all-targets --all-features -- -D warnings`
+- [x] `cargo test --locked --workspace --all-features`
+- [x] `RUSTDOCFLAGS="-D warnings" cargo doc --locked --workspace --all-features --no-deps`
+- [x] `cargo build --locked --workspace --all-features`
+- [x] `cargo build --locked --workspace --all-features --release`
+- [x] authoritative release depth-four perft
+- [x] pinned differential corpus and seeded playout validation
 
-## RF-006.1 Local exact validation commands
+## RF-006.2 CI evidence
 
-Run on the final candidate SHA:
+- [x] Validated implementation SHA: `81a7cd4a58a52695eca2ede10d5c73c803851d17`
+- [x] One-shot implementation control run: `30738801841`
+- [x] Permanent CI run: `30739166607`
+- [x] Permanent CI job: `91473334960`
+- [x] Executed non-doc Rust tests: `112`
+- [x] Release depth-four perft: passed for the authoritative six-position suite
+- [x] Rustdoc warnings denied: passed
+- [x] Debug build: passed
+- [x] Release build: passed
+- [x] First-party warnings: none
 
-- [ ] `cargo fmt --all -- --check`
-- [ ] `cargo check --locked --workspace --all-targets --all-features`
-- [ ] `cargo clippy --locked --workspace --all-targets --all-features -- -D warnings`
-- [ ] `cargo test --locked --workspace --all-features`
-- [ ] `RUSTDOCFLAGS="-D warnings" cargo doc --locked --workspace --all-features --no-deps`
-- [ ] `cargo build --locked --workspace --all-features`
-- [ ] `cargo build --locked --workspace --all-features --release`
-- [ ] `cargo test --locked -p chess-core --release authoritative_perft_depth_four -- --ignored --exact`
-- [ ] `python scripts/differential_oracle.py --binary target/release/chess-tools --corpus fixtures/differential_corpus.tsv --games 12 --plies 48 --seed 0xC0FFEE`
+## RF-006.3 Differential evidence
 
-## RF-006.2 CI validation
+- [x] Corpus positions: `15`
+- [x] Child FENs: `293`
+- [x] Oracle perft nodes: `272,991`
+- [x] Seeded plies: `576`
+- [x] Seed: `0xC0FFEE`
 
-- [ ] Dispatch or push to run the permanent CI workflow on the final candidate SHA.
-- [ ] Confirm rustfmt passed.
-- [ ] Confirm Cargo check passed.
-- [ ] Confirm Clippy `-D warnings` passed.
-- [ ] Confirm all Rust tests passed and record the test count.
-- [ ] Confirm release depth-four perft passed.
-- [ ] Confirm rustdoc `-D warnings` passed.
-- [ ] Confirm debug build passed.
-- [ ] Confirm release build passed.
-- [ ] Confirm differential corpus and seeded playouts passed.
-- [ ] Record CI run ID and job ID.
+## RF-006.4 External notices
 
-## RF-006.3 Documentation evidence
+- [x] Accepted only GitHub Actions Node runtime deprecation notices.
+- [x] Accepted only dependency `punycode` deprecation notices.
+- [x] No first-party warning was accepted.
 
-- [ ] Update this TODO status from `Not started` to `Complete` only after validation passes.
-- [ ] Record final SHA.
-- [ ] Record CI run/job.
-- [ ] Record test count.
-- [ ] Record release perft result.
-- [ ] Record differential oracle summary.
-- [ ] Record accepted external notices, if any.
-- [ ] Update the primary live TODO with review-fix completion evidence.
-- [ ] Update Ralph status with review-fix completion evidence.
+## RF-006.5 Cleanup
 
-## RF-006.4 Cleanup
+- [x] Removed all one-shot implementation workflows.
+- [x] Removed all temporary closure workflows/scripts.
+- [x] Retained no temporary branch.
+- [x] Retained no generated target/build artifact.
+- [x] Added no first-party lint suppression.
+- [x] Closed or superseded temporary control issues.
+- [x] Restored the permanent CI workflow byte-for-byte.
 
-- [ ] Remove any one-shot workflow created for this pass unless it is intentionally retained and documented.
-- [ ] Remove temporary diagnostic scripts not intended for permanent use.
-- [ ] Ensure no temporary branch or issue remains open unless intentionally retained.
-- [ ] Confirm no generated target/build artifacts are committed.
-- [ ] Confirm no first-party lint suppression was added.
+## RF-006.6 Clean-tree proof
+
+- [x] Clean branch SHA after control cleanup: `9c27d2c1c4a39a975b30d3357b69b6c96bb64c68`
+- [x] GitHub commit comparison between the validated candidate and that clean SHA reported zero changed files.
+- [x] Therefore the final clean code/workflow tree was byte-for-byte equivalent to the exact candidate that passed permanent CI.
 
 ## RF-006 gate
 
-- [ ] The review-fix pass has exact-SHA evidence, clean docs, and no unresolved validation failure.
+- [x] The review-fix pass has exact implementation evidence, a clean repository tree, complete review documents, and no unresolved source validation failure.
 
 ---
 
@@ -393,20 +378,20 @@ Run on the final candidate SHA:
 - [x] RF-003 divide elapsed-time output complete.
 - [x] RF-004 FEN policy documentation/tests complete.
 - [x] RF-005 live TODO and Task 25 cleanup complete.
-- [ ] RF-006 validation and closure evidence complete.
+- [x] RF-006 validation and closure evidence complete.
 - [x] Task 13 remains active/not started.
-- [x] No Tasks 14–27 are marked complete by this pass.
+- [x] No Tasks 14–27 were marked complete by this pass.
 
 ---
 
 # Completion evidence
 
-To be filled in after implementation:
-
-- Final SHA: `TBD`
-- CI run/job: `TBD`
-- Rust test count: `TBD`
-- Release perft: `TBD`
-- Differential oracle summary: `TBD`
-- Accepted external notices: `TBD`
-- Temporary artifacts removed: `TBD`
+- Validated implementation SHA: `81a7cd4a58a52695eca2ede10d5c73c803851d17`
+- One-shot implementation control run: `30738801841`
+- Permanent CI run/job: `30739166607` / `91473334960`
+- Rust test count: `112` executed non-doc tests
+- Release perft: authoritative six-position depth-four gate passed
+- Differential oracle: 15 positions, 293 child FENs, 272,991 nodes, 576 seeded plies, seed `0xC0FFEE`
+- Accepted external notices: GitHub Actions Node runtime and dependency `punycode` deprecations only
+- Clean-tree equivalence SHA: `9c27d2c1c4a39a975b30d3357b69b6c96bb64c68`
+- Temporary artifacts removed: all review-fix control workflows/scripts; no temporary branch or build artifact remains
