@@ -27,6 +27,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # This workflow is intentionally fail-closed and single-purpose.
           python3 - <<'PY'
           from pathlib import Path
 
