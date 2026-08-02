@@ -1149,7 +1149,7 @@ D4 197281
 #### Kiwipete
 
 ```text
-r3k2r/p1ppqpb1/bn2pnp1/2pP4/1p2P3/2N2N2/PPQBBPPP/R3K2R w KQkq - 0 1
+r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1
 D1 48
 D2 2039
 D3 97862
@@ -1189,7 +1189,7 @@ D4 2103487
 #### Tactical positional stress position
 
 ```text
-r4rk1/1pp1qppp/p1np1n2/8/2B1P3/2N1B3/PPP2PPP/R2Q1RK1 w - - 0 10
+r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10
 D1 46
 D2 2079
 D3 89890
