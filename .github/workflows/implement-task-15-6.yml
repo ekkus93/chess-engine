@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/workflows/implement-task-15-6.yml"
       - "scripts/implement_task_15_6.py"
+      - "scripts/fix_task_15_6_import.py"
 
 permissions:
   contents: write
@@ -31,7 +32,9 @@ jobs:
           components: rustfmt, clippy
 
       - name: Apply Task 15.6 implementation
-        run: python3 scripts/implement_task_15_6.py "$GITHUB_WORKSPACE"
+        run: |
+          python3 scripts/implement_task_15_6.py "$GITHUB_WORKSPACE"
+          python3 scripts/fix_task_15_6_import.py "$GITHUB_WORKSPACE"
 
       - name: Format
         run: cargo fmt --all
@@ -68,7 +71,8 @@ jobs:
         run: |
           git rm \
             .github/workflows/implement-task-15-6.yml \
-            scripts/implement_task_15_6.py
+            scripts/implement_task_15_6.py \
+            scripts/fix_task_15_6_import.py
 
       - name: Commit clean implementation
         run: |
