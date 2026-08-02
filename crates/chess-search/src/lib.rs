@@ -17,8 +17,10 @@ mod transposition_score;
 mod weights;
 
 pub use alpha_beta::{
-    alpha_beta_search, alpha_beta_search_with_cancellation, AlphaBetaSearchError,
-    AlphaBetaSearchResult,
+    alpha_beta_search, alpha_beta_search_with_cancellation,
+    alpha_beta_search_with_cancellation_and_transposition_table,
+    alpha_beta_search_with_transposition_table, AlphaBetaSearchError, AlphaBetaSearchResult,
+    DEFAULT_TRANSPOSITION_TABLE_MEBIBYTES,
 };
 pub use cancellation::SearchCancellationProbe;
 pub use evaluation::{

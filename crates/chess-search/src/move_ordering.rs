@@ -182,6 +182,33 @@ pub(crate) fn ordered_legal_moves_with_state(
     )
 }
 
+pub(crate) fn ordered_legal_moves_with_state_and_tt_move(
+    position: &Position,
+    tokens: &LegalMoveTokenList,
+    ordering: MoveOrdering,
+    ply: u16,
+    quiet_state: &QuietOrderingState,
+    transposition_table_move: Option<Move>,
+) -> OrderedLegalMoves {
+    if transposition_table_move == transposition_table_move_hook(position) {
+        return ordered_legal_moves_with_state(position, tokens, ordering, ply, quiet_state);
+    }
+
+    let previous_pv_move = match ordering {
+        MoveOrdering::Quiet => previous_pv_move_hook(ply),
+        MoveOrdering::Generation | MoveOrdering::Tactical => None,
+    };
+    order_legal_moves_with_hints(
+        position,
+        tokens,
+        ordering,
+        ply,
+        Some(quiet_state),
+        transposition_table_move,
+        previous_pv_move,
+    )
+}
+
 const fn transposition_table_move_hook(_position: &Position) -> Option<Move> {
     None
 }
@@ -435,7 +462,8 @@ mod quiet_tests {
     use chess_core::{Color, Move, Position};
 
     use super::{
-        ordered_legal_moves_with_state, previous_pv_move_hook, MoveOrdering, QuietOrderingState,
+        ordered_legal_moves_with_state, ordered_legal_moves_with_state_and_tt_move,
+        previous_pv_move_hook, MoveOrdering, QuietOrderingState,
     };
 
     fn legal_move(position: &mut Position, uci: &str) -> Move {
@@ -466,6 +494,26 @@ mod quiet_tests {
                 .map(|token| token.move_made())
                 .collect();
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn explicit_tt_move_precedes_quiet_heuristics() {
+        let mut position = Position::starting();
+        let hint = legal_move(&mut position, "h2h4");
+        let tokens = position.legal_move_tokens().expect("legal tokens generate");
+        let state = QuietOrderingState::new();
+        let ordered: Vec<_> = ordered_legal_moves_with_state_and_tt_move(
+            &position,
+            &tokens,
+            MoveOrdering::Quiet,
+            0,
+            &state,
+            Some(hint),
+        )
+        .iter()
+        .map(|token| token.move_made())
+        .collect();
+        assert_eq!(ordered.first().copied(), Some(hint));
     }
 
     #[test]

@@ -4,11 +4,17 @@ use chess_core::{LegalMoveError, Move, Position, SearchHistory, SearchHistoryErr
 
 use crate::{
     cancellation::NeverCancelled,
-    move_ordering::{ordered_legal_moves_with_state, MoveOrdering, QuietOrderingState},
+    move_ordering::{ordered_legal_moves_with_state_and_tt_move, MoveOrdering, QuietOrderingState},
     quiescence::{search_quiescence_node, QuiescenceContext},
     search_common::resolved_node_score,
-    Score, SearchCancellationProbe, MAX_MATE_PLY, MAX_QUIESCENCE_PLY,
+    Score, SearchCancellationProbe, TranspositionBound, TranspositionEntry,
+    TranspositionProbeError, TranspositionProbeRequest, TranspositionProbeScore,
+    TranspositionScore, TranspositionScoreConversionError, TranspositionScoreReuse,
+    TranspositionTable, TranspositionTableAllocationError, MAX_MATE_PLY, MAX_QUIESCENCE_PLY,
 };
+
+/// Fixed table size used by the convenience alpha-beta entry points.
+pub const DEFAULT_TRANSPOSITION_TABLE_MEBIBYTES: usize = 1;
 
 /// Result of one full-window negamax alpha-beta search.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -45,6 +51,12 @@ pub enum AlphaBetaSearchError {
     Rules(LegalMoveError),
     /// Reversible search-line history processing failed.
     History(SearchHistoryError),
+    /// Fixed-capacity transposition-table allocation failed.
+    TranspositionTableAllocation(TranspositionTableAllocationError),
+    /// A transposition probe could not be evaluated safely.
+    TranspositionProbe(TranspositionProbeError),
+    /// A searched score could not be normalized for storage.
+    TranspositionScoreConversion(TranspositionScoreConversionError),
     /// The supplied history is not rooted at the supplied current position.
     HistoryPositionMismatch {
         /// Current position identity.
@@ -79,6 +91,9 @@ impl fmt::Display for AlphaBetaSearchError {
         match self {
             Self::Rules(error) => error.fmt(formatter),
             Self::History(error) => error.fmt(formatter),
+            Self::TranspositionTableAllocation(error) => error.fmt(formatter),
+            Self::TranspositionProbe(error) => error.fmt(formatter),
+            Self::TranspositionScoreConversion(error) => error.fmt(formatter),
             Self::HistoryPositionMismatch {
                 position_zobrist,
                 history_zobrist,
@@ -120,6 +135,24 @@ impl From<SearchHistoryError> for AlphaBetaSearchError {
     }
 }
 
+impl From<TranspositionTableAllocationError> for AlphaBetaSearchError {
+    fn from(value: TranspositionTableAllocationError) -> Self {
+        Self::TranspositionTableAllocation(value)
+    }
+}
+
+impl From<TranspositionProbeError> for AlphaBetaSearchError {
+    fn from(value: TranspositionProbeError) -> Self {
+        Self::TranspositionProbe(value)
+    }
+}
+
+impl From<TranspositionScoreConversionError> for AlphaBetaSearchError {
+    fn from(value: TranspositionScoreConversionError) -> Self {
+        Self::TranspositionScoreConversion(value)
+    }
+}
+
 /// Searches to `depth` with recursive fail-soft negamax alpha-beta pruning.
 ///
 /// This convenience entry point never requests cancellation. Use
@@ -134,23 +167,7 @@ pub fn alpha_beta_search(
     alpha_beta_search_with_cancellation(position, history, depth, &mut cancellation)
 }
 
-/// Searches to `depth` with alpha-beta pruning and cooperative cancellation.
-///
-/// The search uses the same side-to-move score, mate-distance, terminal, draw,
-/// and repetition semantics as [`crate::reference_search`]. At depth-zero
-/// leaves it invokes correctness-first quiescence search over captures,
-/// promotions, and every legal check evasion. Legal moves use deterministic
-/// ordering: the future TT and previous-PV hooks, promotions, MVV-LVA captures,
-/// bounded killer and history heuristics, then a stable packed quiet-move
-/// tie-break. The root uses the complete supported score window, so its returned
-/// score is exact rather than a bound.
-///
-/// The supplied history must end at `position`. Every child is applied through
-/// a source-bound legal token, pushed onto the detached line history, searched,
-/// then popped and unmade before the next child. Cancellation is checked at
-/// node and child boundaries. A cancellation error is returned only after every
-/// active child move and line-history entry has been restored. The function
-/// performs no clone-per-child operation.
+/// Searches with a fresh bounded default transposition table and cancellation.
 pub fn alpha_beta_search_with_cancellation<Probe>(
     position: &mut Position,
     history: &mut SearchHistory,
@@ -160,6 +177,58 @@ pub fn alpha_beta_search_with_cancellation<Probe>(
 where
     Probe: SearchCancellationProbe + ?Sized,
 {
+    validate_search_inputs(position, history, depth)?;
+    let mut transposition_table = TranspositionTable::new(DEFAULT_TRANSPOSITION_TABLE_MEBIBYTES)?;
+    run_validated_search(
+        position,
+        history,
+        depth,
+        &mut transposition_table,
+        cancellation,
+    )
+}
+
+/// Searches with a caller-owned fixed-capacity transposition table.
+///
+/// Existing entries are retained across calls. The table generation advances
+/// once and diagnostics reset before the search starts. Position and history
+/// validation happens first, so invalid inputs do not mutate table state.
+pub fn alpha_beta_search_with_transposition_table(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    depth: u16,
+    transposition_table: &mut TranspositionTable,
+) -> Result<AlphaBetaSearchResult, AlphaBetaSearchError> {
+    let mut cancellation = NeverCancelled;
+    alpha_beta_search_with_cancellation_and_transposition_table(
+        position,
+        history,
+        depth,
+        transposition_table,
+        &mut cancellation,
+    )
+}
+
+/// Searches with a caller-owned table and cooperative cancellation.
+pub fn alpha_beta_search_with_cancellation_and_transposition_table<Probe>(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    depth: u16,
+    transposition_table: &mut TranspositionTable,
+    cancellation: &mut Probe,
+) -> Result<AlphaBetaSearchResult, AlphaBetaSearchError>
+where
+    Probe: SearchCancellationProbe + ?Sized,
+{
+    validate_search_inputs(position, history, depth)?;
+    run_validated_search(position, history, depth, transposition_table, cancellation)
+}
+
+fn validate_search_inputs(
+    position: &Position,
+    history: &SearchHistory,
+    depth: u16,
+) -> Result<(), AlphaBetaSearchError> {
     if depth > MAX_MATE_PLY {
         return Err(AlphaBetaSearchError::DepthTooLarge {
             depth,
@@ -174,6 +243,21 @@ where
             history_zobrist,
         });
     }
+    Ok(())
+}
+
+fn run_validated_search<Probe>(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    depth: u16,
+    transposition_table: &mut TranspositionTable,
+    cancellation: &mut Probe,
+) -> Result<AlphaBetaSearchResult, AlphaBetaSearchError>
+where
+    Probe: SearchCancellationProbe + ?Sized,
+{
+    transposition_table.advance_generation();
+    transposition_table.reset_diagnostics();
 
     let initial_history_len = history.len();
     let initial_line_len = history.line_len();
@@ -185,6 +269,7 @@ where
     let mut context = AlphaBetaContext {
         ordering: MoveOrdering::Quiet,
         quiet_ordering: &mut quiet_ordering,
+        transposition_table: Some(transposition_table),
         cancellation,
     };
     let result = search_node(position, history, depth, 0, window, &mut context);
@@ -210,6 +295,7 @@ where
 {
     ordering: MoveOrdering,
     quiet_ordering: &'a mut QuietOrderingState,
+    transposition_table: Option<&'a mut TranspositionTable>,
     cancellation: &'a mut Probe,
 }
 
@@ -225,6 +311,7 @@ where
     Probe: SearchCancellationProbe + ?Sized,
 {
     let mut alpha = window.alpha;
+    let original_alpha = window.alpha;
     let beta = window.beta;
     if context.cancellation.should_cancel() {
         return Err(AlphaBetaSearchError::Cancelled);
@@ -261,12 +348,53 @@ where
         });
     }
 
-    let ordered_tokens = ordered_legal_moves_with_state(
+    let score_reuse = transposition_score_reuse(position);
+    let mut transposition_table_move = None;
+    if let Some(table) = context.transposition_table.as_deref_mut() {
+        let request = TranspositionProbeRequest::new(
+            position.zobrist(),
+            depth,
+            ply,
+            alpha,
+            beta,
+            score_reuse,
+        );
+        if let Some(probe) = table.probe(request)? {
+            transposition_table_move = probe.best_move();
+            if let Some(probe_score) = probe.score() {
+                let root_best_move = transposition_table_move
+                    .filter(|candidate| tokens.iter().any(|token| token.move_made() == *candidate));
+                let can_return = match (ply, probe_score) {
+                    (0, TranspositionProbeScore::Exact(_)) => root_best_move.is_some(),
+                    (0, TranspositionProbeScore::LowerBoundCutoff(_))
+                    | (0, TranspositionProbeScore::UpperBoundCutoff(_)) => false,
+                    _ => true,
+                };
+                if can_return {
+                    return Ok(AlphaBetaSearchResult {
+                        score: probe_score.score(),
+                        best_move: if ply == 0 {
+                            root_best_move
+                        } else {
+                            transposition_table_move
+                        },
+                        nodes: 1,
+                    });
+                }
+            }
+        }
+    }
+
+    if ply == 0 {
+        transposition_table_move = None;
+    }
+    let ordered_tokens = ordered_legal_moves_with_state_and_tt_move(
         position,
         &tokens,
         context.ordering,
         ply,
         context.quiet_ordering,
+        transposition_table_move,
     );
     let mut nodes = 1_u64;
     let mut best_score = None;
@@ -324,13 +452,49 @@ where
         }
     }
 
-    match (best_score, best_move) {
-        (Some(score), Some(current)) => Ok(AlphaBetaSearchResult {
+    let result = match (best_score, best_move) {
+        (Some(score), Some(current)) => AlphaBetaSearchResult {
             score,
             best_move: Some(current),
             nodes,
-        }),
-        _ => Err(AlphaBetaSearchError::MissingBestMove),
+        },
+        _ => return Err(AlphaBetaSearchError::MissingBestMove),
+    };
+
+    if score_reuse == TranspositionScoreReuse::Allowed {
+        if let Some(table) = context.transposition_table.as_deref_mut() {
+            let bound = if result.score <= original_alpha {
+                TranspositionBound::Upper
+            } else if result.score >= beta {
+                TranspositionBound::Lower
+            } else {
+                TranspositionBound::Exact
+            };
+            let stored_best_move = if bound == TranspositionBound::Exact && ply > 0 {
+                None
+            } else {
+                result.best_move
+            };
+            let normalized_score = TranspositionScore::normalize(result.score, ply)?;
+            table.store(TranspositionEntry::new(
+                position.zobrist(),
+                depth,
+                bound,
+                normalized_score,
+                stored_best_move,
+                table.generation(),
+            ));
+        }
+    }
+
+    Ok(result)
+}
+
+fn transposition_score_reuse(position: &Position) -> TranspositionScoreReuse {
+    if position.halfmove_clock().get() == 0 {
+        TranspositionScoreReuse::Allowed
+    } else {
+        TranspositionScoreReuse::SuppressedForRepetition
     }
 }
 
@@ -341,8 +505,9 @@ mod ordering_tests {
     use super::{search_node, AlphaBetaContext, AlphaBetaSearchResult, AlphaBetaWindow};
     use crate::{
         cancellation::NeverCancelled,
-        move_ordering::{MoveOrdering, QuietOrderingState},
-        Score,
+        move_ordering::{ordered_legal_moves_with_state, MoveOrdering, QuietOrderingState},
+        Score, TranspositionBound, TranspositionEntry, TranspositionScore, TranspositionTable,
+        TranspositionTableDiagnostics,
     };
 
     fn full_window() -> AlphaBetaWindow {
@@ -371,6 +536,7 @@ mod ordering_tests {
         let mut context = AlphaBetaContext {
             ordering,
             quiet_ordering: &mut quiet_ordering,
+            transposition_table: None,
             cancellation: &mut cancellation,
         };
         let result = search_node(&mut position, &mut history, depth, 0, window, &mut context)
@@ -396,6 +562,7 @@ mod ordering_tests {
         let mut context = AlphaBetaContext {
             ordering: MoveOrdering::Generation,
             quiet_ordering: &mut quiet_ordering,
+            transposition_table: None,
             cancellation: &mut cancellation,
         };
         let child = search_node(position, history, 0, 1, full_window(), &mut context);
@@ -437,6 +604,84 @@ mod ordering_tests {
         witness.expect("fixed benchmark contains a later improving quiet move")
     }
 
+    fn quiet_order_cutoff_witness(root: &Position) -> (Move, Score, usize) {
+        let mut position = root.clone();
+        let snapshot = position.clone();
+        let mut history = SearchHistory::from_position(&position);
+        let history_snapshot = history.clone();
+        let tokens = position
+            .legal_move_tokens()
+            .expect("benchmark legal tokens generate");
+        let quiet_ordering = QuietOrderingState::new();
+        let ordered = ordered_legal_moves_with_state(
+            &position,
+            &tokens,
+            MoveOrdering::Quiet,
+            1,
+            &quiet_ordering,
+        );
+        let mut best_before = Score::mated_in(0).expect("zero-ply mate score is supported");
+        let mut witness = None;
+
+        for (index, token) in ordered.iter().enumerate() {
+            let current = token.move_made();
+            let score = root_move_score(&mut position, &mut history, token);
+            let quiet = !current.kind().is_capture() && current.promotion().is_none();
+            if index > 0 && quiet && score > best_before {
+                witness = Some((current, score, index));
+                break;
+            }
+            if score > best_before {
+                best_before = score;
+            }
+        }
+
+        assert_eq!(position, snapshot);
+        assert_eq!(history, history_snapshot);
+        assert_eq!(position.zobrist(), position.recomputed_zobrist());
+        witness.expect("fixed benchmark contains a later improving quiet-ordered move")
+    }
+
+    fn search_with_transposition_hint(
+        root: &Position,
+        depth: u16,
+        window: AlphaBetaWindow,
+        hint: Move,
+    ) -> (AlphaBetaSearchResult, TranspositionTableDiagnostics) {
+        let mut position = root.clone();
+        let snapshot = position.clone();
+        let mut history = SearchHistory::from_position(&position);
+        let history_snapshot = history.clone();
+        let mut quiet_ordering = QuietOrderingState::new();
+        let mut cancellation = NeverCancelled;
+        let mut table = TranspositionTable::new(1).expect("TT benchmark table allocates");
+        table.store(TranspositionEntry::new(
+            position.zobrist(),
+            0,
+            TranspositionBound::Exact,
+            TranspositionScore::normalize(Score::ZERO, 1).expect("TT benchmark score normalizes"),
+            Some(hint),
+            table.generation(),
+        ));
+        table.reset_diagnostics();
+        let result = {
+            let mut context = AlphaBetaContext {
+                ordering: MoveOrdering::Quiet,
+                quiet_ordering: &mut quiet_ordering,
+                transposition_table: Some(&mut table),
+                cancellation: &mut cancellation,
+            };
+            search_node(&mut position, &mut history, depth, 1, window, &mut context)
+                .expect("TT ordering benchmark search succeeds")
+        };
+        let diagnostics = table.diagnostics();
+
+        assert_eq!(position, snapshot);
+        assert_eq!(history, history_snapshot);
+        assert_eq!(position.zobrist(), position.recomputed_zobrist());
+        (result, diagnostics)
+    }
+
     #[test]
     fn quiet_ordering_preserves_full_window_result_deterministically() {
         let root: Position = "7k/8/8/1p2q3/2P1Q3/8/K7/8 w - - 0 1"
@@ -472,6 +717,32 @@ mod ordering_tests {
             quiet.nodes(),
             generation.nodes()
         );
+    }
+
+    #[test]
+    fn transposition_move_ordering_reduces_fixed_narrow_window_tree() {
+        let root = Position::starting();
+        let (witness, score, quiet_index) = quiet_order_cutoff_witness(&root);
+        let alpha =
+            Score::from_raw(score.centipawns() - 1).expect("TT cutoff score has a predecessor");
+        let window = AlphaBetaWindow { alpha, beta: score };
+        let baseline = search_with_ordering(&root, 1, window, MoveOrdering::Quiet, None);
+        let (transposition, diagnostics) =
+            search_with_transposition_hint(&root, 1, window, witness);
+
+        assert!(quiet_index > 0);
+        assert_eq!(transposition.score(), baseline.score());
+        assert_eq!(transposition.best_move(), baseline.best_move());
+        assert_eq!(transposition.best_move(), Some(witness));
+        assert!(
+            transposition.nodes() < baseline.nodes(),
+            "TT move ordering visited {} nodes versus baseline {}",
+            transposition.nodes(),
+            baseline.nodes()
+        );
+        assert_eq!(diagnostics.probes(), 1);
+        assert_eq!(diagnostics.hits(), 1);
+        assert_eq!(diagnostics.exact_hits(), 0);
     }
 }
 
