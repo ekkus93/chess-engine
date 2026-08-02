@@ -5,8 +5,7 @@ use crate::{Color, Position, PositionBuildError};
 use super::FenError;
 
 const START: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-const CURATED: &str =
-    "r3k2r/ppp2ppp/2n5/3pp3/3PP3/2N5/PPP2PPP/R3K2R b qKkQ e3 17 42";
+const CURATED: &str = "r3k2r/ppp2ppp/2n5/3pp3/3PP3/2N5/PPP2PPP/R3K2R b qKkQ e3 17 42";
 
 #[test]
 fn starting_position_serializes_canonically() {
@@ -18,8 +17,7 @@ fn starting_position_serializes_canonically() {
 #[test]
 fn curated_position_round_trips_with_canonical_castling_order() {
     let position = Position::from_fen(CURATED).expect("curated FEN is valid");
-    let canonical =
-        "r3k2r/ppp2ppp/2n5/3pp3/3PP3/2N5/PPP2PPP/R3K2R b KQkq e3 17 42";
+    let canonical = "r3k2r/ppp2ppp/2n5/3pp3/3PP3/2N5/PPP2PPP/R3K2R b KQkq e3 17 42";
     assert_eq!(position.to_fen(), canonical);
     assert_eq!(
         Position::from_fen(&position.to_fen()).expect("serialized FEN parses"),
@@ -31,10 +29,7 @@ fn curated_position_round_trips_with_canonical_castling_order() {
 fn malformed_fen_categories_are_fail_loud() {
     let cases = [
         ("", FenError::FieldCount { found: 0 }),
-        (
-            "8/8/8/8/8/8/8 w - - 0 1",
-            FenError::RankCount { found: 7 },
-        ),
+        ("8/8/8/8/8/8/8 w - - 0 1", FenError::RankCount { found: 7 }),
         (
             "8/8/8/8/8/8/8/7 w - - 0 1",
             FenError::RankWidth { rank: 1, files: 7 },
@@ -136,8 +131,8 @@ fn arbitrary_utf8_input_never_panics() {
                 state = state
                     .wrapping_mul(6_364_136_223_846_793_005)
                     .wrapping_add(1_442_695_040_888_963_407);
-                let scalar = u32::try_from((state >> 32) % 0x11_0000)
-                    .expect("bounded scalar fits u32");
+                let scalar =
+                    u32::try_from((state >> 32) % 0x11_0000).expect("bounded scalar fits u32");
                 value.push(char::from_u32(scalar).unwrap_or('\u{fffd}'));
             }
             assert!(
