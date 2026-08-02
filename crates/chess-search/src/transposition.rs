@@ -300,16 +300,14 @@ impl TranspositionTable {
     }
 }
 
-fn requested_bytes(
-    mebibytes: usize,
-) -> Result<usize, TranspositionTableAllocationError> {
+fn requested_bytes(mebibytes: usize) -> Result<usize, TranspositionTableAllocationError> {
     if mebibytes == 0 {
         return Err(TranspositionTableAllocationError::ZeroMebibytes);
     }
 
-    mebibytes.checked_mul(BYTES_PER_MEBIBYTE).ok_or(
-        TranspositionTableAllocationError::SizeOverflow { mebibytes },
-    )
+    mebibytes
+        .checked_mul(BYTES_PER_MEBIBYTE)
+        .ok_or(TranspositionTableAllocationError::SizeOverflow { mebibytes })
 }
 
 #[cfg(test)]
@@ -506,9 +504,6 @@ mod tests {
 
         assert_eq!(table.advance_generation(), 0);
         assert_eq!(table.generation(), 0);
-        assert_eq!(
-            table.clusters[index].entries[0],
-            Some(entry(key, u8::MAX))
-        );
+        assert_eq!(table.clusters[index].entries[0], Some(entry(key, u8::MAX)));
     }
 }
