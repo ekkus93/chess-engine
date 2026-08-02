@@ -25,9 +25,7 @@ fn assert_round_trip(fen: &str, uci: &str, expected_kind: MoveKind) {
         .validate_invariants()
         .expect("post-move invariants");
     position.unmake_move(undo).expect("unmake succeeds");
-    position
-        .validate_invariants()
-        .expect("restored invariants");
+    position.validate_invariants().expect("restored invariants");
     assert_eq!(position, snapshot, "{uci} did not restore exactly");
 }
 
@@ -38,13 +36,41 @@ fn every_move_category_round_trips_exactly() {
         (start, "g1f3", MoveKind::Quiet),
         (start, "e2e4", MoveKind::DoublePawnPush),
         ("7k/8/8/8/4p3/3P4/8/7K w - - 0 1", "d3e4", MoveKind::Capture),
-        ("7k/8/8/3pP3/8/8/8/7K w - d6 0 1", "e5d6", MoveKind::EnPassant),
-        ("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1", "e1g1", MoveKind::KingCastle),
-        ("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1", "e1c1", MoveKind::QueenCastle),
-        ("7k/P7/8/8/8/8/8/7K w - - 0 1", "a7a8n", MoveKind::KnightPromotion),
-        ("7k/P7/8/8/8/8/8/7K w - - 0 1", "a7a8b", MoveKind::BishopPromotion),
-        ("7k/P7/8/8/8/8/8/7K w - - 0 1", "a7a8r", MoveKind::RookPromotion),
-        ("7k/P7/8/8/8/8/8/7K w - - 0 1", "a7a8q", MoveKind::QueenPromotion),
+        (
+            "7k/8/8/3pP3/8/8/8/7K w - d6 0 1",
+            "e5d6",
+            MoveKind::EnPassant,
+        ),
+        (
+            "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",
+            "e1g1",
+            MoveKind::KingCastle,
+        ),
+        (
+            "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",
+            "e1c1",
+            MoveKind::QueenCastle,
+        ),
+        (
+            "7k/P7/8/8/8/8/8/7K w - - 0 1",
+            "a7a8n",
+            MoveKind::KnightPromotion,
+        ),
+        (
+            "7k/P7/8/8/8/8/8/7K w - - 0 1",
+            "a7a8b",
+            MoveKind::BishopPromotion,
+        ),
+        (
+            "7k/P7/8/8/8/8/8/7K w - - 0 1",
+            "a7a8r",
+            MoveKind::RookPromotion,
+        ),
+        (
+            "7k/P7/8/8/8/8/8/7K w - - 0 1",
+            "a7a8q",
+            MoveKind::QueenPromotion,
+        ),
         (
             "1r5k/P7/8/8/8/8/8/7K w - - 0 1",
             "a7b8n",
@@ -84,7 +110,9 @@ fn checked_application_rejects_illegal_move_without_mutation() {
         Err(LegalMoveError::IllegalMove { current: illegal })
     );
     assert_eq!(position, snapshot);
-    position.validate_invariants().expect("invariants preserved");
+    position
+        .validate_invariants()
+        .expect("invariants preserved");
 }
 
 #[test]
@@ -114,8 +142,7 @@ fn move_application_updates_side_clocks_and_en_passant_exactly() {
 
 #[test]
 fn capture_token_records_exact_piece_and_square() {
-    let mut position =
-        Position::from_fen("7k/8/8/8/4p3/3P4/8/7K w - - 9 12").expect("valid FEN");
+    let mut position = Position::from_fen("7k/8/8/8/4p3/3P4/8/7K w - - 9 12").expect("valid FEN");
     let current = legal_move(&mut position, "d3e4");
     let undo = position.make_move(current).expect("capture succeeds");
 
@@ -144,7 +171,9 @@ fn mismatched_undo_is_rejected_before_mutation() {
         })
     );
     assert_eq!(position, snapshot);
-    position.validate_invariants().expect("invariants preserved");
+    position
+        .validate_invariants()
+        .expect("invariants preserved");
 
     position
         .unmake_move(black_undo)
@@ -153,8 +182,7 @@ fn mismatched_undo_is_rejected_before_mutation() {
 
 #[test]
 fn counter_overflow_failures_do_not_mutate() {
-    let mut halfmove =
-        Position::from_fen("7k/8/8/8/8/8/8/K7 w - - 65535 1").expect("valid FEN");
+    let mut halfmove = Position::from_fen("7k/8/8/8/8/8/8/K7 w - - 65535 1").expect("valid FEN");
     let halfmove_snapshot = halfmove.clone();
     let quiet = Move::new(square("a1"), square("b1"), MoveKind::Quiet);
     assert_eq!(
@@ -163,8 +191,7 @@ fn counter_overflow_failures_do_not_mutate() {
     );
     assert_eq!(halfmove, halfmove_snapshot);
 
-    let mut fullmove =
-        Position::from_fen("7k/8/8/8/8/8/8/K7 b - - 0 65535").expect("valid FEN");
+    let mut fullmove = Position::from_fen("7k/8/8/8/8/8/8/K7 b - - 0 65535").expect("valid FEN");
     let fullmove_snapshot = fullmove.clone();
     let quiet = Move::new(square("h8"), square("g8"), MoveKind::Quiet);
     assert_eq!(
@@ -197,7 +224,9 @@ fn every_legal_move_in_curated_positions_restores_exactly() {
             let undo = position
                 .make_generated_legal_move(current)
                 .expect("generated move succeeds");
-            position.validate_invariants().expect("post-move invariants");
+            position
+                .validate_invariants()
+                .expect("post-move invariants");
             position
                 .unmake_generated_legal_move(undo)
                 .expect("generated unmake succeeds");
