@@ -166,7 +166,9 @@ fn en_passant_target_expires_and_double_push_creates_one() {
         Position::from_fen("7k/8/8/3pP3/8/8/8/7K w - d6 0 1").expect("valid FEN");
     let snapshot = position.clone();
     let quiet = Move::new(square("h1"), square("g1"), MoveKind::Quiet);
-    let undo = position.make_generated_move(quiet).expect("generated quiet move");
+    let undo = position
+        .make_generated_move(quiet)
+        .expect("generated quiet move");
     assert_eq!(position.en_passant(), None);
     position
         .unmake_generated_move(quiet, undo)
@@ -175,7 +177,9 @@ fn en_passant_target_expires_and_double_push_creates_one() {
 
     let mut start = Position::starting();
     let double = Move::new(square("e2"), square("e4"), MoveKind::DoublePawnPush);
-    let undo = start.make_generated_move(double).expect("generated double push");
+    let undo = start
+        .make_generated_move(double)
+        .expect("generated double push");
     assert_eq!(start.en_passant(), Some(square("e3")));
     start
         .unmake_generated_move(double, undo)
@@ -185,8 +189,8 @@ fn en_passant_target_expires_and_double_push_creates_one() {
 
 #[test]
 fn promotions_remain_explicit_and_invalid_flags_are_rejected() {
-    let mut position =
-        Position::from_fen("1r5k/P7/8/8/8/8/8/7K w - - 0 1").expect("valid FEN");
+    let mut position = Position::from_fen("1r5k/P7/8/8/8/8/8/7K w - - 0 1")
+        .expect("valid FEN");
     let promotions: Vec<_> = position
         .legal_moves()
         .expect("legal moves")
@@ -194,7 +198,9 @@ fn promotions_remain_explicit_and_invalid_flags_are_rejected() {
         .filter(|current| current.source() == square("a7"))
         .collect();
     assert_eq!(promotions.len(), 8);
-    assert!(promotions.iter().all(|current| current.promotion().is_some()));
+    assert!(promotions
+        .iter()
+        .all(|current| current.promotion().is_some()));
     for kind in [
         PieceKind::Knight,
         PieceKind::Bishop,
