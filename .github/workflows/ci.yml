@@ -10,7 +10,7 @@ on:
 
 permissions:
   actions: write
-  contents: write
+  contents: read
   issues: write
 
 jobs:
@@ -151,64 +151,5 @@ jobs:
           gh api \
             --method PATCH \
             "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE_NUMBER}" \
-            -f state=closed \
-            -f state_reason=completed
-
-  close-task-14-4:
-    name: Close Task 14.4 trackers
-    if: >-
-      github.ref == 'refs/heads/master' &&
-      github.event_name == 'issues' &&
-      github.event.issue.title == '[close-task-14-4]'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    env:
-      GH_TOKEN: ${{ github.token }}
-      REPOSITORY: ${{ github.repository }}
-      ISSUE_NUMBER: ${{ github.event.issue.number }}
-    steps:
-      - name: Check out control files
-        uses: actions/checkout@v4
-        with:
-          ref: master
-          path: control
-      - name: Check out rust-engine
-        uses: actions/checkout@v4
-        with:
-          ref: rust-engine
-          path: target
-          fetch-depth: 0
-      - name: Patch authoritative trackers
-        working-directory: target
-        run: |
-          set -euo pipefail
-          python ../control/.github/close_task_14_4.py .
-          git diff --check
-      - name: Commit and push documentation closure
-        id: commit
-        working-directory: target
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
-          if git diff --cached --quiet; then
-            echo "sha=$(git rev-parse HEAD)" >>"${GITHUB_OUTPUT}"
-          else
-            git diff --cached --check
-            git commit -m 'docs: close Task 14.4 correctness tests'
-            git push origin HEAD:rust-engine
-            echo "sha=$(git rev-parse HEAD)" >>"${GITHUB_OUTPUT}"
-          fi
-      - name: Report and close issue
-        env:
-          SHA: ${{ steps.commit.outputs.sha }}
-        run: |
-          set -euo pipefail
-          gh api --method POST \
-            "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/comments" \
-            -f body="Closed Task 14.4 trackers and temporary controls at SHA ${SHA}; validated implementation/evidence SHA dc758a3fc62e7f7002191993c73773dd2a71caef, CI 30763226685 / 91537383867."
-          gh api --method PATCH \
-            "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}" \
             -f state=closed \
             -f state_reason=completed
