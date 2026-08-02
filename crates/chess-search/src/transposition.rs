@@ -279,6 +279,15 @@ impl TranspositionTable {
         self.generation
     }
 
+    /// Returns the deterministic cluster index for a complete verification key.
+    ///
+    /// Keys can share this index; occupied entries retain the complete key so a
+    /// later probe can reject collisions safely.
+    #[must_use]
+    pub fn cluster_index(&self, verification_key: u64) -> usize {
+        (verification_key % self.clusters.len() as u64) as usize
+    }
+
     /// Removes every entry without changing allocation or generation.
     pub fn clear(&mut self) {
         for cluster in &mut self.clusters {
@@ -293,10 +302,6 @@ impl TranspositionTable {
     pub fn advance_generation(&mut self) -> u8 {
         self.generation = self.generation.wrapping_add(1);
         self.generation
-    }
-
-    fn cluster_index(&self, verification_key: u64) -> usize {
-        (verification_key % self.clusters.len() as u64) as usize
     }
 }
 
