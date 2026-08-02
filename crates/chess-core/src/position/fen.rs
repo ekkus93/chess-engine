@@ -176,8 +176,7 @@ impl FromStr for Position {
             .with_castling_rights(parse_castling(castling)?)
             .with_en_passant(parse_en_passant(en_passant, side_to_move)?)
             .with_halfmove_clock(parse_halfmove(halfmove)?)
-            .with_fullmove_number(parse_fullmove(fullmove)?)
-            .with_zobrist(0);
+            .with_fullmove_number(parse_fullmove(fullmove)?);
         builder.build_playable().map_err(FenError::from)
     }
 }

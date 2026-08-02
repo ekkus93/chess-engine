@@ -55,8 +55,7 @@ impl Position {
             .with_castling_rights(CastlingRights::ALL)
             .with_en_passant(None)
             .with_halfmove_clock(HalfmoveClock::default())
-            .with_fullmove_number(FullmoveNumber::ONE)
-            .with_zobrist(0);
+            .with_fullmove_number(FullmoveNumber::ONE);
         let back_rank = [
             PieceKind::Rook,
             PieceKind::Knight,

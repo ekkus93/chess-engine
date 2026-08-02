@@ -62,10 +62,6 @@ impl PositionBuilder {
         self
     }
 
-    pub(super) const fn with_zobrist(self, _zobrist: u64) -> Self {
-        self
-    }
-
     pub(super) fn build_playable(self) -> Result<Position, PositionBuildError> {
         Position::from_builder(self)
     }
