@@ -35,7 +35,7 @@
 | 11 | **Complete** — authoritative perft and differential validation. |
 | 12 | **Complete** — baseline evaluator and trace. |
 | 13 | **Complete** — reference negamax, alpha-beta, shallow equivalence, immutability, and terminal/mate-distance fixtures. |
-| 14 | **Active** — Tasks 14.1–14.2 complete; Task 14.3 quiet ordering next. |
+| 14 | **Active** — Tasks 14.1–14.4 complete; Task 14.5 exclusion audit next. |
 | 15–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
@@ -430,7 +430,7 @@ Evidence:
 - [x] 14.1 Quiescence.
 - [x] 14.2 Tactical ordering.
 - [x] 14.3 Quiet ordering.
-- [ ] 14.4 Correctness tests.
+- [x] 14.4 Correctness tests.
 - [ ] 14.5 Exclusions.
 - [ ] Task 14 gate.
 
@@ -485,7 +485,24 @@ Evidence:
 - Production order is the future TT hook, explicit previous-PV hook, promotions, MVV-LVA captures, primary/secondary killers, descending history, then ascending packed `Move` identity.
 - The previous-PV hook remains an explicit no-op until Task 16 supplies completed-iteration PV data; the TT hook remains an explicit no-op until Task 15.
 - Fixed full-window and narrow-window regressions prove deterministic exact score/best-move semantics, strict node reduction when a useful killer is seeded, and exact position/history/incremental-Zobrist restoration.
-- Reference search retains exact legal-generation order; Task 14.2 tactical ordering remains available as a control policy. Task 14.4 correctness consolidation is next.
+- Reference search retains exact legal-generation order; Task 14.2 tactical ordering remains available as a control policy. Task 14.4 correctness consolidation is complete; Task 14.5 exclusion audit is next.
+
+### Task 14.4 completion evidence
+
+- Dedicated regressions: `crates/chess-search/tests/search_quiescence_task_14_4.rs`.
+- Exact validated implementation/evidence SHA: `dc758a3fc62e7f7002191993c73773dd2a71caef`.
+- Permanent CI run/job: `30763226685` / `91537383867`.
+- Results: workspace assets, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy, 155 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- The horizon witness searches the full `Qxe5 Rxe5 Rxe5` tactical continuation beyond the nominal leaf and restores the exact root state.
+- The in-check witness proves stand-pat is unavailable by requiring a searched quiet king evasion and more than one visited node.
+- The promotion witness searches promotion, forced recapture, and counter-recapture rather than stopping at the promotion leaf.
+- The poisoned-capture witness explicitly proves static leaf evaluation overvalues `Qxd8`, quiescence lowers that score after forced `Kxd8`, and the one-ply root rejects the poisoned move.
+- The boundedness witness proves a zero-ply guard returns one-node stand-pat outside check but fails loudly with `QuiescenceDepthLimitReachedInCheck` while checked.
+- Every new path verifies position/history snapshots, invariants, and incremental/recomputed Zobrist restoration.
+- Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 14.5 explicit-exclusion audit is next; the overall Task 14 gate remains open.
 
 # Task 15: Fixed-capacity transposition table — NOT STARTED
 - [ ] 15.1 Entries.

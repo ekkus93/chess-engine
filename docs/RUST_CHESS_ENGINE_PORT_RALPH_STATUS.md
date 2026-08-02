@@ -3,7 +3,7 @@
 **Updated:** 2026-08-02  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Tasks 14.1–14.3 complete; Task 14.4 correctness consolidation is next
+**Current phase:** Tasks 14.1–14.4 complete; Task 14.5 explicit-exclusion audit is next
 
 ## Completed gates
 
@@ -31,6 +31,7 @@
 | 14.1 | `24e1090e17f8b39bdaac4989daffdeaea4b857e9` | `30749044761` / `91499685362` | correctness-first quiescence, 140 Rust tests, depth-four perft, and differential oracle green |
 | 14.2 | `3688cb8e89a7da0c7fd34c3756d52d0fcc8d3d33` | `30753873602` / `91512570865` | bounded tactical ordering, 145 Rust tests, strict node-reduction witness, depth-four perft, and differential oracle green |
 | 14.3 | `f08b2d519ffc066d8d6b18326e03ead278d908de` | `30762457921` / `91535329886` | bounded killer/history quiet ordering, 150 Rust tests, deterministic exact-score and strict node-reduction witnesses, depth-four perft, and differential oracle green |
+| 14.4 | `dc758a3fc62e7f7002191993c73773dd2a71caef` | `30763226685` / `91537383867` | five explicit quiescence correctness witnesses, 155 Rust tests, depth-four perft, and differential oracle green |
 
 ## Task 12 completion
 
@@ -297,7 +298,30 @@ Evidence:
 - Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 14.4 consolidated correctness tests are next; Tasks 14.5, 15, and 16 remain intentionally open.
+- Task 14.4 consolidated correctness tests are complete; Tasks 14.5, 15, and 16 remain intentionally open.
+
+## Task 14.4 completion
+
+Implemented and validated:
+
+- a true multi-capture horizon sequence (`Qxe5 Rxe5 Rxe5`) searched to a quiet position;
+- an in-check leaf that must search a quiet legal evasion and cannot stand pat;
+- a promotion sequence searched through forced recapture and counter-recapture;
+- a poisoned capture whose static leaf score is explicitly corrected downward by quiescence before root move selection;
+- finite guard behavior: one-node stand-pat outside check and fail-loud refusal to truncate while checked;
+- exact position, detached-history, invariant, and incremental/recomputed-Zobrist restoration on every new path;
+- `crates/chess-search/tests/search_quiescence_task_14_4.rs`.
+
+Evidence:
+
+- Exact validated implementation/evidence SHA: `dc758a3fc62e7f7002191993c73773dd2a71caef`.
+- Permanent CI run/job: `30763226685` / `91537383867`.
+- Results: workspace assets, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy, 155 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Dedicated Task 14.4 suite: 5 passed; original quiescence suite: 5 passed; search-equivalence suite: 3 passed; immutability suite: 4 passed; terminal/mate-distance suite: 4 passed.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 14.5 explicit-exclusion audit is next; the overall Task 14 gate remains open.
 
 ## Task 14 active scope
 
@@ -309,7 +333,8 @@ Evidence:
 - [x] Add independent tactical-oracle and fixed horizon-effect regressions.
 - [x] Implement Task 14.2 tactical ordering.
 - [x] Implement Task 14.3 quiet ordering.
-- [ ] Complete Task 14.4 consolidated correctness tests and Task 14.5 exclusion audit.
+- [x] Complete Task 14.4 consolidated correctness tests.
+- [ ] Complete Task 14.5 exclusion audit.
 - [ ] Pass the overall Task 14 gate.
 
 ## Task 13 completed scope
@@ -324,4 +349,4 @@ Evidence:
 - [x] Add mate-in-one, mated, stalemate, draw, shorter-mate, and longer-survival fixtures.
 - [x] Pass exact-head rustfmt, Cargo check, Clippy, tests, rustdoc, debug, release, perft, and differential gates.
 
-No pull request has been created; work remains on `rust-engine`. Task 14.4 consolidated correctness tests are the next operation.
+No pull request has been created; work remains on `rust-engine`. Task 14.5 explicit-exclusion audit is the next operation.

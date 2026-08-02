@@ -757,11 +757,11 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 14.4 Correctness tests
 
-- [ ] Horizon capture sequence.
-- [ ] In-check leaf may not stand pat.
-- [ ] Promotion sequence.
-- [ ] Poisoned capture where qsearch changes evaluation.
-- [ ] Quiescence boundedness.
+- [x] Horizon capture sequence.
+- [x] In-check leaf may not stand pat.
+- [x] Promotion sequence.
+- [x] Poisoned capture where qsearch changes evaluation.
+- [x] Quiescence boundedness.
 
 ## 14.5 Explicit exclusions
 
