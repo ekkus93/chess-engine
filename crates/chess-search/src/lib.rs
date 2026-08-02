@@ -7,6 +7,7 @@
 mod alpha_beta;
 mod cancellation;
 mod evaluation;
+mod quiescence;
 mod reference;
 mod score;
 mod search_common;
@@ -20,6 +21,10 @@ pub use cancellation::SearchCancellationProbe;
 pub use evaluation::{
     evaluate, evaluate_term, evaluate_trace, evaluate_trace_with_weights, evaluate_with_weights,
     EvaluationTerm, EvaluationTrace,
+};
+pub use quiescence::{
+    quiescence_search, quiescence_search_with_cancellation, quiescence_search_with_limit,
+    QuiescenceSearchResult, MAX_QUIESCENCE_PLY,
 };
 pub use reference::{
     reference_search, reference_search_with_cancellation, ReferenceSearchError,
