@@ -47,7 +47,7 @@
 - [x] Task 5 gate. Evidence: implementation `9922b0c725147fcabac3ce4c08f7c150c3ec6a1d`; run/job `30727440571` / `91441645867`; `42 passed`; closure `78e9315369ff4552e5500d1a820767a1fd228f29` green.
 - [x] Task 6 gate. Evidence: implementation `0dcf512d404ae248d5a99651543d9d0ca9687699`; run/job `30727874051` / `91442826957`; `49 passed`; closure `cb7124c5712f6b3f8f4540e9e8fabaa2aa242bc0` green.
 - [x] Task 7 gate. Implementation head `d6ea24eb6eeaea7b41dc309f866a5653aba687d5`, run/job `30729969574` / `91448384283`, `59 passed`; closure SHA `334dc79b3ce0cbc1e7b5096387218c90a8365204`, run/job `30730100518` / `91448776834`, all strict gates green.
-- [x] Task 8 gate. Implementation head `cfc68a4ff775d6d4b73c0bfa192e00c1fd7b910f`; run/job `30730803320` / `91450780156`; `67 passed`; all strict gates green.
+- [x] Task 8 gate. Implementation head `cfc68a4ff775d6d4b73c0bfa192e00c1fd7b910f`, run/job `30730803320` / `91450780156`, `67 passed`; closure SHA `cecc39b9c9dcd8c90f9cdbdb4284be13c480bbd6`, run/job `30730891252` / `91451022194`, all strict gates green.
 
 ---
 
@@ -189,8 +189,10 @@
 - Restoration and deterministic sequence tests: `crates/chess-core/src/position/make_unmake_tests.rs`.
 - Contract documentation: `docs/RUST_MAKE_UNMAKE.md`.
 - Exact validated implementation head: `cfc68a4ff775d6d4b73c0bfa192e00c1fd7b910f`.
-- CI run/job: `30730803320` / `91450780156`.
-- Results: lockfile and metadata verification, rustfmt, Cargo check, Clippy with warnings denied, `67 passed`, rustdoc with warnings denied, debug build, and release build passed.
+- Implementation CI run/job: `30730803320` / `91450780156`.
+- Exact closure SHA: `cecc39b9c9dcd8c90f9cdbdb4284be13c480bbd6`.
+- Closure CI run/job: `30730891252` / `91451022194`.
+- Results: lockfile and metadata verification, rustfmt, Cargo check, Clippy with warnings denied, `67 passed`, rustdoc with warnings denied, debug build, and release build passed at both the implementation and closure heads.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime deprecation and dependency `punycode` deprecation only.
 - Task 9 remains responsible for authoritative Zobrist computation, incremental key updates, and repetition identity; Task 8 stores and restores the existing hash field exactly.
@@ -368,8 +370,8 @@
 
 ## Immediate next operations
 
-1. Verify this Task 8 status closure at its exact SHA through all strict CI gates.
-2. Begin Task 9 only after the closure head is green.
-3. Implement deterministic Zobrist tables, authoritative full recomputation, and incremental make/unmake updates.
-4. Define canonical en-passant repetition identity based on the existence of a legal en-passant capture.
+1. Begin Task 9 deterministic Zobrist tables and versioned key contract.
+2. Implement authoritative full-position hash recomputation.
+3. Wire incremental key updates through every Task 8 make/unmake path.
+4. Canonicalize en-passant repetition identity based on whether a legal en-passant capture exists.
 5. Compare incremental and recomputed keys after every make/unmake across curated and randomized sequences.
