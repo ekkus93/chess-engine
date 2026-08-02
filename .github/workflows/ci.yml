@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: rust-ci-${{ github.workflow }}-${{ github.ref }}
@@ -26,53 +26,6 @@ jobs:
       RUST_BACKTRACE: "1"
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: One-cycle Task 10 duplicate repair
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path("crates/chess-core/src/game.rs")
-          text = path.read_text()
-          first_marker = "fn illegal_game_move_does_not_change_position_or_history()"
-          next_marker = "    #[test]\n    fn search_history_is_detached_and_reversible()"
-          occurrences = []
-          offset = 0
-          while True:
-              index = text.find(first_marker, offset)
-              if index < 0:
-                  break
-              occurrences.append(index)
-              offset = index + len(first_marker)
-
-          if len(occurrences) == 2:
-              remove_start = text.rfind("    #[test]\n", 0, occurrences[1])
-              remove_end = text.find(next_marker, occurrences[1])
-              if remove_start < 0 or remove_end < 0 or remove_start >= remove_end:
-                  raise SystemExit("could not isolate the second adjacent Task 10 test pair")
-              text = text[:remove_start] + text[remove_end:]
-              path.write_text(text)
-          elif len(occurrences) != 1:
-              raise SystemExit(
-                  f"expected one or two illegal-move history tests, found {len(occurrences)}"
-              )
-          PY
-          if test -f .github/workflows/task10-deduplicate-tests-once.yml; then
-            git rm .github/workflows/task10-deduplicate-tests-once.yml
-          fi
-          cargo fmt --all
-          git diff --check
-          if ! git diff --quiet; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add crates/chess-core/src/game.rs
-            git commit -m "test(core): deduplicate Task 10 history coverage"
-            git push origin HEAD:rust-engine
-          fi
 
       - name: Verify Cargo workspace
         shell: bash
