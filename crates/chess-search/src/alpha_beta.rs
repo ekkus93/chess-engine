@@ -3,9 +3,10 @@ use core::fmt;
 use chess_core::{LegalMoveError, Move, Position, SearchHistory, SearchHistoryError};
 
 use crate::{
-    cancellation::NeverCancelled, quiescence::search_quiescence_node,
-    search_common::resolved_node_score, Score, SearchCancellationProbe, MAX_MATE_PLY,
-    MAX_QUIESCENCE_PLY,
+    cancellation::NeverCancelled,
+    quiescence::{search_quiescence_node, QuiescenceContext},
+    search_common::resolved_node_score,
+    Score, SearchCancellationProbe, MAX_MATE_PLY, MAX_QUIESCENCE_PLY,
 };
 
 /// Result of one full-window negamax alpha-beta search.
@@ -205,16 +206,12 @@ where
     }
 
     if depth == 0 {
-        return search_quiescence_node(
-            position,
-            history,
+        let context = QuiescenceContext {
             ply,
-            0,
-            MAX_QUIESCENCE_PLY,
-            alpha,
-            beta,
-            cancellation,
-        );
+            quiescence_ply: 0,
+            maximum_quiescence_ply: MAX_QUIESCENCE_PLY,
+        };
+        return search_quiescence_node(position, history, context, alpha, beta, cancellation);
     }
 
     let tokens = position.legal_move_tokens()?;

@@ -14,6 +14,13 @@ pub const MAX_QUIESCENCE_PLY: u16 = 64;
 /// Quiescence uses the normal alpha-beta result shape.
 pub type QuiescenceSearchResult = AlphaBetaSearchResult;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct QuiescenceContext {
+    pub(crate) ply: u16,
+    pub(crate) quiescence_ply: u16,
+    pub(crate) maximum_quiescence_ply: u16,
+}
+
 /// Searches the tactical continuation of `position` with the default guard.
 ///
 /// Stand-pat is permitted only outside check. Checked nodes search every legal
@@ -69,16 +76,12 @@ where
     let initial_zobrist = position.zobrist();
     let alpha = Score::mated_in(0).expect("zero-ply mate score is supported");
     let beta = Score::mate_in(0).expect("zero-ply mate score is supported");
-    let result = search_quiescence_node(
-        position,
-        history,
-        0,
-        0,
+    let context = QuiescenceContext {
+        ply: 0,
+        quiescence_ply: 0,
         maximum_quiescence_ply,
-        alpha,
-        beta,
-        cancellation,
-    );
+    };
+    let result = search_quiescence_node(position, history, context, alpha, beta, cancellation);
 
     debug_assert_eq!(history.len(), initial_history_len);
     debug_assert_eq!(history.line_len(), initial_line_len);
@@ -92,9 +95,7 @@ where
 pub(crate) fn search_quiescence_node<Probe>(
     position: &mut Position,
     history: &mut SearchHistory,
-    ply: u16,
-    quiescence_ply: u16,
-    maximum_quiescence_ply: u16,
+    context: QuiescenceContext,
     mut alpha: Score,
     beta: Score,
     cancellation: &mut Probe,
@@ -107,11 +108,13 @@ where
     }
 
     let tokens = position.legal_move_tokens()?;
-    if let Some(score) = resolved_terminal_or_draw_score(position, history, tokens.is_empty(), ply)
-        .map_err(|error| AlphaBetaSearchError::DepthTooLarge {
-            depth: error.ply(),
-            maximum: MAX_MATE_PLY,
-        })?
+    if let Some(score) =
+        resolved_terminal_or_draw_score(position, history, tokens.is_empty(), context.ply).map_err(
+            |error| AlphaBetaSearchError::DepthTooLarge {
+                depth: error.ply(),
+                maximum: MAX_MATE_PLY,
+            },
+        )?
     {
         return Ok(AlphaBetaSearchResult {
             score,
@@ -125,10 +128,10 @@ where
     let mut best_move = None;
 
     if in_check {
-        if quiescence_ply >= maximum_quiescence_ply {
+        if context.quiescence_ply >= context.maximum_quiescence_ply {
             return Err(AlphaBetaSearchError::QuiescenceDepthLimitReachedInCheck {
-                quiescence_ply,
-                maximum: maximum_quiescence_ply,
+                quiescence_ply: context.quiescence_ply,
+                maximum: context.maximum_quiescence_ply,
             });
         }
     } else {
@@ -144,7 +147,7 @@ where
         if stand_pat > alpha {
             alpha = stand_pat;
         }
-        if quiescence_ply >= maximum_quiescence_ply {
+        if context.quiescence_ply >= context.maximum_quiescence_ply {
             return Ok(AlphaBetaSearchResult {
                 score: stand_pat,
                 best_move: None,
@@ -163,21 +166,25 @@ where
             return Err(AlphaBetaSearchError::Cancelled);
         }
 
-        let child_ply = ply
+        let child_ply = context
+            .ply
             .checked_add(1)
             .filter(|next| *next <= MAX_MATE_PLY)
             .ok_or(AlphaBetaSearchError::DepthTooLarge {
-                depth: ply.saturating_add(1),
+                depth: context.ply.saturating_add(1),
                 maximum: MAX_MATE_PLY,
             })?;
+        let child_context = QuiescenceContext {
+            ply: child_ply,
+            quiescence_ply: context.quiescence_ply + 1,
+            maximum_quiescence_ply: context.maximum_quiescence_ply,
+        };
         let position_undo = position.make_legal_token(token)?;
         let history_undo = history.push_position(position);
         let child = search_quiescence_node(
             position,
             history,
-            child_ply,
-            quiescence_ply + 1,
-            maximum_quiescence_ply,
+            child_context,
             -beta,
             -alpha,
             cancellation,
