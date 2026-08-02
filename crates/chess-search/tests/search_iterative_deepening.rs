@@ -78,8 +78,9 @@ fn every_depth_is_preserved_and_matches_independent_full_window_search() {
     assert!(result.iterations()[1].transposition_diagnostics().hits() > 0);
     assert!(result.iterations()[2].transposition_diagnostics().hits() > 0);
     for iteration in result.iterations() {
+        assert!(iteration.transposition_diagnostics().stores() > 0);
         assert!(iteration.hash_full().sampled_slots() > 0);
-        assert!(iteration.hash_full().occupied_current_generation() > 0);
+        assert!(iteration.hash_full().per_mille() <= 1_000);
     }
 
     assert_eq!(position, position_snapshot);
