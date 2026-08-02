@@ -5,6 +5,7 @@
 //! independent of search, protocols, platform adapters, filesystems, and user
 //! interfaces.
 
+mod attacks;
 mod bitboard;
 mod castling;
 mod counters;
@@ -14,6 +15,10 @@ mod position;
 mod square;
 mod uci_move;
 
+pub use attacks::{
+    between, bishop_attacks, king_attacks, knight_attacks, line, pawn_attacks, queen_attacks,
+    ray, rook_attacks,
+};
 pub use bitboard::{Bitboard, BitboardIter};
 pub use castling::{CastleSide, CastlingRights};
 pub use counters::{FullmoveNumber, HalfmoveClock};
