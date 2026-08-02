@@ -79,11 +79,7 @@ fn parsed_syntax_matches_only_the_same_move_identity() {
         square("b8"),
         MoveKind::QueenPromotionCapture,
     )));
-    assert!(!syntax.matches(Move::new(
-        square("a7"),
-        square("b8"),
-        MoveKind::Capture,
-    )));
+    assert!(!syntax.matches(Move::new(square("a7"), square("b8"), MoveKind::Capture,)));
 }
 
 #[test]
@@ -96,8 +92,8 @@ fn arbitrary_utf8_input_never_panics() {
                 state = state
                     .wrapping_mul(2_862_933_555_777_941_757)
                     .wrapping_add(3_037_000_493);
-                let scalar = u32::try_from((state >> 32) % 0x11_0000)
-                    .expect("bounded scalar fits u32");
+                let scalar =
+                    u32::try_from((state >> 32) % 0x11_0000).expect("bounded scalar fits u32");
                 value.push(char::from_u32(scalar).unwrap_or('\u{fffd}'));
             }
             assert!(
