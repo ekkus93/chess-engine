@@ -111,12 +111,13 @@ fn mine_task_13_5_distance_fixtures() {
         }
     }
 
-    let (survival_fen, slower_move, slower_score, survival_scores) = survival.unwrap_or_else(|| {
-        panic!(
-            "no longer-survival child found; shorter children=[{}]",
-            score_lines(&shorter_scores)
-        )
-    });
+    let (survival_fen, slower_move, slower_score, survival_scores) =
+        survival.unwrap_or_else(|| {
+            panic!(
+                "no longer-survival child found; shorter children=[{}]",
+                score_lines(&shorter_scores)
+            )
+        });
     let survival_best = survival_scores
         .iter()
         .max_by_key(|(_, score)| *score)
