@@ -216,10 +216,10 @@ mod tests {
         let depths = [9, 3, 6, 8];
         let generations = [0, 10, 0, 0];
 
-        for slot in 0..TRANSPOSITION_CLUSTER_SIZE {
-            table.generation = generations[slot];
+        for (slot, (&depth, &generation)) in depths.iter().zip(&generations).enumerate() {
+            table.generation = generation;
             let key = colliding_key(&table, base_key, slot as u64);
-            assert_eq!(table.store(entry(key, depths[slot])).slot_index(), slot);
+            assert_eq!(table.store(entry(key, depth)).slot_index(), slot);
         }
 
         table.generation = 10;
@@ -251,8 +251,8 @@ mod tests {
         let base_key = 41;
         let generations = [1, u8::MAX, 0, 2];
 
-        for slot in 0..TRANSPOSITION_CLUSTER_SIZE {
-            table.generation = generations[slot];
+        for (slot, generation) in generations.into_iter().enumerate() {
+            table.generation = generation;
             let key = colliding_key(&table, base_key, slot as u64);
             table.store(entry(key, 7));
         }
