@@ -10,7 +10,7 @@ on:
 
 permissions:
   actions: write
-  contents: read
+  contents: write
   issues: write
 
 jobs:
@@ -154,41 +154,47 @@ jobs:
             -f state=closed \
             -f state_reason=completed
 
-  mine-task-13-5-fixtures:
-    name: Mine Task 13.5 terminal fixtures
+  format-task-13-5:
+    name: Format Task 13.5 candidate
     if: >-
       github.ref == 'refs/heads/master' &&
       github.event_name == 'issues' &&
-      github.event.issue.title == '[mine-task-13-5-fixtures]'
+      github.event.issue.title == '[format-task-13-5]'
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 5
     env:
       GH_TOKEN: ${{ github.token }}
       REPOSITORY: ${{ github.repository }}
       ISSUE_NUMBER: ${{ github.event.issue.number }}
+      EXPECTED_HEAD: 252520343a4deb99aa3f0938b53b83c8dfc45e44
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-      - name: Install oracle
-        run: python -m pip install --disable-pip-version-check chess==1.11.2
-      - name: Mine fixtures
-        id: mine
+          ref: rust-engine
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Format and push
+        id: format
         shell: bash
         run: |
           set -euo pipefail
-          output="$(python .github/task13_fixture_miner.py)"
-          {
-            echo 'output<<EOF'
-            echo "${output}"
-            echo 'EOF'
-          } >>"${GITHUB_OUTPUT}"
+          test "$(git rev-parse HEAD)" = "${EXPECTED_HEAD}"
+          cargo fmt --all
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add crates/chess-search/tests/search_terminals.rs
+          git commit -m 'style: format Task 13.5 terminal fixtures'
+          git push origin HEAD:rust-engine
+          echo "sha=$(git rev-parse HEAD)" >>"${GITHUB_OUTPUT}"
       - name: Report and close
         env:
-          OUTPUT: ${{ steps.mine.outputs.output }}
+          FORMATTED_SHA: ${{ steps.format.outputs.sha }}
         shell: bash
         run: |
           set -euo pipefail
-          gh api --method POST "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/comments" -f body="${OUTPUT}"
+          body="Formatted Task 13.5 candidate at ${FORMATTED_SHA}."
+          gh api --method POST "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/comments" -f body="${body}"
           gh api --method PATCH "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}" -f state=closed -f state_reason=completed
