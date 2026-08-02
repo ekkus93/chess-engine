@@ -244,15 +244,34 @@
 
 ---
 
-# Task 11: Authoritative perft and differential validation — ACTIVE, NOT STARTED
-- [ ] 11.1 Standard exact perft suite.
-- [ ] 11.2 Slow perft.
-- [ ] 11.3 Divide tool.
-- [ ] 11.4 Differential oracle harness.
-- [ ] 11.5 Corpus gate.
-- [ ] Task 11 gate.
+# Task 11: Authoritative perft and differential validation — COMPLETE
+- [x] 11.1 Standard exact perft suite.
+- [x] 11.2 Slow perft.
+- [x] 11.3 Divide tool.
+- [x] 11.4 Differential oracle harness.
+- [x] 11.5 Corpus gate.
+- [x] Task 11 gate.
 
-# Task 12: Baseline evaluator and trace — NOT STARTED
+### Task 11 completion evidence
+
+- Six-position depth-one through depth-five manifest: `fixtures/perft.tsv`.
+- Fast and slow Rust gates: `crates/chess-core/tests/authoritative_perft.rs`.
+- Deterministic perft, divide, legal, child-FEN, suite, and oracle tooling: `crates/chess-tools/src/lib.rs` and `crates/chess-tools/src/main.rs`.
+- Permanent special-rule corpus: `fixtures/differential_corpus.tsv`.
+- Pinned external oracle and harness: `requirements/oracle.txt` and `scripts/differential_oracle.py`.
+- Validation contract: `docs/RUST_PERFT_AND_DIFFERENTIAL_VALIDATION.md`.
+- Exact validated implementation head: `1711fefe37b93163ec316ba9528742d6f87f8496`.
+- Implementation CI run/job: `30733309460` / `91457298625`.
+- Results: lockfile and metadata verification, rustfmt, Cargo check, Clippy with warnings denied, 89 executed Rust tests, release depth-four perft, rustdoc with warnings denied, debug build, release build, fifteen oracle positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies.
+- Depth-five validated head: `e5c44147c8f6097f1d60c8d6d73a051da4fc13a1`.
+- Depth-five run/job: `30733437572` / `91457637460`; all six positions and 469,080,960 leaves passed in 39.77 seconds.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 12 owns the baseline evaluator, score convention, trace, named weights, and evaluator exclusions.
+
+---
+
+# Task 12: Baseline evaluator and trace — ACTIVE, NOT STARTED
 - [ ] 12.1 Score convention.
 - [ ] 12.2 Baseline terms.
 - [ ] 12.3 Efficiency.

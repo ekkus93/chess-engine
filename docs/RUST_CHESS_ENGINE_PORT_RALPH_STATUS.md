@@ -3,7 +3,7 @@
 **Updated:** 2026-08-01  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 11 authoritative perft and differential validation active; implementation not started
+**Current phase:** Task 12 baseline evaluator and trace active; implementation not started
 
 ## Completed gates
 
@@ -20,44 +20,48 @@
 | 8 | `cecc39b9c9dcd8c90f9cdbdb4284be13c480bbd6` | `30730891252` / `91451022194` | closure green; implementation `67 passed` |
 | 9 | `178583c15458cb29205201047bad8f4064a9342d` | `30731524205` / `91452671063` | strict implementation gate green; `72 passed` |
 | 10 | `dd57b258fc8b9af647c30a1834f3d9e79a3d8ee3` | `30732542941` / `91455346591` | strict implementation gate green; `84 passed` |
+| 11 | `1711fefe37b93163ec316ba9528742d6f87f8496` | `30733309460` / `91457298625` | strict gate, depth-four perft, and differential oracle green; 89 Rust tests |
 
-## Task 10 completion
+## Task 11 completion
 
 Implemented and validated:
 
-- history-free `Position` retained as the rule-state primitive;
-- history-owning `Game` with current position, played moves, and root-to-current canonical hashes;
-- transactional legal move application and exact LIFO game undo;
-- fail-loud mismatch handling without position or history mutation;
-- explicit ongoing, checkmate, stalemate, claimable-draw, and automatic-draw statuses;
-- claimable threefold-repetition and fifty-move draws;
-- automatic fivefold-repetition and seventy-five-move draws;
-- checkmate and stalemate precedence over automatic move-count draws;
-- conservative dead-position recognition without broad minor-piece shortcuts;
-- repetition counting limited to the reversible halfmove window;
-- detached search-history cloning with reversible line push/pop;
-- search operations isolated from game move and repetition histories;
-- illegal game moves proven non-mutating;
-- `docs/RUST_GAME_HISTORY_AND_DRAWS.md`.
+- one authoritative six-position perft manifest through depth five;
+- direct manifest consumption by Rust integration tests;
+- fast depth-one through depth-three gates with exact restoration checks;
+- required release-mode depth-four CI validation;
+- permanent weekly and manual release-mode depth-five validation;
+- deterministic UCI-sorted legal-move and divide output;
+- canonical child-FEN and perft tooling;
+- a persistent machine-readable Rust oracle protocol;
+- pinned independent `chess==1.11.2` validation;
+- fifteen-position permanent special-rule corpus;
+- complete legal-set, every-child-FEN, independent-perft, and seeded-playout comparisons;
+- fail-loud corpus validation and reproducible mismatch diagnostics;
+- correction of two specification FEN/count pairing errors;
+- `docs/RUST_PERFT_AND_DIFFERENTIAL_VALIDATION.md`.
 
 Evidence:
 
-- Implementation and tests: `crates/chess-core/src/game.rs`.
-- Public exports: `crates/chess-core/src/lib.rs`.
-- Validated implementation head: `dd57b258fc8b9af647c30a1834f3d9e79a3d8ee3`.
-- Implementation CI run/job: `30732542941` / `91455346591`.
-- Results: lockfile and metadata verification, rustfmt, Cargo check, Clippy with `-D warnings`, `84 passed`, rustdoc with `-D warnings`, debug build, and release build.
+- Validated implementation head: `1711fefe37b93163ec316ba9528742d6f87f8496`.
+- Implementation CI run/job: `30733309460` / `91457298625`.
+- Results: lockfile and metadata verification, rustfmt, Cargo check, Clippy with `-D warnings`, 89 executed Rust tests, release depth-four perft, rustdoc with `-D warnings`, debug build, and release build.
+- Differential result: fifteen positions, 293 child FENs, 272,991 independently counted perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- Depth-five validated head: `e5c44147c8f6097f1d60c8d6d73a051da4fc13a1`.
+- Depth-five run/job: `30733437572` / `91457637460`.
+- Depth-five result: all six positions and 469,080,960 leaves passed in 39.77 seconds.
 - First-party warnings: none.
-- Accepted external notices: GitHub Actions Node runtime and dependency `punycode` deprecation notices only.
-- Task 11 owns expanded perft fixtures, divide output, independent differential validation, and the rule corpus gate.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 12 owns evaluation semantics and traceability over the validated rule layer.
 
-## Task 11 active scope
+## Task 12 active scope
 
-- [ ] Add the standard exact perft fixture suite and expected node counts.
-- [ ] Add explicitly gated slow perft depths.
-- [ ] Harden deterministic divide output for diagnosis.
-- [ ] Build an independent differential oracle harness.
-- [ ] Establish a curated corpus gate across special-rule positions.
+- [ ] Define the score convention and terminal-score boundary.
+- [ ] Implement the required baseline evaluation terms.
+- [ ] Preserve efficient evaluation suitable for search.
+- [ ] Add a term-by-term evaluation trace.
+- [ ] Centralize named weights and document their meaning.
+- [ ] Enforce the Task 12 evaluator exclusions.
 - [ ] Pass exact-head rustfmt, Cargo check, Clippy, tests, rustdoc, debug, and release gates.
 
 No pull request has been created; work remains on `rust-engine`.
