@@ -102,8 +102,7 @@ impl Position {
         let mut enemy_pawns = self.piece_bitboard(enemy, PieceKind::Pawn);
         enemy_pawns.clear(captured);
         let pawn_attackers = pawn_attacks(enemy.opposite(), king) & enemy_pawns;
-        let knight_attackers =
-            knight_attacks(king) & self.piece_bitboard(enemy, PieceKind::Knight);
+        let knight_attackers = knight_attacks(king) & self.piece_bitboard(enemy, PieceKind::Knight);
         let king_attackers = king_attacks(king) & self.piece_bitboard(enemy, PieceKind::King);
         let diagonal_attackers = bishop_attacks(king, occupancy)
             & (self.piece_bitboard(enemy, PieceKind::Bishop)
@@ -236,15 +235,13 @@ mod tests {
     #[test]
     fn clocks_do_not_change_repetition_identity() {
         let first = Position::from_fen("7k/8/8/8/8/8/8/K7 w - - 0 1").expect("valid FEN");
-        let second =
-            Position::from_fen("7k/8/8/8/8/8/8/K7 w - - 99 65535").expect("valid FEN");
+        let second = Position::from_fen("7k/8/8/8/8/8/8/K7 w - - 99 65535").expect("valid FEN");
         assert_eq!(first.zobrist(), second.zobrist());
     }
 
     #[test]
     fn en_passant_identity_requires_a_legal_capture() {
-        let legal =
-            Position::from_fen("7k/8/8/3pP3/8/8/8/7K w - d6 0 1").expect("valid FEN");
+        let legal = Position::from_fen("7k/8/8/3pP3/8/8/8/7K w - d6 0 1").expect("valid FEN");
         let legal_without_target =
             Position::from_fen("7k/8/8/3pP3/8/8/8/7K w - - 0 1").expect("valid FEN");
         assert_ne!(legal.zobrist(), legal_without_target.zobrist());
@@ -259,8 +256,7 @@ mod tests {
             non_capturable_without_target.zobrist()
         );
 
-        let pinned =
-            Position::from_fen("4r2k/8/8/3pP3/8/8/8/4K3 w - d6 0 1").expect("valid FEN");
+        let pinned = Position::from_fen("4r2k/8/8/3pP3/8/8/8/4K3 w - d6 0 1").expect("valid FEN");
         let pinned_without_target =
             Position::from_fen("4r2k/8/8/3pP3/8/8/8/4K3 w - - 0 1").expect("valid FEN");
         assert_eq!(pinned.zobrist(), pinned_without_target.zobrist());

@@ -4,9 +4,9 @@ mod error;
 mod fen;
 mod legal;
 mod make_unmake;
-mod zobrist;
 #[cfg(test)]
 mod tests;
+mod zobrist;
 
 use builder::PositionBuilder;
 pub use editor::PositionEditor;

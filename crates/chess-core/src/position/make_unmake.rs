@@ -402,10 +402,7 @@ fn move_hash_delta(
             );
             delta ^= piece_square_key(promoted, current.destination());
         }
-        MoveKind::Quiet
-        | MoveKind::DoublePawnPush
-        | MoveKind::Capture
-        | MoveKind::EnPassant => {
+        MoveKind::Quiet | MoveKind::DoublePawnPush | MoveKind::Capture | MoveKind::EnPassant => {
             delta ^= piece_square_key(moving_piece, current.destination());
         }
     }
