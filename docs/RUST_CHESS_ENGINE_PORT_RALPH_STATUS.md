@@ -3,7 +3,7 @@
 **Updated:** 2026-08-01  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 5 attack-generation source commit prepared
+**Current phase:** Task 5 attack-generation implementation pending CI
 
 ## Completed gates
 
@@ -35,8 +35,18 @@
 
 ## Task 5 implementation
 
-Prepared source commit: `a4cd3a712d1b7fe09a0157ef1fc58e5d9c0e9c37`.
+Attached implementation commit: `af649ba40ecaa22c196f0bcbb726fe7a33fce48e`.
 
-Task 5 remains open pending branch attachment and exact-SHA CI evidence.
+Implemented:
+
+- precomputed pawn attacks for both colors and all squares;
+- precomputed knight and king attacks;
+- audited rook, bishop, and queen scans for arbitrary occupancy;
+- precomputed 64-by-64 ray, between, and line tables;
+- `Position::attackers_to`, `is_square_attacked`, `checkers_to_king`, and `pinned_pieces`;
+- independent coordinate-oracle tests for every leaper square, every geometry pair, representative slider occupancies, fixtures, checks, pins, and pawn semantics;
+- `docs/RUST_ATTACK_GENERATION.md`.
+
+Task 5 remains open pending exact-SHA rustfmt, Cargo check, Clippy, tests, rustdoc, debug, and release evidence.
 
 No branch or pull request has been created.
