@@ -33,15 +33,10 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          echo 'started' > .github/task14_3_progress.txt
+          printf 'started:%s\n' "$GITHUB_RUN_ID" > .github/task14_3_progress.txt
           git add .github/task14_3_progress.txt
           git commit -m "ci: Task 14.3 validation started"
           git push origin HEAD:rust-engine
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
 
       - name: Reconstruct, apply, and validate Task 14.3
         id: validation
@@ -50,13 +45,17 @@ jobs:
           set +e
           set -o pipefail
           progress() {
-            printf '%s\n' "$1" > .github/task14_3_progress.txt
+            printf '%s:%s\n' "$1" "$GITHUB_RUN_ID" > .github/task14_3_progress.txt
             git add .github/task14_3_progress.txt
             git commit -m "ci: Task 14.3 $1"
             git push origin HEAD:rust-engine
           }
           {
             set -euo pipefail
+            rustc --version
+            cargo --version
+            rustfmt --version
+            cargo clippy --version
             cat .github/task14_3_parts/part{00..04} > /tmp/apply_task_14_3.py
             echo 'b9d3c144d610175a6f9562773825c6e2806737a882e107425bf0c9dfcdfb3c93  /tmp/apply_task_14_3.py' | sha256sum --check
             python3 - <<'PY'
