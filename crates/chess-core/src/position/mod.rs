@@ -12,7 +12,7 @@ use builder::PositionBuilder;
 pub use editor::PositionEditor;
 pub use error::{PositionBuildError, PositionInvariantError, PositionMutationError};
 pub use fen::FenError;
-pub use legal::LegalMoveError;
+pub use legal::{LegalMoveError, LegalMoveToken, LegalMoveTokenList};
 pub use make_unmake::PositionUndo;
 
 use crate::{

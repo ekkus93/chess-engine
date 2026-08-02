@@ -50,3 +50,20 @@ The internal packed `Move` implements canonical UCI formatting through `Display`
 ## Error and robustness contract
 
 `FenError` and `MoveParseError` preserve the failing field or token category. Tests cover valid examples, malformed category fixtures, curated parse/serialize round trips, canonical castling ordering, all internal move kinds, all promotion suffixes, non-mutation after failed FEN parsing, and deterministic arbitrary Unicode input corpora that must never panic.
+
+## FEN validation policy
+
+`Position::from_fen` is a strict syntax and structural **analysis-position** parser. It does not attempt to prove that a position is reachable from the standard initial position.
+
+It rejects malformed field counts and placement, invalid piece or counter syntax, pawns on rank one or eight, invalid en-passant target ranks, occupied en-passant targets, and positions without exactly one king of each color. It constructs a fresh position and validates mailbox, bitboard, occupancy, cached-king, en-passant, and hash invariants before returning.
+
+It intentionally accepts structurally coherent analysis states that may be illegal or unreachable in an actual game, including:
+
+- castling rights without the matching home rook or with the king away from its home square;
+- a correctly ranked but non-capturable en-passant target;
+- adjacent kings;
+- both kings in check;
+- either the side to move or the side not to move already being in check;
+- unusual material that cannot arise from the standard initial set.
+
+Legal move generation remains fail-safe for these states: it never permits king capture, refuses castling when required pieces or safety conditions are absent, and filters moves against king attack. Zobrist repetition identity includes an en-passant file only when a legal en-passant capture exists, so accepted non-capturable targets do not create a false repetition distinction. The committed differential corpus remains restricted to positions accepted as valid by the pinned independent oracle.

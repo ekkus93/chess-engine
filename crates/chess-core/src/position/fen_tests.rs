@@ -142,3 +142,34 @@ fn arbitrary_utf8_input_never_panics() {
         }
     }
 }
+
+#[test]
+fn analysis_position_policy_is_explicit_and_safe() {
+    let accepted = [
+        "4k3/8/8/8/8/8/8/4K3 w K - 0 1",
+        "4k3/8/8/8/8/8/8/3K4 w K - 0 1",
+        "4k3/8/8/3p4/8/8/8/4K3 w - d6 0 1",
+        "8/8/8/8/8/8/4k3/4K3 w - - 0 1",
+        "4k3/4R3/8/8/8/8/4r3/4K3 w - - 0 1",
+        "4r1k1/8/8/8/8/8/8/4K3 w - - 0 1",
+        "4k3/8/8/8/8/8/4R3/4K3 w - - 0 1",
+        "4k3/QQQQQQQQ/8/8/8/8/8/4K3 w - - 0 1",
+    ];
+
+    for fen in accepted {
+        let mut position = Position::from_fen(fen).expect("analysis FEN is accepted");
+        position
+            .validate_invariants()
+            .expect("analysis FEN satisfies structural invariants");
+        assert_eq!(position.to_fen(), fen);
+        assert_eq!(position.zobrist(), position.recomputed_zobrist());
+        let _moves = position
+            .legal_moves()
+            .expect("analysis legal generation is safe");
+        assert_eq!(position.perft(0).expect("depth-zero perft succeeds"), 1);
+        assert_eq!(
+            Position::from_fen(&position.to_fen()).expect("canonical analysis FEN parses"),
+            position
+        );
+    }
+}

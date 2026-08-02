@@ -1,8 +1,11 @@
 use core::fmt;
 
-use crate::{Color, Move, MoveKind, MoveList, MoveListOverflow, PositionMutationError, Square};
+use crate::{
+    CastlingRights, Color, FullmoveNumber, HalfmoveClock, Move, MoveKind, MoveList,
+    MoveListOverflow, PositionMutationError, Square, MAX_PSEUDO_LEGAL_MOVES,
+};
 
-use super::Position;
+use super::{Position, PositionUndo};
 
 /// A fail-loud legal-move generation, application, restoration, or perft error.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -13,6 +16,8 @@ pub enum LegalMoveError {
     Mutation(PositionMutationError),
     /// A caller requested a move that is not one of the exact legal identities.
     IllegalMove { current: Move },
+    /// A legal-move token was generated for a different source position.
+    LegalMoveTokenMismatch { current: Move },
     /// A generated move contradicted its encoded semantic identity.
     InvalidGeneratedMove { current: Move },
     /// An undo token did not match the current post-move position.
@@ -33,6 +38,11 @@ impl fmt::Display for LegalMoveError {
             Self::IllegalMove { current } => {
                 write!(formatter, "move {} is not legal", current.to_uci())
             }
+            Self::LegalMoveTokenMismatch { current } => write!(
+                formatter,
+                "legal-move token for {} does not match the current position",
+                current.to_uci()
+            ),
             Self::InvalidGeneratedMove { current } => write!(
                 formatter,
                 "generated move {} contradicts position state",
@@ -61,6 +71,112 @@ impl From<MoveListOverflow> for LegalMoveError {
 impl From<PositionMutationError> for LegalMoveError {
     fn from(value: PositionMutationError) -> Self {
         Self::Mutation(value)
+    }
+}
+
+/// Opaque proof that one move was legal in one exact source position.
+///
+/// Tokens are created only by [`Position::legal_move_tokens`]. They bind the
+/// packed move identity to the complete non-board metadata and canonical hash
+/// of the source position, allowing search to apply generated legal moves
+/// without regenerating the legal move list.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct LegalMoveToken {
+    current: Move,
+    origin: LegalMoveOrigin,
+}
+
+impl LegalMoveToken {
+    /// Returns the exact packed move represented by this token.
+    #[must_use]
+    pub const fn move_made(self) -> Move {
+        self.current
+    }
+}
+
+/// Bounded stack-backed storage for legal-move tokens.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LegalMoveTokenList {
+    tokens: [Option<LegalMoveToken>; MAX_PSEUDO_LEGAL_MOVES],
+    len: usize,
+}
+
+impl LegalMoveTokenList {
+    const fn new() -> Self {
+        Self {
+            tokens: [None; MAX_PSEUDO_LEGAL_MOVES],
+            len: 0,
+        }
+    }
+
+    /// Returns the number of generated legal-move tokens.
+    #[must_use]
+    pub const fn len(&self) -> usize {
+        self.len
+    }
+
+    /// Returns whether no legal-move token was generated.
+    #[must_use]
+    pub const fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
+    /// Returns the token at `index`.
+    #[must_use]
+    pub fn get(&self, index: usize) -> Option<LegalMoveToken> {
+        self.tokens.get(index).copied().flatten()
+    }
+
+    /// Iterates in deterministic legal move generation order.
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = LegalMoveToken> + '_ {
+        self.tokens[..self.len]
+            .iter()
+            .copied()
+            .map(|entry| entry.expect("occupied legal-token prefix contains tokens"))
+    }
+
+    fn push(&mut self, token: LegalMoveToken) {
+        debug_assert!(self.len < MAX_PSEUDO_LEGAL_MOVES);
+        self.tokens[self.len] = Some(token);
+        self.len += 1;
+    }
+}
+
+impl Default for LegalMoveTokenList {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct LegalMoveOrigin {
+    zobrist: u64,
+    side_to_move: Color,
+    castling_rights: CastlingRights,
+    en_passant: Option<Square>,
+    halfmove_clock: HalfmoveClock,
+    fullmove_number: FullmoveNumber,
+}
+
+impl LegalMoveOrigin {
+    const fn from_position(position: &Position) -> Self {
+        Self {
+            zobrist: position.zobrist(),
+            side_to_move: position.side_to_move(),
+            castling_rights: position.castling_rights(),
+            en_passant: position.en_passant(),
+            halfmove_clock: position.halfmove_clock(),
+            fullmove_number: position.fullmove_number(),
+        }
+    }
+
+    fn matches(self, position: &Position) -> bool {
+        self.zobrist == position.zobrist()
+            && self.side_to_move == position.side_to_move()
+            && self.castling_rights.bits() == position.castling_rights().bits()
+            && self.en_passant == position.en_passant()
+            && self.halfmove_clock.get() == position.halfmove_clock().get()
+            && self.fullmove_number.get() == position.fullmove_number().get()
     }
 }
 
@@ -99,6 +215,39 @@ impl Position {
         }
 
         Ok(legal)
+    }
+
+    /// Generates opaque tokens for every legal move in the current position.
+    ///
+    /// The position is restored exactly before return. Each token records the
+    /// source position identity and can later be passed to
+    /// [`Position::make_legal_token`] without regenerating the legal move list.
+    pub fn legal_move_tokens(&mut self) -> Result<LegalMoveTokenList, LegalMoveError> {
+        let origin = LegalMoveOrigin::from_position(self);
+        let moves = self.legal_moves()?;
+        debug_assert!(origin.matches(self));
+        let mut tokens = LegalMoveTokenList::new();
+        for current in moves.iter() {
+            tokens.push(LegalMoveToken { current, origin });
+        }
+        Ok(tokens)
+    }
+
+    /// Applies one token generated for the exact current position.
+    ///
+    /// Origin mismatch is rejected before mutation. A valid token uses the
+    /// existing generated-legal reversible path and therefore does not
+    /// regenerate legal moves.
+    pub fn make_legal_token(
+        &mut self,
+        token: LegalMoveToken,
+    ) -> Result<PositionUndo, LegalMoveError> {
+        if !token.origin.matches(self) {
+            return Err(LegalMoveError::LegalMoveTokenMismatch {
+                current: token.current,
+            });
+        }
+        self.make_generated_legal_move(token.current)
     }
 
     /// Returns whether `candidate` is one of the exact generated legal moves.

@@ -5,7 +5,7 @@
 //! Tooling may orchestrate the core and search crates but must not become a
 //! dependency of them.
 
-use std::{env, fs, io, process::ExitCode};
+use std::{env, fs, io, process::ExitCode, time::Instant};
 
 use chess_search::EvaluationWeightSet;
 use chess_tools::{
@@ -41,6 +41,24 @@ fn optional_fen(arguments: &[String], index: usize) -> Result<&str, String> {
     }
 }
 
+fn divide_output(fen: &str, depth: u8) -> Result<Vec<String>, String> {
+    let started = Instant::now();
+    let rows = divide(fen, depth).map_err(|error| error.to_string())?;
+    let total = rows
+        .iter()
+        .try_fold(0_u64, |sum, (_, nodes)| sum.checked_add(*nodes))
+        .ok_or_else(|| "divide total overflow".to_owned())?;
+    let elapsed_nanos = started.elapsed().as_nanos();
+    let mut output = Vec::with_capacity(rows.len() + 2);
+    output.extend(
+        rows.into_iter()
+            .map(|(current, nodes)| format!("{current}\t{nodes}")),
+    );
+    output.push(format!("total\t{total}"));
+    output.push(format!("elapsed_nanos\t{elapsed_nanos}"));
+    Ok(output)
+}
+
 fn run(arguments: &[String]) -> Result<(), String> {
     let command = arguments.first().ok_or_else(|| usage().to_owned())?;
     match command.as_str() {
@@ -66,15 +84,9 @@ fn run(arguments: &[String]) -> Result<(), String> {
         "divide" => {
             let depth = parse_depth(arguments.get(1).ok_or_else(|| usage().to_owned())?)?;
             let fen = optional_fen(arguments, 2)?;
-            let rows = divide(fen, depth).map_err(|error| error.to_string())?;
-            let total = rows
-                .iter()
-                .try_fold(0_u64, |sum, (_, nodes)| sum.checked_add(*nodes))
-                .ok_or_else(|| "divide total overflow".to_owned())?;
-            for (current, nodes) in rows {
-                println!("{current}\t{nodes}");
+            for line in divide_output(fen, depth)? {
+                println!("{line}");
             }
-            println!("total\t{total}");
         }
         "suite" => {
             if arguments.len() != 2 {
@@ -156,5 +168,34 @@ fn main() -> ExitCode {
             eprintln!("chess-tools: {error}");
             ExitCode::FAILURE
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{divide_output, STARTING_FEN};
+
+    #[test]
+    fn divide_output_is_sorted_totalled_and_timed() {
+        let lines = divide_output(STARTING_FEN, 2).expect("divide output succeeds");
+        assert_eq!(lines.len(), 22);
+        assert!(lines[..20]
+            .windows(2)
+            .all(|pair| { pair[0].split('\t').next() < pair[1].split('\t').next() }));
+        assert_eq!(lines[20], "total\t400");
+        let elapsed = lines[21]
+            .strip_prefix("elapsed_nanos\t")
+            .expect("elapsed field exists")
+            .parse::<u128>()
+            .expect("elapsed value is an unsigned integer");
+        assert!(elapsed > 0);
+    }
+
+    #[test]
+    fn depth_zero_divide_keeps_stable_summary_shape() {
+        let lines = divide_output(STARTING_FEN, 0).expect("depth-zero divide succeeds");
+        assert_eq!(lines.len(), 2);
+        assert_eq!(lines[0], "total\t0");
+        assert!(lines[1].starts_with("elapsed_nanos\t"));
     }
 }

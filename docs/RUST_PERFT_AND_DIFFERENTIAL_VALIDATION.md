@@ -29,7 +29,7 @@ chess-tools suite MAX_DEPTH
 chess-tools oracle
 ```
 
-Legal moves and divide rows are sorted by canonical UCI text. Divide emits one tab-delimited move/count row followed by a tab-delimited total, so a perft mismatch can be localized to a root move and compared mechanically.
+Legal moves and divide rows are sorted by canonical UCI text. Divide emits one tab-delimited move/count row followed by `total\t<N>` and `elapsed_nanos\t<N>`. The stable timing field measures divide calculation and total accumulation before output, while the move rows remain mechanically comparable.
 
 `play` resolves an exact legal UCI identity and emits the canonical child FEN. `suite` validates the repository manifest through a requested depth from one command.
 

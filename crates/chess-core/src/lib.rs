@@ -10,6 +10,7 @@ mod bitboard;
 mod castling;
 mod counters;
 mod game;
+mod game_reset;
 mod move_encoding;
 mod movegen;
 mod piece;
@@ -32,7 +33,8 @@ pub use move_encoding::{Move, MoveKind};
 pub use movegen::{MoveList, MoveListOverflow, MAX_PSEUDO_LEGAL_MOVES};
 pub use piece::{Color, Piece, PieceKind};
 pub use position::{
-    FenError, LegalMoveError, Position, PositionBuildError, PositionInvariantError, PositionUndo,
+    FenError, LegalMoveError, LegalMoveToken, LegalMoveTokenList, Position, PositionBuildError,
+    PositionInvariantError, PositionUndo,
 };
 #[doc(hidden)]
 pub use position::{PositionEditor, PositionMutationError};

@@ -34,7 +34,7 @@
 | 10 | **Complete** — game history and draw semantics. |
 | 11 | **Complete** — authoritative perft and differential validation. |
 | 12 | **Complete** — baseline evaluator and trace. |
-| 13 | **Active** — reference search and alpha-beta. |
+| 13 | **Active** — reference search and alpha-beta; implementation remains not started pending review-fix closure. |
 | 14–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
@@ -405,7 +405,12 @@
 - [x] Linux rustfmt/check/Clippy/tests/rustdoc/debug/release.
 - [x] Python validation preserved separately.
 - [x] Exact-SHA status publisher and deterministic dispatcher.
-- [ ] Release tests/perft, AArch64, Android, JNI, Miri, sanitizer, fuzz, nightly perft, and scheduled strength.
+- [x] Release depth-four authoritative perft in permanent CI.
+- [x] Scheduled/manual depth-five authoritative perft.
+- [ ] AArch64 compile CI.
+- [ ] Android compile and JNI CI.
+- [ ] Miri, sanitizer, and fuzz gates.
+- [ ] Scheduled strength testing.
 
 ## 25.2 Documentation
 - [x] Workspace architecture.
@@ -416,12 +421,22 @@
 - [x] Pseudo-legal generation.
 - [x] Legal generation and initial perft.
 - [x] Formal make/unmake.
-- [ ] Draws, hashing, search, TT, evaluation, ABI/JNI, differential perft/fuzz, self-play, and tuning.
+- [x] Zobrist hashing and repetition identity.
+- [x] Game history and draw semantics.
+- [x] Authoritative perft and differential validation.
+- [x] Baseline evaluator and trace.
+- [ ] Search and transposition table.
+- [ ] ABI/JNI.
+- [ ] Differential fuzzing.
+- [ ] Self-play and tuning.
 
 ## 25.3 Commands and artifacts
 - [x] Full Task 0/1 validation command, committed lockfile, ignored targets/worktrees.
-- [ ] Bootstrap, fast validation, perft CLI, UCI, Android, self-play, and tuning commands.
-- [ ] Versioned schema/fixture/generated-artifact policy.
+- [x] Perft, divide, legal, play, suite, and oracle commands.
+- [x] Evaluation trace, evaluation benchmark, weight export, and weight validation commands.
+- [ ] General bootstrap and fast-validation wrapper commands.
+- [ ] UCI, Android, self-play, and tuning commands.
+- [ ] Versioned schema/fixture/generated-artifact policy across all future artifacts.
 - [ ] Task 25 gate.
 
 # Task 26: v0.1 signoff — NOT STARTED
@@ -441,8 +456,8 @@
 
 ## Immediate next operations
 
-1. Begin Task 9 deterministic Zobrist tables and versioned key contract.
-2. Implement authoritative full-position hash recomputation.
-3. Wire incremental key updates through every Task 8 make/unmake path.
-4. Canonicalize en-passant repetition identity based on whether a legal en-passant capture exists.
-5. Compare incremental and recomputed keys after every make/unmake across curated and randomized sequences.
+1. Complete and validate `docs/RUST_ENGINE_REVIEW_FIX_TODO_2026-08-02.md`.
+2. Confirm the search-safe legal-token API, game root replacement, divide timing, FEN policy, and tracker cleanup on an exact green SHA.
+3. Begin Task 13 reference search only after the review-fix gate passes.
+4. Implement no-prune reference search before alpha-beta.
+5. Validate terminal scoring, line repetition, and exact search immutability before Task 13 completion.

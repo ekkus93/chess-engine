@@ -1,9 +1,9 @@
 # Rust Chess Engine Port Ralph Loop Status
 
-**Updated:** 2026-08-01  
+**Updated:** 2026-08-02  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 13 reference search and alpha-beta active; implementation not started
+**Current phase:** Pre-Task-13 review-fix implementation candidate; Task 13 search remains not started
 
 ## Completed gates
 
@@ -53,6 +53,19 @@ Evidence:
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime and dependency `punycode` deprecation notices only.
 - Task 13 owns correctness-first reference search and alpha-beta over this evaluator.
+
+## Pre-Task-13 review-fix implementation candidate
+
+Implemented pending exact-head closure validation:
+
+- opaque source-bound legal-move tokens usable by `chess-search`;
+- non-mutating stale/wrong-origin token rejection;
+- explicit `Game::reset_to_starting` and `Game::set_position`;
+- stable `elapsed_nanos` divide output;
+- explicit strict structural analysis-FEN policy and safety tests;
+- corrected Task 25 coverage and Task 13 next-operation text.
+
+Task 13 itself remains not started. Completion evidence will be recorded only after the strict permanent CI gate passes on the final clean SHA.
 
 ## Task 13 active scope
 

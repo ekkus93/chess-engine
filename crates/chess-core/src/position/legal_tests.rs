@@ -209,3 +209,92 @@ fn promotions_remain_explicit_and_invalid_flags_are_rejected() {
         .is_legal_move(invalid_rank)
         .expect("legal query succeeds"));
 }
+
+#[test]
+fn legal_move_tokens_bind_move_and_source_position() {
+    for fen in [
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+        "1r5k/P7/8/8/8/8/8/7K w - - 0 1",
+    ] {
+        let mut position = Position::from_fen(fen).expect("token fixture is valid");
+        let moves: Vec<_> = position
+            .legal_moves()
+            .expect("legal moves")
+            .iter()
+            .collect();
+        let tokens = position.legal_move_tokens().expect("legal tokens");
+        assert_eq!(tokens.len(), moves.len());
+        assert_eq!(
+            tokens
+                .iter()
+                .map(|token| token.move_made())
+                .collect::<Vec<_>>(),
+            moves
+        );
+    }
+}
+
+#[test]
+fn legal_move_tokens_apply_unmake_and_reject_stale_origins() {
+    let mut position = Position::starting();
+    let root = position.clone();
+    let tokens = position.legal_move_tokens().expect("legal tokens");
+    let e2e4 = tokens
+        .iter()
+        .find(|token| token.move_made().to_uci() == "e2e4")
+        .expect("e2e4 token");
+    let g1f3 = tokens
+        .iter()
+        .find(|token| token.move_made().to_uci() == "g1f3")
+        .expect("g1f3 token");
+
+    let undo = position.make_legal_token(e2e4).expect("token applies");
+    position.validate_invariants().expect("child invariants");
+    assert_eq!(position.zobrist(), position.recomputed_zobrist());
+    let child = position.clone();
+    assert_eq!(
+        position.make_legal_token(g1f3),
+        Err(LegalMoveError::LegalMoveTokenMismatch {
+            current: g1f3.move_made()
+        })
+    );
+    assert_eq!(position, child);
+    position.unmake_move(undo).expect("token move unmakes");
+    assert_eq!(position, root);
+    assert_eq!(position.zobrist(), position.recomputed_zobrist());
+
+    let mut different_side =
+        Position::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1")
+            .expect("different-side FEN is valid");
+    let snapshot = different_side.clone();
+    assert_eq!(
+        different_side.make_legal_token(e2e4),
+        Err(LegalMoveError::LegalMoveTokenMismatch {
+            current: e2e4.move_made()
+        })
+    );
+    assert_eq!(different_side, snapshot);
+}
+
+#[test]
+fn every_curated_legal_token_restores_exactly() {
+    for fen in [
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+        "7k/8/8/3pP3/8/8/8/7K w - d6 0 1",
+        "1r5k/P7/8/8/8/8/8/7K w - - 0 1",
+    ] {
+        let mut position = Position::from_fen(fen).expect("curated token FEN is valid");
+        let snapshot = position.clone();
+        let tokens = position.legal_move_tokens().expect("legal tokens");
+        for token in tokens.iter() {
+            let undo = position.make_legal_token(token).expect("token applies");
+            position.validate_invariants().expect("child invariants");
+            assert_eq!(position.zobrist(), position.recomputed_zobrist());
+            position.unmake_move(undo).expect("token unmake succeeds");
+            assert_eq!(position, snapshot, "{} in {fen}", token.move_made());
+            assert_eq!(position.zobrist(), position.recomputed_zobrist());
+        }
+    }
+}

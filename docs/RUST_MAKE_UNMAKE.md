@@ -71,3 +71,9 @@ Every successful unmake restores field-for-field logical equality with the pre-m
 - deterministic random legal playouts followed by complete reverse unmake.
 
 Task 9 will extend the randomized verification to compare the incremental hash with authoritative recomputation after every make and unmake.
+
+## Public generated-legal token API
+
+Task 13 lives in the separate `chess-search` crate, so the crate-private generated path cannot be called directly. `Position::legal_move_tokens()` exposes a bounded list of opaque `LegalMoveToken` values. Each token binds one exact packed move to the source position's canonical Zobrist key, side to move, castling rights, raw en-passant target, halfmove clock, and fullmove number.
+
+`Position::make_legal_token()` verifies this origin before mutation and then delegates to the existing generated-legal reversible primitive. A stale token or a token from a different source position returns `LegalMoveError::LegalMoveTokenMismatch` without changing any field. A valid token does not regenerate legal moves. The fully checked `Position::make_move(Move)` remains the public path for callers that have only a raw move identity.

@@ -85,3 +85,9 @@ Task 10 tests cover:
 - detached search-history push, pop, and mismatch behavior.
 
 Task 11 may use `Game`, `Position`, and `SearchHistory` as authoritative rule-state inputs while expanding perft and differential validation.
+
+## Root replacement
+
+`Game::reset_to_starting()` replaces the game with a fresh standard starting position. `Game::set_position(Position)` establishes a caller-supplied validated position as a new root. Both operations clear the played-move list and replace position-hash history with exactly one root key. Prior repetition history is never merged into the new root, and old `GameUndo` tokens cannot be applied successfully after replacement.
+
+These APIs are infallible because `Position` values are already structurally validated. They provide the explicit state-replacement semantics needed by future UCI `ucinewgame` and `position` handling without exposing mutable access to the internal position.

@@ -1,6 +1,6 @@
 # Rust Engine Review Fix Spec — 2026-08-02
 
-**Status:** Ready for implementation  
+**Status:** Implemented; exact-head validation pending  
 **Branch:** `rust-engine`  
 **Companion TODO:** `docs/RUST_ENGINE_REVIEW_FIX_TODO_2026-08-02.md`  
 **Origin:** Comprehensive Rust code review after Task 12 completion  
