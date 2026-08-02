@@ -1,6 +1,13 @@
+use core::{fmt, mem::size_of};
+
 use chess_core::Move;
 
 use crate::Score;
+
+const BYTES_PER_MEBIBYTE: usize = 1024 * 1024;
+
+/// Number of transposition entries stored in one collision cluster.
+pub const TRANSPOSITION_CLUSTER_SIZE: usize = 4;
 
 /// Search-window meaning of a stored transposition-table score.
 ///
@@ -120,13 +127,202 @@ impl TranspositionEntry {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[repr(C)]
+struct TranspositionCluster {
+    entries: [Option<TranspositionEntry>; TRANSPOSITION_CLUSTER_SIZE],
+}
+
+impl TranspositionCluster {
+    const EMPTY: Self = Self {
+        entries: [None; TRANSPOSITION_CLUSTER_SIZE],
+    };
+
+    fn clear(&mut self) {
+        self.entries.fill(None);
+    }
+}
+
+/// Failure to configure or allocate a fixed-capacity transposition table.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum TranspositionTableAllocationError {
+    /// A zero-MiB table cannot contain a cluster.
+    ZeroMebibytes,
+    /// Converting the requested MiB count into bytes overflowed `usize`.
+    SizeOverflow {
+        /// Requested table size in MiB.
+        mebibytes: usize,
+    },
+    /// The requested byte budget cannot contain one complete cluster.
+    NoWholeCluster {
+        /// Requested byte budget.
+        requested_bytes: usize,
+        /// Size of one cluster in bytes.
+        cluster_bytes: usize,
+    },
+    /// The allocator rejected the complete fixed-size cluster reservation.
+    AllocationFailed {
+        /// Requested byte budget.
+        requested_bytes: usize,
+        /// Number of complete clusters requested.
+        cluster_count: usize,
+    },
+}
+
+impl fmt::Display for TranspositionTableAllocationError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::ZeroMebibytes => {
+                write!(formatter, "transposition-table size must be at least 1 MiB")
+            }
+            Self::SizeOverflow { mebibytes } => write!(
+                formatter,
+                "transposition-table size of {mebibytes} MiB exceeds the addressable byte range"
+            ),
+            Self::NoWholeCluster {
+                requested_bytes,
+                cluster_bytes,
+            } => write!(
+                formatter,
+                "transposition-table budget of {requested_bytes} bytes cannot contain one {cluster_bytes}-byte cluster"
+            ),
+            Self::AllocationFailed {
+                requested_bytes,
+                cluster_count,
+            } => write!(
+                formatter,
+                "failed to allocate {cluster_count} transposition clusters within the {requested_bytes}-byte budget"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for TranspositionTableAllocationError {}
+
+/// Fixed-capacity clustered transposition-table storage.
+///
+/// Construction performs one fallible reservation for all clusters. The table
+/// never grows after construction and has no unbounded map fallback. Task 15.5
+/// will define how stores choose a slot inside a cluster; Task 15.4 will define
+/// probe semantics.
+#[derive(Debug)]
+pub struct TranspositionTable {
+    clusters: Vec<TranspositionCluster>,
+    generation: u8,
+    requested_mebibytes: usize,
+    allocated_bytes: usize,
+}
+
+impl TranspositionTable {
+    /// Allocates a fixed table within the requested MiB budget.
+    ///
+    /// The byte budget is rounded down to a whole number of four-entry clusters.
+    /// No partial cluster is allocated and allocation failure is returned as a
+    /// typed error.
+    pub fn new(mebibytes: usize) -> Result<Self, TranspositionTableAllocationError> {
+        let requested_bytes = requested_bytes(mebibytes)?;
+        let cluster_bytes = size_of::<TranspositionCluster>();
+        let cluster_count = requested_bytes / cluster_bytes;
+
+        if cluster_count == 0 {
+            return Err(TranspositionTableAllocationError::NoWholeCluster {
+                requested_bytes,
+                cluster_bytes,
+            });
+        }
+
+        let allocated_bytes = cluster_count * cluster_bytes;
+        let mut clusters = Vec::new();
+        clusters.try_reserve_exact(cluster_count).map_err(|_| {
+            TranspositionTableAllocationError::AllocationFailed {
+                requested_bytes,
+                cluster_count,
+            }
+        })?;
+        clusters.resize(cluster_count, TranspositionCluster::EMPTY);
+
+        Ok(Self {
+            clusters,
+            generation: 0,
+            requested_mebibytes: mebibytes,
+            allocated_bytes,
+        })
+    }
+
+    /// Returns the configured table budget in MiB.
+    #[must_use]
+    pub const fn requested_mebibytes(&self) -> usize {
+        self.requested_mebibytes
+    }
+
+    /// Returns the bytes occupied by complete logical clusters.
+    #[must_use]
+    pub const fn allocated_bytes(&self) -> usize {
+        self.allocated_bytes
+    }
+
+    /// Returns the fixed number of collision clusters.
+    #[must_use]
+    pub fn cluster_count(&self) -> usize {
+        self.clusters.len()
+    }
+
+    /// Returns the fixed number of entry slots across all clusters.
+    #[must_use]
+    pub fn entry_capacity(&self) -> usize {
+        self.clusters.len() * TRANSPOSITION_CLUSTER_SIZE
+    }
+
+    /// Returns the generation assigned to newly stored entries.
+    #[must_use]
+    pub const fn generation(&self) -> u8 {
+        self.generation
+    }
+
+    /// Removes every entry without changing allocation or generation.
+    pub fn clear(&mut self) {
+        for cluster in &mut self.clusters {
+            cluster.clear();
+        }
+    }
+
+    /// Advances to a new generation using defined wrapping arithmetic.
+    ///
+    /// Existing entries remain present so the later replacement policy can
+    /// compare their age with the current generation.
+    pub fn advance_generation(&mut self) -> u8 {
+        self.generation = self.generation.wrapping_add(1);
+        self.generation
+    }
+
+    fn cluster_index(&self, verification_key: u64) -> usize {
+        (verification_key % self.clusters.len() as u64) as usize
+    }
+}
+
+fn requested_bytes(
+    mebibytes: usize,
+) -> Result<usize, TranspositionTableAllocationError> {
+    if mebibytes == 0 {
+        return Err(TranspositionTableAllocationError::ZeroMebibytes);
+    }
+
+    mebibytes.checked_mul(BYTES_PER_MEBIBYTE).ok_or(
+        TranspositionTableAllocationError::SizeOverflow { mebibytes },
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use core::mem::{align_of, size_of};
 
     use chess_core::{Move, MoveKind, Square};
 
-    use super::{TranspositionBound, TranspositionEntry, TranspositionScore};
+    use super::{
+        TranspositionBound, TranspositionCluster, TranspositionEntry, TranspositionScore,
+        TranspositionTable, TranspositionTableAllocationError, BYTES_PER_MEBIBYTE,
+        TRANSPOSITION_CLUSTER_SIZE,
+    };
     use crate::{Score, MATE_SCORE};
 
     fn square(text: &str) -> Square {
@@ -135,6 +331,17 @@ mod tests {
 
     fn best_move() -> Move {
         Move::new(square("e2"), square("e4"), MoveKind::DoublePawnPush)
+    }
+
+    fn entry(verification_key: u64, generation: u8) -> TranspositionEntry {
+        TranspositionEntry::new(
+            verification_key,
+            8,
+            TranspositionBound::Exact,
+            TranspositionScore::from_normalized(Score::from_evaluation(31)),
+            Some(best_move()),
+            generation,
+        )
     }
 
     #[test]
@@ -218,5 +425,90 @@ mod tests {
         assert_eq!(size_of::<TranspositionScore>(), size_of::<Score>());
         assert!(size_of::<TranspositionEntry>() <= 24);
         assert!(align_of::<TranspositionEntry>() <= align_of::<u64>());
+    }
+
+    #[test]
+    fn invalid_table_sizes_fail_loudly_without_allocating() {
+        assert!(matches!(
+            TranspositionTable::new(0),
+            Err(TranspositionTableAllocationError::ZeroMebibytes)
+        ));
+        assert!(matches!(
+            TranspositionTable::new(usize::MAX),
+            Err(TranspositionTableAllocationError::SizeOverflow {
+                mebibytes: usize::MAX
+            })
+        ));
+    }
+
+    #[test]
+    fn mib_budget_rounds_down_to_complete_fixed_clusters() {
+        let table = TranspositionTable::new(1).expect("one MiB table allocates");
+        let cluster_bytes = size_of::<TranspositionCluster>();
+
+        assert_eq!(table.requested_mebibytes(), 1);
+        assert!(table.allocated_bytes() <= BYTES_PER_MEBIBYTE);
+        assert!(BYTES_PER_MEBIBYTE - table.allocated_bytes() < cluster_bytes);
+        assert_eq!(
+            table.allocated_bytes(),
+            table.cluster_count() * cluster_bytes
+        );
+        assert_eq!(
+            table.entry_capacity(),
+            table.cluster_count() * TRANSPOSITION_CLUSTER_SIZE
+        );
+        assert_eq!(table.clusters.len(), table.cluster_count());
+        assert!(table.clusters.capacity() >= table.clusters.len());
+    }
+
+    #[test]
+    fn four_way_clusters_use_deterministic_collision_indexing() {
+        let table = TranspositionTable::new(1).expect("table allocates");
+        let key = 0x1234_5678_9abc_def0;
+        let collision = key + table.cluster_count() as u64;
+        let index = table.cluster_index(key);
+
+        assert_eq!(TRANSPOSITION_CLUSTER_SIZE, 4);
+        assert!(index < table.cluster_count());
+        assert_eq!(index, table.cluster_index(key));
+        assert_eq!(index, table.cluster_index(collision));
+    }
+
+    #[test]
+    fn clear_preserves_allocation_and_generation() {
+        let mut table = TranspositionTable::new(1).expect("table allocates");
+        let key = 17;
+        let index = table.cluster_index(key);
+        table.clusters[index].entries[0] = Some(entry(key, table.generation()));
+        table.advance_generation();
+
+        let pointer = table.clusters.as_ptr();
+        let capacity = table.clusters.capacity();
+        let generation = table.generation();
+        table.clear();
+
+        assert_eq!(table.clusters.as_ptr(), pointer);
+        assert_eq!(table.clusters.capacity(), capacity);
+        assert_eq!(table.generation(), generation);
+        assert!(table
+            .clusters
+            .iter()
+            .all(|cluster| cluster.entries.iter().all(Option::is_none)));
+    }
+
+    #[test]
+    fn generation_wraps_without_clearing_existing_entries() {
+        let mut table = TranspositionTable::new(1).expect("table allocates");
+        let key = 29;
+        let index = table.cluster_index(key);
+        table.clusters[index].entries[0] = Some(entry(key, u8::MAX));
+        table.generation = u8::MAX;
+
+        assert_eq!(table.advance_generation(), 0);
+        assert_eq!(table.generation(), 0);
+        assert_eq!(
+            table.clusters[index].entries[0],
+            Some(entry(key, u8::MAX))
+        );
     }
 }
