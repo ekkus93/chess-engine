@@ -1,1 +1,1 @@
-cargo-check-passed:30762211967
+clippy-passed:30762211967
