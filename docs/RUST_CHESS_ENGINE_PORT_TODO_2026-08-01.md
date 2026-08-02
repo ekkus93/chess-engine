@@ -34,7 +34,7 @@
 | 10 | **Complete** — game history and draw semantics. |
 | 11 | **Complete** — authoritative perft and differential validation. |
 | 12 | **Complete** — baseline evaluator and trace. |
-| 13 | **Active** — reference search and alpha-beta; implementation is not started and may now begin. |
+| 13 | **Active** — Task 13.1 reference search complete; Task 13.2 alpha-beta is next. |
 | 14–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
@@ -329,17 +329,32 @@ Evidence:
 - Later commits finalize documentation only; they do not alter the validated Rust or permanent workflow tree.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime and dependency `punycode` deprecation notices only.
-- Task 13 remains active and not started.
+- At review-fix closure, Task 13 remained active and not started; Task 13.1 is now complete.
 
 ---
 
-# Task 13: Reference search and alpha-beta — ACTIVE, NOT STARTED
-- [ ] 13.1 Reference search.
+# Task 13: Reference search and alpha-beta — ACTIVE
+- [x] 13.1 Reference search.
 - [ ] 13.2 Negamax alpha-beta.
 - [ ] 13.3 Shallow equivalence.
 - [ ] 13.4 Immutability.
 - [ ] 13.5 Terminal fixtures.
 - [ ] Task 13 gate.
+
+### Task 13.1 completion evidence
+
+- Public reference-search API: `reference_search`, `ReferenceSearchResult`, and `ReferenceSearchError`.
+- Implementation: `crates/chess-search/src/reference.rs`.
+- Public export: `crates/chess-search/src/lib.rs`.
+- Contract documentation: `docs/RUST_REFERENCE_SEARCH.md`.
+- Exact validated implementation SHA: `7cf7fb027bf86f0658c14f4c9b452bce2cdcbe98`.
+- Permanent CI run/job: `30741414286` / `91479443116`.
+- Results: rustfmt, Cargo check, strict Clippy, 118 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc, debug/release builds, and independent differential validation passed.
+- Reference-search coverage includes depth-zero evaluation, exact starting depth-two node count `421`, deterministic best-move selection, mate/stalemate precedence, ply-relative mate scoring, dead/fifty-move/seventy-five-move/repetition draws, mismatched-history failure, excessive-depth failure, and exact root/history restoration.
+- Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 13.2 owns negamax alpha-beta over this reference implementation.
 
 # Task 14: Quiescence and ordering — NOT STARTED
 - [ ] 14.1 Quiescence.
@@ -485,9 +500,9 @@ Evidence:
 
 ## Immediate next operations
 
-1. Begin Task 13 with an unpruned reference minimax/negamax search.
-2. Define terminal checkmate, stalemate, claimable-draw, automatic-draw, and repetition scoring.
-3. Use public legal tokens plus make/unmake and detached line history; do not clone per child.
-4. Implement negamax alpha-beta only after the reference path and fixtures are stable.
-5. Prove shallow score equivalence, uniquely best-move equivalence, node-count improvement, and exact root/history restoration.
-6. Run the full exact-head strict gate before marking Task 13 complete.
+1. Implement Task 13.2 negamax alpha-beta over the Task 13.1 terminal and draw semantics.
+2. Use legal tokens, make/unmake, and detached line history without clone-per-child.
+3. Preserve deterministic first-best tie behavior for direct comparison with reference search.
+4. Record alpha-beta node counts and prove they never exceed the reference node count on the same fixture/depth.
+5. Complete Task 13.3 shallow score and uniquely-best-move equivalence.
+6. Expand Task 13.4–13.5 restoration and terminal fixtures before closing the Task 13 gate.

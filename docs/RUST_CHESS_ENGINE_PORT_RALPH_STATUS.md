@@ -3,7 +3,7 @@
 **Updated:** 2026-08-02  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Pre-Task-13 review-fix complete; Task 13 search is active and not started
+**Current phase:** Task 13.1 reference search complete; Task 13.2 negamax alpha-beta is next
 
 ## Completed gates
 
@@ -23,6 +23,7 @@
 | 11 | `1711fefe37b93163ec316ba9528742d6f87f8496` | `30733309460` / `91457298625` | strict gate, depth-four perft, and differential oracle green; 89 Rust tests |
 | 12 | `d8547cc258ecc2e52b8e4eb7ef287d92d5d0a04f` | `30734451785` / `91460574656` | strict gate, depth-four perft, and differential oracle green; 103 Rust tests |
 | Review fix | `81a7cd4a58a52695eca2ede10d5c73c803851d17` | `30739166607` / `91473334960` | strict gate, 112 Rust tests, depth-four perft, and differential oracle green |
+| 13.1 | `7cf7fb027bf86f0658c14f4c9b452bce2cdcbe98` | `30741414286` / `91479443116` | unpruned reference negamax, 118 Rust tests, depth-four perft, and differential oracle green |
 
 ## Task 12 completion
 
@@ -87,12 +88,38 @@ Evidence:
 - Later commits finalize documentation only; they do not change the validated Rust or permanent workflow tree.
 - No pull request was created.
 
+## Task 13.1 completion
+
+Implemented and validated:
+
+- unpruned, full-tree reference negamax in `chess-search`;
+- public score, deterministic best-move, and node-count result API;
+- legal-token make/unmake with no clone-per-child;
+- detached root plus reversible line repetition history;
+- checkmate, stalemate, dead-position, repetition, fifty-move, and seventy-five-move scoring;
+- checkmate precedence over a simultaneous move-count threshold;
+- ply-relative mate scores;
+- fail-loud history/root mismatch, depth-domain, and node-overflow errors;
+- exact root position, Zobrist, and history restoration;
+- `docs/RUST_REFERENCE_SEARCH.md`.
+
+Evidence:
+
+- Exact validated implementation SHA: `7cf7fb027bf86f0658c14f4c9b452bce2cdcbe98`.
+- Permanent CI run/job: `30741414286` / `91479443116`.
+- Results: workspace assets, lockfile, metadata, rustfmt, Cargo check, Clippy with `-D warnings`, 118 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with `-D warnings`, debug build, release build, and independent differential validation passed.
+- Starting-position depth-two reference search visits exactly `421` nodes.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 13.2 remains not started.
+
 ## Task 13 active scope
 
-- [ ] Implement an unpruned reference minimax/negamax search.
-- [ ] Count nodes and define terminal/draw scoring.
+- [x] Implement an unpruned reference minimax/negamax search.
+- [x] Count nodes and define terminal/draw scoring.
 - [ ] Implement negamax alpha-beta using legal tokens and make/unmake.
-- [ ] Integrate detached root and reversible line repetition history.
+- [x] Integrate detached root and reversible line repetition history.
 - [ ] Prove shallow reference/alpha-beta score equivalence.
 - [ ] Compare uniquely best moves and node counts.
 - [ ] Prove search restores the root position, Zobrist key, and history exactly.
