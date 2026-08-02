@@ -176,7 +176,7 @@ impl Game {
 
     /// Returns the number of played halfmoves.
     #[must_use]
-    pub const fn ply_count(&self) -> usize {
+    pub fn ply_count(&self) -> usize {
         self.moves.len()
     }
 
