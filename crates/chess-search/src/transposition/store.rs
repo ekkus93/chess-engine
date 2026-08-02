@@ -1,8 +1,6 @@
 use core::cmp::Reverse;
 
-use super::{
-    TranspositionCluster, TranspositionEntry, TranspositionTable, TRANSPOSITION_CLUSTER_SIZE,
-};
+use super::{TranspositionCluster, TranspositionEntry, TranspositionTable};
 
 /// How one transposition-table store changed its selected cluster.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -129,9 +127,10 @@ fn collision_victim_slot(cluster: &TranspositionCluster, current_generation: u8)
 mod tests {
     use chess_core::{Move, MoveKind, Square};
 
-    use super::{TranspositionStoreAction, TRANSPOSITION_CLUSTER_SIZE};
+    use super::TranspositionStoreAction;
     use crate::{
         Score, TranspositionBound, TranspositionEntry, TranspositionScore, TranspositionTable,
+        TRANSPOSITION_CLUSTER_SIZE,
     };
 
     fn square(text: &str) -> Square {
