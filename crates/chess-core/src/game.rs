@@ -693,6 +693,32 @@ mod tests {
     }
 
     #[test]
+    fn illegal_game_move_does_not_change_position_or_history() {
+        let mut game = Game::starting();
+        let snapshot = game.clone();
+        let illegal = crate::Move::new(
+            "e2".parse().expect("test square is valid"),
+            "e5".parse().expect("test square is valid"),
+            crate::MoveKind::Quiet,
+        );
+
+        assert!(matches!(game.make_move(illegal), Err(GameError::Rules(_))));
+        assert_eq!(game, snapshot);
+    }
+
+    #[test]
+    fn repetition_count_respects_the_irreversible_halfmove_boundary() {
+        let current = position("8/8/8/8/8/8/R3K3/7k w - - 2 1");
+        let hash = current.zobrist();
+        let history = crate::SearchHistory {
+            hashes: vec![hash, hash, hash ^ 1, hash],
+            root_len: 4,
+        };
+
+        assert_eq!(history.repetition_count(&current), 2);
+    }
+
+    #[test]
     fn search_history_is_detached_and_reversible() {
         let mut game = Game::starting();
         play_knight_cycle(&mut game);
