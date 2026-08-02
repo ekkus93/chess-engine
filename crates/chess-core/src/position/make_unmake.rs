@@ -271,8 +271,7 @@ impl Position {
         if matches!(current.kind(), MoveKind::KingCastle | MoveKind::QueenCastle) {
             let (rook_source, rook_destination) = castle_rook_squares(current, moving_side);
             if self.piece_at(rook_source).is_some()
-                || self.piece_at(rook_destination)
-                    != Some(Piece::new(moving_side, PieceKind::Rook))
+                || self.piece_at(rook_destination) != Some(Piece::new(moving_side, PieceKind::Rook))
             {
                 return false;
             }
