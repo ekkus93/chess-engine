@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: rust-ci-${{ github.workflow }}-${{ github.ref }}
@@ -26,14 +26,6 @@ jobs:
       RUST_BACKTRACE: "1"
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: rust-engine
-          fetch-depth: 0
-
-      - name: Apply Task 15 production integration
-        run: |
-          python3 scripts/implement_task_15_gate.py "$GITHUB_WORKSPACE"
-          python3 scripts/fix_task_15_gate_dead_code.py "$GITHUB_WORKSPACE"
 
       - name: Verify workspace and validation assets
         shell: bash
@@ -46,8 +38,6 @@ jobs:
           test -f requirements/oracle.txt
           test -f scripts/differential_oracle.py
           test -f scripts/task_14_5_exclusion_audit.py
-          test -f crates/chess-search/tests/search_transposition.rs
-          test -f docs/RUST_TRANSPOSITION_TABLE_SEARCH_INTEGRATION.md
           python3 -m py_compile \
             scripts/differential_oracle.py \
             scripts/task_14_5_exclusion_audit.py
@@ -89,9 +79,6 @@ jobs:
       - name: Validate workspace metadata
         run: cargo metadata --locked --format-version 1 --no-deps
 
-      - name: Format implementation
-        run: cargo fmt --all
-
       - name: Check formatting
         run: cargo fmt --all -- --check
 
@@ -103,12 +90,6 @@ jobs:
 
       - name: Run tests
         run: cargo test --locked --workspace --all-features
-
-      - name: Run release TT integration witnesses
-        run: |
-          set -euo pipefail
-          cargo test --locked -p chess-search --release transposition_move_ordering_reduces_fixed_narrow_window_tree
-          cargo test --locked -p chess-search --release warm_table_exact_root_hit_reduces_nodes_and_preserves_result
 
       - name: Run authoritative release perft
         run: cargo test --locked -p chess-core --release authoritative_perft_depth_four -- --ignored --exact
@@ -142,21 +123,3 @@ jobs:
           --games 12
           --plies 48
           --seed 0xC0FFEE
-
-      - name: Commit validated implementation without workflow changes
-        run: |
-          set -euo pipefail
-          git rm \
-            scripts/implement_task_15_gate.py \
-            scripts/fix_task_15_gate_dead_code.py
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            crates/chess-search/src/alpha_beta.rs \
-            crates/chess-search/src/lib.rs \
-            crates/chess-search/src/move_ordering.rs \
-            crates/chess-search/tests/search_transposition.rs \
-            docs/RUST_TRANSPOSITION_TABLE_SEARCH_INTEGRATION.md
-          git diff --cached --check
-          git commit -m "feat: integrate TT into alpha-beta search"
-          git push origin HEAD:rust-engine
