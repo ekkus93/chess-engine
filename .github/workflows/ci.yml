@@ -10,7 +10,7 @@ on:
 
 permissions:
   actions: write
-  contents: read
+  contents: write
   issues: write
 
 jobs:
@@ -145,6 +145,127 @@ jobs:
         if: >-
           steps.command.outputs.dispatch == 'true' &&
           github.event_name == 'issues'
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api \
+            --method PATCH \
+            "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE_NUMBER}" \
+            -f state=closed \
+            -f state_reason=completed
+
+  close-task-13-2:
+    name: Close Task 13.2 trackers
+    if: >-
+      github.ref == 'refs/heads/master' &&
+      github.event_name == 'issues' &&
+      github.event.issue.title == '[close-task-13-2]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      TRIGGER_ISSUE_NUMBER: ${{ github.event.issue.number }}
+      IMPLEMENTATION_SHA: d662ca07cae6b0044c1ce620a0dc4f3249784d6c
+      CI_RUN: '30741988672'
+      CI_JOB: '91480926153'
+    steps:
+      - name: Check out exact Task 13.2 implementation
+        uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+
+      - name: Patch authoritative trackers
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${IMPLEMENTATION_SHA}"
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              count = text.count(old)
+              if count != 1:
+                  raise RuntimeError(f"{label}: expected one match, found {count}")
+              return text.replace(old, new, 1)
+
+          tracker_path = Path("docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md")
+          tracker = tracker_path.read_text(encoding="utf-8")
+          tracker = replace_once(
+              tracker,
+              "| 13 | **Active** — Task 13.1 reference search complete; Task 13.2 alpha-beta is next. |",
+              "| 13 | **Active** — Tasks 13.1–13.2 complete; Task 13.3 shallow equivalence is next. |",
+              "program summary",
+          )
+          tracker = replace_once(
+              tracker,
+              "- [ ] 13.2 Negamax alpha-beta.",
+              "- [x] 13.2 Negamax alpha-beta.",
+              "Task 13.2 checkbox",
+          )
+          tracker = replace_once(
+              tracker,
+              "- Task 13.2 owns negamax alpha-beta over this reference implementation.\n",
+              "- Task 13.2 now provides negamax alpha-beta over this reference implementation.\n\n### Task 13.2 completion evidence\n\n- Public alpha-beta API: `alpha_beta_search`, `AlphaBetaSearchResult`, and `AlphaBetaSearchError`.\n- Recursive fail-soft negamax implementation: `crates/chess-search/src/alpha_beta.rs`.\n- Shared terminal/draw resolver: `crates/chess-search/src/search_common.rs`.\n- Public export: `crates/chess-search/src/lib.rs`.\n- Contract documentation: `docs/RUST_NEGAMAX_ALPHA_BETA.md`.\n- Exact validated implementation SHA: `d662ca07cae6b0044c1ce620a0dc4f3249784d6c`.\n- Permanent CI run/job: `30741988672` / `91480926153`.\n- Results: rustfmt, Cargo check, strict Clippy, 124 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc, debug/release builds, and independent differential validation passed.\n- Coverage includes full-window exact root scoring, recursive `(-beta, -alpha)` windows, alpha-beta cutoffs, deterministic first-best ties, legal best-move return, ply-relative mate scoring, repetition draws, fail-loud root-history/depth validation, and exact root/history restoration.\n- The starting-position depth-three regression visits fewer than the complete unpruned `9,323` nodes.\n- Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.\n- First-party warnings: none.\n- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.\n- Task 13.3 owns direct shallow score, uniquely-best-move, and node-count equivalence against reference search.\n",
+              "Task 13.2 evidence",
+          )
+          tracker = replace_once(
+              tracker,
+              "## Immediate next operations\n\n1. Implement Task 13.2 negamax alpha-beta over the Task 13.1 terminal and draw semantics.\n2. Use legal tokens, make/unmake, and detached line history without clone-per-child.\n3. Preserve deterministic first-best tie behavior for direct comparison with reference search.\n4. Record alpha-beta node counts and prove they never exceed the reference node count on the same fixture/depth.\n5. Complete Task 13.3 shallow score and uniquely-best-move equivalence.\n6. Expand Task 13.4–13.5 restoration and terminal fixtures before closing the Task 13 gate.\n",
+              "## Immediate next operations\n\n1. Implement Task 13.3 curated shallow equivalence between reference and alpha-beta search.\n2. Compare exact scores at accepted depths across quiet, tactical, terminal-adjacent, draw, and repetition-aware positions.\n3. Require identical root moves only when the best score is unique; preserve deterministic tie diagnostics separately.\n4. Prove alpha-beta visits no more nodes than reference on every compared fixture and strictly fewer on at least one pruning fixture.\n5. Keep root position, Zobrist identity, and detached history unchanged after every paired search.\n6. Leave Task 13.4 cancellation restoration and the complete Task 13.5 terminal fixture set open until implemented.\n",
+              "immediate operations",
+          )
+          tracker_path.write_text(tracker, encoding="utf-8")
+
+          status_path = Path("docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md")
+          status = status_path.read_text(encoding="utf-8")
+          status = replace_once(
+              status,
+              "**Current phase:** Task 13.1 reference search complete; Task 13.2 negamax alpha-beta is next",
+              "**Current phase:** Tasks 13.1–13.2 complete; Task 13.3 shallow equivalence is next",
+              "Ralph current phase",
+          )
+          status = replace_once(
+              status,
+              "| 13.1 | `7cf7fb027bf86f0658c14f4c9b452bce2cdcbe98` | `30741414286` / `91479443116` | unpruned reference negamax, 118 Rust tests, depth-four perft, and differential oracle green |",
+              "| 13.1 | `7cf7fb027bf86f0658c14f4c9b452bce2cdcbe98` | `30741414286` / `91479443116` | unpruned reference negamax, 118 Rust tests, depth-four perft, and differential oracle green |\n| 13.2 | `d662ca07cae6b0044c1ce620a0dc4f3249784d6c` | `30741988672` / `91480926153` | negamax alpha-beta, 124 Rust tests, depth-four perft, and differential oracle green |",
+              "completed gate table",
+          )
+          status = replace_once(
+              status,
+              "## Task 13 active scope\n",
+              "## Task 13.2 completion\n\nImplemented and validated:\n\n- recursive fail-soft negamax alpha-beta with no maximizing/minimizing dual branches;\n- full-window exact root search and recursive `(-beta, -alpha)` windows;\n- side-to-move scoring and ply-relative mate distance;\n- deterministic first-best tie behavior and legal root best moves;\n- source-bound legal tokens, make/unmake, and detached line history;\n- game-root plus search-line repetition handling;\n- checked node accumulation and fail-loud root-history/depth validation;\n- exact root position, Zobrist, and history restoration;\n- a starting-position depth-three pruning regression below the complete `9,323`-node tree;\n- `docs/RUST_NEGAMAX_ALPHA_BETA.md`.\n\nEvidence:\n\n- Exact validated implementation SHA: `d662ca07cae6b0044c1ce620a0dc4f3249784d6c`.\n- Permanent CI run/job: `30741988672` / `91480926153`.\n- Results: workspace assets, lockfile, metadata, rustfmt, Cargo check, Clippy with `-D warnings`, 124 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with `-D warnings`, debug build, release build, and independent differential validation passed.\n- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.\n- First-party warnings: none.\n- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.\n- Task 13.3 remains not started.\n\n## Task 13 active scope\n",
+              "Task 13.2 completion section",
+          )
+          status = replace_once(
+              status,
+              "- [ ] Implement negamax alpha-beta using legal tokens and make/unmake.",
+              "- [x] Implement negamax alpha-beta using legal tokens and make/unmake.",
+              "Task 13 active checklist",
+          )
+          status_path.write_text(status, encoding="utf-8")
+          PY
+
+          git diff -- docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
+          git commit -m 'docs: close Task 13.2 alpha-beta'
+          git push origin HEAD:rust-engine
+          echo "CLOSURE_SHA=$(git rev-parse HEAD)" >>"${GITHUB_ENV}"
+
+      - name: Report closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          body="Task 13.2 tracker closure committed at ${CLOSURE_SHA}. Exact implementation CI: ${CI_RUN} / ${CI_JOB} on ${IMPLEMENTATION_SHA}. Task 13.3 remains open."
+          gh api \
+            --method POST \
+            "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE_NUMBER}/comments" \
+            -f body="${body}"
+
+      - name: Close one-shot trigger issue
         shell: bash
         run: |
           set -euo pipefail
