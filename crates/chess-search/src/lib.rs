@@ -5,18 +5,26 @@
 //! UCI, FFI, JNI, Android, filesystems, and application user interfaces.
 
 mod alpha_beta;
+mod cancellation;
 mod evaluation;
 mod reference;
 mod score;
 mod search_common;
 mod weights;
 
-pub use alpha_beta::{alpha_beta_search, AlphaBetaSearchError, AlphaBetaSearchResult};
+pub use alpha_beta::{
+    alpha_beta_search, alpha_beta_search_with_cancellation, AlphaBetaSearchError,
+    AlphaBetaSearchResult,
+};
+pub use cancellation::SearchCancellationProbe;
 pub use evaluation::{
     evaluate, evaluate_term, evaluate_trace, evaluate_trace_with_weights, evaluate_with_weights,
     EvaluationTerm, EvaluationTrace,
 };
-pub use reference::{reference_search, ReferenceSearchError, ReferenceSearchResult};
+pub use reference::{
+    reference_search, reference_search_with_cancellation, ReferenceSearchError,
+    ReferenceSearchResult,
+};
 pub use score::{Score, MATE_SCORE, MAX_EVALUATION, MAX_MATE_PLY};
 pub use weights::{
     EvaluationWeightSet, EvaluationWeights, PhasedWeight, WeightValidationError,
