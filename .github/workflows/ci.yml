@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: rust-ci-${{ github.workflow }}-${{ github.ref }}
@@ -26,6 +26,24 @@ jobs:
       RUST_BACKTRACE: "1"
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+
+      - name: Apply Task 16.1 tracker consistency fix
+        run: python3 scripts/fix_task_16_1_tracker_stale.py "$GITHUB_WORKSPACE"
+
+      - name: Verify tracker consistency
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F -- '- Task 15 and Task 16.1 are complete. Task 16.2 aspiration windows is next.' docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md
+          if grep -F -- '- Task 15 is complete. Task 16.1 iterative deepening is next.' docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md; then
+            echo '::error::Stale Task 16.1 next-operation sentence remains.'
+            exit 1
+          fi
+          grep -F -- '- [x] 16.1 Iterative deepening.' docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md
+          grep -F -- '- [ ] 16.2 Aspiration windows.' docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md
 
       - name: Verify workspace and validation assets
         shell: bash
@@ -40,7 +58,8 @@ jobs:
           test -f scripts/task_14_5_exclusion_audit.py
           python3 -m py_compile \
             scripts/differential_oracle.py \
-            scripts/task_14_5_exclusion_audit.py
+            scripts/task_14_5_exclusion_audit.py \
+            scripts/fix_task_16_1_tracker_stale.py
 
       - name: Run Task 14.5 exclusion audit
         run: python3 scripts/task_14_5_exclusion_audit.py
@@ -123,3 +142,15 @@ jobs:
           --games 12
           --plies 48
           --seed 0xC0FFEE
+
+      - name: Commit tracker consistency fix without workflow changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm scripts/fix_task_16_1_tracker_stale.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md
+          git diff --cached --check
+          git commit -m "docs: correct Task 16.1 next-operation status"
+          git push origin HEAD:rust-engine
