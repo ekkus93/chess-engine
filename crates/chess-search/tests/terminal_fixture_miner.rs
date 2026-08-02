@@ -1,52 +1,24 @@
-use chess_core::{Color, Move, Position, SearchHistory};
+use chess_core::{Move, Position, SearchHistory};
 use chess_search::{alpha_beta_search, Score};
 
-fn kqk_fen(white_king: u8, white_queen: u8, black_king: u8, side: Color) -> String {
-    let mut board = [None; 64];
-    board[usize::from(white_king)] = Some('K');
-    board[usize::from(white_queen)] = Some('Q');
-    board[usize::from(black_king)] = Some('k');
+const SHORTER_MATE_FEN: &str = "7k/5Q2/6K1/8/8/8/8/8 w - - 0 1";
+const SEARCH_DEPTH: u16 = 5;
 
-    let mut placement = String::new();
-    for row in 0..8_u8 {
-        if row != 0 {
-            placement.push('/');
-        }
-        let mut empty = 0_u8;
-        for file in 0..8_u8 {
-            let index = usize::from(row * 8 + file);
-            match board[index] {
-                Some(piece) => {
-                    if empty != 0 {
-                        placement.push(char::from(b'0' + empty));
-                        empty = 0;
-                    }
-                    placement.push(piece);
-                }
-                None => empty += 1,
-            }
-        }
-        if empty != 0 {
-            placement.push(char::from(b'0' + empty));
-        }
+fn parent_score(child: Score) -> Score {
+    if !child.is_mate() {
+        return -child;
     }
 
-    let side_text = match side {
-        Color::White => "w",
-        Color::Black => "b",
+    let raw = if child.centipawns() > 0 {
+        -child.centipawns() + 1
+    } else {
+        -child.centipawns() - 1
     };
-    format!("{placement} {side_text} - - 0 1")
-}
-
-fn kings_are_separated(white_king: u8, black_king: u8) -> bool {
-    let white_row = white_king / 8;
-    let white_file = white_king % 8;
-    let black_row = black_king / 8;
-    let black_file = black_king % 8;
-    white_row.abs_diff(black_row) > 1 || white_file.abs_diff(black_file) > 1
+    Score::from_raw(raw).expect("one-ply mate normalization stays in range")
 }
 
 fn root_scores(position: &mut Position, depth: u16) -> Vec<(Move, Score)> {
+    assert!(depth > 0);
     let snapshot = position.clone();
     let mut history = SearchHistory::from_position(position);
     let history_snapshot = history.clone();
@@ -69,7 +41,7 @@ fn root_scores(position: &mut Position, depth: u16) -> Vec<(Move, Score)> {
         position
             .unmake_move(position_undo)
             .expect("candidate position restores");
-        scores.push((current, -child.score()));
+        scores.push((current, parent_score(child.score())));
     }
 
     assert_eq!(*position, snapshot);
@@ -88,93 +60,78 @@ fn score_lines(scores: &[(Move, Score)]) -> String {
 
 #[test]
 fn mine_task_13_5_distance_fixtures() {
-    let white_kings = [13_u8, 14, 20, 21, 22, 29, 30];
-    let black_kings = [0_u8, 7];
-    let mut shorter = None;
+    let mut shorter = Position::from_fen(SHORTER_MATE_FEN).expect("fixture FEN is valid");
+    let shorter_scores = root_scores(&mut shorter, SEARCH_DEPTH);
+    let shorter_best = shorter_scores
+        .iter()
+        .map(|(_, score)| *score)
+        .max()
+        .expect("shorter-mate root has legal moves");
+    let mut positive_mates: Vec<Score> = shorter_scores
+        .iter()
+        .map(|(_, score)| *score)
+        .filter(|score| score.is_mate() && score.centipawns() > 0)
+        .collect();
+    positive_mates.sort();
+    positive_mates.dedup();
+    assert!(
+        positive_mates.len() >= 2,
+        "shorter fixture must contain distinct winning mate distances: {}",
+        score_lines(&shorter_scores)
+    );
+
     let mut survival = None;
+    for (candidate, score) in &shorter_scores {
+        if !score.is_mate() || score.centipawns() <= 0 || *score == shorter_best {
+            continue;
+        }
 
-    'outer: for black_king in black_kings {
-        for white_king in white_kings {
-            if !kings_are_separated(white_king, black_king) {
-                continue;
-            }
-            for white_queen in 0..64_u8 {
-                if white_queen == white_king || white_queen == black_king {
-                    continue;
-                }
+        let mut child = shorter.clone();
+        let token = child
+            .legal_move_tokens()
+            .expect("shorter root tokens generate")
+            .iter()
+            .find(|token| token.move_made() == *candidate)
+            .expect("candidate token is present");
+        let _undo = child
+            .make_legal_token(token)
+            .expect("slower mating move applies");
+        let child_scores = root_scores(&mut child, SEARCH_DEPTH - 1);
+        let mut distinct: Vec<Score> = child_scores.iter().map(|(_, value)| *value).collect();
+        distinct.sort();
+        distinct.dedup();
 
-                for side in [Color::White, Color::Black] {
-                    let fen = kqk_fen(white_king, white_queen, black_king, side);
-                    let Ok(mut position) = Position::from_fen(&fen) else {
-                        continue;
-                    };
-                    if position.is_in_check(side.opposite()) {
-                        continue;
-                    }
-
-                    let depth = if side == Color::White { 5 } else { 6 };
-                    let mut history = SearchHistory::from_position(&position);
-                    let Ok(result) = alpha_beta_search(&mut position, &mut history, depth) else {
-                        continue;
-                    };
-                    if !result.score().is_mate() {
-                        continue;
-                    }
-
-                    let scores = root_scores(&mut position, depth);
-                    let mut mate_scores: Vec<Score> = scores
-                        .iter()
-                        .map(|(_, score)| *score)
-                        .filter(|score| {
-                            score.is_mate()
-                                && match side {
-                                    Color::White => score.centipawns() > 0,
-                                    Color::Black => score.centipawns() < 0,
-                                }
-                        })
-                        .collect();
-                    mate_scores.sort();
-                    mate_scores.dedup();
-
-                    if side == Color::White && mate_scores.len() >= 2 && shorter.is_none() {
-                        shorter = Some((fen.clone(), depth, result, scores.clone()));
-                    }
-                    if side == Color::Black
-                        && result.score().centipawns() < 0
-                        && mate_scores.len() >= 2
-                        && scores
-                            .iter()
-                            .all(|(_, score)| score.is_mate() && score.centipawns() < 0)
-                        && survival.is_none()
-                    {
-                        survival = Some((fen.clone(), depth, result, scores.clone()));
-                    }
-                    if shorter.is_some() && survival.is_some() {
-                        break 'outer;
-                    }
-                }
-            }
+        if distinct.len() >= 2
+            && child_scores
+                .iter()
+                .all(|(_, value)| value.is_mate() && value.centipawns() < 0)
+        {
+            survival = Some((child.to_fen(), *candidate, *score, child_scores));
+            break;
         }
     }
 
-    let (shorter_fen, shorter_depth, shorter_result, shorter_scores) =
-        shorter.expect("must find a shorter-mate fixture");
-    let (survival_fen, survival_depth, survival_result, survival_scores) =
-        survival.expect("must find a longer-survival fixture");
+    let (survival_fen, slower_move, slower_score, survival_scores) = survival.unwrap_or_else(|| {
+        panic!(
+            "no longer-survival child found; shorter children=[{}]",
+            score_lines(&shorter_scores)
+        )
+    });
+    let survival_best = survival_scores
+        .iter()
+        .max_by_key(|(_, score)| *score)
+        .expect("survival root has legal moves");
 
     panic!(
-        "MINED_SHORTER fen={shorter_fen} depth={shorter_depth} score={} best={} children=[{}]\nMINED_SURVIVAL fen={survival_fen} depth={survival_depth} score={} best={} children=[{}]",
-        shorter_result.score().centipawns(),
-        shorter_result
-            .best_move()
-            .expect("shorter fixture has move")
-            .to_uci(),
+        "MINED_SHORTER fen={SHORTER_MATE_FEN} depth={SEARCH_DEPTH} best_score={} children=[{}]\nMINED_SURVIVAL via={} via_score={} fen={} depth={} best={} best_score={} children=[{}]",
+        shorter_best.centipawns(),
         score_lines(&shorter_scores),
-        survival_result.score().centipawns(),
-        survival_result
-            .best_move()
-            .expect("survival fixture has move")
-            .to_uci(),
+        slower_move.to_uci(),
+        slower_score.centipawns(),
+        survival_fen,
+        SEARCH_DEPTH - 1,
+        survival_best.0.to_uci(),
+        survival_best.1.centipawns(),
         score_lines(&survival_scores),
     );
 }
