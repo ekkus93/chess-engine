@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 concurrency:
   group: task12-wire-and-validate-once
@@ -21,11 +22,18 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
       RUST_BACKTRACE: "1"
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: rust-engine
           fetch-depth: 0
+
+      - name: Report validator identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh issue comment 1 --body "Task 12 validator run $GITHUB_RUN_ID attempt $GITHUB_RUN_ATTEMPT started for $(git rev-parse HEAD)."
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -161,7 +169,7 @@ jobs:
           status.write_text(text.replace(old_phase, new_phase))
           PY
 
-      - name: Format and run strict gates
+      - name: Format candidate
         shell: bash
         run: |
           set -euo pipefail
@@ -169,6 +177,22 @@ jobs:
           git diff --check
           cargo generate-lockfile
           git diff --exit-code -- Cargo.lock
+
+      - name: Commit formatted candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add crates/chess-search crates/chess-tools/src docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
+          git commit -m "feat(search): materialize Task 12 evaluator candidate"
+          git push origin HEAD:rust-engine
+          git push origin --delete task12-temp
+
+      - name: Run strict gates
+        shell: bash
+        run: |
+          set -euo pipefail
           cargo check --locked --workspace --all-targets --all-features
           cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
           cargo test --locked --workspace --all-features
@@ -185,13 +209,14 @@ jobs:
           target/release/chess-tools weights-export > /tmp/chess-eval-weights.txt
           target/release/chess-tools weights-validate /tmp/chess-eval-weights.txt
 
-      - name: Commit validated implementation
+      - name: Report validator success
+        if: success()
         shell: bash
         run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add crates/chess-search crates/chess-tools/src docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
-          git commit -m "feat(search): validate baseline evaluator and trace"
-          git push origin HEAD:rust-engine
-          git push origin --delete task12-temp
+          gh issue comment 1 --body "Task 12 validator run $GITHUB_RUN_ID succeeded for candidate $(git rev-parse HEAD)."
+
+      - name: Report validator failure
+        if: failure()
+        shell: bash
+        run: |
+          gh issue comment 1 --body "Task 12 validator run $GITHUB_RUN_ID failed for candidate $(git rev-parse HEAD)."
