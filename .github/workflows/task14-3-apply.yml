@@ -41,6 +41,43 @@ jobs:
             set -euo pipefail
             cat .github/task14_3_parts/part{00..04} > /tmp/apply_task_14_3.py
             echo 'b9d3c144d610175a6f9562773825c6e2806737a882e107425bf0c9dfcdfb3c93  /tmp/apply_task_14_3.py' | sha256sum --check
+            python3 - <<'PY'
+            from pathlib import Path
+
+            path = Path('/tmp/apply_task_14_3.py')
+            text = path.read_text()
+            old = '''text = replace_once(
+                text,
+                """            MoveOrdering::Tactical,
+                        Some(tt_move),
+                    )""",
+                """            MoveOrdering::Tactical,
+                        0,
+                        None,
+                        Some(tt_move),
+                        None,
+                    )""",
+                "existing TT test call",
+            )'''
+            new = '''text = replace_once(
+                text,
+                "order_legal_moves_with_hints(&root, &tokens, MoveOrdering::Tactical, Some(tt_move))",
+                """order_legal_moves_with_hints(
+                            &root,
+                            &tokens,
+                            MoveOrdering::Tactical,
+                            0,
+                            None,
+                            Some(tt_move),
+                            None,
+                        )""",
+                "existing TT test call",
+            )'''
+            if text.count(old) != 1:
+                raise SystemExit(f'applicator matcher repair expected one block, found {text.count(old)}')
+            path.write_text(text.replace(old, new))
+            PY
+            echo '8b6bab7bd745473b18f1098d544158a6ffb922bbb5ed5e4a21df7a32cfb4923d  /tmp/apply_task_14_3.py' | sha256sum --check
             python3 /tmp/apply_task_14_3.py "$GITHUB_WORKSPACE"
             cargo fmt --all
             cargo check --locked -p chess-search --all-targets --all-features
