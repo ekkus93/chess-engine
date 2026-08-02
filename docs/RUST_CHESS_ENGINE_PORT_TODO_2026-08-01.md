@@ -26,8 +26,9 @@
 | 3 | **Complete** — `Position` and invariants. |
 | 4 | **Complete** — strict FEN and UCI notation. |
 | 5 | **Complete** — attack generation. |
-| 6 | **Complete** — pseudo-legal generation, bounded move storage, documentation, and exact-SHA CI. |
-| 7–24 | **Not started**. |
+| 6 | **Complete** — pseudo-legal move generation. |
+| 7 | **Implemented, CI pending** — legal filtering, special rules, reversible validation path, and initial perft are present. |
+| 8–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
 
@@ -35,129 +36,95 @@
 
 # Tasks 0–6 — complete
 
-## Task 0: Python reference baseline — COMPLETE
-- [x] Frozen source, inventory, defect/non-copy record, fast/slow suites, perft, UCI smoke, environment, and evidence artifact.
-- [x] Task 0 gate.
-
-**Evidence:** SHA `7ca6f8dc0d2577ca552a6bfe115828eb668d2133`; run/job `30722127447` / `91427510964`; fast `1203`; slow `179`; perft `20/400/8902/197281`; UCI passed.
-
-## Task 1: Cargo workspace and boundaries — COMPLETE
-- [x] Seven-crate workspace, dependency boundaries, toolchain/lint/unsafe/license policy, lockfile, documentation, and strict Linux CI.
-- [x] Task 1 gate.
-
-**Evidence:** SHA `7ca6f8dc0d2577ca552a6bfe115828eb668d2133`; run/job `30722127447` / `91427510938`.
-
-## Task 2: Core values and coordinates — COMPLETE
-- [x] 2.1 color and piece values.
-- [x] 2.2 square mapping and conversions.
-- [x] 2.3 bitboards.
-- [x] 2.4 packed move identity.
-- [x] 2.5 castling rights and typed counters.
-- [x] Task 2 gate.
-
-**Evidence:** green SHA `f29524599134a14d34121af2fefb04cd90e78df0`; run/job `30723748100` / `91431648799`; `16 passed`; closure `b5f462aa73a69efcdc847ee215231a5064029902` green.
-
-## Task 3: `Position` and invariants — COMPLETE
-- [x] 3.1 hybrid representation.
-- [x] 3.2 validated constructors.
-- [x] 3.3 read-only accessors and sealed mutation boundary.
-- [x] 3.4 redundant-state invariants.
-- [x] 3.5 logical equality and snapshot clone.
-- [x] Documentation and Task 3 gate.
-
-**Evidence:** SHA `00fd925dad807d822aa7878aade686ccc59ff9c5`; run/job `30724744784` / `91434236030`; `24 passed`; closure `5578682bb2a6df5173ff7593649ac55509c277cd` green.
-
-## Task 4: Strict FEN and UCI notation — COMPLETE
-- [x] 4.1 structured FEN/UCI errors.
-- [x] 4.2 strict six-field FEN parser.
-- [x] 4.3 canonical FEN serializer.
-- [x] 4.4 syntax-only UCI notation and packed-move formatting.
-- [x] 4.5 malformed, round-trip, and no-panic tests plus documentation.
-- [x] Task 4 gate.
-
-**Evidence:** SHA `6cb975b35f4dbe898a0444b1b4c39778e89bcb40`; run/job `30726795562` / `91439860915`; `35 passed`.
-
-## Task 5: Attack-generation infrastructure — COMPLETE
-- [x] 5.1 precomputed pawn, knight, and king attacks.
-- [x] 5.2 arbitrary-occupancy rook, bishop, and queen attacks.
-- [x] 5.3 static 64×64 ray, between, and line geometry.
-- [x] 5.4 attackers, attacked-square, checkers, and absolute-pin queries.
-- [x] 5.5 independent differential fixtures.
-- [x] Documentation and Task 5 gate.
-
-**Evidence:** implementation SHA `9922b0c725147fcabac3ce4c08f7c150c3ec6a1d`; run/job `30727440571` / `91441645867`; `42 passed`; closure SHA `78e9315369ff4552e5500d1a820767a1fd228f29`, run/job `30727553897` / `91441947625`, green.
-
-## Task 6: Pseudo-legal move generation — COMPLETE
-
-### 6.1 Pawn moves
-- [x] Single pushes require an empty destination.
-- [x] Double pushes require the start rank plus empty intermediate and destination squares.
-- [x] Captures exclude friendly pieces and kings.
-- [x] En-passant target-geometry candidates.
-- [x] Four quiet promotion identities.
-- [x] Four capture-promotion identities.
-
-### 6.2 Piece moves
-- [x] Knights, bishops, rooks, queens, and kings without final attack filtering.
-- [x] No self-captures or king-capture moves.
-
-### 6.3 Castling candidates
-- [x] Rights, king/rook home placement, and empty path required.
-- [x] King-in-check and attacked transit/destination checks intentionally deferred to Task 7.
-
-### 6.4 Move list
-- [x] Fixed 256-entry stack-backed `MoveList`.
-- [x] No per-move heap allocation.
-- [x] Structured fail-loud `MoveListOverflow`; no truncation.
-- [x] Deterministic pawn/knight/bishop/rook/queen/king/castling order.
-- [x] Deterministic ascending source/destination and N/B/R/Q promotion order.
-
-### 6.5 Tests and documentation
-- [x] Exact starting-position count and order.
-- [x] Quiet promotions and capture underpromotions.
-- [x] Edge pawns and knights.
-- [x] Sliding blockers and capture identity.
-- [x] En-passant candidate geometry.
-- [x] Castling rights/pieces/paths versus deferred safety.
-- [x] Stack-storage/capacity contract.
-- [x] `docs/RUST_PSEUDO_LEGAL_MOVE_GENERATION.md`.
-
-### 6.6 CI gate
-- [x] Exact-head rustfmt pass.
-- [x] Exact-head Cargo check pass.
-- [x] Exact-head Clippy `-D warnings` pass.
-- [x] Exact-head unit tests: `49 passed, 0 failed`.
-- [x] Exact-head rustdoc `-D warnings` pass.
-- [x] Exact-head debug and release builds.
-- [x] Task 6 gate.
-
-### Task 6 completion evidence
-
-- Initial implementation: `0d8f063dbc9cd096e4e8796c07414bb7d0b4be02`.
-- Status synchronization: `79635e783507d500941b091e4e36129cc712da76`.
-- rustfmt and source-cleanliness correction: `0dcf512d404ae248d5a99651543d9d0ca9687699`.
-- CI run/job: `30727874051` / `91442826957`.
-- Results: lockfile verification, metadata, rustfmt, Cargo check, Clippy with warnings denied, `49 passed`, rustdoc with warnings denied, debug build, and release build passed.
-- First-party warnings: none.
-- Accepted external notices: GitHub Actions Node runtime and dependency `punycode` deprecation notices only.
-- Deviations: final legality, castling attack checks, en-passant captured-pawn validation, and king-safety filtering remain intentionally deferred to Task 7.
+- [x] Task 0 gate. Evidence: SHA `7ca6f8dc0d2577ca552a6bfe115828eb668d2133`; run/job `30722127447` / `91427510964`; fast `1203`, slow `179`, perft `20/400/8902/197281`, UCI passed.
+- [x] Task 1 gate. Evidence: SHA `7ca6f8dc0d2577ca552a6bfe115828eb668d2133`; run/job `30722127447` / `91427510938`; all strict workspace gates passed.
+- [x] Task 2 gate. Evidence: SHA `f29524599134a14d34121af2fefb04cd90e78df0`; run/job `30723748100` / `91431648799`; `16 passed`; closure `b5f462aa73a69efcdc847ee215231a5064029902` green.
+- [x] Task 3 gate. Evidence: SHA `00fd925dad807d822aa7878aade686ccc59ff9c5`; run/job `30724744784` / `91434236030`; `24 passed`; closure `5578682bb2a6df5173ff7593649ac55509c277cd` green.
+- [x] Task 4 gate. Evidence: SHA `6cb975b35f4dbe898a0444b1b4c39778e89bcb40`; run/job `30726795562` / `91439860915`; `35 passed`.
+- [x] Task 5 gate. Evidence: implementation `9922b0c725147fcabac3ce4c08f7c150c3ec6a1d`; run/job `30727440571` / `91441645867`; `42 passed`; closure `78e9315369ff4552e5500d1a820767a1fd228f29` green.
+- [x] Task 6 gate. Evidence: implementation `0dcf512d404ae248d5a99651543d9d0ca9687699`; run/job `30727874051` / `91442826957`; `49 passed`; closure `cb7124c5712f6b3f8f4540e9e8fabaa2aa242bc0` green.
 
 ---
 
-# Task 7: Complete legal move generation and special rules — NOT STARTED
-- [ ] 7.1 king-safety filtering.
-- [ ] 7.2 check evasions.
-- [ ] 7.3 castling correctness, including transient king-square attacks.
-- [ ] 7.4 en-passant discovered-check and captured-pawn correctness.
-- [ ] 7.5 promotion correctness through the legal layer.
-- [ ] 7.6 initial legal perft.
+# Task 7: Complete legal move generation and special rules — IMPLEMENTED, CI PENDING
+
+## 7.1 King-safety filtering
+- [x] Generate pseudo-legal candidates through Task 6.
+- [x] Apply each candidate through a private reversible move path.
+- [x] Reject any candidate that leaves the moving side's king attacked.
+- [x] Restore the exact position after every accepted or rejected candidate.
+- [x] Reject king moves into attack.
+- [x] Never generate or accept king captures.
+- [x] Expose exact packed-move membership through `Position::is_legal_move`.
+
+## 7.2 Check evasions
+- [x] Single-check king moves.
+- [x] Single-check checker captures.
+- [x] Single-check interpositions for sliding checks.
+- [x] Double check permits only king moves.
+- [x] Absolute pins are enforced through post-move king-safety validation.
+
+## 7.3 Castling correctness
+- [x] Revalidate Task 6 rights, home-piece, and empty-path candidates.
+- [x] Reject castling while currently in check.
+- [x] Reject attacked transit squares.
+- [x] Reject attacked destination squares.
+- [x] Test the transit square after vacating the king's source square, preventing source-blocker attack bugs.
+- [x] Support all four castling directions.
+- [x] Update and restore king/rook movement and castling rights.
+- [x] Clear rights for king movement, rook movement from a home square, and rook capture on a home square.
+- [x] Never reconstruct rights merely because pieces return to home squares.
+
+## 7.4 En-passant correctness
+- [x] Require the opposing pawn on the captured square behind the target.
+- [x] Remove both the moving pawn source and captured pawn before king-safety testing.
+- [x] Reject horizontal discovered-check en passant.
+- [x] Reject diagonal discovered-check en passant.
+- [x] Create the midpoint en-passant target after a double push.
+- [x] Expire the en-passant target after every non-double move.
+- [x] Restore en-passant state exactly through undo.
+
+## 7.5 Promotion correctness
+- [x] Preserve all four quiet promotion identities.
+- [x] Preserve all four capture-promotion identities.
+- [x] Reject promotion identity on a non-pawn.
+- [x] Reject promotion identity away from the final rank.
+- [x] Restore promoted moves to the original pawn through undo.
+
+## 7.6 Initial legal perft and restoration
+- [x] Private reversible `Undo` records captures, metadata, side, and hash placeholder.
+- [x] No clone-per-child in legal filtering, perft, or divide.
+- [x] `Position::perft(0)` returns one leaf.
+- [x] Starting-position depth 1 expected `20`.
+- [x] Starting-position depth 2 expected `400`.
+- [x] Starting-position depth 3 expected `8,902`.
+- [x] Starting-position depth 4 expected `197,281`.
+- [x] Deterministic root divide.
+- [x] Exact position equality and invariant validation after legal generation, perft, and divide.
+- [x] `docs/RUST_LEGAL_MOVE_GENERATION.md`.
+
+## 7.7 CI gate
+- [ ] Exact-head rustfmt pass.
+- [ ] Exact-head Cargo check pass.
+- [ ] Exact-head Clippy `-D warnings` pass.
+- [ ] Exact-head unit tests with recorded count.
+- [ ] Exact-head rustdoc `-D warnings` pass.
+- [ ] Exact-head debug and release builds.
 - [ ] Task 7 gate.
 
+### Task 7 implementation evidence
+
+- Shared bounded move-list mutation within `chess-core`: `9baf2e299551f39dbb4cbee2a1510e35d68ac6c8`.
+- Legal generation/perft implementation: `beb6981520c16d07c2617a1c567eee7ed0a5212d`.
+- Exact CI evidence remains pending.
+
+---
+
 # Task 8: Make/unmake and incremental state — NOT STARTED
-- [ ] 8.1 undo structure.
-- [ ] 8.2 apply/unapply paths.
-- [ ] 8.3 restoration tests.
-- [ ] 8.4 long-sequence restoration.
+- [ ] 8.1 Public/internal formal undo structure and contract.
+- [ ] 8.2 Complete application/unapplication paths.
+- [ ] 8.3 Exact restoration tests for every move class.
+- [ ] 8.4 Long randomized legal-sequence restoration.
 - [ ] Task 8 gate.
 
 # Task 9: Zobrist hashing and repetition identity — NOT STARTED
@@ -177,11 +144,11 @@
 - [ ] 10.6 search history.
 - [ ] Task 10 gate.
 
-# Task 11: Perft and differential validation — NOT STARTED
-- [ ] 11.1 exact suite.
+# Task 11: Authoritative perft and differential validation — NOT STARTED
+- [ ] 11.1 standard exact perft suite.
 - [ ] 11.2 slow perft.
-- [ ] 11.3 divide.
-- [ ] 11.4 oracle harness.
+- [ ] 11.3 divide tool.
+- [ ] 11.4 differential oracle harness.
 - [ ] 11.5 corpus gate.
 - [ ] Task 11 gate.
 
@@ -212,16 +179,16 @@
 
 # Task 15: Fixed-capacity transposition table — NOT STARTED
 - [ ] 15.1 entries.
-- [ ] 15.2 layout.
+- [ ] 15.2 storage.
 - [ ] 15.3 mate normalization.
 - [ ] 15.4 probes.
 - [ ] 15.5 replacement.
 - [ ] 15.6 diagnostics.
 - [ ] Task 15 gate.
 
-# Task 16: Iterative deepening, PV, limits, and cancellation — NOT STARTED
+# Task 16: Iterative deepening, PV, limits, cancellation — NOT STARTED
 - [ ] 16.1 iterative deepening.
-- [ ] 16.2 aspirations.
+- [ ] 16.2 aspiration windows.
 - [ ] 16.3 PV.
 - [ ] 16.4 limits.
 - [ ] 16.5 cancellation.
@@ -230,8 +197,8 @@
 - [ ] Task 16 gate.
 
 # Task 17: Linux UCI executable — NOT STARTED
-- [ ] 17.1 loop.
-- [ ] 17.2 worker.
+- [ ] 17.1 protocol loop.
+- [ ] 17.2 search worker.
 - [ ] 17.3 time manager.
 - [ ] 17.4 output.
 - [ ] 17.5 integration tests.
@@ -303,12 +270,13 @@
 - [x] Position and invariants.
 - [x] FEN/UCI notation.
 - [x] Attack generation.
-- [x] Pseudo-legal move generation.
-- [ ] Legal generation, make/unmake, draws, hashing, search, TT, evaluation, ABI/JNI, perft/fuzz, self-play, and tuning.
+- [x] Pseudo-legal generation.
+- [x] Legal generation and initial perft.
+- [ ] Formal make/unmake, draws, hashing, search, TT, evaluation, ABI/JNI, differential perft/fuzz, self-play, and tuning.
 
 ## 25.3 Commands and artifacts
 - [x] Full Task 0/1 validation command, committed lockfile, ignored targets/worktrees.
-- [ ] Bootstrap, fast validation, perft, UCI, Android, self-play, and tuning commands.
+- [ ] Bootstrap, fast validation, perft CLI, UCI, Android, self-play, and tuning commands.
 - [ ] Versioned schema/fixture/generated-artifact policy.
 - [ ] Task 25 gate.
 
@@ -329,7 +297,9 @@
 
 ## Immediate next operations
 
-1. Verify this Task 6 closure commit at its exact SHA through strict CI.
-2. Begin Task 7 only after the closure SHA is green.
-3. Implement legal filtering and exact special-rule correctness without weakening the pseudo-legal layer.
-4. Keep every Task 7 subtask synchronized during the next Ralph Loop.
+1. Run strict CI at the current exact Task 7 status head.
+2. Fix every first-party formatting/compiler/Clippy/test/rustdoc/build finding at source.
+3. Verify starting-position legal perft depths 1–4 and all special-rule regressions.
+4. Record the exact green SHA, run, job, and test count.
+5. Close Task 7 only after every gate is green.
+6. Begin Task 8 only after exact closure verification.

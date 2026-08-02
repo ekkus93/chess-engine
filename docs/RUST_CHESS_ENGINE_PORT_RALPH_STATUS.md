@@ -3,7 +3,7 @@
 **Updated:** 2026-08-01  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 6 complete; exact closure-SHA verification pending
+**Current phase:** Task 7 legal move generation implemented; CI pending
 
 ## Completed gates
 
@@ -15,34 +15,28 @@
 | 3 | `5578682bb2a6df5173ff7593649ac55509c277cd` | `30724744784` / `91434236030` | closure green; `24 passed` |
 | 4 | `6cb975b35f4dbe898a0444b1b4c39778e89bcb40` | `30726795562` / `91439860915` | `35 passed`; all strict gates green |
 | 5 | `78e9315369ff4552e5500d1a820767a1fd228f29` | `30727553897` / `91441947625` | closure green; implementation `42 passed` |
-| 6 | `0dcf512d404ae248d5a99651543d9d0ca9687699` | `30727874051` / `91442826957` | `49 passed`; all strict gates green |
+| 6 | `cb7124c5712f6b3f8f4540e9e8fabaa2aa242bc0` | `30727972433` | closure green; implementation `49 passed` |
 
-## Task 6 completion
+## Task 7 implementation
 
-Implemented and validated:
+- Shared bounded move-list mutation commit: `9baf2e299551f39dbb4cbee2a1510e35d68ac6c8`.
+- Legal generation/perft source commit: `beb6981520c16d07c2617a1c567eee7ed0a5212d`.
 
-- pawn single/double pushes and captures;
-- all four quiet and all four capture-promotion identities;
-- en-passant target-geometry candidates;
-- knight, bishop, rook, queen, and ordinary king pseudo-legal moves;
-- castling candidates from rights, home pieces, and empty paths;
-- fixed 256-entry stack-backed move storage with structured overflow;
-- deterministic piece, source, destination, and promotion ordering;
-- no self-captures or king-capture moves;
-- starting-position, promotions, edge, blocker, en-passant, castling, and storage tests;
-- `docs/RUST_PSEUDO_LEGAL_MOVE_GENERATION.md`;
-- rustfmt, Cargo check, Clippy with `-D warnings`, tests, rustdoc with `-D warnings`, debug build, and release build.
+Implemented:
 
-First-party warnings: none.
+- legal filtering through private reversible make/unmake;
+- single-check captures, blocks, and king evasions;
+- double-check king-only filtering;
+- absolute-pin enforcement;
+- king destination safety and no king captures;
+- complete castling source/transit/destination validation with source-vacated transient testing;
+- en-passant captured-pawn validation and horizontal/diagonal discovered-check rejection;
+- all promotion identities and invalid-promotion rejection;
+- castling rights, en-passant, clocks, side, captures, promotions, rook movement, and hash-placeholder restoration;
+- starting-position perft depths 1–4 plus deterministic divide;
+- exact restoration and invariant checks;
+- `docs/RUST_LEGAL_MOVE_GENERATION.md`.
 
-Accepted external notices: GitHub Actions Node runtime and dependency `punycode` deprecation notices only.
-
-Intentionally deferred to Task 7: final king safety, check evasions, castling attack validation, en-passant captured-pawn/discovered-check validation, and legal perft.
-
-## Current operation
-
-1. Commit this closure status atomically with the authoritative TODO.
-2. Verify that exact closure SHA through strict CI.
-3. Begin Task 7 only after the closure SHA is green.
+Task 7 remains open pending exact-SHA rustfmt, Cargo check, Clippy, tests, rustdoc, debug, and release evidence.
 
 No branch or pull request has been created.
