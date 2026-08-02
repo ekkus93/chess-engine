@@ -1,0 +1,48 @@
+name: Task 10 MSRV fix once
+
+on:
+  push:
+    branches:
+      - rust-engine
+    paths:
+      - .github/workflows/task10-msrv-fix-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Remove unsupported const qualifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("crates/chess-core/src/game.rs")
+          text = path.read_text()
+          old = "pub const fn ply_count(&self) -> usize"
+          new = "pub fn ply_count(&self) -> usize"
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f"expected exactly one ply_count const signature, found {count}")
+          path.write_text(text.replace(old, new))
+          PY
+          cargo fmt --all
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add crates/chess-core/src/game.rs
+          git commit -m "fix(core): preserve Rust 1.75 game API compatibility"
+          git push origin HEAD:rust-engine
