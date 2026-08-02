@@ -306,6 +306,9 @@ fn oracle_attackers_to(position: &Position, target: Square, color: Color) -> Bit
 }
 
 fn oracle_piece_attacks(position: &Position, source: Square, target: Square, piece: Piece) -> bool {
+    if source == target {
+        return false;
+    }
     let row_delta = target.row() as i8 - source.row() as i8;
     let file_delta = target.file() as i8 - source.file() as i8;
     match piece.kind {

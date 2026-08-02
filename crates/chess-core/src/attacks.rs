@@ -21,9 +21,9 @@ const PAWN_ATTACKS: [[Bitboard; BOARD_SQUARES]; 2] = [
 ];
 const KNIGHT_ATTACKS: [Bitboard; BOARD_SQUARES] = build_knight_attacks();
 const KING_ATTACKS: [Bitboard; BOARD_SQUARES] = build_king_attacks();
-const RAY_TABLE: [Bitboard; GEOMETRY_ENTRIES] = build_ray_table();
-const BETWEEN_TABLE: [Bitboard; GEOMETRY_ENTRIES] = build_between_table();
-const LINE_TABLE: [Bitboard; GEOMETRY_ENTRIES] = build_line_table();
+static RAY_TABLE: [Bitboard; GEOMETRY_ENTRIES] = build_ray_table();
+static BETWEEN_TABLE: [Bitboard; GEOMETRY_ENTRIES] = build_between_table();
+static LINE_TABLE: [Bitboard; GEOMETRY_ENTRIES] = build_line_table();
 
 /// Returns diagonal pawn attack geometry from `square` for `color`.
 ///
@@ -74,7 +74,7 @@ pub fn queen_attacks(square: Square, occupancy: Bitboard) -> Bitboard {
 /// `through` and continues to the board edge. Non-aligned or identical squares
 /// return an empty bitboard.
 #[must_use]
-pub const fn ray(from: Square, through: Square) -> Bitboard {
+pub fn ray(from: Square, through: Square) -> Bitboard {
     RAY_TABLE[geometry_index(from, through)]
 }
 
@@ -83,7 +83,7 @@ pub const fn ray(from: Square, through: Square) -> Bitboard {
 /// Endpoints are excluded. Non-aligned or identical squares return an empty
 /// bitboard.
 #[must_use]
-pub const fn between(from: Square, to: Square) -> Bitboard {
+pub fn between(from: Square, to: Square) -> Bitboard {
     BETWEEN_TABLE[geometry_index(from, to)]
 }
 
@@ -92,7 +92,7 @@ pub const fn between(from: Square, to: Square) -> Bitboard {
 /// Both endpoints and every square to both board edges are included. Identical
 /// endpoints return that one square; non-aligned squares return an empty board.
 #[must_use]
-pub const fn line(from: Square, to: Square) -> Bitboard {
+pub fn line(from: Square, to: Square) -> Bitboard {
     LINE_TABLE[geometry_index(from, to)]
 }
 
@@ -143,16 +143,15 @@ impl Position {
             while in_bounds(row, file) {
                 let square = square_from_coordinates(row, file);
                 if let Some(piece) = self.piece_at(square) {
-                    if candidate.is_none() {
-                        if piece.color == color {
-                            candidate = Some(square);
-                        } else {
-                            break;
-                        }
-                    } else {
+                    if let Some(candidate_square) = candidate {
                         if piece.color != color && slider_matches_direction(piece.kind, diagonal) {
-                            pinned.set(candidate.expect("candidate was checked"));
+                            pinned.set(candidate_square);
                         }
+                        break;
+                    }
+                    if piece.color == color {
+                        candidate = Some(square);
+                    } else {
                         break;
                     }
                 }
