@@ -3,6 +3,7 @@ mod editor;
 mod error;
 mod fen;
 mod legal;
+mod make_unmake;
 #[cfg(test)]
 mod tests;
 
@@ -11,6 +12,7 @@ pub use editor::PositionEditor;
 pub use error::{PositionBuildError, PositionInvariantError, PositionMutationError};
 pub use fen::FenError;
 pub use legal::LegalMoveError;
+pub use make_unmake::PositionUndo;
 
 use crate::{
     Bitboard, CastlingRights, Color, FullmoveNumber, HalfmoveClock, Piece, PieceKind, Square,
