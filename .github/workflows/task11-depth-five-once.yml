@@ -1,0 +1,33 @@
+name: Task 11 depth-five gate once
+
+on:
+  push:
+    branches:
+      - rust-engine
+    paths:
+      - .github/workflows/task11-depth-five-once.yml
+
+permissions:
+  contents: read
+
+jobs:
+  depth-five:
+    name: Task 11 authoritative depth-five perft
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-engine-task11-depth-five
+
+      - name: Run all six depth-five fixtures
+        run: cargo test --locked -p chess-core --release authoritative_perft_depth_five -- --ignored --exact
