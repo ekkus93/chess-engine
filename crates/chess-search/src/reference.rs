@@ -370,29 +370,29 @@ mod tests {
 
     #[test]
     fn mismatched_history_and_excessive_depth_fail_without_mutation() {
-        let mut position = Position::starting();
-        let snapshot = position.clone();
+        let mut root = Position::starting();
+        let snapshot = root.clone();
         let other = position("7k/8/8/8/8/8/8/K7 w - - 0 1");
         let mut history = SearchHistory::from_position(&other);
         let history_snapshot = history.clone();
 
         assert!(matches!(
-            reference_search(&mut position, &mut history, 1),
+            reference_search(&mut root, &mut history, 1),
             Err(ReferenceSearchError::HistoryPositionMismatch { .. })
         ));
-        assert_eq!(position, snapshot);
+        assert_eq!(root, snapshot);
         assert_eq!(history, history_snapshot);
 
-        let mut history = SearchHistory::from_position(&position);
+        let mut history = SearchHistory::from_position(&root);
         let history_snapshot = history.clone();
         assert_eq!(
-            reference_search(&mut position, &mut history, MAX_MATE_PLY + 1),
+            reference_search(&mut root, &mut history, MAX_MATE_PLY + 1),
             Err(ReferenceSearchError::DepthTooLarge {
                 depth: MAX_MATE_PLY + 1,
                 maximum: MAX_MATE_PLY,
             })
         );
-        assert_eq!(position, snapshot);
+        assert_eq!(root, snapshot);
         assert_eq!(history, history_snapshot);
     }
 }
