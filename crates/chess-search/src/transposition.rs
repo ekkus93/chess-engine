@@ -163,7 +163,10 @@ mod tests {
         assert_eq!(current.depth(), 23);
         assert_eq!(current.bound(), TranspositionBound::Lower);
         assert_eq!(current.normalized_score(), score);
-        assert_eq!(current.normalized_score().normalized().centipawns(), MATE_SCORE - 17);
+        assert_eq!(
+            current.normalized_score().normalized().centipawns(),
+            MATE_SCORE - 17
+        );
         assert_eq!(current.best_move(), Some(best_move()));
         assert_eq!(current.generation(), 197);
     }
