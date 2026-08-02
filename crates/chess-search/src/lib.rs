@@ -4,11 +4,14 @@
 //! This crate may depend on `chess-core` only. It must remain independent of
 //! UCI, FFI, JNI, Android, filesystems, and application user interfaces.
 
+mod alpha_beta;
 mod evaluation;
 mod reference;
 mod score;
+mod search_common;
 mod weights;
 
+pub use alpha_beta::{alpha_beta_search, AlphaBetaSearchError, AlphaBetaSearchResult};
 pub use evaluation::{
     evaluate, evaluate_term, evaluate_trace, evaluate_trace_with_weights, evaluate_with_weights,
     EvaluationTerm, EvaluationTrace,
