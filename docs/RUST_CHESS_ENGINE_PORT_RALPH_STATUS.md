@@ -3,7 +3,7 @@
 **Updated:** 2026-08-02  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 13.1 reference search complete; Task 13.2 negamax alpha-beta is next
+**Current phase:** Tasks 13.1–13.2 complete; Task 13.3 shallow equivalence is next
 
 ## Completed gates
 
@@ -24,6 +24,7 @@
 | 12 | `d8547cc258ecc2e52b8e4eb7ef287d92d5d0a04f` | `30734451785` / `91460574656` | strict gate, depth-four perft, and differential oracle green; 103 Rust tests |
 | Review fix | `81a7cd4a58a52695eca2ede10d5c73c803851d17` | `30739166607` / `91473334960` | strict gate, 112 Rust tests, depth-four perft, and differential oracle green |
 | 13.1 | `7cf7fb027bf86f0658c14f4c9b452bce2cdcbe98` | `30741414286` / `91479443116` | unpruned reference negamax, 118 Rust tests, depth-four perft, and differential oracle green |
+| 13.2 | `d662ca07cae6b0044c1ce620a0dc4f3249784d6c` | `30741988672` / `91480926153` | negamax alpha-beta, 124 Rust tests, depth-four perft, and differential oracle green |
 
 ## Task 12 completion
 
@@ -114,11 +115,36 @@ Evidence:
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
 - Task 13.2 remains not started.
 
+## Task 13.2 completion
+
+Implemented and validated:
+
+- recursive fail-soft negamax alpha-beta with no maximizing/minimizing dual branches;
+- full-window exact root search and recursive `(-beta, -alpha)` windows;
+- side-to-move scoring and ply-relative mate distance;
+- deterministic first-best tie behavior and legal root best moves;
+- source-bound legal tokens, make/unmake, and detached line history;
+- game-root plus search-line repetition handling;
+- checked node accumulation and fail-loud root-history/depth validation;
+- exact root position, Zobrist, and history restoration;
+- a starting-position depth-three pruning regression below the complete `9,323`-node tree;
+- `docs/RUST_NEGAMAX_ALPHA_BETA.md`.
+
+Evidence:
+
+- Exact validated implementation SHA: `d662ca07cae6b0044c1ce620a0dc4f3249784d6c`.
+- Permanent CI run/job: `30741988672` / `91480926153`.
+- Results: workspace assets, lockfile, metadata, rustfmt, Cargo check, Clippy with `-D warnings`, 124 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with `-D warnings`, debug build, release build, and independent differential validation passed.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 13.3 remains not started.
+
 ## Task 13 active scope
 
 - [x] Implement an unpruned reference minimax/negamax search.
 - [x] Count nodes and define terminal/draw scoring.
-- [ ] Implement negamax alpha-beta using legal tokens and make/unmake.
+- [x] Implement negamax alpha-beta using legal tokens and make/unmake.
 - [x] Integrate detached root and reversible line repetition history.
 - [ ] Prove shallow reference/alpha-beta score equivalence.
 - [ ] Compare uniquely best moves and node counts.

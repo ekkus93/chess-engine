@@ -34,7 +34,7 @@
 | 10 | **Complete** — game history and draw semantics. |
 | 11 | **Complete** — authoritative perft and differential validation. |
 | 12 | **Complete** — baseline evaluator and trace. |
-| 13 | **Active** — Task 13.1 reference search complete; Task 13.2 alpha-beta is next. |
+| 13 | **Active** — Tasks 13.1–13.2 complete; Task 13.3 shallow equivalence is next. |
 | 14–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
@@ -335,7 +335,7 @@ Evidence:
 
 # Task 13: Reference search and alpha-beta — ACTIVE
 - [x] 13.1 Reference search.
-- [ ] 13.2 Negamax alpha-beta.
+- [x] 13.2 Negamax alpha-beta.
 - [ ] 13.3 Shallow equivalence.
 - [ ] 13.4 Immutability.
 - [ ] 13.5 Terminal fixtures.
@@ -354,7 +354,24 @@ Evidence:
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 13.2 owns negamax alpha-beta over this reference implementation.
+- Task 13.2 now provides negamax alpha-beta over this reference implementation.
+
+### Task 13.2 completion evidence
+
+- Public alpha-beta API: `alpha_beta_search`, `AlphaBetaSearchResult`, and `AlphaBetaSearchError`.
+- Recursive fail-soft negamax implementation: `crates/chess-search/src/alpha_beta.rs`.
+- Shared terminal/draw resolver: `crates/chess-search/src/search_common.rs`.
+- Public export: `crates/chess-search/src/lib.rs`.
+- Contract documentation: `docs/RUST_NEGAMAX_ALPHA_BETA.md`.
+- Exact validated implementation SHA: `d662ca07cae6b0044c1ce620a0dc4f3249784d6c`.
+- Permanent CI run/job: `30741988672` / `91480926153`.
+- Results: rustfmt, Cargo check, strict Clippy, 124 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc, debug/release builds, and independent differential validation passed.
+- Coverage includes full-window exact root scoring, recursive `(-beta, -alpha)` windows, alpha-beta cutoffs, deterministic first-best ties, legal best-move return, ply-relative mate scoring, repetition draws, fail-loud root-history/depth validation, and exact root/history restoration.
+- The starting-position depth-three regression visits fewer than the complete unpruned `9,323` nodes.
+- Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 13.3 owns direct shallow score, uniquely-best-move, and node-count equivalence against reference search.
 
 # Task 14: Quiescence and ordering — NOT STARTED
 - [ ] 14.1 Quiescence.
@@ -500,9 +517,9 @@ Evidence:
 
 ## Immediate next operations
 
-1. Implement Task 13.2 negamax alpha-beta over the Task 13.1 terminal and draw semantics.
-2. Use legal tokens, make/unmake, and detached line history without clone-per-child.
-3. Preserve deterministic first-best tie behavior for direct comparison with reference search.
-4. Record alpha-beta node counts and prove they never exceed the reference node count on the same fixture/depth.
-5. Complete Task 13.3 shallow score and uniquely-best-move equivalence.
-6. Expand Task 13.4–13.5 restoration and terminal fixtures before closing the Task 13 gate.
+1. Implement Task 13.3 curated shallow equivalence between reference and alpha-beta search.
+2. Compare exact scores at accepted depths across quiet, tactical, terminal-adjacent, draw, and repetition-aware positions.
+3. Require identical root moves only when the best score is unique; preserve deterministic tie diagnostics separately.
+4. Prove alpha-beta visits no more nodes than reference on every compared fixture and strictly fewer on at least one pruning fixture.
+5. Keep root position, Zobrist identity, and detached history unchanged after every paired search.
+6. Leave Task 13.4 cancellation restoration and the complete Task 13.5 terminal fixture set open until implemented.
