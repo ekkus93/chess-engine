@@ -1,0 +1,39 @@
+name: Task 9 rustfmt once
+
+on:
+  push:
+    branches:
+      - rust-engine
+    paths:
+      - .github/workflows/task9-rustfmt-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Apply and commit rustfmt
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all
+          if git diff --quiet -- crates; then
+            echo "No formatting changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add crates
+          git commit -m "style(core): apply rustfmt to Task 9"
+          git push origin HEAD:rust-engine
