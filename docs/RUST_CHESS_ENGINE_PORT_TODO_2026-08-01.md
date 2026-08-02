@@ -36,7 +36,7 @@
 | 12 | **Complete** — baseline evaluator and trace. |
 | 13 | **Complete** — reference negamax, alpha-beta, shallow equivalence, immutability, and terminal/mate-distance fixtures. |
 | 14 | **Complete** — quiescence, tactical/quiet ordering, consolidated correctness, and exclusion audit. |
-| 15 | **Active** — Task 15.1 entry design complete; Task 15.2 fixed-memory storage next. |
+| 15 | **Active** — Tasks 15.1–15.2 complete; Task 15.3 mate normalization next. |
 | 16–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
@@ -521,11 +521,11 @@ Evidence:
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 14 is complete. Task 15.1 entry design is complete; Task 15.2 fixed-memory storage is next.
+- Task 14 is complete. Tasks 15.1–15.2 are complete; Task 15.3 mate normalization is next.
 
 # Task 15: Fixed-capacity transposition table — ACTIVE
 - [x] 15.1 Entries.
-- [ ] 15.2 Storage.
+- [x] 15.2 Storage.
 - [ ] 15.3 Mate normalization.
 - [ ] 15.4 Probes.
 - [ ] 15.5 Replacement.
@@ -548,7 +548,27 @@ Evidence:
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 15.2 fixed-memory bucket/cluster storage is next.
+- Task 15.2 fixed-memory bucket/cluster storage is complete; Task 15.3 mate normalization is next.
+
+### Task 15.2 completion evidence
+
+- Storage implementation: `crates/chess-search/src/transposition.rs`.
+- Public API: `TranspositionTable`, `TranspositionTableAllocationError`, and `TRANSPOSITION_CLUSTER_SIZE`.
+- Storage contract: `docs/RUST_TRANSPOSITION_TABLE_STORAGE.md`.
+- Exact validated implementation SHA: `6b2ee0081cd47fd9069aeabb0d3ccb1d3659fea9`.
+- Permanent CI run/job: `30765303745` / `91542820537`.
+- MiB configuration uses checked byte arithmetic and rounds down only to complete four-entry clusters.
+- Construction performs one fallible fixed-size `Vec` reservation, never grows afterward, and has no map, per-node allocation, silent shrinking, or unbounded fallback.
+- Allocation failures are typed for zero size, arithmetic overflow, no complete cluster, and allocator rejection.
+- Complete verification keys map deterministically to clusters while each occupied entry retains its complete key for later collision rejection.
+- `clear()` empties every slot in place without reallocating or changing generation; `advance_generation()` wraps deterministically without clearing existing entries.
+- Five new deterministic storage tests passed, bringing the workspace total to 165 executed non-doc Rust tests.
+- Production search still does not probe, store, cut off, normalize mate scores, or apply replacement policy; those remain Tasks 15.3–15.5.
+- Results: workspace assets, permanent Task 14.5 exclusion audit over 11 production search modules, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy, 165 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 15.3 ply-relative mate-score normalization is next.
 
 # Task 16: Iterative deepening, PV, limits, cancellation — NOT STARTED
 - [ ] 16.1 Iterative deepening.
@@ -677,9 +697,9 @@ Evidence:
 
 ## Immediate next operations
 
-1. Implement Task 15.2 fixed-memory bucket/cluster storage configured in MiB.
-2. Define predictable allocation-failure behavior plus explicit clear and new-generation operations.
-3. Keep entries optional without an unbounded map or per-node allocation fallback.
-4. Preserve the Task 15.1 full-key, bound, normalized-score, best-move, depth, and generation contract unchanged.
-5. Defer mate-score conversion, probe cutoffs, replacement preference, and diagnostics to Tasks 15.3–15.6.
+1. Implement Task 15.3 mate-score normalization at the transposition storage boundary.
+2. Normalize ply-relative winning and losing mate scores on store and denormalize them on retrieval.
+3. Add deterministic regressions proving one stored entry is correct when reached at different plies.
+4. Preserve ordinary evaluation scores exactly and reject arithmetic outside the supported score domain.
+5. Defer probe cutoffs, repetition-sensitive reuse, replacement preference, and diagnostics to Tasks 15.4–15.6.
 6. Keep Task 16 iterative deepening, aspiration windows, PV reconstruction, and production limits outside Task 15.

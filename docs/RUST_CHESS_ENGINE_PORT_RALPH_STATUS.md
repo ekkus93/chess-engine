@@ -3,7 +3,7 @@
 **Updated:** 2026-08-02  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 15.1 entry design complete; Task 15.2 fixed-memory storage is next
+**Current phase:** Tasks 15.1–15.2 complete; Task 15.3 mate normalization is next
 
 ## Completed gates
 
@@ -34,6 +34,7 @@
 | 14.4 | `dc758a3fc62e7f7002191993c73773dd2a71caef` | `30763226685` / `91537383867` | five explicit quiescence correctness witnesses, 155 Rust tests, depth-four perft, and differential oracle green |
 | 14.5 / 14 | `f4dc989e97d8577f4c86bdbfb67ae47e3d5cd7f4` | `30764073097` / `91539614372` | permanent exclusion audit, exact-score boundary, 155 Rust tests, depth-four perft, and differential oracle green |
 | 15.1 | `65ef70bfbff3d0bf5fd6e6a19ba20ed5214c3e26` | `30764647127` / `91541116562` | complete TT entry payload, five focused tests, 160 Rust tests, depth-four perft, and differential oracle green |
+| 15.2 | `6b2ee0081cd47fd9069aeabb0d3ccb1d3659fea9` | `30765303745` / `91542820537` | fixed MiB storage, four-entry clusters, typed allocation failures, clear/generation operations, 165 Rust tests, depth-four perft, and differential oracle green |
 
 ## Task 12 completion
 
@@ -347,7 +348,7 @@ Evidence:
 - Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 14 is complete; Task 15.1 entry design is complete and Task 15.2 storage is next.
+- Task 14 is complete; Tasks 15.1–15.2 are complete and Task 15.3 mate normalization is next.
 
 ## Task 15.1 completion
 
@@ -372,12 +373,38 @@ Evidence:
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
 - Storage allocation, buckets, empty slots, clearing, generation advancement, normalization, probes, replacement, and diagnostics remain intentionally outside Task 15.1.
-- Task 15.2 fixed-memory storage is next.
+- Task 15.2 fixed-memory storage is complete; Task 15.3 mate normalization is next.
+
+## Task 15.2 completion
+
+Implemented and validated:
+
+- a fixed-capacity `TranspositionTable` configured in MiB;
+- checked MiB-to-byte conversion and whole-cluster budget rounding;
+- one private, fallibly reserved `Vec` allocation with no growth or fallback storage;
+- four-entry collision clusters and deterministic complete-key cluster indexing;
+- typed failures for zero configuration, arithmetic overflow, no complete cluster, and allocator rejection;
+- explicit in-place `clear()` preserving allocation and generation;
+- explicit wrapping `advance_generation()` retaining existing entries;
+- public capacity, allocation, generation, and cluster-index diagnostics required to verify the storage contract;
+- five focused storage tests;
+- `docs/RUST_TRANSPOSITION_TABLE_STORAGE.md`.
+
+Evidence:
+
+- Exact validated implementation SHA: `6b2ee0081cd47fd9069aeabb0d3ccb1d3659fea9`.
+- Permanent CI run/job: `30765303745` / `91542820537`.
+- Results: workspace assets, Task 14.5 audit over 11 production search modules, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy, 165 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Mate normalization, probe semantics, replacement policy, diagnostics, and search integration remain intentionally outside Task 15.2.
+- Task 15.3 mate-score normalization is next.
 
 ## Task 15 active scope
 
 - [x] Complete Task 15.1 entry design.
-- [ ] Implement Task 15.2 fixed-memory storage.
+- [x] Implement Task 15.2 fixed-memory storage.
 - [ ] Implement Task 15.3 mate-score normalization.
 - [ ] Implement Task 15.4 safe probe semantics.
 - [ ] Implement Task 15.5 deterministic replacement.
@@ -410,4 +437,4 @@ Evidence:
 - [x] Add mate-in-one, mated, stalemate, draw, shorter-mate, and longer-survival fixtures.
 - [x] Pass exact-head rustfmt, Cargo check, Clippy, tests, rustdoc, debug, release, perft, and differential gates.
 
-No pull request has been created; work remains on `rust-engine`. Task 15.2 fixed-memory transposition-table storage is the next operation.
+No pull request has been created; work remains on `rust-engine`. Task 15.3 transposition-table mate-score normalization is the next operation.

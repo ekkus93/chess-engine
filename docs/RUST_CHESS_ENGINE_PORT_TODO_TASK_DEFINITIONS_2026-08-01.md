@@ -787,10 +787,10 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 15.2 Storage layout
 
-- [ ] Fixed memory configured in MiB.
-- [ ] Bucket/cluster design.
-- [ ] Predictable allocation failure behavior.
-- [ ] Explicit clear/new-generation operations.
+- [x] Fixed memory configured in MiB.
+- [x] Bucket/cluster design.
+- [x] Predictable allocation failure behavior.
+- [x] Explicit clear/new-generation operations.
 
 ## 15.3 Mate normalization
 
