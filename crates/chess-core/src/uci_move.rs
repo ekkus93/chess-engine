@@ -58,11 +58,7 @@ impl UciMove {
     /// Pawn, king, and queenless invalid promotion identities are rejected by
     /// parsing; this constructor is deliberately private until legal resolution
     /// is implemented.
-    const fn new(
-        source: Square,
-        destination: Square,
-        promotion: Option<PieceKind>,
-    ) -> Self {
+    const fn new(source: Square, destination: Square, promotion: Option<PieceKind>) -> Self {
         Self {
             source,
             destination,
@@ -90,11 +86,11 @@ impl UciMove {
 
     /// Returns whether this syntax value identifies an internal legal move.
     #[must_use]
-    pub const fn matches(self, candidate: Move) -> bool {
+    pub fn matches(self, candidate: Move) -> bool {
         self.source == candidate.source()
             && self.destination == candidate.destination()
             && match (self.promotion, candidate.promotion()) {
-                (Some(expected), Some(actual)) => expected as u8 == actual as u8,
+                (Some(expected), Some(actual)) => expected == actual,
                 (None, None) => true,
                 _ => false,
             }
@@ -120,11 +116,12 @@ impl FromStr for UciMove {
             .map_err(|_| MoveParseError::InvalidSource {
                 value: source_text.to_owned(),
             })?;
-        let destination = destination_text
-            .parse::<Square>()
-            .map_err(|_| MoveParseError::InvalidDestination {
-                value: destination_text.to_owned(),
-            })?;
+        let destination =
+            destination_text
+                .parse::<Square>()
+                .map_err(|_| MoveParseError::InvalidDestination {
+                    value: destination_text.to_owned(),
+                })?;
         let promotion = if length == 5 {
             let suffix = char::from(value.as_bytes()[4]);
             Some(match suffix {
