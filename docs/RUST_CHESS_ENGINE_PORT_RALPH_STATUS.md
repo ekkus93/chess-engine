@@ -3,7 +3,7 @@
 **Updated:** 2026-08-01  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 9 Zobrist hashing and repetition identity active; implementation not started
+**Current phase:** Task 10 game, history, and draw semantics active; implementation not started
 
 ## Completed gates
 
@@ -18,42 +18,44 @@
 | 6 | `cb7124c5712f6b3f8f4540e9e8fabaa2aa242bc0` | `30727972433` | closure green; implementation `49 passed` |
 | 7 | `334dc79b3ce0cbc1e7b5096387218c90a8365204` | `30730100518` / `91448776834` | closure green; implementation `59 passed` |
 | 8 | `cecc39b9c9dcd8c90f9cdbdb4284be13c480bbd6` | `30730891252` / `91451022194` | closure green; implementation `67 passed` |
+| 9 | `178583c15458cb29205201047bad8f4064a9342d` | `30731524205` / `91452671063` | strict implementation gate green; `72 passed` |
 
-## Task 8 completion
+## Task 9 completion
 
 Implemented and validated:
 
-- opaque public `PositionUndo` with private complete restoration state;
-- move-bound undo tokens with mismatch and out-of-order rejection before mutation;
-- public checked `Position::make_move` and consuming `Position::unmake_move`;
-- crate-private generated-legal make/unmake for legal generation, perft, divide, and future search;
-- transactional illegal-move and counter-overflow failures;
-- exact updates and restoration for side, clocks, en-passant, castling rights, captures, castling rook movement, promotions, mailbox, bitboards, occupancies, cached kings, and stored hash state;
-- exact round trips for quiet moves, double pushes, captures, en passant, both castling directions, all quiet promotions, all capture promotions, and rook captures that alter castling rights;
-- every legal move in a curated position corpus checked through make, invariants, unmake, and exact equality;
-- deterministic random legal playouts for eight seeds and up to 128 plies, followed by complete reverse restoration;
-- `docs/RUST_MAKE_UNMAKE.md`;
-- lockfile and metadata verification, rustfmt, Cargo check, Clippy with `-D warnings`, `67 passed`, rustdoc with `-D warnings`, debug build, and release build.
+- compile-time deterministic Zobrist tables with explicit `Position::ZOBRIST_VERSION = 1`;
+- stable piece-square, side-to-move, complete castling-state, and en-passant-file key schedules;
+- authoritative `Position::recomputed_zobrist()` from private position state;
+- canonical repetition identity that excludes move counters;
+- en-passant hashing only when at least one king-safe legal en-passant capture exists;
+- occupancy-based en-passant legality evaluation without recursive legal move generation;
+- incremental XOR updates for every ordinary, capture, en-passant, castling, promotion, and castling-right transition;
+- constant-time exact hash restoration through opaque undo state;
+- removal of the Task 8 arbitrary placeholder-hash builder seam;
+- versioned known fixtures, curated move-category tests, and randomized incremental-versus-recomputed checks after every ply;
+- complete randomized reverse restoration to the original position and key;
+- `docs/RUST_ZOBRIST_HASHING.md`.
 
 Evidence:
 
-- Formal make/unmake module: `crates/chess-core/src/position/make_unmake.rs`.
-- Restoration and sequence tests: `crates/chess-core/src/position/make_unmake_tests.rs`.
-- Validated implementation head: `cfc68a4ff775d6d4b73c0bfa192e00c1fd7b910f`.
-- Implementation CI run/job: `30730803320` / `91450780156`.
-- Closure SHA: `cecc39b9c9dcd8c90f9cdbdb4284be13c480bbd6`.
-- Closure CI run/job: `30730891252` / `91451022194`.
+- Hash implementation and tests: `crates/chess-core/src/position/zobrist.rs`.
+- Incremental integration: `crates/chess-core/src/position/make_unmake.rs`.
+- Validated implementation head: `178583c15458cb29205201047bad8f4064a9342d`.
+- Implementation CI run/job: `30731524205` / `91452671063`.
+- Results: lockfile and metadata verification, rustfmt, Cargo check, Clippy with `-D warnings`, `72 passed`, rustdoc with `-D warnings`, debug build, and release build.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime and dependency `punycode` deprecation notices only.
-- Task 9 owns real Zobrist computation and incremental key updates; Task 8 stores and restores the current hash field exactly.
+- Task 10 owns repetition history, draw thresholds, and game-state semantics over this canonical key.
 
-## Task 9 active scope
+## Task 10 active scope
 
-- [ ] Define deterministic versioned Zobrist tables.
-- [ ] Implement authoritative full-position hash recomputation.
-- [ ] Update keys incrementally through every make/unmake move class.
-- [ ] Canonicalize en-passant repetition identity only when a legal en-passant capture exists.
-- [ ] Compare incremental and recomputed keys after curated and randomized make/unmake sequences.
+- [ ] Define the game/history state and irreversible-move boundaries.
+- [ ] Detect checkmate and stalemate from authoritative legal moves.
+- [ ] Implement claimable threefold-repetition and fifty-move draws.
+- [ ] Implement automatic fivefold-repetition and seventy-five-move draws.
+- [ ] Add conservative dead-position logic.
+- [ ] Define search-history propagation without corrupting game history.
 - [ ] Pass exact-head rustfmt, Cargo check, Clippy, tests, rustdoc, debug, and release gates.
 
-No branch or pull request has been created.
+No pull request has been created; work remains on `rust-engine`.

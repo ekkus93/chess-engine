@@ -199,15 +199,29 @@
 
 ---
 
-# Task 9: Zobrist hashing and repetition identity — ACTIVE, NOT STARTED
-- [ ] 9.1 Deterministic tables.
-- [ ] 9.2 Full hash.
-- [ ] 9.3 Incremental updates.
-- [ ] 9.4 Canonical en-passant identity.
-- [ ] 9.5 Verification.
-- [ ] Task 9 gate.
+# Task 9: Zobrist hashing and repetition identity — COMPLETE
+- [x] 9.1 Deterministic tables.
+- [x] 9.2 Full hash.
+- [x] 9.3 Incremental updates.
+- [x] 9.4 Canonical en-passant identity.
+- [x] 9.5 Verification.
+- [x] Task 9 gate.
 
-# Task 10: Game, history, and draw semantics — NOT STARTED
+### Task 9 completion evidence
+
+- Deterministic versioned tables and authoritative recomputation: `crates/chess-core/src/position/zobrist.rs`.
+- Incremental make/unmake integration: `crates/chess-core/src/position/make_unmake.rs`.
+- Repetition-identity contract: `docs/RUST_ZOBRIST_HASHING.md`.
+- Exact validated implementation head: `178583c15458cb29205201047bad8f4064a9342d`.
+- Implementation CI run/job: `30731524205` / `91452671063`.
+- Results: lockfile and metadata verification, rustfmt, Cargo check, Clippy with warnings denied, `72 passed`, rustdoc with warnings denied, debug build, and release build.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime deprecation and dependency `punycode` deprecation only.
+- Task 10 owns game history, repetition counts, claimable draws, and automatic draws; Task 9 supplies the canonical position identity.
+
+---
+
+# Task 10: Game, history, and draw semantics — ACTIVE, NOT STARTED
 - [ ] 10.1 Game state.
 - [ ] 10.2 Mate/stalemate.
 - [ ] 10.3 Claimable draws.
