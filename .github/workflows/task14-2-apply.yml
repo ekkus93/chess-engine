@@ -1,9 +1,9 @@
 name: Task 14.2 Apply
 
 on:
-  issues:
-    types:
-      - opened
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -11,14 +11,12 @@ permissions:
 
 jobs:
   apply:
-    if: >-
-      github.event.issue.title == '[apply-task-14-2-now]'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       GH_TOKEN: ${{ github.token }}
       REPOSITORY: ${{ github.repository }}
-      ISSUE_NUMBER: ${{ github.event.issue.number }}
+      ISSUE_NUMBER: '128'
     steps:
       - name: Check out control files
         uses: actions/checkout@v4
@@ -30,16 +28,24 @@ jobs:
         with:
           ref: rust-engine
           path: target
-      - name: Guard exact Task 14.1 closure head
+      - name: Resolve whether application is pending
+        id: guard
         working-directory: target
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = 'e18c3cbeec1c221f8dfcb902cf552c8857766b8b'
+          if [[ "$(git rev-parse HEAD)" == 'e18c3cbeec1c221f8dfcb902cf552c8857766b8b' ]]; then
+            echo 'run=true' >>"${GITHUB_OUTPUT}"
+          else
+            echo 'Task 14.2 is no longer pending at the guarded closure head.'
+            echo 'run=false' >>"${GITHUB_OUTPUT}"
+          fi
       - name: Install Rust toolchain
+        if: steps.guard.outputs.run == 'true'
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
       - name: Apply and format Task 14.2
+        if: steps.guard.outputs.run == 'true'
         working-directory: target
         run: |
           set -euo pipefail
@@ -47,6 +53,7 @@ jobs:
           cargo fmt --all
           git diff --check
       - name: Run focused search validation
+        if: steps.guard.outputs.run == 'true'
         working-directory: target
         run: |
           set -euo pipefail
@@ -54,6 +61,7 @@ jobs:
           cargo clippy --locked -p chess-search --all-targets --all-features -- -D warnings
           cargo test --locked -p chess-search --all-features
       - name: Commit and push implementation
+        if: steps.guard.outputs.run == 'true'
         id: commit
         working-directory: target
         run: |
@@ -70,6 +78,7 @@ jobs:
           git push origin HEAD:rust-engine
           echo "sha=$(git rev-parse HEAD)" >>"${GITHUB_OUTPUT}"
       - name: Report success
+        if: steps.guard.outputs.run == 'true'
         env:
           SHA: ${{ steps.commit.outputs.sha }}
         run: |
