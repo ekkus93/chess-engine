@@ -2,8 +2,7 @@ use chess_core::{Position, SearchHistory};
 use chess_search::{
     alpha_beta_search, iterative_deepening_search,
     iterative_deepening_search_with_transposition_table, AlphaBetaSearchError,
-    IterativeDeepeningSearchError, TranspositionTable, TranspositionTableDiagnostics,
-    MAX_MATE_PLY,
+    IterativeDeepeningSearchError, TranspositionTable, TranspositionTableDiagnostics, MAX_MATE_PLY,
 };
 
 fn benchmark_position() -> Position {
@@ -208,7 +207,10 @@ fn mismatched_history_fails_on_depth_one_without_mutating_table_or_position() {
         }
     ));
     assert_eq!(table.generation(), 0);
-    assert_eq!(table.diagnostics(), TranspositionTableDiagnostics::default());
+    assert_eq!(
+        table.diagnostics(),
+        TranspositionTableDiagnostics::default()
+    );
     assert_eq!(position, position_snapshot);
     assert_eq!(history, history_snapshot);
     assert_eq!(position.zobrist(), position.recomputed_zobrist());
