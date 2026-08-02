@@ -131,4 +131,50 @@ replace_once(
 )
 
 status_path = Path("docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md")
-status = status_path.read_text(encoding="utf-8")n
+status = status_path.read_text(encoding="utf-8")
+old_phase = (
+    "**Current phase:** Pre-Task-13 review-fix implementation candidate; "
+    "Task 13 search remains not started"
+)
+new_phase = (
+    "**Current phase:** Pre-Task-13 review-fix complete; "
+    "Task 13 search is active and not started"
+)
+if status.count(old_phase) != 1:
+    raise RuntimeError("Ralph status phase target missing")
+status = status.replace(old_phase, new_phase, 1)
+section_start = "## Pre-Task-13 review-fix implementation candidate\n"
+section_end = "## Task 13 active scope\n"
+before, separator, remainder = status.partition(section_start)
+if not separator:
+    raise RuntimeError("Ralph review candidate section missing")
+_, end_separator, after = remainder.partition(section_end)
+if not end_separator:
+    raise RuntimeError("Ralph Task 13 section missing")
+completion = f"""## Pre-Task-13 review-fix completion
+
+Completed and validated:
+
+- opaque source-bound legal-move tokens usable by `chess-search`;
+- non-mutating stale/wrong-origin token rejection;
+- explicit `Game::reset_to_starting` and `Game::set_position`;
+- stable `elapsed_nanos` divide output;
+- explicit strict structural analysis-FEN policy and safety tests;
+- corrected Task 25 coverage and Task 13 next-operation text.
+
+Evidence:
+
+- Implementation SHA: `{CANDIDATE_SHA}`.
+- One-shot implementation control run: `{CONTROL_RUN}`.
+- Permanent implementation CI run/job: `{CANDIDATE_RUN}` / `{CANDIDATE_JOB}`.
+- Results: formatting, lockfile/metadata, Cargo check, Clippy with `-D warnings`, 112 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with `-D warnings`, debug/release builds, and differential validation passed.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime and dependency `punycode` deprecation notices only.
+- Task 13 remains active and not started.
+
+"""
+status_path.write_text(
+    before + completion + section_end + after,
+    encoding="utf-8",
+)
