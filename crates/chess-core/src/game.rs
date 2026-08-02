@@ -223,21 +223,15 @@ impl Game {
             return Ok(GameStatus::AutomaticDraw(DrawReason::DeadPosition));
         }
         if self.repetition_count() >= FIVEFOLD_REPETITION_COUNT {
-            return Ok(GameStatus::AutomaticDraw(
-                DrawReason::FivefoldRepetition,
-            ));
+            return Ok(GameStatus::AutomaticDraw(DrawReason::FivefoldRepetition));
         }
         if self.position.halfmove_clock().get() >= SEVENTY_FIVE_MOVE_HALFMOVES {
-            return Ok(GameStatus::AutomaticDraw(
-                DrawReason::SeventyFiveMoveRule,
-            ));
+            return Ok(GameStatus::AutomaticDraw(DrawReason::SeventyFiveMoveRule));
         }
 
         let claims = self.draw_claims();
         if claims.threefold_repetition() {
-            return Ok(GameStatus::ClaimableDraw(
-                DrawReason::ThreefoldRepetition,
-            ));
+            return Ok(GameStatus::ClaimableDraw(DrawReason::ThreefoldRepetition));
         }
         if claims.fifty_move_rule() {
             return Ok(GameStatus::ClaimableDraw(DrawReason::FiftyMoveRule));
@@ -412,10 +406,7 @@ impl SearchHistory {
     }
 
     /// Pops one search-line position using its exact LIFO token.
-    pub fn pop_position(
-        &mut self,
-        undo: SearchHistoryUndo,
-    ) -> Result<(), SearchHistoryError> {
+    pub fn pop_position(&mut self, undo: SearchHistoryUndo) -> Result<(), SearchHistoryError> {
         if self.hashes.len() != undo.previous_len + 1
             || self.hashes.len() <= self.root_len
             || self.hashes.last().copied() != Some(undo.pushed_zobrist)
@@ -544,7 +535,10 @@ mod tests {
 
         assert_eq!(game.moves(), &[current]);
         assert_eq!(game.position_hashes().len(), 2);
-        assert_eq!(game.position_hashes().last(), Some(&game.position().zobrist()));
+        assert_eq!(
+            game.position_hashes().last(),
+            Some(&game.position().zobrist())
+        );
         assert_eq!(game.ply_count(), 1);
 
         game.unmake_move(undo).expect("matching undo succeeds");
@@ -596,9 +590,7 @@ mod tests {
         assert!(game.draw_claims().threefold_repetition());
         assert_eq!(
             game.status(),
-            Ok(GameStatus::ClaimableDraw(
-                DrawReason::ThreefoldRepetition
-            ))
+            Ok(GameStatus::ClaimableDraw(DrawReason::ThreefoldRepetition))
         );
 
         play_knight_cycle(&mut game);
@@ -606,9 +598,7 @@ mod tests {
         assert_eq!(game.repetition_count(), 5);
         assert_eq!(
             game.status(),
-            Ok(GameStatus::AutomaticDraw(
-                DrawReason::FivefoldRepetition
-            ))
+            Ok(GameStatus::AutomaticDraw(DrawReason::FivefoldRepetition))
         );
     }
 
@@ -624,9 +614,7 @@ mod tests {
         let mut automatic = Game::new(position("8/8/8/8/8/8/R3K3/7k w - - 150 1"));
         assert_eq!(
             automatic.status(),
-            Ok(GameStatus::AutomaticDraw(
-                DrawReason::SeventyFiveMoveRule
-            ))
+            Ok(GameStatus::AutomaticDraw(DrawReason::SeventyFiveMoveRule))
         );
     }
 
