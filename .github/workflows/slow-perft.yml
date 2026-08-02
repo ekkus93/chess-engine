@@ -1,0 +1,33 @@
+name: Slow perft
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 5 * * 0"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rust-slow-perft-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  depth-five:
+    name: Authoritative depth-five perft
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-engine-slow-perft
+
+      - name: Run depth-five fixture corpus
+        run: cargo test --locked -p chess-core --release authoritative_perft_depth_five -- --ignored --exact
