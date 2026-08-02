@@ -1,8 +1,6 @@
 use core::fmt;
 
-use crate::{
-    transposition::TranspositionScore, Score, MAX_EVALUATION, MAX_MATE_PLY,
-};
+use crate::{transposition::TranspositionScore, Score, MAX_EVALUATION, MAX_MATE_PLY};
 
 /// Failure to convert between root-relative search scores and TT storage scores.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -61,10 +59,7 @@ impl TranspositionScore {
     /// removes the distance already travelled from the search root. Ordinary
     /// evaluation scores, including both evaluation boundaries, are preserved
     /// exactly.
-    pub fn normalize(
-        score: Score,
-        ply: u16,
-    ) -> Result<Self, TranspositionScoreConversionError> {
+    pub fn normalize(score: Score, ply: u16) -> Result<Self, TranspositionScoreConversionError> {
         validate_ply(ply)?;
         let centipawns = score.centipawns();
         let adjusted = if centipawns > MAX_EVALUATION {
@@ -74,9 +69,8 @@ impl TranspositionScore {
         } else {
             centipawns
         };
-        let normalized = Score::from_raw(adjusted).ok_or(
-            TranspositionScoreConversionError::NormalizationOutOfRange { score, ply },
-        )?;
+        let normalized = Score::from_raw(adjusted)
+            .ok_or(TranspositionScoreConversionError::NormalizationOutOfRange { score, ply })?;
         Ok(Self::from_normalized(normalized))
     }
 
@@ -85,10 +79,7 @@ impl TranspositionScore {
     /// Winning mate scores subtract `ply`; losing mate scores add `ply`. This
     /// restores the distance from the current search root to the probed node.
     /// Ordinary evaluation scores are preserved exactly.
-    pub fn denormalize(
-        self,
-        ply: u16,
-    ) -> Result<Score, TranspositionScoreConversionError> {
+    pub fn denormalize(self, ply: u16) -> Result<Score, TranspositionScoreConversionError> {
         validate_ply(ply)?;
         let normalized_score = self.normalized();
         let centipawns = normalized_score.centipawns();
@@ -122,19 +113,11 @@ fn validate_ply(ply: u16) -> Result<(), TranspositionScoreConversionError> {
 #[cfg(test)]
 mod tests {
     use super::TranspositionScoreConversionError;
-    use crate::{
-        Score, TranspositionScore, MATE_SCORE, MAX_EVALUATION, MAX_MATE_PLY,
-    };
+    use crate::{Score, TranspositionScore, MATE_SCORE, MAX_EVALUATION, MAX_MATE_PLY};
 
     #[test]
     fn ordinary_evaluations_are_preserved_exactly_at_every_supported_ply() {
-        for centipawns in [
-            -MAX_EVALUATION,
-            -417,
-            0,
-            892,
-            MAX_EVALUATION,
-        ] {
+        for centipawns in [-MAX_EVALUATION, -417, 0, 892, MAX_EVALUATION] {
             let score = Score::from_evaluation(centipawns);
             let stored = TranspositionScore::normalize(score, MAX_MATE_PLY)
                 .expect("evaluation normalization succeeds");
@@ -153,10 +136,13 @@ mod tests {
         let first_score = Score::mate_in(first_ply + node_distance).expect("mate score");
         let second_score = Score::mate_in(second_ply + node_distance).expect("mate score");
 
-        let stored = TranspositionScore::normalize(first_score, first_ply)
-            .expect("winning mate normalizes");
+        let stored =
+            TranspositionScore::normalize(first_score, first_ply).expect("winning mate normalizes");
 
-        assert_eq!(stored.normalized().centipawns(), MATE_SCORE - i32::from(node_distance));
+        assert_eq!(
+            stored.normalized().centipawns(),
+            MATE_SCORE - i32::from(node_distance)
+        );
         assert_eq!(
             TranspositionScore::normalize(second_score, second_ply),
             Ok(stored)
@@ -173,10 +159,13 @@ mod tests {
         let first_score = Score::mated_in(first_ply + node_distance).expect("mate score");
         let second_score = Score::mated_in(second_ply + node_distance).expect("mate score");
 
-        let stored = TranspositionScore::normalize(first_score, first_ply)
-            .expect("losing mate normalizes");
+        let stored =
+            TranspositionScore::normalize(first_score, first_ply).expect("losing mate normalizes");
 
-        assert_eq!(stored.normalized().centipawns(), -MATE_SCORE + i32::from(node_distance));
+        assert_eq!(
+            stored.normalized().centipawns(),
+            -MATE_SCORE + i32::from(node_distance)
+        );
         assert_eq!(
             TranspositionScore::normalize(second_score, second_ply),
             Ok(stored)
@@ -231,7 +220,10 @@ mod tests {
             maximum: MAX_MATE_PLY,
         };
 
-        assert_eq!(TranspositionScore::normalize(score, unsupported), Err(expected));
+        assert_eq!(
+            TranspositionScore::normalize(score, unsupported),
+            Err(expected)
+        );
         assert_eq!(stored.denormalize(unsupported), Err(expected));
         assert_eq!(
             expected.to_string(),
