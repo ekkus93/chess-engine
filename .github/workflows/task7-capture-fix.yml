@@ -1,0 +1,135 @@
+name: Task 7 capture predicate fix
+
+on:
+  issues:
+    types:
+      - opened
+
+permissions:
+  actions: write
+  contents: write
+  issues: write
+
+jobs:
+  apply:
+    if: github.event.issue.title == '[apply-task7-capture-fix]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      TRIGGER_ISSUE: ${{ github.event.issue.number }}
+    steps:
+      - name: Check out rust-engine
+        uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+          path: engine
+
+      - name: Correct packed capture classification
+        working-directory: engine
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('crates/chess-core/src/move_encoding.rs')
+          source = path.read_text()
+          start = source.index('    /// Returns whether this move kind captures an opposing piece.')
+          end = source.index('    /// Returns whether this move kind promotes a pawn.', start)
+          replacement = '''    /// Returns whether this move kind captures an opposing piece.
+              #[must_use]
+              pub const fn is_capture(self) -> bool {
+                  matches!(
+                      self,
+                      Self::Capture
+                          | Self::EnPassant
+                          | Self::KnightPromotionCapture
+                          | Self::BishopPromotionCapture
+                          | Self::RookPromotionCapture
+                          | Self::QueenPromotionCapture
+                  )
+              }
+
+          '''.replace('              ', '    ')
+          source = source[:start] + replacement + source[end:]
+
+          marker = '    #[test]\n    fn promotion_predicate_and_identity_are_exhaustive()'
+          if 'fn capture_predicate_is_exhaustive()' not in source:
+              test = '''    #[test]
+              fn capture_predicate_is_exhaustive() {
+                  for kind in MoveKind::ALL {
+                      let expected = matches!(
+                          kind,
+                          MoveKind::Capture
+                              | MoveKind::EnPassant
+                              | MoveKind::KnightPromotionCapture
+                              | MoveKind::BishopPromotionCapture
+                              | MoveKind::RookPromotionCapture
+                              | MoveKind::QueenPromotionCapture
+                      );
+                      assert_eq!(kind.is_capture(), expected, "{kind:?}");
+                  }
+              }
+
+          '''.replace('              ', '    ')
+              source = source.replace(marker, test + marker)
+
+          path.write_text(source)
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add crates/chess-core/src/move_encoding.rs
+          git diff --cached --check
+          git commit -m 'fix(core): correct packed capture classification'
+          git push origin HEAD:rust-engine
+          echo "PATCH_SHA=$(git rev-parse HEAD)" >>"${GITHUB_ENV}"
+
+      - name: Dispatch exact Rust CI
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api \
+            --method POST \
+            "repos/${REPOSITORY}/actions/workflows/ci.yml/dispatches" \
+            -f ref=rust-engine
+
+      - name: Report patch commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api \
+            --method POST \
+            "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}/comments" \
+            -f body="Applied packed capture-classification fix at rust-engine SHA ${PATCH_SHA} and dispatched CI."
+
+      - name: Remove one-shot workflow
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+          path: control
+
+      - name: Delete one-shot workflow from master
+        working-directory: control
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/task7-capture-fix.yml
+          git commit -m 'ci: remove Task 7 capture patcher'
+          git push origin HEAD:master
+
+      - name: Close trigger issue
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api \
+            --method PATCH \
+            "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}" \
+            -f state=closed \
+            -f state_reason=completed
