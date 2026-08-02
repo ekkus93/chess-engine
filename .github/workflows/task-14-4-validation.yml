@@ -5,54 +5,81 @@ on:
     branches:
       - rust-engine
     paths:
+      - ".github/workflows/task-14-4-validation.yml"
       - "crates/chess-search/**"
       - "Cargo.toml"
       - "Cargo.lock"
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: task-14-4-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  focused:
-    name: Task 14.4 focused
+  validation:
+    name: Task 14.4 exact-SHA closure
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-      - name: Formatting
-        run: cargo fmt --all -- --check
-      - name: Strict chess-search Clippy
-        run: cargo clippy -p chess-search --all-targets --all-features -- -D warnings
-      - name: Chess-search tests
-        run: cargo test -p chess-search --all-features
+      - name: Run focused and full validation
+        shell: bash
+        run: |
+          set +e
+          log=/tmp/task-14-4-validation.log
+          : > "$log"
+          overall=0
 
-  closure:
-    name: Task 14.4 full closure
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-      - name: Cargo metadata
-        run: cargo metadata --locked --format-version 1 >/dev/null
-      - name: Formatting
-        run: cargo fmt --all -- --check
-      - name: Strict workspace Clippy
-        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
-      - name: Workspace tests
-        run: cargo test --workspace --all-features
-      - name: Release perft tests
-        run: cargo test -p chess-core --release perft
-      - name: Authoritative depth-four perft suite
-        run: cargo run --release -p chess-tools -- suite 4
-      - name: Rustdoc warnings denied
-        env:
-          RUSTDOCFLAGS: -D warnings
-        run: cargo doc --workspace --no-deps
-      - name: Debug build
-        run: cargo build --workspace --all-features
-      - name: Release build
-        run: cargo build --workspace --all-features --release
+          run_check() {
+            label="$1"
+            shift
+            {
+              echo
+              echo "===== $label ====="
+              printf 'command:'
+              printf ' %q' "$@"
+              echo
+            } | tee -a "$log"
+            "$@" 2>&1 | tee -a "$log"
+            rc=${PIPESTATUS[0]}
+            echo "exit_code=$rc" | tee -a "$log"
+            if [ "$rc" -ne 0 ]; then
+              overall="$rc"
+            fi
+          }
+
+          run_check "Cargo metadata" bash -lc 'cargo metadata --locked --format-version 1 >/dev/null'
+          run_check "Formatting" cargo fmt --all -- --check
+          run_check "Focused strict Clippy" cargo clippy -p chess-search --all-targets --all-features -- -D warnings
+          run_check "Focused chess-search tests" cargo test -p chess-search --all-features
+          run_check "Workspace strict Clippy" cargo clippy --workspace --all-targets --all-features -- -D warnings
+          run_check "Workspace tests" cargo test --workspace --all-features
+          run_check "Release perft tests" cargo test -p chess-core --release perft
+          run_check "Authoritative depth-four perft suite" cargo run --release -p chess-tools -- suite 4
+          run_check "Rustdoc warnings denied" bash -lc 'RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps'
+          run_check "Debug build" cargo build --workspace --all-features
+          run_check "Release build" cargo build --workspace --all-features --release
+
+          mkdir -p docs
+          {
+            echo "Task 14.4 validation evidence"
+            echo "source_sha=$GITHUB_SHA"
+            echo "run_id=$GITHUB_RUN_ID"
+            echo "job_id=$GITHUB_JOB"
+            echo "overall_exit_code=$overall"
+            echo
+            echo "Last 400 validation log lines:"
+            tail -n 400 "$log"
+          } > docs/TASK_14_4_CI_EVIDENCE.txt
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/TASK_14_4_CI_EVIDENCE.txt
+          git commit -m "ci: record Task 14.4 validation evidence" || true
+          git push origin HEAD:rust-engine
+
+          exit "$overall"
