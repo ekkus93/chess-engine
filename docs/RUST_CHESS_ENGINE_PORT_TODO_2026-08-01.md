@@ -13,7 +13,8 @@
 - `[ ]` means incomplete, unverified, deferred, blocked, or not started.
 - GitHub Actions is the authoritative Rust execution environment.
 - Every first-party rustfmt, compiler, Clippy, test, rustdoc, or build finding is a bug and must be fixed at source.
-- The companion definitions file preserves the full original wording; this file is the authoritative live status.
+- The companion definitions file preserves the original detailed wording; this file is the authoritative live status.
+- Update this file whenever implementation or evidence changes any task or subtask.
 
 ## Program summary
 
@@ -25,31 +26,30 @@
 | 3 | **Complete** — `Position` and invariants. |
 | 4 | **Complete** — strict FEN and UCI notation. |
 | 5 | **Complete** — attack generation. |
-| 6 | **Implemented, CI pending** — pseudo-legal generation and bounded move storage are present. |
+| 6 | **Complete** — pseudo-legal generation, bounded move storage, documentation, and exact-SHA CI. |
 | 7–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
 
 ---
 
-# Completed tasks 0–5
+# Tasks 0–6 — complete
 
-## Task 0 — COMPLETE
-- [x] Frozen Python source/inventory/defect record.
-- [x] Fast and slow suites, perft, UCI smoke, environment, and evidence artifact.
+## Task 0: Python reference baseline — COMPLETE
+- [x] Frozen source, inventory, defect/non-copy record, fast/slow suites, perft, UCI smoke, environment, and evidence artifact.
 - [x] Task 0 gate.
 
 **Evidence:** SHA `7ca6f8dc0d2577ca552a6bfe115828eb668d2133`; run/job `30722127447` / `91427510964`; fast `1203`; slow `179`; perft `20/400/8902/197281`; UCI passed.
 
-## Task 1 — COMPLETE
-- [x] Seven-crate workspace, dependency boundaries, toolchain/lint/unsafe/license policy, lockfile, and Linux strict CI.
+## Task 1: Cargo workspace and boundaries — COMPLETE
+- [x] Seven-crate workspace, dependency boundaries, toolchain/lint/unsafe/license policy, lockfile, documentation, and strict Linux CI.
 - [x] Task 1 gate.
 
 **Evidence:** SHA `7ca6f8dc0d2577ca552a6bfe115828eb668d2133`; run/job `30722127447` / `91427510938`.
 
-## Task 2 — COMPLETE
-- [x] 2.1 color/piece values.
-- [x] 2.2 square mapping/conversions.
+## Task 2: Core values and coordinates — COMPLETE
+- [x] 2.1 color and piece values.
+- [x] 2.2 square mapping and conversions.
 - [x] 2.3 bitboards.
 - [x] 2.4 packed move identity.
 - [x] 2.5 castling rights and typed counters.
@@ -57,7 +57,7 @@
 
 **Evidence:** green SHA `f29524599134a14d34121af2fefb04cd90e78df0`; run/job `30723748100` / `91431648799`; `16 passed`; closure `b5f462aa73a69efcdc847ee215231a5064029902` green.
 
-## Task 3 — COMPLETE
+## Task 3: `Position` and invariants — COMPLETE
 - [x] 3.1 hybrid representation.
 - [x] 3.2 validated constructors.
 - [x] 3.3 read-only accessors and sealed mutation boundary.
@@ -67,58 +67,52 @@
 
 **Evidence:** SHA `00fd925dad807d822aa7878aade686ccc59ff9c5`; run/job `30724744784` / `91434236030`; `24 passed`; closure `5578682bb2a6df5173ff7593649ac55509c277cd` green.
 
-## Task 4 — COMPLETE
+## Task 4: Strict FEN and UCI notation — COMPLETE
 - [x] 4.1 structured FEN/UCI errors.
 - [x] 4.2 strict six-field FEN parser.
 - [x] 4.3 canonical FEN serializer.
 - [x] 4.4 syntax-only UCI notation and packed-move formatting.
-- [x] 4.5 malformed/round-trip/no-panic tests and documentation.
+- [x] 4.5 malformed, round-trip, and no-panic tests plus documentation.
 - [x] Task 4 gate.
 
 **Evidence:** SHA `6cb975b35f4dbe898a0444b1b4c39778e89bcb40`; run/job `30726795562` / `91439860915`; `35 passed`.
 
-## Task 5 — COMPLETE
-- [x] 5.1 precomputed pawn/knight/king attacks.
-- [x] 5.2 arbitrary-occupancy rook/bishop/queen attacks.
-- [x] 5.3 static 64×64 ray/between/line geometry.
-- [x] 5.4 attackers/checkers/attacked-square/absolute-pin queries.
+## Task 5: Attack-generation infrastructure — COMPLETE
+- [x] 5.1 precomputed pawn, knight, and king attacks.
+- [x] 5.2 arbitrary-occupancy rook, bishop, and queen attacks.
+- [x] 5.3 static 64×64 ray, between, and line geometry.
+- [x] 5.4 attackers, attacked-square, checkers, and absolute-pin queries.
 - [x] 5.5 independent differential fixtures.
 - [x] Documentation and Task 5 gate.
 
-**Evidence:** implementation SHA `9922b0c725147fcabac3ce4c08f7c150c3ec6a1d`; run/job `30727440571` / `91441645867`; `42 passed`; exact closure SHA `78e9315369ff4552e5500d1a820767a1fd228f29`, run/job `30727553897` / `91441947625`, green.
+**Evidence:** implementation SHA `9922b0c725147fcabac3ce4c08f7c150c3ec6a1d`; run/job `30727440571` / `91441645867`; `42 passed`; closure SHA `78e9315369ff4552e5500d1a820767a1fd228f29`, run/job `30727553897` / `91441947625`, green.
 
----
+## Task 6: Pseudo-legal move generation — COMPLETE
 
-# Task 6: Pseudo-legal move generation — IMPLEMENTED, CI PENDING
-
-## 6.1 Pawn moves
+### 6.1 Pawn moves
 - [x] Single pushes require an empty destination.
-- [x] Double pushes require the start rank plus empty intermediate/destination squares.
+- [x] Double pushes require the start rank plus empty intermediate and destination squares.
 - [x] Captures exclude friendly pieces and kings.
 - [x] En-passant target-geometry candidates.
 - [x] Four quiet promotion identities.
 - [x] Four capture-promotion identities.
 
-## 6.2 Piece moves
-- [x] Knights.
-- [x] Bishops.
-- [x] Rooks.
-- [x] Queens.
-- [x] Kings without final attack filtering.
+### 6.2 Piece moves
+- [x] Knights, bishops, rooks, queens, and kings without final attack filtering.
 - [x] No self-captures or king-capture moves.
 
-## 6.3 Castling candidates
+### 6.3 Castling candidates
 - [x] Rights, king/rook home placement, and empty path required.
 - [x] King-in-check and attacked transit/destination checks intentionally deferred to Task 7.
 
-## 6.4 Move list
+### 6.4 Move list
 - [x] Fixed 256-entry stack-backed `MoveList`.
 - [x] No per-move heap allocation.
-- [x] Structured fail-loud `MoveListOverflow` rather than truncation.
+- [x] Structured fail-loud `MoveListOverflow`; no truncation.
 - [x] Deterministic pawn/knight/bishop/rook/queen/king/castling order.
-- [x] Deterministic ascending source/destination order and N/B/R/Q promotion order.
+- [x] Deterministic ascending source/destination and N/B/R/Q promotion order.
 
-## 6.5 Tests and documentation
+### 6.5 Tests and documentation
 - [x] Exact starting-position count and order.
 - [x] Quiet promotions and capture underpromotions.
 - [x] Edge pawns and knights.
@@ -128,25 +122,34 @@
 - [x] Stack-storage/capacity contract.
 - [x] `docs/RUST_PSEUDO_LEGAL_MOVE_GENERATION.md`.
 
-## 6.6 CI gate
-- [ ] Exact-head rustfmt pass.
-- [ ] Exact-head Cargo check pass.
-- [ ] Exact-head Clippy `-D warnings` pass.
-- [ ] Exact-head unit tests with recorded count.
-- [ ] Exact-head rustdoc `-D warnings` pass.
-- [ ] Exact-head debug and release builds.
-- [ ] Task 6 gate.
+### 6.6 CI gate
+- [x] Exact-head rustfmt pass.
+- [x] Exact-head Cargo check pass.
+- [x] Exact-head Clippy `-D warnings` pass.
+- [x] Exact-head unit tests: `49 passed, 0 failed`.
+- [x] Exact-head rustdoc `-D warnings` pass.
+- [x] Exact-head debug and release builds.
+- [x] Task 6 gate.
 
-**Implementation commit:** `0d8f063dbc9cd096e4e8796c07414bb7d0b4be02`.
+### Task 6 completion evidence
+
+- Initial implementation: `0d8f063dbc9cd096e4e8796c07414bb7d0b4be02`.
+- Status synchronization: `79635e783507d500941b091e4e36129cc712da76`.
+- rustfmt and source-cleanliness correction: `0dcf512d404ae248d5a99651543d9d0ca9687699`.
+- CI run/job: `30727874051` / `91442826957`.
+- Results: lockfile verification, metadata, rustfmt, Cargo check, Clippy with warnings denied, `49 passed`, rustdoc with warnings denied, debug build, and release build passed.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime and dependency `punycode` deprecation notices only.
+- Deviations: final legality, castling attack checks, en-passant captured-pawn validation, and king-safety filtering remain intentionally deferred to Task 7.
 
 ---
 
-# Task 7: Complete legal generation and special rules — NOT STARTED
+# Task 7: Complete legal move generation and special rules — NOT STARTED
 - [ ] 7.1 king-safety filtering.
 - [ ] 7.2 check evasions.
-- [ ] 7.3 castling correctness.
-- [ ] 7.4 en-passant correctness.
-- [ ] 7.5 promotion correctness.
+- [ ] 7.3 castling correctness, including transient king-square attacks.
+- [ ] 7.4 en-passant discovered-check and captured-pawn correctness.
+- [ ] 7.5 promotion correctness through the legal layer.
 - [ ] 7.6 initial legal perft.
 - [ ] Task 7 gate.
 
@@ -165,7 +168,7 @@
 - [ ] 9.5 verification.
 - [ ] Task 9 gate.
 
-# Task 10: Game/history/draw semantics — NOT STARTED
+# Task 10: Game, history, and draw semantics — NOT STARTED
 - [ ] 10.1 game state.
 - [ ] 10.2 mate/stalemate.
 - [ ] 10.3 claimable draws.
@@ -216,7 +219,7 @@
 - [ ] 15.6 diagnostics.
 - [ ] Task 15 gate.
 
-# Task 16: Iterative deepening, PV, limits, cancellation — NOT STARTED
+# Task 16: Iterative deepening, PV, limits, and cancellation — NOT STARTED
 - [ ] 16.1 iterative deepening.
 - [ ] 16.2 aspirations.
 - [ ] 16.3 PV.
@@ -234,7 +237,7 @@
 - [ ] 17.5 integration tests.
 - [ ] Task 17 gate.
 
-# Task 18: Safe API, C ABI, JNI — NOT STARTED
+# Task 18: Safe API, C ABI, and JNI — NOT STARTED
 - [ ] 18.1 Rust facade.
 - [ ] 18.2 C ABI.
 - [ ] 18.3 C tests.
@@ -292,20 +295,20 @@
 - [x] Linux rustfmt/check/Clippy/tests/rustdoc/debug/release.
 - [x] Python validation preserved separately.
 - [x] Exact-SHA status publisher and deterministic dispatcher.
-- [ ] Release tests/perft, AArch64, Android, JNI, Miri, sanitizer, fuzz, nightly perft, scheduled strength.
+- [ ] Release tests/perft, AArch64, Android, JNI, Miri, sanitizer, fuzz, nightly perft, and scheduled strength.
 
 ## 25.2 Documentation
 - [x] Workspace architecture.
-- [x] Core values/coordinates/moves.
-- [x] Position/invariants.
+- [x] Core values, coordinates, and moves.
+- [x] Position and invariants.
 - [x] FEN/UCI notation.
 - [x] Attack generation.
 - [x] Pseudo-legal move generation.
-- [ ] Legal generation, make/unmake, draws, hashing, search, TT, evaluation, ABI/JNI, perft/fuzz, self-play, tuning.
+- [ ] Legal generation, make/unmake, draws, hashing, search, TT, evaluation, ABI/JNI, perft/fuzz, self-play, and tuning.
 
-## 25.3 Commands/artifacts
+## 25.3 Commands and artifacts
 - [x] Full Task 0/1 validation command, committed lockfile, ignored targets/worktrees.
-- [ ] Bootstrap, fast validation, perft, UCI, Android, self-play, tuning commands.
+- [ ] Bootstrap, fast validation, perft, UCI, Android, self-play, and tuning commands.
 - [ ] Versioned schema/fixture/generated-artifact policy.
 - [ ] Task 25 gate.
 
@@ -326,8 +329,7 @@
 
 ## Immediate next operations
 
-1. Run strict CI at the current exact Task 6 status head.
-2. Fix every first-party formatting/compiler/Clippy/test/rustdoc/build finding at source.
-3. Record the exact green SHA, run, job, and test count.
-4. Close Task 6 only after every gate is green.
-5. Begin Task 7 only after exact closure verification.
+1. Verify this Task 6 closure commit at its exact SHA through strict CI.
+2. Begin Task 7 only after the closure SHA is green.
+3. Implement legal filtering and exact special-rule correctness without weakening the pseudo-legal layer.
+4. Keep every Task 7 subtask synchronized during the next Ralph Loop.
