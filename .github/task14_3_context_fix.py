@@ -76,6 +76,27 @@ if count != 2:
     raise SystemExit(f"cancellation probes: expected two matches, found {count}")
 text = text.replace("cancellation.should_cancel()", "context.cancellation.should_cancel()")
 replace_once(
+    """        let context = QuiescenceContext {
+            ply,
+            quiescence_ply: 0,
+            maximum_quiescence_ply: MAX_QUIESCENCE_PLY,
+        };
+        return search_quiescence_node(
+            position,
+            history,
+            context,""",
+    """        let quiescence_context = QuiescenceContext {
+            ply,
+            quiescence_ply: 0,
+            maximum_quiescence_ply: MAX_QUIESCENCE_PLY,
+        };
+        return search_quiescence_node(
+            position,
+            history,
+            quiescence_context,""",
+    "quiescence local name",
+)
+replace_once(
     """            ordering,
             cancellation,
         );""",
