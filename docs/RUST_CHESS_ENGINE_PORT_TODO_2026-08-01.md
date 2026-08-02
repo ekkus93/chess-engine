@@ -221,16 +221,30 @@
 
 ---
 
-# Task 10: Game, history, and draw semantics — ACTIVE, NOT STARTED
-- [ ] 10.1 Game state.
-- [ ] 10.2 Mate/stalemate.
-- [ ] 10.3 Claimable draws.
-- [ ] 10.4 Automatic draws.
-- [ ] 10.5 Conservative dead-position logic.
-- [ ] 10.6 Search history.
-- [ ] Task 10 gate.
+# Task 10: Game, history, and draw semantics — COMPLETE
+- [x] 10.1 Game state.
+- [x] 10.2 Mate/stalemate.
+- [x] 10.3 Claimable draws.
+- [x] 10.4 Automatic draws.
+- [x] 10.5 Conservative dead-position logic.
+- [x] 10.6 Search history.
+- [x] Task 10 gate.
 
-# Task 11: Authoritative perft and differential validation — NOT STARTED
+### Task 10 completion evidence
+
+- Game, status, draw, undo, and detached search-history implementation: `crates/chess-core/src/game.rs`.
+- Public game/history exports: `crates/chess-core/src/lib.rs`.
+- Rule and ownership contract: `docs/RUST_GAME_HISTORY_AND_DRAWS.md`.
+- Exact validated implementation head: `dd57b258fc8b9af647c30a1834f3d9e79a3d8ee3`.
+- Implementation CI run/job: `30732542941` / `91455346591`.
+- Results: lockfile and metadata verification, rustfmt, Cargo check, Clippy with warnings denied, `84 passed`, rustdoc with warnings denied, debug build, and release build.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime deprecation and dependency `punycode` deprecation only.
+- Task 11 owns the expanded authoritative perft suite, divide tooling, differential oracle, and corpus gate.
+
+---
+
+# Task 11: Authoritative perft and differential validation — ACTIVE, NOT STARTED
 - [ ] 11.1 Standard exact perft suite.
 - [ ] 11.2 Slow perft.
 - [ ] 11.3 Divide tool.

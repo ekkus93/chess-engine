@@ -3,7 +3,7 @@
 **Updated:** 2026-08-01  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 10 game, history, and draw semantics active; implementation not started
+**Current phase:** Task 11 authoritative perft and differential validation active; implementation not started
 
 ## Completed gates
 
@@ -19,43 +19,45 @@
 | 7 | `334dc79b3ce0cbc1e7b5096387218c90a8365204` | `30730100518` / `91448776834` | closure green; implementation `59 passed` |
 | 8 | `cecc39b9c9dcd8c90f9cdbdb4284be13c480bbd6` | `30730891252` / `91451022194` | closure green; implementation `67 passed` |
 | 9 | `178583c15458cb29205201047bad8f4064a9342d` | `30731524205` / `91452671063` | strict implementation gate green; `72 passed` |
+| 10 | `dd57b258fc8b9af647c30a1834f3d9e79a3d8ee3` | `30732542941` / `91455346591` | strict implementation gate green; `84 passed` |
 
-## Task 9 completion
+## Task 10 completion
 
 Implemented and validated:
 
-- compile-time deterministic Zobrist tables with explicit `Position::ZOBRIST_VERSION = 1`;
-- stable piece-square, side-to-move, complete castling-state, and en-passant-file key schedules;
-- authoritative `Position::recomputed_zobrist()` from private position state;
-- canonical repetition identity that excludes move counters;
-- en-passant hashing only when at least one king-safe legal en-passant capture exists;
-- occupancy-based en-passant legality evaluation without recursive legal move generation;
-- incremental XOR updates for every ordinary, capture, en-passant, castling, promotion, and castling-right transition;
-- constant-time exact hash restoration through opaque undo state;
-- removal of the Task 8 arbitrary placeholder-hash builder seam;
-- versioned known fixtures, curated move-category tests, and randomized incremental-versus-recomputed checks after every ply;
-- complete randomized reverse restoration to the original position and key;
-- `docs/RUST_ZOBRIST_HASHING.md`.
+- history-free `Position` retained as the rule-state primitive;
+- history-owning `Game` with current position, played moves, and root-to-current canonical hashes;
+- transactional legal move application and exact LIFO game undo;
+- fail-loud mismatch handling without position or history mutation;
+- explicit ongoing, checkmate, stalemate, claimable-draw, and automatic-draw statuses;
+- claimable threefold-repetition and fifty-move draws;
+- automatic fivefold-repetition and seventy-five-move draws;
+- checkmate and stalemate precedence over automatic move-count draws;
+- conservative dead-position recognition without broad minor-piece shortcuts;
+- repetition counting limited to the reversible halfmove window;
+- detached search-history cloning with reversible line push/pop;
+- search operations isolated from game move and repetition histories;
+- illegal game moves proven non-mutating;
+- `docs/RUST_GAME_HISTORY_AND_DRAWS.md`.
 
 Evidence:
 
-- Hash implementation and tests: `crates/chess-core/src/position/zobrist.rs`.
-- Incremental integration: `crates/chess-core/src/position/make_unmake.rs`.
-- Validated implementation head: `178583c15458cb29205201047bad8f4064a9342d`.
-- Implementation CI run/job: `30731524205` / `91452671063`.
-- Results: lockfile and metadata verification, rustfmt, Cargo check, Clippy with `-D warnings`, `72 passed`, rustdoc with `-D warnings`, debug build, and release build.
+- Implementation and tests: `crates/chess-core/src/game.rs`.
+- Public exports: `crates/chess-core/src/lib.rs`.
+- Validated implementation head: `dd57b258fc8b9af647c30a1834f3d9e79a3d8ee3`.
+- Implementation CI run/job: `30732542941` / `91455346591`.
+- Results: lockfile and metadata verification, rustfmt, Cargo check, Clippy with `-D warnings`, `84 passed`, rustdoc with `-D warnings`, debug build, and release build.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime and dependency `punycode` deprecation notices only.
-- Task 10 owns repetition history, draw thresholds, and game-state semantics over this canonical key.
+- Task 11 owns expanded perft fixtures, divide output, independent differential validation, and the rule corpus gate.
 
-## Task 10 active scope
+## Task 11 active scope
 
-- [ ] Define the game/history state and irreversible-move boundaries.
-- [ ] Detect checkmate and stalemate from authoritative legal moves.
-- [ ] Implement claimable threefold-repetition and fifty-move draws.
-- [ ] Implement automatic fivefold-repetition and seventy-five-move draws.
-- [ ] Add conservative dead-position logic.
-- [ ] Define search-history propagation without corrupting game history.
+- [ ] Add the standard exact perft fixture suite and expected node counts.
+- [ ] Add explicitly gated slow perft depths.
+- [ ] Harden deterministic divide output for diagnosis.
+- [ ] Build an independent differential oracle harness.
+- [ ] Establish a curated corpus gate across special-rule positions.
 - [ ] Pass exact-head rustfmt, Cargo check, Clippy, tests, rustdoc, debug, and release gates.
 
 No pull request has been created; work remains on `rust-engine`.
