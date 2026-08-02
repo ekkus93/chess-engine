@@ -3,7 +3,7 @@
 **Updated:** 2026-08-02  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 13 complete; Task 14.1 quiescence is next
+**Current phase:** Task 14.1 quiescence complete; Task 14.2 tactical ordering is next
 
 ## Completed gates
 
@@ -28,6 +28,7 @@
 | 13.3 | `bdf98a8e7c5cb6aadc55ba3638cd3af2f4ba9e91` | `30743024471` / `91483729312` | shallow equivalence, 127 Rust tests, depth-four perft, and differential oracle green |
 | 13.4 | `3644e032504b604c210796f1e6c7ef056d05e94b` | `30743519630` / `91485044296` | completion/cancellation immutability, 131 Rust tests, depth-four perft, and differential oracle green |
 | 13.5 / 13 | `7ca429b0c883bbb8484d3eb3a4af7d96cdb57201` | `30745120833` / `91489299233` | terminal/mate-distance fixtures and full Task 13 gate, 135 Rust tests, depth-four perft, and differential oracle green |
+| 14.1 | `24e1090e17f8b39bdaac4989daffdeaea4b857e9` | `30749044761` / `91499685362` | correctness-first quiescence, 140 Rust tests, depth-four perft, and differential oracle green |
 
 ## Task 12 completion
 
@@ -214,6 +215,46 @@ Evidence:
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
 - Task 13 is complete; Task 14.1 quiescence is next.
 
+## Task 14.1 completion
+
+Implemented and validated:
+
+- standalone and alpha-beta-integrated fail-soft quiescence search;
+- stand-pat only outside check and every legal evasion while checked;
+- deterministic capture and promotion expansion through source-bound legal tokens;
+- shared mate, stalemate, dead-position, repetition, and move-count draw semantics;
+- cancellation checks at node and tactical-child boundaries with restoration before error propagation;
+- a fail-loud 64-ply tactical guard, including explicit failure when the side remains in check;
+- a separate unpruned reference search with quiescence leaves while preserving the original static Task 13 reference API;
+- matching-oracle score and node-count equivalence on bounded fixtures;
+- fixed hanging-capture, quiet-evasion, promotion, poisoned-capture, draw, cancellation, and guard regressions;
+- exact root position, detached history, invariant, and incremental/recomputed-Zobrist restoration;
+- `crates/chess-search/tests/search_quiescence.rs` and `docs/RUST_QUIESCENCE_SEARCH.md`.
+
+Evidence:
+
+- Exact validated implementation SHA: `24e1090e17f8b39bdaac4989daffdeaea4b857e9`.
+- Permanent CI run/job: `30749044761` / `91499685362`.
+- Results: workspace assets, lockfile, metadata, rustfmt, Cargo check, Clippy with `-D warnings`, 140 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with `-D warnings`, debug build, release build, and independent differential validation passed.
+- Dedicated quiescence suite: 5 passed; matching reference/alpha-beta equivalence suite: 3 passed; terminal/mate-distance suite: 4 passed.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 14.2 tactical ordering is next. Task 14.3 quiet ordering, Task 15 transposition storage, and Task 16 production limits remain open.
+
+## Task 14 active scope
+
+- [x] Stand-pat only outside check.
+- [x] Search every legal check evasion.
+- [x] Search captures and all promotions.
+- [x] Preserve fail-soft alpha-beta, draw, repetition, mate-distance, cancellation, and restoration semantics.
+- [x] Enforce a bounded fail-loud tactical-ply guard.
+- [x] Add independent tactical-oracle and fixed horizon-effect regressions.
+- [ ] Implement Task 14.2 tactical ordering.
+- [ ] Implement Task 14.3 quiet ordering.
+- [ ] Complete Task 14.4 consolidated correctness tests and Task 14.5 exclusion audit.
+- [ ] Pass the overall Task 14 gate.
+
 ## Task 13 completed scope
 
 - [x] Implement an unpruned reference minimax/negamax search.
@@ -226,4 +267,4 @@ Evidence:
 - [x] Add mate-in-one, mated, stalemate, draw, shorter-mate, and longer-survival fixtures.
 - [x] Pass exact-head rustfmt, Cargo check, Clippy, tests, rustdoc, debug, release, perft, and differential gates.
 
-No pull request has been created; work remains on `rust-engine`.
+No pull request has been created; work remains on `rust-engine`. Task 14.2 tactical ordering is the next operation.

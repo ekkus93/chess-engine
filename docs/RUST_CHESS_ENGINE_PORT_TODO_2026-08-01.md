@@ -35,7 +35,8 @@
 | 11 | **Complete** — authoritative perft and differential validation. |
 | 12 | **Complete** — baseline evaluator and trace. |
 | 13 | **Complete** — reference negamax, alpha-beta, shallow equivalence, immutability, and terminal/mate-distance fixtures. |
-| 14–24 | **Not started**. |
+| 14 | **Active** — Task 14.1 quiescence complete; Task 14.2 tactical ordering next. |
+| 15–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
 
@@ -425,13 +426,32 @@ Evidence:
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
 - Task 13 is complete. Task 14.1 quiescence is next.
 
-# Task 14: Quiescence and ordering — NOT STARTED
-- [ ] 14.1 Quiescence.
+# Task 14: Quiescence and ordering — ACTIVE
+- [x] 14.1 Quiescence.
 - [ ] 14.2 Tactical ordering.
 - [ ] 14.3 Quiet ordering.
 - [ ] 14.4 Correctness tests.
 - [ ] 14.5 Exclusions.
 - [ ] Task 14 gate.
+
+### Task 14.1 completion evidence
+
+- Public quiescence API: `quiescence_search`, `quiescence_search_with_limit`, `quiescence_search_with_cancellation`, `QuiescenceSearchResult`, and `MAX_QUIESCENCE_PLY`.
+- Production implementation: `crates/chess-search/src/quiescence.rs`; alpha-beta depth-zero integration: `crates/chess-search/src/alpha_beta.rs`.
+- Shared terminal/draw semantics: `crates/chess-search/src/search_common.rs`.
+- Independent unpruned tactical-leaf oracle: `reference_search_with_quiescence` and `reference_search_with_quiescence_and_cancellation` in `crates/chess-search/src/reference.rs`.
+- Regression suites: `crates/chess-search/tests/search_quiescence.rs`, bounded matching-oracle coverage in `search_equivalence.rs`, and preserved terminal/mate-distance coverage in `search_terminals.rs`.
+- Contract documentation: `docs/RUST_QUIESCENCE_SEARCH.md`.
+- Exact validated implementation SHA: `24e1090e17f8b39bdaac4989daffdeaea4b857e9`.
+- Permanent CI run/job: `30749044761` / `91499685362`.
+- Results: workspace assets, lockfile, metadata, rustfmt, Cargo check, strict Clippy, 140 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Semantics: stand-pat only outside check; every legal check evasion; captures and all promotions outside check; fail-soft alpha-beta bounds; repetition/dead/fifty-move draw handling; cancellation at node and child boundaries; and a fail-loud 64-ply tactical guard when check cannot safely stand pat.
+- Dedicated fixed regressions cover the hanging-capture horizon, quiet check evasions, promotions, poisoned captures with forced recapture, full-window equality against an independent unpruned tactical oracle, draw resolution, cancellation, depth-guard failure, and exact position/history/Zobrist restoration.
+- Matching quiescence-oracle equivalence proves identical exact scores and alpha-beta node counts no greater than the unpruned tactical reference on bounded curated fixtures, with at least one strict cutoff witness.
+- Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 14.2 tactical ordering is next; TT hooks, MVV-LVA, SEE, killer/history ordering, and other Task 14.2–14.3 features remain intentionally absent.
 
 # Task 15: Fixed-capacity transposition table — NOT STARTED
 - [ ] 15.1 Entries.
@@ -569,9 +589,9 @@ Evidence:
 
 ## Immediate next operations
 
-1. Begin Task 14.1 with a correctness-first quiescence-search contract over the existing alpha-beta search.
-2. Define the stand-pat convention, tactical move scope, terminal/draw handling, and mate-distance propagation before adding heuristics.
-3. Search legal captures, promotions, and required check evasions through source-bound legal tokens and exact make/unmake; do not use clone-per-child.
-4. Add a reference tactical-leaf oracle and fixed horizon-effect fixtures before integrating quiescence into normal alpha-beta leaves.
-5. Preserve Task 13 score, cancellation, history, Zobrist, and restoration contracts at every quiescence exit path.
-6. Keep Task 14.2 tactical ordering, Task 14.3 quiet ordering, transposition tables, and production limits out of Task 14.1.
+1. Implement Task 14.2 tactical ordering over the validated Task 14.1 quiescence and alpha-beta semantics.
+2. Add the documented transposition-table move hook as an explicit no-op until Task 15 supplies a real table.
+3. Order promotions and captures deterministically, beginning with MVV-LVA; preserve exact score and first-best correctness independently of ordering.
+4. Keep static exchange evaluation optional and excluded until the baseline ordering is correct, measured, and regression-covered.
+5. Compare node counts on fixed tactical benchmark positions while preserving root score, best move, cancellation, history, Zobrist, and restoration contracts.
+6. Keep Task 14.3 killer/history/PV quiet ordering, Task 15 transposition storage, and Task 16 production limits out of Task 14.2.
