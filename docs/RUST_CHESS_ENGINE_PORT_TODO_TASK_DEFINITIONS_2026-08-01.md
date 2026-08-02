@@ -831,10 +831,10 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 16.1 Iterative deepening
 
-- [ ] Search depth 1 through requested maximum.
-- [ ] Preserve completed result after each iteration.
-- [ ] Reuse TT/history appropriately.
-- [ ] Report per-depth diagnostics.
+- [x] Search depth 1 through requested maximum.
+- [x] Preserve completed result after each iteration.
+- [x] Reuse TT/history appropriately.
+- [x] Report per-depth diagnostics.
 
 ## 16.2 Aspiration windows
 

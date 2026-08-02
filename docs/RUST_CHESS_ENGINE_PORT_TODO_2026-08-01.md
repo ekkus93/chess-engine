@@ -37,7 +37,8 @@
 | 13 | **Complete** — reference negamax, alpha-beta, shallow equivalence, immutability, and terminal/mate-distance fixtures. |
 | 14 | **Complete** — quiescence, tactical/quiet ordering, consolidated correctness, and exclusion audit. |
 | 15 | **Complete** — bounded, mate-safe transposition table integrated into production alpha-beta with deterministic node-reduction evidence. |
-| 16–24 | **Not started**. |
+| 16 | **Active** — Task 16.1 iterative deepening complete; aspiration windows next. |
+| 17–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
 
@@ -680,8 +681,8 @@ Evidence:
 - The clean implementation delta contains only three Rust modules, one integration-test file, and one contract document; no temporary workflow, script, unbounded map, or fallback remains.
 - Task 15 is complete. Task 16.1 iterative deepening is next.
 
-# Task 16: Iterative deepening, PV, limits, cancellation — NOT STARTED
-- [ ] 16.1 Iterative deepening.
+# Task 16: Iterative deepening, PV, limits, cancellation — ACTIVE
+- [x] 16.1 Iterative deepening.
 - [ ] 16.2 Aspiration windows.
 - [ ] 16.3 Principal variation.
 - [ ] 16.4 Limits.
@@ -689,6 +690,25 @@ Evidence:
 - [ ] 16.6 Result API.
 - [ ] 16.7 Optional extension.
 - [ ] Task 16 gate.
+
+### Task 16.1 completion evidence
+
+- Implementation: `crates/chess-search/src/iterative_deepening.rs`, with public exports from `crates/chess-search/src/lib.rs`.
+- Public APIs: `iterative_deepening_search`, `iterative_deepening_search_with_transposition_table`, `IterativeDeepeningIteration`, `IterativeDeepeningSearchResult`, and `IterativeDeepeningSearchError`.
+- Every request searches complete full-window depths `1..=maximum_depth` in ascending order and retains one exact record for every completed depth.
+- The convenience boundary allocates one bounded default table; the caller-owned boundary reuses one fixed-capacity table and the same detached root history across all iterations.
+- Each completed record reports depth, exact score, canonical best move, iteration nodes, isolated TT diagnostics, bounded hash-full sampling, and generation.
+- Result storage uses a fallible exact reservation bounded by `MAX_MATE_PLY`; zero depth, excessive depth, allocation failure, iteration failure, and node-total overflow are typed errors.
+- Five regressions prove fixed-depth equivalence, generation and diagnostic isolation, terminal iteration behavior, invalid-depth fail-fast behavior, history mismatch safety, and exact position/history/Zobrist restoration.
+- Contract documentation: `docs/RUST_ITERATIVE_DEEPENING.md`.
+- Exact validated implementation SHA: `886ad953952b3a409800fcf7e8699365f94f0271`.
+- Permanent CI run/job: `30772536115` / `91562076526`.
+- Results: permanent exclusion audit over 13 production Rust files, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy without suppressions, 198 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- The initial validation found only canonical rustfmt changes; the next found an invalid test assumption about sparse bounded hash-full sampling. Production semantics did not change.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 16.2 aspiration windows is next. PV reconstruction, limits, cancellation recovery, final result API, and extensions remain deferred.
 
 # Task 17: Linux UCI executable — NOT STARTED
 - [ ] 17.1 Protocol loop.
@@ -807,9 +827,9 @@ Evidence:
 
 ## Immediate next operations
 
-1. Implement Task 16.1 iterative deepening from depth 1 through the requested maximum.
-2. Preserve and expose the last fully completed result after every iteration.
-3. Reuse the caller-owned fixed-capacity TT and bounded history heuristics across iterations without changing root correctness.
-4. Add per-depth diagnostics for completed depth, score, best move, nodes, TT probes/hits/cutoffs, and hash fullness.
-5. Prove every completed iteration preserves position, history, Zobrist identity, deterministic score, and canonical best move.
-6. Keep aspiration windows, PV reconstruction, time/node limits, and responsive cancellation in their explicit Task 16.2–16.6 scopes.
+1. Implement Task 16.2 aspiration windows centered on the prior completed iteration score.
+2. Detect fail-low and fail-high without promoting a bound to an exact root result.
+3. Re-search failed windows through a deterministic safe expansion or complete-window fallback.
+4. Record retry counts and window outcomes per completed depth without losing the Task 16.1 iteration record.
+5. Add fixed regressions for fail-low, fail-high, exact recovery, canonical best-move preservation, and root restoration.
+6. Keep PV reconstruction, time/node limits, responsive cancellation, the final result API, and check extensions in Tasks 16.3–16.7.

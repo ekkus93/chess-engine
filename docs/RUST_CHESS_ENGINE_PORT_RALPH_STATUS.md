@@ -3,7 +3,7 @@
 **Updated:** 2026-08-02  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 15 complete; Task 16.1 iterative deepening is next
+**Current phase:** Task 16.1 iterative deepening complete; Task 16.2 aspiration windows is next
 
 ## Completed gates
 
@@ -40,6 +40,7 @@
 | 15.5 | `775013a6e11aad7625c88b0cd3b258819211e839` | `30767556904` / `91548869513` | deterministic same-key updates and depth/age replacement, five focused tests, 184 Rust tests, depth-four perft, and differential oracle green |
 | 15.6 | `bd4d5d581c0e82f892435b2874732ac632c2e1f5` | `30768512470` / `91551420579` | bounded counters and hash-full sampling, reproducible probe/store benchmark, four focused tests, 188 Rust tests, depth-four perft, and differential oracle green |
 | 15 / gate | `682114cd2452b04e1f24af1150928baaff779aa8` | `30770018597` / `91555458016` | production alpha-beta integration, 193 Rust tests, two release node-reduction witnesses, depth-four perft, and differential oracle green |
+| 16.1 | `886ad953952b3a409800fcf7e8699365f94f0271` | `30772536115` / `91562076526` | full-window iterative deepening, five focused tests, 198 Rust tests, depth-four perft, and differential oracle green |
 
 ## Task 12 completion
 
@@ -536,7 +537,44 @@ Evidence:
 - The clean implementation delta is limited to three Rust modules, one integration-test file, and one contract document.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 15 is complete. Task 16.1 iterative deepening is next.
+- Task 15 and Task 16.1 are complete. Task 16.2 aspiration windows is next.
+
+## Task 16.1 completion
+
+Implemented and validated:
+
+- a correctness-first iterative-deepening layer over the established full-window fixed-depth alpha-beta boundary;
+- ascending complete searches at every depth from one through the requested maximum;
+- one retained exact result record for every completed iteration;
+- one bounded default TT for convenience searches and one caller-owned fixed table reused across depths;
+- reuse of the same detached root history with exact restoration before every next iteration;
+- per-depth score, canonical best move, nodes, TT diagnostics, bounded hash-full estimate, and generation reporting;
+- fallible iteration-record reservation bounded by `MAX_MATE_PLY` and typed failure categories;
+- five integration regressions and `docs/RUST_ITERATIVE_DEEPENING.md`.
+
+Evidence:
+
+- Exact validated implementation SHA: `886ad953952b3a409800fcf7e8699365f94f0271`.
+- Permanent CI run/job: `30772536115` / `91562076526`.
+- Results: permanent exclusion audit over 13 production Rust files, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy without suppressions, 198 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- Every retained iteration matched an independent fixed-depth full-window score and canonical best move on the deterministic benchmark.
+- Generation sequence, diagnostic isolation, terminal roots, invalid maximum depths, mismatched histories, table capacity, position/history restoration, and incremental/recomputed Zobrist identity are covered.
+- The first validation iteration found canonical rustfmt differences only. The second found a test-only assumption that sparse bounded hash-full sampling must observe an occupied slot; the assertion was corrected to the documented sampling contract without production changes.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 16.1 is complete. Task 16.2 aspiration windows is next.
+
+## Task 16 active scope
+
+- [x] Implement Task 16.1 iterative deepening.
+- [ ] Implement Task 16.2 aspiration windows.
+- [ ] Implement Task 16.3 principal variation.
+- [ ] Implement Task 16.4 search limits.
+- [ ] Implement Task 16.5 responsive cancellation.
+- [ ] Implement Task 16.6 final result API.
+- [ ] Consider Task 16.7 optional bounded check extension.
+- [ ] Pass the overall Task 16 gate.
 
 ## Task 15 completed scope
 
@@ -574,4 +612,4 @@ Evidence:
 - [x] Add mate-in-one, mated, stalemate, draw, shorter-mate, and longer-survival fixtures.
 - [x] Pass exact-head rustfmt, Cargo check, Clippy, tests, rustdoc, debug, release, perft, and differential gates.
 
-No pull request has been created; work remains on `rust-engine`. Task 16.1 iterative deepening is the next operation.
+No pull request has been created; work remains on `rust-engine`. Task 16.2 aspiration windows is the next operation.
