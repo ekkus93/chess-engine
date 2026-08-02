@@ -3,7 +3,7 @@
 **Updated:** 2026-08-02  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Tasks 15.1–15.6 complete; overall Task 15 production integration gate is next
+**Current phase:** Task 15 complete; Task 16.1 iterative deepening is next
 
 ## Completed gates
 
@@ -39,6 +39,7 @@
 | 15.4 | `b6a015e6cc519aa0bbc8e7bde7dde06bdd660b44` | `30766760085` / `91546779835` | complete-key, depth- and bound-safe probes, repetition suppression, eight focused tests, 179 Rust tests, depth-four perft, and differential oracle green |
 | 15.5 | `775013a6e11aad7625c88b0cd3b258819211e839` | `30767556904` / `91548869513` | deterministic same-key updates and depth/age replacement, five focused tests, 184 Rust tests, depth-four perft, and differential oracle green |
 | 15.6 | `bd4d5d581c0e82f892435b2874732ac632c2e1f5` | `30768512470` / `91551420579` | bounded counters and hash-full sampling, reproducible probe/store benchmark, four focused tests, 188 Rust tests, depth-four perft, and differential oracle green |
+| 15 / gate | `682114cd2452b04e1f24af1150928baaff779aa8` | `30770018597` / `91555458016` | production alpha-beta integration, 193 Rust tests, two release node-reduction witnesses, depth-four perft, and differential oracle green |
 
 ## Task 12 completion
 
@@ -402,8 +403,8 @@ Evidence:
 - Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Mate normalization, probe semantics, replacement policy, and diagnostics are complete; production search integration remains intentionally outside Task 15.2.
-- The overall Task 15 production integration gate is next.
+- Mate normalization, probe semantics, replacement policy, diagnostics, and production search integration are complete under Task 15.
+- The overall Task 15 production integration gate is complete.
 
 ## Task 15.3 completion
 
@@ -426,8 +427,8 @@ Evidence:
 - Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Probe semantics, replacement, and diagnostics are complete; production search integration remains intentionally outside Task 15.3.
-- The overall Task 15 production integration gate is next.
+- Probe semantics, replacement, diagnostics, and production search integration are complete under Task 15.
+- The overall Task 15 production integration gate is complete.
 
 
 ## Task 15.4 completion
@@ -453,8 +454,8 @@ Evidence:
 - Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Deterministic insertion, replacement, and diagnostics are complete; production search integration remains intentionally outside Task 15.4.
-- The overall Task 15 production integration gate is next.
+- Deterministic insertion, replacement, diagnostics, and production search integration are complete under Task 15.
+- The overall Task 15 production integration gate is complete.
 
 ## Task 15.5 completion
 
@@ -478,8 +479,8 @@ Evidence:
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
 - The first two validation iterations exposed only a test-only import scope issue and a strict-Clippy fixture-loop issue; both were corrected without suppressions or policy changes.
-- Diagnostics, hash-full estimation, and microbenchmarks are complete under Task 15.6; production search integration remains intentionally outside Task 15.5.
-- The overall Task 15 production integration gate is next.
+- Diagnostics, hash-full estimation, microbenchmarks, and production search integration are complete under Task 15.
+- The overall Task 15 production integration gate is complete.
 
 ## Task 15.6 completion
 
@@ -504,9 +505,40 @@ Evidence:
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
 - The initial compiler iteration found only a test-only import in production scope; the next control iteration found only a temporary patch-matcher mismatch. Neither required a lint suppression or semantic change.
-- Production search integration remains intentionally outside Task 15.6 and is the unchecked overall Task 15 gate.
+- Production search integration is complete under the overall Task 15 gate.
 
-## Task 15 active scope
+## Task 15 completion
+
+Implemented and validated:
+
+- production alpha-beta ownership of a fresh bounded default table and public caller-owned fixed-table search APIs;
+- generation advancement and diagnostic reset once per valid caller-owned search without resizing or clearing retained entries;
+- terminal and rule-draw resolution before cached-score reuse;
+- complete-key, depth, exact/lower/upper bound, mate-distance, and legal-root-move enforcement;
+- irreversible-history-only score storage and reuse, with verified move-only ordering at reversible-history nodes;
+- root determinism through suppression of ordering-only hints and legal canonical-move validation for exact root returns;
+- normalized post-search exact/lower/upper storage only after complete child restoration;
+- fixed-capacity operation with no production map or unbounded fallback;
+- five focused integration/order regressions and two release-mode node-reduction witnesses;
+- `docs/RUST_TRANSPOSITION_TABLE_SEARCH_INTEGRATION.md`.
+
+Evidence:
+
+- Production implementation commit: `c9eac6b8b7b4b6511d73155242dde08a554d8e88`.
+- Exact clean validated SHA: `682114cd2452b04e1f24af1150928baaff779aa8`.
+- Permanent CI run/job: `30770018597` / `91555458016`.
+- Release-witness validation run/job: `30769901197` / `91555134018`.
+- Results: permanent exclusion audit over 12 production Rust files, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy without suppressions, 193 executed non-doc Rust tests, both release node-reduction witnesses, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- The move-ordering witness preserves score and best move while visiting strictly fewer nodes from an insufficient-depth move-only hit.
+- The warm-table witness preserves the exact score and canonical root move while reducing the second identical search to one node.
+- Reversible-history, illegal-root-move, allocation-capacity, position/history restoration, and incremental/recomputed Zobrist regressions all passed.
+- The clean implementation delta is limited to three Rust modules, one integration-test file, and one contract document.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 15 is complete. Task 16.1 iterative deepening is next.
+
+## Task 15 completed scope
 
 - [x] Complete Task 15.1 entry design.
 - [x] Implement Task 15.2 fixed-memory storage.
@@ -514,7 +546,7 @@ Evidence:
 - [x] Implement Task 15.4 safe probe semantics.
 - [x] Implement Task 15.5 deterministic replacement.
 - [x] Implement Task 15.6 diagnostics and benchmarks.
-- [ ] Pass the overall Task 15 gate.
+- [x] Pass the overall Task 15 gate.
 
 ## Task 14 completed scope
 
@@ -542,4 +574,4 @@ Evidence:
 - [x] Add mate-in-one, mated, stalemate, draw, shorter-mate, and longer-survival fixtures.
 - [x] Pass exact-head rustfmt, Cargo check, Clippy, tests, rustdoc, debug, release, perft, and differential gates.
 
-No pull request has been created; work remains on `rust-engine`. The overall Task 15 production alpha-beta integration gate is the next operation.
+No pull request has been created; work remains on `rust-engine`. Task 16.1 iterative deepening is the next operation.

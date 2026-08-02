@@ -823,7 +823,7 @@ Implement the specification's exact D1-D4 counts for:
 - [x] hash fullness estimate;
 - [x] probe/store microbenchmarks.
 
-**Task 15 gate:** TT is bounded, mate-safe, correctly flagged, measurably useful, and has no unbounded production map fallback.
+**Task 15 gate — COMPLETE:** TT is bounded, mate-safe, correctly flagged, measurably useful, and has no unbounded production map fallback.
 
 ---
 

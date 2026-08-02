@@ -36,7 +36,7 @@
 | 12 | **Complete** — baseline evaluator and trace. |
 | 13 | **Complete** — reference negamax, alpha-beta, shallow equivalence, immutability, and terminal/mate-distance fixtures. |
 | 14 | **Complete** — quiescence, tactical/quiet ordering, consolidated correctness, and exclusion audit. |
-| 15 | **Active** — Tasks 15.1–15.6 complete; overall production alpha-beta integration gate next. |
+| 15 | **Complete** — bounded, mate-safe transposition table integrated into production alpha-beta with deterministic node-reduction evidence. |
 | 16–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
@@ -521,16 +521,16 @@ Evidence:
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 14 is complete. Tasks 15.1–15.6 are complete; the overall Task 15 production integration gate is next.
+- Tasks 14 and 15 are complete. Task 16.1 iterative deepening is next.
 
-# Task 15: Fixed-capacity transposition table — ACTIVE
+# Task 15: Fixed-capacity transposition table — COMPLETE
 - [x] 15.1 Entries.
 - [x] 15.2 Storage.
 - [x] 15.3 Mate normalization.
 - [x] 15.4 Probes.
 - [x] 15.5 Replacement.
 - [x] 15.6 Diagnostics.
-- [ ] Task 15 gate.
+- [x] Task 15 gate.
 
 ### Task 15.1 completion evidence
 
@@ -548,7 +548,7 @@ Evidence:
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Tasks 15.2–15.6 are complete; the overall Task 15 production integration gate is next.
+- Tasks 15.2–15.6 and the overall Task 15 gate are complete.
 
 ### Task 15.2 completion evidence
 
@@ -568,7 +568,7 @@ Evidence:
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Tasks 15.3–15.6 are complete; the overall Task 15 production integration gate is next.
+- Tasks 15.3–15.6 and the overall Task 15 gate are complete.
 
 ### Task 15.3 completion evidence
 
@@ -583,12 +583,12 @@ Evidence:
 - Unsupported plies and conversions outside the supported score domain return typed errors; no clamping, saturation, or fallback score is permitted.
 - The unchecked `TranspositionScore::from_normalized` constructor is crate-private, preventing external callers from bypassing the conversion boundary.
 - Six deterministic tests cover ordinary evaluations, winning and losing cross-ply reuse, both maximum-ply boundaries, inconsistent mate values, and unsupported plies.
-- The public probe, deterministic store, and diagnostics boundaries are complete, but production search still does not call them or activate TT move ordering; integration remains the overall Task 15 gate.
+- Production alpha-beta now calls the probe, store, diagnostics, and TT move-ordering boundaries under the completed Task 15 gate.
 - Results: workspace assets, permanent Task 14.5 exclusion audit over 12 production search modules, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy, 171 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Tasks 15.4–15.6 are complete; the overall Task 15 production integration gate is next.
+- Tasks 15.4–15.6 and the overall Task 15 gate are complete.
 
 
 ### Task 15.4 completion evidence
@@ -605,12 +605,12 @@ Evidence:
 - `TranspositionScoreReuse::SuppressedForRepetition` disables all cached score reuse for path-dependent repetition nodes while retaining the verified move as an ordering hint only.
 - Invalid alpha-beta windows and score-conversion failures return typed errors; no clamping, fallback score, or partial-key acceptance is permitted.
 - Eight deterministic probe tests passed, bringing the workspace total to 179 executed non-doc Rust tests.
-- Deterministic same-key updates, collision replacement, and diagnostics are complete, but production search still does not call the TT boundaries or activate TT move ordering; integration remains the overall Task 15 gate.
+- Production alpha-beta now uses deterministic updates, collision replacement, diagnostics, score reuse, and TT move ordering under the completed Task 15 gate.
 - Results: workspace assets, permanent Task 14.5 exclusion audit over 12 production search modules, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy, 179 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 15.5 deterministic depth- and age-aware replacement is complete; the overall Task 15 production integration gate is next.
+- Task 15.5 replacement, Task 15.6 diagnostics, and the overall Task 15 integration gate are complete.
 
 ### Task 15.5 completion evidence
 
@@ -630,8 +630,8 @@ Evidence:
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Diagnostics, hash-full estimation, and microbenchmarks are complete under Task 15.6; production search integration remains outside Task 15.5 and is the overall Task 15 gate.
-- The overall Task 15 production integration gate is next.
+- Diagnostics, hash-full estimation, and microbenchmarks are complete under Task 15.6; production search integration is complete under the overall Task 15 gate.
+- The overall Task 15 production integration gate is complete.
 
 ### Task 15.6 completion evidence
 
@@ -653,7 +653,32 @@ Evidence:
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Production alpha-beta still does not own or call the table; correctness-preserving integration and a measurable node-reduction witness remain the unchecked overall Task 15 gate.
+- Production alpha-beta owns or accepts a bounded table, calls the verified probe/store paths, and has deterministic move-ordering and warm-table node-reduction witnesses under the completed Task 15 gate.
+
+
+### Task 15 gate completion evidence
+
+- Production integration: `crates/chess-search/src/alpha_beta.rs` and `crates/chess-search/src/move_ordering.rs`.
+- Public caller-owned APIs: `alpha_beta_search_with_transposition_table` and `alpha_beta_search_with_cancellation_and_transposition_table`.
+- Convenience searches allocate one bounded table using `DEFAULT_TRANSPOSITION_TABLE_MEBIBYTES`, currently 1 MiB; caller-owned tables retain fixed allocation and entries across searches.
+- Search resolves legal moves, terminal states, repetition, dead position, and move-count draws before accepting cached scores.
+- Complete-key, depth, bound, mate-denormalization, and legal-root-move checks remain mandatory before a TT return or cutoff.
+- Scores are stored and reused only at an irreversible-history boundary where the halfmove clock is zero. Reversible-history nodes may use a verified move for ordering but cannot reuse or store path-dependent scores.
+- Root ordering-only hints are ignored. A one-node root return requires an exact entry with a currently legal canonical best move.
+- Completed nodes store normalized exact/lower/upper results against the original alpha-beta window; cancellation, terminal/draw resolution, conversion failure, and incomplete restoration never store entries.
+- Contract documentation: `docs/RUST_TRANSPOSITION_TABLE_SEARCH_INTEGRATION.md`.
+- Production implementation commit: `c9eac6b8b7b4b6511d73155242dde08a554d8e88`.
+- Exact clean validated SHA: `682114cd2452b04e1f24af1150928baaff779aa8`.
+- Permanent exact-SHA CI run/job: `30770018597` / `91555458016`.
+- Release integration witness run/job: `30769901197` / `91555134018`.
+- Five focused regressions were added, bringing the workspace total to 193 executed non-doc Rust tests.
+- The fixed narrow-window witness proves an insufficient-depth TT entry contributes only its verified move, preserves score and best move, and visits strictly fewer nodes.
+- The warm-table witness proves a second identical full-window search returns the same exact score and canonical best move in one node without resizing the table.
+- Additional regressions reject an illegal exact-root move, suppress cached scores and root hints for reversible history, and preserve position, history, and incremental/recomputed Zobrist identity exactly.
+- Results: permanent exclusion audit, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy without suppressions, 193 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- The clean implementation delta contains only three Rust modules, one integration-test file, and one contract document; no temporary workflow, script, unbounded map, or fallback remains.
+- Task 15 is complete. Task 16.1 iterative deepening is next.
 
 # Task 16: Iterative deepening, PV, limits, cancellation — NOT STARTED
 - [ ] 16.1 Iterative deepening.
@@ -751,7 +776,7 @@ Evidence:
 - [x] Game history and draw semantics.
 - [x] Authoritative perft and differential validation.
 - [x] Baseline evaluator and trace.
-- [ ] Search and transposition table.
+- [x] Search and transposition table.
 - [ ] ABI/JNI.
 - [ ] Differential fuzzing.
 - [ ] Self-play and tuning.
@@ -782,9 +807,9 @@ Evidence:
 
 ## Immediate next operations
 
-1. Complete the overall Task 15 gate by integrating the fixed-capacity transposition table into production alpha-beta.
-2. Establish explicit table ownership, sizing, clear, and generation boundaries without adding an unbounded fallback.
-3. Probe before move generation, use verified TT moves for ordering, and reuse only depth/bound-safe scores with repetition-sensitive suppression intact.
-4. Store normalized exact/lower/upper results after completed nodes using the deterministic Task 15.5 replacement policy.
-5. Add deterministic equivalence and immutability regressions proving unchanged scores, best moves, mate distances, draw semantics, cancellation, and root restoration.
-6. Add a fixed search witness showing strict node reduction and meaningful probe/hit diagnostics; keep iterative deepening, aspiration windows, PV reconstruction, and Task 16 limits outside Task 15.
+1. Implement Task 16.1 iterative deepening from depth 1 through the requested maximum.
+2. Preserve and expose the last fully completed result after every iteration.
+3. Reuse the caller-owned fixed-capacity TT and bounded history heuristics across iterations without changing root correctness.
+4. Add per-depth diagnostics for completed depth, score, best move, nodes, TT probes/hits/cutoffs, and hash fullness.
+5. Prove every completed iteration preserves position, history, Zobrist identity, deterministic score, and canonical best move.
+6. Keep aspiration windows, PV reconstruction, time/node limits, and responsive cancellation in their explicit Task 16.2–16.6 scopes.
