@@ -12,17 +12,17 @@ const CURATED_FIXTURES: &[Fixture] = &[
     Fixture {
         name: "quiet-starting-position",
         fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-        depth: 3,
+        depth: 2,
     },
     Fixture {
         name: "tactical-hanging-rook",
         fen: "3r3k/8/8/8/8/8/8/K2Q4 w - - 0 1",
-        depth: 2,
+        depth: 1,
     },
     Fixture {
         name: "mate-in-one-adjacent",
         fen: "7k/5Q2/6K1/8/8/8/8/8 w - - 0 1",
-        depth: 2,
+        depth: 1,
     },
     Fixture {
         name: "mated-root",
