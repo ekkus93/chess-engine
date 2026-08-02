@@ -4,32 +4,5 @@ rustfmt 1.9.0-stable (8bab26f4f6 2026-07-14)
 clippy 0.1.97 (8bab26f4f6 2026-07-14)
 /tmp/apply_task_14_3.py: OK
 /tmp/apply_task_14_3.py: OK
-.github/task14_3_context_fix.py: OK
-Task 14.3 patch applied
-Task 14.3 recursive context fix applied
-[rust-engine e41a7af] ci: Task 14.3 applied-and-formatted
- 1 file changed, 1 insertion(+), 1 deletion(-)
-To https://github.com/ekkus93/chess-engine
-   194ac21..e41a7af  HEAD -> rust-engine
-    Checking chess-core v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-core)
-    Checking chess-search v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-search)
-error[E0609]: no field `ordering` on type `QuiescenceContext`
-   --> crates/chess-search/src/alpha_beta.rs:246:21
-    |
-246 |             context.ordering,
-    |                     ^^^^^^^^ unknown field
-    |
-    = note: available fields are: `ply`, `quiescence_ply`, `maximum_quiescence_ply`
-
-error[E0609]: no field `cancellation` on type `QuiescenceContext`
-   --> crates/chess-search/src/alpha_beta.rs:247:27
-    |
-247 |             &mut *context.cancellation,
-    |                           ^^^^^^^^^^^^ unknown field
-    |
-    = note: available fields are: `ply`, `quiescence_ply`, `maximum_quiescence_ply`
-
-For more information about this error, try `rustc --explain E0609`.
-error: could not compile `chess-search` (lib test) due to 2 previous errors
-warning: build failed, waiting for other jobs to finish...
-error: could not compile `chess-search` (lib) due to 2 previous errors
+.github/task14_3_context_fix.py: FAILED
+sha256sum: WARNING: 1 computed checksum did NOT match
