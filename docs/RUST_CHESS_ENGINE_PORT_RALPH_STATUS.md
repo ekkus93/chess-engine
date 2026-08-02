@@ -3,7 +3,7 @@
 **Updated:** 2026-08-02  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Tasks 14.1–14.4 complete; Task 14.5 explicit-exclusion audit is next
+**Current phase:** Task 14 complete; Task 15.1 transposition-table entry design is next
 
 ## Completed gates
 
@@ -32,6 +32,7 @@
 | 14.2 | `3688cb8e89a7da0c7fd34c3756d52d0fcc8d3d33` | `30753873602` / `91512570865` | bounded tactical ordering, 145 Rust tests, strict node-reduction witness, depth-four perft, and differential oracle green |
 | 14.3 | `f08b2d519ffc066d8d6b18326e03ead278d908de` | `30762457921` / `91535329886` | bounded killer/history quiet ordering, 150 Rust tests, deterministic exact-score and strict node-reduction witnesses, depth-four perft, and differential oracle green |
 | 14.4 | `dc758a3fc62e7f7002191993c73773dd2a71caef` | `30763226685` / `91537383867` | five explicit quiescence correctness witnesses, 155 Rust tests, depth-four perft, and differential oracle green |
+| 14.5 / 14 | `f4dc989e97d8577f4c86bdbfb67ae47e3d5cd7f4` | `30764073097` / `91539614372` | permanent exclusion audit, exact-score boundary, 155 Rust tests, depth-four perft, and differential oracle green |
 
 ## Task 12 completion
 
@@ -321,9 +322,33 @@ Evidence:
 - Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 14.5 explicit-exclusion audit is next; the overall Task 14 gate remains open.
+- Task 14.5 explicit-exclusion audit and the overall Task 14 gate are complete.
 
-## Task 14 active scope
+## Task 14.5 and Task 14 completion
+
+Implemented and validated:
+
+- a permanent CI audit over all 10 production `chess-search` Rust modules;
+- fail-loud rejection of transcript/review-loop and anti-drift/scenario-scoring identifiers;
+- an exact nine-field `MoveOrderKey` boundary containing only TT/PV hooks, tactical material categories, killers, history, and the stable encoded tie-break;
+- a restricted ordering read boundary of `Position::piece_at` and `Position::side_to_move` only;
+- fail-loud rejection of strategic evaluator identifiers in production move ordering;
+- structural enforcement that root alpha-beta uses the complete score window and replaces the best move only for a strictly greater searched score;
+- required exact-score and node-reduction witnesses retained in the Rust test tree;
+- `scripts/task_14_5_exclusion_audit.py` and `docs/RUST_SEARCH_ORDERING_EXCLUSION_AUDIT.md`.
+
+Evidence:
+
+- Exact validated implementation SHA: `f4dc989e97d8577f4c86bdbfb67ae47e3d5cd7f4`.
+- Permanent CI run/job: `30764073097` / `91539614372`.
+- Audit output: 10 production Rust files scanned; approved nine ordering fields; ordering position queries limited to `piece_at` and `side_to_move`; all four exact-score/node-reduction witnesses present.
+- Results: workspace assets, exclusion audit, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy, 155 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 14 is complete; Task 15.1 is next.
+
+## Task 14 completed scope
 
 - [x] Stand-pat only outside check.
 - [x] Search every legal check evasion.
@@ -334,8 +359,8 @@ Evidence:
 - [x] Implement Task 14.2 tactical ordering.
 - [x] Implement Task 14.3 quiet ordering.
 - [x] Complete Task 14.4 consolidated correctness tests.
-- [ ] Complete Task 14.5 exclusion audit.
-- [ ] Pass the overall Task 14 gate.
+- [x] Complete Task 14.5 exclusion audit.
+- [x] Pass the overall Task 14 gate.
 
 ## Task 13 completed scope
 
@@ -349,4 +374,4 @@ Evidence:
 - [x] Add mate-in-one, mated, stalemate, draw, shorter-mate, and longer-survival fixtures.
 - [x] Pass exact-head rustfmt, Cargo check, Clippy, tests, rustdoc, debug, release, perft, and differential gates.
 
-No pull request has been created; work remains on `rust-engine`. Task 14.5 explicit-exclusion audit is the next operation.
+No pull request has been created; work remains on `rust-engine`. Task 15.1 transposition-table entry design is the next operation.

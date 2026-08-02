@@ -765,10 +765,10 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 14.5 Explicit exclusions
 
-- [ ] No transcript review-loop ordering.
-- [ ] No anti-drift scenario scoring.
-- [ ] No root heuristic that can override a better exact score.
-- [ ] No large strategic evaluation duplicated inside ordering.
+- [x] No transcript review-loop ordering.
+- [x] No anti-drift scenario scoring.
+- [x] No root heuristic that can override a better exact score.
+- [x] No large strategic evaluation duplicated inside ordering.
 
 **Task 14 gate:** Tactical leaf behavior is correct, ordering reduces nodes in benchmark positions, and search score semantics remain unchanged.
 

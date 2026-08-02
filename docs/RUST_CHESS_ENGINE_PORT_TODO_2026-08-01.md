@@ -35,7 +35,7 @@
 | 11 | **Complete** — authoritative perft and differential validation. |
 | 12 | **Complete** — baseline evaluator and trace. |
 | 13 | **Complete** — reference negamax, alpha-beta, shallow equivalence, immutability, and terminal/mate-distance fixtures. |
-| 14 | **Active** — Tasks 14.1–14.4 complete; Task 14.5 exclusion audit next. |
+| 14 | **Complete** — quiescence, tactical/quiet ordering, consolidated correctness, and exclusion audit. |
 | 15–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
@@ -426,13 +426,13 @@ Evidence:
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
 - Task 13 is complete. Task 14.1 quiescence is next.
 
-# Task 14: Quiescence and ordering — ACTIVE
+# Task 14: Quiescence and ordering — COMPLETE
 - [x] 14.1 Quiescence.
 - [x] 14.2 Tactical ordering.
 - [x] 14.3 Quiet ordering.
 - [x] 14.4 Correctness tests.
-- [ ] 14.5 Exclusions.
-- [ ] Task 14 gate.
+- [x] 14.5 Exclusions.
+- [x] Task 14 gate.
 
 ### Task 14.1 completion evidence
 
@@ -502,7 +502,25 @@ Evidence:
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 14.5 explicit-exclusion audit is next; the overall Task 14 gate remains open.
+- Task 14.5 explicit-exclusion audit and the overall Task 14 gate are complete.
+
+### Task 14.5 and Task 14 gate completion evidence
+
+- Permanent executable audit: `scripts/task_14_5_exclusion_audit.py`.
+- Audit contract: `docs/RUST_SEARCH_ORDERING_EXCLUSION_AUDIT.md`.
+- Permanent CI now runs the audit before Rust toolchain validation.
+- Exact validated implementation SHA: `f4dc989e97d8577f4c86bdbfb67ae47e3d5cd7f4`.
+- Permanent CI run/job: `30764073097` / `91539614372`.
+- The audit scanned 10 production `chess-search` Rust files and found no transcript/review-loop or anti-drift/scenario-scoring identifiers.
+- `MoveOrderKey` is restricted to TT/PV hooks, tactical category/material terms, killer/history values, and the encoded tie-break.
+- Move ordering may query only `Position::piece_at` and `Position::side_to_move`; strategic evaluator identifiers are forbidden in production ordering code.
+- Root alpha-beta retains the complete score window and replaces the best move only on a strictly greater searched score; ordering keys are absent from result selection.
+- Existing exact-score witnesses prove full-window quiet-ordering determinism and unique-root-maximum selection; tactical and quiet narrow-window witnesses prove node reduction without score or best-move changes.
+- Results: workspace assets, exclusion audit, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy, 155 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 14 is complete. Task 15.1 fixed-capacity transposition-table entry design is next.
 
 # Task 15: Fixed-capacity transposition table — NOT STARTED
 - [ ] 15.1 Entries.
@@ -640,9 +658,9 @@ Evidence:
 
 ## Immediate next operations
 
-1. Implement Task 14.3 quiet ordering over the validated Task 14.1–14.2 search semantics.
-2. Add bounded killer moves by ply and a bounded history heuristic keyed by side/from/to or piece/to.
-3. Use a stable encoded-move tie-break and keep any previous-PV hook explicit and optional until Task 16 provides iterative deepening and PV data.
-4. Prove quiet ordering cannot override a better exact score and preserves deterministic full-window root results.
-5. Compare nodes on fixed quiet-search benchmark positions while preserving cancellation, history, Zobrist, and exact make/unmake restoration.
-6. Keep Task 14.4 consolidated correctness closure, Task 14.5 exclusion audit, Task 15 transposition storage, and Task 16 production limits outside Task 14.3.
+1. Implement Task 15.1 transposition-table entry design with verification key, depth, bound flag, normalized score, best move, and age/generation.
+2. Define fixed-memory bucket/cluster storage and explicit clear/new-generation operations before integrating probes into search.
+3. Preserve mate-score normalization across different plies and add exact store/probe regressions before enabling TT cutoffs.
+4. Keep repetition-sensitive reuse fail-safe and retain exact full-window score semantics.
+5. Benchmark probes, stores, replacement behavior, and node reduction only after correctness tests pass.
+6. Keep Task 16 iterative deepening, aspiration windows, PV reconstruction, and production limits outside Task 15.
