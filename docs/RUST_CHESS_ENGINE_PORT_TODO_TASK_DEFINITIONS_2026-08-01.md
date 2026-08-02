@@ -809,10 +809,10 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 15.5 Replacement policy
 
-- [ ] Depth-preferred replacement.
-- [ ] Age awareness.
-- [ ] Document collision behavior.
-- [ ] Add deterministic tests.
+- [x] Depth-preferred replacement.
+- [x] Age awareness.
+- [x] Document collision behavior.
+- [x] Add deterministic tests.
 
 ## 15.6 Diagnostics and benchmarks
 

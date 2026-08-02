@@ -36,7 +36,7 @@
 | 12 | **Complete** — baseline evaluator and trace. |
 | 13 | **Complete** — reference negamax, alpha-beta, shallow equivalence, immutability, and terminal/mate-distance fixtures. |
 | 14 | **Complete** — quiescence, tactical/quiet ordering, consolidated correctness, and exclusion audit. |
-| 15 | **Active** — Tasks 15.1–15.4 complete; Task 15.5 deterministic replacement next. |
+| 15 | **Active** — Tasks 15.1–15.5 complete; Task 15.6 diagnostics and benchmarks next. |
 | 16–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
@@ -521,14 +521,14 @@ Evidence:
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 14 is complete. Tasks 15.1–15.4 are complete; Task 15.5 deterministic replacement is next.
+- Task 14 is complete. Tasks 15.1–15.5 are complete; Task 15.6 diagnostics and benchmarks is next.
 
 # Task 15: Fixed-capacity transposition table — ACTIVE
 - [x] 15.1 Entries.
 - [x] 15.2 Storage.
 - [x] 15.3 Mate normalization.
 - [x] 15.4 Probes.
-- [ ] 15.5 Replacement.
+- [x] 15.5 Replacement.
 - [ ] 15.6 Diagnostics.
 - [ ] Task 15 gate.
 
@@ -548,7 +548,7 @@ Evidence:
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Tasks 15.2–15.4 are complete; Task 15.5 deterministic replacement is next.
+- Tasks 15.2–15.5 are complete; Task 15.6 diagnostics and benchmarks is next.
 
 ### Task 15.2 completion evidence
 
@@ -568,7 +568,7 @@ Evidence:
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Tasks 15.3 mate normalization and 15.4 probe semantics are complete; Task 15.5 deterministic replacement is next.
+- Tasks 15.3–15.5 are complete; Task 15.6 diagnostics and benchmarks is next.
 
 ### Task 15.3 completion evidence
 
@@ -583,12 +583,12 @@ Evidence:
 - Unsupported plies and conversions outside the supported score domain return typed errors; no clamping, saturation, or fallback score is permitted.
 - The unchecked `TranspositionScore::from_normalized` constructor is crate-private, preventing external callers from bypassing the conversion boundary.
 - Six deterministic tests cover ordinary evaluations, winning and losing cross-ply reuse, both maximum-ply boundaries, inconsistent mate values, and unsupported plies.
-- The public probe boundary is complete, but production search still does not call it, store entries, select replacements, or activate TT move ordering; insertion and replacement remain Task 15.5.
+- The public probe and deterministic store boundaries are complete, but production search still does not call them or activate TT move ordering; diagnostics remain Task 15.6 and search integration remains in the overall Task 15 gate.
 - Results: workspace assets, permanent Task 14.5 exclusion audit over 12 production search modules, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy, 171 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 15.4 safe probe semantics is complete; Task 15.5 deterministic replacement is next.
+- Tasks 15.4–15.5 are complete; Task 15.6 diagnostics and benchmarks is next.
 
 
 ### Task 15.4 completion evidence
@@ -605,12 +605,33 @@ Evidence:
 - `TranspositionScoreReuse::SuppressedForRepetition` disables all cached score reuse for path-dependent repetition nodes while retaining the verified move as an ordering hint only.
 - Invalid alpha-beta windows and score-conversion failures return typed errors; no clamping, fallback score, or partial-key acceptance is permitted.
 - Eight deterministic probe tests passed, bringing the workspace total to 179 executed non-doc Rust tests.
-- Production search still does not call the probe boundary, insert entries, choose replacements, or activate TT move ordering; Task 15.5 owns deterministic same-key updates and collision replacement.
+- Deterministic same-key updates and collision replacement are complete, but production search still does not call the probe/store boundaries or activate TT move ordering; diagnostics remain Task 15.6 and search integration remains in the overall Task 15 gate.
 - Results: workspace assets, permanent Task 14.5 exclusion audit over 12 production search modules, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy, 179 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 15.5 deterministic depth- and age-aware replacement is next.
+- Task 15.5 deterministic depth- and age-aware replacement is complete; Task 15.6 diagnostics and benchmarks is next.
+
+### Task 15.5 completion evidence
+
+- Store implementation: `crates/chess-search/src/transposition/store.rs`.
+- Public API: `TranspositionTable::store`, `TranspositionStoreAction`, and `TranspositionStoreResult`.
+- Contract documentation: `docs/RUST_TRANSPOSITION_TABLE_REPLACEMENT.md`.
+- Exact validated implementation SHA: `775013a6e11aad7625c88b0cd3b258819211e839`.
+- Permanent CI run/job: `30767556904` / `91548869513`.
+- Complete-key matches update the existing slot in place, preventing duplicate entries for one position.
+- The table's current generation is authoritative for every incoming entry.
+- Different-key stores use the lowest-index empty slot before considering replacement.
+- Full clusters evict the shallowest entry, then the oldest modulo-256 generation, then the lowest slot index.
+- Every store reports its cluster, slot, action, and prior or evicted entry where applicable.
+- Five deterministic cluster-level tests passed, bringing the workspace total to 184 executed non-doc Rust tests.
+- The first validation attempt exposed only a test-only import scoped into production; the second exposed only a strict-Clippy fixture-loop style issue. Both were corrected without lint suppression or replacement-policy changes.
+- Results: workspace assets, permanent Task 14.5 exclusion audit over 12 production Rust files, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy, 184 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Diagnostics, hash-full estimation, microbenchmarks, and production search integration remain outside Task 15.5.
+- Task 15.6 diagnostics and benchmarks is next.
 
 # Task 16: Iterative deepening, PV, limits, cancellation — NOT STARTED
 - [ ] 16.1 Iterative deepening.
@@ -739,9 +760,9 @@ Evidence:
 
 ## Immediate next operations
 
-1. Implement Task 15.5 deterministic transposition-table insertion and replacement.
-2. Update an existing complete-key entry deterministically instead of creating duplicate same-key slots.
-3. Prefer empty slots, then define depth-preferred and generation-aware collision replacement with stable tie-breaking.
-4. Document exactly which colliding entry is displaced and add deterministic cluster-level regressions.
-5. Preserve the Task 15.4 probe contract and keep repetition-sensitive score suppression unchanged.
-6. Defer diagnostics and benchmarks to Task 15.6, and keep Task 16 iterative deepening, aspiration windows, PV reconstruction, and production limits outside Task 15.
+1. Implement Task 15.6 transposition-table diagnostics and benchmarks.
+2. Count probes, complete-key hits, exact hits, bound cutoffs, stores, same-key updates, empty insertions, and collision replacements.
+3. Provide deterministic snapshot/reset operations and a bounded hash-full estimate without scanning unbounded state.
+4. Add repeatable release-mode probe and store microbenchmarks over fixed fixtures.
+5. Preserve fixed-capacity allocation, mate normalization, repetition suppression, and deterministic replacement semantics.
+6. After Task 15.6, complete the overall Task 15 gate by integrating the table into production alpha-beta and proving correctness and measurable usefulness; keep Task 16 outside Task 15.

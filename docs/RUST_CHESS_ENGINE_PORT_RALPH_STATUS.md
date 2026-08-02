@@ -3,7 +3,7 @@
 **Updated:** 2026-08-02  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Tasks 15.1–15.4 complete; Task 15.5 deterministic replacement is next
+**Current phase:** Tasks 15.1–15.5 complete; Task 15.6 diagnostics and benchmarks is next
 
 ## Completed gates
 
@@ -37,6 +37,7 @@
 | 15.2 | `6b2ee0081cd47fd9069aeabb0d3ccb1d3659fea9` | `30765303745` / `91542820537` | fixed MiB storage, four-entry clusters, typed allocation failures, clear/generation operations, 165 Rust tests, depth-four perft, and differential oracle green |
 | 15.3 | `ac68b99db53546c31f3aae68ad7337ba256eb982` | `30766126491` / `91545080021` | ply-correct mate normalization, typed conversion failures, six focused tests, 171 Rust tests, depth-four perft, and differential oracle green |
 | 15.4 | `b6a015e6cc519aa0bbc8e7bde7dde06bdd660b44` | `30766760085` / `91546779835` | complete-key, depth- and bound-safe probes, repetition suppression, eight focused tests, 179 Rust tests, depth-four perft, and differential oracle green |
+| 15.5 | `775013a6e11aad7625c88b0cd3b258819211e839` | `30767556904` / `91548869513` | deterministic same-key updates and depth/age replacement, five focused tests, 184 Rust tests, depth-four perft, and differential oracle green |
 
 ## Task 12 completion
 
@@ -400,8 +401,8 @@ Evidence:
 - Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Mate normalization is complete; probe semantics, replacement policy, diagnostics, and search integration remain intentionally outside Task 15.2.
-- Task 15.4 safe probe semantics is complete; Task 15.5 deterministic replacement is next.
+- Mate normalization, probe semantics, and replacement policy are complete; diagnostics and search integration remain intentionally outside Task 15.2.
+- Task 15.6 diagnostics and benchmarks is next.
 
 ## Task 15.3 completion
 
@@ -424,8 +425,8 @@ Evidence:
 - Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Probe semantics are complete; replacement, diagnostics, and production search integration remain intentionally outside Task 15.3.
-- Task 15.4 safe probe semantics is next.
+- Probe semantics and replacement are complete; diagnostics and production search integration remain intentionally outside Task 15.3.
+- Task 15.6 diagnostics and benchmarks is next.
 
 
 ## Task 15.4 completion
@@ -451,8 +452,33 @@ Evidence:
 - Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Insertion, same-key updates, depth/age replacement, diagnostics, and production search integration remain intentionally outside Task 15.4.
-- Task 15.5 deterministic replacement is next.
+- Deterministic insertion and replacement are complete; diagnostics and production search integration remain intentionally outside Task 15.4.
+- Task 15.6 diagnostics and benchmarks is next.
+
+## Task 15.5 completion
+
+Implemented and validated:
+
+- public `TranspositionTable::store` insertion in `crates/chess-search/src/transposition/store.rs`;
+- in-place complete-key updates with no duplicate same-key slot;
+- authoritative assignment of the table's current generation;
+- stable lowest-index empty-slot selection;
+- full-cluster replacement ordered by shallowest depth, oldest wrapping generation age, and lowest slot index;
+- observable update, insertion, and eviction results;
+- five focused deterministic cluster regressions;
+- `docs/RUST_TRANSPOSITION_TABLE_REPLACEMENT.md`.
+
+Evidence:
+
+- Exact validated implementation SHA: `775013a6e11aad7625c88b0cd3b258819211e839`.
+- Permanent CI run/job: `30767556904` / `91548869513`.
+- Results: workspace assets, Task 14.5 audit over 12 production Rust files, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy, 184 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- The first two validation iterations exposed only a test-only import scope issue and a strict-Clippy fixture-loop issue; both were corrected without suppressions or policy changes.
+- Diagnostics, hash-full estimation, microbenchmarks, and production search integration remain intentionally outside Task 15.5.
+- Task 15.6 diagnostics and benchmarks is next.
 
 ## Task 15 active scope
 
@@ -460,7 +486,7 @@ Evidence:
 - [x] Implement Task 15.2 fixed-memory storage.
 - [x] Implement Task 15.3 mate-score normalization.
 - [x] Implement Task 15.4 safe probe semantics.
-- [ ] Implement Task 15.5 deterministic replacement.
+- [x] Implement Task 15.5 deterministic replacement.
 - [ ] Implement Task 15.6 diagnostics and benchmarks.
 - [ ] Pass the overall Task 15 gate.
 
@@ -490,4 +516,4 @@ Evidence:
 - [x] Add mate-in-one, mated, stalemate, draw, shorter-mate, and longer-survival fixtures.
 - [x] Pass exact-head rustfmt, Cargo check, Clippy, tests, rustdoc, debug, release, perft, and differential gates.
 
-No pull request has been created; work remains on `rust-engine`. Task 15.5 deterministic transposition-table replacement is the next operation.
+No pull request has been created; work remains on `rust-engine`. Task 15.6 transposition-table diagnostics and benchmarks is the next operation.
