@@ -1,1 +1,0 @@
-Task 15.1 entry design is ready for permanent CI validation at candidate SHA `b3bd0aea3de14963410c457fb2fecf7ad3503e48`.

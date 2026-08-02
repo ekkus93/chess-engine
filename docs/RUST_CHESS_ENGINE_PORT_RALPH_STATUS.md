@@ -3,7 +3,7 @@
 **Updated:** 2026-08-02  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 14 complete; Task 15.1 transposition-table entry design is next
+**Current phase:** Task 15.1 entry design complete; Task 15.2 fixed-memory storage is next
 
 ## Completed gates
 
@@ -33,6 +33,7 @@
 | 14.3 | `f08b2d519ffc066d8d6b18326e03ead278d908de` | `30762457921` / `91535329886` | bounded killer/history quiet ordering, 150 Rust tests, deterministic exact-score and strict node-reduction witnesses, depth-four perft, and differential oracle green |
 | 14.4 | `dc758a3fc62e7f7002191993c73773dd2a71caef` | `30763226685` / `91537383867` | five explicit quiescence correctness witnesses, 155 Rust tests, depth-four perft, and differential oracle green |
 | 14.5 / 14 | `f4dc989e97d8577f4c86bdbfb67ae47e3d5cd7f4` | `30764073097` / `91539614372` | permanent exclusion audit, exact-score boundary, 155 Rust tests, depth-four perft, and differential oracle green |
+| 15.1 | `65ef70bfbff3d0bf5fd6e6a19ba20ed5214c3e26` | `30764647127` / `91541116562` | complete TT entry payload, five focused tests, 160 Rust tests, depth-four perft, and differential oracle green |
 
 ## Task 12 completion
 
@@ -346,7 +347,42 @@ Evidence:
 - Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 14 is complete; Task 15.1 is next.
+- Task 14 is complete; Task 15.1 entry design is complete and Task 15.2 storage is next.
+
+## Task 15.1 completion
+
+Implemented and validated:
+
+- a complete copyable transposition-entry payload in `crates/chess-search/src/transposition.rs`;
+- the full 64-bit Zobrist verification key rather than an index-only fragment;
+- `u16` depth and explicit one-byte `Exact`, `Lower`, and `Upper` bound tags;
+- a distinct `TranspositionScore` storage-domain wrapper around `Score`;
+- optional compact best-move identity and one-byte generation metadata;
+- stable public accessors and `chess-search` re-exports;
+- a bounded, predictable `repr(C)` layout of at most 24 bytes on supported targets;
+- five focused entry-contract tests;
+- `docs/RUST_TRANSPOSITION_TABLE_ENTRY.md`.
+
+Evidence:
+
+- Exact validated implementation SHA: `65ef70bfbff3d0bf5fd6e6a19ba20ed5214c3e26`.
+- Permanent CI run/job: `30764647127` / `91541116562`.
+- Results: workspace assets, Task 14.5 audit over 11 production search modules, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy, 160 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Storage allocation, buckets, empty slots, clearing, generation advancement, normalization, probes, replacement, and diagnostics remain intentionally outside Task 15.1.
+- Task 15.2 fixed-memory storage is next.
+
+## Task 15 active scope
+
+- [x] Complete Task 15.1 entry design.
+- [ ] Implement Task 15.2 fixed-memory storage.
+- [ ] Implement Task 15.3 mate-score normalization.
+- [ ] Implement Task 15.4 safe probe semantics.
+- [ ] Implement Task 15.5 deterministic replacement.
+- [ ] Implement Task 15.6 diagnostics and benchmarks.
+- [ ] Pass the overall Task 15 gate.
 
 ## Task 14 completed scope
 
@@ -374,4 +410,4 @@ Evidence:
 - [x] Add mate-in-one, mated, stalemate, draw, shorter-mate, and longer-survival fixtures.
 - [x] Pass exact-head rustfmt, Cargo check, Clippy, tests, rustdoc, debug, release, perft, and differential gates.
 
-No pull request has been created; work remains on `rust-engine`. Task 15.1 transposition-table entry design is the next operation.
+No pull request has been created; work remains on `rust-engine`. Task 15.2 fixed-memory transposition-table storage is the next operation.

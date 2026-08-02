@@ -778,12 +778,12 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 15.1 Entry design
 
-- [ ] Verification key/hash fragment.
-- [ ] Depth.
-- [ ] exact/lower/upper bound.
-- [ ] normalized score.
-- [ ] best move.
-- [ ] age/generation.
+- [x] Verification key/hash fragment.
+- [x] Depth.
+- [x] exact/lower/upper bound.
+- [x] normalized score.
+- [x] best move.
+- [x] age/generation.
 
 ## 15.2 Storage layout
 

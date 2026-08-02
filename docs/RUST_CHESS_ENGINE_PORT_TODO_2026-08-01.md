@@ -36,7 +36,8 @@
 | 12 | **Complete** — baseline evaluator and trace. |
 | 13 | **Complete** — reference negamax, alpha-beta, shallow equivalence, immutability, and terminal/mate-distance fixtures. |
 | 14 | **Complete** — quiescence, tactical/quiet ordering, consolidated correctness, and exclusion audit. |
-| 15–24 | **Not started**. |
+| 15 | **Active** — Task 15.1 entry design complete; Task 15.2 fixed-memory storage next. |
+| 16–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
 
@@ -520,16 +521,34 @@ Evidence:
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 14 is complete. Task 15.1 fixed-capacity transposition-table entry design is next.
+- Task 14 is complete. Task 15.1 entry design is complete; Task 15.2 fixed-memory storage is next.
 
-# Task 15: Fixed-capacity transposition table — NOT STARTED
-- [ ] 15.1 Entries.
+# Task 15: Fixed-capacity transposition table — ACTIVE
+- [x] 15.1 Entries.
 - [ ] 15.2 Storage.
 - [ ] 15.3 Mate normalization.
 - [ ] 15.4 Probes.
 - [ ] 15.5 Replacement.
 - [ ] 15.6 Diagnostics.
 - [ ] Task 15 gate.
+
+### Task 15.1 completion evidence
+
+- Entry implementation: `crates/chess-search/src/transposition.rs`.
+- Public value types: `TranspositionEntry`, `TranspositionBound`, and `TranspositionScore`, re-exported by `chess-search`.
+- Contract documentation: `docs/RUST_TRANSPOSITION_TABLE_ENTRY.md`.
+- Exact validated implementation SHA: `65ef70bfbff3d0bf5fd6e6a19ba20ed5214c3e26`.
+- Permanent CI run/job: `30764647127` / `91541116562`.
+- The entry retains the complete 64-bit verification key, `u16` search depth, explicit exact/lower/upper bound, typed normalized score, optional compact `Move`, and one-byte generation.
+- `TranspositionScore` establishes a distinct storage-score domain without prematurely implementing Task 15.3 mate conversion.
+- `repr(C)` and focused layout tests keep the entry footprint at no more than 24 bytes on supported targets while adding no wrapper overhead around `Score`.
+- Five deterministic tests cover stable bound tags, all required fields, every bound, absent best moves, full-key verification, copy/value semantics, and bounded layout.
+- Production search still does not allocate, probe, store, cut off, or activate TT move ordering; those remain Tasks 15.2–15.4.
+- Results: workspace assets, permanent Task 14.5 exclusion audit over 11 production search modules, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy, 160 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 15.2 fixed-memory bucket/cluster storage is next.
 
 # Task 16: Iterative deepening, PV, limits, cancellation — NOT STARTED
 - [ ] 16.1 Iterative deepening.
@@ -658,9 +677,9 @@ Evidence:
 
 ## Immediate next operations
 
-1. Implement Task 15.1 transposition-table entry design with verification key, depth, bound flag, normalized score, best move, and age/generation.
-2. Define fixed-memory bucket/cluster storage and explicit clear/new-generation operations before integrating probes into search.
-3. Preserve mate-score normalization across different plies and add exact store/probe regressions before enabling TT cutoffs.
-4. Keep repetition-sensitive reuse fail-safe and retain exact full-window score semantics.
-5. Benchmark probes, stores, replacement behavior, and node reduction only after correctness tests pass.
+1. Implement Task 15.2 fixed-memory bucket/cluster storage configured in MiB.
+2. Define predictable allocation-failure behavior plus explicit clear and new-generation operations.
+3. Keep entries optional without an unbounded map or per-node allocation fallback.
+4. Preserve the Task 15.1 full-key, bound, normalized-score, best-move, depth, and generation contract unchanged.
+5. Defer mate-score conversion, probe cutoffs, replacement preference, and diagnostics to Tasks 15.3–15.6.
 6. Keep Task 16 iterative deepening, aspiration windows, PV reconstruction, and production limits outside Task 15.
