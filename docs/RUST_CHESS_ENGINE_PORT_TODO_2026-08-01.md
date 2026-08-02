@@ -29,7 +29,8 @@
 | 5 | **Complete** — attack generation. |
 | 6 | **Complete** — pseudo-legal move generation. |
 | 7 | **Complete** — legal move generation, special rules, reversible validation, and initial perft. |
-| 8–24 | **Not started**. |
+| 8 | **Active, not started** — formal make/unmake and incremental state. |
+| 9–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
 
@@ -44,7 +45,7 @@
 - [x] Task 4 gate. Evidence: closure SHA `6cb975b35f4dbe898a0444b1b4c39778e89bcb40`; run/job `30726795562` / `91439860915`; `35 passed`.
 - [x] Task 5 gate. Evidence: implementation `9922b0c725147fcabac3ce4c08f7c150c3ec6a1d`; run/job `30727440571` / `91441645867`; `42 passed`; closure `78e9315369ff4552e5500d1a820767a1fd228f29` green.
 - [x] Task 6 gate. Evidence: implementation `0dcf512d404ae248d5a99651543d9d0ca9687699`; run/job `30727874051` / `91442826957`; `49 passed`; closure `cb7124c5712f6b3f8f4540e9e8fabaa2aa242bc0` green.
-- [x] Task 7 gate. Evidence: implementation head `d6ea24eb6eeaea7b41dc309f866a5653aba687d5`; run/job `30729969574` / `91448384283`; `59 passed`; rustfmt, Cargo check, Clippy with `-D warnings`, rustdoc with `-D warnings`, debug build, and release build passed.
+- [x] Task 7 gate. Implementation head `d6ea24eb6eeaea7b41dc309f866a5653aba687d5`, run/job `30729969574` / `91448384283`, `59 passed`; closure SHA `334dc79b3ce0cbc1e7b5096387218c90a8365204`, run/job `30730100518` / `91448776834`, all strict gates green.
 
 ---
 
@@ -119,14 +120,16 @@
 - Shared bounded move-list mutation: `9baf2e299551f39dbb4cbee2a1510e35d68ac6c8`.
 - Legal generation/perft source: `beb6981520c16d07c2617a1c567eee7ed0a5212d`.
 - Exact validated implementation head: `d6ea24eb6eeaea7b41dc309f866a5653aba687d5`.
-- CI run/job: `30729969574` / `91448384283`.
-- Results: lockfile and metadata verification, rustfmt, Cargo check, Clippy with warnings denied, `59 passed`, rustdoc with warnings denied, debug build, and release build passed.
+- Implementation CI run/job: `30729969574` / `91448384283`.
+- Exact closure SHA: `334dc79b3ce0cbc1e7b5096387218c90a8365204`.
+- Closure CI run/job: `30730100518` / `91448776834`.
+- Results: lockfile and metadata verification, rustfmt, Cargo check, Clippy with warnings denied, `59 passed`, rustdoc with warnings denied, debug build, and release build passed at both the implementation and closure heads.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime deprecation and dependency `punycode` deprecation only.
 
 ---
 
-# Task 8: Make/unmake and incremental state — NOT STARTED
+# Task 8: Make/unmake and incremental state — ACTIVE, NOT STARTED
 - [ ] 8.1 Public/internal formal undo structure and contract.
 - [ ] 8.2 Complete application/unapplication paths.
 - [ ] 8.3 Exact restoration tests for every move class.
@@ -303,7 +306,7 @@
 
 ## Immediate next operations
 
-1. Verify this Task 7 closure status at its exact SHA through all strict CI gates.
-2. Begin Task 8 only after the closure SHA is green.
-3. Define the formal undo contract without duplicating or weakening Task 7's proven reversible behavior.
-4. Add complete move-class and randomized restoration tests before closing Task 8.
+1. Extract Task 8's exact make/unmake and incremental-state contracts from the companion definitions.
+2. Replace the Task 7 private validation-only undo path with the formal reusable Task 8 API without weakening proven legality or perft behavior.
+3. Add exact restoration coverage for every move class and long deterministic randomized legal sequences.
+4. Run all strict gates and close Task 8 only at an exact green SHA.
