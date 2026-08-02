@@ -62,8 +62,7 @@ fn starting_position_has_twenty_moves_in_deterministic_order() {
 
 #[test]
 fn quiet_and_capture_promotions_preserve_all_underpromotion_identities() {
-    let position =
-        Position::from_fen("1r5k/P7/8/8/8/8/8/7K w - - 0 1").expect("valid FEN");
+    let position = Position::from_fen("1r5k/P7/8/8/8/8/8/7K w - - 0 1").expect("valid FEN");
     let moves = moves_from(&position, "a7");
     let actual: Vec<_> = moves
         .iter()
@@ -74,22 +73,10 @@ fn quiet_and_capture_promotions_preserve_all_underpromotion_identities() {
         ("a7a8b", MoveKind::BishopPromotion, PieceKind::Bishop),
         ("a7a8r", MoveKind::RookPromotion, PieceKind::Rook),
         ("a7a8q", MoveKind::QueenPromotion, PieceKind::Queen),
-        (
-            "a7b8n",
-            MoveKind::KnightPromotionCapture,
-            PieceKind::Knight,
-        ),
-        (
-            "a7b8b",
-            MoveKind::BishopPromotionCapture,
-            PieceKind::Bishop,
-        ),
+        ("a7b8n", MoveKind::KnightPromotionCapture, PieceKind::Knight),
+        ("a7b8b", MoveKind::BishopPromotionCapture, PieceKind::Bishop),
         ("a7b8r", MoveKind::RookPromotionCapture, PieceKind::Rook),
-        (
-            "a7b8q",
-            MoveKind::QueenPromotionCapture,
-            PieceKind::Queen,
-        ),
+        ("a7b8q", MoveKind::QueenPromotionCapture, PieceKind::Queen),
     ];
     assert_eq!(moves.len(), 8);
     assert_eq!(
@@ -103,8 +90,7 @@ fn quiet_and_capture_promotions_preserve_all_underpromotion_identities() {
 
 #[test]
 fn edge_pawns_and_knights_do_not_wrap() {
-    let position =
-        Position::from_fen("7k/8/8/8/8/8/P7/N6K w - - 0 1").expect("valid FEN");
+    let position = Position::from_fen("7k/8/8/8/8/8/P7/N6K w - - 0 1").expect("valid FEN");
     let pawn: Vec<_> = moves_from(&position, "a2")
         .into_iter()
         .map(Move::to_uci)
@@ -119,8 +105,8 @@ fn edge_pawns_and_knights_do_not_wrap() {
 
 #[test]
 fn sliding_generation_stops_at_own_and_enemy_blockers() {
-    let position = Position::from_fen("7k/8/3r4/3P4/1p1Q1B2/3p4/8/7K w - - 0 1")
-        .expect("valid FEN");
+    let position =
+        Position::from_fen("7k/8/3r4/3P4/1p1Q1B2/3p4/8/7K w - - 0 1").expect("valid FEN");
     let moves = moves_from(&position, "d4");
     let destinations: Vec<_> = moves.iter().map(|current| current.destination()).collect();
 
@@ -141,8 +127,7 @@ fn sliding_generation_stops_at_own_and_enemy_blockers() {
 
 #[test]
 fn en_passant_candidate_uses_target_geometry_without_legal_validation() {
-    let position =
-        Position::from_fen("7k/8/8/3pP3/8/8/8/7K w - d6 0 1").expect("valid FEN");
+    let position = Position::from_fen("7k/8/8/3pP3/8/8/8/7K w - d6 0 1").expect("valid FEN");
     let moves = moves_from(&position, "e5");
     assert!(moves.iter().any(|current| {
         current.destination() == square("d6") && current.kind() == MoveKind::EnPassant
@@ -151,15 +136,12 @@ fn en_passant_candidate_uses_target_geometry_without_legal_validation() {
 
 #[test]
 fn castling_candidates_require_rights_pieces_and_empty_paths_but_not_safety() {
-    let open = Position::from_fen("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1")
-        .expect("valid FEN");
+    let open = Position::from_fen("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1").expect("valid FEN");
     let castles: Vec<_> = open
         .pseudo_legal_moves()
         .expect("fixture fits")
         .iter()
-        .filter(|current| {
-            matches!(current.kind(), MoveKind::KingCastle | MoveKind::QueenCastle)
-        })
+        .filter(|current| matches!(current.kind(), MoveKind::KingCastle | MoveKind::QueenCastle))
         .map(|current| (current.to_uci(), current.kind()))
         .collect();
     assert_eq!(
@@ -170,16 +152,14 @@ fn castling_candidates_require_rights_pieces_and_empty_paths_but_not_safety() {
         ]
     );
 
-    let attacked = Position::from_fen("5r1k/8/8/8/8/8/8/R3K2R w KQ - 0 1")
-        .expect("valid FEN");
+    let attacked = Position::from_fen("5r1k/8/8/8/8/8/8/R3K2R w KQ - 0 1").expect("valid FEN");
     assert!(attacked
         .pseudo_legal_moves()
         .expect("fixture fits")
         .iter()
         .any(|current| current.kind() == MoveKind::KingCastle));
 
-    let missing_rook =
-        Position::from_fen("7k/8/8/8/8/8/8/R3K3 w KQ - 0 1").expect("valid FEN");
+    let missing_rook = Position::from_fen("7k/8/8/8/8/8/8/R3K3 w KQ - 0 1").expect("valid FEN");
     assert!(!missing_rook
         .pseudo_legal_moves()
         .expect("fixture fits")

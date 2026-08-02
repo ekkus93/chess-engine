@@ -1,8 +1,8 @@
 use core::fmt;
 
 use crate::{
-    bishop_attacks, king_attacks, knight_attacks, queen_attacks, rook_attacks, Bitboard,
-    CastleSide, Color, Move, MoveKind, Piece, PieceKind, Position, Square,
+    bishop_attacks, king_attacks, knight_attacks, queen_attacks, rook_attacks, CastleSide, Color,
+    Move, MoveKind, Piece, PieceKind, Position, Square,
 };
 
 /// Maximum number of pseudo-legal moves retained without heap allocation.
@@ -86,6 +86,7 @@ impl MoveList {
     pub fn iter(&self) -> impl ExactSizeIterator<Item = Move> + '_ {
         self.moves[..self.len]
             .iter()
+            .copied()
             .map(|entry| entry.expect("occupied move-list prefix contains moves"))
     }
 
@@ -156,8 +157,9 @@ impl Position {
                         moves.push(Move::new(source, destination, MoveKind::Quiet))?;
                         if source.row() == start_row {
                             let double_row = source.row() as i8 + direction * 2;
-                            let double_destination = checked_square(double_row, source.file() as i8)
-                                .expect("double-push destination remains on board");
+                            let double_destination =
+                                checked_square(double_row, source.file() as i8)
+                                    .expect("double-push destination remains on board");
                             if self.piece_at(double_destination).is_none() {
                                 moves.push(Move::new(
                                     source,
@@ -232,8 +234,7 @@ impl Position {
         }
 
         if self.castling_rights().contains(side, CastleSide::KingSide)
-            && self.piece_at(home_square(home_row, 7))
-                == Some(Piece::new(side, PieceKind::Rook))
+            && self.piece_at(home_square(home_row, 7)) == Some(Piece::new(side, PieceKind::Rook))
             && self.piece_at(home_square(home_row, 5)).is_none()
             && self.piece_at(home_square(home_row, 6)).is_none()
         {
@@ -245,8 +246,7 @@ impl Position {
         }
 
         if self.castling_rights().contains(side, CastleSide::QueenSide)
-            && self.piece_at(home_square(home_row, 0))
-                == Some(Piece::new(side, PieceKind::Rook))
+            && self.piece_at(home_square(home_row, 0)) == Some(Piece::new(side, PieceKind::Rook))
             && self.piece_at(home_square(home_row, 1)).is_none()
             && self.piece_at(home_square(home_row, 2)).is_none()
             && self.piece_at(home_square(home_row, 3)).is_none()
