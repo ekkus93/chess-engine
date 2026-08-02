@@ -3,7 +3,7 @@
 **Updated:** 2026-08-01  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 5 attack-generation implementation ready for CI
+**Current phase:** Task 5 attack-generation implementation pending CI
 
 ## Completed gates
 
@@ -35,7 +35,7 @@
 
 ## Task 5 implementation
 
-Current implementation candidate: `d99b3482f5bea6c94d228cf03deecf6b9d6fe938`.
+Prepared source commit: `26365e3474fe178ff1b1ae40430168502fcba078`.
 
 Implemented:
 
@@ -47,6 +47,6 @@ Implemented:
 - independent coordinate-oracle tests for every leaper square, every geometry pair, representative slider occupancies, fixtures, checks, pins, and pawn semantics;
 - `docs/RUST_ATTACK_GENERATION.md`.
 
-Task 5 remains open pending exact-SHA rustfmt, Cargo check, Clippy, tests, rustdoc, debug, and release evidence.
+Task 5 remains open pending branch attachment and exact-SHA CI evidence.
 
 No branch or pull request has been created.
