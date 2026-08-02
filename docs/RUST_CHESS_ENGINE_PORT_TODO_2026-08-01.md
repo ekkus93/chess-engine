@@ -548,7 +548,7 @@ Evidence:
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Tasks 15.2–15.5 are complete; The overall Task 15 production integration gate is next.
+- Tasks 15.2–15.6 are complete; the overall Task 15 production integration gate is next.
 
 ### Task 15.2 completion evidence
 
@@ -568,7 +568,7 @@ Evidence:
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Tasks 15.3–15.5 are complete; The overall Task 15 production integration gate is next.
+- Tasks 15.3–15.6 are complete; the overall Task 15 production integration gate is next.
 
 ### Task 15.3 completion evidence
 
@@ -583,12 +583,12 @@ Evidence:
 - Unsupported plies and conversions outside the supported score domain return typed errors; no clamping, saturation, or fallback score is permitted.
 - The unchecked `TranspositionScore::from_normalized` constructor is crate-private, preventing external callers from bypassing the conversion boundary.
 - Six deterministic tests cover ordinary evaluations, winning and losing cross-ply reuse, both maximum-ply boundaries, inconsistent mate values, and unsupported plies.
-- The public probe and deterministic store boundaries are complete, but production search still does not call them or activate TT move ordering; diagnostics remain Task 15.6 and search integration remains in the overall Task 15 gate.
+- The public probe, deterministic store, and diagnostics boundaries are complete, but production search still does not call them or activate TT move ordering; integration remains the overall Task 15 gate.
 - Results: workspace assets, permanent Task 14.5 exclusion audit over 12 production search modules, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy, 171 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Tasks 15.4–15.5 are complete; The overall Task 15 production integration gate is next.
+- Tasks 15.4–15.6 are complete; the overall Task 15 production integration gate is next.
 
 
 ### Task 15.4 completion evidence
@@ -605,12 +605,12 @@ Evidence:
 - `TranspositionScoreReuse::SuppressedForRepetition` disables all cached score reuse for path-dependent repetition nodes while retaining the verified move as an ordering hint only.
 - Invalid alpha-beta windows and score-conversion failures return typed errors; no clamping, fallback score, or partial-key acceptance is permitted.
 - Eight deterministic probe tests passed, bringing the workspace total to 179 executed non-doc Rust tests.
-- Deterministic same-key updates and collision replacement are complete, but production search still does not call the probe/store boundaries or activate TT move ordering; diagnostics remain Task 15.6 and search integration remains in the overall Task 15 gate.
+- Deterministic same-key updates, collision replacement, and diagnostics are complete, but production search still does not call the TT boundaries or activate TT move ordering; integration remains the overall Task 15 gate.
 - Results: workspace assets, permanent Task 14.5 exclusion audit over 12 production search modules, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy, 179 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 15.5 deterministic depth- and age-aware replacement is complete; The overall Task 15 production integration gate is next.
+- Task 15.5 deterministic depth- and age-aware replacement is complete; the overall Task 15 production integration gate is next.
 
 ### Task 15.5 completion evidence
 
@@ -630,7 +630,7 @@ Evidence:
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Diagnostics, hash-full estimation, microbenchmarks, and production search integration remain outside Task 15.5.
+- Diagnostics, hash-full estimation, and microbenchmarks are complete under Task 15.6; production search integration remains outside Task 15.5 and is the overall Task 15 gate.
 - The overall Task 15 production integration gate is next.
 
 ### Task 15.6 completion evidence

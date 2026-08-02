@@ -402,7 +402,7 @@ Evidence:
 - Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Mate normalization, probe semantics, and replacement policy are complete; diagnostics and search integration remain intentionally outside Task 15.2.
+- Mate normalization, probe semantics, replacement policy, and diagnostics are complete; production search integration remains intentionally outside Task 15.2.
 - The overall Task 15 production integration gate is next.
 
 ## Task 15.3 completion
@@ -426,7 +426,7 @@ Evidence:
 - Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Probe semantics and replacement are complete; diagnostics and production search integration remain intentionally outside Task 15.3.
+- Probe semantics, replacement, and diagnostics are complete; production search integration remains intentionally outside Task 15.3.
 - The overall Task 15 production integration gate is next.
 
 
@@ -453,7 +453,7 @@ Evidence:
 - Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Deterministic insertion and replacement are complete; diagnostics and production search integration remain intentionally outside Task 15.4.
+- Deterministic insertion, replacement, and diagnostics are complete; production search integration remains intentionally outside Task 15.4.
 - The overall Task 15 production integration gate is next.
 
 ## Task 15.5 completion
@@ -478,7 +478,7 @@ Evidence:
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
 - The first two validation iterations exposed only a test-only import scope issue and a strict-Clippy fixture-loop issue; both were corrected without suppressions or policy changes.
-- Diagnostics, hash-full estimation, microbenchmarks, and production search integration remain intentionally outside Task 15.5.
+- Diagnostics, hash-full estimation, and microbenchmarks are complete under Task 15.6; production search integration remains intentionally outside Task 15.5.
 - The overall Task 15 production integration gate is next.
 
 ## Task 15.6 completion
