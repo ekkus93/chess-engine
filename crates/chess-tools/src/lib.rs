@@ -7,8 +7,7 @@ use std::io::{BufRead, Write};
 use chess_core::{Move, Position, UciMove};
 
 /// Canonical standard starting-position FEN.
-pub const STARTING_FEN: &str =
-    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+pub const STARTING_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 const PERFT_FIXTURES: &str = include_str!("../../../fixtures/perft.tsv");
 
@@ -228,9 +227,7 @@ fn oracle_command(line: &str) -> Result<String, ToolError> {
             }
             Ok(perft(fen, depth)?.to_string())
         }
-        other => Err(ToolError::new(format!(
-            "unknown oracle command {other:?}"
-        ))),
+        other => Err(ToolError::new(format!("unknown oracle command {other:?}"))),
     }
 }
 
