@@ -1,19 +1,4 @@
-#!/usr/bin/env python3
-from pathlib import Path
-import subprocess
-import sys
-
-root = Path(sys.argv[1]).resolve()
-
-
-def replace_once(path: Path, old: str, new: str) -> None:
-    text = path.read_text()
-    if text.count(old) != 1:
-        raise SystemExit(f"expected exactly one match in {path}: {old!r}")
-    path.write_text(text.replace(old, new, 1))
-
-
-store_source = r'''use core::cmp::Reverse;
+use core::cmp::Reverse;
 
 use super::{
     TranspositionCluster, TranspositionEntry, TranspositionTable, TRANSPOSITION_CLUSTER_SIZE,
@@ -90,9 +75,8 @@ impl TranspositionTable {
         let cluster = &mut self.clusters[cluster_index];
 
         if let Some(slot_index) = cluster.entries.iter().position(|slot| {
-            slot.as_ref().is_some_and(|stored| {
-                stored.verification_key() == entry.verification_key()
-            })
+            slot.as_ref()
+                .is_some_and(|stored| stored.verification_key() == entry.verification_key())
         }) {
             let previous_entry = cluster.entries[slot_index]
                 .replace(entry)
@@ -169,11 +153,7 @@ mod tests {
         )
     }
 
-    fn colliding_key(
-        table: &TranspositionTable,
-        base_key: u64,
-        collision_offset: u64,
-    ) -> u64 {
+    fn colliding_key(table: &TranspositionTable, base_key: u64, collision_offset: u64) -> u64 {
         base_key + table.cluster_count() as u64 * collision_offset
     }
 
@@ -314,84 +294,3 @@ mod tests {
         assert_eq!(evicted_entry, before[0].expect("tie-break victim exists"));
     }
 }
-'''
-
-store_path = root / "crates/chess-search/src/transposition/store.rs"
-store_path.parent.mkdir(parents=True, exist_ok=True)
-store_path.write_text(store_source)
-
-transposition_path = root / "crates/chess-search/src/transposition.rs"
-replace_once(
-    transposition_path,
-    "mod probe;\npub use probe::{\n    TranspositionProbeError, TranspositionProbeRequest, TranspositionProbeResult,\n    TranspositionProbeScore, TranspositionScoreReuse,\n};\n",
-    "mod probe;\nmod store;\npub use probe::{\n    TranspositionProbeError, TranspositionProbeRequest, TranspositionProbeResult,\n    TranspositionProbeScore, TranspositionScoreReuse,\n};\npub use store::{\n    TranspositionStoreAction, TranspositionStoreResult,\n};\n",
-)
-replace_once(
-    transposition_path,
-    "    pub const fn generation(self) -> u8 {\n        self.generation\n    }\n}\n\n#[derive(Clone, Copy, Debug, Eq, PartialEq)]",
-    "    pub const fn generation(self) -> u8 {\n        self.generation\n    }\n\n    pub(crate) const fn with_generation(mut self, generation: u8) -> Self {\n        self.generation = generation;\n        self\n    }\n}\n\n#[derive(Clone, Copy, Debug, Eq, PartialEq)]",
-)
-replace_once(
-    transposition_path,
-    "/// never grows after construction and has no unbounded map fallback. Probes\n/// verify complete keys and apply depth, bound, mate, and repetition safety. Task\n/// 15.5 will define how stores choose a slot inside a cluster.\n",
-    "/// never grows after construction and has no unbounded map fallback. Probes\n/// verify complete keys and apply depth, bound, mate, and repetition safety. Stores\n/// update same-key entries and use deterministic depth- and generation-aware\n/// collision replacement.\n",
-)
-
-lib_path = root / "crates/chess-search/src/lib.rs"
-replace_once(
-    lib_path,
-    "    TranspositionProbeResult, TranspositionProbeScore, TranspositionScore, TranspositionScoreReuse,\n    TranspositionTable, TranspositionTableAllocationError, TRANSPOSITION_CLUSTER_SIZE,\n",
-    "    TranspositionProbeResult, TranspositionProbeScore, TranspositionScore, TranspositionScoreReuse,\n    TranspositionStoreAction, TranspositionStoreResult, TranspositionTable,\n    TranspositionTableAllocationError, TRANSPOSITION_CLUSTER_SIZE,\n",
-)
-
-doc = r'''# Rust transposition-table insertion and replacement contract
-
-Task 15.5 adds deterministic stores to the fixed four-entry collision clusters.
-It does not activate the table in production search and does not add counters or
-benchmarks.
-
-## Store order
-
-For a complete verification key, `TranspositionTable::store` selects exactly one
-cluster and applies these rules in order:
-
-1. A complete-key match is updated in its existing slot. The latest same-key
-   observation is authoritative even when its depth is lower, and no duplicate
-   same-key slot is created.
-2. Without a key match, the lowest-index empty slot is used.
-3. In a full different-key collision, the shallowest entry is selected.
-4. Equal depths select the greatest modulo-256 generation age, calculated as
-   `current_generation.wrapping_sub(stored_generation)`.
-5. Equal depth and age select the lowest slot index.
-
-The policy is therefore depth-preferred, age-aware, and reproducible across
-runs. Generation arithmetic is deliberately wrapping because table generations
-are one byte.
-
-## Generation authority
-
-The table's current generation replaces the generation carried by the incoming
-entry. Callers cannot insert an entry that appears fresher or older than the
-current table lifecycle state.
-
-## Observable result
-
-Every store returns the cluster index, slot index, and one of:
-
-- `UpdatedSameKey`, including the prior entry;
-- `InsertedEmpty`;
-- `ReplacedCollision`, including the evicted entry.
-
-This makes collision behavior directly testable without exposing mutable table
-storage.
-
-## Deferred work
-
-Task 15.6 owns probe/store counters, replacement statistics, hash-full sampling,
-and microbenchmarks. Production alpha-beta integration and proof that the table
-is measurably useful remain part of the overall Task 15 gate.
-'''
-(root / "docs/RUST_TRANSPOSITION_TABLE_REPLACEMENT.md").write_text(doc)
-
-subprocess.run(["cargo", "fmt", "--all"], cwd=root, check=True)
-subprocess.run(["git", "diff", "--check"], cwd=root, check=True)

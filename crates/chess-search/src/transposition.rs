@@ -5,10 +5,12 @@ use chess_core::Move;
 use crate::Score;
 
 mod probe;
+mod store;
 pub use probe::{
     TranspositionProbeError, TranspositionProbeRequest, TranspositionProbeResult,
     TranspositionProbeScore, TranspositionScoreReuse,
 };
+pub use store::{TranspositionStoreAction, TranspositionStoreResult};
 
 const BYTES_PER_MEBIBYTE: usize = 1024 * 1024;
 
@@ -133,6 +135,11 @@ impl TranspositionEntry {
     pub const fn generation(self) -> u8 {
         self.generation
     }
+
+    pub(crate) const fn with_generation(mut self, generation: u8) -> Self {
+        self.generation = generation;
+        self
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -211,8 +218,9 @@ impl std::error::Error for TranspositionTableAllocationError {}
 ///
 /// Construction performs one fallible reservation for all clusters. The table
 /// never grows after construction and has no unbounded map fallback. Probes
-/// verify complete keys and apply depth, bound, mate, and repetition safety. Task
-/// 15.5 will define how stores choose a slot inside a cluster.
+/// verify complete keys and apply depth, bound, mate, and repetition safety. Stores
+/// update same-key entries and use deterministic depth- and generation-aware
+/// collision replacement.
 #[derive(Debug)]
 pub struct TranspositionTable {
     clusters: Vec<TranspositionCluster>,
