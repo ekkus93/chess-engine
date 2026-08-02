@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 
@@ -17,6 +18,16 @@ def replace_once(path: str, old: str, new: str) -> None:
             f"{path}: expected one replacement target, found {count}: {old[:120]!r}"
         )
     write(path, text.replace(old, new, 1))
+
+
+def regex_replace_once(path: str, pattern: str, replacement: str) -> None:
+    text = read(path)
+    updated, count = re.subn(pattern, replacement, text, count=1, flags=re.S | re.M)
+    if count != 1:
+        raise SystemExit(
+            f"{path}: expected one regex replacement target, found {count}: {pattern[:120]!r}"
+        )
+    write(path, updated)
 
 
 def append_once(path: str, marker: str, addition: str) -> None:
@@ -58,22 +69,9 @@ replace_once(
     "fn run(arguments: &[String]) -> Result<(), String> {",
     divide_helper + "fn run(arguments: &[String]) -> Result<(), String> {",
 )
-replace_once(
+regex_replace_once(
     main,
-    '''        "divide" => {
-            let depth = parse_depth(arguments.get(1).ok_or_else(|| usage().to_owned())?)?;
-            let fen = optional_fen(arguments, 2)?;
-            let rows = divide(fen, depth).map_err(|error| error.to_string())?;
-            let total = rows
-                .iter()
-                .try_fold(0_u64, |sum, (_, nodes)| sum.checked_add(*nodes))
-                .ok_or_else(|| "divide total overflow".to_owned())?;
-            for (current, nodes) in rows {
-                println!("{current}\t{nodes}");
-            }
-            println!("total\t{total}");
-        }
-''',
+    r'^        "divide" => \{\n.*?^        \}\n(?=        "suite" => \{)',
     '''        "divide" => {
             let depth = parse_depth(arguments.get(1).ok_or_else(|| usage().to_owned())?)?;
             let fen = optional_fen(arguments, 2)?;
