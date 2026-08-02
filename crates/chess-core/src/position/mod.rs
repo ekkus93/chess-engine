@@ -9,8 +9,7 @@ use editor::PositionEditor;
 pub use error::{PositionBuildError, PositionInvariantError, PositionMutationError};
 
 use crate::{
-    Bitboard, CastlingRights, Color, FullmoveNumber, HalfmoveClock, Piece,
-    PieceKind, Square,
+    Bitboard, CastlingRights, Color, FullmoveNumber, HalfmoveClock, Piece, PieceKind, Square,
 };
 
 /// A validated, playable chess position.
@@ -180,10 +179,7 @@ impl Position {
                 if self.pieces[color.index()][kind.index()]
                     != expected_pieces[color.index()][kind.index()]
                 {
-                    return Err(PositionInvariantError::MailboxBitboardMismatch {
-                        color,
-                        kind,
-                    });
+                    return Err(PositionInvariantError::MailboxBitboardMismatch { color, kind });
                 }
             }
             if self.occupancy[color.index()] != expected_occupancy[color.index()] {
@@ -247,21 +243,22 @@ impl Position {
             };
             if piece.kind == PieceKind::King {
                 king_counts[piece.color.index()] += 1;
-                king_squares[piece.color.index()] = Some(Square::new(
-                    u8::try_from(index).expect("mailbox index is below 64"),
-                )
-                .expect("mailbox index is a valid square"));
+                king_squares[piece.color.index()] = Some(
+                    Square::new(u8::try_from(index).expect("mailbox index is below 64"))
+                        .expect("mailbox index is a valid square"),
+                );
             }
         }
 
-        let resolved_kings = [Color::White, Color::Black].map(|color| {
-            match king_counts[color.index()] {
+        let resolved_kings =
+            [Color::White, Color::Black].map(|color| match king_counts[color.index()] {
                 0 => Err(PositionBuildError::MissingKing { color }),
-                1 => Ok(king_squares[color.index()]
-                    .expect("one counted king has one recorded square")),
+                1 => {
+                    Ok(king_squares[color.index()]
+                        .expect("one counted king has one recorded square"))
+                }
                 count => Err(PositionBuildError::MultipleKings { color, count }),
-            }
-        });
+            });
         let [white_king, black_king] = resolved_kings;
 
         let mut position = Self {
@@ -280,10 +277,8 @@ impl Position {
 
         for (index, piece) in builder.mailbox.into_iter().enumerate() {
             if let Some(piece) = piece {
-                let square = Square::new(
-                    u8::try_from(index).expect("mailbox index is below 64"),
-                )
-                .expect("mailbox index is a valid square");
+                let square = Square::new(u8::try_from(index).expect("mailbox index is below 64"))
+                    .expect("mailbox index is a valid square");
                 position.editor().add_piece(square, piece)?;
             }
         }
@@ -297,4 +292,3 @@ impl Default for Position {
         Self::starting()
     }
 }
-

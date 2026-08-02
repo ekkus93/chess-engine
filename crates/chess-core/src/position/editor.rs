@@ -12,11 +12,7 @@ pub struct PositionEditor<'a> {
 
 impl PositionEditor<'_> {
     /// Adds a piece to an empty square.
-    pub fn add_piece(
-        &mut self,
-        square: Square,
-        piece: Piece,
-    ) -> Result<(), PositionMutationError> {
+    pub fn add_piece(&mut self, square: Square, piece: Piece) -> Result<(), PositionMutationError> {
         if self.position.piece_at(square).is_some() {
             return Err(PositionMutationError::OccupiedSquare { square });
         }

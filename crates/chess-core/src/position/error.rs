@@ -20,8 +20,12 @@ pub enum PositionBuildError {
 impl fmt::Display for PositionBuildError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::OccupiedSquare { square } => write!(formatter, "square {square} is already occupied"),
-            Self::MissingKing { color } => write!(formatter, "playable position is missing the {color} king"),
+            Self::OccupiedSquare { square } => {
+                write!(formatter, "square {square} is already occupied")
+            }
+            Self::MissingKing { color } => {
+                write!(formatter, "playable position is missing the {color} king")
+            }
             Self::MultipleKings { color, count } => {
                 write!(formatter, "playable position has {count} {color} kings")
             }
@@ -65,10 +69,7 @@ pub enum PositionInvariantError {
         actual: Square,
     },
     /// An en-passant target is on the wrong rank for the side to move.
-    InvalidEnPassantRank {
-        side_to_move: Color,
-        square: Square,
-    },
+    InvalidEnPassantRank { side_to_move: Color, square: Square },
     /// An en-passant target square is occupied.
     OccupiedEnPassantSquare { square: Square },
 }
@@ -80,9 +81,14 @@ impl fmt::Display for PositionInvariantError {
                 write!(formatter, "mailbox and {color} {kind} bitboard disagree")
             }
             Self::OccupancyMismatch { color } => {
-                write!(formatter, "{color} occupancy disagrees with piece bitboards")
+                write!(
+                    formatter,
+                    "{color} occupancy disagrees with piece bitboards"
+                )
             }
-            Self::ColorOccupancyOverlap => formatter.write_str("white and black occupancies overlap"),
+            Self::ColorOccupancyOverlap => {
+                formatter.write_str("white and black occupancies overlap")
+            }
             Self::AllOccupancyMismatch => {
                 formatter.write_str("all occupancy disagrees with color occupancies")
             }
@@ -133,15 +139,22 @@ pub enum PositionMutationError {
 impl fmt::Display for PositionMutationError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::OccupiedSquare { square } => write!(formatter, "square {square} is already occupied"),
+            Self::OccupiedSquare { square } => {
+                write!(formatter, "square {square} is already occupied")
+            }
             Self::EmptySquare { square } => write!(formatter, "square {square} is empty"),
             Self::DestinationOccupied { square } => {
                 write!(formatter, "destination square {square} is occupied")
             }
             Self::CannotRemoveKing { color } => {
-                write!(formatter, "cannot remove the {color} king from a playable position")
+                write!(
+                    formatter,
+                    "cannot remove the {color} king from a playable position"
+                )
             }
-            Self::KingAlreadyPresent { color } => write!(formatter, "the {color} king is already present"),
+            Self::KingAlreadyPresent { color } => {
+                write!(formatter, "the {color} king is already present")
+            }
             Self::UnexpectedKingSquare { color, square } => write!(
                 formatter,
                 "{color} king placement on {square} disagrees with the cached king square"
