@@ -21,7 +21,7 @@
 | 0 | **Complete** — frozen Python baseline captured and reviewed. |
 | 1 | **Complete** — workspace and strict CI validated. |
 | 2 | **Complete** — core value types and exact-SHA CI complete. |
-| 3 | **Implemented; CI pending** — hybrid `Position`, invariants, tests, and docs committed. |
+| 3 | **Complete** — hybrid `Position`, invariants, tests, documentation, and exact-SHA CI complete. |
 | 4–24 | **Not started**. |
 | 25 | **Partial** — Linux strict CI and initial docs/workflows exist. |
 | 26–27 | **Not started**. |
@@ -32,9 +32,7 @@
 - [x] Task 1 gate. Evidence: SHA `7ca6f8dc0d2577ca552a6bfe115828eb668d2133`, run `30722127447`, Rust job `91427510938`; metadata/fmt/check/Clippy/tests/rustdoc/debug/release passed.
 - [x] Task 2 gate. Implementation `878f9090af3d5fdee77ca87aaea24761a8df0312`; formatting fix `f29524599134a14d34121af2fefb04cd90e78df0`; run `30723748100`, job `91431648799`; 16 tests passed; exact closure SHA `b5f462aa73a69efcdc847ee215231a5064029902`, run `30723952076`, job `91432161445` passed.
 
-# Task 3: `Position` and invariants
-
-**Task status:** Implemented; exact-SHA CI pending.
+# Task 3: `Position` and invariants — COMPLETE
 
 ## 3.1 Hybrid representation
 - [x] Private 64-square mailbox.
@@ -53,7 +51,8 @@
 - [x] Read-only piece, bitboard, occupancy, king, and metadata accessors.
 - [x] Direct placement remains private to the position module.
 - [x] Atomic internal add/remove/move primitives update every redundant representation.
-- [x] Adapters cannot mutate mailbox or bitboards directly.
+- [x] Adapters cannot obtain or construct the sealed editor capability.
+- [x] Mailbox and bitboard fields remain private.
 
 ## 3.4 Invariant checker
 - [x] Mailbox/bitboard agreement.
@@ -72,13 +71,25 @@
 ## 3.6 Documentation and gate
 - [x] Position representation/invariant documentation.
 - [x] Starting-position, construction, metadata, mutation, failure atomicity, king relocation, equality, and invariant tests.
-- [ ] rustfmt exact-SHA pass.
-- [ ] Cargo check exact-SHA pass.
-- [ ] Clippy `-D warnings` exact-SHA pass.
-- [ ] Unit tests exact-SHA pass.
-- [ ] rustdoc `-D warnings` exact-SHA pass.
-- [ ] Debug/release exact-SHA builds.
-- [ ] Task 3 gate.
+- [x] rustfmt exact-SHA pass.
+- [x] Cargo check exact-SHA pass.
+- [x] Clippy `-D warnings` exact-SHA pass.
+- [x] Unit tests exact-SHA pass: `24 passed, 0 failed`.
+- [x] rustdoc `-D warnings` exact-SHA pass.
+- [x] Debug/release exact-SHA builds.
+- [x] Task 3 gate.
+
+### Task 3 completion evidence
+
+- Initial implementation: `dd66b61b745d72f833802826b5d72f2b3f18232a`.
+- rustfmt correction: `b36e7e379e35a32aac6c707099bd9c2daa7067cd`.
+- Sealed editor capability fix: `bfef2ae3a08722a4215ba788273543c3ba244423`.
+- Corrected sealed re-export and green candidate: `00fd925dad807d822aa7878aade686ccc59ff9c5`.
+- CI run/job: `30724744784` / `91434236030`.
+- Results: lockfile verification, metadata, rustfmt, Cargo check, Clippy with warnings denied, 24 unit tests, rustdoc with warnings denied, debug build, and release build passed.
+- First-party warnings: none.
+- Accepted external notices: GitHub Action Node runtime deprecation messages only.
+- Deviations: Zobrist recomputation remains intentionally deferred to Task 9; no other deviations.
 
 # Tasks 4–24 — not started
 
@@ -131,7 +142,7 @@
 
 ## Immediate next operations
 
-1. Run strict exact-SHA CI for Task 3.
-2. Fix every first-party finding and rerun until green.
-3. Close Task 3 with exact run/job/test evidence.
-4. Begin Task 4 only after Task 3 closes.
+1. Verify this Task 3 closure documentation commit at its exact SHA.
+2. Begin Task 4: strict FEN and UCI move notation.
+3. Implement structured parse errors, strict six-field FEN parsing, canonical FEN serialization, UCI move syntax, and property/round-trip tests.
+4. Ralph Loop Task 4 through exact-SHA strict CI.
