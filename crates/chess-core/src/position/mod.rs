@@ -5,7 +5,7 @@ mod error;
 mod tests;
 
 use builder::PositionBuilder;
-use editor::PositionEditor;
+pub use editor::PositionEditor;
 pub use error::{PositionBuildError, PositionInvariantError, PositionMutationError};
 
 use crate::{
