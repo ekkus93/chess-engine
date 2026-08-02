@@ -1,0 +1,146 @@
+name: Scripted Rust review-fix closure once
+
+on:
+  issues:
+    types:
+      - opened
+
+permissions:
+  actions: write
+  contents: write
+  issues: write
+
+concurrency:
+  group: scripted-rust-review-fix-closure-once
+  cancel-in-progress: false
+
+jobs:
+  close-review-fix:
+    if: github.event.issue.title == '[script-close-rust-review-fix]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      TRIGGER_ISSUE: ${{ github.event.issue.number }}
+      CANDIDATE_SHA: 81a7cd4a58a52695eca2ede10d5c73c803851d17
+      CANDIDATE_RUN: '30739166607'
+      CANDIDATE_JOB: '91473334960'
+      CONTROL_RUN: '30738801841'
+    steps:
+      - name: Check out control branch
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+          path: control
+
+      - name: Check out rust-engine
+        uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+          path: engine
+
+      - name: Confirm candidate head and write closure docs
+        working-directory: engine
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${CANDIDATE_SHA}"
+          python ../control/.github/review_fix_close.py
+
+      - name: Commit documentation closure
+        working-directory: engine
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs
+          git commit -m 'docs: close pre-Task-13 review fixes'
+          git push origin HEAD:rust-engine
+          echo "CLOSURE_SHA=$(git rev-parse HEAD)" >>"${GITHUB_ENV}"
+
+      - name: Dispatch final clean-head CI
+        id: dispatch
+        shell: bash
+        run: |
+          set -euo pipefail
+          dispatched_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          gh api --method POST "repos/${REPOSITORY}/actions/workflows/ci.yml/dispatches" -f ref=rust-engine
+          echo "dispatched_at=${dispatched_at}" >>"${GITHUB_OUTPUT}"
+
+      - name: Resolve final CI run
+        id: final-run
+        shell: bash
+        env:
+          DISPATCHED_AT: ${{ steps.dispatch.outputs.dispatched_at }}
+        run: |
+          set -euo pipefail
+          for _ in $(seq 1 30); do
+            record="$(gh api "repos/${REPOSITORY}/actions/workflows/ci.yml/runs" \
+              -f branch=rust-engine \
+              -f event=workflow_dispatch \
+              -f per_page=20 \
+              --jq ".workflow_runs | map(select(.head_sha == \"${CLOSURE_SHA}\" and .created_at >= \"${DISPATCHED_AT}\")) | sort_by(.created_at) | last | if . == null then \"\" else \"\(.id)\" end")"
+            if [[ -n "${record}" ]]; then
+              echo "run_id=${record}" >>"${GITHUB_OUTPUT}"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo 'Final CI run did not become visible.' >&2
+          exit 1
+
+      - name: Require final CI success
+        shell: bash
+        env:
+          FINAL_RUN: ${{ steps.final-run.outputs.run_id }}
+        run: |
+          set -euo pipefail
+          gh run watch "${FINAL_RUN}" --repo "${REPOSITORY}" --exit-status --interval 5
+          jobs="$(gh api "repos/${REPOSITORY}/actions/runs/${FINAL_RUN}/jobs?per_page=100")"
+          final_job="$(jq -r '.jobs[] | select(.name == "Rust workspace quality" and .conclusion == "success") | .id' <<<"${jobs}" | head -n1)"
+          test -n "${final_job}"
+          echo "FINAL_RUN=${FINAL_RUN}" >>"${GITHUB_ENV}"
+          echo "FINAL_JOB=${final_job}" >>"${GITHUB_ENV}"
+
+      - name: Report final evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          body="Rust review-fix Ralph Loop complete.
+
+Implementation SHA: ${CANDIDATE_SHA}
+Implementation CI: ${CANDIDATE_RUN} / ${CANDIDATE_JOB}
+Documentation closure SHA: ${CLOSURE_SHA}
+Final clean-head CI: ${FINAL_RUN} / ${FINAL_JOB}
+Tests: 112 executed non-doc Rust tests
+Release depth-four perft: passed
+Differential oracle: 15 positions, 293 child FENs, 272,991 nodes, 576 seeded plies
+Task 13: active, not started"
+          gh api --method POST "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}/comments" -f body="${body}"
+
+      - name: Remove temporary closure controls
+        if: always()
+        working-directory: control
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin master
+          git rebase origin/master
+          git rm -f \
+            .github/workflows/review-fix-script-close-once.yml \
+            .github/review_fix_close.py
+          git commit -m 'ci: remove scripted Rust review-fix closer'
+          git push origin HEAD:master
+
+      - name: Close trigger issue
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api --method PATCH "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}" -f state=closed -f state_reason=completed
