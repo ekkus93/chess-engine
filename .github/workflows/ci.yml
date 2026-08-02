@@ -10,7 +10,7 @@ on:
 
 permissions:
   actions: write
-  contents: write
+  contents: read
   issues: write
 
 jobs:
@@ -153,90 +153,3 @@ jobs:
             "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE_NUMBER}" \
             -f state=closed \
             -f state_reason=completed
-
-  close-rust-review-fix:
-    name: Close pre-Task-13 review fixes
-    if: >-
-      github.ref == 'refs/heads/master' &&
-      github.event_name == 'issues' &&
-      github.event.issue.title == '[close-rust-review-fix-script]'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    env:
-      GH_TOKEN: ${{ github.token }}
-      REPOSITORY: ${{ github.repository }}
-      TRIGGER_ISSUE_NUMBER: ${{ github.event.issue.number }}
-      CANDIDATE_SHA: 81a7cd4a58a52695eca2ede10d5c73c803851d17
-      CANDIDATE_RUN: '30739166607'
-      CANDIDATE_JOB: '91473334960'
-      CONTROL_RUN: '30738801841'
-    steps:
-      - name: Check out master controls
-        uses: actions/checkout@v4
-        with:
-          ref: master
-          path: control
-
-      - name: Check out rust-engine
-        uses: actions/checkout@v4
-        with:
-          ref: rust-engine
-          fetch-depth: 0
-          path: engine
-
-      - name: Write and commit closure evidence
-        working-directory: engine
-        shell: bash
-        run: |
-          set -euo pipefail
-          test "$(git rev-parse HEAD)" = "${CANDIDATE_SHA}"
-          python ../control/.github/review_fix_close.py
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs
-          git commit -m 'docs: close pre-Task-13 review fixes'
-          git push origin HEAD:rust-engine
-          echo "CLOSURE_SHA=$(git rev-parse HEAD)" >>"${GITHUB_ENV}"
-
-      - name: Dispatch and resolve final CI
-        id: final
-        shell: bash
-        run: |
-          set -euo pipefail
-          dispatched_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-          gh api --method POST "repos/${REPOSITORY}/actions/workflows/ci.yml/dispatches" -f ref=rust-engine
-          for attempt in $(seq 1 30); do
-            run_id="$(gh api "repos/${REPOSITORY}/actions/workflows/ci.yml/runs" \
-              -f branch=rust-engine -f event=workflow_dispatch -f per_page=20 \
-              --jq ".workflow_runs | map(select(.head_sha == \"${CLOSURE_SHA}\" and .created_at >= \"${dispatched_at}\")) | sort_by(.created_at) | last | .id // empty")"
-            if [[ -n "${run_id}" ]]; then
-              echo "run_id=${run_id}" >>"${GITHUB_OUTPUT}"
-              exit 0
-            fi
-            sleep 2
-          done
-          echo 'Final CI run did not become visible.' >&2
-          exit 1
-
-      - name: Require final CI and report
-        shell: bash
-        env:
-          FINAL_RUN: ${{ steps.final.outputs.run_id }}
-        run: |
-          set -euo pipefail
-          gh run watch "${FINAL_RUN}" --repo "${REPOSITORY}" --exit-status --interval 5
-          jobs="$(gh api "repos/${REPOSITORY}/actions/runs/${FINAL_RUN}/jobs?per_page=100")"
-          final_job="$(jq -r '.jobs[] | select(.name == "Rust workspace quality" and .conclusion == "success") | .id' <<<"${jobs}" | head -n1)"
-          test -n "${final_job}"
-          body="Rust review-fix Ralph Loop complete.
-
-Implementation SHA: ${CANDIDATE_SHA}
-Implementation CI: ${CANDIDATE_RUN} / ${CANDIDATE_JOB}
-Documentation closure SHA: ${CLOSURE_SHA}
-Final clean-head CI: ${FINAL_RUN} / ${final_job}
-Tests: 112 executed non-doc Rust tests
-Release depth-four perft: passed
-Differential oracle: 15 positions, 293 child FENs, 272,991 nodes, 576 seeded plies
-Task 13: active, not started"
-          gh api --method POST "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE_NUMBER}/comments" -f body="${body}"
-          gh api --method PATCH "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE_NUMBER}" -f state=closed -f state_reason=completed
