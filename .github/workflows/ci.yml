@@ -38,41 +38,28 @@ jobs:
 
           path = Path("crates/chess-core/src/game.rs")
           text = path.read_text()
-          block = '''    #[test]
-          fn illegal_game_move_does_not_change_position_or_history() {
-              let mut game = Game::starting();
-              let snapshot = game.clone();
-              let illegal = crate::Move::new(
-                  "e2".parse().expect("test square is valid"),
-                  "e5".parse().expect("test square is valid"),
-                  crate::MoveKind::Quiet,
-              );
+          first_marker = "fn illegal_game_move_does_not_change_position_or_history()"
+          next_marker = "    #[test]\n    fn search_history_is_detached_and_reversible()"
+          occurrences = []
+          offset = 0
+          while True:
+              index = text.find(first_marker, offset)
+              if index < 0:
+                  break
+              occurrences.append(index)
+              offset = index + len(first_marker)
 
-              assert!(matches!(game.make_move(illegal), Err(GameError::Rules(_))));
-              assert_eq!(game, snapshot);
-          }
-
-          #[test]
-          fn repetition_count_respects_the_irreversible_halfmove_boundary() {
-              let current = position("8/8/8/8/8/8/R3K3/7k w - - 2 1");
-              let hash = current.zobrist();
-              let history = crate::SearchHistory {
-                  hashes: vec![hash, hash, hash ^ 1, hash],
-                  root_len: 4,
-              };
-
-              assert_eq!(history.repetition_count(&current), 2);
-          }
-
-          '''
-          count = text.count(block)
-          if count == 2:
-              doubled = block + block
-              if text.count(doubled) != 1:
-                  raise SystemExit(f"expected one adjacent doubled block, found {text.count(doubled)}")
-              path.write_text(text.replace(doubled, block))
-          elif count != 1:
-              raise SystemExit(f"expected one or two Task 10 test blocks, found {count}")
+          if len(occurrences) == 2:
+              remove_start = text.rfind("    #[test]\n", 0, occurrences[1])
+              remove_end = text.find(next_marker, occurrences[1])
+              if remove_start < 0 or remove_end < 0 or remove_start >= remove_end:
+                  raise SystemExit("could not isolate the second adjacent Task 10 test pair")
+              text = text[:remove_start] + text[remove_end:]
+              path.write_text(text)
+          elif len(occurrences) != 1:
+              raise SystemExit(
+                  f"expected one or two illegal-move history tests, found {len(occurrences)}"
+              )
           PY
           if test -f .github/workflows/task10-deduplicate-tests-once.yml; then
             git rm .github/workflows/task10-deduplicate-tests-once.yml
