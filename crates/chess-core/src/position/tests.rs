@@ -26,7 +26,7 @@ fn starting_position_has_expected_state_and_invariants() {
     assert_eq!(position.en_passant(), None);
     assert_eq!(position.halfmove_clock().get(), 0);
     assert_eq!(position.fullmove_number().get(), 1);
-    assert_eq!(position.zobrist(), 0);
+    assert_eq!(position.zobrist(), position.recomputed_zobrist());
     assert_eq!(position.occupancy(Color::White).count(), 16);
     assert_eq!(position.occupancy(Color::Black).count(), 16);
     assert_eq!(position.all_occupancy().count(), 32);
@@ -89,15 +89,14 @@ fn metadata_and_en_passant_invariants_are_preserved() {
         .with_castling_rights(CastlingRights::NONE.with(Color::White, CastleSide::QueenSide))
         .with_en_passant(Some(square("e3")))
         .with_halfmove_clock(crate::HalfmoveClock::new(17))
-        .with_fullmove_number(crate::FullmoveNumber::new(42).expect("42 is nonzero"))
-        .with_zobrist(1234);
+        .with_fullmove_number(crate::FullmoveNumber::new(42).expect("42 is nonzero"));
     let position = builder.build_playable().expect("metadata is valid");
     assert_eq!(position.validate_invariants(), Ok(()));
     assert_eq!(position.side_to_move(), Color::Black);
     assert_eq!(position.en_passant(), Some(square("e3")));
     assert_eq!(position.halfmove_clock().get(), 17);
     assert_eq!(position.fullmove_number().get(), 42);
-    assert_eq!(position.zobrist(), 1234);
+    assert_eq!(position.zobrist(), position.recomputed_zobrist());
     assert!(position
         .castling_rights()
         .contains(Color::White, CastleSide::QueenSide));
