@@ -22,8 +22,9 @@
 | 1 | **Complete** — workspace and strict CI validated. |
 | 2 | **Complete** — core value types and exact-SHA CI complete. |
 | 3 | **Complete** — hybrid `Position`, invariants, tests, documentation, and exact-SHA CI complete. |
-| 4 | **Implemented, CI pending** — strict FEN and UCI notation are wired; exact-head validation remains open. |
-| 5–24 | **Not started**. |
+| 4 | **Complete** — strict FEN and UCI notation, robustness tests, documentation, and exact-SHA CI complete. |
+| 5 | **In progress** — attack-generation implementation is the current milestone. |
+| 6–24 | **Not started**. |
 | 25 | **Partial** — Linux strict CI and initial docs/workflows exist. |
 | 26–27 | **Not started**. |
 
@@ -92,7 +93,7 @@
 - Accepted external notices: GitHub Action Node runtime deprecation messages only.
 - Deviations: Zobrist recomputation remains intentionally deferred to Task 9; no other deviations.
 
-# Task 4: Strict FEN and UCI move notation — IMPLEMENTED, CI PENDING
+# Task 4: Strict FEN and UCI move notation — COMPLETE
 
 ## 4.1 Structured errors
 - [x] Public `FenError` distinguishes field count, rank count/width, placement characters, promotion-rank pawns, active color, castling, en-passant, counters, and position construction failures.
@@ -130,28 +131,65 @@
 - [x] Starting-position and curated FEN round trips are tested.
 - [x] Normal and all promotion UCI suffixes round trip.
 - [x] FEN/UCI contract documentation exists at `docs/RUST_FEN_AND_UCI_NOTATION.md`.
+- [x] Exact-head rustfmt pass.
+- [x] Exact-head Cargo check pass.
+- [x] Exact-head Clippy `-D warnings` pass.
+- [x] Exact-head unit-test pass: `35 passed, 0 failed`.
+- [x] Exact-head rustdoc `-D warnings` pass.
+- [x] Exact-head debug/release builds.
+- [x] Task 4 gate.
+
+### Task 4 completion evidence
+
+- Green implementation candidate: `87e6b81c65340a692af0d800012910399d3ac75b`.
+- Exact status/evidence SHA: `6cb975b35f4dbe898a0444b1b4c39778e89bcb40`.
+- CI run/job: `30726795562` / `91439860915`.
+- Results: lockfile verification, metadata, rustfmt, Cargo check, Clippy with warnings denied, 35 unit tests, rustdoc with warnings denied, debug build, and release build passed.
+- First-party warnings: none.
+- Accepted external notices: GitHub Action Node runtime and `punycode` deprecation notices only.
+- Deviations: none.
+
+# Task 5: Attack-generation infrastructure — IN PROGRESS
+
+## 5.1 Leaper attacks
+- [ ] Precompute pawn attacks for both colors and all squares.
+- [ ] Precompute knight attacks for all squares.
+- [ ] Precompute king attacks for all squares.
+- [ ] Add exhaustive edge/corner tests.
+
+## 5.2 Sliding attacks
+- [ ] Implement correct rook attacks for arbitrary occupancy.
+- [ ] Implement correct bishop attacks for arbitrary occupancy.
+- [ ] Implement queen attacks as combined sliding attacks.
+- [ ] Begin with clear audited ray scans; no premature magic/PEXT optimization.
+- [ ] Add blocker-before, blocker-on-target, edge, and empty-board tests.
+
+## 5.3 Geometric tables
+- [ ] Add ray, line, and between-square helpers where useful.
+- [ ] Test collinearity and intermediate-square masks.
+
+## 5.4 Position attack queries
+- [ ] Implement attackers-to-square.
+- [ ] Implement square-attacked-by-color.
+- [ ] Implement checkers-to-king.
+- [ ] Implement pinned-piece discovery or equivalent supporting data.
+- [ ] Ensure pawn attack semantics do not depend on occupancy.
+
+## 5.5 Differential attack fixtures
+- [ ] Compare representative attack maps against an independently generated oracle/fixture implementation.
+
+## 5.6 Documentation and gate
+- [ ] Document attack geometry, blocker inclusion, geometric helper semantics, and pin semantics.
 - [ ] Exact-head rustfmt pass.
 - [ ] Exact-head Cargo check pass.
 - [ ] Exact-head Clippy `-D warnings` pass.
 - [ ] Exact-head unit-test pass with recorded count.
 - [ ] Exact-head rustdoc `-D warnings` pass.
 - [ ] Exact-head debug/release builds.
-- [ ] Task 4 gate.
+- [ ] Task 5 gate.
 
-### Task 4 implementation/fix history
+# Tasks 6–24 — not started
 
-- Source files were added in the commits following Task 3 closure.
-- `2d59decbd1911e14a3d174464a6efb65cced1b06` wired the root UCI exports but exposed missing nested FEN wiring.
-- `0084cfee00287e2ba633f04f13498b106479eb5f` wired `position::fen` and re-exported `FenError`.
-- `5a0bd7be8d6ec2a93ae12bd3b7955d9c7a39448c` corrected UCI matching const-safety and formatter output.
-- `1f85286b054c93096a04690bc5af022aca7c4d33` applied UCI test formatting.
-- `993009797f3c3610b833962d79a5d051190d7358` applied FEN parser formatting.
-- `87e6b81c65340a692af0d800012910399d3ac75b` applied FEN test formatting.
-- Task 4 remains open until the current documentation/status head passes every strict CI gate.
-
-# Tasks 5–24 — not started
-
-- [ ] Task 5: attack generation — 5.1 leapers; 5.2 sliders; 5.3 geometry; 5.4 position queries; 5.5 differential fixtures; gate.
 - [ ] Task 6: pseudo-legal generation — 6.1 pawns; 6.2 pieces; 6.3 castling candidates; 6.4 move list; 6.5 tests; gate.
 - [ ] Task 7: legal generation/special rules — 7.1 king safety; 7.2 evasions; 7.3 castling; 7.4 en passant; 7.5 promotions; 7.6 initial perft; gate.
 - [ ] Task 8: make/unmake — 8.1 undo; 8.2 application; 8.3 restoration; 8.4 sequences; gate.
@@ -185,6 +223,7 @@
 - [x] Core values/coordinates/move layout.
 - [x] Position representation and invariants.
 - [x] Strict FEN and UCI move notation.
+- [ ] Attack generation.
 - [ ] Make/unmake, draws, hashing, search, TT, evaluation, ABI/JNI, perft/fuzz, self-play, and tuning docs.
 
 ## 25.3 Commands and artifacts
@@ -200,8 +239,8 @@
 
 ## Immediate next operations
 
-1. Run strict CI at the current exact `rust-engine` head.
-2. Fix every remaining first-party compiler, Clippy, test, rustdoc, or build finding at source.
-3. Record the exact green SHA, run ID, job ID, and Task 4 test count.
-4. Close every Task 4 gate checkbox only after the exact status head passes.
-5. Begin Task 5 attack-generation infrastructure after Task 4 closure.
+1. Implement Task 5 attack primitives and position queries in `chess-core`.
+2. Add exhaustive, blocker, geometry, pin, check, and independent differential tests.
+3. Document the public contracts and exact blocker/geometry semantics.
+4. Ralph Loop Task 5 through strict exact-SHA CI.
+5. Close Task 5 only after every implementation and evidence checkbox is complete.
