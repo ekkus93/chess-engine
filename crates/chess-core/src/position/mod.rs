@@ -4,6 +4,7 @@ mod error;
 mod fen;
 mod legal;
 mod make_unmake;
+mod zobrist;
 #[cfg(test)]
 mod tests;
 
@@ -150,11 +151,10 @@ impl Position {
         self.fullmove_number
     }
 
-    /// Returns the current Zobrist placeholder/state.
+    /// Returns the canonical repetition Zobrist key for this position.
     ///
-    /// Full and incremental hashing are implemented in Task 9. Until then this
-    /// value is stored and restored but is not recomputed by the invariant
-    /// checker.
+    /// The key includes pieces, side to move, castling rights, and only a
+    /// legally capturable en-passant file. Move counters are excluded.
     #[must_use]
     pub const fn zobrist(&self) -> u64 {
         self.zobrist
@@ -278,7 +278,7 @@ impl Position {
             en_passant: builder.en_passant,
             halfmove_clock: builder.halfmove_clock,
             fullmove_number: builder.fullmove_number,
-            zobrist: builder.zobrist,
+            zobrist: 0,
         };
 
         for (index, piece) in builder.mailbox.into_iter().enumerate() {
@@ -288,6 +288,7 @@ impl Position {
                 position.editor().add_piece(square, piece)?;
             }
         }
+        position.zobrist = position.recomputed_zobrist();
         position.validate_invariants()?;
         Ok(position)
     }
