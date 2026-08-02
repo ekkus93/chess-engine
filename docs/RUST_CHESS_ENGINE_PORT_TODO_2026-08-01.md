@@ -36,7 +36,7 @@
 | 12 | **Complete** — baseline evaluator and trace. |
 | 13 | **Complete** — reference negamax, alpha-beta, shallow equivalence, immutability, and terminal/mate-distance fixtures. |
 | 14 | **Complete** — quiescence, tactical/quiet ordering, consolidated correctness, and exclusion audit. |
-| 15 | **Active** — Tasks 15.1–15.2 complete; Task 15.3 mate normalization next. |
+| 15 | **Active** — Tasks 15.1–15.3 complete; Task 15.4 safe probe semantics next. |
 | 16–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
@@ -521,12 +521,12 @@ Evidence:
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 14 is complete. Tasks 15.1–15.2 are complete; Task 15.3 mate normalization is next.
+- Task 14 is complete. Tasks 15.1–15.3 are complete; Task 15.4 safe probe semantics is next.
 
 # Task 15: Fixed-capacity transposition table — ACTIVE
 - [x] 15.1 Entries.
 - [x] 15.2 Storage.
-- [ ] 15.3 Mate normalization.
+- [x] 15.3 Mate normalization.
 - [ ] 15.4 Probes.
 - [ ] 15.5 Replacement.
 - [ ] 15.6 Diagnostics.
@@ -548,7 +548,7 @@ Evidence:
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 15.2 fixed-memory bucket/cluster storage is complete; Task 15.3 mate normalization is next.
+- Tasks 15.2 fixed-memory storage and 15.3 mate normalization are complete; Task 15.4 safe probe semantics is next.
 
 ### Task 15.2 completion evidence
 
@@ -563,12 +563,32 @@ Evidence:
 - Complete verification keys map deterministically to clusters while each occupied entry retains its complete key for later collision rejection.
 - `clear()` empties every slot in place without reallocating or changing generation; `advance_generation()` wraps deterministically without clearing existing entries.
 - Five new deterministic storage tests passed, bringing the workspace total to 165 executed non-doc Rust tests.
-- Production search still does not probe, store, cut off, normalize mate scores, or apply replacement policy; those remain Tasks 15.3–15.5.
+- Production search still does not probe, store, cut off, or apply replacement policy; those remain Tasks 15.4–15.5.
 - Results: workspace assets, permanent Task 14.5 exclusion audit over 11 production search modules, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy, 165 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 15.3 ply-relative mate-score normalization is next.
+- Task 15.3 ply-relative mate-score normalization is complete; Task 15.4 safe probe semantics is next.
+
+### Task 15.3 completion evidence
+
+- Conversion implementation: `crates/chess-search/src/transposition_score.rs`.
+- Public API: `TranspositionScore::normalize`, `TranspositionScore::denormalize`, and `TranspositionScoreConversionError`.
+- Contract documentation: `docs/RUST_TRANSPOSITION_TABLE_MATE_NORMALIZATION.md`.
+- Exact validated implementation SHA: `ac68b99db53546c31f3aae68ad7337ba256eb982`.
+- Permanent CI run/job: `30766126491` / `91545080021`.
+- Winning mate scores add the current root ply on storage and subtract the probe ply on retrieval; losing mate scores perform the inverse operations.
+- The conversion removes already-travelled root distance so the same position produces one normalized TT value when reached at different plies.
+- Every ordinary evaluation from `-MAX_EVALUATION` through `MAX_EVALUATION` is preserved exactly.
+- Unsupported plies and conversions outside the supported score domain return typed errors; no clamping, saturation, or fallback score is permitted.
+- The unchecked `TranspositionScore::from_normalized` constructor is crate-private, preventing external callers from bypassing the conversion boundary.
+- Six deterministic tests cover ordinary evaluations, winning and losing cross-ply reuse, both maximum-ply boundaries, inconsistent mate values, and unsupported plies.
+- Production search still does not probe entries, apply depth/bound cutoffs, reuse repetition-sensitive scores, store entries, select replacements, or activate TT move ordering; those remain Tasks 15.4–15.5.
+- Results: workspace assets, permanent Task 14.5 exclusion audit over 12 production search modules, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy, 171 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 15.4 safe transposition-table probe semantics is next.
 
 # Task 16: Iterative deepening, PV, limits, cancellation — NOT STARTED
 - [ ] 16.1 Iterative deepening.
@@ -697,9 +717,9 @@ Evidence:
 
 ## Immediate next operations
 
-1. Implement Task 15.3 mate-score normalization at the transposition storage boundary.
-2. Normalize ply-relative winning and losing mate scores on store and denormalize them on retrieval.
-3. Add deterministic regressions proving one stored entry is correct when reached at different plies.
-4. Preserve ordinary evaluation scores exactly and reject arithmetic outside the supported score domain.
-5. Defer probe cutoffs, repetition-sensitive reuse, replacement preference, and diagnostics to Tasks 15.4–15.6.
-6. Keep Task 16 iterative deepening, aspiration windows, PV reconstruction, and production limits outside Task 15.
+1. Implement Task 15.4 safe transposition-table probe semantics.
+2. Require complete-key verification and sufficient stored depth before score reuse.
+3. Implement exact hits plus lower-bound and upper-bound cutoffs using denormalized scores at the current ply.
+4. Return a verified best move for ordering even when depth or bounds do not permit score reuse.
+5. Define fail-safe handling for repetition-sensitive nodes before enabling production search integration.
+6. Defer replacement preference and diagnostics to Tasks 15.5–15.6, and keep Task 16 iterative deepening, aspiration windows, PV reconstruction, and production limits outside Task 15.

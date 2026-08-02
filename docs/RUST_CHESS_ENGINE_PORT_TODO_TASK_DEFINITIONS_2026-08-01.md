@@ -794,9 +794,9 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 15.3 Mate normalization
 
-- [ ] Normalize ply-relative mate scores on store.
-- [ ] Denormalize on probe.
-- [ ] Test same TT entry reached at different plies.
+- [x] Normalize ply-relative mate scores on store.
+- [x] Denormalize on probe.
+- [x] Test same TT entry reached at different plies.
 
 ## 15.4 Probe semantics
 
