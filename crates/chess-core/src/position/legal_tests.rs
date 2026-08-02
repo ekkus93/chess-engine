@@ -7,11 +7,7 @@ fn square(value: &str) -> Square {
 }
 
 fn legal_uci(position: &mut Position) -> Result<Vec<String>, LegalMoveError> {
-    Ok(position
-        .legal_moves()?
-        .iter()
-        .map(Move::to_uci)
-        .collect())
+    Ok(position.legal_moves()?.iter().map(Move::to_uci).collect())
 }
 
 #[test]
@@ -36,16 +32,14 @@ fn starting_position_perft_and_divide_are_exact_and_restore_state() {
 
 #[test]
 fn single_check_allows_capture_block_and_king_evasions() {
-    let mut capture =
-        Position::from_fen("6k1/8/8/8/8/5n2/6P1/4K3 w - - 0 1").expect("valid FEN");
+    let mut capture = Position::from_fen("6k1/8/8/8/8/5n2/6P1/4K3 w - - 0 1").expect("valid FEN");
     assert!(capture
         .legal_moves()
         .expect("legal moves")
         .iter()
         .any(|current| current.to_uci() == "g2f3" && current.kind() == MoveKind::Capture));
 
-    let mut block =
-        Position::from_fen("4r1k1/8/8/8/8/8/8/2B1K3 w - - 0 1").expect("valid FEN");
+    let mut block = Position::from_fen("4r1k1/8/8/8/8/8/8/2B1K3 w - - 0 1").expect("valid FEN");
     let moves = block.legal_moves().expect("legal moves");
     assert!(moves.iter().any(|current| current.to_uci() == "c1e3"));
     assert!(moves.iter().any(|current| current.source() == square("e1")));
@@ -53,8 +47,7 @@ fn single_check_allows_capture_block_and_king_evasions() {
 
 #[test]
 fn double_check_allows_only_king_moves() {
-    let mut position =
-        Position::from_fen("4r1k1/8/8/8/1b6/8/8/4K3 w - - 0 1").expect("valid FEN");
+    let mut position = Position::from_fen("4r1k1/8/8/8/1b6/8/8/4K3 w - - 0 1").expect("valid FEN");
     let moves = position.legal_moves().expect("legal moves");
     assert!(!moves.is_empty());
     assert!(moves.iter().all(|current| current.source() == square("e1")));
@@ -62,8 +55,7 @@ fn double_check_allows_only_king_moves() {
 
 #[test]
 fn absolute_pins_restrict_moves_to_the_pin_line() {
-    let mut position =
-        Position::from_fen("4r1k1/8/8/8/8/8/4R3/4K3 w - - 0 1").expect("valid FEN");
+    let mut position = Position::from_fen("4r1k1/8/8/8/8/8/4R3/4K3 w - - 0 1").expect("valid FEN");
     let pinned_moves: Vec<_> = position
         .legal_moves()
         .expect("legal moves")
@@ -81,16 +73,14 @@ fn absolute_pins_restrict_moves_to_the_pin_line() {
 
 #[test]
 fn king_moves_into_attack_and_king_captures_are_rejected() {
-    let mut checked =
-        Position::from_fen("4r1k1/8/8/8/8/8/8/4K3 w - - 0 1").expect("valid FEN");
+    let mut checked = Position::from_fen("4r1k1/8/8/8/8/8/8/4K3 w - - 0 1").expect("valid FEN");
     assert!(!checked
         .legal_moves()
         .expect("legal moves")
         .iter()
         .any(|current| current.destination() == square("e2")));
 
-    let mut adjacent =
-        Position::from_fen("8/8/8/8/8/8/4k3/4K3 w - - 0 1").expect("valid FEN");
+    let mut adjacent = Position::from_fen("8/8/8/8/8/8/4k3/4K3 w - - 0 1").expect("valid FEN");
     assert!(!adjacent
         .legal_moves()
         .expect("legal moves")
@@ -100,14 +90,12 @@ fn king_moves_into_attack_and_king_captures_are_rejected() {
 
 #[test]
 fn all_four_castles_are_legal_when_every_condition_is_satisfied() {
-    let mut white =
-        Position::from_fen("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1").expect("valid FEN");
+    let mut white = Position::from_fen("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1").expect("valid FEN");
     let white_moves = legal_uci(&mut white).expect("legal moves");
     assert!(white_moves.contains(&"e1g1".to_owned()));
     assert!(white_moves.contains(&"e1c1".to_owned()));
 
-    let mut black =
-        Position::from_fen("r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 1").expect("valid FEN");
+    let mut black = Position::from_fen("r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 1").expect("valid FEN");
     let black_moves = legal_uci(&mut black).expect("legal moves");
     assert!(black_moves.contains(&"e8g8".to_owned()));
     assert!(black_moves.contains(&"e8c8".to_owned()));
@@ -135,26 +123,22 @@ fn castling_rejects_check_transit_destination_and_lost_rights() {
 
 #[test]
 fn en_passant_requires_captured_pawn_and_preserves_king_safety() {
-    let mut valid =
-        Position::from_fen("7k/8/8/3pP3/8/8/8/7K w - d6 0 1").expect("valid FEN");
+    let mut valid = Position::from_fen("7k/8/8/3pP3/8/8/8/7K w - d6 0 1").expect("valid FEN");
     assert!(legal_uci(&mut valid)
         .expect("legal moves")
         .contains(&"e5d6".to_owned()));
 
-    let mut missing =
-        Position::from_fen("7k/8/8/4P3/8/8/8/7K w - d6 0 1").expect("valid FEN");
+    let mut missing = Position::from_fen("7k/8/8/4P3/8/8/8/7K w - d6 0 1").expect("valid FEN");
     assert!(!legal_uci(&mut missing)
         .expect("legal moves")
         .contains(&"e5d6".to_owned()));
 
-    let mut horizontal =
-        Position::from_fen("7k/8/8/r4pPK/8/8/8/8 w - f6 0 1").expect("valid FEN");
+    let mut horizontal = Position::from_fen("7k/8/8/r4pPK/8/8/8/8 w - f6 0 1").expect("valid FEN");
     assert!(!legal_uci(&mut horizontal)
         .expect("legal moves")
         .contains(&"g5f6".to_owned()));
 
-    let mut diagonal =
-        Position::from_fen("7b/8/8/3pP3/8/8/1K6/7k w - d6 0 1").expect("valid FEN");
+    let mut diagonal = Position::from_fen("7b/8/8/3pP3/8/8/1K6/7k w - d6 0 1").expect("valid FEN");
     assert!(!legal_uci(&mut diagonal)
         .expect("legal moves")
         .contains(&"e5d6".to_owned()));
@@ -162,8 +146,7 @@ fn en_passant_requires_captured_pawn_and_preserves_king_safety() {
 
 #[test]
 fn en_passant_target_expires_and_double_push_creates_one() {
-    let mut position =
-        Position::from_fen("7k/8/8/3pP3/8/8/8/7K w - d6 0 1").expect("valid FEN");
+    let mut position = Position::from_fen("7k/8/8/3pP3/8/8/8/7K w - d6 0 1").expect("valid FEN");
     let snapshot = position.clone();
     let quiet = Move::new(square("h1"), square("g1"), MoveKind::Quiet);
     let undo = position
@@ -189,8 +172,7 @@ fn en_passant_target_expires_and_double_push_creates_one() {
 
 #[test]
 fn promotions_remain_explicit_and_invalid_flags_are_rejected() {
-    let mut position = Position::from_fen("1r5k/P7/8/8/8/8/8/7K w - - 0 1")
-        .expect("valid FEN");
+    let mut position = Position::from_fen("1r5k/P7/8/8/8/8/8/7K w - - 0 1").expect("valid FEN");
     let promotions: Vec<_> = position
         .legal_moves()
         .expect("legal moves")
