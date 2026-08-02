@@ -78,12 +78,8 @@ fn search_pair(
     let alpha_beta_snapshot = alpha_beta_position.clone();
     let mut alpha_beta_history = root_history.clone();
     let alpha_beta_history_snapshot = alpha_beta_history.clone();
-    let alpha_beta = alpha_beta_search(
-        &mut alpha_beta_position,
-        &mut alpha_beta_history,
-        depth,
-    )
-    .expect("alpha-beta search succeeds");
+    let alpha_beta = alpha_beta_search(&mut alpha_beta_position, &mut alpha_beta_history, depth)
+        .expect("alpha-beta search succeeds");
     assert_restored(
         &format!("{label} alpha-beta"),
         &alpha_beta_position,
@@ -291,34 +287,14 @@ fn shorter_forced_mate_outranks_slower_forced_mate() {
     let expected_fast = Score::mate_in(1).expect("mate in one is supported");
     let expected_slow = Score::mate_in(3).expect("mate in three is supported");
 
-    let fast_reference = reference_move_score(
-        "shorter-mate",
-        &root,
-        &history,
-        SHORTER_MATE_DEPTH,
-        "f7e8",
-    );
-    let fast_alpha_beta = alpha_beta_move_score(
-        "shorter-mate",
-        &root,
-        &history,
-        SHORTER_MATE_DEPTH,
-        "f7e8",
-    );
-    let slow_reference = reference_move_score(
-        "shorter-mate",
-        &root,
-        &history,
-        SHORTER_MATE_DEPTH,
-        "f7a7",
-    );
-    let slow_alpha_beta = alpha_beta_move_score(
-        "shorter-mate",
-        &root,
-        &history,
-        SHORTER_MATE_DEPTH,
-        "f7a7",
-    );
+    let fast_reference =
+        reference_move_score("shorter-mate", &root, &history, SHORTER_MATE_DEPTH, "f7e8");
+    let fast_alpha_beta =
+        alpha_beta_move_score("shorter-mate", &root, &history, SHORTER_MATE_DEPTH, "f7e8");
+    let slow_reference =
+        reference_move_score("shorter-mate", &root, &history, SHORTER_MATE_DEPTH, "f7a7");
+    let slow_alpha_beta =
+        alpha_beta_move_score("shorter-mate", &root, &history, SHORTER_MATE_DEPTH, "f7a7");
 
     assert_eq!(fast_reference, expected_fast);
     assert_eq!(fast_alpha_beta, expected_fast);
@@ -331,8 +307,7 @@ fn shorter_forced_mate_outranks_slower_forced_mate() {
     assert_eq!(reference.score(), expected_fast);
     let selected = reference.best_move().expect("winning root has a best move");
     assert!(
-        ["f7e8", "f7f8", "f7g7", "f7h7"]
-            .contains(&selected.to_uci().as_str()),
+        ["f7e8", "f7f8", "f7g7", "f7h7"].contains(&selected.to_uci().as_str()),
         "selected move must deliver immediate mate: {}",
         selected.to_uci()
     );
