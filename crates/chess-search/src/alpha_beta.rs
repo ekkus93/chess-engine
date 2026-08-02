@@ -140,11 +140,10 @@ pub fn alpha_beta_search(
 /// and repetition semantics as [`crate::reference_search`]. At depth-zero
 /// leaves it invokes correctness-first quiescence search over captures,
 /// promotions, and every legal check evasion. Legal moves use deterministic
-/// deterministic ordering: the future TT and previous-PV hooks, promotions,
-/// MVV-LVA captures, bounded killer and history heuristics, then a stable packed
-/// quiet-move tie-break. The root uses the complete supported score window, so
-/// its returned score is exact
-/// rather than a bound.
+/// ordering: the future TT and previous-PV hooks, promotions, MVV-LVA captures,
+/// bounded killer and history heuristics, then a stable packed quiet-move
+/// tie-break. The root uses the complete supported score window, so its returned
+/// score is exact rather than a bound.
 ///
 /// The supplied history must end at `position`. Every child is applied through
 /// a source-bound legal token, pushed onto the detached line history, searched,

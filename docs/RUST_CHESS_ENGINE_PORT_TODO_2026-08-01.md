@@ -429,7 +429,7 @@ Evidence:
 # Task 14: Quiescence and ordering — ACTIVE
 - [x] 14.1 Quiescence.
 - [x] 14.2 Tactical ordering.
-- [ ] 14.3 Quiet ordering.
+- [x] 14.3 Quiet ordering.
 - [ ] 14.4 Correctness tests.
 - [ ] 14.5 Exclusions.
 - [ ] Task 14 gate.
@@ -451,7 +451,7 @@ Evidence:
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 14.2 tactical ordering is complete; Task 14.3 quiet ordering is next.
+- Tasks 14.2 and 14.3 ordering are complete; Task 14.4 correctness consolidation is next.
 
 ### Task 14.2 completion evidence
 
@@ -470,7 +470,22 @@ Evidence:
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Static exchange evaluation remains intentionally absent. Killer/history/PV quiet ordering belongs to Task 14.3; transposition storage belongs to Task 15; production limits belong to Task 16.
+- Static exchange evaluation remains intentionally absent. Task 14.3 now owns bounded killer/history/stable-tie quiet ordering; transposition storage belongs to Task 15; production limits and real iterative previous-PV reuse belong to Task 16.
+
+### Task 14.3 completion evidence
+
+- Production implementation: `crates/chess-search/src/move_ordering.rs` and `crates/chess-search/src/alpha_beta.rs`.
+- Contract documentation: `docs/RUST_QUIET_MOVE_ORDERING.md`.
+- Exact implementation SHA: `f08b2d519ffc066d8d6b18326e03ead278d908de`.
+- Focused implementation run/job: `30762211967` / `91534658841`; Cargo check, strict Clippy, and all 51 `chess-search` tests passed.
+- Full closure validation run/job: `30762457921` / `91535329886`.
+- Results: workspace assets, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy, 150 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Bounded search-local state provides two killer slots for every supported ply and one fixed `2 x 64 x 64` side/source/destination history table.
+- Only quiet beta cutoffs update killers and history. History uses a depth-squared saturating bonus capped at `1,000,000`; captures and promotions never pollute quiet statistics.
+- Production order is the future TT hook, explicit previous-PV hook, promotions, MVV-LVA captures, primary/secondary killers, descending history, then ascending packed `Move` identity.
+- The previous-PV hook remains an explicit no-op until Task 16 supplies completed-iteration PV data; the TT hook remains an explicit no-op until Task 15.
+- Fixed full-window and narrow-window regressions prove deterministic exact score/best-move semantics, strict node reduction when a useful killer is seeded, and exact position/history/incremental-Zobrist restoration.
+- Reference search retains exact legal-generation order; Task 14.2 tactical ordering remains available as a control policy. Task 14.4 correctness consolidation is next.
 
 # Task 15: Fixed-capacity transposition table — NOT STARTED
 - [ ] 15.1 Entries.

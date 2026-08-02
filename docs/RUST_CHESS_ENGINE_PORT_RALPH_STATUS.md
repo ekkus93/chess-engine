@@ -3,7 +3,7 @@
 **Updated:** 2026-08-02  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Tasks 14.1–14.2 complete; Task 14.3 quiet ordering is next
+**Current phase:** Tasks 14.1–14.3 complete; Task 14.4 correctness consolidation is next
 
 ## Completed gates
 
@@ -30,6 +30,7 @@
 | 13.5 / 13 | `7ca429b0c883bbb8484d3eb3a4af7d96cdb57201` | `30745120833` / `91489299233` | terminal/mate-distance fixtures and full Task 13 gate, 135 Rust tests, depth-four perft, and differential oracle green |
 | 14.1 | `24e1090e17f8b39bdaac4989daffdeaea4b857e9` | `30749044761` / `91499685362` | correctness-first quiescence, 140 Rust tests, depth-four perft, and differential oracle green |
 | 14.2 | `3688cb8e89a7da0c7fd34c3756d52d0fcc8d3d33` | `30753873602` / `91512570865` | bounded tactical ordering, 145 Rust tests, strict node-reduction witness, depth-four perft, and differential oracle green |
+| 14.3 | `f08b2d519ffc066d8d6b18326e03ead278d908de` | `30762457921` / `91535329886` | bounded killer/history quiet ordering, 150 Rust tests, deterministic exact-score and strict node-reduction witnesses, depth-four perft, and differential oracle green |
 
 ## Task 12 completion
 
@@ -241,7 +242,7 @@ Evidence:
 - Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 14.2 tactical ordering is complete. Task 14.3 quiet ordering, Task 15 transposition storage, and Task 16 production limits remain open.
+- Tasks 14.2 and 14.3 ordering are complete. Task 14.4 correctness consolidation, Task 15 transposition storage, and Task 16 production limits remain open.
 
 ## Task 14.2 completion
 
@@ -269,7 +270,34 @@ Evidence:
 - Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- SEE remains intentionally absent; Task 14.3 owns killer/history/stable-tie/PV quiet ordering.
+- SEE remains intentionally absent; Task 14.3 now owns bounded killer/history/stable-tie quiet ordering, while Tasks 15 and 16 own TT storage and real previous-PV data.
+
+## Task 14.3 completion
+
+Implemented and validated:
+
+- fixed-capacity, search-local quiet-ordering state with two killer slots at every supported ply;
+- a fixed `2 x 64 x 64` history table keyed by side, source, and destination;
+- quiet-cutoff-only learning with depth-squared saturating history bonuses;
+- explicit capture/promotion exclusion from killer and history updates;
+- deterministic order after tactical moves: primary killer, secondary killer, descending history, then ascending packed move identity;
+- an explicit previous-PV hook that remains `None` until Task 16 provides completed-iteration PV data;
+- production alpha-beta integration through a lint-clean recursive context carrying ordering state and cancellation;
+- generation-order reference control and retained Task 14.2 tactical control;
+- exact full-window determinism and a fixed seeded-killer narrow-window node-reduction witness;
+- exact position, detached-history, invariant, and incremental/recomputed-Zobrist restoration;
+- `docs/RUST_QUIET_MOVE_ORDERING.md`.
+
+Evidence:
+
+- Exact implementation SHA: `f08b2d519ffc066d8d6b18326e03ead278d908de`.
+- Focused implementation run/job: `30762211967` / `91534658841`; Cargo check, strict Clippy, and all 51 `chess-search` tests passed.
+- Full closure validation run/job: `30762457921` / `91535329886`.
+- Results: workspace assets, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy, 150 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 14.4 consolidated correctness tests are next; Tasks 14.5, 15, and 16 remain intentionally open.
 
 ## Task 14 active scope
 
@@ -280,7 +308,7 @@ Evidence:
 - [x] Enforce a bounded fail-loud tactical-ply guard.
 - [x] Add independent tactical-oracle and fixed horizon-effect regressions.
 - [x] Implement Task 14.2 tactical ordering.
-- [ ] Implement Task 14.3 quiet ordering.
+- [x] Implement Task 14.3 quiet ordering.
 - [ ] Complete Task 14.4 consolidated correctness tests and Task 14.5 exclusion audit.
 - [ ] Pass the overall Task 14 gate.
 
@@ -296,4 +324,4 @@ Evidence:
 - [x] Add mate-in-one, mated, stalemate, draw, shorter-mate, and longer-survival fixtures.
 - [x] Pass exact-head rustfmt, Cargo check, Clippy, tests, rustdoc, debug, release, perft, and differential gates.
 
-No pull request has been created; work remains on `rust-engine`. Task 14.3 quiet ordering is the next operation.
+No pull request has been created; work remains on `rust-engine`. Task 14.4 consolidated correctness tests are the next operation.

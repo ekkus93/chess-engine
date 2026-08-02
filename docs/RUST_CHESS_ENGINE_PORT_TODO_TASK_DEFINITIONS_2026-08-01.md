@@ -750,10 +750,10 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 14.3 Quiet ordering
 
-- [ ] Killer moves by ply.
-- [ ] History heuristic by side/from/to or piece/to.
-- [ ] Stable encoded-move tie-break.
-- [ ] Optional previous-PV move.
+- [x] Killer moves by ply.
+- [x] History heuristic by side/from/to or piece/to.
+- [x] Stable encoded-move tie-break.
+- [x] Optional previous-PV move.
 
 ## 14.4 Correctness tests
 
