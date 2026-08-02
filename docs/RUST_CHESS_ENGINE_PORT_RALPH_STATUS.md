@@ -3,7 +3,7 @@
 **Updated:** 2026-08-02  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 14.1 quiescence complete; Task 14.2 tactical ordering is next
+**Current phase:** Tasks 14.1–14.2 complete; Task 14.3 quiet ordering is next
 
 ## Completed gates
 
@@ -29,6 +29,7 @@
 | 13.4 | `3644e032504b604c210796f1e6c7ef056d05e94b` | `30743519630` / `91485044296` | completion/cancellation immutability, 131 Rust tests, depth-four perft, and differential oracle green |
 | 13.5 / 13 | `7ca429b0c883bbb8484d3eb3a4af7d96cdb57201` | `30745120833` / `91489299233` | terminal/mate-distance fixtures and full Task 13 gate, 135 Rust tests, depth-four perft, and differential oracle green |
 | 14.1 | `24e1090e17f8b39bdaac4989daffdeaea4b857e9` | `30749044761` / `91499685362` | correctness-first quiescence, 140 Rust tests, depth-four perft, and differential oracle green |
+| 14.2 | `3688cb8e89a7da0c7fd34c3756d52d0fcc8d3d33` | `30753873602` / `91512570865` | bounded tactical ordering, 145 Rust tests, strict node-reduction witness, depth-four perft, and differential oracle green |
 
 ## Task 12 completion
 
@@ -240,7 +241,35 @@ Evidence:
 - Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 14.2 tactical ordering is next. Task 14.3 quiet ordering, Task 15 transposition storage, and Task 16 production limits remain open.
+- Task 14.2 tactical ordering is complete. Task 14.3 quiet ordering, Task 15 transposition storage, and Task 16 production limits remain open.
+
+## Task 14.2 completion
+
+Implemented and validated:
+
+- fixed-capacity stack-backed stable ordering over opaque legal-move tokens;
+- an explicit transposition-table move hook that returns `None` until Task 15;
+- promotion ordering by promoted-piece value, including promotion captures;
+- MVV-LVA capture ordering with explicit en-passant pawn-victim semantics;
+- generation-stable remaining moves and equal-key ties;
+- tactical ordering in production alpha-beta and quiescence search;
+- exact generation-order control policy in the unpruned reference search;
+- a typed alpha-beta window that preserves the strict lint-clean recursive boundary;
+- a fixed narrow-window node-reduction witness with identical fail-soft score and best move;
+- exact position, detached-history, invariant, and incremental/recomputed-Zobrist restoration;
+- `crates/chess-search/src/move_ordering.rs` and `docs/RUST_TACTICAL_MOVE_ORDERING.md`.
+
+Evidence:
+
+- Exact validated implementation SHA: `3688cb8e89a7da0c7fd34c3756d52d0fcc8d3d33`.
+- Permanent CI run/job: `30753873602` / `91512570865`.
+- Results: workspace assets, lockfile, metadata, rustfmt, Cargo check, Clippy with `-D warnings`, 145 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with `-D warnings`, debug build, release build, and independent differential validation passed.
+- New coverage: four move-ordering unit tests and one quiescence narrow-window node-reduction test.
+- Existing search-equivalence, immutability/cancellation, quiescence, terminal/mate-distance, perft, and differential suites remained green.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- SEE remains intentionally absent; Task 14.3 owns killer/history/stable-tie/PV quiet ordering.
 
 ## Task 14 active scope
 
@@ -250,7 +279,7 @@ Evidence:
 - [x] Preserve fail-soft alpha-beta, draw, repetition, mate-distance, cancellation, and restoration semantics.
 - [x] Enforce a bounded fail-loud tactical-ply guard.
 - [x] Add independent tactical-oracle and fixed horizon-effect regressions.
-- [ ] Implement Task 14.2 tactical ordering.
+- [x] Implement Task 14.2 tactical ordering.
 - [ ] Implement Task 14.3 quiet ordering.
 - [ ] Complete Task 14.4 consolidated correctness tests and Task 14.5 exclusion audit.
 - [ ] Pass the overall Task 14 gate.
@@ -267,4 +296,4 @@ Evidence:
 - [x] Add mate-in-one, mated, stalemate, draw, shorter-mate, and longer-survival fixtures.
 - [x] Pass exact-head rustfmt, Cargo check, Clippy, tests, rustdoc, debug, release, perft, and differential gates.
 
-No pull request has been created; work remains on `rust-engine`. Task 14.2 tactical ordering is the next operation.
+No pull request has been created; work remains on `rust-engine`. Task 14.3 quiet ordering is the next operation.

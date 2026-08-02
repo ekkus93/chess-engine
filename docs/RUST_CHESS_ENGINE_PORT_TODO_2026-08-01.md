@@ -35,7 +35,7 @@
 | 11 | **Complete** — authoritative perft and differential validation. |
 | 12 | **Complete** — baseline evaluator and trace. |
 | 13 | **Complete** — reference negamax, alpha-beta, shallow equivalence, immutability, and terminal/mate-distance fixtures. |
-| 14 | **Active** — Task 14.1 quiescence complete; Task 14.2 tactical ordering next. |
+| 14 | **Active** — Tasks 14.1–14.2 complete; Task 14.3 quiet ordering next. |
 | 15–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
@@ -428,7 +428,7 @@ Evidence:
 
 # Task 14: Quiescence and ordering — ACTIVE
 - [x] 14.1 Quiescence.
-- [ ] 14.2 Tactical ordering.
+- [x] 14.2 Tactical ordering.
 - [ ] 14.3 Quiet ordering.
 - [ ] 14.4 Correctness tests.
 - [ ] 14.5 Exclusions.
@@ -451,7 +451,26 @@ Evidence:
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 14.2 tactical ordering is next; TT hooks, MVV-LVA, SEE, killer/history ordering, and other Task 14.2–14.3 features remain intentionally absent.
+- Task 14.2 tactical ordering is complete; Task 14.3 quiet ordering is next.
+
+### Task 14.2 completion evidence
+
+- Bounded stable ordering implementation: `crates/chess-search/src/move_ordering.rs`.
+- Alpha-beta and quiescence integration: `crates/chess-search/src/alpha_beta.rs` and `crates/chess-search/src/quiescence.rs`.
+- Reference control policy: `crates/chess-search/src/reference.rs` retains exact legal-generation order through `MoveOrdering::Generation`.
+- Contract documentation: `docs/RUST_TACTICAL_MOVE_ORDERING.md`.
+- Exact validated implementation SHA: `3688cb8e89a7da0c7fd34c3756d52d0fcc8d3d33`.
+- Permanent CI run/job: `30753873602` / `91512570865`.
+- Results: workspace assets, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy, 145 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Production order is an explicit no-op transposition-table hook, promotions by promoted-piece value, MVV-LVA captures, then generation-stable remaining moves. Promotion captures remain in the promotion tier; en-passant captures use a pawn victim.
+- Ordering storage is fixed-capacity stack-backed and copies opaque source-bound legal tokens without synthesizing moves, allocating per node, mutating the position, or weakening token-origin validation.
+- Focused tests prove the TT hook is currently `None`, generation policy preserves the exact token sequence, a supplied future TT move receives first priority, queen/rook/bishop/knight promotion priority is deterministic, and MVV-LVA prefers both the more valuable victim and the cheaper attacker.
+- A fixed narrow-window tactical tree returns the same fail-soft score and best move under generation and tactical policies while tactical ordering visits strictly fewer nodes; both paths restore position, detached history, invariants, and incremental/recomputed Zobrist identity exactly.
+- Existing equivalence, cancellation/immutability, quiescence, terminal/mate-distance, perft, and differential suites remain green.
+- Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Static exchange evaluation remains intentionally absent. Killer/history/PV quiet ordering belongs to Task 14.3; transposition storage belongs to Task 15; production limits belong to Task 16.
 
 # Task 15: Fixed-capacity transposition table — NOT STARTED
 - [ ] 15.1 Entries.
@@ -589,9 +608,9 @@ Evidence:
 
 ## Immediate next operations
 
-1. Implement Task 14.2 tactical ordering over the validated Task 14.1 quiescence and alpha-beta semantics.
-2. Add the documented transposition-table move hook as an explicit no-op until Task 15 supplies a real table.
-3. Order promotions and captures deterministically, beginning with MVV-LVA; preserve exact score and first-best correctness independently of ordering.
-4. Keep static exchange evaluation optional and excluded until the baseline ordering is correct, measured, and regression-covered.
-5. Compare node counts on fixed tactical benchmark positions while preserving root score, best move, cancellation, history, Zobrist, and restoration contracts.
-6. Keep Task 14.3 killer/history/PV quiet ordering, Task 15 transposition storage, and Task 16 production limits out of Task 14.2.
+1. Implement Task 14.3 quiet ordering over the validated Task 14.1–14.2 search semantics.
+2. Add bounded killer moves by ply and a bounded history heuristic keyed by side/from/to or piece/to.
+3. Use a stable encoded-move tie-break and keep any previous-PV hook explicit and optional until Task 16 provides iterative deepening and PV data.
+4. Prove quiet ordering cannot override a better exact score and preserves deterministic full-window root results.
+5. Compare nodes on fixed quiet-search benchmark positions while preserving cancellation, history, Zobrist, and exact make/unmake restoration.
+6. Keep Task 14.4 consolidated correctness closure, Task 14.5 exclusion audit, Task 15 transposition storage, and Task 16 production limits outside Task 14.3.
