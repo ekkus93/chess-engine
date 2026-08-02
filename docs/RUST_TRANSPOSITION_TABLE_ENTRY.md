@@ -14,7 +14,7 @@ Each transposition-table entry contains exactly the information required by the 
    - `Exact` for a complete minimax result;
    - `Lower` for a fail-high lower bound;
    - `Upper` for a fail-low upper bound.
-4. **Normalized score:** `TranspositionScore`, a distinct wrapper around `Score`. Task 15.3 will provide the node-ply conversion rules for mate scores. The wrapper prevents ordinary node-relative scores from being confused with stored scores once probes are enabled.
+4. **Normalized score:** `TranspositionScore`, a distinct wrapper around `Score`. Task 15.3 provides the root-ply conversion rules for mate scores. The wrapper prevents root-relative search scores from being confused with position-relative stored scores once probes are enabled.
 5. **Best move:** `Option<Move>`, retaining the engine's compact semantic move identity without legal-token or position ownership.
 6. **Generation:** a one-byte generation value for later age-aware replacement.
 
@@ -32,9 +32,9 @@ Depth sufficiency, repetition-sensitive reuse, and cutoff behavior belong to Tas
 
 ## Score boundary
 
-`TranspositionScore::from_normalized` is deliberately explicit. It accepts only a caller assertion that the supplied score is already in the storage domain. Task 15.3 will replace direct caller reasoning with tested normalization and denormalization helpers for ply-relative mate scores.
+`TranspositionScore::normalize(score, ply)` is the public storage boundary. It converts root-relative winning and losing mate scores into position-relative values while preserving static centipawn scores exactly. `TranspositionScore::denormalize(ply)` performs the inverse conversion for a future probe.
 
-Static centipawn values remain unchanged by that future conversion. Mate values will be translated so the same stored entry can be reached and interpreted correctly at different search plies.
+The unchecked `from_normalized` constructor is crate-private. Public callers therefore cannot bypass the tested conversion contract. Conversion failures are typed and fail loudly when the ply is unsupported or normalization would leave the score domain.
 
 ## Layout and portability
 
@@ -47,7 +47,7 @@ Static centipawn values remain unchanged by that future conversion. Mate values 
 - round-trip preservation of all six required fields;
 - support for every bound and for entries without a best move.
 
-Task 15.2 will choose the fixed-memory bucket and cluster shape using this measured entry footprint. There is no heap table, map, allocation policy, empty-slot encoding, or replacement policy in Task 15.1.
+Task 15.2 chose the fixed-memory bucket and cluster shape using this measured entry footprint. Task 15.1 itself introduced no heap table, map, allocation policy, empty-slot encoding, or replacement policy.
 
 ## Explicit exclusions
 

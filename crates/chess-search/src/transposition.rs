@@ -25,23 +25,25 @@ pub enum TranspositionBound {
     Upper = 2,
 }
 
-/// A score already converted into the transposition table's storage domain.
+/// A score converted into the transposition table's storage domain.
 ///
-/// Task 15.3 will define the mate-distance conversion between node-relative
-/// [`Score`] values and this stored representation. Keeping the value in a
-/// distinct type prevents an ordinary node score from being placed into an
-/// entry accidentally once storage and probes are implemented.
+/// Use [`TranspositionScore::normalize`] to convert a root-relative search
+/// score at the storage ply and [`TranspositionScore::denormalize`] to recover
+/// the correct root-relative value at a later probe ply. Keeping the value in a
+/// distinct type prevents ordinary search scores from being confused with
+/// position-relative stored scores.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[repr(transparent)]
 pub struct TranspositionScore(Score);
 
 impl TranspositionScore {
-    /// Wraps a score that the caller has already normalized for storage.
+    /// Wraps a score already proven to be in the normalized storage domain.
     ///
-    /// Before Task 15.3 this constructor is the explicit boundary used by entry
-    /// tests. Production search does not yet create or consume TT entries.
+    /// Public callers must use [`TranspositionScore::normalize`]. This
+    /// crate-private constructor remains available to the conversion module and
+    /// focused entry-layout tests without exposing an unchecked public bypass.
     #[must_use]
-    pub const fn from_normalized(normalized: Score) -> Self {
+    pub(crate) const fn from_normalized(normalized: Score) -> Self {
         Self(normalized)
     }
 
@@ -56,8 +58,8 @@ impl TranspositionScore {
 ///
 /// Slot selection and collision handling belong to Tasks 15.2 and 15.5. The
 /// entry retains the complete 64-bit position key as a verification key rather
-/// than relying on the bucket index alone. The score must already be in the
-/// normalized storage domain represented by [`TranspositionScore`].
+/// than relying on the bucket index alone. Scores enter the normalized storage
+/// domain through [`TranspositionScore::normalize`].
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[repr(C)]
 pub struct TranspositionEntry {

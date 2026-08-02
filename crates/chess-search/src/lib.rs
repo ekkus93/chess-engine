@@ -13,6 +13,7 @@ mod reference;
 mod score;
 mod search_common;
 mod transposition;
+mod transposition_score;
 mod weights;
 
 pub use alpha_beta::{
@@ -37,6 +38,7 @@ pub use transposition::{
     TranspositionBound, TranspositionEntry, TranspositionScore, TranspositionTable,
     TranspositionTableAllocationError, TRANSPOSITION_CLUSTER_SIZE,
 };
+pub use transposition_score::TranspositionScoreConversionError;
 pub use weights::{
     EvaluationWeightSet, EvaluationWeights, PhasedWeight, WeightValidationError,
     BASELINE_WEIGHT_SET_ID, EVALUATION_WEIGHT_SCHEMA_VERSION, WEIGHT_VALUE_COUNT,
