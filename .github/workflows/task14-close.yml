@@ -1,0 +1,68 @@
+name: Task 14.1 Closure
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  close-task-14-1:
+    if: >-
+      github.ref == 'refs/heads/master' &&
+      github.event.issue.title == '[close-task-14-1]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+    steps:
+      - name: Check out control files
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          path: control
+      - name: Check out rust-engine
+        uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          path: target
+      - name: Guard exact implementation head
+        working-directory: target
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '24e1090e17f8b39bdaac4989daffdeaea4b857e9'
+      - name: Patch authoritative trackers
+        working-directory: target
+        run: |
+          set -euo pipefail
+          python ../control/.github/close_task14_1.py .
+          git diff --check
+      - name: Commit and push documentation closure
+        id: commit
+        working-directory: target
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md \
+                  docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
+          git diff --cached --quiet && { echo 'No tracker changes produced.' >&2; exit 1; }
+          git commit -m 'docs: close Task 14.1 quiescence'
+          git push origin HEAD:rust-engine
+          echo "sha=$(git rev-parse HEAD)" >>"${GITHUB_OUTPUT}"
+      - name: Report and close issue
+        env:
+          SHA: ${{ steps.commit.outputs.sha }}
+        run: |
+          set -euo pipefail
+          gh api --method POST \
+            "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/comments" \
+            -f body="Closed Task 14.1 trackers at documentation-only SHA ${SHA}; exact validated implementation remains 24e1090e17f8b39bdaac4989daffdeaea4b857e9, CI 30749044761 / 91499685362."
+          gh api --method PATCH \
+            "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}" \
+            -f state=closed \
+            -f state_reason=completed
