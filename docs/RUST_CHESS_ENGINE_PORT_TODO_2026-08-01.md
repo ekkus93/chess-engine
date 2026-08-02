@@ -33,8 +33,9 @@
 | 9 | **Complete** — Zobrist hashing and repetition identity. |
 | 10 | **Complete** — game history and draw semantics. |
 | 11 | **Complete** — authoritative perft and differential validation. |
-| 12 | **Active** — baseline evaluator and trace. |
-| 13–24 | **Not started**. |
+| 12 | **Complete** — baseline evaluator and trace. |
+| 13 | **Active** — reference search and alpha-beta. |
+| 14–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
 
@@ -274,16 +275,36 @@
 
 ---
 
-# Task 12: Baseline evaluator and trace — ACTIVE, NOT STARTED
-- [ ] 12.1 Score convention.
-- [ ] 12.2 Baseline terms.
-- [ ] 12.3 Efficiency.
-- [ ] 12.4 Trace.
-- [ ] 12.5 Named weights.
-- [ ] 12.6 Exclusions.
-- [ ] Task 12 gate.
+# Task 12: Baseline evaluator and trace — COMPLETE
+- [x] 12.1 Score convention.
+- [x] 12.2 Baseline terms.
+- [x] 12.3 Efficiency.
+- [x] 12.4 Trace.
+- [x] 12.5 Named weights.
+- [x] 12.6 Exclusions.
+- [x] Task 12 gate.
 
-# Task 13: Reference search and alpha-beta — NOT STARTED
+### Task 12 completion evidence
+
+- Typed centipawn and mate-score contract: `crates/chess-search/src/score.rs`.
+- Tapered evaluator and fixed trace: `crates/chess-search/src/evaluation.rs`.
+- Named, versioned, checksummed weights: `crates/chess-search/src/weights.rs`.
+- Explicit adapter serialization and diagnostics: `crates/chess-tools/src/weights_io.rs`, `crates/chess-tools/src/lib.rs`, and `crates/chess-tools/src/main.rs`.
+- Contract and benchmark record: `docs/RUST_BASELINE_EVALUATOR.md`.
+- Exact formatted implementation head: `d8547cc258ecc2e52b8e4eb7ef287d92d5d0a04f`.
+- Permanent implementation CI run/job: `30734451785` / `91460574656`.
+- Results: rustfmt, Cargo check, strict Clippy, 103 executed Rust tests, release depth-four perft, rustdoc, debug/release builds, and the independent differential corpus passed.
+- Benchmark/tooling run/job: `30734335652` / `91460185440`; fixed trace, five release benchmark groups, explicit weight export, and validated import passed.
+- Baseline weight identifier/checksum: `424153454c494e45` / `d2cca7ae10ec6e34`.
+- Normal evaluation and tracing are fixed-structure and allocation-free; serialization and benchmark allocations remain tool-only.
+- Exclusion audit found no transcript-specific, review-loop, anti-drift, or exact-scenario evaluator guidance.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime and dependency `punycode` deprecation notices only.
+- Task 13 owns reference minimax, negamax alpha-beta, shallow equivalence, search immutability, and terminal fixtures.
+
+---
+
+# Task 13: Reference search and alpha-beta — ACTIVE, NOT STARTED
 - [ ] 13.1 Reference search.
 - [ ] 13.2 Negamax alpha-beta.
 - [ ] 13.3 Shallow equivalence.

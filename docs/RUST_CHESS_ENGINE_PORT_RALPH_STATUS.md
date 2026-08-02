@@ -3,7 +3,7 @@
 **Updated:** 2026-08-01  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 12 baseline evaluator and trace active; implementation candidate under validation
+**Current phase:** Task 13 reference search and alpha-beta active; implementation not started
 
 ## Completed gates
 
@@ -21,47 +21,46 @@
 | 9 | `178583c15458cb29205201047bad8f4064a9342d` | `30731524205` / `91452671063` | strict implementation gate green; `72 passed` |
 | 10 | `dd57b258fc8b9af647c30a1834f3d9e79a3d8ee3` | `30732542941` / `91455346591` | strict implementation gate green; `84 passed` |
 | 11 | `1711fefe37b93163ec316ba9528742d6f87f8496` | `30733309460` / `91457298625` | strict gate, depth-four perft, and differential oracle green; 89 Rust tests |
+| 12 | `d8547cc258ecc2e52b8e4eb7ef287d92d5d0a04f` | `30734451785` / `91460574656` | strict gate, depth-four perft, and differential oracle green; 103 Rust tests |
 
-## Task 11 completion
+## Task 12 completion
 
 Implemented and validated:
 
-- one authoritative six-position perft manifest through depth five;
-- direct manifest consumption by Rust integration tests;
-- fast depth-one through depth-three gates with exact restoration checks;
-- required release-mode depth-four CI validation;
-- permanent weekly and manual release-mode depth-five validation;
-- deterministic UCI-sorted legal-move and divide output;
-- canonical child-FEN and perft tooling;
-- a persistent machine-readable Rust oracle protocol;
-- pinned independent `chess==1.11.2` validation;
-- fifteen-position permanent special-rule corpus;
-- complete legal-set, every-child-FEN, independent-perft, and seeded-playout comparisons;
-- fail-loud corpus validation and reproducible mismatch diagnostics;
-- correction of two specification FEN/count pairing errors;
-- `docs/RUST_PERFT_AND_DIFFERENTIAL_VALIDATION.md`.
+- typed centipawn scores from the side-to-move negamax perspective;
+- a static-evaluation range separated from distance-aware mate scores;
+- color, side-to-move, and vertical-mirror symmetry tests;
+- tapered middlegame/endgame material and piece-square evaluation;
+- mobility, pawn structure, bishop pair, rook activity, king safety, space, and king activity terms;
+- fixed, allocation-free normal evaluation and fixed trace structures;
+- exact trace-component summation against normal evaluation;
+- typed and named phased weights with explicit defaults;
+- versioned weight sets with stable identifiers and canonical checksums;
+- validated explicit serialization in `chess-tools` with no automatic file discovery;
+- stable evaluator trace and per-group benchmark commands;
+- benchmark evidence for every major evaluator group;
+- exclusion audit against transcript-specific and exact-scenario Python patches;
+- `docs/RUST_BASELINE_EVALUATOR.md`.
 
 Evidence:
 
-- Validated implementation head: `1711fefe37b93163ec316ba9528742d6f87f8496`.
-- Implementation CI run/job: `30733309460` / `91457298625`.
-- Results: lockfile and metadata verification, rustfmt, Cargo check, Clippy with `-D warnings`, 89 executed Rust tests, release depth-four perft, rustdoc with `-D warnings`, debug build, and release build.
-- Differential result: fifteen positions, 293 child FENs, 272,991 independently counted perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
-- Depth-five validated head: `e5c44147c8f6097f1d60c8d6d73a051da4fc13a1`.
-- Depth-five run/job: `30733437572` / `91457637460`.
-- Depth-five result: all six positions and 469,080,960 leaves passed in 39.77 seconds.
+- Formatted implementation head: `d8547cc258ecc2e52b8e4eb7ef287d92d5d0a04f`.
+- Permanent implementation CI run/job: `30734451785` / `91460574656`.
+- Results: workspace assets, lockfile, metadata, rustfmt, Cargo check, Clippy with `-D warnings`, 103 executed Rust tests, release depth-four perft, rustdoc with `-D warnings`, debug build, release build, and independent differential validation passed.
+- Benchmark/tooling run/job: `30734335652` / `91460185440`.
+- Full starting-position release evaluation: 20,000 iterations in 19,596,825 ns, approximately 979.8 ns per evaluation on the hosted runner.
+- Baseline weight identifier/checksum: `424153454c494e45` / `d2cca7ae10ec6e34`.
 - First-party warnings: none.
-- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 12 owns evaluation semantics and traceability over the validated rule layer.
+- Accepted external notices: GitHub Actions Node runtime and dependency `punycode` deprecation notices only.
+- Task 13 owns correctness-first reference search and alpha-beta over this evaluator.
 
-## Task 12 active scope
+## Task 13 active scope
 
-- [ ] Define the score convention and terminal-score boundary.
-- [ ] Implement the required baseline evaluation terms.
-- [ ] Preserve efficient evaluation suitable for search.
-- [ ] Add a term-by-term evaluation trace.
-- [ ] Centralize named weights and document their meaning.
-- [ ] Enforce the Task 12 evaluator exclusions.
+- [ ] Implement an unpruned reference minimax search.
+- [ ] Implement negamax alpha-beta using make/unmake.
+- [ ] Prove shallow reference/alpha-beta score and best-move equivalence.
+- [ ] Prove search restores the root position and game history exactly.
+- [ ] Add checkmate, stalemate, draw, and mate-distance fixtures.
 - [ ] Pass exact-head rustfmt, Cargo check, Clippy, tests, rustdoc, debug, and release gates.
 
 No pull request has been created; work remains on `rust-engine`.
