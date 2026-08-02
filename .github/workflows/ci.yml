@@ -124,7 +124,7 @@ jobs:
   close-review-fix:
     name: Close pre-Task-13 review fixes
     needs: rust-quality
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[review-fix-close]')
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
