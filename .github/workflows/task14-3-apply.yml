@@ -6,6 +6,7 @@ on:
       - rust-engine
     paths:
       - .github/task14_3_parts/**
+      - .github/task14_3_run_request.txt
       - .github/workflows/task14-3-apply.yml
 
 permissions:
@@ -26,6 +27,17 @@ jobs:
           ref: rust-engine
           fetch-depth: 0
 
+      - name: Configure progress reporting
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          echo 'started' > .github/task14_3_progress.txt
+          git add .github/task14_3_progress.txt
+          git commit -m "ci: Task 14.3 validation started"
+          git push origin HEAD:rust-engine
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -37,6 +49,12 @@ jobs:
         run: |
           set +e
           set -o pipefail
+          progress() {
+            printf '%s\n' "$1" > .github/task14_3_progress.txt
+            git add .github/task14_3_progress.txt
+            git commit -m "ci: Task 14.3 $1"
+            git push origin HEAD:rust-engine
+          }
           {
             set -euo pipefail
             cat .github/task14_3_parts/part{00..04} > /tmp/apply_task_14_3.py
@@ -80,9 +98,13 @@ jobs:
             echo '8b6bab7bd745473b18f1098d544158a6ffb922bbb5ed5e4a21df7a32cfb4923d  /tmp/apply_task_14_3.py' | sha256sum --check
             python3 /tmp/apply_task_14_3.py "$GITHUB_WORKSPACE"
             cargo fmt --all
-            cargo check --locked -p chess-search --all-targets --all-features
-            cargo clippy --locked -p chess-search --all-targets --all-features -- -D warnings
-            cargo test --locked -p chess-search --all-features
+            progress applied-and-formatted
+            timeout 300 cargo check --locked -p chess-search --all-targets --all-features
+            progress cargo-check-passed
+            timeout 300 cargo clippy --locked -p chess-search --all-targets --all-features -- -D warnings
+            progress clippy-passed
+            timeout 600 cargo test --locked -p chess-search --all-features
+            progress focused-tests-passed
           } 2>&1 | tee /tmp/task14_3_validation.log
           status=${PIPESTATUS[0]}
           echo "status=${status}" >> "$GITHUB_OUTPUT"
@@ -95,8 +117,6 @@ jobs:
           set -euo pipefail
           git reset --hard HEAD
           cp /tmp/task14_3_validation.log .github/task14_3_failure.txt
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .github/task14_3_failure.txt
           git commit -m "ci: record Task 14.3 validation failure"
           git push origin HEAD:rust-engine
@@ -106,9 +126,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf .github/task14_3_parts .github/workflows/task14-3-apply.yml .github/task14_3_failure.txt
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -rf .github/task14_3_parts \
+            .github/task14_3_run_request.txt \
+            .github/task14_3_progress.txt \
+            .github/task14_3_failure.txt \
+            .github/workflows/task14-3-apply.yml
           git add -A
           git commit -m "search: implement Task 14.3 quiet ordering"
           git push origin HEAD:rust-engine
