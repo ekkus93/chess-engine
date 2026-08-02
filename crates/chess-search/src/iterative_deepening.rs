@@ -94,7 +94,8 @@ impl IterativeDeepeningSearchResult {
     /// Returns the deepest completed depth, or zero for an internally empty result.
     #[must_use]
     pub fn completed_depth(&self) -> u16 {
-        self.final_iteration().map_or(0, |iteration| iteration.depth())
+        self.final_iteration()
+            .map_or(0, |iteration| iteration.depth())
     }
 
     /// Returns the sum of nodes visited by all completed iterations.
@@ -206,9 +207,7 @@ pub fn iterative_deepening_search_with_transposition_table(
     let mut iterations = Vec::new();
     iterations
         .try_reserve_exact(maximum_depth as usize)
-        .map_err(|_| IterativeDeepeningSearchError::IterationStorageAllocation {
-            maximum_depth,
-        })?;
+        .map_err(|_| IterativeDeepeningSearchError::IterationStorageAllocation { maximum_depth })?;
     let mut total_nodes = 0_u64;
 
     for depth in 1..=maximum_depth {
@@ -240,9 +239,7 @@ pub fn iterative_deepening_search_with_transposition_table(
     })
 }
 
-fn validate_maximum_depth(
-    maximum_depth: u16,
-) -> Result<(), IterativeDeepeningSearchError> {
+fn validate_maximum_depth(maximum_depth: u16) -> Result<(), IterativeDeepeningSearchError> {
     if maximum_depth == 0 {
         return Err(IterativeDeepeningSearchError::ZeroMaximumDepth);
     }
