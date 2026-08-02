@@ -12,9 +12,10 @@
 - `[x]` means complete with repository and, where required, exact-SHA CI evidence.
 - `[ ]` means incomplete, unverified, deferred, blocked, or not started.
 - GitHub Actions is the authoritative Rust execution environment.
-- Every first-party rustfmt, compiler, Clippy, test, rustdoc, or build finding is a bug and must be fixed at source.
-- The companion definitions file preserves the original detailed wording; this file is the authoritative live status.
-- Update this file whenever implementation or evidence changes any task or subtask.
+- Every first-party rustfmt, compiler, Clippy, test, rustdoc, or build finding is a source bug.
+- No first-party lint suppression, output filtering, ignored exit status, or downgraded gate is accepted.
+- The companion definitions file preserves the original detailed task wording; this file is the authoritative live status.
+- Update this file whenever implementation or evidence changes a task or subtask.
 
 ## Program summary
 
@@ -27,26 +28,27 @@
 | 4 | **Complete** — strict FEN and UCI notation. |
 | 5 | **Complete** — attack generation. |
 | 6 | **Complete** — pseudo-legal move generation. |
-| 7 | **Implemented, CI pending** — legal filtering, special rules, reversible validation path, and initial perft are present. |
+| 7 | **Complete** — legal move generation, special rules, reversible validation, and initial perft. |
 | 8–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
 
 ---
 
-# Tasks 0–6 — complete
+# Tasks 0–7 — complete
 
-- [x] Task 0 gate. Evidence: SHA `7ca6f8dc0d2577ca552a6bfe115828eb668d2133`; run/job `30722127447` / `91427510964`; fast `1203`, slow `179`, perft `20/400/8902/197281`, UCI passed.
-- [x] Task 1 gate. Evidence: SHA `7ca6f8dc0d2577ca552a6bfe115828eb668d2133`; run/job `30722127447` / `91427510938`; all strict workspace gates passed.
-- [x] Task 2 gate. Evidence: SHA `f29524599134a14d34121af2fefb04cd90e78df0`; run/job `30723748100` / `91431648799`; `16 passed`; closure `b5f462aa73a69efcdc847ee215231a5064029902` green.
-- [x] Task 3 gate. Evidence: SHA `00fd925dad807d822aa7878aade686ccc59ff9c5`; run/job `30724744784` / `91434236030`; `24 passed`; closure `5578682bb2a6df5173ff7593649ac55509c277cd` green.
-- [x] Task 4 gate. Evidence: SHA `6cb975b35f4dbe898a0444b1b4c39778e89bcb40`; run/job `30726795562` / `91439860915`; `35 passed`.
+- [x] Task 0 gate. Evidence: SHA `7ca6f8dc0d2577ca552a6bfe115828eb668d2133`; run/job `30722127447` / `91427510964`; Python fast `1203`, slow `179`, perft `20/400/8902/197281`, UCI passed.
+- [x] Task 1 gate. Evidence: SHA `7ca6f8dc0d2577ca552a6bfe115828eb668d2133`; run/job `30722127447` / `91427510938`; strict workspace gates passed.
+- [x] Task 2 gate. Evidence: implementation SHA `f29524599134a14d34121af2fefb04cd90e78df0`; run/job `30723748100` / `91431648799`; `16 passed`; closure `b5f462aa73a69efcdc847ee215231a5064029902` green.
+- [x] Task 3 gate. Evidence: implementation SHA `00fd925dad807d822aa7878aade686ccc59ff9c5`; run/job `30724744784` / `91434236030`; `24 passed`; closure `5578682bb2a6df5173ff7593649ac55509c277cd` green.
+- [x] Task 4 gate. Evidence: closure SHA `6cb975b35f4dbe898a0444b1b4c39778e89bcb40`; run/job `30726795562` / `91439860915`; `35 passed`.
 - [x] Task 5 gate. Evidence: implementation `9922b0c725147fcabac3ce4c08f7c150c3ec6a1d`; run/job `30727440571` / `91441645867`; `42 passed`; closure `78e9315369ff4552e5500d1a820767a1fd228f29` green.
 - [x] Task 6 gate. Evidence: implementation `0dcf512d404ae248d5a99651543d9d0ca9687699`; run/job `30727874051` / `91442826957`; `49 passed`; closure `cb7124c5712f6b3f8f4540e9e8fabaa2aa242bc0` green.
+- [x] Task 7 gate. Evidence: implementation head `d6ea24eb6eeaea7b41dc309f866a5653aba687d5`; run/job `30729969574` / `91448384283`; `59 passed`; rustfmt, Cargo check, Clippy with `-D warnings`, rustdoc with `-D warnings`, debug build, and release build passed.
 
 ---
 
-# Task 7: Complete legal move generation and special rules — IMPLEMENTED, CI PENDING
+# Task 7: Complete legal move generation and special rules — COMPLETE
 
 ## 7.1 King-safety filtering
 - [x] Generate pseudo-legal candidates through Task 6.
@@ -69,7 +71,7 @@
 - [x] Reject castling while currently in check.
 - [x] Reject attacked transit squares.
 - [x] Reject attacked destination squares.
-- [x] Test the transit square after vacating the king's source square, preventing source-blocker attack bugs.
+- [x] Test transit attacks after vacating the king's source square.
 - [x] Support all four castling directions.
 - [x] Update and restore king/rook movement and castling rights.
 - [x] Clear rights for king movement, rook movement from a home square, and rook capture on a home square.
@@ -95,28 +97,32 @@
 - [x] Private reversible `Undo` records captures, metadata, side, and hash placeholder.
 - [x] No clone-per-child in legal filtering, perft, or divide.
 - [x] `Position::perft(0)` returns one leaf.
-- [x] Starting-position depth 1 expected `20`.
-- [x] Starting-position depth 2 expected `400`.
-- [x] Starting-position depth 3 expected `8,902`.
-- [x] Starting-position depth 4 expected `197,281`.
+- [x] Starting-position depth 1 is `20`.
+- [x] Starting-position depth 2 is `400`.
+- [x] Starting-position depth 3 is `8,902`.
+- [x] Starting-position depth 4 is `197,281`.
 - [x] Deterministic root divide.
 - [x] Exact position equality and invariant validation after legal generation, perft, and divide.
 - [x] `docs/RUST_LEGAL_MOVE_GENERATION.md`.
 
 ## 7.7 CI gate
-- [ ] Exact-head rustfmt pass.
-- [ ] Exact-head Cargo check pass.
-- [ ] Exact-head Clippy `-D warnings` pass.
-- [ ] Exact-head unit tests with recorded count.
-- [ ] Exact-head rustdoc `-D warnings` pass.
-- [ ] Exact-head debug and release builds.
-- [ ] Task 7 gate.
+- [x] Exact-head rustfmt pass.
+- [x] Exact-head Cargo check pass.
+- [x] Exact-head Clippy `-D warnings` pass.
+- [x] Exact-head unit tests: `59 passed, 0 failed`.
+- [x] Exact-head rustdoc `-D warnings` pass.
+- [x] Exact-head debug and release builds.
+- [x] Task 7 gate.
 
-### Task 7 implementation evidence
+### Task 7 completion evidence
 
-- Shared bounded move-list mutation within `chess-core`: `9baf2e299551f39dbb4cbee2a1510e35d68ac6c8`.
-- Legal generation/perft implementation: `beb6981520c16d07c2617a1c567eee7ed0a5212d`.
-- Exact CI evidence remains pending.
+- Shared bounded move-list mutation: `9baf2e299551f39dbb4cbee2a1510e35d68ac6c8`.
+- Legal generation/perft source: `beb6981520c16d07c2617a1c567eee7ed0a5212d`.
+- Exact validated implementation head: `d6ea24eb6eeaea7b41dc309f866a5653aba687d5`.
+- CI run/job: `30729969574` / `91448384283`.
+- Results: lockfile and metadata verification, rustfmt, Cargo check, Clippy with warnings denied, `59 passed`, rustdoc with warnings denied, debug build, and release build passed.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime deprecation and dependency `punycode` deprecation only.
 
 ---
 
@@ -128,80 +134,80 @@
 - [ ] Task 8 gate.
 
 # Task 9: Zobrist hashing and repetition identity — NOT STARTED
-- [ ] 9.1 deterministic tables.
-- [ ] 9.2 full hash.
-- [ ] 9.3 incremental updates.
-- [ ] 9.4 canonical en-passant identity.
-- [ ] 9.5 verification.
+- [ ] 9.1 Deterministic tables.
+- [ ] 9.2 Full hash.
+- [ ] 9.3 Incremental updates.
+- [ ] 9.4 Canonical en-passant identity.
+- [ ] 9.5 Verification.
 - [ ] Task 9 gate.
 
 # Task 10: Game, history, and draw semantics — NOT STARTED
-- [ ] 10.1 game state.
-- [ ] 10.2 mate/stalemate.
-- [ ] 10.3 claimable draws.
-- [ ] 10.4 automatic draws.
-- [ ] 10.5 conservative dead-position logic.
-- [ ] 10.6 search history.
+- [ ] 10.1 Game state.
+- [ ] 10.2 Mate/stalemate.
+- [ ] 10.3 Claimable draws.
+- [ ] 10.4 Automatic draws.
+- [ ] 10.5 Conservative dead-position logic.
+- [ ] 10.6 Search history.
 - [ ] Task 10 gate.
 
 # Task 11: Authoritative perft and differential validation — NOT STARTED
-- [ ] 11.1 standard exact perft suite.
-- [ ] 11.2 slow perft.
-- [ ] 11.3 divide tool.
-- [ ] 11.4 differential oracle harness.
-- [ ] 11.5 corpus gate.
+- [ ] 11.1 Standard exact perft suite.
+- [ ] 11.2 Slow perft.
+- [ ] 11.3 Divide tool.
+- [ ] 11.4 Differential oracle harness.
+- [ ] 11.5 Corpus gate.
 - [ ] Task 11 gate.
 
 # Task 12: Baseline evaluator and trace — NOT STARTED
-- [ ] 12.1 score convention.
-- [ ] 12.2 baseline terms.
-- [ ] 12.3 efficiency.
-- [ ] 12.4 trace.
-- [ ] 12.5 named weights.
-- [ ] 12.6 exclusions.
+- [ ] 12.1 Score convention.
+- [ ] 12.2 Baseline terms.
+- [ ] 12.3 Efficiency.
+- [ ] 12.4 Trace.
+- [ ] 12.5 Named weights.
+- [ ] 12.6 Exclusions.
 - [ ] Task 12 gate.
 
 # Task 13: Reference search and alpha-beta — NOT STARTED
-- [ ] 13.1 reference search.
-- [ ] 13.2 negamax alpha-beta.
-- [ ] 13.3 shallow equivalence.
-- [ ] 13.4 immutability.
-- [ ] 13.5 terminal fixtures.
+- [ ] 13.1 Reference search.
+- [ ] 13.2 Negamax alpha-beta.
+- [ ] 13.3 Shallow equivalence.
+- [ ] 13.4 Immutability.
+- [ ] 13.5 Terminal fixtures.
 - [ ] Task 13 gate.
 
 # Task 14: Quiescence and ordering — NOT STARTED
-- [ ] 14.1 quiescence.
-- [ ] 14.2 tactical ordering.
-- [ ] 14.3 quiet ordering.
-- [ ] 14.4 correctness tests.
-- [ ] 14.5 exclusions.
+- [ ] 14.1 Quiescence.
+- [ ] 14.2 Tactical ordering.
+- [ ] 14.3 Quiet ordering.
+- [ ] 14.4 Correctness tests.
+- [ ] 14.5 Exclusions.
 - [ ] Task 14 gate.
 
 # Task 15: Fixed-capacity transposition table — NOT STARTED
-- [ ] 15.1 entries.
-- [ ] 15.2 storage.
-- [ ] 15.3 mate normalization.
-- [ ] 15.4 probes.
-- [ ] 15.5 replacement.
-- [ ] 15.6 diagnostics.
+- [ ] 15.1 Entries.
+- [ ] 15.2 Storage.
+- [ ] 15.3 Mate normalization.
+- [ ] 15.4 Probes.
+- [ ] 15.5 Replacement.
+- [ ] 15.6 Diagnostics.
 - [ ] Task 15 gate.
 
 # Task 16: Iterative deepening, PV, limits, cancellation — NOT STARTED
-- [ ] 16.1 iterative deepening.
-- [ ] 16.2 aspiration windows.
-- [ ] 16.3 PV.
-- [ ] 16.4 limits.
-- [ ] 16.5 cancellation.
-- [ ] 16.6 result API.
-- [ ] 16.7 optional extension.
+- [ ] 16.1 Iterative deepening.
+- [ ] 16.2 Aspiration windows.
+- [ ] 16.3 Principal variation.
+- [ ] 16.4 Limits.
+- [ ] 16.5 Cancellation.
+- [ ] 16.6 Result API.
+- [ ] 16.7 Optional extension.
 - [ ] Task 16 gate.
 
 # Task 17: Linux UCI executable — NOT STARTED
-- [ ] 17.1 protocol loop.
-- [ ] 17.2 search worker.
-- [ ] 17.3 time manager.
-- [ ] 17.4 output.
-- [ ] 17.5 integration tests.
+- [ ] 17.1 Protocol loop.
+- [ ] 17.2 Search worker.
+- [ ] 17.3 Time manager.
+- [ ] 17.4 Output.
+- [ ] 17.5 Integration tests.
 - [ ] Task 17 gate.
 
 # Task 18: Safe API, C ABI, and JNI — NOT STARTED
@@ -213,46 +219,46 @@
 - [ ] Task 18 gate.
 
 # Task 19: Opening book — NOT STARTED
-- [ ] 19.1 abstraction.
-- [ ] 19.2 format.
-- [ ] 19.3 policies.
-- [ ] 19.4 integration.
-- [ ] 19.5 tests.
+- [ ] 19.1 Abstraction.
+- [ ] 19.2 Format.
+- [ ] 19.3 Policies.
+- [ ] 19.4 Integration.
+- [ ] 19.5 Tests.
 - [ ] Task 19 gate.
 
 # Task 20: Self-play and datasets — NOT STARTED
-- [ ] 20.1 configuration.
-- [ ] 20.2 records.
-- [ ] 20.3 schema.
-- [ ] 20.4 quality.
+- [ ] 20.1 Configuration.
+- [ ] 20.2 Records.
+- [ ] 20.3 Schema.
+- [ ] 20.4 Quality.
 - [ ] Task 20 gate.
 
 # Task 21: Named-schema tuning — NOT STARTED
-- [ ] 21.1 weights.
-- [ ] 21.2 loss.
-- [ ] 21.3 optimizer.
-- [ ] 21.4 reports.
-- [ ] 21.5 validation.
+- [ ] 21.1 Weights.
+- [ ] 21.2 Loss.
+- [ ] 21.3 Optimizer.
+- [ ] 21.4 Reports.
+- [ ] 21.5 Validation.
 - [ ] Task 21 gate.
 
 # Task 22: Advanced classical terms — NOT STARTED
-- [ ] 22.1 protocol.
-- [ ] 22.2 candidates.
-- [ ] 22.3 exclusions.
+- [ ] 22.1 Protocol.
+- [ ] 22.2 Candidates.
+- [ ] 22.3 Exclusions.
 - [ ] Task 22 gate.
 
 # Task 23: Robustness gates — NOT STARTED
-- [ ] 23.1 properties.
-- [ ] 23.2 fuzz.
-- [ ] 23.3 runtime analysis.
-- [ ] 23.4 failure preservation.
+- [ ] 23.1 Properties.
+- [ ] 23.2 Fuzzing.
+- [ ] 23.3 Runtime analysis.
+- [ ] 23.4 Failure preservation.
 - [ ] Task 23 gate.
 
 # Task 24: Performance hardening — NOT STARTED
-- [ ] 24.1 benchmarks.
-- [ ] 24.2 profiling.
-- [ ] 24.3 measured optimization.
-- [ ] 24.4 regression policy.
+- [ ] 24.1 Benchmarks.
+- [ ] 24.2 Profiling.
+- [ ] 24.3 Measured optimization.
+- [ ] 24.4 Regression policy.
 - [ ] 24.5 Android measurements.
 - [ ] Task 24 gate.
 
@@ -281,25 +287,23 @@
 - [ ] Task 25 gate.
 
 # Task 26: v0.1 signoff — NOT STARTED
-- [ ] 26.1 rules.
-- [ ] 26.2 search.
-- [ ] 26.3 adapters.
-- [ ] 26.4 quality.
-- [ ] 26.5 evidence.
+- [ ] 26.1 Rules.
+- [ ] 26.2 Search.
+- [ ] 26.3 Adapters.
+- [ ] 26.4 Quality.
+- [ ] 26.5 Evidence.
 - [ ] Task 26 gate.
 
 # Task 27: Full port signoff — NOT STARTED
-- [ ] 27.1 optional capabilities.
-- [ ] 27.2 migration decision.
-- [ ] 27.3 final report.
-- [ ] 27.4 release gate.
+- [ ] 27.1 Optional capabilities.
+- [ ] 27.2 Migration decision.
+- [ ] 27.3 Final report.
+- [ ] 27.4 Release gate.
 - [ ] Task 27 gate.
 
 ## Immediate next operations
 
-1. Run strict CI at the current exact Task 7 status head.
-2. Fix every first-party formatting/compiler/Clippy/test/rustdoc/build finding at source.
-3. Verify starting-position legal perft depths 1–4 and all special-rule regressions.
-4. Record the exact green SHA, run, job, and test count.
-5. Close Task 7 only after every gate is green.
-6. Begin Task 8 only after exact closure verification.
+1. Verify this Task 7 closure status at its exact SHA through all strict CI gates.
+2. Begin Task 8 only after the closure SHA is green.
+3. Define the formal undo contract without duplicating or weakening Task 7's proven reversible behavior.
+4. Add complete move-class and randomized restoration tests before closing Task 8.
