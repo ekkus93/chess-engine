@@ -10,10 +10,11 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 concurrency:
   group: implement-task-15-6
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   implement:
@@ -86,3 +87,28 @@ jobs:
           git diff --cached --check
           git commit -m "feat: add TT diagnostics and benchmarks"
           git push origin HEAD:rust-engine
+
+      - name: Report successful implementation
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "Run: $GITHUB_RUN_ID"
+            echo "Commit: $(git rev-parse HEAD)"
+            echo
+            echo 'Benchmark:'
+            cat /tmp/tt-bench.tsv
+          } > /tmp/task-15-6-success.txt
+          gh issue create \
+            --title "[task-15-6-implementation-success]" \
+            --body-file /tmp/task-15-6-success.txt || true
+
+      - name: Report failed implementation
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create \
+            --title "[task-15-6-implementation-failed]" \
+            --body "Run: $GITHUB_RUN_ID" || true
