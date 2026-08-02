@@ -22,7 +22,8 @@
 | 1 | **Complete** — workspace and strict CI validated. |
 | 2 | **Complete** — core value types and exact-SHA CI complete. |
 | 3 | **Complete** — hybrid `Position`, invariants, tests, documentation, and exact-SHA CI complete. |
-| 4–24 | **Not started**. |
+| 4 | **Implemented, CI pending** — strict FEN and UCI notation are wired; exact-head validation remains open. |
+| 5–24 | **Not started**. |
 | 25 | **Partial** — Linux strict CI and initial docs/workflows exist. |
 | 26–27 | **Not started**. |
 
@@ -91,9 +92,65 @@
 - Accepted external notices: GitHub Action Node runtime deprecation messages only.
 - Deviations: Zobrist recomputation remains intentionally deferred to Task 9; no other deviations.
 
-# Tasks 4–24 — not started
+# Task 4: Strict FEN and UCI move notation — IMPLEMENTED, CI PENDING
 
-- [ ] Task 4: strict FEN and UCI move notation — 4.1 errors; 4.2 parser; 4.3 serializer; 4.4 UCI moves; 4.5 properties; gate.
+## 4.1 Structured errors
+- [x] Public `FenError` distinguishes field count, rank count/width, placement characters, promotion-rank pawns, active color, castling, en-passant, counters, and position construction failures.
+- [x] Public `MoveParseError` distinguishes length, non-ASCII input, source/destination coordinates, and promotion suffix errors.
+- [x] Both error types implement `Display` and `Error` without panic-based control flow.
+
+## 4.2 Strict FEN parser
+- [x] Exactly six fields required.
+- [x] Exactly eight ranks and eight expanded files per rank required.
+- [x] Piece characters and digits are validated fail-loud.
+- [x] Pawns on rank one/eight are rejected.
+- [x] Active color is strictly `w` or `b`.
+- [x] Castling field is `-` or unique `KQkq` tokens.
+- [x] En-passant coordinate and active-color rank consistency are validated.
+- [x] Halfmove and fullmove counters use typed bounded values; fullmove zero is rejected.
+- [x] Playable construction requires exactly one king per color.
+- [x] Parsing uses the crate-private `PositionBuilder`; no adapter mutation surface was added.
+
+## 4.3 Canonical FEN serializer
+- [x] Piece placement is compressed canonically.
+- [x] Castling rights serialize in `KQkq` order.
+- [x] Active color, en-passant field, halfmove clock, and fullmove number serialize deterministically.
+- [x] Parse/serialize/parse stability is tested on a curated corpus.
+
+## 4.4 UCI move notation
+- [x] Syntax-only `UciMove` parses four- and five-character coordinate moves.
+- [x] Promotion suffixes are limited to lowercase `n`, `b`, `r`, and `q`.
+- [x] Syntax values do not synthesize unchecked internal moves.
+- [x] `UciMove::matches` compares against generated internal move identity without being incorrectly declared `const`.
+- [x] Every internal `MoveKind` formats through the single packed `Move` representation.
+
+## 4.5 Robustness, documentation, and gate
+- [x] Malformed FEN categories have explicit regression tests.
+- [x] Arbitrary deterministic Unicode input is verified not to panic for FEN and UCI parsers.
+- [x] Starting-position and curated FEN round trips are tested.
+- [x] Normal and all promotion UCI suffixes round trip.
+- [x] FEN/UCI contract documentation exists at `docs/RUST_FEN_AND_UCI_NOTATION.md`.
+- [ ] Exact-head rustfmt pass.
+- [ ] Exact-head Cargo check pass.
+- [ ] Exact-head Clippy `-D warnings` pass.
+- [ ] Exact-head unit-test pass with recorded count.
+- [ ] Exact-head rustdoc `-D warnings` pass.
+- [ ] Exact-head debug/release builds.
+- [ ] Task 4 gate.
+
+### Task 4 implementation/fix history
+
+- Source files were added in the commits following Task 3 closure.
+- `2d59decbd1911e14a3d174464a6efb65cced1b06` wired the root UCI exports but exposed missing nested FEN wiring.
+- `0084cfee00287e2ba633f04f13498b106479eb5f` wired `position::fen` and re-exported `FenError`.
+- `5a0bd7be8d6ec2a93ae12bd3b7955d9c7a39448c` corrected UCI matching const-safety and formatter output.
+- `1f85286b054c93096a04690bc5af022aca7c4d33` applied UCI test formatting.
+- `993009797f3c3610b833962d79a5d051190d7358` applied FEN parser formatting.
+- `87e6b81c65340a692af0d800012910399d3ac75b` applied FEN test formatting.
+- Task 4 remains open until the current documentation/status head passes every strict CI gate.
+
+# Tasks 5–24 — not started
+
 - [ ] Task 5: attack generation — 5.1 leapers; 5.2 sliders; 5.3 geometry; 5.4 position queries; 5.5 differential fixtures; gate.
 - [ ] Task 6: pseudo-legal generation — 6.1 pawns; 6.2 pieces; 6.3 castling candidates; 6.4 move list; 6.5 tests; gate.
 - [ ] Task 7: legal generation/special rules — 7.1 king safety; 7.2 evasions; 7.3 castling; 7.4 en passant; 7.5 promotions; 7.6 initial perft; gate.
@@ -127,7 +184,8 @@
 - [x] Workspace architecture.
 - [x] Core values/coordinates/move layout.
 - [x] Position representation and invariants.
-- [ ] Make/unmake, FEN, draws, hashing, search, TT, evaluation, UCI, ABI/JNI, perft/fuzz, self-play, and tuning docs.
+- [x] Strict FEN and UCI move notation.
+- [ ] Make/unmake, draws, hashing, search, TT, evaluation, ABI/JNI, perft/fuzz, self-play, and tuning docs.
 
 ## 25.3 Commands and artifacts
 - [x] Full Task 0/1 validation command; committed lockfile; targets/worktrees ignored.
@@ -142,7 +200,8 @@
 
 ## Immediate next operations
 
-1. Verify this Task 3 closure documentation commit at its exact SHA.
-2. Begin Task 4: strict FEN and UCI move notation.
-3. Implement structured parse errors, strict six-field FEN parsing, canonical FEN serialization, UCI move syntax, and property/round-trip tests.
-4. Ralph Loop Task 4 through exact-SHA strict CI.
+1. Run strict CI at the current exact `rust-engine` head.
+2. Fix every remaining first-party compiler, Clippy, test, rustdoc, or build finding at source.
+3. Record the exact green SHA, run ID, job ID, and Task 4 test count.
+4. Close every Task 4 gate checkbox only after the exact status head passes.
+5. Begin Task 5 attack-generation infrastructure after Task 4 closure.
