@@ -1,0 +1,407 @@
+Task 14.4 validation evidence
+source_sha=31bb98d405dc3281316e6e9bc8d1b21585518fc0
+run_id=30763138586
+job_id=validation
+overall_exit_code=0
+
+Last 400 validation log lines:
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+[1m[92m     Running[0m tests/search_terminals.rs (target/debug/deps/search_terminals-8535c2baa8ef19e2)
+
+running 4 tests
+test terminal_and_rule_draw_roots_have_exact_one_node_scores ... ok
+test claimable_and_automatic_repetition_roots_score_as_one_node_draws ... ok
+test shorter_forced_mate_outranks_slower_forced_mate ... ok
+test forced_loss_selects_the_line_that_delays_mate_longest ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 37.51s
+
+[1m[92m   Doc-tests[0m chess_search
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+exit_code=0
+
+===== Workspace strict Clippy =====
+command: cargo clippy --workspace --all-targets --all-features -- -D warnings
+[1m[92m    Checking[0m chess-ffi v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-ffi)
+[1m[92m    Checking[0m chess-tools v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-tools)
+[1m[92m    Checking[0m chess-tune v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-tune)
+[1m[92m    Checking[0m chess-uci v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-uci)
+[1m[92m    Checking[0m chess-jni v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-jni)
+[1m[92m    Checking[0m chess-core v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-core)
+[1m[92m    Finished[0m `dev` profile [unoptimized + debuginfo] target(s) in 1.50s
+exit_code=0
+
+===== Workspace tests =====
+command: cargo test --workspace --all-features
+[1m[92m   Compiling[0m chess-ffi v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-ffi)
+[1m[92m   Compiling[0m chess-tools v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-tools)
+[1m[92m   Compiling[0m chess-tune v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-tune)
+[1m[92m   Compiling[0m chess-jni v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-jni)
+[1m[92m   Compiling[0m chess-uci v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-uci)
+[1m[92m   Compiling[0m chess-core v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-core)
+[1m[92m    Finished[0m `test` profile [unoptimized + debuginfo] target(s) in 1.82s
+[1m[92m     Running[0m unittests src/lib.rs (target/debug/deps/chess_core-de969a6428ed7a65)
+
+running 90 tests
+test attacks::tests::checker_and_absolute_pin_queries_are_exact ... ok
+test attacks::tests::pawn_attack_geometry_is_independent_of_target_occupancy ... ok
+test attacks::tests::leaper_tables_match_coordinate_oracle_for_every_square ... ok
+test attacks::tests::sliding_attacks_include_first_blocker_and_stop_after_it ... ok
+test attacks::tests::sliding_attacks_match_independent_oracle_for_representative_occupancies ... ok
+test bitboard::tests::bitwise_operations_preserve_exact_sets ... ok
+test bitboard::tests::set_clear_contains_count_and_pop_are_consistent ... ok
+test castling::tests::clearing_is_scoped_by_side_and_color ... ok
+test bitboard::tests::shifts_follow_board_geometry_without_file_wrapping ... ok
+test attacks::tests::geometry_tables_match_independent_oracle_for_every_square_pair ... ok
+test attacks::tests::position_attack_queries_match_independent_fixture_oracle ... ok
+test castling::tests::every_right_has_one_independent_bit ... ok
+test counters::tests::fullmove_number_is_one_based_and_checked ... ok
+test counters::tests::halfmove_clock_is_typed_and_checked ... ok
+test game::tests::automatic_dead_position_rejects_further_game_moves ... ok
+test game::tests::checkmate_precedes_the_seventy_five_move_rule ... ok
+test game::tests::conservative_dead_position_detection_has_no_broad_minor_shortcuts ... ok
+test game::tests::game_tracks_moves_hashes_and_exact_undo ... ok
+test game::tests::move_count_draws_use_exact_halfmove_thresholds ... ok
+test game::tests::repetition_count_respects_the_irreversible_halfmove_boundary ... ok
+test game::tests::game_undo_is_lifo_and_mismatch_is_non_mutating ... ok
+test game::tests::illegal_game_move_does_not_change_position_or_history ... ok
+test game::tests::mate_and_stalemate_are_distinguished ... ok
+test game::tests::search_history_is_detached_and_reversible ... ok
+test game::tests::search_history_mismatched_pop_is_non_mutating ... ok
+test game_reset::tests::reset_to_starting_discards_position_and_history ... ok
+test move_encoding::tests::every_move_kind_round_trips_through_packed_identity ... ok
+test move_encoding::tests::ordering_and_hashing_are_stable_value_semantics ... ok
+test move_encoding::tests::promotion_and_capture_identities_remain_distinct ... ok
+test game_reset::tests::set_position_establishes_one_new_root ... ok
+test movegen::tests::edge_pawns_and_knights_do_not_wrap ... ok
+test movegen::tests::castling_candidates_require_rights_pieces_and_empty_paths_but_not_safety ... ok
+test movegen::tests::en_passant_candidate_uses_target_geometry_without_legal_validation ... ok
+test movegen::tests::move_list_is_fixed_capacity_stack_storage ... ok
+test movegen::tests::sliding_generation_stops_at_own_and_enemy_blockers ... ok
+test movegen::tests::quiet_and_capture_promotions_preserve_all_underpromotion_identities ... ok
+test piece::tests::color_contract_is_stable ... ok
+test movegen::tests::starting_position_has_twenty_moves_in_deterministic_order ... ok
+test piece::tests::piece_fen_conversion_round_trips ... ok
+test piece::tests::piece_kind_contract_is_stable ... ok
+test position::fen::tests::curated_position_round_trips_with_canonical_castling_order ... ok
+test position::fen::tests::malformed_fen_categories_are_fail_loud ... ok
+test position::fen::tests::parse_serialize_parse_is_stable_for_curated_corpus ... ok
+test position::fen::tests::playable_parser_requires_both_kings_and_does_not_mutate_existing_state ... ok
+test position::fen::tests::starting_position_serializes_canonically ... ok
+test position::legal::tests::absolute_pins_restrict_moves_to_the_pin_line ... ok
+test position::legal::tests::all_four_castles_are_legal_when_every_condition_is_satisfied ... ok
+test position::legal::tests::castling_rejects_check_transit_destination_and_lost_rights ... ok
+test position::fen::tests::analysis_position_policy_is_explicit_and_safe ... ok
+test position::legal::tests::en_passant_requires_captured_pawn_and_preserves_king_safety ... ok
+test position::legal::tests::double_check_allows_only_king_moves ... ok
+test position::legal::tests::en_passant_target_expires_and_double_push_creates_one ... ok
+test position::legal::tests::king_moves_into_attack_and_king_captures_are_rejected ... ok
+test position::legal::tests::legal_move_tokens_apply_unmake_and_reject_stale_origins ... ok
+test game::tests::repetition_transitions_from_claimable_to_automatic ... ok
+test position::legal::tests::promotions_remain_explicit_and_invalid_flags_are_rejected ... ok
+test position::legal::tests::single_check_allows_capture_block_and_king_evasions ... ok
+test position::legal::tests::every_curated_legal_token_restores_exactly ... ok
+test position::make_unmake::tests::capture_token_records_exact_piece_and_square ... ok
+test position::legal::tests::legal_move_tokens_bind_move_and_source_position ... ok
+test position::make_unmake::tests::counter_overflow_failures_do_not_mutate ... ok
+test position::make_unmake::tests::checked_application_rejects_illegal_move_without_mutation ... ok
+test position::make_unmake::tests::every_legal_move_in_curated_positions_restores_exactly ... ok
+test position::make_unmake::tests::every_move_category_round_trips_exactly ... ok
+test position::make_unmake::tests::mismatched_undo_is_rejected_before_mutation ... ok
+test position::make_unmake::tests::move_application_updates_side_clocks_and_en_passant_exactly ... ok
+test position::tests::clone_is_a_logical_snapshot_not_a_search_policy ... ok
+test position::tests::duplicate_builder_placement_is_fail_loud_and_non_mutating ... ok
+test position::tests::failed_internal_edits_do_not_change_logical_state ... ok
+test position::tests::internal_editor_updates_all_redundant_structures ... ok
+test position::tests::invalid_en_passant_metadata_is_rejected ... ok
+test position::tests::metadata_and_en_passant_invariants_are_preserved ... ok
+test position::tests::playable_builder_requires_exactly_one_king_per_color ... ok
+test position::tests::starting_position_has_expected_state_and_invariants ... ok
+test position::zobrist::tests::clocks_do_not_change_repetition_identity ... ok
+test position::zobrist::tests::en_passant_identity_requires_a_legal_capture ... ok
+test position::zobrist::tests::every_move_category_updates_and_restores_hash_exactly ... ok
+test position::fen::tests::arbitrary_utf8_input_never_panics ... ok
+test position::zobrist::tests::versioned_known_fixture_hashes_are_stable ... ok
+test square::tests::canonical_mapping_is_retained ... ok
+test square::tests::every_square_round_trips ... ok
+test square::tests::invalid_algebraic_text_is_rejected ... ok
+test uci_move::tests::arbitrary_utf8_input_never_panics ... ok
+test uci_move::tests::every_internal_move_kind_formats_canonically ... ok
+test uci_move::tests::invalid_syntax_is_rejected_by_category ... ok
+test uci_move::tests::normal_and_promotion_syntax_round_trip ... ok
+test uci_move::tests::parsed_syntax_matches_only_the_same_move_identity ... ok
+test position::zobrist::tests::randomized_incremental_hashes_match_recomputation ... ok
+test position::make_unmake::tests::deterministic_random_legal_sequences_restore_exactly ... ok
+test position::legal::tests::starting_position_perft_and_divide_are_exact_and_restore_state ... ok
+
+test result: ok. 90 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.56s
+
+[1m[92m     Running[0m tests/authoritative_perft.rs (target/debug/deps/authoritative_perft-8a035de683fad0b5)
+
+running 3 tests
+test authoritative_perft_depth_five ... ignored
+test authoritative_perft_depth_four ... ignored
+test authoritative_perft_fast_depths ... ok
+
+test result: ok. 1 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 3.16s
+
+[1m[92m     Running[0m unittests src/lib.rs (target/debug/deps/chess_ffi-c71d4e34ce85d70a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m     Running[0m unittests src/lib.rs (target/debug/deps/chess_jni-1cfbaae87b85183e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m     Running[0m unittests src/lib.rs (target/debug/deps/chess_search-6d96aa2cb2bb7d08)
+
+running 35 tests
+test alpha_beta::tests::depth_zero_evaluates_and_counts_only_the_root ... ok
+test alpha_beta::tests::mate_in_one_uses_ply_relative_terminal_scoring ... ok
+test alpha_beta::tests::mismatched_history_and_excessive_depth_fail_without_mutation ... ok
+test alpha_beta::ordering_tests::seeded_quiet_cutoff_reduces_a_fixed_narrow_window_tree ... ok
+test alpha_beta::tests::terminal_and_repetition_draw_roots_resolve_without_a_move ... ok
+test core_api_tests::public_legal_token_api_supports_search_crate_make_unmake ... ok
+test evaluation::tests::coarse_benchmark_groups_reconstruct_the_full_score ... ok
+test evaluation::tests::color_and_vertical_mirror_preserve_relative_score ... ok
+test evaluation::tests::pawn_trace_identifies_structure_without_hidden_terms ... ok
+test evaluation::tests::side_to_move_convention_negates_the_same_board ... ok
+test evaluation::tests::starting_position_is_exactly_symmetric ... ok
+test evaluation::tests::trace_components_sum_to_the_normal_evaluation ... ok
+test move_ordering::quiet_tests::killers_precede_history_and_captures_are_not_recorded ... ok
+test move_ordering::quiet_tests::previous_pv_hook_is_an_explicit_no_op ... ok
+test move_ordering::quiet_tests::quiet_ties_use_packed_move_order ... ok
+test move_ordering::tests::captures_use_mvv_lva_with_stable_equal_keys ... ok
+test move_ordering::tests::generation_policy_preserves_exact_legal_token_order ... ok
+test move_ordering::tests::transposition_table_hook_is_an_explicit_no_op ... ok
+test move_ordering::tests::tt_move_and_promotions_precede_captures_and_quiets ... ok
+test quiescence::ordering_tests::tactical_ordering_reduces_a_fixed_cutoff_tree_without_changing_the_result ... ok
+test reference::tests::checkmate_and_stalemate_are_scored_before_static_evaluation ... ok
+test reference::tests::dead_fifty_move_and_repetition_draws_score_zero ... ok
+test reference::tests::depth_zero_evaluates_and_counts_only_the_root ... ok
+test reference::tests::mate_in_one_uses_ply_relative_terminal_scoring ... ok
+test reference::tests::mismatched_history_and_excessive_depth_fail_without_mutation ... ok
+test alpha_beta::ordering_tests::quiet_ordering_preserves_full_window_result_deterministically ... ok
+test score::tests::evaluation_scores_stay_outside_the_mate_band ... ok
+test score::tests::mate_scores_encode_distance_and_negate_exactly ... ok
+test score::tests::raw_scores_validate_the_supported_domain ... ok
+test weights::tests::baseline_set_is_explicit_valid_and_stable ... ok
+test weights::tests::baseline_weights_round_trip_through_the_canonical_vector ... ok
+test weights::tests::validation_rejects_schema_identifier_checksum_and_material_corruption ... ok
+test alpha_beta::tests::equal_scores_keep_deterministic_first_best_move ... ok
+test reference::tests::starting_depth_two_visits_the_complete_unpruned_tree ... ok
+test alpha_beta::tests::starting_depth_three_prunes_and_restores_exactly ... ok
+
+test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+
+[1m[92m     Running[0m tests/search_equivalence.rs (target/debug/deps/search_equivalence-c7d23c2dc433bff0)
+
+running 3 tests
+test repetition_aware_searches_are_equivalent_and_restore_game_history ... ok
+test uniquely_best_tactical_move_matches_the_independent_root_score_oracle ... ok
+test curated_shallow_scores_match_and_alpha_beta_never_visits_more_nodes ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
+
+[1m[92m     Running[0m tests/search_immutability.rs (target/debug/deps/search_immutability-34f6668c70269bde)
+
+running 4 tests
+test terminal_and_validation_error_paths_are_non_mutating_and_invariant_clean ... ok
+test alpha_beta_cancellation_from_inside_the_tree_restores_every_active_state ... ok
+test reference_cancellation_from_inside_the_tree_restores_every_active_state ... ok
+test repeated_successful_searches_do_not_accumulate_state_or_history_drift ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.14s
+
+[1m[92m     Running[0m tests/search_quiescence.rs (target/debug/deps/search_quiescence-089a214be485bb8c)
+
+running 5 tests
+test depth_zero_alpha_beta_resolves_a_hanging_capture ... ok
+test checked_leaf_searches_quiet_evasions_and_promotions_are_tactical ... ok
+test full_window_quiescence_matches_an_unpruned_tactical_oracle ... ok
+test poisoned_capture_is_rejected_after_the_forced_recapture ... ok
+test guard_draw_and_cancellation_paths_are_fail_loud_and_reversible ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+[1m[92m     Running[0m tests/search_quiescence_task_14_4.rs (target/debug/deps/search_quiescence_task_14_4-23d3def1127c6e73)
+
+running 5 tests
+test in_check_leaf_must_search_a_quiet_evasion_instead_of_standing_pat ... ok
+test quiescence_guard_is_finite_outside_check_and_fail_loud_in_check ... ok
+test horizon_capture_sequence_is_searched_to_a_quiet_position ... ok
+test promotion_sequence_is_searched_through_the_forced_recapture ... ok
+test poisoned_capture_is_revalued_by_quiescence_before_root_selection ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+[1m[92m     Running[0m tests/search_terminals.rs (target/debug/deps/search_terminals-8535c2baa8ef19e2)
+
+running 4 tests
+test terminal_and_rule_draw_roots_have_exact_one_node_scores ... ok
+test claimable_and_automatic_repetition_roots_score_as_one_node_draws ... ok
+test shorter_forced_mate_outranks_slower_forced_mate ... ok
+test forced_loss_selects_the_line_that_delays_mate_longest ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 37.52s
+
+[1m[92m     Running[0m unittests src/lib.rs (target/debug/deps/chess_tools-fb91be54945a9ab5)
+
+running 6 tests
+test tests::fixture_manifest_is_complete_and_stable ... ok
+test tests::legal_play_emits_canonical_child_fen ... ok
+test weights_io::tests::baseline_round_trips_through_the_explicit_text_format ... ok
+test weights_io::tests::incompatible_or_corrupt_files_fail_loudly ... ok
+test tests::legal_and_divide_output_is_sorted ... ok
+test tests::oracle_protocol_is_machine_readable ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+[1m[92m     Running[0m unittests src/main.rs (target/debug/deps/chess_tools-bc6c00a52daef706)
+
+running 2 tests
+test tests::depth_zero_divide_keeps_stable_summary_shape ... ok
+test tests::divide_output_is_sorted_totalled_and_timed ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+[1m[92m     Running[0m unittests src/main.rs (target/debug/deps/chess_tune-205637dda2929f21)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m     Running[0m unittests src/main.rs (target/debug/deps/chess_uci-d2d160c4a61aa905)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m   Doc-tests[0m chess_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m   Doc-tests[0m chess_ffi
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m   Doc-tests[0m chess_jni
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m   Doc-tests[0m chess_search
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+[1m[92m   Doc-tests[0m chess_tools
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+exit_code=0
+
+===== Release perft tests =====
+command: cargo test -p chess-core --release perft
+[1m[92m   Compiling[0m chess-core v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-core)
+[1m[92m    Finished[0m `release` profile [optimized] target(s) in 2.70s
+[1m[92m     Running[0m unittests src/lib.rs (target/release/deps/chess_core-ac7713766cc8e08d)
+
+running 1 test
+test position::legal::tests::starting_position_perft_and_divide_are_exact_and_restore_state ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 89 filtered out; finished in 0.02s
+
+[1m[92m     Running[0m tests/authoritative_perft.rs (target/release/deps/authoritative_perft-b061e2a916b97e45)
+
+running 3 tests
+test authoritative_perft_depth_five ... ignored
+test authoritative_perft_depth_four ... ignored
+test authoritative_perft_fast_depths ... ok
+
+test result: ok. 1 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+exit_code=0
+
+===== Authoritative depth-four perft suite =====
+command: cargo run --release -p chess-tools -- suite 4
+[1m[92m   Compiling[0m chess-search v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-search)
+[1m[92m   Compiling[0m chess-tools v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-tools)
+[1m[92m    Finished[0m `release` profile [optimized] target(s) in 1.11s
+[1m[92m     Running[0m `target/release/chess-tools suite 4`
+starting_position	1	20	rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+starting_position	2	400	rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+starting_position	3	8902	rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+starting_position	4	197281	rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+kiwipete	1	48	r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1
+kiwipete	2	2039	r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1
+kiwipete	3	97862	r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1
+kiwipete	4	4085603	r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1
+en_passant_rook_ending	1	14	8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1
+en_passant_rook_ending	2	191	8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1
+en_passant_rook_ending	3	2812	8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1
+en_passant_rook_ending	4	43238	8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1
+castling_promotion_pins	1	6	r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1
+castling_promotion_pins	2	264	r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1
+castling_promotion_pins	3	9467	r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1
+castling_promotion_pins	4	422333	r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1
+promotion_check_evasion	1	44	rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8
+promotion_check_evasion	2	1486	rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8
+promotion_check_evasion	3	62379	rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8
+promotion_check_evasion	4	2103487	rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8
+tactical_positional	1	46	r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10
+tactical_positional	2	2079	r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10
+tactical_positional	3	89890	r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10
+tactical_positional	4	3894594	r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10
+exit_code=0
+
+===== Rustdoc warnings denied =====
+command: bash -lc RUSTDOCFLAGS=\"-D\ warnings\"\ cargo\ doc\ --workspace\ --no-deps
+[1m[92m    Checking[0m chess-core v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-core)
+[1m[92m Documenting[0m chess-core v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-core)
+[1m[92m    Checking[0m chess-search v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-search)
+[1m[92m Documenting[0m chess-search v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-search)
+[1m[92m    Checking[0m chess-ffi v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-ffi)
+[1m[92m Documenting[0m chess-tools v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-tools)
+[1m[92m Documenting[0m chess-jni v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-jni)
+[1m[92m Documenting[0m chess-ffi v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-ffi)
+[1m[92m Documenting[0m chess-tune v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-tune)
+[1m[92m Documenting[0m chess-uci v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-uci)
+[1m[92m    Finished[0m `dev` profile [unoptimized + debuginfo] target(s) in 2.12s
+[1m[92m   Generated[0m /home/runner/work/chess-engine/chess-engine/target/doc/chess_core/index.html and 6 other files
+exit_code=0
+
+===== Debug build =====
+command: cargo build --workspace --all-features
+[1m[92m   Compiling[0m chess-uci v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-uci)
+[1m[92m   Compiling[0m chess-tune v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-tune)
+[1m[92m   Compiling[0m chess-tools v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-tools)
+[1m[92m    Finished[0m `dev` profile [unoptimized + debuginfo] target(s) in 0.20s
+exit_code=0
+
+===== Release build =====
+command: cargo build --workspace --all-features --release
+[1m[92m   Compiling[0m chess-ffi v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-ffi)
+[1m[92m   Compiling[0m chess-tune v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-tune)
+[1m[92m   Compiling[0m chess-uci v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-uci)
+[1m[92m   Compiling[0m chess-jni v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-jni)
+[1m[92m    Finished[0m `release` profile [optimized] target(s) in 0.07s
+exit_code=0
