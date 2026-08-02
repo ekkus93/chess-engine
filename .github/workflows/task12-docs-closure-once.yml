@@ -1,0 +1,285 @@
+name: Task 12 documentation closure once
+
+on:
+  push:
+    branches:
+      - rust-engine
+    paths:
+      - .github/workflows/task12-docs-closure-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: task12-documentation-closure-once
+  cancel-in-progress: false
+
+jobs:
+  close-task:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+
+      - name: Record Task 12 completion
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cat > docs/RUST_BASELINE_EVALUATOR.md <<'EOF'
+          # Rust Baseline Evaluator and Trace
+
+          This document defines the static-evaluation contract introduced by Task 12. The evaluator lives in `chess-search`, depends only on `chess-core`, and is intentionally independent of UCI, filesystems, FFI, JNI, and application state.
+
+          ## Score convention
+
+          `Score` is a signed centipawn value from the side-to-move perspective. Positive values favor the side to move, which permits direct use by a negamax search.
+
+          Static evaluation is clamped to plus or minus 20,000 centipawns. Mate scores occupy a separate band around plus or minus 30,000 and encode distance in plies. Static terms therefore cannot collide with a mate result.
+
+          Tests prove:
+
+          - the starting position evaluates to exactly zero;
+          - changing only the side to move negates a score;
+          - color-swapped, vertically mirrored positions retain the same relative score;
+          - mate scores negate and preserve distance exactly.
+
+          ## Tapered evaluation
+
+          Every named weight is a middlegame/endgame pair. The phase ranges from zero through 24 and is derived from remaining knights, bishops, rooks, and queens. Each term is accumulated as a white-minus-black pair and blended once at the final phase before conversion to the side-to-move convention.
+
+          The baseline evaluator includes:
+
+          - material;
+          - piece-square tables;
+          - mobility for knights, bishops, rooks, and queens;
+          - isolated and doubled pawn penalties;
+          - passed and connected pawn bonuses scaled by advancement;
+          - bishop-pair bonus;
+          - rook open-file and semi-open-file bonuses;
+          - rook seventh-rank activity;
+          - phase-tapered pawn shield and enemy king-zone pressure;
+          - controlled enemy-space bonus;
+          - endgame king centralization.
+
+          The baseline values are explicit defaults. They are a deterministic starting point for later tuning, not an assertion that the engine has already reached a final strength configuration.
+
+          ## Allocation and data-flow contract
+
+          Normal `evaluate()` and `evaluate_with_weights()` execution uses fixed structs, fixed arrays, bitboards, stack locals, and existing position attack primitives. It does not construct vectors, strings, maps, trace dictionaries, or filesystem objects.
+
+          The opt-in trace is also a fixed `EvaluationTrace` struct. Tool-only benchmark and serialization paths may allocate because they are outside recursive search.
+
+          Task 12 does not add incremental evaluation state to `Position`; later measured optimization may do so only after profiling demonstrates a need and restoration tests protect the new state.
+
+          ## Evaluation trace
+
+          The trace exposes the blended contribution of:
+
+          - material;
+          - piece-square tables;
+          - mobility;
+          - isolated, doubled, passed, and connected pawns;
+          - bishop pair;
+          - rook files and seventh-rank activity;
+          - king shield and king-zone attack pressure;
+          - space;
+          - king activity;
+          - phase and total.
+
+          Every value follows the public side-to-move convention. `component_sum()` must equal `total`, and the trace total must equal normal evaluation exactly. These relationships are enforced by tests.
+
+          `chess-tools eval [FEN]` prints the stable tab-delimited trace for diagnostics.
+
+          ## Named and versioned weights
+
+          `EvaluationWeights` is a strongly typed structure containing all named scalar and table values. `EvaluationWeightSet` adds:
+
+          - schema version `1`;
+          - a non-zero 64-bit identifier;
+          - the named weights;
+          - a canonical FNV-1a checksum.
+
+          The built-in baseline identifier is `424153454c494e45` and its validated checksum is `d2cca7ae10ec6e34`.
+
+          Validation rejects unsupported schema versions, zero identifiers, out-of-range values, invalid material ordering, and checksum mismatches. The canonical dense vector contains 816 signed 16-bit values and round-trips exactly to the named structure.
+
+          Serialization is implemented in `chess-tools`, not in the search core. The format contains an explicit marker, schema, identifier, checksum, and exact value count. Commands are:
+
+          ```text
+          chess-tools weights-export
+          chess-tools weights-validate PATH
+          ```
+
+          No component scans conventional directories or automatically loads a weight file. A caller must select and validate a weight set explicitly.
+
+          ## Benchmark interface and evidence
+
+          `chess-tools eval-bench ITERATIONS [FEN]` benchmarks stable coarse groups and the full evaluator while using `black_box` and a deterministic accumulator.
+
+          On GitHub's Ubuntu 24.04 hosted runner, release-mode starting-position measurements for 20,000 iterations were:
+
+          | Group | Total nanoseconds | Approximate nanoseconds/evaluation |
+          |---|---:|---:|
+          | Material and PSQT | 2,818,742 | 140.9 |
+          | Pawn structure | 9,214,918 | 460.7 |
+          | Mobility and activity | 3,769,019 | 188.5 |
+          | King and space | 3,480,964 | 174.0 |
+          | Full evaluation | 19,596,825 | 979.8 |
+
+          These figures are reproducibility evidence for the implementation environment, not a cross-machine performance guarantee. Task 24 owns formal performance regression policy and measured optimization.
+
+          ## Exclusion audit
+
+          The Rust evaluator contains only general board features listed in the Task 12 contract. Repository search and source inspection found no review-loop, anti-drift, transcript-specific, exact-scenario, or opponent-transcript guidance in the Rust evaluator or weight schema. No Python evaluator patch module was translated wholesale.
+
+          ## Validation evidence
+
+          - Formatted implementation SHA: `d8547cc258ecc2e52b8e4eb7ef287d92d5d0a04f`.
+          - Permanent implementation CI run/job: `30734451785` / `91460574656`.
+          - Results: workspace assets, lockfile, metadata, rustfmt, Cargo check, Clippy with warnings denied, 103 executed Rust tests, release depth-four perft, rustdoc with warnings denied, debug build, release build, and the independent differential corpus all passed.
+          - Benchmark/tooling run/job: `30734335652` / `91460185440`.
+          - Tooling results: fixed trace, five release benchmark groups, explicit weight export, and validated import passed.
+          - First-party warnings: none.
+          - Accepted external notices: GitHub Actions Node runtime and dependency `punycode` deprecation notices only.
+
+          Task 13 may use this score and evaluator contract while implementing reference minimax and negamax alpha-beta.
+          EOF
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          todo = Path("docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md")
+          text = todo.read_text()
+          summary_old = "| 12 | **Active** — baseline evaluator and trace. |\n| 13–24 | **Not started**. |"
+          summary_new = "| 12 | **Complete** — baseline evaluator and trace. |\n| 13 | **Active** — reference search and alpha-beta. |\n| 14–24 | **Not started**. |"
+          if text.count(summary_old) != 1:
+              raise SystemExit("unexpected Task 12 program-summary block")
+          text = text.replace(summary_old, summary_new)
+
+          task_old = """# Task 12: Baseline evaluator and trace — ACTIVE, NOT STARTED
+          - [ ] 12.1 Score convention.
+          - [ ] 12.2 Baseline terms.
+          - [ ] 12.3 Efficiency.
+          - [ ] 12.4 Trace.
+          - [ ] 12.5 Named weights.
+          - [ ] 12.6 Exclusions.
+          - [ ] Task 12 gate.
+
+          # Task 13: Reference search and alpha-beta — NOT STARTED
+          """
+          task_new = """# Task 12: Baseline evaluator and trace — COMPLETE
+          - [x] 12.1 Score convention.
+          - [x] 12.2 Baseline terms.
+          - [x] 12.3 Efficiency.
+          - [x] 12.4 Trace.
+          - [x] 12.5 Named weights.
+          - [x] 12.6 Exclusions.
+          - [x] Task 12 gate.
+
+          ### Task 12 completion evidence
+
+          - Typed centipawn and mate-score contract: `crates/chess-search/src/score.rs`.
+          - Tapered evaluator and fixed trace: `crates/chess-search/src/evaluation.rs`.
+          - Named, versioned, checksummed weights: `crates/chess-search/src/weights.rs`.
+          - Explicit adapter serialization and diagnostics: `crates/chess-tools/src/weights_io.rs`, `crates/chess-tools/src/lib.rs`, and `crates/chess-tools/src/main.rs`.
+          - Contract and benchmark record: `docs/RUST_BASELINE_EVALUATOR.md`.
+          - Exact formatted implementation head: `d8547cc258ecc2e52b8e4eb7ef287d92d5d0a04f`.
+          - Permanent implementation CI run/job: `30734451785` / `91460574656`.
+          - Results: rustfmt, Cargo check, strict Clippy, 103 executed Rust tests, release depth-four perft, rustdoc, debug/release builds, and the independent differential corpus passed.
+          - Benchmark/tooling run/job: `30734335652` / `91460185440`; fixed trace, five release benchmark groups, explicit weight export, and validated import passed.
+          - Baseline weight identifier/checksum: `424153454c494e45` / `d2cca7ae10ec6e34`.
+          - Normal evaluation and tracing are fixed-structure and allocation-free; serialization and benchmark allocations remain tool-only.
+          - Exclusion audit found no transcript-specific, review-loop, anti-drift, or exact-scenario evaluator guidance.
+          - First-party warnings: none.
+          - Accepted external notices: GitHub Actions Node runtime and dependency `punycode` deprecation notices only.
+          - Task 13 owns reference minimax, negamax alpha-beta, shallow equivalence, search immutability, and terminal fixtures.
+
+          ---
+
+          # Task 13: Reference search and alpha-beta — ACTIVE, NOT STARTED
+          """
+          if text.count(task_old) != 1:
+              raise SystemExit("unexpected Task 12 status block")
+          todo.write_text(text.replace(task_old, task_new))
+          PY
+
+          cat > docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md <<'EOF'
+          # Rust Chess Engine Port Ralph Loop Status
+
+          **Updated:** 2026-08-01  
+          **Branch:** `rust-engine`  
+          **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
+          **Current phase:** Task 13 reference search and alpha-beta active; implementation not started
+
+          ## Completed gates
+
+          | Task | Evidence SHA | CI run / job | Result |
+          |---:|---|---|---|
+          | 0 | `7ca6f8dc0d2577ca552a6bfe115828eb668d2133` | `30722127447` / `91427510964` | Python fast `1203`, slow `179`, perft `20/400/8902/197281`, UCI pass |
+          | 1 | `7ca6f8dc0d2577ca552a6bfe115828eb668d2133` | `30722127447` / `91427510938` | strict workspace gates pass |
+          | 2 | `b5f462aa73a69efcdc847ee215231a5064029902` | `30723952076` / `91432161445` | closure green; implementation tests `16` |
+          | 3 | `5578682bb2a6df5173ff7593649ac55509c277cd` | `30724744784` / `91434236030` | closure green; `24 passed` |
+          | 4 | `6cb975b35f4dbe898a0444b1b4c39778e89bcb40` | `30726795562` / `91439860915` | `35 passed`; all strict gates green |
+          | 5 | `78e9315369ff4552e5500d1a820767a1fd228f29` | `30727553897` / `91441947625` | closure green; implementation `42 passed` |
+          | 6 | `cb7124c5712f6b3f8f4540e9e8fabaa2aa242bc0` | `30727972433` | closure green; implementation `49 passed` |
+          | 7 | `334dc79b3ce0cbc1e7b5096387218c90a8365204` | `30730100518` / `91448776834` | closure green; implementation `59 passed` |
+          | 8 | `cecc39b9c9dcd8c90f9cdbdb4284be13c480bbd6` | `30730891252` / `91451022194` | closure green; implementation `67 passed` |
+          | 9 | `178583c15458cb29205201047bad8f4064a9342d` | `30731524205` / `91452671063` | strict implementation gate green; `72 passed` |
+          | 10 | `dd57b258fc8b9af647c30a1834f3d9e79a3d8ee3` | `30732542941` / `91455346591` | strict implementation gate green; `84 passed` |
+          | 11 | `1711fefe37b93163ec316ba9528742d6f87f8496` | `30733309460` / `91457298625` | strict gate, depth-four perft, and differential oracle green; 89 Rust tests |
+          | 12 | `d8547cc258ecc2e52b8e4eb7ef287d92d5d0a04f` | `30734451785` / `91460574656` | strict gate, depth-four perft, and differential oracle green; 103 Rust tests |
+
+          ## Task 12 completion
+
+          Implemented and validated:
+
+          - typed centipawn scores from the side-to-move negamax perspective;
+          - a static-evaluation range separated from distance-aware mate scores;
+          - color, side-to-move, and vertical-mirror symmetry tests;
+          - tapered middlegame/endgame material and piece-square evaluation;
+          - mobility, pawn structure, bishop pair, rook activity, king safety, space, and king activity terms;
+          - fixed, allocation-free normal evaluation and fixed trace structures;
+          - exact trace-component summation against normal evaluation;
+          - typed and named phased weights with explicit defaults;
+          - versioned weight sets with stable identifiers and canonical checksums;
+          - validated explicit serialization in `chess-tools` with no automatic file discovery;
+          - stable evaluator trace and per-group benchmark commands;
+          - benchmark evidence for every major evaluator group;
+          - exclusion audit against transcript-specific and exact-scenario Python patches;
+          - `docs/RUST_BASELINE_EVALUATOR.md`.
+
+          Evidence:
+
+          - Formatted implementation head: `d8547cc258ecc2e52b8e4eb7ef287d92d5d0a04f`.
+          - Permanent implementation CI run/job: `30734451785` / `91460574656`.
+          - Results: workspace assets, lockfile, metadata, rustfmt, Cargo check, Clippy with `-D warnings`, 103 executed Rust tests, release depth-four perft, rustdoc with `-D warnings`, debug build, release build, and independent differential validation passed.
+          - Benchmark/tooling run/job: `30734335652` / `91460185440`.
+          - Full starting-position release evaluation: 20,000 iterations in 19,596,825 ns, approximately 979.8 ns per evaluation on the hosted runner.
+          - Baseline weight identifier/checksum: `424153454c494e45` / `d2cca7ae10ec6e34`.
+          - First-party warnings: none.
+          - Accepted external notices: GitHub Actions Node runtime and dependency `punycode` deprecation notices only.
+          - Task 13 owns correctness-first reference search and alpha-beta over this evaluator.
+
+          ## Task 13 active scope
+
+          - [ ] Implement an unpruned reference minimax search.
+          - [ ] Implement negamax alpha-beta using make/unmake.
+          - [ ] Prove shallow reference/alpha-beta score and best-move equivalence.
+          - [ ] Prove search restores the root position and game history exactly.
+          - [ ] Add checkmate, stalemate, draw, and mate-distance fixtures.
+          - [ ] Pass exact-head rustfmt, Cargo check, Clippy, tests, rustdoc, debug, and release gates.
+
+          No pull request has been created; work remains on `rust-engine`.
+          EOF
+
+          git rm .github/workflows/task12-wire-and-validate-once.yml
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/RUST_BASELINE_EVALUATOR.md docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
+          git commit -m "docs(search): close Task 12 evaluator"
+          git push origin HEAD:rust-engine
