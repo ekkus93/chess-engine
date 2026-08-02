@@ -105,6 +105,18 @@ def load_corpus(path: Path) -> list[CorpusEntry]:
     return entries
 
 
+def validate_corpus_fens(entries: list[CorpusEntry]) -> None:
+    invalid: list[str] = []
+    for entry in entries:
+        board = chess.Board(entry.fen)
+        if not board.is_valid():
+            invalid.append(f"{entry.name}: status={board.status()} FEN={entry.fen}")
+    if invalid:
+        raise AssertionError(
+            "python-chess rejects differential corpus entries:\n" + "\n".join(invalid)
+        )
+
+
 def canonical_fen(board: chess.Board) -> str:
     return board.fen(en_passant="fen")
 
@@ -132,9 +144,6 @@ def assert_equal(name: str, category: str, fen: str, expected: object, actual: o
 
 def validate_corpus_entry(oracle: RustOracle, entry: CorpusEntry) -> tuple[int, int]:
     board = chess.Board(entry.fen)
-    if not board.is_valid():
-        raise AssertionError(f"{entry.name}: python-chess rejects corpus FEN {entry.fen}")
-
     python_moves = sorted(move.uci() for move in board.legal_moves)
     rust_moves = oracle.legal(entry.fen)
     assert_equal(entry.name, "legal move set", entry.fen, python_moves, rust_moves)
@@ -229,6 +238,7 @@ def main() -> int:
         raise FileNotFoundError(arguments.binary)
 
     corpus = load_corpus(arguments.corpus)
+    validate_corpus_fens(corpus)
     total_children = 0
     total_perft_nodes = 0
     with RustOracle(arguments.binary) as oracle:
