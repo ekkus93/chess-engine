@@ -72,8 +72,7 @@ impl fmt::Display for ReferenceSearchError {
                 history_zobrist,
             } => write!(
                 formatter,
-                "search history {:?} does not match position {position_zobrist:#018x}",
-                history_zobrist.map(|value| format_args!("{value:#018x}"))
+                "search history {history_zobrist:?} does not match position {position_zobrist:#018x}"
             ),
             Self::DepthTooLarge { depth, maximum } => write!(
                 formatter,
@@ -212,7 +211,11 @@ fn search_node(
             .checked_add(child.nodes)
             .ok_or(ReferenceSearchError::NodeCountOverflow)?;
         let score = -child.score;
-        if best_score.is_none_or(|previous| score > previous) {
+        let replace_best = match best_score {
+            Some(previous) => score > previous,
+            None => true,
+        };
+        if replace_best {
             best_score = Some(score);
             best_move = Some(current);
         }
