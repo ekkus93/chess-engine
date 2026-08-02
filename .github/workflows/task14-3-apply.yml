@@ -6,6 +6,7 @@ on:
       - rust-engine
     paths:
       - .github/task14_3_parts/**
+      - .github/task14_3_context_fix.py
       - .github/task14_3_run_request.txt
       - .github/workflows/task14-3-apply.yml
 
@@ -61,7 +62,9 @@ jobs:
             echo 'b9d3c144d610175a6f9562773825c6e2806737a882e107425bf0c9dfcdfb3c93  /tmp/apply_task_14_3.py' | sha256sum --check
             python3 -c 'import base64; from pathlib import Path; p=Path("/tmp/apply_task_14_3.py"); s=p.read_text(); old=base64.b64decode("dGV4dCA9IHJlcGxhY2Vfb25jZSgKICAgIHRleHQsCiAgICAiIiIgICAgICAgICAgICBNb3ZlT3JkZXJpbmc6OlRhY3RpY2FsLAogICAgICAgICAgICBTb21lKHR0X21vdmUpLAogICAgICAgICkiIiIsCiAgICAiIiIgICAgICAgICAgICBNb3ZlT3JkZXJpbmc6OlRhY3RpY2FsLAogICAgICAgICAgICAwLAogICAgICAgICAgICBOb25lLAogICAgICAgICAgICBTb21lKHR0X21vdmUpLAogICAgICAgICAgICBOb25lLAogICAgICAgICkiIiIsCiAgICAiZXhpc3RpbmcgVFQgdGVzdCBjYWxsIiwKKQ==").decode(); new=base64.b64decode("dGV4dCA9IHJlcGxhY2Vfb25jZSgKICAgIHRleHQsCiAgICAib3JkZXJfbGVnYWxfbW92ZXNfd2l0aF9oaW50cygmcm9vdCwgJnRva2VucywgTW92ZU9yZGVyaW5nOjpUYWN0aWNhbCwgU29tZSh0dF9tb3ZlKSkiLAogICAgIiIib3JkZXJfbGVnYWxfbW92ZXNfd2l0aF9oaW50cygKICAgICAgICAgICAgICAgICZyb290LAogICAgICAgICAgICAgICAgJnRva2VucywKICAgICAgICAgICAgICAgIE1vdmVPcmRlcmluZzo6VGFjdGljYWwsCiAgICAgICAgICAgICAgICAwLAogICAgICAgICAgICAgICAgTm9uZSwKICAgICAgICAgICAgICAgIFNvbWUodHRfbW92ZSksCiAgICAgICAgICAgICAgICBOb25lLAogICAgICAgICAgICApIiIiLAogICAgImV4aXN0aW5nIFRUIHRlc3QgY2FsbCIsCik=").decode(); assert s.count(old)==1, s.count(old); p.write_text(s.replace(old,new))'
             echo '8b6bab7bd745473b18f1098d544158a6ffb922bbb5ed5e4a21df7a32cfb4923d  /tmp/apply_task_14_3.py' | sha256sum --check
+            echo '8585695d2d7d30e58dd518f0fb92f2e008bc3b53a2c20bc23fa72ecd6ab6b0cb  .github/task14_3_context_fix.py' | sha256sum --check
             python3 /tmp/apply_task_14_3.py "$GITHUB_WORKSPACE"
+            python3 .github/task14_3_context_fix.py "$GITHUB_WORKSPACE"
             cargo fmt --all
             progress applied-and-formatted
             timeout 300 cargo check --locked -p chess-search --all-targets --all-features
@@ -96,6 +99,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf .github/task14_3_parts \
+            .github/task14_3_context_fix.py \
             .github/task14_3_run_request.txt \
             .github/task14_3_progress.txt \
             .github/task14_3_failure.txt \
