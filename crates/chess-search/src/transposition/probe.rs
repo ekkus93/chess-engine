@@ -248,8 +248,8 @@ mod tests {
         TranspositionScoreReuse,
     };
     use crate::{
-        Score, TranspositionBound, TranspositionEntry, TranspositionScore, TranspositionTable,
-        TranspositionScoreConversionError, MAX_MATE_PLY,
+        Score, TranspositionBound, TranspositionEntry, TranspositionScore,
+        TranspositionScoreConversionError, TranspositionTable, MAX_MATE_PLY,
     };
 
     const KEY: u64 = 0x1234_5678_9abc_def0;
@@ -310,13 +310,7 @@ mod tests {
         );
 
         assert_eq!(
-            table.probe(request(
-                KEY,
-                1,
-                -100,
-                100,
-                TranspositionScoreReuse::Allowed,
-            )),
+            table.probe(request(KEY, 1, -100, 100, TranspositionScoreReuse::Allowed,)),
             Ok(None)
         );
 
@@ -330,13 +324,7 @@ mod tests {
             ),
         );
         assert!(table
-            .probe(request(
-                KEY,
-                1,
-                -100,
-                100,
-                TranspositionScoreReuse::Allowed,
-            ))
+            .probe(request(KEY, 1, -100, 100, TranspositionScoreReuse::Allowed,))
             .expect("probe succeeds")
             .is_some());
     }
@@ -355,13 +343,7 @@ mod tests {
         );
 
         let result = table
-            .probe(request(
-                KEY,
-                6,
-                -100,
-                100,
-                TranspositionScoreReuse::Allowed,
-            ))
+            .probe(request(KEY, 6, -100, 100, TranspositionScoreReuse::Allowed))
             .expect("probe succeeds")
             .expect("verified entry");
 
@@ -404,7 +386,10 @@ mod tests {
             .expect("probe succeeds")
             .expect("verified entry");
 
-        assert_eq!(result.score(), Some(TranspositionProbeScore::Exact(expected)));
+        assert_eq!(
+            result.score(),
+            Some(TranspositionProbeScore::Exact(expected))
+        );
     }
 
     #[test]
@@ -421,13 +406,7 @@ mod tests {
         );
 
         let cutoff = table
-            .probe(request(
-                KEY,
-                9,
-                -50,
-                50,
-                TranspositionScoreReuse::Allowed,
-            ))
+            .probe(request(KEY, 9, -50, 50, TranspositionScoreReuse::Allowed))
             .expect("probe succeeds")
             .expect("verified entry");
         assert_eq!(
@@ -438,13 +417,7 @@ mod tests {
         );
 
         let no_cutoff = table
-            .probe(request(
-                KEY,
-                9,
-                -50,
-                100,
-                TranspositionScoreReuse::Allowed,
-            ))
+            .probe(request(KEY, 9, -50, 100, TranspositionScoreReuse::Allowed))
             .expect("probe succeeds")
             .expect("verified entry");
         assert_eq!(no_cutoff.best_move(), Some(best_move()));
@@ -465,13 +438,7 @@ mod tests {
         );
 
         let cutoff = table
-            .probe(request(
-                KEY,
-                9,
-                -50,
-                50,
-                TranspositionScoreReuse::Allowed,
-            ))
+            .probe(request(KEY, 9, -50, 50, TranspositionScoreReuse::Allowed))
             .expect("probe succeeds")
             .expect("verified entry");
         assert_eq!(
@@ -482,13 +449,7 @@ mod tests {
         );
 
         let no_cutoff = table
-            .probe(request(
-                KEY,
-                9,
-                -100,
-                50,
-                TranspositionScoreReuse::Allowed,
-            ))
+            .probe(request(KEY, 9, -100, 50, TranspositionScoreReuse::Allowed))
             .expect("probe succeeds")
             .expect("verified entry");
         assert_eq!(no_cutoff.best_move(), Some(best_move()));

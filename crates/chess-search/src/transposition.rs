@@ -4,6 +4,12 @@ use chess_core::Move;
 
 use crate::Score;
 
+mod probe;
+pub use probe::{
+    TranspositionProbeError, TranspositionProbeRequest, TranspositionProbeResult,
+    TranspositionProbeScore, TranspositionScoreReuse,
+};
+
 const BYTES_PER_MEBIBYTE: usize = 1024 * 1024;
 
 /// Number of transposition entries stored in one collision cluster.
@@ -11,9 +17,9 @@ pub const TRANSPOSITION_CLUSTER_SIZE: usize = 4;
 
 /// Search-window meaning of a stored transposition-table score.
 ///
-/// The tag describes how the score may eventually be reused by a probe. Task
-/// 15.4 owns the cutoff rules; this type only makes the three meanings explicit
-/// and impossible to confuse with one another.
+/// The tag describes how [`TranspositionTable::probe`] may reuse the score.
+/// Keeping all three meanings explicit prevents a bound from being mistaken for
+/// an exact minimax value.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[repr(u8)]
 pub enum TranspositionBound {
@@ -204,9 +210,9 @@ impl std::error::Error for TranspositionTableAllocationError {}
 /// Fixed-capacity clustered transposition-table storage.
 ///
 /// Construction performs one fallible reservation for all clusters. The table
-/// never grows after construction and has no unbounded map fallback. Task 15.5
-/// will define how stores choose a slot inside a cluster; Task 15.4 will define
-/// probe semantics.
+/// never grows after construction and has no unbounded map fallback. Probes
+/// verify complete keys and apply depth, bound, mate, and repetition safety. Task
+/// 15.5 will define how stores choose a slot inside a cluster.
 #[derive(Debug)]
 pub struct TranspositionTable {
     clusters: Vec<TranspositionCluster>,

@@ -35,8 +35,9 @@ pub use reference::{
 };
 pub use score::{Score, MATE_SCORE, MAX_EVALUATION, MAX_MATE_PLY};
 pub use transposition::{
-    TranspositionBound, TranspositionEntry, TranspositionScore, TranspositionTable,
-    TranspositionTableAllocationError, TRANSPOSITION_CLUSTER_SIZE,
+    TranspositionBound, TranspositionEntry, TranspositionProbeError, TranspositionProbeRequest,
+    TranspositionProbeResult, TranspositionProbeScore, TranspositionScore, TranspositionScoreReuse,
+    TranspositionTable, TranspositionTableAllocationError, TRANSPOSITION_CLUSTER_SIZE,
 };
 pub use transposition_score::TranspositionScoreConversionError;
 pub use weights::{
