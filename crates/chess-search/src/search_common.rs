@@ -17,11 +17,10 @@ impl UnsupportedMatePly {
     }
 }
 
-pub(crate) fn resolved_node_score(
+pub(crate) fn resolved_terminal_or_draw_score(
     position: &Position,
     history: &SearchHistory,
     legal_moves_empty: bool,
-    depth: u16,
     ply: u16,
 ) -> Result<Option<Score>, UnsupportedMatePly> {
     if legal_moves_empty {
@@ -35,6 +34,22 @@ pub(crate) fn resolved_node_score(
 
     if is_search_draw(position, history) {
         return Ok(Some(Score::ZERO));
+    }
+
+    Ok(None)
+}
+
+pub(crate) fn resolved_node_score(
+    position: &Position,
+    history: &SearchHistory,
+    legal_moves_empty: bool,
+    depth: u16,
+    ply: u16,
+) -> Result<Option<Score>, UnsupportedMatePly> {
+    if let Some(score) =
+        resolved_terminal_or_draw_score(position, history, legal_moves_empty, ply)?
+    {
+        return Ok(Some(score));
     }
 
     if depth == 0 {
