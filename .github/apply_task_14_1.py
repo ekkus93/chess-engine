@@ -12,8 +12,16 @@ if count == 0:
     raise SystemExit("expected Task 14 reference-quiescence uses in terminal fixtures")
 path.write_text(text.replace(old, "reference_search"))
 
+control_marker = root / ".github/task14-obsolete-run-cancel.txt"
+if not control_marker.exists():
+    raise SystemExit("expected temporary Task 14 cancellation marker")
+control_marker.unlink()
+
 hook = root / ".git/hooks/pre-commit"
 hook.write_text("#!/bin/sh\ngit add -A\n")
 os.chmod(hook, 0o755)
 
-print(f"restored {count} terminal-fixture references to the static Task 13 oracle")
+print(
+    f"restored {count} terminal-fixture references to the static Task 13 oracle "
+    "and removed the cancellation marker"
+)
