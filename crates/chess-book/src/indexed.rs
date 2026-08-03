@@ -7,7 +7,6 @@ const HEADER_SIZE: usize = 64;
 const RECORD_SIZE: usize = 104;
 const ENDIAN_MARKER: u32 = 0x0102_0304;
 const MAX_POSITION_KEY_BYTES: usize = 84;
-const MAX_MOVE_BYTES: usize = 8;
 const METADATA_PRESENT: u16 = 1;
 const SUPPORTED_RECORD_FLAGS: u16 = METADATA_PRESENT;
 
