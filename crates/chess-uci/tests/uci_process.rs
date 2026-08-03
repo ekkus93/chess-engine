@@ -202,7 +202,9 @@ fn assert_legal_bestmove(mut game: Game, line: &str) {
 fn game_after_moves(moves: &[&str]) -> Game {
     let mut game = Game::starting();
     for text in moves {
-        let syntax = text.parse::<UciMove>().expect("fixture move uses UCI syntax");
+        let syntax = text
+            .parse::<UciMove>()
+            .expect("fixture move uses UCI syntax");
         let legal_moves = game.legal_moves().expect("generate fixture legal moves");
         let current = legal_moves
             .iter()
@@ -309,11 +311,9 @@ fn stop_interrupts_infinite_search_and_session_remains_ready() {
     process.send("position startpos");
     process.send("go infinite");
     let before_stop = process.read_until(OUTPUT_TIMEOUT, |line| line.starts_with("info depth "));
-    assert!(
-        before_stop
-            .iter()
-            .all(|line| !line.starts_with("bestmove "))
-    );
+    assert!(before_stop
+        .iter()
+        .all(|line| !line.starts_with("bestmove ")));
 
     let stop_started = Instant::now();
     process.send("stop");
@@ -342,20 +342,16 @@ fn quit_interrupts_active_search_without_stale_bestmove() {
     process.send("position startpos");
     process.send("go infinite");
     let before_quit = process.read_until(OUTPUT_TIMEOUT, |line| line.starts_with("info depth "));
-    assert!(
-        before_quit
-            .iter()
-            .all(|line| !line.starts_with("bestmove "))
-    );
+    assert!(before_quit
+        .iter()
+        .all(|line| !line.starts_with("bestmove ")));
 
     process.send("quit");
     let status = process.wait_for_exit(EXIT_TIMEOUT);
     assert!(status.success(), "UCI process exited with {status}");
     let remaining = process.drain_lines();
     assert!(
-        remaining
-            .iter()
-            .all(|line| !line.starts_with("bestmove ")),
+        remaining.iter().all(|line| !line.starts_with("bestmove ")),
         "quit leaked a stale final move: {remaining:?}"
     );
 }
