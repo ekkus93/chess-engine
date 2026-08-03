@@ -8,6 +8,12 @@ HOST_JOB = "91825818389"
 EMULATOR_JOB = "91825818440"
 
 
+def require_once(path: Path, value: str) -> None:
+    count = path.read_text().count(value)
+    if count != 1:
+        raise SystemExit(f"{path}: expected one occurrence of {value!r}, found {count}")
+
+
 def replace_once(path: Path, old: str, new: str) -> None:
     text = path.read_text()
     count = text.count(old)
@@ -25,8 +31,17 @@ def main() -> None:
         "Reject corrupt input loudly.",
     ):
         replace_once(definitions, f"- [ ] {item}", f"- [x] {item}")
+    for deferred in (
+        "- [ ] deterministic highest weight;",
+        "- [ ] weighted random;",
+        "- [ ] explicit local RNG seed;",
+        "- [ ] legal-move validation before return.",
+    ):
+        require_once(definitions, deferred)
 
     summary = Path("docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md")
+    require_once(summary, "- [ ] 19.3 Policies.")
+    require_once(summary, "- [ ] Task 19 gate.")
     replace_once(summary, "**Updated:** 2026-08-02", "**Updated:** 2026-08-03")
     replace_once(
         summary,
