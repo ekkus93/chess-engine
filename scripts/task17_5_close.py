@@ -78,7 +78,12 @@ def update_authoritative_todo() -> None:
 def update_ralph_status() -> None:
     path = Path("docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md")
     text = path.read_text()
-    text = replace_once(text, "**Updated:** 2026-08-02", "**Updated:** 2026-08-03", "status date")
+    text = replace_once(
+        text,
+        "**Updated:** 2026-08-02  \n",
+        "**Updated:** 2026-08-03\n",
+        "status date",
+    )
     lines = text.splitlines()
     phase_indexes = [index for index, line in enumerate(lines) if line.startswith("**Current phase:**")]
     if len(phase_indexes) != 1:
