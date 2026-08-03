@@ -1,7 +1,9 @@
 name: Task 19.2 Trusted Closure
 
 on:
-  pull_request_target:
+  pull_request:
+    branches:
+      - master
     types:
       - synchronize
 
