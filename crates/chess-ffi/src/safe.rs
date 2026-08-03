@@ -191,9 +191,7 @@ impl SearchRequest {
     /// Adds a request-local explicit cancellation signal.
     #[must_use]
     pub fn with_cancellation(mut self, cancellation: &SearchCancellationHandle) -> Self {
-        self.limits = self
-            .limits
-            .with_stop_flag(cancellation.stop_flag.clone());
+        self.limits = self.limits.with_stop_flag(cancellation.stop_flag.clone());
         self
     }
 
@@ -373,8 +371,7 @@ impl Engine {
     pub fn new(config: EngineConfig) -> Result<Self, EngineError> {
         let weight_set = EvaluationWeightSet::baseline();
         weight_set.validate()?;
-        let transposition_table =
-            TranspositionTable::new(config.transposition_table_mebibytes())?;
+        let transposition_table = TranspositionTable::new(config.transposition_table_mebibytes())?;
         Ok(Self {
             config,
             game: Game::starting(),
