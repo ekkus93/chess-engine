@@ -38,8 +38,8 @@ where
             writeln!(output, "{current}")?;
         }
 
-        let state_replaced = matches!(command, Some("position" | "ucinewgame"))
-            && response.lines().is_empty();
+        let state_replaced =
+            matches!(command, Some("position" | "ucinewgame")) && response.lines().is_empty();
         if state_replaced {
             if let Err(error) = workers.stop() {
                 report_worker_error(&mut output, &error)?;
