@@ -76,6 +76,8 @@ Those behaviors remain assigned to Tasks 19.4 and 19.5.
 
 - Exact merged implementation SHA: `82b5100f501fe4e4a845d5fb3bdbb1c8fe7d34ef`.
 - Exact PR head validated before rebase merge: `4bb4e30f457b9b84e09485cf51629ab0b3c6d37d`; the production policy blob is unchanged at the merged SHA.
+- Exact tracker-closure SHA: `7a0b8e6bef28c3ffeb03c9b076e7e8d48edacf89`.
+- Tracker-closure PR head `9790f9c1f9944d7fcf1843cecc233225378defcb` passed Rust run `30860506273`, job `91841214801`, and Android run `30860506258`, jobs `91841214608` and `91841214718`.
 - Permanent Rust validation: run `30859905206`, job `91839380997`.
 - Permanent Android regression validation: run `30859905203`, host JVM job `91839428990`, API-35 emulator job `91839429013`.
 - Six focused Task 19.3 policy and legality tests passed; `chess-book` executed 17 tests and the complete workspace executed 323 non-documentation Rust tests with zero failures.
