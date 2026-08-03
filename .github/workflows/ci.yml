@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: rust-ci-${{ github.workflow }}-${{ github.ref }}
@@ -26,6 +26,29 @@ jobs:
       RUST_BACKTRACE: "1"
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+
+      - name: Apply Task 16.4 implementation
+        run: python3 scripts/implement_task_16_4.py "$GITHUB_WORKSPACE"
+
+      - name: Format generated Rust
+        run: cargo fmt --all
+
+      - name: Verify Task 16.4 assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f crates/chess-search/src/limits.rs
+          test -f crates/chess-search/tests/search_limits.rs
+          test -f docs/RUST_SEARCH_LIMITS.md
+          grep -F -- 'pub struct SearchLimits' crates/chess-search/src/limits.rs
+          grep -F -- 'pub struct SearchStopFlag' crates/chess-search/src/limits.rs
+          grep -F -- 'pub enum SearchLimitTermination' crates/chess-search/src/limits.rs
+          grep -F -- 'pub struct LimitedIterativeDeepeningSearchResult' crates/chess-search/src/iterative_deepening.rs
+          grep -F -- 'iterative_deepening_search_with_limits_and_transposition_table' crates/chess-search/src/iterative_deepening.rs
+          grep -F -- 'fn on_node(&mut self)' crates/chess-search/src/cancellation.rs
 
       - name: Verify workspace and validation assets
         shell: bash
@@ -40,7 +63,8 @@ jobs:
           test -f scripts/task_14_5_exclusion_audit.py
           python3 -m py_compile \
             scripts/differential_oracle.py \
-            scripts/task_14_5_exclusion_audit.py
+            scripts/task_14_5_exclusion_audit.py \
+            scripts/implement_task_16_4.py
 
       - name: Run Task 14.5 exclusion audit
         run: python3 scripts/task_14_5_exclusion_audit.py
@@ -91,6 +115,13 @@ jobs:
       - name: Run tests
         run: cargo test --locked --workspace --all-features
 
+      - name: Run focused search-limit tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --locked -p chess-search --test search_limits
+          cargo test --locked -p chess-search limit_tests
+
       - name: Run authoritative release perft
         run: cargo test --locked -p chess-core --release authoritative_perft_depth_four -- --ignored --exact
 
@@ -123,3 +154,24 @@ jobs:
           --games 12
           --plies 48
           --seed 0xC0FFEE
+
+      - name: Commit Task 16.4 without workflow changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm scripts/implement_task_16_4.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            crates/chess-search/src/alpha_beta.rs \
+            crates/chess-search/src/cancellation.rs \
+            crates/chess-search/src/iterative_deepening.rs \
+            crates/chess-search/src/lib.rs \
+            crates/chess-search/src/limits.rs \
+            crates/chess-search/src/quiescence.rs \
+            crates/chess-search/tests/search_limits.rs \
+            docs/RUST_ITERATIVE_DEEPENING.md \
+            docs/RUST_SEARCH_LIMITS.md
+          git diff --cached --check
+          git commit -m "feat: add typed iterative search limits"
+          git push origin HEAD:rust-engine
