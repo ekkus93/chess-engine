@@ -25,6 +25,7 @@ jobs:
           python3 .github/task19_4_apply.py
           python3 - <<'PY'
           from pathlib import Path
+
           path = Path('crates/chess-uci/src/main.rs')
           content = path.read_text()
           redundant = '''fn run_protocol_loop<R, W>(input: R, output: W) -> io::Result<()>
@@ -39,6 +40,14 @@ jobs:
           if content.count(redundant) != 1:
               raise SystemExit('expected exactly one redundant run_protocol_loop wrapper')
           path.write_text(content.replace(redundant, '', 1))
+
+          contract = Path('crates/chess-jni/tests/jni_contract.rs')
+          content = contract.read_text()
+          old = 'occurrences(KOTLIN_WRAPPER, &format!("external fun {method}"))'
+          new = 'occurrences(KOTLIN_WRAPPER, &format!("external fun {method}("))'
+          if content.count(old) != 1:
+              raise SystemExit('expected exactly one JNI declaration counter')
+          contract.write_text(content.replace(old, new, 1))
           PY
       - name: Format and lock
         run: |
