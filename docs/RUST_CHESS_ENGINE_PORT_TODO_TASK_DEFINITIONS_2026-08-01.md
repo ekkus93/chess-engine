@@ -991,14 +991,14 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 18.4 Android JNI
 
-- [ ] Build AArch64 shared library.
-- [ ] Kotlin wrapper class with deterministic native-handle ownership.
-- [ ] Position setup and legal moves.
-- [ ] Move application and status.
-- [ ] Search from a background dispatcher/thread.
-- [ ] Cancellation.
-- [ ] Error mapping.
-- [ ] Native resource close/finalization policy.
+- [x] Build AArch64 shared library.
+- [x] Kotlin wrapper class with deterministic native-handle ownership.
+- [x] Position setup and legal moves.
+- [x] Move application and status.
+- [x] Search from a background dispatcher/thread.
+- [x] Cancellation.
+- [x] Error mapping.
+- [x] Native resource close/finalization policy.
 
 ## 18.5 Android test harness
 

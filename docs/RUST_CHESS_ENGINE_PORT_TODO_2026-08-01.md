@@ -888,7 +888,7 @@ Evidence:
 - [x] 18.1 Rust facade.
 - [x] 18.2 C ABI.
 - [x] 18.3 C tests.
-- [ ] 18.4 JNI.
+- [x] 18.4 JNI.
 - [ ] 18.5 Android harness.
 - [ ] Task 18 gate.
 
@@ -948,6 +948,26 @@ Evidence:
 - Differential validation covered 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - The first validation correction was limited to canonical rustfmt output and removal of one scheduler-sensitive test assertion. No ABI behavior, safety policy, production default surface, lower-layer code, or validation gate was weakened.
 - Task 18.3 is complete. Task 18.4 Android JNI integration is next.
+
+
+### Task 18.4 completion evidence
+
+- Implementation: `crates/chess-jni/src/lib.rs` and `bridge.rs`, the pinned `jni = 0.21.1` dependency, `rlib` plus Android `cdylib` outputs, and the locked dependency update in `Cargo.lock`.
+- Android-facing source: `crates/chess-jni/kotlin/src/main/kotlin/com/ekkus93/chessengine/ChessEngine.kt`; build entry point: `scripts/build_android_jni.sh`; contract: `docs/RUST_ANDROID_JNI.md`.
+- The JNI adapter reuses the stable Task 18.2 opaque engine and cancellation tokens. It does not duplicate chess rules, search logic, handle registries, or result-code semantics.
+- Sixteen exact JNI exports cover version, engine lifecycle, position reset/setup, canonical FEN, legal UCI moves, move application, game status, weight identity, cancellation lifecycle, and synchronous typed search.
+- Every JNI export enters one shared panic boundary. Stable native result codes and diagnostics map to typed `ChessEngineException`; exception-construction failure falls back visibly to `RuntimeException`.
+- The Kotlin `ChessEngine` is a deterministic `Closeable` owner with an idempotent close path, read/write lifecycle locking, one outstanding search, a private single-thread worker, request-local cancellation, and a phantom-reference leak fallback.
+- Public Kotlin search never invokes the synchronous native call on the caller thread. `SearchOperation.cancel` uses the independent native stop token rather than Java interruption.
+- Nine focused JNI tests cover opaque-token bit preservation, exact request conversion, bridge lifecycle, typed invalid-FEN preservation, active cross-thread cancellation, Kotlin/Rust symbol agreement, compact-record agreement, and ownership/background-search source contracts.
+- Host implementation SHA: `466c7b504832afa2bf993cb10dcc0c12aefcf1c5`.
+- Permanent host validation: run `30844134371`, job `91788114660`.
+- Follow-up permanent validation on the Android-proof source tree: run `30844338897`, job `91788828855`.
+- Results: nine focused JNI tests and 306 executed non-doc Rust tests passed; rustfmt, committed lockfile, locked all-target/all-feature compilation, strict Clippy without suppressions, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and the independent differential oracle all passed.
+- Differential validation covered 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- Android AArch64 proof SHA: `1fc49b6126ecb9faa4c0f167b272945d65aebbf1`. Its guarded workflow completed the locked NDK API-24 `aarch64-linux-android` release build, required a nonempty `libchess_jni.so`, verified an AArch64 ELF shared object and the exported `nativeSearch` JNI symbol, then removed itself.
+- Validation corrections were limited to lockfile/rustfmt normalization, snapshotting scalar search fields before ABI-result cleanup, using the pinned `jni` crate's typed `JThrowable`, and importing one test-only result-code type. No lower-layer production behavior, safety policy, or validation gate was weakened.
+- Task 18.4 is complete. Task 18.5 Android/JVM and emulator harness work is next; the overall Task 18 gate remains open.
 
 # Task 19: Opening book — NOT STARTED
 - [ ] 19.1 Abstraction.
@@ -1050,9 +1070,9 @@ Evidence:
 
 ## Immediate next operations
 
-1. Implement Task 18.4 as an Android JNI adapter over the stable C ABI contract.
-2. Build the AArch64 Android shared library with a pinned Rust target and NDK toolchain.
-3. Add a Kotlin wrapper with deterministic native-handle ownership and explicit close semantics.
-4. Expose position setup, legal moves, move application, game status, search, cancellation, and structured error mapping.
-5. Require search execution from a background dispatcher or worker rather than the Android main thread.
-6. Document native library packaging, lifecycle, and finalization policy before Task 18.5 device and JVM harness work.
+1. Implement Task 18.5 host JVM contract tests around the committed Kotlin wrapper.
+2. Add a minimal Android/Gradle harness that packages the validated AArch64 `libchess_jni.so`.
+3. Run an instrumented or emulator smoke path for create, position, legal moves, search, stop, and destroy.
+4. Prove sample integration never invokes search on the Android main thread.
+5. Exercise repeated create/search/stop/destroy lifecycles and record the exact Android target, NDK, Gradle, and emulator commands.
+6. Close the overall Task 18 gate only after the Android harness is green.

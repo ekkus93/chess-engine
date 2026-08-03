@@ -105,3 +105,15 @@ Task 18.4 host validation covers:
 - an actual locked AArch64 Android release build of `libchess_jni.so`.
 
 Task 18.5 remains responsible for compiling and executing the Kotlin wrapper in a host JVM/Android project, emulator or instrumented smoke testing, main-thread exclusion verification, repeated Android lifecycle tests, and final Android integration instructions.
+
+
+## Completion evidence
+
+- Host implementation SHA: `466c7b504832afa2bf993cb10dcc0c12aefcf1c5`.
+- Permanent host validation: run `30844134371`, job `91788114660`.
+- Follow-up permanent validation on the Android-proof source tree: run `30844338897`, job `91788828855`.
+- Android AArch64 proof and one-shot cleanup SHA: `1fc49b6126ecb9faa4c0f167b272945d65aebbf1`.
+- Nine focused JNI tests and 306 executed non-doc Rust tests passed.
+- The locked NDK API-24 build produced a nonempty AArch64 ELF `libchess_jni.so` and exposed the exact `nativeSearch` JNI symbol before the temporary workflow removed itself.
+- Formatting, lockfile verification, all-target/all-feature compilation, strict Clippy, complete workspace tests, authoritative release depth-four perft, rustdoc, debug/release builds, and differential validation all passed.
+- Task 18.4 is complete. Task 18.5 owns JVM/Gradle execution, Android packaging, emulator or instrumentation evidence, main-thread exclusion, and repeated Android lifecycle coverage.

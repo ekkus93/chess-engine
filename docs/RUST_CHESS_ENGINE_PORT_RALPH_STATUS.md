@@ -3,7 +3,7 @@
 **Updated:** 2026-08-03
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 18.3 C ABI tests complete; Task 18.4 Android JNI is next
+**Current phase:** Task 18.4 Android JNI complete; Task 18.5 Android harness is next
 
 ## Completed gates
 
@@ -56,6 +56,7 @@
 | 18.1 | `fc375ce7c35a9b8e82c83c8a0ac54e23a60986be` | `30832682431` / `91750223690` | safe stateful facade, transactional positions, legal UCI moves, immutable synchronous search, cross-thread cancellation, identities, and ownership/thread-safety contract; 285 Rust tests green |
 | 18.2 | `d1c4a9195acfc63dc2f9af52531c4ba01e9a2dc9` | `30836228692` / `91761964507` | versioned opaque-token C ABI, explicit UTF-8 lengths, typed errors, verified owned buffers, synchronous search/cancellation boundary, and panic containment; 291 Rust tests green |
 | 18.3 | `0789ac65590ccafb55b2b86b73873edfba1c7b55` | `30841137129` / `91778174797` | complete Rust-through-ABI lifecycle, 128× engine/cancellation churn, invalid-input preservation, active cross-thread cancellation, exact buffer ownership, and exported test-fault containment; 297 Rust tests green |
+| 18.4 | `466c7b504832afa2bf993cb10dcc0c12aefcf1c5` | `30844134371` / `91788114660` | Android JNI exports and typed Kotlin owner, background search, request-local cancellation, error mapping, deterministic close/reaper policy, nine focused JNI tests, 306 Rust tests, and AArch64 ELF proof `1fc49b6126ecb9faa4c0f167b272945d65aebbf1` green |
 
 ## Task 17.1 completion
 
@@ -200,6 +201,34 @@ Evidence:
 - the first validation correction was canonical rustfmt plus removal of one scheduler-sensitive assertion, with no product or gate weakening.
 
 Task 18.3 is complete. Task 18.4 Android JNI is next.
+
+
+## Task 18.4 completion
+
+Implemented and validated:
+
+- an Android `cdylib` adapter over the existing stable C ABI, with no duplicate engine registry or chess/search implementation;
+- sixteen JNI exports for engine lifecycle, positions, legal moves, move/status, identity, search, and cancellation;
+- shared panic containment and typed Java exception construction preserving stable native result codes;
+- exact opaque-token bit preservation between Rust `u64` and JVM `long`;
+- a typed Kotlin `Closeable` owner with deterministic handle destruction, lifecycle locking, one outstanding search, and a phantom-reference fallback;
+- a private single-thread search worker so the public Kotlin API never runs synchronous native search on the caller thread;
+- request-local cross-thread cancellation and cleanup in all completion paths;
+- a locked NDK API-24 AArch64 build script producing and verifying `libchess_jni.so`;
+- six bridge tests and three Kotlin/Rust source-contract tests;
+- `docs/RUST_ANDROID_JNI.md`.
+
+Evidence:
+
+- host implementation SHA: `466c7b504832afa2bf993cb10dcc0c12aefcf1c5`;
+- permanent host CI run/job: `30844134371` / `91788114660`;
+- follow-up permanent CI run/job: `30844338897` / `91788828855`;
+- Android AArch64 proof and one-shot cleanup SHA: `1fc49b6126ecb9faa4c0f167b272945d65aebbf1`;
+- nine focused JNI tests and 306 executed non-doc Rust tests passed;
+- the complete permanent workspace gate, authoritative release perft, and independent differential oracle passed without lint suppression or lower-layer behavior changes;
+- the Android proof required a nonempty AArch64 ELF shared object and the exported JNI search symbol before its temporary workflow could remove itself.
+
+Task 18.4 is complete. Task 18.5 Android harness work is next, and the overall Task 18 gate remains open.
 
 ## Task 12 completion
 
