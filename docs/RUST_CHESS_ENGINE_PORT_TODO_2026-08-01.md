@@ -37,7 +37,7 @@
 | 13 | **Complete** — reference negamax, alpha-beta, shallow equivalence, immutability, and terminal/mate-distance fixtures. |
 | 14 | **Complete** — quiescence, tactical/quiet ordering, consolidated correctness, and exclusion audit. |
 | 15 | **Complete** — bounded, mate-safe transposition table integrated into production alpha-beta with deterministic node-reduction evidence. |
-| 16 | **Active** — Task 16.1 iterative deepening complete; aspiration windows next. |
+| 16 | **Active** — Tasks 16.1 and 16.3 complete; Task 16.2 aspiration windows next. |
 | 17–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
@@ -679,12 +679,12 @@ Evidence:
 - Results: permanent exclusion audit, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy without suppressions, 193 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
 - Differential oracle: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - The clean implementation delta contains only three Rust modules, one integration-test file, and one contract document; no temporary workflow, script, unbounded map, or fallback remains.
-- Task 15 and Task 16.1 are complete. Task 16.2 aspiration windows is next.
+- Task 15 and Tasks 16.1/16.3 are complete. Task 16.2 aspiration windows is next.
 
 # Task 16: Iterative deepening, PV, limits, cancellation — ACTIVE
 - [x] 16.1 Iterative deepening.
 - [ ] 16.2 Aspiration windows.
-- [ ] 16.3 Principal variation.
+- [x] 16.3 Principal variation.
 - [ ] 16.4 Limits.
 - [ ] 16.5 Cancellation.
 - [ ] 16.6 Result API.
@@ -708,7 +708,28 @@ Evidence:
 - The initial validation found only canonical rustfmt changes; the next found an invalid test assumption about sparse bounded hash-full sampling. Production semantics did not change.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 16.2 aspiration windows is next. PV reconstruction, limits, cancellation recovery, final result API, and extensions remain deferred.
+- Task 16.2 aspiration windows is next. Limits, cancellation recovery, the final result API, and extensions remain deferred.
+
+### Task 16.3 completion evidence
+
+- Implementation: `crates/chess-search/src/principal_variation.rs` and `crates/chess-search/src/transposition/principal_variation.rs`, integrated through `alpha_beta.rs`, `iterative_deepening.rs`, and public exports in `lib.rs`.
+- Public APIs: `PrincipalVariation`, `PrincipalVariationTermination`, `PrincipalVariationError`, per-iteration/final `principal_variation`, and per-iteration/final `ponder_move`.
+- The exact root result supplies the first PV move; later moves require a complete-key exact TT entry with sufficient remaining depth and a stored move.
+- Every candidate is regenerated and matched against a current legal token before it can enter the returned line.
+- Reconstruction is bounded by completed depth, terminates explicitly on missing data, terminal positions, illegal stored moves, or repeated Zobrist identities, and cannot loop through a colliding TT chain.
+- The ponder move is returned only as the second validated legal PV move.
+- PV lookup is observational and does not alter TT diagnostics, generation, allocation, or replacement state.
+- Internal exact entries now retain their searched best move so a complete exact chain can be reconstructed after root restoration.
+- Contract documentation: `docs/RUST_PRINCIPAL_VARIATION.md`; iterative-deepening documentation updated accordingly.
+- Exact clean validated implementation SHA: `e8afc9959a60519c6d5617963521e1707d37c6a9`.
+- Permanent CI run/job: `30776274173` / `91572310565`.
+- Results: permanent exclusion audit over 14 production Rust files, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy without suppressions, 204 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- Focused coverage includes exact-chain reconstruction, legal replay, ponder extraction, full-key collision rejection, exact-bound/depth requirements, illegal-entry rejection, repeated-position termination, terminal roots, and diagnostic non-mutation.
+- The first compiler iteration found only an ambiguous integer literal in a collision test; adding an explicit `u64` fixed the test without changing production behavior.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 16.2 aspiration windows remains open and is the next operation.
 
 # Task 17: Linux UCI executable — NOT STARTED
 - [ ] 17.1 Protocol loop.
@@ -832,4 +853,4 @@ Evidence:
 3. Re-search failed windows through a deterministic safe expansion or complete-window fallback.
 4. Record retry counts and window outcomes per completed depth without losing the Task 16.1 iteration record.
 5. Add fixed regressions for fail-low, fail-high, exact recovery, canonical best-move preservation, and root restoration.
-6. Keep PV reconstruction, time/node limits, responsive cancellation, the final result API, and check extensions in Tasks 16.3–16.7.
+6. Preserve the completed Task 16.3 legal PV/ponder contract while keeping limits, responsive cancellation, the final result API, and check extensions in Tasks 16.4–16.7.

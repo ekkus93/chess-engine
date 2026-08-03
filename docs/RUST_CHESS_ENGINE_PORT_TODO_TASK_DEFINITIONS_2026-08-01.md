@@ -846,10 +846,10 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 16.3 Principal variation
 
-- [ ] Reconstruct PV from search data safely.
-- [ ] Validate every PV move is legal in sequence.
-- [ ] Avoid TT collision loops.
-- [ ] Return ponder move when available.
+- [x] Reconstruct PV from search data safely.
+- [x] Validate every PV move is legal in sequence.
+- [x] Avoid TT collision loops.
+- [x] Return ponder move when available.
 
 ## 16.4 Search limits
 

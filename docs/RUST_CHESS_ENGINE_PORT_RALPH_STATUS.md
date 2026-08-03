@@ -3,7 +3,7 @@
 **Updated:** 2026-08-02  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 16.1 iterative deepening complete; Task 16.2 aspiration windows is next
+**Current phase:** Tasks 16.1 and 16.3 complete; Task 16.2 aspiration windows is next
 
 ## Completed gates
 
@@ -41,6 +41,7 @@
 | 15.6 | `bd4d5d581c0e82f892435b2874732ac632c2e1f5` | `30768512470` / `91551420579` | bounded counters and hash-full sampling, reproducible probe/store benchmark, four focused tests, 188 Rust tests, depth-four perft, and differential oracle green |
 | 15 / gate | `682114cd2452b04e1f24af1150928baaff779aa8` | `30770018597` / `91555458016` | production alpha-beta integration, 193 Rust tests, two release node-reduction witnesses, depth-four perft, and differential oracle green |
 | 16.1 | `886ad953952b3a409800fcf7e8699365f94f0271` | `30772536115` / `91562076526` | full-window iterative deepening, five focused tests, 198 Rust tests, depth-four perft, and differential oracle green |
+| 16.3 | `e8afc9959a60519c6d5617963521e1707d37c6a9` | `30776274173` / `91572310565` | safe legal PV reconstruction, ponder support, 204 Rust tests, depth-four perft, and differential oracle green |
 
 ## Task 12 completion
 
@@ -537,7 +538,7 @@ Evidence:
 - The clean implementation delta is limited to three Rust modules, one integration-test file, and one contract document.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 15 and Task 16.1 are complete. Task 16.2 aspiration windows is next.
+- Task 15 and Tasks 16.1/16.3 are complete. Task 16.2 aspiration windows is next.
 
 ## Task 16.1 completion
 
@@ -563,13 +564,39 @@ Evidence:
 - The first validation iteration found canonical rustfmt differences only. The second found a test-only assumption that sparse bounded hash-full sampling must observe an occupied slot; the assertion was corrected to the documented sampling contract without production changes.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 16.1 is complete. Task 16.2 aspiration windows is next.
+- Task 16.1 and Task 16.3 are complete. Task 16.2 aspiration windows is next.
+
+## Task 16.3 completion
+
+Implemented and validated:
+
+- bounded legal principal-variation reconstruction attached to every completed iterative-deepening iteration;
+- exact root best-move anchoring and complete-key, exact-bound, sufficient-depth TT continuation;
+- legal-token regeneration and validation before every returned move;
+- explicit terminal, missing-entry, illegal-entry, root-without-move, requested-depth, and repeated-position termination;
+- repeated-Zobrist cycle protection independent of the completed-depth hard bound;
+- observational TT lookup that leaves diagnostics and table state unchanged;
+- second-validated-move ponder extraction at both iteration and final-result boundaries;
+- best-move retention in internal exact entries;
+- focused unit/integration regressions and `docs/RUST_PRINCIPAL_VARIATION.md`.
+
+Evidence:
+
+- Exact clean validated implementation SHA: `e8afc9959a60519c6d5617963521e1707d37c6a9`.
+- Permanent CI run/job: `30776274173` / `91572310565`.
+- Results: permanent exclusion audit over 14 production Rust files, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy without suppressions, 204 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- Focused tests prove complete exact chains, legal sequential replay, ponder extraction, complete-key collision rejection, exact-bound/depth enforcement, illegal-move exclusion, repeated-position termination, terminal-root behavior, and diagnostic non-mutation.
+- The initial compiler pass found only one test-only ambiguous integer literal; an explicit `u64` annotation resolved it without production semantic changes.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 16.3 is complete. Task 16.2 aspiration windows remains open and is next.
 
 ## Task 16 active scope
 
 - [x] Implement Task 16.1 iterative deepening.
 - [ ] Implement Task 16.2 aspiration windows.
-- [ ] Implement Task 16.3 principal variation.
+- [x] Implement Task 16.3 principal variation.
 - [ ] Implement Task 16.4 search limits.
 - [ ] Implement Task 16.5 responsive cancellation.
 - [ ] Implement Task 16.6 final result API.
