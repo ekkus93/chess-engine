@@ -3,7 +3,7 @@
 **Updated:** 2026-08-03
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 18.4 Android JNI complete; Task 18.5 Android harness is next
+**Current phase:** Task 18 complete; Task 19.1 opening-book abstraction is next
 
 ## Completed gates
 
@@ -57,6 +57,7 @@
 | 18.2 | `d1c4a9195acfc63dc2f9af52531c4ba01e9a2dc9` | `30836228692` / `91761964507` | versioned opaque-token C ABI, explicit UTF-8 lengths, typed errors, verified owned buffers, synchronous search/cancellation boundary, and panic containment; 291 Rust tests green |
 | 18.3 | `0789ac65590ccafb55b2b86b73873edfba1c7b55` | `30841137129` / `91778174797` | complete Rust-through-ABI lifecycle, 128× engine/cancellation churn, invalid-input preservation, active cross-thread cancellation, exact buffer ownership, and exported test-fault containment; 297 Rust tests green |
 | 18.4 | `466c7b504832afa2bf993cb10dcc0c12aefcf1c5` | `30844134371` / `91788114660` | Android JNI exports and typed Kotlin owner, background search, request-local cancellation, error mapping, deterministic close/reaper policy, nine focused JNI tests, 306 Rust tests, and AArch64 ELF proof `1fc49b6126ecb9faa4c0f167b272945d65aebbf1` green |
+| 18.5 / 18 gate | `0af14c4bdb7e8de645f27182a788e5eef5297d5f` | Rust `30847895229` / `91800574469`; Android `30847895345` / `91800574845`, `91800574914` | real host JVM JNI contract, ARM64/x86_64 Android builds, API-35 emulator lifecycle, live off-main native-search proof, 24 host and 16 Android repeated lifecycles; complete Task 18 gate green |
 
 ## Task 17.1 completion
 
@@ -229,6 +230,34 @@ Evidence:
 - the Android proof required a nonempty AArch64 ELF shared object and the exported JNI search symbol before its temporary workflow could remove itself.
 
 Task 18.4 is complete. Task 18.5 Android harness work is next, and the overall Task 18 gate remains open.
+
+
+## Task 18.5 and Task 18 completion
+
+Implemented and validated:
+
+- one pinned Gradle harness whose host and Android modules compile the exact production Kotlin wrapper;
+- a real host JVM contract against the release JNI shared library, with four passing tests and 24 repeated lifecycles;
+- explicit API-24 ARM64 and x86_64 Rust/NDK builds, ELF verification, symbol verification, and generated-artifact staging;
+- a minimal Android sample controller and Android library/test APK;
+- three passing tests on an Android 15/API-35 x86_64 emulator, including 16 repeated lifecycles;
+- executable UI-thread exclusion: a request begins on the Android main loop while the synchronous native method is observed on `chess-engine-search`;
+- permanent read-only Rust and Android CI, exact local commands, ownership policy, and generated-artifact policy;
+- `docs/RUST_ANDROID_TEST_HARNESS.md`.
+
+Evidence:
+
+- exact validated implementation SHA: `0af14c4bdb7e8de645f27182a788e5eef5297d5f`;
+- Rust run/job: `30847895229` / `91800574469`;
+- Android run: `30847895345`;
+- host JVM job: `91800574845`;
+- Android emulator job: `91800574914`;
+- NDK 29.0.14206865, Android clang 21.0.0, Java 17.0.19, Gradle 8.9, AGP 8.7.3, Kotlin 2.0.21, compile SDK 35, minimum/link API 24, and emulator 37.1.11.0;
+- four host JVM tests and three emulator tests passed;
+- both nonempty JNI libraries had the correct ELF machine and exported `nativeSearch` symbol;
+- the complete permanent Rust quality, perft, documentation, build, and differential-oracle gate passed.
+
+Task 18 is complete. Task 19.1 opening-book abstraction is next.
 
 ## Task 12 completion
 

@@ -118,3 +118,14 @@ Task 18.5 remains responsible for compiling and executing the Kotlin wrapper in 
 - The locked NDK API-24 build produced a nonempty AArch64 ELF `libchess_jni.so` and exposed the exact `nativeSearch` JNI symbol before the temporary workflow removed itself.
 - Formatting, lockfile verification, all-target/all-feature compilation, strict Clippy, complete workspace tests, authoritative release depth-four perft, rustdoc, debug/release builds, and differential validation all passed.
 - Task 18.4 is complete. Task 18.5 owns JVM/Gradle execution, Android packaging, emulator or instrumentation evidence, main-thread exclusion, and repeated Android lifecycle coverage.
+
+
+## Task 18 integration closure
+
+Task 18.5 executes this adapter through the exact production Kotlin source in both a host JVM and an Android API-35 emulator. The completed harness is documented in `docs/RUST_ANDROID_TEST_HARNESS.md`.
+
+- Validated harness SHA: `0af14c4bdb7e8de645f27182a788e5eef5297d5f`.
+- Host JVM and Android workflow: `30847895345` / `91800574845`, `91800574914`.
+- The host path passed four tests; the emulator path passed three tests.
+- Live thread-stack evidence proves the synchronous JNI search executes on `chess-engine-search`, not the Android main loop.
+- Task 18.5 and the overall Task 18 gate are complete.

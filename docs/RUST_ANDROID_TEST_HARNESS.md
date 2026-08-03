@@ -75,6 +75,13 @@ Instrumentation coverage performs a real create, FEN/legal/status query, fixed-d
 
 Explicit `ChessEngine.close` remains authoritative and is exercised in every successful test path. JNI libraries and Gradle build directories are ignored generated artifacts and are never committed. The workflow has only `contents: read`; it cannot rewrite source or trackers.
 
-## Validation state
+## Completion evidence
 
-The implementation branch is `task18-5-android-harness` and the validation pull request is `#235`. Task 18.5 evidence and the overall Task 18 gate remain open until the exact implementation head passes the permanent Rust quality job plus both permanent Android workflow jobs.
+- Exact validated implementation SHA: `0af14c4bdb7e8de645f27182a788e5eef5297d5f`.
+- Permanent Rust validation: run `30847895229`, job `91800574469`.
+- Permanent Android validation: run `30847895345`.
+- Host JVM job `91800574845` passed four tests, including 24 repeated lifecycles and live observation of `nativeSearch` on `chess-engine-search`.
+- Android job `91800574914` produced and verified API-24 ARM64 and x86_64 JNI libraries, built the AAR and test APK, and passed three tests on an Android 15/API-35 x86_64 emulator, including 16 repeated lifecycles and Android-main-thread exclusion.
+- Hosted toolchain: Ubuntu 24.04, Java 17.0.19, Gradle 8.9, AGP 8.7.3, Kotlin 2.0.21, compile SDK 35, NDK 29.0.14206865 with clang 21.0.0, and emulator 37.1.11.0.
+- The permanent Android workflow is read-only and generated JNI/APK/Gradle outputs remain ignored.
+- Task 18.5 and the overall Task 18 gate are complete.

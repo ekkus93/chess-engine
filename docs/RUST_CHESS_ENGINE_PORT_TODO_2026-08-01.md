@@ -38,7 +38,9 @@
 | 14 | **Complete** — quiescence, tactical/quiet ordering, consolidated correctness, and exclusion audit. |
 | 15 | **Complete** — bounded, mate-safe transposition table integrated into production alpha-beta with deterministic node-reduction evidence. |
 | 16 | **Complete** — iterative deepening, aspiration recovery, legal PVs, limits, responsive cancellation, unified results, and bounded optional check extension. |
-| 17–24 | **Not started**. |
+| 17 | **Complete** — Linux UCI executable. |
+| 18 | **Complete** — safe API, C ABI, JNI, host JVM, and Android emulator harness. |
+| 19–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
 
@@ -884,13 +886,13 @@ Evidence:
 - Differential validation covered 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - Task 17.5 and the overall Task 17 Linux UCI executable gate are complete. Task 18.1 Rust facade work is next.
 
-# Task 18: Safe API, C ABI, and JNI — IN PROGRESS
+# Task 18: Safe API, C ABI, and JNI — COMPLETE
 - [x] 18.1 Rust facade.
 - [x] 18.2 C ABI.
 - [x] 18.3 C tests.
 - [x] 18.4 JNI.
-- [ ] 18.5 Android harness.
-- [ ] Task 18 gate.
+- [x] 18.5 Android harness.
+- [x] Task 18 gate.
 
 
 ### Task 18.1 completion evidence
@@ -969,6 +971,25 @@ Evidence:
 - Validation corrections were limited to lockfile/rustfmt normalization, snapshotting scalar search fields before ABI-result cleanup, using the pinned `jni` crate's typed `JThrowable`, and importing one test-only result-code type. No lower-layer production behavior, safety policy, or validation gate was weakened.
 - Task 18.4 is complete. Task 18.5 Android/JVM and emulator harness work is next; the overall Task 18 gate remains open.
 
+
+### Task 18.5 and Task 18 gate completion evidence
+
+- Harness: `android-harness/settings.gradle.kts`, the `host-jvm` and `android-smoke` modules, the exact production Kotlin source set, and `docs/RUST_ANDROID_TEST_HARNESS.md`.
+- Permanent read-only Android gate: `.github/workflows/android.yml`; generated native staging: `scripts/prepare_android_harness_jni.sh`; dual-target build support: `scripts/build_android_jni.sh`.
+- The host JVM module loads the real release `libchess_jni.so`; no mock binding or copied wrapper exists. Four JUnit tests cover the public lifecycle, typed invalid-FEN state preservation, active native cancellation with live worker-stack observation, and 24 repeated create/search-or-stop/destroy lifecycles.
+- The Android module packages nonempty API-24 ARM64 and x86_64 JNI libraries, verifies both ELF architectures and the exact exported `nativeSearch` symbol, and builds the Android library plus test APK.
+- Three instrumentation tests passed on an Android 15 / API-35 x86_64 Google APIs emulator: complete JNI lifecycle, Android-main-thread sample entry with the synchronous native method observed on `chess-engine-search`, and 16 repeated alternating fixed-depth/cancelled-infinite lifecycle runs.
+- Main-thread exclusion is executable evidence: `Instrumentation.runOnMainSync` starts the sample request, while live ART stacks must show `NativeChessEngineBindings.nativeSearch` on `chess-engine-search` and not the Android main-loop thread.
+- Toolchain: Ubuntu 24.04, Java 17.0.19, Gradle 8.9, Android Gradle Plugin 8.7.3, Kotlin 2.0.21, compile SDK 35, minimum/API link level 24, NDK 29.0.14206865, Android clang 21.0.0, and emulator 37.1.11.0.
+- Exact validated implementation SHA: `0af14c4bdb7e8de645f27182a788e5eef5297d5f`.
+- Permanent Rust validation: run `30847895229`, job `91800574469`.
+- Permanent Android validation: run `30847895345`; host JVM job `91800574845`; Android emulator job `91800574914`.
+- Rust results: formatting, committed lockfile, all-target/all-feature compilation, strict Clippy without suppressions, 306 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc, debug/release builds, and independent differential validation passed.
+- Android results: four host JVM tests, dual-ABI cross-build and ELF verification, 59-task Android AAR/test-APK build, and three emulator instrumentation tests all passed.
+- Accepted external notices were limited to GitHub Actions Node runtime/dependency deprecations, an informational inability to strip the JNI debug library, and normal emulator startup/shutdown diagnostics. No product failure or ignored test occurred.
+- Task 18 is complete: the safe Rust facade, stable C ABI, ABI lifecycle/panic tests, JNI adapter, host JVM contract, and Android emulator path can create an engine, set/reset positions, obtain legal moves, search, cancel, and destroy without crashes, leaked owned handles, or UI-thread search execution.
+- Task 19.1 opening-book abstraction is next.
+
 # Task 19: Opening book — NOT STARTED
 - [ ] 19.1 Abstraction.
 - [ ] 19.2 Format.
@@ -1021,8 +1042,8 @@ Evidence:
 - [x] Exact-SHA status publisher and deterministic dispatcher.
 - [x] Release depth-four authoritative perft in permanent CI.
 - [x] Scheduled/manual depth-five authoritative perft.
-- [ ] AArch64 compile CI.
-- [ ] Android compile and JNI CI.
+- [x] AArch64 compile CI.
+- [x] Android compile and JNI CI.
 - [ ] Miri, sanitizer, and fuzz gates.
 - [ ] Scheduled strength testing.
 
@@ -1040,7 +1061,7 @@ Evidence:
 - [x] Authoritative perft and differential validation.
 - [x] Baseline evaluator and trace.
 - [x] Search and transposition table.
-- [ ] ABI/JNI.
+- [x] ABI/JNI.
 - [ ] Differential fuzzing.
 - [ ] Self-play and tuning.
 
@@ -1070,9 +1091,9 @@ Evidence:
 
 ## Immediate next operations
 
-1. Implement Task 18.5 host JVM contract tests around the committed Kotlin wrapper.
-2. Add a minimal Android/Gradle harness that packages the validated AArch64 `libchess_jni.so`.
-3. Run an instrumented or emulator smoke path for create, position, legal moves, search, stop, and destroy.
-4. Prove sample integration never invokes search on the Android main thread.
-5. Exercise repeated create/search/stop/destroy lifecycles and record the exact Android target, NDK, Gradle, and emulator commands.
-6. Close the overall Task 18 gate only after the Android harness is green.
+1. Implement Task 19.1 as a deterministic opening-book abstraction with no mandatory book dependency.
+2. Define explicit probe inputs and typed no-entry/error outcomes without coupling the core rules layer to a file format.
+3. Preserve legal-move validation and deterministic policy hooks at the adapter/search boundary.
+4. Keep all book loading explicit; do not add automatic filesystem discovery or process-global state.
+5. Add focused abstraction tests before selecting the Task 19.2 persisted format.
+6. Leave Tasks 19.2–19.5 and the overall Task 19 gate open until their own evidence is complete.

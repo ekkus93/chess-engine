@@ -1002,11 +1002,11 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 18.5 Android test harness
 
-- [ ] Host JVM contract tests where possible.
-- [ ] Instrumented or emulator smoke test.
-- [ ] Verify no search on main thread in sample integration.
-- [ ] Verify repeated lifecycle create/search/stop/destroy.
-- [ ] Record Android target/toolchain instructions.
+- [x] Host JVM contract tests where possible.
+- [x] Instrumented or emulator smoke test.
+- [x] Verify no search on main thread in sample integration.
+- [x] Verify repeated lifecycle create/search/stop/destroy.
+- [x] Record Android target/toolchain instructions.
 
 **Task 18 gate:** Linux C ABI and Android JNI smoke paths can create an engine, set a position, obtain legal moves, search, stop, and destroy without leaks, crashes, or UI-thread blocking.
 
