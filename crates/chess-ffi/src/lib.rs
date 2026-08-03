@@ -1,9 +1,11 @@
-//! Safe engine facade and future stable C ABI boundary.
+//! Safe engine facade and stable C ABI boundary.
 //!
 //! Task 18.1 exposes a process-independent, ownership-explicit Rust API over
-//! `chess-core` and `chess-search`. Task 18.2 will add opaque C handles and
-//! serialization helpers around this facade without exposing Rust layouts.
+//! `chess-core` and `chess-search`. Task 18.2 adds a narrow C adapter with opaque
+//! handles, versioned records, length-delimited UTF-8, owned output buffers,
+//! structured result codes, and panic containment without exposing Rust layouts.
 
+pub mod c_abi;
 mod safe;
 
 pub use safe::{
