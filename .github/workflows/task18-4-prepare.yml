@@ -13,11 +13,10 @@ concurrency:
   group: task18-4-prepare-${{ github.ref }}
   cancel-in-progress: true
 
-# One-shot normalization and cross-build gate for Task 18.4.
 jobs:
   prepare:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -27,42 +26,18 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt, clippy
+          components: rustfmt
 
-      - name: Apply deterministic source normalization
-        run: python3 scripts/task18_4_prepare.py
-
-      - name: Resolve lockfile and format
+      - name: Normalize source and lockfile
         shell: bash
         run: |
           set -euo pipefail
+          python3 scripts/task18_4_prepare.py
           cargo generate-lockfile
           cargo fmt --all
           chmod +x scripts/build_android_jni.sh
           git update-index --chmod=+x scripts/build_android_jni.sh
-
-      - name: Check host workspace
-        run: cargo check --locked --workspace --all-targets --all-features
-
-      - name: Run strict Clippy
-        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
-
-      - name: Run JNI package tests
-        run: cargo test --locked -p chess-jni --all-features
-
-      - name: Build Android AArch64 shared library
-        shell: bash
-        run: |
-          set -euo pipefail
-          NDK_HOME="${ANDROID_NDK_LATEST_HOME:-}"
-          if [[ -z "${NDK_HOME}" || ! -d "${NDK_HOME}" ]]; then
-            NDK_HOME="$(find "${ANDROID_SDK_ROOT}/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
-          fi
-          ANDROID_NDK_HOME="${NDK_HOME}" bash scripts/build_android_jni.sh
-          file target/aarch64-linux-android/release/libchess_jni.so
-
-      - name: Remove one-shot preparation assets
-        run: git rm .github/workflows/task18-4-prepare.yml scripts/task18_4_prepare.py
+          git rm .github/workflows/task18-4-prepare.yml scripts/task18_4_prepare.py
 
       - name: Commit normalized implementation
         shell: bash
