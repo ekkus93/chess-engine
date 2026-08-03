@@ -31,7 +31,11 @@ jobs:
           fetch-depth: 0
 
       - name: Apply Task 16.3 implementation
-        run: python3 scripts/implement_task_16_3.py "$GITHUB_WORKSPACE"
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/implement_task_16_3.py "$GITHUB_WORKSPACE"
+          python3 scripts/fix_task_16_3_key_type.py "$GITHUB_WORKSPACE"
 
       - name: Format generated Rust
         run: cargo fmt --all
@@ -47,6 +51,7 @@ jobs:
           grep -F -- 'pub fn ponder_move' crates/chess-search/src/principal_variation.rs
           grep -F -- 'RepeatedPosition' crates/chess-search/src/principal_variation.rs
           grep -F -- 'principal_variation_move' crates/chess-search/src/transposition/principal_variation.rs
+          grep -F -- 'let key: u64 = 0x1234_5678_9abc_def0;' crates/chess-search/src/transposition/principal_variation.rs
           grep -F -- 'result.best_move,' crates/chess-search/src/alpha_beta.rs
 
       - name: Verify workspace and validation assets
@@ -63,7 +68,8 @@ jobs:
           python3 -m py_compile \
             scripts/differential_oracle.py \
             scripts/task_14_5_exclusion_audit.py \
-            scripts/implement_task_16_3.py
+            scripts/implement_task_16_3.py \
+            scripts/fix_task_16_3_key_type.py
 
       - name: Run Task 14.5 exclusion audit
         run: python3 scripts/task_14_5_exclusion_audit.py
@@ -158,7 +164,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git rm scripts/implement_task_16_3.py
+          git rm \
+            scripts/implement_task_16_3.py \
+            scripts/fix_task_16_3_key_type.py
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add \
