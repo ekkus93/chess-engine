@@ -128,12 +128,6 @@ impl SearchWorkerSlot {
         Self { active: None }
     }
 
-    /// Returns whether one worker is currently owned by this slot.
-    #[must_use]
-    pub const fn is_active(&self) -> bool {
-        self.active.is_some()
-    }
-
     /// Stops and joins a prior worker, then starts the replacement request.
     ///
     /// The returned result, when present, belongs to the replaced worker.
@@ -285,16 +279,16 @@ mod tests {
             .start(request("go infinite"))
             .expect("first worker starts")
             .is_none());
-        assert!(slot.is_active());
+        assert!(slot.active.is_some());
 
         let replaced = slot
             .start(request("go depth 1"))
             .expect("replacement worker starts")
             .expect("prior worker result is returned");
         assert_eq!(replaced.termination(), SearchLimitTermination::ExplicitStop);
-        assert!(slot.is_active());
+        assert!(slot.active.is_some());
         let _replacement = slot.stop().expect("replacement worker joins");
-        assert!(!slot.is_active());
+        assert!(slot.active.is_none());
     }
 
     #[test]
