@@ -97,8 +97,8 @@ impl ChessEngineConfig {
         Self {
             struct_size: size_of::<Self>() as u32,
             abi_version: CHESS_ENGINE_ABI_VERSION,
-            transposition_table_mebibytes: EngineConfig::new()
-                .transposition_table_mebibytes() as u64,
+            transposition_table_mebibytes: EngineConfig::new().transposition_table_mebibytes()
+                as u64,
         }
     }
 }

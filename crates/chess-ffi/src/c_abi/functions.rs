@@ -2,7 +2,7 @@ use core::{mem::size_of, ptr, slice, str};
 use std::time::Duration;
 
 use chess_core::{Color, DrawReason, GameError, GameStatus};
-use chess_search::{MATE_SCORE, SearchCancellationFallback, SearchLimitTermination, SearchResult};
+use chess_search::{SearchCancellationFallback, SearchLimitTermination, SearchResult, MATE_SCORE};
 
 use crate::{
     Engine, EngineConfig, EngineError, SearchCancellationHandle, SearchRequest, ENGINE_VERSION,
@@ -19,12 +19,12 @@ use super::{
         ChessEngineDrawReason, ChessEngineGameStatus, ChessEngineGameStatusKind, ChessEngineHandle,
         ChessEngineResultCode, ChessEngineScoreKind, ChessEngineSearchFallbackKind,
         ChessEngineSearchRequest, ChessEngineSearchResult, ChessEngineSearchTerminationKind,
-        ChessEngineWeightIdentity, CHESS_ENGINE_ABI_VERSION,
-        CHESS_ENGINE_NULL_CANCELLATION_HANDLE, CHESS_ENGINE_NULL_HANDLE,
-        CHESS_ENGINE_SEARCH_FLAG_CANCELLATION, CHESS_ENGINE_SEARCH_FLAG_CHECK_EXTENSION,
-        CHESS_ENGINE_SEARCH_FLAG_DEPTH, CHESS_ENGINE_SEARCH_FLAG_HARD_TIME,
-        CHESS_ENGINE_SEARCH_FLAG_INFINITE, CHESS_ENGINE_SEARCH_FLAG_NODES,
-        CHESS_ENGINE_SEARCH_FLAG_SOFT_TIME, CHESS_ENGINE_SEARCH_KNOWN_FLAGS,
+        ChessEngineWeightIdentity, CHESS_ENGINE_ABI_VERSION, CHESS_ENGINE_NULL_CANCELLATION_HANDLE,
+        CHESS_ENGINE_NULL_HANDLE, CHESS_ENGINE_SEARCH_FLAG_CANCELLATION,
+        CHESS_ENGINE_SEARCH_FLAG_CHECK_EXTENSION, CHESS_ENGINE_SEARCH_FLAG_DEPTH,
+        CHESS_ENGINE_SEARCH_FLAG_HARD_TIME, CHESS_ENGINE_SEARCH_FLAG_INFINITE,
+        CHESS_ENGINE_SEARCH_FLAG_NODES, CHESS_ENGINE_SEARCH_FLAG_SOFT_TIME,
+        CHESS_ENGINE_SEARCH_KNOWN_FLAGS,
     },
 };
 
@@ -195,10 +195,14 @@ fn build_search_request(request: ChessEngineSearchRequest) -> AbiResult<SearchRe
         "search request",
     )?;
     if request.reserved != 0 || request.reserved_depth != 0 {
-        return Err(invalid_argument("search request reserved fields must be zero"));
+        return Err(invalid_argument(
+            "search request reserved fields must be zero",
+        ));
     }
     if request.flags & !CHESS_ENGINE_SEARCH_KNOWN_FLAGS != 0 {
-        return Err(invalid_argument("search request contains unknown flag bits"));
+        return Err(invalid_argument(
+            "search request contains unknown flag bits",
+        ));
     }
     validate_absent_search_values(request)?;
 
@@ -267,9 +271,7 @@ fn termination_fields(
         SearchLimitTermination::Depth { depth } => {
             (ChessEngineSearchTerminationKind::Depth, u64::from(depth))
         }
-        SearchLimitTermination::Nodes { nodes } => {
-            (ChessEngineSearchTerminationKind::Nodes, nodes)
-        }
+        SearchLimitTermination::Nodes { nodes } => (ChessEngineSearchTerminationKind::Nodes, nodes),
         SearchLimitTermination::SoftTime { limit } => (
             ChessEngineSearchTerminationKind::SoftTime,
             elapsed_milliseconds(limit),
@@ -278,9 +280,7 @@ fn termination_fields(
             ChessEngineSearchTerminationKind::HardTime,
             elapsed_milliseconds(limit),
         ),
-        SearchLimitTermination::ExplicitStop => {
-            (ChessEngineSearchTerminationKind::ExplicitStop, 0)
-        }
+        SearchLimitTermination::ExplicitStop => (ChessEngineSearchTerminationKind::ExplicitStop, 0),
         SearchLimitTermination::MaximumSupportedDepth { depth } => (
             ChessEngineSearchTerminationKind::MaximumSupportedDepth,
             u64::from(depth),
@@ -294,20 +294,20 @@ fn fallback_kind(result: &SearchResult) -> ChessEngineSearchFallbackKind {
         Some(SearchCancellationFallback::FirstLegalMove(_)) => {
             ChessEngineSearchFallbackKind::FirstLegalMove
         }
-        Some(SearchCancellationFallback::NoLegalMove) => {
-            ChessEngineSearchFallbackKind::NoLegalMove
-        }
+        Some(SearchCancellationFallback::NoLegalMove) => ChessEngineSearchFallbackKind::NoLegalMove,
     }
 }
 
 fn principal_variation_text(result: &SearchResult) -> String {
-    result.principal_variation().map_or_else(String::new, |line| {
-        line.moves()
-            .iter()
-            .map(|current| current.to_uci())
-            .collect::<Vec<_>>()
-            .join(" ")
-    })
+    result
+        .principal_variation()
+        .map_or_else(String::new, |line| {
+            line.moves()
+                .iter()
+                .map(|current| current.to_uci())
+                .collect::<Vec<_>>()
+                .join(" ")
+        })
 }
 
 fn allocate_search_buffers(
@@ -334,12 +334,12 @@ fn allocate_search_buffers(
 }
 
 fn search_result_record(result: &SearchResult) -> AbiResult<ChessEngineSearchResult> {
-    let best_move = result.best_move().map_or_else(Vec::new, |current| {
-        current.to_uci().into_bytes()
-    });
-    let ponder_move = result.ponder_move().map_or_else(Vec::new, |current| {
-        current.to_uci().into_bytes()
-    });
+    let best_move = result
+        .best_move()
+        .map_or_else(Vec::new, |current| current.to_uci().into_bytes());
+    let ponder_move = result
+        .ponder_move()
+        .map_or_else(Vec::new, |current| current.to_uci().into_bytes());
     let principal_variation = principal_variation_text(result).into_bytes();
     let [best_move, ponder_move, principal_variation] =
         allocate_search_buffers(best_move, ponder_move, principal_variation)?;
@@ -586,9 +586,7 @@ pub extern "C" fn chess_engine_destroy(handle: ChessEngineHandle) -> ChessEngine
 
 /// Resets one engine to the standard starting position.
 #[no_mangle]
-pub extern "C" fn chess_engine_reset_position(
-    handle: ChessEngineHandle,
-) -> ChessEngineResultCode {
+pub extern "C" fn chess_engine_reset_position(handle: ChessEngineHandle) -> ChessEngineResultCode {
     boundary(|| {
         let entry = resolve_engine(handle)?;
         let mut engine = lock_engine(&entry)?;
