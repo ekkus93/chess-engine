@@ -2,6 +2,8 @@
 
 Task 19.4 connects the validated Task 19.3 book policy to explicit adapter boundaries.
 
+All book bytes, paths, assets, enablement decisions, and RNG seeds remain caller- or adapter-owned. Neither `chess-core` nor `chess-search` discovers, loads, or depends on opening-book data.
+
 ## Safe Rust facade
 
 `EngineConfig` keeps opening books disabled by default and selects deterministic highest-weight policy unless a caller explicitly chooses a seeded weighted policy. `Engine::new` owns no book and operates normally. Callers may inject a validated `IndexedBook` or complete indexed-format bytes, then query `opening_book_move()` before normal search. Disabled configuration, absent data, and a valid book without a current-position record return `Ok(None)`. Corrupt data and legality/policy errors remain typed.
