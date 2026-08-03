@@ -1,1 +1,0 @@
-Trigger the registered documentation-only Task 18.5 closure job.
