@@ -1,7 +1,7 @@
 # Rust Chess Engine Port TODO — Live Status Tracker
 
 **Status:** In progress  
-**Updated:** 2026-08-02  
+**Updated:** 2026-08-03
 **Branch:** `rust-engine`  
 **Specification:** `docs/RUST_CHESS_ENGINE_PORT_SPEC_2026-08-01.md`  
 **Full definitions:** `docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md`  
@@ -40,7 +40,8 @@
 | 16 | **Complete** — iterative deepening, aspiration recovery, legal PVs, limits, responsive cancellation, unified results, and bounded optional check extension. |
 | 17 | **Complete** — Linux UCI executable. |
 | 18 | **Complete** — safe API, C ABI, JNI, host JVM, and Android emulator harness. |
-| 19–24 | **Not started**. |
+| 19 | **In progress** — opening-book abstraction and versioned indexed format complete. |
+| 20–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
 
@@ -988,11 +989,11 @@ Evidence:
 - Android results: four host JVM tests, dual-ABI cross-build and ELF verification, 59-task Android AAR/test-APK build, and three emulator instrumentation tests all passed.
 - Accepted external notices were limited to GitHub Actions Node runtime/dependency deprecations, an informational inability to strip the JNI debug library, and normal emulator startup/shutdown diagnostics. No product failure or ignored test occurred.
 - Task 18 is complete: the safe Rust facade, stable C ABI, ABI lifecycle/panic tests, JNI adapter, host JVM contract, and Android emulator path can create an engine, set/reset positions, obtain legal moves, search, cancel, and destroy without crashes, leaked owned handles, or UI-thread search execution.
-- Task 19.1 opening-book abstraction is complete. Task 19.2 backend format is next.
+- Task 19.2 versioned indexed opening-book format is complete. Task 19.3 selection policies are next.
 
 # Task 19: Opening book — IN PROGRESS
 - [x] 19.1 Abstraction.
-- [ ] 19.2 Format.
+- [x] 19.2 Format.
 - [ ] 19.3 Policies.
 - [ ] 19.4 Integration.
 - [ ] 19.5 Tests.

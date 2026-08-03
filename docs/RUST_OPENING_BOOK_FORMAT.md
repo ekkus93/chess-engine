@@ -111,3 +111,15 @@ Task 19.2 does not:
 - discover or open any file automatically.
 
 Those behaviors remain assigned to Tasks 19.3 through 19.5.
+
+## Completion evidence
+
+- Exact validated implementation SHA: `781e876563e8b21bb50e6fa83af6afe92b260910`.
+- Permanent Rust validation: run `30855596855`, job `91825754603`.
+- Permanent Android regression validation: run `30855596897`, host JVM job `91825818389`, API-35 emulator job `91825818440`.
+- Seven focused indexed-format tests passed; the complete workspace executed 317 non-doc Rust tests with zero failures.
+- Lockfile regeneration, workspace metadata, rustfmt, all-target/all-feature compilation, strict Clippy with warnings denied, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and the independent differential oracle passed.
+- Differential validation covered 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- The unchanged Android gate rebuilt and verified both JNI ABIs, passed host JVM tests, rebuilt the AAR/test APK, and passed the API-35 emulator lifecycle.
+- Validation corrections were limited to canonical rustfmt output and removal of one unused constant. No format rule, corruption check, lower-layer behavior, or validation gate was weakened.
+- Task 19.2 is complete. Tasks 19.3–19.5 and the overall Task 19 gate remain open.

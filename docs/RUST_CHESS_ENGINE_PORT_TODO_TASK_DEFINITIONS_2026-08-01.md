@@ -1022,10 +1022,10 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 19.2 Backend format
 
-- [ ] Choose Polyglot or a versioned project-specific indexed format.
-- [ ] Document version and endianness.
-- [ ] Validate checksums/schema where applicable.
-- [ ] Reject corrupt input loudly.
+- [x] Choose Polyglot or a versioned project-specific indexed format.
+- [x] Document version and endianness.
+- [x] Validate checksums/schema where applicable.
+- [x] Reject corrupt input loudly.
 
 ## 19.3 Selection policies
 
