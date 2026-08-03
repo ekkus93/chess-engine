@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: rust-ci-${{ github.workflow }}-${{ github.ref }}
@@ -26,37 +26,6 @@ jobs:
       RUST_BACKTRACE: "1"
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: rust-engine
-          fetch-depth: 0
-
-      - name: Apply Task 16.2 implementation
-        run: python3 scripts/implement_task_16_2.py "$GITHUB_WORKSPACE"
-
-      - name: Normalize Task 14.5 full-window witness
-        run: python3 scripts/fix_task_16_2_audit_witness.py "$GITHUB_WORKSPACE"
-
-      - name: Correct root-window constructor
-        run: python3 scripts/fix_task_16_2_const_window.py "$GITHUB_WORKSPACE"
-
-      - name: Normalize attempt construction
-        run: python3 scripts/fix_task_16_2_attempt_construction.py "$GITHUB_WORKSPACE"
-
-      - name: Format generated Rust
-        run: cargo fmt --all
-
-      - name: Verify Task 16.2 assets
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -f crates/chess-search/src/aspiration.rs
-          test -f docs/RUST_ASPIRATION_WINDOWS.md
-          grep -F -- 'pub enum AspirationWindowOutcome' crates/chess-search/src/aspiration.rs
-          grep -F -- 'pub const fn exact_score' crates/chess-search/src/aspiration.rs
-          grep -F -- 'DEFAULT_ASPIRATION_HALF_WIDTH_CENTIPAWNS' crates/chess-search/src/aspiration.rs
-          grep -F -- 'FullWindowDidNotResolveExactly' crates/chess-search/src/iterative_deepening.rs
-          grep -F -- 'prepare_alpha_beta_iteration' crates/chess-search/src/alpha_beta.rs
-          grep -F -- 'saturating_add(self, other: Self)' crates/chess-search/src/transposition/diagnostics.rs
 
       - name: Verify workspace and validation assets
         shell: bash
@@ -71,11 +40,7 @@ jobs:
           test -f scripts/task_14_5_exclusion_audit.py
           python3 -m py_compile \
             scripts/differential_oracle.py \
-            scripts/task_14_5_exclusion_audit.py \
-            scripts/implement_task_16_2.py \
-            scripts/fix_task_16_2_audit_witness.py \
-            scripts/fix_task_16_2_const_window.py \
-            scripts/fix_task_16_2_attempt_construction.py
+            scripts/task_14_5_exclusion_audit.py
 
       - name: Run Task 14.5 exclusion audit
         run: python3 scripts/task_14_5_exclusion_audit.py
@@ -126,13 +91,6 @@ jobs:
       - name: Run tests
         run: cargo test --locked --workspace --all-features
 
-      - name: Run focused aspiration tests
-        shell: bash
-        run: |
-          set -euo pipefail
-          cargo test --locked -p chess-search aspiration
-          cargo test --locked -p chess-search --test search_iterative_deepening
-
       - name: Run authoritative release perft
         run: cargo test --locked -p chess-core --release authoritative_perft_depth_four -- --ignored --exact
 
@@ -165,27 +123,3 @@ jobs:
           --games 12
           --plies 48
           --seed 0xC0FFEE
-
-      - name: Commit Task 16.2 without workflow changes
-        shell: bash
-        run: |
-          set -euo pipefail
-          git rm \
-            scripts/implement_task_16_2.py \
-            scripts/fix_task_16_2_audit_witness.py \
-            scripts/fix_task_16_2_const_window.py \
-            scripts/fix_task_16_2_attempt_construction.py
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            crates/chess-search/src/alpha_beta.rs \
-            crates/chess-search/src/aspiration.rs \
-            crates/chess-search/src/iterative_deepening.rs \
-            crates/chess-search/src/lib.rs \
-            crates/chess-search/src/transposition/diagnostics.rs \
-            crates/chess-search/tests/search_iterative_deepening.rs \
-            docs/RUST_ASPIRATION_WINDOWS.md \
-            docs/RUST_ITERATIVE_DEEPENING.md
-          git diff --cached --check
-          git commit -m "feat: add aspiration-window retries"
-          git push origin HEAD:rust-engine
