@@ -13,4 +13,5 @@ description = "Standalone Universal Chess Interface adapter for the Rust chess e
 workspace = true
 
 [dependencies]
+chess-core = { path = "../chess-core" }
 chess-search = { path = "../chess-search" }
