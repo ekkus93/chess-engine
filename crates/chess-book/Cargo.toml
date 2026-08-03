@@ -7,7 +7,7 @@ authors.workspace = true
 repository.workspace = true
 license.workspace = true
 publish.workspace = true
-description = "Platform-neutral opening-book abstractions for chess-engine adapters."
+description = "Platform-neutral opening-book contracts and indexed data format."
 
 [lints]
 workspace = true
