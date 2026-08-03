@@ -72,6 +72,8 @@ The permanent workspace workflow is the authoritative compiler, strict-Clippy, l
 - Exact validated implementation SHA: `6ce31141d0d4516696f1e9d17ee018606ef7bd4b`.
 - Permanent Rust validation: run `30852253445`, job `91814805656`.
 - Permanent Android regression validation: run `30852253399`, host JVM job `91814815286`, emulator job `91814815151`.
+- Tracker-closure SHA: `a9bc63fac8e6fadc901186263236938d9d14f57f`.
+- Temporary closure-workflow cleanup SHA: `7f6ce92b9ae745fab9ac91e031f624ef11d9514e`.
 - Four focused `chess-book` tests passed; the complete workspace executed 310 non-doc Rust tests with zero failures.
 - Release depth-four perft, rustdoc with warnings denied, debug/release builds, and the differential oracle all passed.
 - Differential evidence: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
