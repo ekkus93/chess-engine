@@ -6,9 +6,13 @@
 
 mod functions;
 mod registry;
+#[cfg(feature = "ffi-test-faults")]
+mod test_faults;
 mod types;
 
 pub use functions::*;
+#[cfg(feature = "ffi-test-faults")]
+pub use test_faults::*;
 pub use types::*;
 
 #[cfg(test)]
