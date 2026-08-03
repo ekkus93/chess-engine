@@ -27,4 +27,17 @@ The subprocess suite covers:
 
 These tests exercise the shipped executable and its real stdin/stdout worker interaction. Search correctness, time allocation, output formatting internals, and worker lifecycle remain covered by their focused unit tests; this suite validates that those components compose correctly at the process boundary.
 
-Task 17.5 completion evidence is recorded after the exact integration-test tree passes the permanent full-workspace gate.
+## Completion evidence
+
+Implementation SHA: `67b6c97a476e1323bc2bd96ecf14870fc2ed3139`.
+
+Permanent implementation validation:
+
+- PR: `#230`;
+- workflow run: `30828959858`;
+- job: `91737751003`;
+- seven subprocess integration tests passed in `0.05s`;
+- formatting, locked all-target/all-feature workspace compilation, strict Clippy with warnings denied, the complete workspace test suite, authoritative release depth-four perft, rustdoc with warnings denied, debug and release builds, and the independent differential corpus with seeded playouts all passed;
+- differential validation covered 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+
+Task 17.5 and the overall Task 17 Linux UCI executable gate are complete. Task 18.1 Rust facade work is next.
