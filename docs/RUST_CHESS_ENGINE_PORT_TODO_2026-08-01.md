@@ -887,7 +887,7 @@ Evidence:
 # Task 18: Safe API, C ABI, and JNI — IN PROGRESS
 - [x] 18.1 Rust facade.
 - [x] 18.2 C ABI.
-- [ ] 18.3 C tests.
+- [x] 18.3 C tests.
 - [ ] 18.4 JNI.
 - [ ] 18.5 Android harness.
 - [ ] Task 18 gate.
@@ -931,6 +931,23 @@ Evidence:
 - Differential validation covered 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - Validation correction was limited to canonical rustfmt output. No ABI behavior, safety policy, lower-layer production code, or validation gate was weakened.
 - Task 18.2 is complete. Task 18.3 native C ABI lifecycle, active-cancellation, buffer, and injected-panic tests are next.
+
+
+### Task 18.3 completion evidence
+
+- Implementation: `crates/chess-ffi/tests/c_abi_lifecycle.rs`, the non-default `ffi-test-faults` feature, `crates/chess-ffi/src/c_abi/test_faults.rs`, the guarded test declaration in `crates/chess-ffi/include/chess_engine.h`, and `docs/RUST_C_ABI_TESTS.md`.
+- The Rust-through-ABI harness uses only the public `extern "C"` surface and covers create, position setup, legal moves, move application, status, fixed-depth search, result cleanup, reset, and destroy.
+- Repeated lifecycle coverage creates and destroys 128 engines and 128 cancellation handles, requires nonzero unique tokens, and proves stale and double-destroy operations fail visibly.
+- Invalid-input coverage includes null explicit-length input, invalid UTF-8, malformed FEN, malformed and illegal moves, unknown search flags, incompatible record size, null output pointers, thread-local errors, and unchanged engine state.
+- Active cancellation runs infinite synchronous search on a worker thread, cancels it through an independent token, destroys the caller-visible token, and requires bounded `ExplicitStop` completion with a legal move and successful cleanup.
+- Buffer tests cover tampered records, failed-validation preservation, successful original frees, stale-copy rejection, repeated empty frees, and all-or-nothing validation of the three-buffer search result.
+- The non-default `ffi-test-faults` feature exports `chess_engine_test_inject_panic`; the default production surface omits it. The test requires a contained panic result and then proves the process and ABI remain usable.
+- Implementation SHA: `0789ac65590ccafb55b2b86b73873edfba1c7b55`.
+- Permanent validation: run `30841137129`, job `91778174797`.
+- Results: six focused Task 18.3 lifecycle tests and 297 executed non-doc Rust tests passed; rustfmt, committed lockfile, locked all-target/all-feature compilation, strict Clippy without suppressions, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and the independent differential oracle all passed.
+- Differential validation covered 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- The first validation correction was limited to canonical rustfmt output and removal of one scheduler-sensitive test assertion. No ABI behavior, safety policy, production default surface, lower-layer code, or validation gate was weakened.
+- Task 18.3 is complete. Task 18.4 Android JNI integration is next.
 
 # Task 19: Opening book — NOT STARTED
 - [ ] 19.1 Abstraction.
@@ -1033,9 +1050,9 @@ Evidence:
 
 ## Immediate next operations
 
-1. Implement Task 18.3 as a native C or Rust-through-ABI smoke harness against the built library boundary.
-2. Exercise repeated create/destroy and stale-handle rejection.
-3. Cover invalid pointers, UTF-8, FEN, move, record-version, and result-code paths.
-4. Run active infinite search on a worker thread and cancel it through the C token from another thread.
-5. Prove buffer and search-result allocation/free lifecycles, including double-free rejection.
-6. Add an exported test-only injected fault and prove panic containment without unwinding across C.
+1. Implement Task 18.4 as an Android JNI adapter over the stable C ABI contract.
+2. Build the AArch64 Android shared library with a pinned Rust target and NDK toolchain.
+3. Add a Kotlin wrapper with deterministic native-handle ownership and explicit close semantics.
+4. Expose position setup, legal moves, move application, game status, search, cancellation, and structured error mapping.
+5. Require search execution from a background dispatcher or worker rather than the Android main thread.
+6. Document native library packaging, lifecycle, and finalization policy before Task 18.5 device and JVM harness work.

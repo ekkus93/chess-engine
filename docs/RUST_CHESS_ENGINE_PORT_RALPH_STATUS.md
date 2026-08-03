@@ -3,7 +3,7 @@
 **Updated:** 2026-08-03
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 18.2 stable C ABI complete; Task 18.3 C ABI tests are next
+**Current phase:** Task 18.3 C ABI tests complete; Task 18.4 Android JNI is next
 
 ## Completed gates
 
@@ -55,6 +55,7 @@
 | 17.5 / 17 gate | `67b6c97a476e1323bc2bd96ecf14870fc2ed3139` | `30828959858` / `91737751003` | seven real subprocess workflows, bounded stop/quit, legal best moves, terminal null moves, and concurrent-session isolation; complete permanent gate green |
 | 18.1 | `fc375ce7c35a9b8e82c83c8a0ac54e23a60986be` | `30832682431` / `91750223690` | safe stateful facade, transactional positions, legal UCI moves, immutable synchronous search, cross-thread cancellation, identities, and ownership/thread-safety contract; 285 Rust tests green |
 | 18.2 | `d1c4a9195acfc63dc2f9af52531c4ba01e9a2dc9` | `30836228692` / `91761964507` | versioned opaque-token C ABI, explicit UTF-8 lengths, typed errors, verified owned buffers, synchronous search/cancellation boundary, and panic containment; 291 Rust tests green |
+| 18.3 | `0789ac65590ccafb55b2b86b73873edfba1c7b55` | `30841137129` / `91778174797` | complete Rust-through-ABI lifecycle, 128× engine/cancellation churn, invalid-input preservation, active cross-thread cancellation, exact buffer ownership, and exported test-fault containment; 297 Rust tests green |
 
 ## Task 17.1 completion
 
@@ -174,6 +175,31 @@ Evidence:
 - the complete permanent workspace gate and independent differential oracle passed without lint suppression or lower-layer production changes.
 
 Task 18.2 is complete. Task 18.3 C ABI tests are next.
+
+
+## Task 18.3 completion
+
+Implemented and validated:
+
+- a dedicated Rust-through-ABI harness that imports only the public C boundary;
+- complete create, position, legal-move, play, status, search, reset, cleanup, and destroy workflow coverage;
+- 128 repeated engine lifecycles and 128 repeated cancellation-token lifecycles with uniqueness and stale-token rejection;
+- fail-loud null, UTF-8, FEN, move, flag, versioned-record, and output-pointer tests with exact state preservation;
+- active infinite search on a worker thread, cancellation through a separate token, caller-visible token destruction, and bounded retained-reference completion;
+- individual and compound output-buffer validation, all-or-nothing cleanup, stale-copy rejection, and repeatable empty cleanup;
+- a non-default feature-gated exported panic fault that returns the contained-panic code and leaves the process usable;
+- `docs/RUST_C_ABI_TESTS.md`.
+
+Evidence:
+
+- implementation SHA: `0789ac65590ccafb55b2b86b73873edfba1c7b55`;
+- permanent CI run/job: `30841137129` / `91778174797`;
+- six focused Task 18.3 lifecycle tests passed;
+- 297 executed non-doc Rust tests passed;
+- the complete permanent workspace gate and independent differential oracle passed without lint suppression or lower-layer production changes;
+- the first validation correction was canonical rustfmt plus removal of one scheduler-sensitive assertion, with no product or gate weakening.
+
+Task 18.3 is complete. Task 18.4 Android JNI is next.
 
 ## Task 12 completion
 

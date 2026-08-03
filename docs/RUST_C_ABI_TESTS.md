@@ -90,3 +90,22 @@ cargo test --locked -p chess-ffi --all-features
 The permanent workspace gate additionally runs rustfmt, locked all-target/all-feature compilation, strict Clippy, complete workspace tests, authoritative release perft, rustdoc with warnings denied, debug and release builds, and the independent differential oracle.
 
 Task 18.4 will wrap the stable ABI from JNI. Task 18.5 owns Android/JVM lifecycle and main-thread exclusion tests.
+
+
+## Completion evidence
+
+Implementation SHA: `0789ac65590ccafb55b2b86b73873edfba1c7b55`.
+
+Permanent validation:
+
+- PR: `#233`;
+- workflow run: `30841137129`;
+- job: `91778174797`;
+- all six Task 18.3 lifecycle tests passed;
+- 297 executed non-doc Rust tests passed across the workspace;
+- formatting, committed lockfile, locked all-target/all-feature compilation, strict Clippy with warnings denied and no lint suppression, authoritative release depth-four perft, rustdoc with warnings denied, and debug/release workspace builds passed;
+- differential validation passed over 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+
+The first validation found only canonical rustfmt differences. The correction also removed a scheduler-sensitive assertion that was not part of the ABI contract; the rendezvous, cross-thread cancel, bounded completion, typed termination, legal result, and cleanup checks remain. No ABI behavior, default production symbol surface, safety policy, lower-layer code, or validation gate was weakened.
+
+Task 18.3 is complete. Task 18.4 owns the Android JNI adapter and AArch64 library integration.

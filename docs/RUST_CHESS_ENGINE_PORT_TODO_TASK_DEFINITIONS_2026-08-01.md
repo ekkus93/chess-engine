@@ -982,12 +982,12 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 18.3 C ABI tests
 
-- [ ] Native C or Rust-through-ABI smoke harness.
-- [ ] Repeated create/destroy.
-- [ ] Invalid input.
-- [ ] Search and cancellation.
-- [ ] Buffer lifecycle.
-- [ ] Panic containment test using an injected test-only fault.
+- [x] Native C or Rust-through-ABI smoke harness.
+- [x] Repeated create/destroy.
+- [x] Invalid input.
+- [x] Search and cancellation.
+- [x] Buffer lifecycle.
+- [x] Panic containment test using an injected test-only fault.
 
 ## 18.4 Android JNI
 
