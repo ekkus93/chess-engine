@@ -39,10 +39,9 @@ Maximum depth must be in `1..=MAX_MATE_PLY`. The result reserves exactly that ma
 Task 16.1 does not add:
 
 - aspiration windows or fail-high/fail-low retries;
-- principal-variation reconstruction or ponder moves;
 - node, time, infinite, or stop limits;
 - cancellation fallback to the last fully completed iteration;
 - the final unified Task 16.6 search-result API;
 - check extensions.
 
-Those remain Tasks 16.2 through 16.7. This separation keeps the initial iteration loop exact, deterministic, and independently testable.
+Task 16.3 now adds safe legal PV reconstruction and ponder extraction as documented in `docs/RUST_PRINCIPAL_VARIATION.md`. Aspiration windows, limits, cancellation recovery, the final result API, and check extensions remain in Tasks 16.2 and 16.4 through 16.7.

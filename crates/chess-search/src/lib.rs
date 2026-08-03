@@ -9,6 +9,7 @@ mod cancellation;
 mod evaluation;
 mod iterative_deepening;
 mod move_ordering;
+mod principal_variation;
 mod quiescence;
 mod reference;
 mod score;
@@ -31,6 +32,9 @@ pub use evaluation::{
 pub use iterative_deepening::{
     iterative_deepening_search, iterative_deepening_search_with_transposition_table,
     IterativeDeepeningIteration, IterativeDeepeningSearchError, IterativeDeepeningSearchResult,
+};
+pub use principal_variation::{
+    PrincipalVariation, PrincipalVariationError, PrincipalVariationTermination,
 };
 pub use quiescence::{
     quiescence_search, quiescence_search_with_cancellation, quiescence_search_with_limit,

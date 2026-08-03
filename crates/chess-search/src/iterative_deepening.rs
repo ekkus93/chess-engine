@@ -7,15 +7,17 @@ use crate::{
         alpha_beta_search_with_transposition_table, AlphaBetaSearchError, AlphaBetaSearchResult,
         DEFAULT_TRANSPOSITION_TABLE_MEBIBYTES,
     },
-    Score, TranspositionHashFull, TranspositionTable, TranspositionTableAllocationError,
-    TranspositionTableDiagnostics, MAX_MATE_PLY,
+    principal_variation::{reconstruct_principal_variation, PrincipalVariationError},
+    PrincipalVariation, Score, TranspositionHashFull, TranspositionTable,
+    TranspositionTableAllocationError, TranspositionTableDiagnostics, MAX_MATE_PLY,
 };
 
 /// One fully completed fixed-depth iteration.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IterativeDeepeningIteration {
     depth: u16,
     result: AlphaBetaSearchResult,
+    principal_variation: PrincipalVariation,
     transposition_diagnostics: TranspositionTableDiagnostics,
     hash_full: TranspositionHashFull,
     transposition_generation: u8,
@@ -24,49 +26,61 @@ pub struct IterativeDeepeningIteration {
 impl IterativeDeepeningIteration {
     /// Returns the completed depth in plies.
     #[must_use]
-    pub const fn depth(self) -> u16 {
+    pub const fn depth(&self) -> u16 {
         self.depth
     }
 
     /// Returns the exact full-window result completed at this depth.
     #[must_use]
-    pub const fn result(self) -> AlphaBetaSearchResult {
+    pub const fn result(&self) -> AlphaBetaSearchResult {
         self.result
     }
 
     /// Returns the root score from the side-to-move perspective.
     #[must_use]
-    pub const fn score(self) -> Score {
+    pub const fn score(&self) -> Score {
         self.result.score()
     }
 
     /// Returns the deterministic best move completed at this depth.
     #[must_use]
-    pub const fn best_move(self) -> Option<Move> {
+    pub const fn best_move(&self) -> Option<Move> {
         self.result.best_move()
+    }
+
+    /// Returns the safely reconstructed legal principal variation.
+    #[must_use]
+    pub const fn principal_variation(&self) -> &PrincipalVariation {
+        &self.principal_variation
+    }
+
+    /// Returns the opponent reply after the best move, when reconstructed.
+    #[must_use]
+    pub fn ponder_move(&self) -> Option<Move> {
+        self.principal_variation.ponder_move()
     }
 
     /// Returns nodes visited by this iteration only.
     #[must_use]
-    pub const fn nodes(self) -> u64 {
+    pub const fn nodes(&self) -> u64 {
         self.result.nodes()
     }
 
     /// Returns probe/store counters produced by this iteration only.
     #[must_use]
-    pub const fn transposition_diagnostics(self) -> TranspositionTableDiagnostics {
+    pub const fn transposition_diagnostics(&self) -> TranspositionTableDiagnostics {
         self.transposition_diagnostics
     }
 
     /// Returns bounded current-generation table occupancy after this iteration.
     #[must_use]
-    pub const fn hash_full(self) -> TranspositionHashFull {
+    pub const fn hash_full(&self) -> TranspositionHashFull {
         self.hash_full
     }
 
     /// Returns the table generation assigned to this iteration.
     #[must_use]
-    pub const fn transposition_generation(self) -> u8 {
+    pub const fn transposition_generation(&self) -> u8 {
         self.transposition_generation
     }
 }
@@ -91,11 +105,25 @@ impl IterativeDeepeningSearchResult {
         self.iterations.last()
     }
 
+    /// Returns the final completed legal principal variation.
+    #[must_use]
+    pub fn principal_variation(&self) -> Option<&PrincipalVariation> {
+        self.final_iteration()
+            .map(IterativeDeepeningIteration::principal_variation)
+    }
+
+    /// Returns the final completed ponder move, when available.
+    #[must_use]
+    pub fn ponder_move(&self) -> Option<Move> {
+        self.final_iteration()
+            .and_then(IterativeDeepeningIteration::ponder_move)
+    }
+
     /// Returns the deepest completed depth, or zero for an internally empty result.
     #[must_use]
     pub fn completed_depth(&self) -> u16 {
         self.final_iteration()
-            .map_or(0, |iteration| iteration.depth())
+            .map_or(0, IterativeDeepeningIteration::depth)
     }
 
     /// Returns the sum of nodes visited by all completed iterations.
@@ -105,7 +133,7 @@ impl IterativeDeepeningSearchResult {
     }
 }
 
-/// A fail-loud Task 16.1 iterative-deepening error.
+/// A fail-loud iterative-deepening error.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum IterativeDeepeningSearchError {
     /// Iterative deepening requires at least one completed depth.
@@ -130,6 +158,13 @@ pub enum IterativeDeepeningSearchError {
         depth: u16,
         /// Underlying fixed-depth search error.
         error: AlphaBetaSearchError,
+    },
+    /// Safe principal-variation reconstruction failed after a completed search.
+    PrincipalVariationFailed {
+        /// Completed depth whose PV could not be reconstructed safely.
+        depth: u16,
+        /// Underlying bounded reconstruction failure.
+        error: PrincipalVariationError,
     },
     /// Summing completed iteration node counts exceeded `u64`.
     NodeCountOverflow {
@@ -159,6 +194,10 @@ impl fmt::Display for IterativeDeepeningSearchError {
             Self::IterationFailed { depth, error } => {
                 write!(formatter, "iterative-deepening depth {depth} failed: {error}")
             }
+            Self::PrincipalVariationFailed { depth, error } => write!(
+                formatter,
+                "iterative-deepening depth {depth} principal variation failed: {error}"
+            ),
             Self::NodeCountOverflow { completed_depth } => write!(
                 formatter,
                 "iterative-deepening node total overflowed after completing depth {completed_depth}"
@@ -173,8 +212,8 @@ impl std::error::Error for IterativeDeepeningSearchError {}
 ///
 /// The convenience entry point allocates one bounded default transposition table
 /// and reuses it for every iteration. Every completed depth retains its exact
-/// result, per-iteration table diagnostics, bounded hash-full estimate, and
-/// generation identifier.
+/// result, legal principal variation, per-iteration table diagnostics, bounded
+/// hash-full estimate, and generation identifier.
 pub fn iterative_deepening_search(
     position: &mut Position,
     history: &mut SearchHistory,
@@ -194,8 +233,8 @@ pub fn iterative_deepening_search(
 /// Searches every full-window depth using one caller-owned bounded table.
 ///
 /// Entries survive between depths. The fixed-depth search advances generation
-/// and resets diagnostic counters once per iteration, so each returned record
-/// describes only that depth while still benefiting from retained entries.
+/// and resets diagnostic counters once per iteration. PV reconstruction is a
+/// read-only complete-key traversal and does not alter those counters.
 pub fn iterative_deepening_search_with_transposition_table(
     position: &mut Position,
     history: &mut SearchHistory,
@@ -218,6 +257,15 @@ pub fn iterative_deepening_search_with_transposition_table(
             transposition_table,
         )
         .map_err(|error| IterativeDeepeningSearchError::IterationFailed { depth, error })?;
+        let principal_variation = reconstruct_principal_variation(
+            position,
+            depth,
+            result.best_move(),
+            transposition_table,
+        )
+        .map_err(
+            |error| IterativeDeepeningSearchError::PrincipalVariationFailed { depth, error },
+        )?;
 
         total_nodes = total_nodes.checked_add(result.nodes()).ok_or(
             IterativeDeepeningSearchError::NodeCountOverflow {
@@ -227,6 +275,7 @@ pub fn iterative_deepening_search_with_transposition_table(
         iterations.push(IterativeDeepeningIteration {
             depth,
             result,
+            principal_variation,
             transposition_diagnostics: transposition_table.diagnostics(),
             hash_full: transposition_table.hash_full(),
             transposition_generation: transposition_table.generation(),

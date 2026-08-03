@@ -1,8 +1,9 @@
-use chess_core::{Position, SearchHistory};
+use chess_core::{Move, Position, SearchHistory};
 use chess_search::{
     alpha_beta_search, iterative_deepening_search,
     iterative_deepening_search_with_transposition_table, AlphaBetaSearchError,
-    IterativeDeepeningSearchError, TranspositionTable, TranspositionTableDiagnostics, MAX_MATE_PLY,
+    IterativeDeepeningSearchError, PrincipalVariationTermination, TranspositionTable,
+    TranspositionTableDiagnostics, MAX_MATE_PLY,
 };
 
 fn benchmark_position() -> Position {
@@ -11,9 +12,26 @@ fn benchmark_position() -> Position {
         .expect("iterative-deepening benchmark FEN is valid")
 }
 
+fn assert_legal_line(root: &Position, line: &[Move]) {
+    let mut cursor = root.clone();
+    for current in line {
+        let tokens = cursor
+            .legal_move_tokens()
+            .expect("PV legal tokens generate");
+        let token = tokens
+            .iter()
+            .find(|token| token.move_made() == *current)
+            .expect("every returned PV move is legal in sequence");
+        cursor
+            .make_legal_token(token)
+            .expect("returned PV move applies");
+    }
+}
+
 #[test]
 fn every_depth_is_preserved_and_matches_independent_full_window_search() {
-    let mut position = benchmark_position();
+    let root = benchmark_position();
+    let mut position = root.clone();
     let position_snapshot = position.clone();
     let mut history = SearchHistory::from_position(&position);
     let history_snapshot = history.clone();
@@ -58,6 +76,12 @@ fn every_depth_is_preserved_and_matches_independent_full_window_search() {
 
         assert_eq!(iteration.score(), independent.score());
         assert_eq!(iteration.best_move(), independent.best_move());
+        assert_eq!(
+            iteration.principal_variation().moves().first().copied(),
+            iteration.best_move()
+        );
+        assert!(iteration.principal_variation().len() <= usize::from(iteration.depth()));
+        assert_legal_line(&root, iteration.principal_variation().moves());
         assert_eq!(independent_position, benchmark_position());
         assert_eq!(
             independent_position.zobrist(),
@@ -90,28 +114,44 @@ fn every_depth_is_preserved_and_matches_independent_full_window_search() {
 
 #[test]
 fn convenience_search_reuses_one_bounded_table_and_returns_the_final_iteration() {
-    let mut position = benchmark_position();
+    let root = Position::starting();
+    let mut position = root.clone();
     let position_snapshot = position.clone();
     let mut history = SearchHistory::from_position(&position);
     let history_snapshot = history.clone();
 
-    let result = iterative_deepening_search(&mut position, &mut history, 2)
+    let result = iterative_deepening_search(&mut position, &mut history, 3)
         .expect("convenience iterative deepening succeeds");
     let final_iteration = result
         .final_iteration()
         .expect("positive maximum depth always completes a final iteration");
 
-    assert_eq!(final_iteration.depth(), 2);
-    assert_eq!(final_iteration.transposition_generation(), 2);
+    assert_eq!(final_iteration.depth(), 3);
+    assert_eq!(final_iteration.transposition_generation(), 3);
     assert_eq!(final_iteration.result().nodes(), final_iteration.nodes());
     assert!(final_iteration.transposition_diagnostics().hits() > 0);
+    assert!(!final_iteration.principal_variation().is_empty());
+    assert_eq!(
+        final_iteration.ponder_move(),
+        final_iteration
+            .principal_variation()
+            .moves()
+            .get(1)
+            .copied()
+    );
+    assert_eq!(result.ponder_move(), final_iteration.ponder_move());
+    assert_eq!(
+        result.principal_variation(),
+        Some(final_iteration.principal_variation())
+    );
+    assert_legal_line(&root, final_iteration.principal_variation().moves());
     assert_eq!(position, position_snapshot);
     assert_eq!(history, history_snapshot);
     assert_eq!(position.zobrist(), position.recomputed_zobrist());
 }
 
 #[test]
-fn terminal_roots_produce_one_complete_record_per_depth_without_tt_lookups() {
+fn terminal_roots_produce_empty_terminal_principal_variations() {
     let mut position: Position = "7k/6Q1/6K1/8/8/8/8/8 b - - 0 1"
         .parse()
         .expect("checkmate FEN is valid");
@@ -133,6 +173,12 @@ fn terminal_roots_produce_one_complete_record_per_depth_without_tt_lookups() {
         assert_eq!(iteration.nodes(), 1);
         assert_eq!(iteration.best_move(), None);
         assert!(iteration.score().is_mate());
+        assert!(iteration.principal_variation().is_empty());
+        assert_eq!(
+            iteration.principal_variation().termination(),
+            PrincipalVariationTermination::TerminalPosition { ply: 0 }
+        );
+        assert_eq!(iteration.ponder_move(), None);
         assert_eq!(
             iteration.transposition_diagnostics(),
             TranspositionTableDiagnostics::default()

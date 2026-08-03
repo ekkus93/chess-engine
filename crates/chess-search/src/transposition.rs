@@ -5,6 +5,7 @@ use chess_core::Move;
 use crate::Score;
 
 mod diagnostics;
+mod principal_variation;
 mod probe;
 mod store;
 pub use diagnostics::{

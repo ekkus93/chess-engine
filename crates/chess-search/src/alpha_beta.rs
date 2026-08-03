@@ -470,18 +470,13 @@ where
             } else {
                 TranspositionBound::Exact
             };
-            let stored_best_move = if bound == TranspositionBound::Exact && ply > 0 {
-                None
-            } else {
-                result.best_move
-            };
             let normalized_score = TranspositionScore::normalize(result.score, ply)?;
             table.store(TranspositionEntry::new(
                 position.zobrist(),
                 depth,
                 bound,
                 normalized_score,
-                stored_best_move,
+                result.best_move,
                 table.generation(),
             ));
         }
