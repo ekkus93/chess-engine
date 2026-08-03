@@ -96,6 +96,8 @@ Task 18.4 will wrap the stable ABI from JNI. Task 18.5 owns Android/JVM lifecycl
 
 Implementation SHA: `0789ac65590ccafb55b2b86b73873edfba1c7b55`.
 
+Tracker-closure SHA: `d3aab284b461e5afbd3fb38a8634bb04a443f9db`.
+
 Permanent validation:
 
 - PR: `#233`;
