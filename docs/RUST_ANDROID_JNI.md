@@ -71,7 +71,7 @@ Failures are thrown as:
 com.ekkus93.chessengine.ChessEngineException
 ```
 
-The exception constructor receives both the numeric native code and message. If that application class cannot be created, the adapter clears the failed lookup and throws `java.lang.RuntimeException` with the same code and message rather than returning a silent sentinel.
+The exception constructor receives both the numeric native code and message. The constructed Java object is converted to the pinned `jni` crate's typed `JThrowable` wrapper before `JNIEnv::throw`, preserving the library's checked throwable contract. If that application class cannot be created, the adapter clears the failed lookup and throws `java.lang.RuntimeException` with the same code and message rather than returning a silent sentinel.
 
 ## Kotlin ownership
 
