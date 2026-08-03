@@ -42,7 +42,7 @@ def main() -> None:
     summary = Path("docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md")
     require_once(summary, "- [ ] 19.3 Policies.")
     require_once(summary, "- [ ] Task 19 gate.")
-    replace_once(summary, "**Updated:** 2026-08-02", "**Updated:** 2026-08-03")
+    replace_once(summary, "**Updated:** 2026-08-02  ", "**Updated:** 2026-08-03")
     replace_once(
         summary,
         "| 19–24 | **Not started**. |",
