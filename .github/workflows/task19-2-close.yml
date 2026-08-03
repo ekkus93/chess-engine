@@ -1,0 +1,62 @@
+name: Task 19.2 Close
+
+on:
+  push:
+    branches:
+      - task19-2-opening-book-format
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: task19-2-close-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  close:
+    name: Close Task 19.2
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: task19-2-opening-book-format
+          fetch-depth: 0
+
+      - name: Apply guarded closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -f scripts/task19_2_close.py ]]; then
+            echo "Task 19.2 closure script is already absent; no action required."
+            exit 0
+          fi
+          git merge-base --is-ancestor 781e876563e8b21bb50e6fa83af6afe92b260910 HEAD
+          python3 scripts/task19_2_close.py
+          git rm scripts/task19_2_close.py
+
+      - name: Verify and commit closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "No closure changes to commit."
+            exit 0
+          fi
+          grep -F -- '- [x] Choose Polyglot or a versioned project-specific indexed format.' docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md
+          grep -F -- '- [x] 19.2 Format.' docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md
+          grep -F -- '- [ ] 19.3 Policies.' docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md
+          grep -F -- '- [ ] Task 19 gate.' docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md
+          grep -F '**Current phase:** Task 19.2 versioned indexed format complete; Task 19.3 selection policies are next' docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
+          grep -F '## Completion evidence' docs/RUST_OPENING_BOOK_FORMAT.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            docs/RUST_OPENING_BOOK_FORMAT.md \
+            docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md \
+            docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md \
+            docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md
+          git diff --cached --check
+          git commit -m "docs: close Task 19.2"
+          git push origin HEAD:task19-2-opening-book-format
