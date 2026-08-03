@@ -165,7 +165,7 @@ impl Default for BookSelector {
 }
 
 /// Fail-visible lookup, legality, and policy error.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BookSelectionError<E> {
     /// The configured opening-book backend failed.
     Book(E),

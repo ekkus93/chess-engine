@@ -224,7 +224,7 @@ fn handshake_transcript_is_exact_and_quit_exits_cleanly() {
     let mut process = UciProcess::spawn();
     process.send("uci");
 
-    let actual = (0..5)
+    let actual = (0..6)
         .map(|_| process.next_line(OUTPUT_TIMEOUT))
         .collect::<Vec<_>>();
     let expected = vec![
@@ -232,6 +232,7 @@ fn handshake_transcript_is_exact_and_quit_exits_cleanly() {
         "id author Phillip Chin".to_owned(),
         "option name Hash type spin default 1 min 1 max 65536".to_owned(),
         "option name CheckExtension type check default false".to_owned(),
+        "option name OwnBook type check default false".to_owned(),
         "uciok".to_owned(),
     ];
     assert_eq!(actual, expected);

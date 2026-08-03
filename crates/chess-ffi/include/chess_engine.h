@@ -44,7 +44,9 @@ enum {
     CHESS_ENGINE_RESULT_GAME_OVER = 13,
     CHESS_ENGINE_RESULT_GAME_ERROR = 14,
     CHESS_ENGINE_RESULT_INVALID_WEIGHT_SET = 15,
+    CHESS_ENGINE_RESULT_INVALID_OPENING_BOOK = 16,
     CHESS_ENGINE_RESULT_SEARCH_ERROR = 20,
+    CHESS_ENGINE_RESULT_OPENING_BOOK_ERROR = 21,
     CHESS_ENGINE_RESULT_ALLOCATION_FAILURE = 30,
     CHESS_ENGINE_RESULT_INVALID_BUFFER = 31,
     CHESS_ENGINE_RESULT_INTERNAL_ERROR = 100,
@@ -172,6 +174,13 @@ ChessEngineResultCode chess_engine_create(
     const ChessEngineConfig *config,
     ChessEngineHandle *out_handle
 );
+ChessEngineResultCode chess_engine_create_with_indexed_book(
+    const ChessEngineConfig *config,
+    const uint8_t *book_data,
+    size_t book_len,
+    uint8_t book_enabled,
+    ChessEngineHandle *out_handle
+);
 ChessEngineResultCode chess_engine_destroy(ChessEngineHandle handle);
 ChessEngineResultCode chess_engine_reset_position(ChessEngineHandle handle);
 ChessEngineResultCode chess_engine_set_position(
@@ -180,6 +189,10 @@ ChessEngineResultCode chess_engine_set_position(
     size_t fen_len
 );
 ChessEngineResultCode chess_engine_get_fen(
+    ChessEngineHandle handle,
+    ChessEngineBuffer *out_buffer
+);
+ChessEngineResultCode chess_engine_get_opening_book_move(
     ChessEngineHandle handle,
     ChessEngineBuffer *out_buffer
 );

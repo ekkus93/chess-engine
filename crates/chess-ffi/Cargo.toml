@@ -20,5 +20,6 @@ ffi-test-faults = []
 workspace = true
 
 [dependencies]
+chess-book = { path = "../chess-book" }
 chess-core = { path = "../chess-core" }
 chess-search = { path = "../chess-search" }

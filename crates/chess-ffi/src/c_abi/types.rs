@@ -66,6 +66,10 @@ pub enum ChessEngineResultCode {
     GameError = 14,
     /// The built-in evaluation weight identity failed validation.
     InvalidWeightSet = 15,
+    /// Explicit indexed opening-book bytes were invalid.
+    InvalidOpeningBook = 16,
+    /// Opening-book lookup, legality validation, or selection failed.
+    OpeningBookError = 21,
     /// Search or search-limit processing failed.
     SearchError = 20,
     /// A bounded allocation or registry reservation failed.

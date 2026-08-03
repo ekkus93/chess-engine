@@ -10,7 +10,7 @@ mod bridge;
 
 use bridge::{boundary, null_jstring, output_string, SearchArguments};
 use jni::{
-    objects::{JObject, JString},
+    objects::{JByteArray, JObject, JString},
     sys::{jboolean, jint, jlong, jstring, JNI_FALSE},
     JNIEnv,
 };
@@ -30,6 +30,25 @@ pub extern "system" fn native_create(
 ) -> jlong {
     boundary(&mut env, 0, |_env| {
         bridge::create_engine(transposition_table_mebibytes)
+    })
+}
+
+#[export_name = "Java_com_ekkus93_chessengine_NativeChessEngineBindings_nativeCreateWithIndexedBook"]
+pub extern "system" fn native_create_with_indexed_book(
+    mut env: JNIEnv<'_>,
+    _binding: JObject<'_>,
+    transposition_table_mebibytes: jlong,
+    book_data: JByteArray<'_>,
+    enabled: jboolean,
+) -> jlong {
+    boundary(&mut env, 0, |env| {
+        if book_data.is_null() {
+            return Err(bridge::BridgeError::InvalidArgument(
+                "opening-book byte array is null".to_owned(),
+            ));
+        }
+        let bytes = env.convert_byte_array(&book_data)?;
+        bridge::create_engine_with_indexed_book(transposition_table_mebibytes, &bytes, enabled)
     })
 }
 
@@ -68,6 +87,17 @@ pub extern "system" fn native_fen(
 ) -> jstring {
     boundary(&mut env, null_jstring(), |env| {
         output_string(env, &bridge::fen(handle)?)
+    })
+}
+
+#[export_name = "Java_com_ekkus93_chessengine_NativeChessEngineBindings_nativeOpeningBookMove"]
+pub extern "system" fn native_opening_book_move(
+    mut env: JNIEnv<'_>,
+    _binding: JObject<'_>,
+    handle: jlong,
+) -> jstring {
+    boundary(&mut env, null_jstring(), |env| {
+        output_string(env, &bridge::opening_book_move(handle)?)
     })
 }
 

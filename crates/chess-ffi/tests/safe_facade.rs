@@ -1,6 +1,7 @@
 use std::{sync::mpsc, thread, time::Duration};
 
-use chess_core::{Color, GameStatus, Move};
+use chess_book::{IndexedBook, IndexedBookRecord};
+use chess_core::{Color, GameStatus, Move, Position};
 use chess_ffi::{
     Engine, EngineConfig, EngineError, SearchCancellationHandle, SearchLimitTermination,
     SearchRequest, ENGINE_VERSION,
@@ -16,6 +17,19 @@ const MATE_FEN: &str = "7k/6Q1/6K1/8/8/8/8/8 b - - 0 1";
 fn small_engine() -> Engine {
     Engine::new(EngineConfig::new().with_transposition_table_mebibytes(1))
         .expect("one-MiB engine allocation succeeds")
+}
+
+fn starting_book_bytes() -> Vec<u8> {
+    let position = Position::starting();
+    let record = IndexedBookRecord::new(
+        &position,
+        "e2e4".parse().expect("test move syntax is valid"),
+        100,
+    )
+    .expect("starting record is valid");
+    IndexedBook::from_records(vec![record])
+        .expect("test book is valid")
+        .to_bytes()
 }
 
 fn assert_send<T: Send>() {}
@@ -212,4 +226,45 @@ fn cancellation_handle_stops_infinite_search_from_another_thread() {
 
     assert_eq!(result.termination(), SearchLimitTermination::ExplicitStop);
     assert!(result.best_move().is_some());
+}
+
+#[test]
+fn opening_book_configuration_is_explicit_and_absence_is_normal() {
+    let enabled = EngineConfig::new()
+        .with_transposition_table_mebibytes(1)
+        .with_opening_book_enabled(true);
+    let mut without_data = Engine::new(enabled).expect("engine without book constructs");
+    assert_eq!(without_data.opening_book_move(), Ok(None));
+    let result = without_data
+        .search(SearchRequest::new().with_depth(1))
+        .expect("normal search remains available without a book");
+    assert!(result.best_move().is_some());
+
+    let bytes = starting_book_bytes();
+    let mut disabled =
+        Engine::new_with_indexed_book_bytes(enabled.with_opening_book_enabled(false), &bytes)
+            .expect("valid disabled book constructs");
+    assert_eq!(disabled.opening_book_move(), Ok(None));
+}
+
+#[test]
+fn injected_indexed_book_returns_legal_move_and_no_entry_falls_through() {
+    let bytes = starting_book_bytes();
+    let config = EngineConfig::new()
+        .with_transposition_table_mebibytes(1)
+        .with_opening_book_enabled(true);
+    let mut engine =
+        Engine::new_with_indexed_book_bytes(config, &bytes).expect("valid indexed book constructs");
+    assert_eq!(engine.opening_book_move(), Ok(Some("e2e4".to_owned())));
+    engine.play_move("e2e4").expect("book move is legal");
+    assert_eq!(engine.opening_book_move(), Ok(None));
+}
+
+#[test]
+fn corrupt_explicit_book_is_rejected_before_engine_construction() {
+    let config = EngineConfig::new().with_opening_book_enabled(true);
+    assert!(matches!(
+        Engine::new_with_indexed_book_bytes(config, b"not a book"),
+        Err(EngineError::InvalidOpeningBook(_))
+    ));
 }

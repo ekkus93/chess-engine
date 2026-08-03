@@ -20,6 +20,7 @@ const MAX_HASH_MEBIBYTES: usize = 65_536;
 pub struct EngineOptions {
     hash_mebibytes: usize,
     check_extension: bool,
+    own_book: bool,
 }
 
 impl EngineOptions {
@@ -34,6 +35,12 @@ impl EngineOptions {
     pub const fn check_extension(self) -> bool {
         self.check_extension
     }
+
+    /// Returns whether an explicitly supplied opening book may be queried.
+    #[must_use]
+    pub const fn own_book(self) -> bool {
+        self.own_book
+    }
 }
 
 impl Default for EngineOptions {
@@ -41,6 +48,7 @@ impl Default for EngineOptions {
         Self {
             hash_mebibytes: DEFAULT_TRANSPOSITION_TABLE_MEBIBYTES,
             check_extension: false,
+            own_book: false,
         }
     }
 }
@@ -263,6 +271,7 @@ impl UciSession {
                 DEFAULT_TRANSPOSITION_TABLE_MEBIBYTES
             ),
             "option name CheckExtension type check default false".to_owned(),
+            "option name OwnBook type check default false".to_owned(),
             "uciok".to_owned(),
         ])
     }
@@ -279,6 +288,13 @@ impl UciSession {
             Ok((name, value)) if name == "CheckExtension" => match parse_boolean(&value) {
                 Ok(check_extension) => {
                     self.options.check_extension = check_extension;
+                    UciResponse::default()
+                }
+                Err(error) => UciResponse::error(error),
+            },
+            Ok((name, value)) if name == "OwnBook" => match parse_boolean(&value) {
+                Ok(own_book) => {
+                    self.options.own_book = own_book;
                     UciResponse::default()
                 }
                 Err(error) => UciResponse::error(error),
@@ -588,6 +604,7 @@ mod tests {
                 "id author Phillip Chin",
                 "option name Hash type spin default 1 min 1 max 65536",
                 "option name CheckExtension type check default false",
+                "option name OwnBook type check default false",
                 "uciok",
             ]
         );
@@ -612,11 +629,16 @@ mod tests {
             .handle_line("setoption name CheckExtension value true")
             .lines()
             .is_empty());
+        assert!(session
+            .handle_line("setoption name OwnBook value true")
+            .lines()
+            .is_empty());
         assert_eq!(
             session.options(),
             EngineOptions {
                 hash_mebibytes: 32,
                 check_extension: true,
+                own_book: true,
             }
         );
     }
@@ -736,6 +758,7 @@ mod tests {
                 assert_eq!(request.game().ply_count(), 1);
                 assert_eq!(request.options().hash_mebibytes(), 16);
                 assert!(request.options().check_extension());
+                assert!(!request.options().own_book());
             }
             other => panic!("expected start-search event, found {other:?}"),
         }

@@ -10,8 +10,8 @@ pub mod c_abi;
 mod safe;
 
 pub use safe::{
-    Engine, EngineConfig, EngineError, EvaluationWeightIdentity, SearchCancellationHandle,
-    SearchRequest, ENGINE_VERSION,
+    Engine, EngineConfig, EngineError, EvaluationWeightIdentity, OpeningBookSelection,
+    SearchCancellationHandle, SearchRequest, ENGINE_VERSION,
 };
 
 pub use chess_core::{Color, DrawReason, GameStatus};

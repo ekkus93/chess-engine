@@ -3,6 +3,9 @@
 use core::fmt;
 use std::{error::Error, time::Duration};
 
+use chess_book::{
+    BookSelectionError, BookSelector, IndexedBook, IndexedBookError, IndexedBookQueryError,
+};
 use chess_core::{FenError, Game, GameError, GameStatus, MoveParseError, Position, UciMove};
 use chess_search::{
     iterative_deepening_search_with_limits_and_transposition_table, EvaluationWeightSet,
@@ -14,6 +17,24 @@ use chess_search::{
 /// Semantic version of the safe Rust engine facade.
 pub const ENGINE_VERSION: &str = env!("CARGO_PKG_VERSION");
 
+/// Explicit opening-book policy selected by one engine configuration.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum OpeningBookSelection {
+    /// Stable highest-weight selection with ascending-UCI tie resolution.
+    DeterministicHighestWeight,
+    /// Weighted selection from one explicit selector-local seed.
+    WeightedRandom { seed: u64 },
+}
+
+impl OpeningBookSelection {
+    fn selector(self) -> BookSelector {
+        match self {
+            Self::DeterministicHighestWeight => BookSelector::deterministic_highest_weight(),
+            Self::WeightedRandom { seed } => BookSelector::weighted_random(seed),
+        }
+    }
+}
+
 /// Explicit construction configuration for one [`Engine`].
 ///
 /// Configuration is copied into the engine at construction. It contains no
@@ -22,6 +43,8 @@ pub const ENGINE_VERSION: &str = env!("CARGO_PKG_VERSION");
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct EngineConfig {
     transposition_table_mebibytes: usize,
+    opening_book_enabled: bool,
+    opening_book_selection: OpeningBookSelection,
 }
 
 impl EngineConfig {
@@ -30,6 +53,8 @@ impl EngineConfig {
     pub const fn new() -> Self {
         Self {
             transposition_table_mebibytes: DEFAULT_TRANSPOSITION_TABLE_MEBIBYTES,
+            opening_book_enabled: false,
+            opening_book_selection: OpeningBookSelection::DeterministicHighestWeight,
         }
     }
 
@@ -43,10 +68,43 @@ impl EngineConfig {
         self
     }
 
+    /// Enables or disables use of explicitly supplied opening-book data.
+    #[must_use]
+    pub const fn with_opening_book_enabled(mut self, enabled: bool) -> Self {
+        self.opening_book_enabled = enabled;
+        self
+    }
+
+    /// Selects deterministic highest-weight opening-book policy.
+    #[must_use]
+    pub const fn with_deterministic_opening_book(mut self) -> Self {
+        self.opening_book_selection = OpeningBookSelection::DeterministicHighestWeight;
+        self
+    }
+
+    /// Selects weighted opening-book policy from an explicit local seed.
+    #[must_use]
+    pub const fn with_weighted_opening_book(mut self, seed: u64) -> Self {
+        self.opening_book_selection = OpeningBookSelection::WeightedRandom { seed };
+        self
+    }
+
     /// Returns the configured fixed transposition-table budget.
     #[must_use]
     pub const fn transposition_table_mebibytes(self) -> usize {
         self.transposition_table_mebibytes
+    }
+
+    /// Returns whether explicitly supplied opening-book data may be queried.
+    #[must_use]
+    pub const fn opening_book_enabled(self) -> bool {
+        self.opening_book_enabled
+    }
+
+    /// Returns the explicit opening-book selection policy.
+    #[must_use]
+    pub const fn opening_book_selection(self) -> OpeningBookSelection {
+        self.opening_book_selection
     }
 }
 
@@ -266,6 +324,10 @@ pub enum EngineError {
     TranspositionTableAllocation(TranspositionTableAllocationError),
     /// The built-in evaluation identity failed its own validation contract.
     InvalidWeightSet(WeightValidationError),
+    /// Explicitly supplied indexed opening-book bytes were invalid.
+    InvalidOpeningBook(IndexedBookError),
+    /// Opening-book lookup, legality validation, or selection failed.
+    OpeningBookSelection(BookSelectionError<IndexedBookQueryError>),
     /// Reserving the bounded legal-move output vector failed.
     LegalMoveStorageAllocation { move_count: usize },
 }
@@ -283,6 +345,8 @@ impl fmt::Display for EngineError {
             Self::Search(error) => error.fmt(formatter),
             Self::TranspositionTableAllocation(error) => error.fmt(formatter),
             Self::InvalidWeightSet(error) => error.fmt(formatter),
+            Self::InvalidOpeningBook(error) => write!(formatter, "invalid opening book: {error}"),
+            Self::OpeningBookSelection(error) => error.fmt(formatter),
             Self::LegalMoveStorageAllocation { move_count } => write!(
                 formatter,
                 "failed to reserve storage for {move_count} legal moves"
@@ -300,6 +364,8 @@ impl Error for EngineError {
             Self::Search(error) => Some(error),
             Self::TranspositionTableAllocation(error) => Some(error),
             Self::InvalidWeightSet(error) => Some(error),
+            Self::InvalidOpeningBook(error) => Some(error),
+            Self::OpeningBookSelection(error) => Some(error),
             Self::IllegalMove { .. } | Self::LegalMoveStorageAllocation { .. } => None,
         }
     }
@@ -341,6 +407,18 @@ impl From<WeightValidationError> for EngineError {
     }
 }
 
+impl From<IndexedBookError> for EngineError {
+    fn from(value: IndexedBookError) -> Self {
+        Self::InvalidOpeningBook(value)
+    }
+}
+
+impl From<BookSelectionError<IndexedBookQueryError>> for EngineError {
+    fn from(value: BookSelectionError<IndexedBookQueryError>) -> Self {
+        Self::OpeningBookSelection(value)
+    }
+}
+
 /// Stateful, process-independent safe Rust facade over rules and search.
 ///
 /// # Ownership
@@ -364,20 +442,45 @@ pub struct Engine {
     game: Game,
     transposition_table: TranspositionTable,
     weight_identity: EvaluationWeightIdentity,
+    opening_book: Option<IndexedBook>,
+    book_selector: BookSelector,
 }
 
 impl Engine {
-    /// Constructs an engine in the standard starting position.
+    /// Constructs an engine without opening-book data.
+    ///
+    /// Opening-book enablement may remain configured, but absence of data is
+    /// normal and [`Self::opening_book_move`] returns `Ok(None)`.
     pub fn new(config: EngineConfig) -> Result<Self, EngineError> {
+        Self::new_with_opening_book(config, None)
+    }
+
+    /// Constructs an engine with an explicitly supplied validated indexed book.
+    pub fn new_with_opening_book(
+        config: EngineConfig,
+        opening_book: Option<IndexedBook>,
+    ) -> Result<Self, EngineError> {
         let weight_set = EvaluationWeightSet::baseline();
         weight_set.validate()?;
         let transposition_table = TranspositionTable::new(config.transposition_table_mebibytes())?;
+        let book_selector = config.opening_book_selection().selector();
         Ok(Self {
             config,
             game: Game::starting(),
             transposition_table,
             weight_identity: EvaluationWeightIdentity::from_set(weight_set),
+            opening_book,
+            book_selector,
         })
+    }
+
+    /// Parses and injects one complete versioned indexed-book byte image.
+    pub fn new_with_indexed_book_bytes(
+        config: EngineConfig,
+        bytes: &[u8],
+    ) -> Result<Self, EngineError> {
+        let opening_book = IndexedBook::from_bytes(bytes)?;
+        Self::new_with_opening_book(config, Some(opening_book))
     }
 
     /// Returns the immutable construction configuration.
@@ -457,6 +560,24 @@ impl Engine {
     /// Returns the current rule-level game status.
     pub fn game_status(&mut self) -> Result<GameStatus, EngineError> {
         self.game.status().map_err(EngineError::from)
+    }
+
+    /// Returns one selected legal opening-book move for the current position.
+    ///
+    /// Disabled configuration, absent explicitly supplied data, and a valid
+    /// book with no current-position entry all return `Ok(None)`. Backend,
+    /// legality, and policy failures remain typed and never fall through.
+    pub fn opening_book_move(&mut self) -> Result<Option<String>, EngineError> {
+        if !self.config.opening_book_enabled() {
+            return Ok(None);
+        }
+        let Some(opening_book) = self.opening_book.as_ref() else {
+            return Ok(None);
+        };
+        self.book_selector
+            .select(opening_book, self.game.position())
+            .map(|selected| selected.map(|current| current.chess_move().to_uci()))
+            .map_err(EngineError::from)
     }
 
     /// Runs one synchronous limit-controlled search without mutating played state.
