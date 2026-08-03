@@ -55,4 +55,20 @@ The public integration suite covers:
 - infinite search cancelled through a handle on another thread;
 - compile-time `Engine: Send` and `SearchCancellationHandle: Send + Sync` assertions.
 
-Completion evidence will be recorded after the exact implementation tree passes the permanent full-workspace CI gate.
+## Completion evidence
+
+Implementation SHA: `fc375ce7c35a9b8e82c83c8a0ac54e23a60986be`.
+
+Permanent implementation validation:
+
+- PR: `#231`;
+- workflow run: `30832682431`;
+- job: `91750223690`;
+- all nine focused safe-facade integration tests passed in `0.23s`;
+- 285 executed non-doc Rust tests passed across the workspace;
+- formatting, the committed lockfile, locked all-target/all-feature compilation, strict Clippy with warnings denied and no lint suppression, authoritative release depth-four perft, rustdoc with warnings denied, and debug/release workspace builds passed;
+- differential validation passed over 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+
+Validation corrections were limited to exact rustfmt normalization and changing five fluent `SearchRequest` builders from `const fn` to ordinary methods because `SearchLimits` may own a shared cancellation handle with a non-const destructor. No public semantics, safety contract, lower-layer production code, lint policy, or validation gate was weakened.
+
+Task 18.1 is complete. Task 18.2 C ABI work is next.
