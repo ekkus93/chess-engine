@@ -189,7 +189,10 @@ where
         match self {
             Self::Book(error) => write!(formatter, "opening-book lookup failed: {error}"),
             Self::LegalMoveGeneration(error) => {
-                write!(formatter, "opening-book legal-move generation failed: {error}")
+                write!(
+                    formatter,
+                    "opening-book legal-move generation failed: {error}"
+                )
             }
             Self::IllegalCandidate { chess_move } => write!(
                 formatter,
@@ -243,12 +246,20 @@ pub enum IndexedBookQueryError {
 impl fmt::Display for IndexedBookQueryError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Indexed(error) => write!(formatter, "indexed opening-book lookup failed: {error}"),
+            Self::Indexed(error) => {
+                write!(formatter, "indexed opening-book lookup failed: {error}")
+            }
             Self::LegalMoveGeneration(error) => {
-                write!(formatter, "indexed opening-book legal-move generation failed: {error}")
+                write!(
+                    formatter,
+                    "indexed opening-book legal-move generation failed: {error}"
+                )
             }
             Self::IllegalMove { uci_move } => {
-                write!(formatter, "indexed opening-book move {uci_move} is not legal")
+                write!(
+                    formatter,
+                    "indexed opening-book move {uci_move} is not legal"
+                )
             }
             Self::AmbiguousMove { uci_move } => write!(
                 formatter,
@@ -399,7 +410,10 @@ mod tests {
             .expect("book has candidates");
 
         assert_eq!(selected.chess_move().to_uci(), "d2d4");
-        assert_eq!(selector.mode(), BookSelectionMode::DeterministicHighestWeight);
+        assert_eq!(
+            selector.mode(),
+            BookSelectionMode::DeterministicHighestWeight
+        );
         assert_eq!(selector.seed(), None);
     }
 
