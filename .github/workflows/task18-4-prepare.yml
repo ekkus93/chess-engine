@@ -1,0 +1,83 @@
+name: Task 18.4 Prepare
+
+on:
+  push:
+    branches:
+      - task18-4-android-jni
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: task18-4-prepare-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: task18-4-android-jni
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Apply deterministic source normalization
+        run: python3 scripts/task18_4_prepare.py
+
+      - name: Resolve lockfile and format
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo generate-lockfile
+          cargo fmt --all
+          chmod +x scripts/build_android_jni.sh
+          git update-index --chmod=+x scripts/build_android_jni.sh
+
+      - name: Check host workspace
+        run: cargo check --locked --workspace --all-targets --all-features
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+
+      - name: Run JNI package tests
+        run: cargo test --locked -p chess-jni --all-features
+
+      - name: Build Android AArch64 shared library
+        shell: bash
+        run: |
+          set -euo pipefail
+          NDK_HOME="${ANDROID_NDK_LATEST_HOME:-}"
+          if [[ -z "${NDK_HOME}" || ! -d "${NDK_HOME}" ]]; then
+            NDK_HOME="$(find "${ANDROID_SDK_ROOT}/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          fi
+          ANDROID_NDK_HOME="${NDK_HOME}" bash scripts/build_android_jni.sh
+          file target/aarch64-linux-android/release/libchess_jni.so
+
+      - name: Remove one-shot preparation assets
+        run: git rm .github/workflows/task18-4-prepare.yml scripts/task18_4_prepare.py
+
+      - name: Commit normalized implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Cargo.lock crates/chess-jni docs/RUST_ANDROID_JNI.md scripts/build_android_jni.sh
+          mapfile -t changed < <(git diff --cached --name-only)
+          printf '%s\n' "${changed[@]}"
+          allowed='^(Cargo.lock|crates/chess-jni/|docs/RUST_ANDROID_JNI.md|scripts/build_android_jni.sh|.github/workflows/task18-4-prepare.yml|scripts/task18_4_prepare.py)'
+          for path in "${changed[@]}"; do
+            if [[ ! "${path}" =~ ${allowed} ]]; then
+              echo "unexpected staged path: ${path}" >&2
+              exit 1
+            fi
+          done
+          git commit -m "jni: normalize Task 18.4 implementation"
+          git push origin HEAD:task18-4-android-jni
