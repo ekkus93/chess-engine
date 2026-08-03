@@ -73,6 +73,11 @@ Full process transcripts, GUI workflow coverage, and stop/quit subprocess tests 
 
 Implementation SHA: `0f0ed39b31aca077173359c5807c1afaffb3e9e4`.
 
-The permanent full-workspace validation run and job are recorded after the clean implementation tree is validated.
+Permanent clean-tree validation:
+
+- PR: `#228`;
+- workflow run: `30805483433`;
+- job: `91659743430`;
+- formatting, locked all-target/all-feature workspace compilation, strict Clippy, the complete workspace test suite, authoritative release perft, rustdoc with warnings denied, debug and release builds, and the independent differential corpus with seeded playouts all passed.
 
 Task 17.4 is complete. Task 17.5 process integration testing is next.
