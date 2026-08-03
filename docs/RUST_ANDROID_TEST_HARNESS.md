@@ -1,0 +1,78 @@
+# Android/JVM JNI test harness
+
+Task 18.5 provides executable JVM and Android coverage for the Task 18.4 Kotlin/JNI adapter. Both Gradle modules compile the exact production wrapper at `crates/chess-jni/kotlin/src/main/kotlin`; no copied or test-specific engine implementation exists.
+
+## Layout
+
+- `android-harness/host-jvm` runs the public Kotlin API against the host `target/release/libchess_jni.so`.
+- `android-harness/android-smoke` packages the same wrapper and generated Android JNI libraries into a minimal Android library and test APK.
+- `scripts/build_android_jni.sh` supports the pinned `aarch64-linux-android` and `x86_64-linux-android` Rust targets.
+- `scripts/prepare_android_harness_jni.sh` stages both outputs under the Android module's ignored `jniLibs` tree.
+- `.github/workflows/android.yml` is the permanent read-only host/JVM, cross-build, APK-build, and emulator gate.
+
+The Gradle build is pinned to Gradle 8.9, Android Gradle Plugin 8.7.3, Kotlin 2.0.21, Java 17, compile SDK 35, and minimum Android API 24.
+
+## Host JVM contract
+
+Build the host JNI library and run the JVM tests from the repository root:
+
+```bash
+cargo build --locked -p chess-jni --release
+gradle -p android-harness :host-jvm:test \
+  --no-daemon --stacktrace --console=plain
+```
+
+The host suite uses the real shared library and covers:
+
+- construction, version, FEN, legal moves, status, weight identity, search, move application, reset, idempotent close, and post-close rejection;
+- typed invalid-FEN exception mapping with state preservation;
+- active infinite-search cancellation through the native stop token; and
+- twenty-four repeated create/search-or-stop/destroy lifecycles.
+
+During the cancellation test, the suite samples live JVM thread stacks and requires the deterministic `chess-engine-search` thread to be inside `NativeChessEngineBindings.nativeSearch`. This verifies execution of the actual synchronous JNI method on the worker rather than the test caller.
+
+## Android native libraries
+
+Set an installed Android NDK and stage both supported ABIs:
+
+```bash
+export ANDROID_NDK_HOME=/path/to/android-ndk
+export ANDROID_API_LEVEL=24
+bash scripts/prepare_android_harness_jni.sh
+```
+
+This produces ignored local artifacts:
+
+```text
+android-harness/android-smoke/src/main/jniLibs/arm64-v8a/libchess_jni.so
+android-harness/android-smoke/src/main/jniLibs/x86_64/libchess_jni.so
+```
+
+Build the library and instrumentation APKs with:
+
+```bash
+gradle -p android-harness \
+  :android-smoke:assembleDebug \
+  :android-smoke:assembleDebugAndroidTest \
+  --no-daemon --stacktrace --console=plain
+```
+
+## Emulator contract
+
+The permanent workflow boots an Android API-35 x86_64 Google APIs emulator and runs:
+
+```bash
+gradle -p android-harness \
+  :android-smoke:connectedDebugAndroidTest \
+  --no-daemon --stacktrace --console=plain
+```
+
+Instrumentation coverage performs a real create, FEN/legal/status query, fixed-depth search, move, reset, and destroy lifecycle. It also runs sixteen alternating fixed-depth and infinite-search cancellation lifecycles.
+
+`ChessEngineSampleController.startInfiniteSearch` is invoked from the Android main thread through `Instrumentation.runOnMainSync`. While that request is active, the test samples ART thread stacks and requires `NativeChessEngineBindings.nativeSearch` to be executing on `chess-engine-search`, never the Android main-loop thread. This proves the sample integration does not block the UI thread without adding a production test hook or changing the JNI request/result format.
+
+## Ownership and generated-artifact policy
+
+Explicit `ChessEngine.close` remains authoritative and is exercised in every successful test path. JNI libraries and Gradle build directories are ignored generated artifacts and are never committed. The workflow has only `contents: read`; it cannot rewrite source or trackers.
+
+Task 18.5 evidence and the overall Task 18 gate remain open until the exact implementation head passes both permanent workflow jobs.
