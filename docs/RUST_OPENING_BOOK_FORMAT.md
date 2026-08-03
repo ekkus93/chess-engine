@@ -92,7 +92,7 @@ Weights are stored exactly. Version 1 does not normalize weights or assign speci
 7. every record's lengths, flags, metadata contract, UTF-8, zero padding, canonical FEN key, and UCI syntax; and
 8. strict index ordering and duplicate rejection.
 
-Every failure is returned as a structured `IndexedBookError`. Corruption is never converted into an empty book or an empty position lookup.
+Every failure is returned as a structured `IndexedBookError`. Corruption is never converted into an empty book or an empty position lookup. Parsing is transactional: a caller receives either one fully validated `IndexedBook` or an error, never a partially populated book.
 
 ## Serialization
 
