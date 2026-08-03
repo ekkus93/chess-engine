@@ -2,8 +2,9 @@ use chess_core::{Move, Position, SearchHistory};
 use chess_search::{
     alpha_beta_search, iterative_deepening_search,
     iterative_deepening_search_with_transposition_table, AlphaBetaSearchError,
-    IterativeDeepeningSearchError, PrincipalVariationTermination, TranspositionTable,
-    TranspositionTableDiagnostics, MAX_MATE_PLY,
+    AspirationWindowOutcome, IterativeDeepeningSearchError, PrincipalVariationTermination,
+    TranspositionTable, TranspositionTableDiagnostics, DEFAULT_ASPIRATION_HALF_WIDTH_CENTIPAWNS,
+    MAX_MATE_PLY,
 };
 
 fn benchmark_position() -> Position {
@@ -64,7 +65,7 @@ fn every_depth_is_preserved_and_matches_independent_full_window_search() {
             .sum()
     );
 
-    for iteration in result.iterations() {
+    for (index, iteration) in result.iterations().iter().enumerate() {
         let mut independent_position = benchmark_position();
         let mut independent_history = SearchHistory::from_position(&independent_position);
         let independent = alpha_beta_search(
@@ -82,6 +83,57 @@ fn every_depth_is_preserved_and_matches_independent_full_window_search() {
         );
         assert!(iteration.principal_variation().len() <= usize::from(iteration.depth()));
         assert_legal_line(&root, iteration.principal_variation().moves());
+
+        let aspiration = iteration.aspiration_diagnostics();
+        if index == 0 {
+            assert_eq!(aspiration.center(), None);
+            assert!(aspiration.initial_attempt().is_full_window());
+        } else {
+            let prior = result.iterations()[index - 1].score();
+            assert_eq!(aspiration.center(), Some(prior));
+            let initial = aspiration.initial_attempt();
+            if !initial.is_full_window() {
+                assert_eq!(
+                    initial.alpha().centipawns(),
+                    prior.centipawns() - DEFAULT_ASPIRATION_HALF_WIDTH_CENTIPAWNS
+                );
+                assert_eq!(
+                    initial.beta().centipawns(),
+                    prior.centipawns() + DEFAULT_ASPIRATION_HALF_WIDTH_CENTIPAWNS
+                );
+            }
+        }
+        assert_eq!(
+            aspiration.final_attempt().outcome(),
+            AspirationWindowOutcome::Exact
+        );
+        assert_eq!(
+            aspiration.final_attempt().exact_score(),
+            Some(iteration.score())
+        );
+        assert!(aspiration.retry_count() <= 1);
+
+        let initial = aspiration.initial_attempt();
+        let expected_nodes = aspiration
+            .full_window_retry()
+            .map_or(initial.nodes(), |retry| {
+                initial
+                    .nodes()
+                    .checked_add(retry.nodes())
+                    .expect("small iteration node total fits")
+            });
+        let expected_diagnostics =
+            aspiration
+                .full_window_retry()
+                .map_or(initial.transposition_diagnostics(), |retry| {
+                    initial
+                        .transposition_diagnostics()
+                        .saturating_add(retry.transposition_diagnostics())
+                });
+        assert_eq!(iteration.nodes(), expected_nodes);
+        assert_eq!(iteration.transposition_diagnostics(), expected_diagnostics);
+        assert!(iteration.result().nodes() <= iteration.nodes());
+
         assert_eq!(independent_position, benchmark_position());
         assert_eq!(
             independent_position.zobrist(),
@@ -128,8 +180,15 @@ fn convenience_search_reuses_one_bounded_table_and_returns_the_final_iteration()
 
     assert_eq!(final_iteration.depth(), 3);
     assert_eq!(final_iteration.transposition_generation(), 3);
-    assert_eq!(final_iteration.result().nodes(), final_iteration.nodes());
+    assert!(final_iteration.result().nodes() <= final_iteration.nodes());
     assert!(final_iteration.transposition_diagnostics().hits() > 0);
+    assert_eq!(
+        final_iteration
+            .aspiration_diagnostics()
+            .final_attempt()
+            .outcome(),
+        AspirationWindowOutcome::Exact
+    );
     assert!(!final_iteration.principal_variation().is_empty());
     assert_eq!(
         final_iteration.ponder_move(),
@@ -151,7 +210,7 @@ fn convenience_search_reuses_one_bounded_table_and_returns_the_final_iteration()
 }
 
 #[test]
-fn terminal_roots_produce_empty_terminal_principal_variations() {
+fn terminal_roots_use_safe_full_windows_and_empty_terminal_principal_variations() {
     let mut position: Position = "7k/6Q1/6K1/8/8/8/8/8 b - - 0 1"
         .parse()
         .expect("checkmate FEN is valid");
@@ -179,6 +238,11 @@ fn terminal_roots_produce_empty_terminal_principal_variations() {
             PrincipalVariationTermination::TerminalPosition { ply: 0 }
         );
         assert_eq!(iteration.ponder_move(), None);
+        assert!(iteration
+            .aspiration_diagnostics()
+            .initial_attempt()
+            .is_full_window());
+        assert_eq!(iteration.aspiration_diagnostics().retry_count(), 0);
         assert_eq!(
             iteration.transposition_diagnostics(),
             TranspositionTableDiagnostics::default()

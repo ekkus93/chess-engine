@@ -5,6 +5,7 @@
 //! UCI, FFI, JNI, Android, filesystems, and application user interfaces.
 
 mod alpha_beta;
+mod aspiration;
 mod cancellation;
 mod evaluation;
 mod iterative_deepening;
@@ -23,6 +24,10 @@ pub use alpha_beta::{
     alpha_beta_search_with_cancellation_and_transposition_table,
     alpha_beta_search_with_transposition_table, AlphaBetaSearchError, AlphaBetaSearchResult,
     DEFAULT_TRANSPOSITION_TABLE_MEBIBYTES,
+};
+pub use aspiration::{
+    AspirationWindowAttempt, AspirationWindowDiagnostics, AspirationWindowOutcome,
+    DEFAULT_ASPIRATION_HALF_WIDTH_CENTIPAWNS,
 };
 pub use cancellation::SearchCancellationProbe;
 pub use evaluation::{

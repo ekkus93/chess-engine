@@ -81,6 +81,28 @@ impl TranspositionTableDiagnostics {
         self.collision_replacements
     }
 
+    /// Returns the field-wise saturating sum of two snapshots.
+    #[must_use]
+    pub const fn saturating_add(self, other: Self) -> Self {
+        Self {
+            probes: self.probes.saturating_add(other.probes),
+            hits: self.hits.saturating_add(other.hits),
+            exact_hits: self.exact_hits.saturating_add(other.exact_hits),
+            lower_bound_cutoffs: self
+                .lower_bound_cutoffs
+                .saturating_add(other.lower_bound_cutoffs),
+            upper_bound_cutoffs: self
+                .upper_bound_cutoffs
+                .saturating_add(other.upper_bound_cutoffs),
+            stores: self.stores.saturating_add(other.stores),
+            same_key_updates: self.same_key_updates.saturating_add(other.same_key_updates),
+            empty_inserts: self.empty_inserts.saturating_add(other.empty_inserts),
+            collision_replacements: self
+                .collision_replacements
+                .saturating_add(other.collision_replacements),
+        }
+    }
+
     pub(super) fn record_probe(&mut self) {
         self.probes = self.probes.saturating_add(1);
     }

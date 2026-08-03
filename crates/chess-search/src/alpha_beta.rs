@@ -3,6 +3,7 @@ use core::fmt;
 use chess_core::{LegalMoveError, Move, Position, SearchHistory, SearchHistoryError};
 
 use crate::{
+    aspiration::AspirationWindowOutcome,
     cancellation::NeverCancelled,
     move_ordering::{ordered_legal_moves_with_state_and_tt_move, MoveOrdering, QuietOrderingState},
     quiescence::{search_quiescence_node, QuiescenceContext},
@@ -41,6 +42,65 @@ impl AlphaBetaSearchResult {
     #[must_use]
     pub const fn nodes(self) -> u64 {
         self.nodes
+    }
+}
+
+/// Typed classification of one root-window search.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct AlphaBetaRootWindowResult {
+    result: AlphaBetaSearchResult,
+    outcome: AspirationWindowOutcome,
+}
+
+impl AlphaBetaRootWindowResult {
+    pub(crate) const fn new(
+        result: AlphaBetaSearchResult,
+        outcome: AspirationWindowOutcome,
+    ) -> Self {
+        Self { result, outcome }
+    }
+
+    pub(crate) const fn result(self) -> AlphaBetaSearchResult {
+        self.result
+    }
+
+    pub(crate) const fn outcome(self) -> AspirationWindowOutcome {
+        self.outcome
+    }
+}
+
+/// Valid root alpha-beta window.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct AlphaBetaWindow {
+    alpha: Score,
+    beta: Score,
+}
+
+impl AlphaBetaWindow {
+    pub(crate) fn full() -> Self {
+        let alpha = Score::mated_in(0).expect("zero-ply mate score is supported");
+        let beta = Score::mate_in(0).expect("zero-ply mate score is supported");
+        Self { alpha, beta }
+    }
+
+    pub(crate) fn new(alpha: Score, beta: Score) -> Option<Self> {
+        if alpha < beta {
+            Some(Self { alpha, beta })
+        } else {
+            None
+        }
+    }
+
+    pub(crate) const fn alpha(self) -> Score {
+        self.alpha
+    }
+
+    pub(crate) const fn beta(self) -> Score {
+        self.beta
+    }
+
+    pub(crate) fn is_full(self) -> bool {
+        self == Self::full()
     }
 }
 
@@ -256,15 +316,73 @@ fn run_validated_search<Probe>(
 where
     Probe: SearchCancellationProbe + ?Sized,
 {
+    prepare_alpha_beta_iteration(position, history, depth, transposition_table)?;
+    run_search_in_current_generation(
+        position,
+        history,
+        depth,
+        AlphaBetaWindow::full(),
+        transposition_table,
+        cancellation,
+    )
+}
+
+pub(crate) fn prepare_alpha_beta_iteration(
+    position: &Position,
+    history: &SearchHistory,
+    depth: u16,
+    transposition_table: &mut TranspositionTable,
+) -> Result<(), AlphaBetaSearchError> {
+    validate_search_inputs(position, history, depth)?;
     transposition_table.advance_generation();
+    Ok(())
+}
+
+pub(crate) fn alpha_beta_search_window_in_current_generation(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    depth: u16,
+    window: AlphaBetaWindow,
+    transposition_table: &mut TranspositionTable,
+) -> Result<AlphaBetaRootWindowResult, AlphaBetaSearchError> {
+    validate_search_inputs(position, history, depth)?;
+    let mut cancellation = NeverCancelled;
+    let result = run_search_in_current_generation(
+        position,
+        history,
+        depth,
+        window,
+        transposition_table,
+        &mut cancellation,
+    )?;
+    let outcome = if window.is_full() {
+        AspirationWindowOutcome::Exact
+    } else if result.score() <= window.alpha() {
+        AspirationWindowOutcome::FailLow
+    } else if result.score() >= window.beta() {
+        AspirationWindowOutcome::FailHigh
+    } else {
+        AspirationWindowOutcome::Exact
+    };
+    Ok(AlphaBetaRootWindowResult::new(result, outcome))
+}
+
+fn run_search_in_current_generation<Probe>(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    depth: u16,
+    window: AlphaBetaWindow,
+    transposition_table: &mut TranspositionTable,
+    cancellation: &mut Probe,
+) -> Result<AlphaBetaSearchResult, AlphaBetaSearchError>
+where
+    Probe: SearchCancellationProbe + ?Sized,
+{
     transposition_table.reset_diagnostics();
 
     let initial_history_len = history.len();
     let initial_line_len = history.line_len();
     let initial_zobrist = position.zobrist();
-    let alpha = Score::mated_in(0).expect("zero-ply mate score is supported");
-    let beta = Score::mate_in(0).expect("zero-ply mate score is supported");
-    let window = AlphaBetaWindow { alpha, beta };
     let mut quiet_ordering = QuietOrderingState::new();
     let mut context = AlphaBetaContext {
         ordering: MoveOrdering::Quiet,
@@ -281,12 +399,6 @@ where
     debug_assert_eq!(position.zobrist(), position.recomputed_zobrist());
 
     result
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct AlphaBetaWindow {
-    alpha: Score,
-    beta: Score,
 }
 
 struct AlphaBetaContext<'a, Probe>
