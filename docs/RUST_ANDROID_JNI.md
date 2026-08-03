@@ -25,6 +25,8 @@ safe Rust facade -> chess-search -> chess-core
 
 `chess-jni` produces both an `rlib` for host tests and a `cdylib` named `libchess_jni.so` for Android.
 
+The adapter pins Rust crate `jni` to `0.21.1`. That release supports the workspace's declared Rust 1.75 minimum; newer `0.22.x` releases require a newer Rust compiler and must not be selected implicitly by lockfile regeneration.
+
 The committed AArch64 build entry point is:
 
 ```text
