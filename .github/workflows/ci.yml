@@ -1,9 +1,9 @@
 name: CI
 
 on:
-  issues:
-    types:
-      - opened
+  push:
+    branches:
+      - master
 
 permissions:
   contents: write
@@ -12,13 +12,13 @@ permissions:
 jobs:
   task17-3-closure:
     name: Close Task 17.3 trackers
-    if: github.event.issue.title == '[close-task17-3-trackers]'
+    if: contains(github.event.head_commit.message, '[run-task17-3-closure]')
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       GH_TOKEN: ${{ github.token }}
       REPOSITORY: ${{ github.repository }}
-      ISSUE_NUMBER: ${{ github.event.issue.number }}
+      ISSUE_NUMBER: '217'
     steps:
       - name: Report start
         shell: bash
@@ -27,7 +27,7 @@ jobs:
           gh api \
             --method POST \
             "repos/${REPOSITORY}/issues/${ISSUE_NUMBER}/comments" \
-            -f body='Task 17.3 tracker closure started.'
+            -f body='Task 17.3 tracker closure started from the guarded master push.'
 
       - uses: actions/checkout@v4
         with:
