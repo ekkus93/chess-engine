@@ -1,0 +1,407 @@
+$ cargo fmt --all -- --check
+exit=0
+$ cargo check --locked --workspace --all-targets --all-features
+    Checking chess-core v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-core)
+    Checking chess-search v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-search)
+    Checking chess-tools v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-tools)
+    Checking chess-uci v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-uci)
+    Checking chess-ffi v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-ffi)
+    Checking chess-jni v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-jni)
+    Checking chess-tune v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-tune)
+error[E0308]: mismatched types
+   --> crates/chess-uci/src/lib.rs:681:38
+    |
+681 |         let command = search_command(UciSession::new().handle_line("go depth 6 nodes 9000"));
+    |                       -------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&UciResponse`, found `UciResponse`
+    |                       |
+    |                       arguments to this function are incorrect
+    |
+note: function defined here
+   --> crates/chess-uci/src/lib.rs:574:8
+    |
+574 |     fn search_command(response: &UciResponse) -> GoCommand {
+    |        ^^^^^^^^^^^^^^ ----------------------
+help: consider borrowing here
+    |
+681 |         let command = search_command(&UciSession::new().handle_line("go depth 6 nodes 9000"));
+    |                                      +
+
+error[E0308]: mismatched types
+   --> crates/chess-uci/src/lib.rs:689:38
+    |
+689 |         let command = search_command(UciSession::new().handle_line("go movetime 250"));
+    |                       -------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&UciResponse`, found `UciResponse`
+    |                       |
+    |                       arguments to this function are incorrect
+    |
+note: function defined here
+   --> crates/chess-uci/src/lib.rs:574:8
+    |
+574 |     fn search_command(response: &UciResponse) -> GoCommand {
+    |        ^^^^^^^^^^^^^^ ----------------------
+help: consider borrowing here
+    |
+689 |         let command = search_command(&UciSession::new().handle_line("go movetime 250"));
+    |                                      +
+
+error[E0308]: mismatched types
+   --> crates/chess-uci/src/lib.rs:696:13
+    |
+695 |           let command = search_command(
+    |                         -------------- arguments to this function are incorrect
+696 | /             UciSession::new()
+697 | |                 .handle_line("go wtime 60000 btime 55000 winc 1000 binc 500 movestogo 20"),
+    | |__________________________________________________________________________________________^ expected `&UciResponse`, found `UciResponse`
+    |
+note: function defined here
+   --> crates/chess-uci/src/lib.rs:574:8
+    |
+574 |     fn search_command(response: &UciResponse) -> GoCommand {
+    |        ^^^^^^^^^^^^^^ ----------------------
+help: consider borrowing here
+    |
+696 |             &UciSession::new()
+    |             +
+
+error[E0308]: mismatched types
+   --> crates/chess-uci/src/lib.rs:708:32
+    |
+708 |         assert!(search_command(UciSession::new().handle_line("go infinite")).is_infinite());
+    |                 -------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&UciResponse`, found `UciResponse`
+    |                 |
+    |                 arguments to this function are incorrect
+    |
+note: function defined here
+   --> crates/chess-uci/src/lib.rs:574:8
+    |
+574 |     fn search_command(response: &UciResponse) -> GoCommand {
+    |        ^^^^^^^^^^^^^^ ----------------------
+help: consider borrowing here
+    |
+708 |         assert!(search_command(&UciSession::new().handle_line("go infinite")).is_infinite());
+    |                                +
+
+error[E0308]: mismatched types
+   --> crates/chess-uci/src/lib.rs:709:32
+    |
+709 |         assert!(search_command(UciSession::new().handle_line("go")).is_infinite());
+    |                 -------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&UciResponse`, found `UciResponse`
+    |                 |
+    |                 arguments to this function are incorrect
+    |
+note: function defined here
+   --> crates/chess-uci/src/lib.rs:574:8
+    |
+574 |     fn search_command(response: &UciResponse) -> GoCommand {
+    |        ^^^^^^^^^^^^^^ ----------------------
+help: consider borrowing here
+    |
+709 |         assert!(search_command(&UciSession::new().handle_line("go")).is_infinite());
+    |                                +
+
+For more information about this error, try `rustc --explain E0308`.
+error: could not compile `chess-uci` (lib test) due to 5 previous errors
+exit=101
+$ cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+    Checking chess-core v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-core)
+    Checking chess-search v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-search)
+    Checking chess-uci v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-uci)
+    Checking chess-tools v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-tools)
+    Checking chess-ffi v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-ffi)
+    Checking chess-jni v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-jni)
+    Checking chess-tune v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-tune)
+error[E0308]: mismatched types
+   --> crates/chess-uci/src/lib.rs:681:38
+    |
+681 |         let command = search_command(UciSession::new().handle_line("go depth 6 nodes 9000"));
+    |                       -------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&UciResponse`, found `UciResponse`
+    |                       |
+    |                       arguments to this function are incorrect
+    |
+note: function defined here
+   --> crates/chess-uci/src/lib.rs:574:8
+    |
+574 |     fn search_command(response: &UciResponse) -> GoCommand {
+    |        ^^^^^^^^^^^^^^ ----------------------
+help: consider borrowing here
+    |
+681 |         let command = search_command(&UciSession::new().handle_line("go depth 6 nodes 9000"));
+    |                                      +
+
+error[E0308]: mismatched types
+   --> crates/chess-uci/src/lib.rs:689:38
+    |
+689 |         let command = search_command(UciSession::new().handle_line("go movetime 250"));
+    |                       -------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&UciResponse`, found `UciResponse`
+    |                       |
+    |                       arguments to this function are incorrect
+    |
+note: function defined here
+   --> crates/chess-uci/src/lib.rs:574:8
+    |
+574 |     fn search_command(response: &UciResponse) -> GoCommand {
+    |        ^^^^^^^^^^^^^^ ----------------------
+help: consider borrowing here
+    |
+689 |         let command = search_command(&UciSession::new().handle_line("go movetime 250"));
+    |                                      +
+
+error[E0308]: mismatched types
+   --> crates/chess-uci/src/lib.rs:696:13
+    |
+695 |           let command = search_command(
+    |                         -------------- arguments to this function are incorrect
+696 | /             UciSession::new()
+697 | |                 .handle_line("go wtime 60000 btime 55000 winc 1000 binc 500 movestogo 20"),
+    | |__________________________________________________________________________________________^ expected `&UciResponse`, found `UciResponse`
+    |
+note: function defined here
+   --> crates/chess-uci/src/lib.rs:574:8
+    |
+574 |     fn search_command(response: &UciResponse) -> GoCommand {
+    |        ^^^^^^^^^^^^^^ ----------------------
+help: consider borrowing here
+    |
+696 |             &UciSession::new()
+    |             +
+
+error[E0308]: mismatched types
+   --> crates/chess-uci/src/lib.rs:708:32
+    |
+708 |         assert!(search_command(UciSession::new().handle_line("go infinite")).is_infinite());
+    |                 -------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&UciResponse`, found `UciResponse`
+    |                 |
+    |                 arguments to this function are incorrect
+    |
+note: function defined here
+   --> crates/chess-uci/src/lib.rs:574:8
+    |
+574 |     fn search_command(response: &UciResponse) -> GoCommand {
+    |        ^^^^^^^^^^^^^^ ----------------------
+help: consider borrowing here
+    |
+708 |         assert!(search_command(&UciSession::new().handle_line("go infinite")).is_infinite());
+    |                                +
+
+error[E0308]: mismatched types
+   --> crates/chess-uci/src/lib.rs:709:32
+    |
+709 |         assert!(search_command(UciSession::new().handle_line("go")).is_infinite());
+    |                 -------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&UciResponse`, found `UciResponse`
+    |                 |
+    |                 arguments to this function are incorrect
+    |
+note: function defined here
+   --> crates/chess-uci/src/lib.rs:574:8
+    |
+574 |     fn search_command(response: &UciResponse) -> GoCommand {
+    |        ^^^^^^^^^^^^^^ ----------------------
+help: consider borrowing here
+    |
+709 |         assert!(search_command(&UciSession::new().handle_line("go")).is_infinite());
+    |                                +
+
+For more information about this error, try `rustc --explain E0308`.
+error: could not compile `chess-uci` (lib test) due to 5 previous errors
+warning: build failed, waiting for other jobs to finish...
+exit=101
+$ cargo test --locked -p chess-uci
+   Compiling chess-core v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-core)
+   Compiling chess-search v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-search)
+   Compiling chess-uci v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-uci)
+error[E0308]: mismatched types
+   --> crates/chess-uci/src/lib.rs:681:38
+    |
+681 |         let command = search_command(UciSession::new().handle_line("go depth 6 nodes 9000"));
+    |                       -------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&UciResponse`, found `UciResponse`
+    |                       |
+    |                       arguments to this function are incorrect
+    |
+note: function defined here
+   --> crates/chess-uci/src/lib.rs:574:8
+    |
+574 |     fn search_command(response: &UciResponse) -> GoCommand {
+    |        ^^^^^^^^^^^^^^ ----------------------
+help: consider borrowing here
+    |
+681 |         let command = search_command(&UciSession::new().handle_line("go depth 6 nodes 9000"));
+    |                                      +
+
+error[E0308]: mismatched types
+   --> crates/chess-uci/src/lib.rs:689:38
+    |
+689 |         let command = search_command(UciSession::new().handle_line("go movetime 250"));
+    |                       -------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&UciResponse`, found `UciResponse`
+    |                       |
+    |                       arguments to this function are incorrect
+    |
+note: function defined here
+   --> crates/chess-uci/src/lib.rs:574:8
+    |
+574 |     fn search_command(response: &UciResponse) -> GoCommand {
+    |        ^^^^^^^^^^^^^^ ----------------------
+help: consider borrowing here
+    |
+689 |         let command = search_command(&UciSession::new().handle_line("go movetime 250"));
+    |                                      +
+
+error[E0308]: mismatched types
+   --> crates/chess-uci/src/lib.rs:696:13
+    |
+695 |           let command = search_command(
+    |                         -------------- arguments to this function are incorrect
+696 | /             UciSession::new()
+697 | |                 .handle_line("go wtime 60000 btime 55000 winc 1000 binc 500 movestogo 20"),
+    | |__________________________________________________________________________________________^ expected `&UciResponse`, found `UciResponse`
+    |
+note: function defined here
+   --> crates/chess-uci/src/lib.rs:574:8
+    |
+574 |     fn search_command(response: &UciResponse) -> GoCommand {
+    |        ^^^^^^^^^^^^^^ ----------------------
+help: consider borrowing here
+    |
+696 |             &UciSession::new()
+    |             +
+
+error[E0308]: mismatched types
+   --> crates/chess-uci/src/lib.rs:708:32
+    |
+708 |         assert!(search_command(UciSession::new().handle_line("go infinite")).is_infinite());
+    |                 -------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&UciResponse`, found `UciResponse`
+    |                 |
+    |                 arguments to this function are incorrect
+    |
+note: function defined here
+   --> crates/chess-uci/src/lib.rs:574:8
+    |
+574 |     fn search_command(response: &UciResponse) -> GoCommand {
+    |        ^^^^^^^^^^^^^^ ----------------------
+help: consider borrowing here
+    |
+708 |         assert!(search_command(&UciSession::new().handle_line("go infinite")).is_infinite());
+    |                                +
+
+error[E0308]: mismatched types
+   --> crates/chess-uci/src/lib.rs:709:32
+    |
+709 |         assert!(search_command(UciSession::new().handle_line("go")).is_infinite());
+    |                 -------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&UciResponse`, found `UciResponse`
+    |                 |
+    |                 arguments to this function are incorrect
+    |
+note: function defined here
+   --> crates/chess-uci/src/lib.rs:574:8
+    |
+574 |     fn search_command(response: &UciResponse) -> GoCommand {
+    |        ^^^^^^^^^^^^^^ ----------------------
+help: consider borrowing here
+    |
+709 |         assert!(search_command(&UciSession::new().handle_line("go")).is_infinite());
+    |                                +
+
+For more information about this error, try `rustc --explain E0308`.
+error: could not compile `chess-uci` (lib test) due to 5 previous errors
+warning: build failed, waiting for other jobs to finish...
+exit=101
+$ cargo test --locked --workspace --all-features
+   Compiling chess-ffi v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-ffi)
+   Compiling chess-tools v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-tools)
+   Compiling chess-search v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-search)
+   Compiling chess-jni v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-jni)
+   Compiling chess-uci v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-uci)
+error[E0308]: mismatched types
+   --> crates/chess-uci/src/lib.rs:681:38
+    |
+681 |         let command = search_command(UciSession::new().handle_line("go depth 6 nodes 9000"));
+    |                       -------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&UciResponse`, found `UciResponse`
+    |                       |
+    |                       arguments to this function are incorrect
+    |
+note: function defined here
+   --> crates/chess-uci/src/lib.rs:574:8
+    |
+574 |     fn search_command(response: &UciResponse) -> GoCommand {
+    |        ^^^^^^^^^^^^^^ ----------------------
+help: consider borrowing here
+    |
+681 |         let command = search_command(&UciSession::new().handle_line("go depth 6 nodes 9000"));
+    |                                      +
+
+error[E0308]: mismatched types
+   --> crates/chess-uci/src/lib.rs:689:38
+    |
+689 |         let command = search_command(UciSession::new().handle_line("go movetime 250"));
+    |                       -------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&UciResponse`, found `UciResponse`
+    |                       |
+    |                       arguments to this function are incorrect
+    |
+note: function defined here
+   --> crates/chess-uci/src/lib.rs:574:8
+    |
+574 |     fn search_command(response: &UciResponse) -> GoCommand {
+    |        ^^^^^^^^^^^^^^ ----------------------
+help: consider borrowing here
+    |
+689 |         let command = search_command(&UciSession::new().handle_line("go movetime 250"));
+    |                                      +
+
+error[E0308]: mismatched types
+   --> crates/chess-uci/src/lib.rs:696:13
+    |
+695 |           let command = search_command(
+    |                         -------------- arguments to this function are incorrect
+696 | /             UciSession::new()
+697 | |                 .handle_line("go wtime 60000 btime 55000 winc 1000 binc 500 movestogo 20"),
+    | |__________________________________________________________________________________________^ expected `&UciResponse`, found `UciResponse`
+    |
+note: function defined here
+   --> crates/chess-uci/src/lib.rs:574:8
+    |
+574 |     fn search_command(response: &UciResponse) -> GoCommand {
+    |        ^^^^^^^^^^^^^^ ----------------------
+help: consider borrowing here
+    |
+696 |             &UciSession::new()
+    |             +
+
+error[E0308]: mismatched types
+   --> crates/chess-uci/src/lib.rs:708:32
+    |
+708 |         assert!(search_command(UciSession::new().handle_line("go infinite")).is_infinite());
+    |                 -------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&UciResponse`, found `UciResponse`
+    |                 |
+    |                 arguments to this function are incorrect
+    |
+note: function defined here
+   --> crates/chess-uci/src/lib.rs:574:8
+    |
+574 |     fn search_command(response: &UciResponse) -> GoCommand {
+    |        ^^^^^^^^^^^^^^ ----------------------
+help: consider borrowing here
+    |
+708 |         assert!(search_command(&UciSession::new().handle_line("go infinite")).is_infinite());
+    |                                +
+
+error[E0308]: mismatched types
+   --> crates/chess-uci/src/lib.rs:709:32
+    |
+709 |         assert!(search_command(UciSession::new().handle_line("go")).is_infinite());
+    |                 -------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&UciResponse`, found `UciResponse`
+    |                 |
+    |                 arguments to this function are incorrect
+    |
+note: function defined here
+   --> crates/chess-uci/src/lib.rs:574:8
+    |
+574 |     fn search_command(response: &UciResponse) -> GoCommand {
+    |        ^^^^^^^^^^^^^^ ----------------------
+help: consider borrowing here
+    |
+709 |         assert!(search_command(&UciSession::new().handle_line("go")).is_infinite());
+    |                                +
+
+For more information about this error, try `rustc --explain E0308`.
+error: could not compile `chess-uci` (lib test) due to 5 previous errors
+warning: build failed, waiting for other jobs to finish...
+exit=101

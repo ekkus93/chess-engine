@@ -269,14 +269,14 @@ impl UciSession {
 
     fn handle_setoption(&mut self, tokens: &[&str]) -> UciResponse {
         match parse_setoption(tokens) {
-            Ok(("Hash", value)) => match parse_hash_mebibytes(&value) {
+            Ok((name, value)) if name == "Hash" => match parse_hash_mebibytes(&value) {
                 Ok(hash_mebibytes) => {
                     self.options.hash_mebibytes = hash_mebibytes;
                     UciResponse::default()
                 }
                 Err(error) => UciResponse::error(error),
             },
-            Ok(("CheckExtension", value)) => match parse_boolean(&value) {
+            Ok((name, value)) if name == "CheckExtension" => match parse_boolean(&value) {
                 Ok(check_extension) => {
                     self.options.check_extension = check_extension;
                     UciResponse::default()
@@ -300,13 +300,13 @@ impl UciSession {
 
     fn handle_go(&self, tokens: &[&str]) -> UciResponse {
         match parse_go(tokens) {
-            Ok(command) => UciResponse::with_event(UciEvent::StartSearch(Box::new(
-                SearchRequest {
+            Ok(command) => {
+                UciResponse::with_event(UciEvent::StartSearch(Box::new(SearchRequest {
                     game: self.game.clone(),
                     command,
                     options: self.options,
-                },
-            ))),
+                })))
+            }
             Err(error) => UciResponse::error(error),
         }
     }
@@ -350,7 +350,7 @@ pub fn run_stdio() -> io::Result<()> {
     run_protocol_loop(stdin.lock(), stdout.lock())
 }
 
-fn parse_setoption(tokens: &[&str]) -> Result<(&str, String), String> {
+fn parse_setoption(tokens: &[&str]) -> Result<(String, String), String> {
     if tokens.first().copied() != Some("name") {
         return Err("setoption requires `name <option> value <value>`".to_owned());
     }
@@ -366,11 +366,7 @@ fn parse_setoption(tokens: &[&str]) -> Result<(&str, String), String> {
     }
     let name = tokens[1..value_index].join(" ");
     let value = tokens[value_index + 1..].join(" ");
-    match name.as_str() {
-        "Hash" => Ok(("Hash", value)),
-        "CheckExtension" => Ok(("CheckExtension", value)),
-        _ => Ok((Box::leak(name.into_boxed_str()), value)),
-    }
+    Ok((name, value))
 }
 
 fn parse_hash_mebibytes(value: &str) -> Result<usize, String> {
@@ -389,7 +385,9 @@ fn parse_boolean(value: &str) -> Result<bool, String> {
     match value {
         "true" => Ok(true),
         "false" => Ok(false),
-        _ => Err(format!("boolean option must be true or false, found {value:?}")),
+        _ => Err(format!(
+            "boolean option must be true or false, found {value:?}"
+        )),
     }
 }
 
@@ -427,15 +425,19 @@ fn apply_moves(game: &mut Game, moves: &[&str]) -> Result<(), String> {
         let syntax = text
             .parse::<UciMove>()
             .map_err(|error| format!("invalid UCI move at replay ply {}: {error}", ply + 1))?;
-        let legal_moves = game
-            .legal_moves()
-            .map_err(|error| format!("could not generate replay moves at ply {}: {error}", ply + 1))?;
+        let legal_moves = game.legal_moves().map_err(|error| {
+            format!(
+                "could not generate replay moves at ply {}: {error}",
+                ply + 1
+            )
+        })?;
         let current = legal_moves
             .iter()
             .find(|candidate| syntax.matches(*candidate))
             .ok_or_else(|| format!("illegal UCI move {text:?} at replay ply {}", ply + 1))?;
-        game.make_move(current)
-            .map_err(|error| format!("could not replay move {text:?} at ply {}: {error}", ply + 1))?;
+        game.make_move(current).map_err(|error| {
+            format!("could not replay move {text:?} at ply {}: {error}", ply + 1)
+        })?;
     }
     Ok(())
 }
@@ -518,7 +520,9 @@ fn parse_go(tokens: &[&str]) -> Result<GoCommand, String> {
 
 fn set_once<T>(slot: &mut Option<T>, value: T, name: &str) -> Result<(), String> {
     if slot.is_some() {
-        return Err(format!("go parameter {name:?} was specified more than once"));
+        return Err(format!(
+            "go parameter {name:?} was specified more than once"
+        ));
     }
     *slot = Some(value);
     Ok(())
@@ -642,9 +646,7 @@ mod tests {
     #[test]
     fn position_fen_consumes_exactly_six_fields_and_replays_moves() {
         let mut session = UciSession::new();
-        let response = session.handle_line(
-            "position fen 7k/8/8/8/8/8/4K3/R7 w - - 0 1 moves a1a8",
-        );
+        let response = session.handle_line("position fen 7k/8/8/8/8/8/4K3/R7 w - - 0 1 moves a1a8");
         assert!(response.lines().is_empty());
         assert_eq!(session.game().ply_count(), 1);
         assert_eq!(
@@ -690,9 +692,10 @@ mod tests {
 
     #[test]
     fn go_clock_fields_are_typed() {
-        let command = search_command(UciSession::new().handle_line(
-            "go wtime 60000 btime 55000 winc 1000 binc 500 movestogo 20",
-        ));
+        let command = search_command(
+            UciSession::new()
+                .handle_line("go wtime 60000 btime 55000 winc 1000 binc 500 movestogo 20"),
+        );
         assert_eq!(command.white_time_ms(), Some(60000));
         assert_eq!(command.black_time_ms(), Some(55000));
         assert_eq!(command.white_increment_ms(), Some(1000));
