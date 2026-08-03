@@ -988,9 +988,9 @@ Evidence:
 - Android results: four host JVM tests, dual-ABI cross-build and ELF verification, 59-task Android AAR/test-APK build, and three emulator instrumentation tests all passed.
 - Accepted external notices were limited to GitHub Actions Node runtime/dependency deprecations, an informational inability to strip the JNI debug library, and normal emulator startup/shutdown diagnostics. No product failure or ignored test occurred.
 - Task 18 is complete: the safe Rust facade, stable C ABI, ABI lifecycle/panic tests, JNI adapter, host JVM contract, and Android emulator path can create an engine, set/reset positions, obtain legal moves, search, cancel, and destroy without crashes, leaked owned handles, or UI-thread search execution.
-- Task 19.1 opening-book abstraction is next.
+- Task 19.1 opening-book abstraction is complete. Task 19.2 backend format is next.
 
-# Task 19: Opening book — NOT STARTED
+# Task 19: Opening book — IN PROGRESS
 - [x] 19.1 Abstraction.
 - [ ] 19.2 Format.
 - [ ] 19.3 Policies.
