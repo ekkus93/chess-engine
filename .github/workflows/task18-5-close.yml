@@ -1,0 +1,85 @@
+name: Task 18.5 Close
+
+on:
+  push:
+    branches:
+      - task18-5-android-harness
+  pull_request:
+    branches:
+      - rust-engine
+    types:
+      - synchronize
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: task18-5-close-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  close:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: task18-5-android-harness
+          fetch-depth: 0
+
+      - name: Verify validated implementation ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 0af14c4bdb7e8de645f27182a788e5eef5297d5f HEAD
+          test -f .github/workflows/android.yml
+          grep -F 'permissions:' .github/workflows/android.yml
+          grep -F 'contents: read' .github/workflows/android.yml
+          test ! -e .github/workflows/task18-5-bootstrap.yml
+          test ! -e scripts/task18_5_bootstrap.py
+
+      - name: Apply fail-closed tracker update
+        run: python3 scripts/task18_5_close.py
+
+      - name: Verify Task 18 boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F -- '- [x] 18.5 Android harness.' docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md
+          grep -F -- '- [x] Task 18 gate.' docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md
+          grep -F '# Task 18: Safe API, C ABI, and JNI — COMPLETE' docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md
+          grep -F '**Current phase:** Task 18 complete; Task 19.1 opening-book abstraction is next' docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
+          grep -F '## Task 18.5 and Task 18 completion' docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
+          grep -F -- '- [ ] 19.1 Abstraction.' docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md
+
+      - name: Remove one-shot closure assets
+        run: git rm .github/workflows/task18-5-close.yml scripts/task18_5_close.py
+
+      - name: Commit tracker closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/RUST_ANDROID_JNI.md \
+            docs/RUST_ANDROID_TEST_HARNESS.md \
+            docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md \
+            docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md \
+            docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md
+          git diff --cached --check
+          mapfile -t changed < <(git diff --cached --name-only)
+          expected=$(cat <<'EOF'
+.github/workflows/task18-5-close.yml
+docs/RUST_ANDROID_JNI.md
+docs/RUST_ANDROID_TEST_HARNESS.md
+docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
+docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md
+docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md
+scripts/task18_5_close.py
+EOF
+          )
+          actual=$(printf '%s\n' "${changed[@]}")
+          test "${actual}" = "${expected}"
+          git commit -m "docs: close Task 18.5 and Task 18 gate"
+          git push origin HEAD:task18-5-android-harness
