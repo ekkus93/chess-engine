@@ -13,6 +13,7 @@ concurrency:
   group: task18-5-bootstrap-${{ github.ref }}
   cancel-in-progress: true
 
+# Guarded one-shot writer for the Task 18.5 implementation.
 jobs:
   bootstrap:
     runs-on: ubuntu-24.04
