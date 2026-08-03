@@ -126,7 +126,10 @@ jobs:
 
   task17-3-closure:
     name: Close Task 17.3 trackers
-    if: github.event_name == 'workflow_dispatch'
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.title == '[close-task17-3-trackers]')
     needs: rust-quality
     runs-on: ubuntu-24.04
     timeout-minutes: 10
