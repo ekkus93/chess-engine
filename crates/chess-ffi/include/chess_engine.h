@@ -224,6 +224,10 @@ ChessEngineResultCode chess_engine_search(
     ChessEngineSearchResult *out_result
 );
 
+#ifdef CHESS_ENGINE_ENABLE_TEST_FAULTS
+ChessEngineResultCode chess_engine_test_inject_panic(void);
+#endif
+
 #ifdef __cplusplus
 }
 #endif
