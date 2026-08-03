@@ -895,20 +895,20 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 17.1 Protocol loop
 
-- [ ] `uci`.
-- [ ] `isready`.
-- [ ] `ucinewgame`.
-- [ ] `setoption` for supported options.
-- [ ] `position startpos`.
-- [ ] `position fen` with six fields.
-- [ ] replay `moves`.
-- [ ] `go depth`.
-- [ ] `go nodes`.
-- [ ] `go movetime`.
-- [ ] clock/increment/moves-to-go search.
-- [ ] `go infinite`.
-- [ ] `stop`.
-- [ ] `quit`.
+- [x] `uci`.
+- [x] `isready`.
+- [x] `ucinewgame`.
+- [x] `setoption` for supported options.
+- [x] `position startpos`.
+- [x] `position fen` with six fields.
+- [x] replay `moves`.
+- [x] `go depth`.
+- [x] `go nodes`.
+- [x] `go movetime`.
+- [x] clock/increment/moves-to-go search.
+- [x] `go infinite`.
+- [x] `stop`.
+- [x] `quit`.
 
 ## 17.2 UCI search worker
 

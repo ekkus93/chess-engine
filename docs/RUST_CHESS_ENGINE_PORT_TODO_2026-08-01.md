@@ -839,13 +839,25 @@ Evidence:
 - The overall Task 16 gate is complete: deterministic depth/node behavior, responsive timed/explicit cancellation, legal PVs, exact aspiration recovery, unified result accounting, and finite optional extension semantics all passed together.
 - Task 17.1 protocol loop is next.
 
-# Task 17: Linux UCI executable — NOT STARTED
-- [ ] 17.1 Protocol loop.
+# Task 17: Linux UCI executable — IN PROGRESS
+- [x] 17.1 Protocol loop.
 - [ ] 17.2 Search worker.
 - [ ] 17.3 Time manager.
 - [ ] 17.4 Output.
 - [ ] 17.5 Integration tests.
 - [ ] Task 17 gate.
+
+### Task 17.1 completion evidence
+
+- Implementation: `crates/chess-uci/src/lib.rs`, `crates/chess-uci/src/main.rs`, and the direct `chess-core` dependency in `crates/chess-uci/Cargo.toml`.
+- Public protocol API: `UciSession`, `UciResponse`, `UciEvent`, `SearchRequest`, `GoCommand`, `EngineOptions`, `run_protocol_loop`, and `run_stdio`.
+- Supported commands: `uci`, `isready`, `ucinewgame`, advertised `setoption`, transactional `position startpos`, strict six-field `position fen`, legal move replay, all required `go` forms, `stop`, and `quit`.
+- Position replacement is transactional: malformed FEN, malformed move syntax, and illegal replay leave the active `Game` and repetition history unchanged.
+- `go` creates an immutable game/options/limit snapshot. Search execution, worker ownership, time budgeting, periodic output, and `bestmove` remain explicitly assigned to Tasks 17.2 through 17.4.
+- Contract documentation: `docs/RUST_UCI_PROTOCOL_LOOP.md`.
+- Exact validated implementation SHA: `60f70463c9ad9abf99c8b3d7923df8037bc6f894`.
+- Validation: rustfmt, locked all-target workspace check, strict Clippy with warnings denied, 18 focused UCI tests, and the complete workspace test suite all passed.
+- Task 17.1 is complete. Task 17.2 UCI search worker is next.
 
 # Task 18: Safe API, C ABI, and JNI — NOT STARTED
 - [ ] 18.1 Rust facade.
@@ -956,9 +968,9 @@ Evidence:
 
 ## Immediate next operations
 
-1. Implement Task 17.1 as a fail-loud Linux UCI protocol loop over the completed Task 16 search boundary.
-2. Support `uci`, `isready`, `ucinewgame`, supported `setoption`, `position startpos`, six-field `position fen`, move replay, all specified `go` forms, `stop`, and `quit`.
-3. Keep parsing, position replacement, and move replay transactional so malformed commands cannot corrupt the active game state.
-4. Add deterministic protocol transcripts covering valid commands, malformed commands, terminal positions, repeated position replacement, and clean shutdown.
-5. Preserve Task 16 cancellation, legal PV, best-move fallback, node/time accounting, and exact root restoration through the adapter boundary.
-6. Keep the Task 17.2 worker thread and Task 17.3 time manager separate from the initial protocol-loop implementation.
+1. Implement Task 17.2 as an adapter-owned UCI search worker over immutable `SearchRequest` snapshots.
+2. Give every active search its own `SearchStopFlag`; do not introduce process-global mutable search control.
+3. Define replacement rules for `go`, `stop`, `ucinewgame`, `position`, and `quit` while a worker is active.
+4. Join completed or stopped workers cleanly and preserve protocol-thread responsiveness for `isready`.
+5. Convert the Task 17.1 typed `go` request into `SearchLimits` without implementing clock allocation ahead of Task 17.3.
+6. Add deterministic worker tests proving stop interrupts active search and quit performs an orderly shutdown.

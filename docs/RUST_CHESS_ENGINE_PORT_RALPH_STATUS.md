@@ -3,7 +3,7 @@
 **Updated:** 2026-08-02  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 16 complete; Task 17.1 Linux UCI protocol loop is next
+**Current phase:** Task 17.1 complete; Task 17.2 UCI search worker is next
 
 ## Completed gates
 
@@ -48,6 +48,29 @@
 | 16.6 | `dcde800f4c5a08c07fe57724ed672f2abd122157` | `30783666840` / `91593059900` | unified typed result snapshot, request-wide node/qnode/seldepth/time accounting, 222 Rust tests, depth-four perft, and differential oracle green |
 | 16.7 | `836ca0563f9a8dce44eb78997e28335a9d8fcdce` | `30785853401` / `91599164384` | explicit one-ply-per-line check extension, path-safe TT/PV policy, diagnostics, 229 Rust tests, depth-four perft, and differential oracle green |
 | 16 / gate | `836ca0563f9a8dce44eb78997e28335a9d8fcdce` | `30785853401` / `91599164384` | all iterative-deepening, aspiration, PV, limit, cancellation, result, and bounded-extension integration gates green |
+| 17.1 | `60f70463c9ad9abf99c8b3d7923df8037bc6f894` | one-shot full preflight | protocol session, transactional position replay, typed go requests, 18 focused tests, and full workspace gate green |
+
+## Task 17.1 completion
+
+Implemented and validated:
+
+- Linux stdin/stdout protocol entry point through `chess_uci::run_stdio`;
+- reusable buffered `run_protocol_loop` without process-global I/O redirection;
+- stateful `UciSession` ownership of one exact `Game` and supported options;
+- UCI handshake, readiness, new-game reset, supported options, start-position and strict six-field FEN setup;
+- transactional legal move replay with fail-visible malformed and illegal input handling;
+- typed depth, node, move-time, clock, increment, moves-to-go, and infinite search requests;
+- immutable game/options snapshots for the Task 17.2 worker boundary;
+- distinct stop and quit events and clean buffered shutdown;
+- `docs/RUST_UCI_PROTOCOL_LOOP.md`.
+
+Evidence:
+
+- Exact validated implementation SHA: `60f70463c9ad9abf99c8b3d7923df8037bc6f894`.
+- Focused UCI tests: 18 passed.
+- Full validation: rustfmt, locked workspace all-target check, strict Clippy with warnings denied, focused UCI tests, and complete workspace tests passed.
+- First preflight correction removed one unnecessary leaked option-name allocation; the second corrected five test-only response borrows. No production behavior was weakened and no lint suppression was added.
+- Task 17.2 owns the search worker, explicit stop-token lifecycle, and clean join behavior. Task 17.3 owns clock allocation, and Task 17.4 owns search output and `bestmove`.
 
 ## Task 12 completion
 
