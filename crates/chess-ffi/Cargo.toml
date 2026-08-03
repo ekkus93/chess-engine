@@ -12,6 +12,10 @@ description = "Safe Rust engine facade and stable C ABI adapter."
 [lib]
 crate-type = ["rlib", "cdylib", "staticlib"]
 
+[features]
+default = []
+ffi-test-faults = []
+
 [lints]
 workspace = true
 
