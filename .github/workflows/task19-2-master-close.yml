@@ -3,9 +3,7 @@ name: Task 19.2 Trusted Closure
 on:
   pull_request_target:
     types:
-      - opened
       - synchronize
-      - ready_for_review
 
 permissions:
   contents: write
@@ -17,15 +15,25 @@ concurrency:
 
 jobs:
   close:
-    if: >-
-      github.event.pull_request.title == '[run-task19-2-closure-pr]'
-      && github.event.pull_request.user.login == 'ekkus93'
-      && github.event.pull_request.head.ref == 'task19-2-trusted-trigger'
-      && github.event.pull_request.head.repo.full_name == 'ekkus93/chess-engine'
-      && github.repository == 'ekkus93/chess-engine'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    env:
+      PR_TITLE: ${{ github.event.pull_request.title }}
+      PR_USER: ${{ github.event.pull_request.user.login }}
+      PR_HEAD: ${{ github.event.pull_request.head.ref }}
+      PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+      REPOSITORY: ${{ github.repository }}
     steps:
+      - name: Verify trusted trigger identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$PR_TITLE" = '[run-task19-2-closure-pr]'
+          test "$PR_USER" = 'ekkus93'
+          test "$PR_HEAD" = 'task19-2-trusted-trigger'
+          test "$PR_HEAD_REPO" = 'ekkus93/chess-engine'
+          test "$REPOSITORY" = 'ekkus93/chess-engine'
+
       - uses: actions/checkout@v4
         with:
           ref: rust-engine
