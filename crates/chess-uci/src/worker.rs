@@ -10,8 +10,7 @@ use chess_search::{
     IterativeDeepeningSearchError, SearchLimitError, SearchLimits, SearchResult, SearchStopFlag,
     TranspositionTable, TranspositionTableAllocationError,
 };
-
-use crate::{EngineOptions, GoCommand, SearchRequest};
+use chess_uci::{EngineOptions, GoCommand, SearchRequest};
 
 /// Failure to prepare, start, execute, or join one adapter-owned search worker.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -58,7 +57,7 @@ impl std::error::Error for SearchWorkerError {}
 #[derive(Debug)]
 pub struct SearchWorker {
     stop_flag: SearchStopFlag,
-    handle: Option<JoinHandle<Result<SearchResult, SearchWorkerError>>>,
+    handle: JoinHandle<Result<SearchResult, SearchWorkerError>>,
 }
 
 impl SearchWorker {
@@ -67,11 +66,9 @@ impl SearchWorker {
     /// No process-global mutable state is used. The worker owns a detached
     /// position, repetition history, transposition table, and stop flag.
     pub fn spawn(request: SearchRequest) -> Result<Self, SearchWorkerError> {
-        let SearchRequest {
-            game,
-            command,
-            options,
-        } = request;
+        let game = request.game().clone();
+        let command = request.command();
+        let options = request.options();
         let stop_flag = SearchStopFlag::new();
         let limits = build_search_limits(command, options, stop_flag.clone())?;
         let table_mebibytes = options.hash_mebibytes();
@@ -84,10 +81,7 @@ impl SearchWorker {
                 message: error.to_string(),
             })?;
 
-        Ok(Self {
-            stop_flag,
-            handle: Some(handle),
-        })
+        Ok(Self { stop_flag, handle })
     }
 
     /// Requests an orderly stop at the production search cancellation boundary.
@@ -98,19 +92,12 @@ impl SearchWorker {
     /// Returns whether the worker thread has returned and can be joined without blocking.
     #[must_use]
     pub fn is_finished(&self) -> bool {
-        match self.handle.as_ref() {
-            Some(handle) => handle.is_finished(),
-            None => true,
-        }
+        self.handle.is_finished()
     }
 
     /// Joins the worker and returns its typed production-search result.
-    pub fn join(mut self) -> Result<SearchResult, SearchWorkerError> {
-        let handle = self
-            .handle
-            .take()
-            .expect("search-worker handle exists until its single join");
-        handle
+    pub fn join(self) -> Result<SearchResult, SearchWorkerError> {
+        self.handle
             .join()
             .map_err(|_| SearchWorkerError::ThreadPanicked)?
     }
@@ -166,14 +153,12 @@ impl SearchWorkerSlot {
     }
 
     /// Joins a naturally completed worker without blocking.
-    pub fn reap_finished(
-        &mut self,
-    ) -> Option<Result<SearchResult, SearchWorkerError>> {
-        let finished = match self.active.as_ref() {
-            Some(worker) => worker.is_finished(),
-            None => false,
-        };
-        if !finished {
+    pub fn reap_finished(&mut self) -> Option<Result<SearchResult, SearchWorkerError>> {
+        if !self
+            .active
+            .as_ref()
+            .is_some_and(SearchWorker::is_finished)
+        {
             return None;
         }
         self.active.take().map(SearchWorker::join)
@@ -198,7 +183,7 @@ fn build_search_limits(
     options: EngineOptions,
     stop_flag: SearchStopFlag,
 ) -> Result<SearchLimits, SearchWorkerError> {
-    if command.has_clock_fields() {
+    if has_clock_fields(command) {
         return Err(SearchWorkerError::ClockManagementPending);
     }
 
@@ -225,6 +210,14 @@ fn build_search_limits(
     Ok(limits)
 }
 
+fn has_clock_fields(command: GoCommand) -> bool {
+    command.white_time_ms().is_some()
+        || command.black_time_ms().is_some()
+        || command.white_increment_ms().is_some()
+        || command.black_increment_ms().is_some()
+        || command.moves_to_go().is_some()
+}
+
 fn run_search(
     game: chess_core::Game,
     limits: SearchLimits,
@@ -248,9 +241,10 @@ mod tests {
     use std::io::Cursor;
 
     use chess_search::SearchLimitTermination;
+    use chess_uci::{SearchRequest, UciEvent, UciSession};
 
     use super::{SearchWorker, SearchWorkerError, SearchWorkerSlot};
-    use crate::{run_protocol_loop, SearchRequest, UciEvent, UciSession};
+    use crate::run_protocol_loop;
 
     fn request(command: &str) -> SearchRequest {
         let response = UciSession::new().handle_line(command);
