@@ -15,8 +15,8 @@ use std::error::Error;
 use chess_core::{Move, Position};
 
 pub use indexed::{
-    BookPositionKey, IndexedBook, IndexedBookError, IndexedBookRecord,
-    INDEXED_BOOK_FORMAT_VERSION, INDEXED_BOOK_KEY_SCHEMA_VERSION,
+    BookPositionKey, IndexedBook, IndexedBookError, IndexedBookRecord, INDEXED_BOOK_FORMAT_VERSION,
+    INDEXED_BOOK_KEY_SCHEMA_VERSION,
 };
 
 /// One weighted move returned by an opening book.

@@ -196,9 +196,7 @@ pub struct IndexedBook {
 impl IndexedBook {
     /// Creates a canonical in-memory book, sorting records by position key and
     /// UCI move and rejecting duplicate `(position, move)` pairs.
-    pub fn from_records(
-        mut records: Vec<IndexedBookRecord>,
-    ) -> Result<Self, IndexedBookError> {
+    pub fn from_records(mut records: Vec<IndexedBookRecord>) -> Result<Self, IndexedBookError> {
         records.sort_by(compare_records);
         for pair in records.windows(2) {
             if compare_records(&pair[0], &pair[1]) == Ordering::Equal {
@@ -270,20 +268,23 @@ impl IndexedBook {
         }
 
         let record_count_u64 = read_u64(bytes, RECORD_COUNT_OFFSET);
-        let record_count = usize::try_from(record_count_u64)
-            .map_err(|_| IndexedBookError::RecordCountTooLarge {
+        let record_count = usize::try_from(record_count_u64).map_err(|_| {
+            IndexedBookError::RecordCountTooLarge {
                 found: record_count_u64,
-            })?;
+            }
+        })?;
         let declared_payload_u64 = read_u64(bytes, PAYLOAD_LENGTH_OFFSET);
-        let declared_payload = usize::try_from(declared_payload_u64)
-            .map_err(|_| IndexedBookError::PayloadLengthTooLarge {
+        let declared_payload = usize::try_from(declared_payload_u64).map_err(|_| {
+            IndexedBookError::PayloadLengthTooLarge {
                 found: declared_payload_u64,
-            })?;
-        let expected_payload = record_count
-            .checked_mul(RECORD_SIZE)
-            .ok_or(IndexedBookError::RecordCountTooLarge {
-                found: record_count_u64,
-            })?;
+            }
+        })?;
+        let expected_payload =
+            record_count
+                .checked_mul(RECORD_SIZE)
+                .ok_or(IndexedBookError::RecordCountTooLarge {
+                    found: record_count_u64,
+                })?;
         if declared_payload != expected_payload {
             return Err(IndexedBookError::DeclaredPayloadLengthMismatch {
                 declared: declared_payload,
@@ -337,7 +338,11 @@ impl IndexedBook {
         let payload_length = self.records.len() * RECORD_SIZE;
         let mut bytes = vec![0_u8; HEADER_SIZE + payload_length];
         bytes[..MAGIC.len()].copy_from_slice(MAGIC);
-        write_u16(&mut bytes, FORMAT_VERSION_OFFSET, INDEXED_BOOK_FORMAT_VERSION);
+        write_u16(
+            &mut bytes,
+            FORMAT_VERSION_OFFSET,
+            INDEXED_BOOK_FORMAT_VERSION,
+        );
         write_u16(
             &mut bytes,
             HEADER_SIZE_OFFSET,
@@ -757,10 +762,9 @@ mod tests {
     #[test]
     fn version_one_round_trips_in_canonical_index_order() {
         let starting = Position::starting();
-        let after_e4 = Position::from_fen(
-            "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
-        )
-        .expect("test FEN is valid");
+        let after_e4 =
+            Position::from_fen("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1")
+                .expect("test FEN is valid");
         let records = vec![
             record(&starting, "e2e4", 20),
             IndexedBookRecord::with_metadata(
@@ -796,29 +800,25 @@ mod tests {
 
     #[test]
     fn header_declares_version_schema_and_little_endian_layout() {
-        let book = IndexedBook::from_records(vec![record(
-            &Position::starting(),
-            "e2e4",
-            0x1122_3344,
-        )])
-        .expect("record is valid");
+        let book =
+            IndexedBook::from_records(vec![record(&Position::starting(), "e2e4", 0x1122_3344)])
+                .expect("record is valid");
         let bytes = book.to_bytes();
 
         assert_eq!(&bytes[..8], MAGIC);
         assert_eq!(read_u16(&bytes, FORMAT_VERSION_OFFSET), 1);
         assert_eq!(read_u16(&bytes, KEY_SCHEMA_VERSION_OFFSET), 1);
         assert_eq!(read_u32(&bytes, ENDIAN_MARKER_OFFSET), 0x0102_0304);
-        assert_eq!(read_u32(&bytes, HEADER_SIZE + RECORD_WEIGHT_OFFSET), 0x1122_3344);
+        assert_eq!(
+            read_u32(&bytes, HEADER_SIZE + RECORD_WEIGHT_OFFSET),
+            0x1122_3344
+        );
     }
 
     #[test]
     fn checksum_corruption_is_rejected_before_record_use() {
-        let book = IndexedBook::from_records(vec![record(
-            &Position::starting(),
-            "e2e4",
-            9,
-        )])
-        .expect("record is valid");
+        let book = IndexedBook::from_records(vec![record(&Position::starting(), "e2e4", 9)])
+            .expect("record is valid");
         let mut bytes = book.to_bytes();
         let final_index = bytes.len() - 1;
         bytes[final_index] ^= 1;
@@ -842,7 +842,11 @@ mod tests {
         );
 
         let mut endian = book.to_bytes();
-        write_u32(&mut endian, ENDIAN_MARKER_OFFSET, ENDIAN_MARKER.swap_bytes());
+        write_u32(
+            &mut endian,
+            ENDIAN_MARKER_OFFSET,
+            ENDIAN_MARKER.swap_bytes(),
+        );
         rewrite_checksums(&mut endian);
         assert!(matches!(
             IndexedBook::from_bytes(&endian),
@@ -860,12 +864,8 @@ mod tests {
 
     #[test]
     fn structurally_corrupt_records_are_rejected_after_valid_checksum() {
-        let book = IndexedBook::from_records(vec![record(
-            &Position::starting(),
-            "e2e4",
-            9,
-        )])
-        .expect("record is valid");
+        let book = IndexedBook::from_records(vec![record(&Position::starting(), "e2e4", 9)])
+            .expect("record is valid");
         let mut bytes = book.to_bytes();
         let move_start = HEADER_SIZE + RECORD_MOVE_OFFSET;
         bytes[move_start..move_start + 4].copy_from_slice(b"z9z9");
