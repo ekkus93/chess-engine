@@ -2,7 +2,7 @@
 
 Task 19.2 chooses a versioned project-specific indexed binary format rather than Polyglot.
 
-The format is implemented by `crates/chess-book/src/indexed.rs`. The crate accepts and returns complete byte slices only. It performs no filesystem, Android asset, environment, network, current-directory, or process-global discovery. Platform adapters remain responsible for explicitly obtaining bytes and passing them to `IndexedBook::from_bytes`.
+The format is implemented by `crates/chess-book/src/indexed.rs`. The crate accepts and returns complete byte slices only. It performs no filesystem, Android asset, environment, network, current-directory, or process-global discovery. Platform adapters remain responsible for explicitly obtaining bytes and passing them to `IndexedBook::from_bytes`. Version 1 deliberately prescribes no filename or extension.
 
 ## Why the project-specific format was selected
 
