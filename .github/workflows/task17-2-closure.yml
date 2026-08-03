@@ -1,6 +1,9 @@
 name: Task 17.2 closure
 
 on:
+  push:
+    branches:
+      - rust-engine
   pull_request:
     branches:
       - rust-engine
