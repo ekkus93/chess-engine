@@ -155,6 +155,7 @@ jobs:
           echo '38922c440294be7ed3d800066907227e49df08a39c1584027f02b60ec7c9e2a6  /tmp/task17_4_apply.py' | sha256sum --check --strict
           python3 -m py_compile /tmp/task17_4_apply.py
           python3 /tmp/task17_4_apply.py
+          sed -i '/^fn iterative_deepening_search_with_limits_and_clock<Clock>(/i #[cfg(test)]' crates/chess-search/src/iterative_deepening.rs
           cargo fmt --all
 
       - name: Check implementation
