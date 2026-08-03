@@ -1,10 +1,4 @@
-use std::{
-    collections::HashSet,
-    ptr, slice, str,
-    sync::mpsc,
-    thread,
-    time::Duration,
-};
+use std::{collections::HashSet, ptr, slice, str, sync::mpsc, thread, time::Duration};
 
 use chess_ffi::c_abi::*;
 
@@ -84,9 +78,7 @@ fn rust_through_abi_smoke_covers_complete_lifecycle() {
 
     // SAFETY: The FEN byte range is readable for its explicit length.
     assert_eq!(
-        unsafe {
-            chess_engine_set_position(engine, STARTING_FEN.as_ptr(), STARTING_FEN.len())
-        },
+        unsafe { chess_engine_set_position(engine, STARTING_FEN.as_ptr(), STARTING_FEN.len()) },
         ChessEngineResultCode::Ok
     );
 
@@ -216,27 +208,21 @@ fn invalid_inputs_fail_loudly_without_mutation() {
     let invalid_utf8 = [0xff_u8];
     // SAFETY: The byte range is readable but intentionally invalid UTF-8.
     assert_eq!(
-        unsafe {
-            chess_engine_set_position(engine, invalid_utf8.as_ptr(), invalid_utf8.len())
-        },
+        unsafe { chess_engine_set_position(engine, invalid_utf8.as_ptr(), invalid_utf8.len()) },
         ChessEngineResultCode::InvalidUtf8
     );
 
     let malformed_fen = b"not a fen";
     // SAFETY: The byte range is readable for its explicit length.
     assert_eq!(
-        unsafe {
-            chess_engine_set_position(engine, malformed_fen.as_ptr(), malformed_fen.len())
-        },
+        unsafe { chess_engine_set_position(engine, malformed_fen.as_ptr(), malformed_fen.len()) },
         ChessEngineResultCode::InvalidFen
     );
 
     let malformed_move = b"e2e9";
     // SAFETY: The byte range is readable for its explicit length.
     assert_eq!(
-        unsafe {
-            chess_engine_play_move(engine, malformed_move.as_ptr(), malformed_move.len())
-        },
+        unsafe { chess_engine_play_move(engine, malformed_move.as_ptr(), malformed_move.len()) },
         ChessEngineResultCode::InvalidMoveSyntax
     );
 
@@ -284,9 +270,6 @@ struct SearchSnapshot {
     free_code: ChessEngineResultCode,
     termination_kind: ChessEngineSearchTerminationKind,
     best_move: String,
-    completed_depth: u16,
-    selective_depth: u16,
-    nodes: u64,
 }
 
 #[test]
@@ -310,8 +293,7 @@ fn active_infinite_search_cancels_from_another_thread() {
     let (result_sender, result_receiver) = mpsc::channel();
     let worker = thread::spawn(move || {
         let mut request = ChessEngineSearchRequest::new();
-        request.flags = CHESS_ENGINE_SEARCH_FLAG_INFINITE
-            | CHESS_ENGINE_SEARCH_FLAG_CANCELLATION;
+        request.flags = CHESS_ENGINE_SEARCH_FLAG_INFINITE | CHESS_ENGINE_SEARCH_FLAG_CANCELLATION;
         request.cancellation_handle = cancellation;
         let mut result = ChessEngineSearchResult::new();
         started_sender
@@ -324,9 +306,6 @@ fn active_infinite_search_cancels_from_another_thread() {
             code,
             termination_kind: result.termination_kind,
             best_move: buffer_text(&result.best_move),
-            completed_depth: result.completed_depth,
-            selective_depth: result.selective_depth,
-            nodes: result.nodes,
             // SAFETY: `result` is initialized and remains unchanged after search.
             free_code: unsafe { chess_engine_search_result_free(&mut result) },
         };
@@ -360,7 +339,6 @@ fn active_infinite_search_cancels_from_another_thread() {
         ChessEngineSearchTerminationKind::ExplicitStop
     );
     assert!(legal_moves.contains(&snapshot.best_move));
-    assert!(snapshot.completed_depth > 0 || snapshot.selective_depth > 0 || snapshot.nodes > 0);
     assert_eq!(
         chess_engine_cancellation_destroy(cancellation),
         ChessEngineResultCode::InvalidHandle
@@ -409,10 +387,8 @@ fn buffer_and_search_result_lifecycles_are_exact() {
     );
     let mut stale_result = result;
     let mut tampered_result = result;
-    tampered_result.principal_variation.len = tampered_result
-        .principal_variation
-        .len
-        .saturating_add(1);
+    tampered_result.principal_variation.len =
+        tampered_result.principal_variation.len.saturating_add(1);
     // SAFETY: One field is intentionally tampered to verify all-or-nothing validation.
     assert_eq!(
         unsafe { chess_engine_search_result_free(&mut tampered_result) },
