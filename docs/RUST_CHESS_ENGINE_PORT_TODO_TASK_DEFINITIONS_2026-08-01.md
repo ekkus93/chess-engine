@@ -969,16 +969,16 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 18.2 C ABI
 
-- [ ] Opaque engine handle.
-- [ ] ABI version query.
-- [ ] create/destroy.
-- [ ] UTF-8 input with explicit lengths.
-- [ ] structured result codes.
-- [ ] error-message retrieval.
-- [ ] output buffer ownership/free contract.
-- [ ] null/invalid-handle checks.
-- [ ] no Rust layout exposure.
-- [ ] `catch_unwind` at every externally callable boundary.
+- [x] Opaque engine handle.
+- [x] ABI version query.
+- [x] create/destroy.
+- [x] UTF-8 input with explicit lengths.
+- [x] structured result codes.
+- [x] error-message retrieval.
+- [x] output buffer ownership/free contract.
+- [x] null/invalid-handle checks.
+- [x] no Rust layout exposure.
+- [x] `catch_unwind` at every externally callable boundary.
 
 ## 18.3 C ABI tests
 

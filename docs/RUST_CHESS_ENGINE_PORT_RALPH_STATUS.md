@@ -3,7 +3,7 @@
 **Updated:** 2026-08-03
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 18.1 safe Rust facade complete; Task 18.2 C ABI is next
+**Current phase:** Task 18.2 stable C ABI complete; Task 18.3 C ABI tests are next
 
 ## Completed gates
 
@@ -54,6 +54,7 @@
 | 17.4 | `0f0ed39b31aca077173359c5807c1afaffb3e9e4` | final permanent gate recorded in output contract | synchronized iteration info, typed scores, nodes/NPS/time/hashfull/PV, exactly-once bestmove |
 | 17.5 / 17 gate | `67b6c97a476e1323bc2bd96ecf14870fc2ed3139` | `30828959858` / `91737751003` | seven real subprocess workflows, bounded stop/quit, legal best moves, terminal null moves, and concurrent-session isolation; complete permanent gate green |
 | 18.1 | `fc375ce7c35a9b8e82c83c8a0ac54e23a60986be` | `30832682431` / `91750223690` | safe stateful facade, transactional positions, legal UCI moves, immutable synchronous search, cross-thread cancellation, identities, and ownership/thread-safety contract; 285 Rust tests green |
+| 18.2 | `d1c4a9195acfc63dc2f9af52531c4ba01e9a2dc9` | `30836228692` / `91761964507` | versioned opaque-token C ABI, explicit UTF-8 lengths, typed errors, verified owned buffers, synchronous search/cancellation boundary, and panic containment; 291 Rust tests green |
 
 ## Task 17.1 completion
 
@@ -146,6 +147,33 @@ Evidence:
 - the complete permanent workspace gate and independent differential oracle passed without lint suppression or lower-layer production changes.
 
 Task 18.1 is complete. Task 18.2 C ABI work is next.
+
+
+## Task 18.2 completion
+
+Implemented and validated:
+
+- stable ABI version `1` and exact-size versioned C records;
+- opaque tagged engine and cancellation tokens with synchronized registry ownership;
+- explicit create, destroy, reset, position, FEN, legal move, move application, status, weight identity, search, and cancellation operations;
+- explicit-length UTF-8 input with no NUL dependency;
+- structured result codes and thread-local retrievable errors;
+- registry-owned immutable output bytes with verified single-free contracts;
+- typed search snapshots with move/PV buffers, score, depth, nodes, time, termination, and fallback;
+- null, stale, destroyed, fabricated, and wrong-type handle rejection without dereferencing caller tokens;
+- `catch_unwind` containment at every exported boundary;
+- `rlib`, `cdylib`, and `staticlib` products plus `crates/chess-ffi/include/chess_engine.h`;
+- `docs/RUST_C_ABI.md`.
+
+Evidence:
+
+- implementation SHA: `d1c4a9195acfc63dc2f9af52531c4ba01e9a2dc9`;
+- permanent CI run/job: `30836228692` / `91761964507`;
+- six focused C ABI tests passed;
+- 291 executed non-doc Rust tests passed;
+- the complete permanent workspace gate and independent differential oracle passed without lint suppression or lower-layer production changes.
+
+Task 18.2 is complete. Task 18.3 C ABI tests are next.
 
 ## Task 12 completion
 

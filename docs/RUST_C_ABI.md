@@ -86,4 +86,23 @@ cargo build --locked -p chess-ffi --release
 
 On Linux this produces the shared and static library forms under `target/release`, together with the normal Rust library artifact. Consumers compile against `crates/chess-ffi/include/chess_engine.h` and must use the matching library build.
 
+
+## Completion evidence
+
+Implementation SHA: `d1c4a9195acfc63dc2f9af52531c4ba01e9a2dc9`.
+
+Permanent implementation validation:
+
+- PR: `#232`;
+- workflow run: `30836228692`;
+- job: `91761964507`;
+- one shared-boundary panic-containment unit test and five public Rust-through-ABI contract tests passed;
+- 291 executed non-doc Rust tests passed across the workspace;
+- formatting, committed lockfile, locked all-target/all-feature compilation, strict Clippy with warnings denied and no lint suppression, authoritative release depth-four perft, rustdoc with warnings denied, and debug/release workspace builds passed;
+- differential validation passed over 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+
+The first implementation validation found only canonical rustfmt differences. Applying exact formatter output corrected the tree without changing ABI behavior, safety policy, tests, or lower-layer production code.
+
+Task 18.2 is complete. Task 18.3 owns the native lifecycle, active cross-thread cancellation, complete buffer lifecycle, and exported injected-panic smoke harness.
+
 Task 18.3 adds the native C/Rust-through-ABI lifecycle, active cancellation, buffer, and injected-panic smoke harness. Task 18.4 will wrap this ABI from JNI without exposing Rust layouts to Kotlin.
