@@ -88,3 +88,7 @@ iterative_deepening_search_with_limits_and_transposition_table(
 ```
 
 The pre-existing fixed-depth APIs retain their original exact behavior and error contract.
+
+## Task 16.6 result accounting
+
+The final `SearchResult` reports request-wide elapsed time, nodes, qnodes, and selective depth. These totals include discarded partial work; exact score, move, PV, ponder move, and completed depth still come only from the last fully completed iteration.

@@ -113,7 +113,7 @@ pub(crate) fn search_quiescence_node<Probe>(
 where
     Probe: SearchCancellationProbe + ?Sized,
 {
-    if cancellation.on_node() {
+    if cancellation.on_quiescence_node(context.ply) {
         return Err(AlphaBetaSearchError::Cancelled);
     }
 
@@ -130,6 +130,8 @@ where
             score,
             best_move: None,
             nodes: 1,
+            qnodes: 1,
+            selective_depth: context.ply,
         });
     }
 
@@ -152,6 +154,8 @@ where
                 score: stand_pat,
                 best_move: None,
                 nodes: 1,
+                qnodes: 1,
+                selective_depth: context.ply,
             });
         }
         if stand_pat > alpha {
@@ -162,12 +166,16 @@ where
                 score: stand_pat,
                 best_move: None,
                 nodes: 1,
+                qnodes: 1,
+                selective_depth: context.ply,
             });
         }
     }
 
     let ordered_tokens = ordered_legal_moves(position, &tokens, ordering);
     let mut nodes = 1_u64;
+    let mut qnodes = 1_u64;
+    let mut selective_depth = context.ply;
     for token in ordered_tokens.iter() {
         let current = token.move_made();
         if !in_check && !is_tactical(current) {
@@ -215,6 +223,10 @@ where
         nodes = nodes
             .checked_add(child.nodes)
             .ok_or(AlphaBetaSearchError::NodeCountOverflow)?;
+        qnodes = qnodes
+            .checked_add(child.qnodes)
+            .ok_or(AlphaBetaSearchError::NodeCountOverflow)?;
+        selective_depth = selective_depth.max(child.selective_depth);
         let score = -child.score;
         let replace_best = match best_score {
             Some(previous) => score > previous,
@@ -237,6 +249,8 @@ where
             score,
             best_move,
             nodes,
+            qnodes,
+            selective_depth,
         }),
         None => Err(AlphaBetaSearchError::MissingBestMove),
     }

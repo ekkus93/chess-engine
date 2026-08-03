@@ -60,3 +60,7 @@ Tasks 16.1–16.5 do not yet add:
 
 - the final unified Task 16.6 search-result API, including public elapsed time and selective depth;
 - check extensions.
+
+## Task 16.6 final result snapshot
+
+Limit-controlled searches return `SearchResult`, which keeps the complete per-depth records while exposing one authoritative best move, optional typed score, legal PV/ponder move, completed depth, request-wide selective depth, total nodes/qnodes, elapsed time, and typed termination reason. See `docs/RUST_SEARCH_RESULT_API.md`.

@@ -7,8 +7,10 @@ pub const CANCELLATION_CHECK_INTERVAL_NODES: u64 = 1;
 
 /// Cooperative cancellation source for recursive search.
 ///
-/// Search calls `on_node` exactly once for each production node and calls
-/// `should_cancel` at child boundaries. Returning `true` requests an orderly
+/// Search calls `on_alpha_beta_node` or `on_quiescence_node` exactly once for
+/// each production node and calls `should_cancel` at child boundaries. The
+/// specialized hooks default to `on_node`, preserving existing probes.
+/// Returning `true` requests an orderly
 /// unwind: active line-history entries are popped and active position moves are
 /// unmade before the cancellation error reaches the root.
 pub trait SearchCancellationProbe {
@@ -22,6 +24,22 @@ pub trait SearchCancellationProbe {
     /// this hook to account one node while retaining the same polling bound.
     fn on_node(&mut self) -> bool {
         self.should_cancel()
+    }
+
+    /// Enters one non-quiescence alpha-beta node at root-relative `ply`.
+    ///
+    /// Existing probes need not override this method because the default
+    /// delegates to [`Self::on_node`].
+    fn on_alpha_beta_node(&mut self, _ply: u16) -> bool {
+        self.on_node()
+    }
+
+    /// Enters one quiescence node at root-relative `ply`.
+    ///
+    /// Existing probes need not override this method because the default
+    /// delegates to [`Self::on_node`].
+    fn on_quiescence_node(&mut self, _ply: u16) -> bool {
+        self.on_node()
     }
 }
 

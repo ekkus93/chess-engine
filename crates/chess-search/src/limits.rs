@@ -313,6 +313,8 @@ pub(crate) struct SearchLimitController<Clock> {
     limits: SearchLimits,
     clock: Clock,
     visited_nodes: u64,
+    visited_qnodes: u64,
+    selective_depth: u16,
     termination: Option<SearchLimitTermination>,
 }
 
@@ -326,12 +328,26 @@ where
             limits,
             clock,
             visited_nodes: 0,
+            visited_qnodes: 0,
+            selective_depth: 0,
             termination: None,
         })
     }
 
     pub(crate) const fn visited_nodes(&self) -> u64 {
         self.visited_nodes
+    }
+
+    pub(crate) const fn visited_qnodes(&self) -> u64 {
+        self.visited_qnodes
+    }
+
+    pub(crate) const fn selective_depth(&self) -> u16 {
+        self.selective_depth
+    }
+
+    pub(crate) fn elapsed(&self) -> Duration {
+        self.clock.elapsed()
     }
 
     pub(crate) const fn termination(&self) -> Option<SearchLimitTermination> {
@@ -404,6 +420,18 @@ where
         self.termination = Some(reason);
         self.termination
     }
+
+    fn enter_node(&mut self, ply: u16, quiescence: bool) -> bool {
+        if self.should_cancel() {
+            return true;
+        }
+        self.visited_nodes = self.visited_nodes.saturating_add(1);
+        if quiescence {
+            self.visited_qnodes = self.visited_qnodes.saturating_add(1);
+        }
+        self.selective_depth = self.selective_depth.max(ply);
+        false
+    }
 }
 
 impl<Clock> SearchCancellationProbe for SearchLimitController<Clock>
@@ -415,11 +443,15 @@ where
     }
 
     fn on_node(&mut self) -> bool {
-        if self.should_cancel() {
-            return true;
-        }
-        self.visited_nodes = self.visited_nodes.saturating_add(1);
-        false
+        self.enter_node(0, false)
+    }
+
+    fn on_alpha_beta_node(&mut self, ply: u16) -> bool {
+        self.enter_node(ply, false)
+    }
+
+    fn on_quiescence_node(&mut self, ply: u16) -> bool {
+        self.enter_node(ply, true)
     }
 }
 

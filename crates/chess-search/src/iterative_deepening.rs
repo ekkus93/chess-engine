@@ -1,4 +1,5 @@
 use core::fmt;
+use std::time::Duration;
 
 use chess_core::{Move, Position, SearchHistory};
 
@@ -28,6 +29,8 @@ pub struct IterativeDeepeningIteration {
     depth: u16,
     result: AlphaBetaSearchResult,
     nodes: u64,
+    qnodes: u64,
+    selective_depth: u16,
     principal_variation: PrincipalVariation,
     aspiration_diagnostics: AspirationWindowDiagnostics,
     transposition_diagnostics: TranspositionTableDiagnostics,
@@ -82,6 +85,18 @@ impl IterativeDeepeningIteration {
         self.nodes
     }
 
+    /// Returns quiescence nodes visited by all attempts for this depth.
+    #[must_use]
+    pub const fn qnodes(&self) -> u64 {
+        self.qnodes
+    }
+
+    /// Returns the deepest root-relative ply entered at this depth.
+    #[must_use]
+    pub const fn selective_depth(&self) -> u16 {
+        self.selective_depth
+    }
+
     /// Returns aspiration-window and retry diagnostics for this depth.
     #[must_use]
     pub const fn aspiration_diagnostics(&self) -> AspirationWindowDiagnostics {
@@ -112,6 +127,8 @@ impl IterativeDeepeningIteration {
 pub struct IterativeDeepeningSearchResult {
     iterations: Vec<IterativeDeepeningIteration>,
     total_nodes: u64,
+    total_qnodes: u64,
+    selective_depth: u16,
 }
 
 impl IterativeDeepeningSearchResult {
@@ -125,6 +142,20 @@ impl IterativeDeepeningSearchResult {
     #[must_use]
     pub fn final_iteration(&self) -> Option<&IterativeDeepeningIteration> {
         self.iterations.last()
+    }
+
+    /// Returns the exact score from the deepest completed iteration.
+    #[must_use]
+    pub fn score(&self) -> Option<Score> {
+        self.final_iteration()
+            .map(IterativeDeepeningIteration::score)
+    }
+
+    /// Returns the deterministic best move from the deepest completed iteration.
+    #[must_use]
+    pub fn best_move(&self) -> Option<Move> {
+        self.final_iteration()
+            .and_then(IterativeDeepeningIteration::best_move)
     }
 
     /// Returns the final completed legal principal variation.
@@ -153,6 +184,18 @@ impl IterativeDeepeningSearchResult {
     pub const fn total_nodes(&self) -> u64 {
         self.total_nodes
     }
+
+    /// Returns the checked sum of quiescence nodes from completed depths.
+    #[must_use]
+    pub const fn total_qnodes(&self) -> u64 {
+        self.total_qnodes
+    }
+
+    /// Returns the deepest root-relative ply entered by completed work.
+    #[must_use]
+    pub const fn selective_depth(&self) -> u16 {
+        self.selective_depth
+    }
 }
 
 /// Deterministic emergency result when cancellation precedes depth one.
@@ -175,26 +218,91 @@ impl SearchCancellationFallback {
     }
 }
 
-/// Exact completed iterations plus the limit that stopped the request.
+/// Authoritative final snapshot for one limit-controlled search request.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct LimitedIterativeDeepeningSearchResult {
+pub struct SearchResult {
     completed: IterativeDeepeningSearchResult,
     termination: SearchLimitTermination,
-    searched_nodes: u64,
+    nodes: u64,
+    qnodes: u64,
+    selective_depth: u16,
+    elapsed: Duration,
     fallback: Option<SearchCancellationFallback>,
 }
 
-impl LimitedIterativeDeepeningSearchResult {
+impl SearchResult {
     /// Returns only fully exact completed iterations.
     #[must_use]
     pub const fn completed(&self) -> &IterativeDeepeningSearchResult {
         &self.completed
     }
 
-    /// Consumes the wrapper and returns the exact completed iterations.
+    /// Consumes the snapshot and returns the exact completed iterations.
     #[must_use]
     pub fn into_completed(self) -> IterativeDeepeningSearchResult {
         self.completed
+    }
+
+    /// Returns the deterministic move to play.
+    ///
+    /// A deepest exact iteration is authoritative. When no iteration completed,
+    /// this falls back to the unscored deterministic emergency move from Task 16.5.
+    #[must_use]
+    pub fn best_move(&self) -> Option<Move> {
+        match self.completed.best_move() {
+            Some(current) => Some(current),
+            None => self
+                .fallback
+                .and_then(SearchCancellationFallback::best_move),
+        }
+    }
+
+    /// Returns the exact side-to-move score from the deepest completed iteration.
+    #[must_use]
+    pub fn score(&self) -> Option<Score> {
+        self.completed.score()
+    }
+
+    /// Returns the opponent reply from the deepest completed legal PV.
+    #[must_use]
+    pub fn ponder_move(&self) -> Option<Move> {
+        self.completed.ponder_move()
+    }
+
+    /// Returns the deepest fully completed exact depth.
+    #[must_use]
+    pub fn completed_depth(&self) -> u16 {
+        self.completed.completed_depth()
+    }
+
+    /// Returns the deepest root-relative ply entered, including partial work.
+    #[must_use]
+    pub const fn selective_depth(&self) -> u16 {
+        self.selective_depth
+    }
+
+    /// Returns every production node entered, including quiescence and partial work.
+    #[must_use]
+    pub const fn nodes(&self) -> u64 {
+        self.nodes
+    }
+
+    /// Returns every quiescence node entered, including partial work.
+    #[must_use]
+    pub const fn qnodes(&self) -> u64 {
+        self.qnodes
+    }
+
+    /// Returns elapsed request time measured by the configured search clock.
+    #[must_use]
+    pub const fn elapsed(&self) -> Duration {
+        self.elapsed
+    }
+
+    /// Returns the deepest completed legal principal variation.
+    #[must_use]
+    pub fn principal_variation(&self) -> Option<&PrincipalVariation> {
+        self.completed.principal_variation()
     }
 
     /// Returns the winning deterministic termination reason.
@@ -203,28 +311,33 @@ impl LimitedIterativeDeepeningSearchResult {
         self.termination
     }
 
-    /// Returns every production node entered, including discarded partial work.
+    /// Compatibility accessor for the pre-Task-16.6 name.
     #[must_use]
     pub const fn searched_nodes(&self) -> u64 {
-        self.searched_nodes
+        self.nodes()
     }
 
     /// Returns nodes entered by the interrupted, non-completed depth.
     #[must_use]
     pub fn incomplete_nodes(&self) -> u64 {
-        self.searched_nodes
-            .saturating_sub(self.completed.total_nodes())
+        self.nodes.saturating_sub(self.completed.total_nodes())
+    }
+
+    /// Returns qnodes entered by the interrupted, non-completed depth.
+    #[must_use]
+    pub fn incomplete_qnodes(&self) -> u64 {
+        self.qnodes.saturating_sub(self.completed.total_qnodes())
     }
 
     /// Returns the deterministic emergency result when no depth completed.
-    ///
-    /// Once any exact iteration completes, that iteration is authoritative and
-    /// this method returns `None`.
     #[must_use]
     pub const fn fallback(&self) -> Option<SearchCancellationFallback> {
         self.fallback
     }
 }
+
+/// Compatibility alias for the Task 16.4/16.5 wrapper name.
+pub type LimitedIterativeDeepeningSearchResult = SearchResult;
 
 /// A fail-loud iterative-deepening error.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -355,6 +468,8 @@ pub fn iterative_deepening_search_with_transposition_table(
         .try_reserve_exact(maximum_depth as usize)
         .map_err(|_| IterativeDeepeningSearchError::IterationStorageAllocation { maximum_depth })?;
     let mut total_nodes = 0_u64;
+    let mut total_qnodes = 0_u64;
+    let mut selective_depth = 0_u16;
 
     for depth in 1..=maximum_depth {
         let center = iterations.last().map(IterativeDeepeningIteration::score);
@@ -372,13 +487,21 @@ pub fn iterative_deepening_search_with_transposition_table(
                 completed_depth: depth - 1,
             },
         )?;
+        total_qnodes = total_qnodes.checked_add(iteration.qnodes()).ok_or(
+            IterativeDeepeningSearchError::NodeCountOverflow {
+                completed_depth: depth - 1,
+            },
+        )?;
+        selective_depth = selective_depth.max(iteration.selective_depth());
         iterations.push(iteration);
     }
 
-    Ok(IterativeDeepeningSearchResult {
+    Ok(completed_result(
         iterations,
         total_nodes,
-    })
+        total_qnodes,
+        selective_depth,
+    ))
 }
 
 /// Searches under a validated combination of depth, node, time, infinite, and stop limits.
@@ -386,7 +509,7 @@ pub fn iterative_deepening_search_with_limits(
     position: &mut Position,
     history: &mut SearchHistory,
     limits: SearchLimits,
-) -> Result<LimitedIterativeDeepeningSearchResult, IterativeDeepeningSearchError> {
+) -> Result<SearchResult, IterativeDeepeningSearchError> {
     limits
         .validate()
         .map_err(IterativeDeepeningSearchError::InvalidLimits)?;
@@ -406,7 +529,7 @@ pub fn iterative_deepening_search_with_limits_and_transposition_table(
     history: &mut SearchHistory,
     limits: SearchLimits,
     transposition_table: &mut TranspositionTable,
-) -> Result<LimitedIterativeDeepeningSearchResult, IterativeDeepeningSearchError> {
+) -> Result<SearchResult, IterativeDeepeningSearchError> {
     iterative_deepening_search_with_limits_and_clock(
         position,
         history,
@@ -422,7 +545,7 @@ fn iterative_deepening_search_with_limits_and_clock<Clock>(
     limits: SearchLimits,
     transposition_table: &mut TranspositionTable,
     clock: Clock,
-) -> Result<LimitedIterativeDeepeningSearchResult, IterativeDeepeningSearchError>
+) -> Result<SearchResult, IterativeDeepeningSearchError>
 where
     Clock: SearchClock,
 {
@@ -431,6 +554,8 @@ where
     let fallback = cancellation_fallback(position, history)?;
     let mut iterations: Vec<IterativeDeepeningIteration> = Vec::new();
     let mut total_nodes = 0_u64;
+    let mut total_qnodes = 0_u64;
+    let mut selective_depth = 0_u16;
 
     loop {
         let completed_depth = iterations
@@ -438,10 +563,9 @@ where
             .map_or(0, IterativeDeepeningIteration::depth);
         if let Some(termination) = controller.boundary_termination(completed_depth) {
             return Ok(limited_result(
-                iterations,
-                total_nodes,
+                completed_result(iterations, total_nodes, total_qnodes, selective_depth),
                 termination,
-                controller.visited_nodes(),
+                &controller,
                 fallback,
             ));
         }
@@ -473,10 +597,14 @@ where
                 ) {
                     if let Some(termination) = controller.termination() {
                         return Ok(limited_result(
-                            iterations,
-                            total_nodes,
+                            completed_result(
+                                iterations,
+                                total_nodes,
+                                total_qnodes,
+                                selective_depth,
+                            ),
                             termination,
-                            controller.visited_nodes(),
+                            &controller,
                             fallback,
                         ));
                     }
@@ -490,6 +618,12 @@ where
                 completed_depth: depth - 1,
             },
         )?;
+        total_qnodes = total_qnodes.checked_add(iteration.qnodes()).ok_or(
+            IterativeDeepeningSearchError::NodeCountOverflow {
+                completed_depth: depth - 1,
+            },
+        )?;
+        selective_depth = selective_depth.max(iteration.selective_depth());
         iterations.push(iteration);
     }
 }
@@ -515,21 +649,37 @@ fn cancellation_fallback(
     Ok(fallback)
 }
 
-fn limited_result(
+fn completed_result(
     iterations: Vec<IterativeDeepeningIteration>,
     total_nodes: u64,
+    total_qnodes: u64,
+    selective_depth: u16,
+) -> IterativeDeepeningSearchResult {
+    IterativeDeepeningSearchResult {
+        iterations,
+        total_nodes,
+        total_qnodes,
+        selective_depth,
+    }
+}
+
+fn limited_result<Clock>(
+    completed: IterativeDeepeningSearchResult,
     termination: SearchLimitTermination,
-    searched_nodes: u64,
+    controller: &SearchLimitController<Clock>,
     root_fallback: SearchCancellationFallback,
-) -> LimitedIterativeDeepeningSearchResult {
-    let fallback = iterations.is_empty().then_some(root_fallback);
-    LimitedIterativeDeepeningSearchResult {
-        completed: IterativeDeepeningSearchResult {
-            iterations,
-            total_nodes,
-        },
+) -> SearchResult
+where
+    Clock: SearchClock,
+{
+    let fallback = completed.iterations().is_empty().then_some(root_fallback);
+    SearchResult {
+        completed,
         termination,
-        searched_nodes,
+        nodes: controller.visited_nodes(),
+        qnodes: controller.visited_qnodes(),
+        selective_depth: controller.selective_depth(),
+        elapsed: controller.elapsed(),
         fallback,
     }
 }
@@ -582,6 +732,8 @@ where
     )?;
 
     let mut nodes = initial_attempt.nodes();
+    let mut qnodes = initial_attempt.qnodes();
+    let mut selective_depth = initial_attempt.selective_depth();
     let mut transposition_diagnostics = initial_attempt.transposition_diagnostics();
 
     let (result, full_window_retry) = match initial_result.outcome() {
@@ -600,6 +752,12 @@ where
                     completed_depth: depth - 1,
                 },
             )?;
+            qnodes = qnodes.checked_add(retry_attempt.qnodes()).ok_or(
+                IterativeDeepeningSearchError::NodeCountOverflow {
+                    completed_depth: depth - 1,
+                },
+            )?;
+            selective_depth = selective_depth.max(retry_attempt.selective_depth());
             transposition_diagnostics =
                 transposition_diagnostics.saturating_add(retry_attempt.transposition_diagnostics());
             if retry_result.outcome() != AspirationWindowOutcome::Exact {
@@ -627,6 +785,8 @@ where
         depth,
         result,
         nodes,
+        qnodes,
+        selective_depth,
         principal_variation,
         aspiration_diagnostics,
         transposition_diagnostics,
@@ -662,6 +822,8 @@ where
         outcome: result.outcome(),
         reported_score: search_result.score(),
         nodes: search_result.nodes(),
+        qnodes: search_result.qnodes(),
+        selective_depth: search_result.selective_depth(),
         transposition_diagnostics: transposition_table.diagnostics(),
         hash_full: transposition_table.hash_full(),
         transposition_generation: transposition_table.generation(),
@@ -857,6 +1019,7 @@ mod limit_tests {
         assert_eq!(result.completed().completed_depth(), 1);
         assert_eq!(result.completed().total_nodes(), 1);
         assert_eq!(result.searched_nodes(), 1);
+        assert_eq!(result.elapsed(), limit);
         assert_eq!(table.generation(), 1);
         assert_eq!(position, snapshot);
         assert_eq!(history, history_snapshot);
@@ -887,6 +1050,7 @@ mod limit_tests {
         );
         assert_eq!(result.completed().completed_depth(), 1);
         assert_eq!(result.searched_nodes(), 1);
+        assert_eq!(result.elapsed(), limit);
         assert_eq!(table.generation(), 1);
         assert_eq!(position, snapshot);
         assert_eq!(history, history_snapshot);

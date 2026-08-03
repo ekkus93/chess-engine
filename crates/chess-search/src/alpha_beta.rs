@@ -23,6 +23,8 @@ pub struct AlphaBetaSearchResult {
     pub(crate) score: Score,
     pub(crate) best_move: Option<Move>,
     pub(crate) nodes: u64,
+    pub(crate) qnodes: u64,
+    pub(crate) selective_depth: u16,
 }
 
 impl AlphaBetaSearchResult {
@@ -42,6 +44,18 @@ impl AlphaBetaSearchResult {
     #[must_use]
     pub const fn nodes(self) -> u64 {
         self.nodes
+    }
+
+    /// Returns the number of visited quiescence nodes.
+    #[must_use]
+    pub const fn qnodes(self) -> u64 {
+        self.qnodes
+    }
+
+    /// Returns the deepest root-relative ply entered by this search.
+    #[must_use]
+    pub const fn selective_depth(self) -> u16 {
+        self.selective_depth
     }
 }
 
@@ -446,7 +460,7 @@ where
         );
     }
 
-    if context.cancellation.on_node() {
+    if context.cancellation.on_alpha_beta_node(ply) {
         return Err(AlphaBetaSearchError::Cancelled);
     }
 
@@ -461,6 +475,8 @@ where
             score,
             best_move: None,
             nodes: 1,
+            qnodes: 0,
+            selective_depth: ply,
         });
     }
 
@@ -495,6 +511,8 @@ where
                             transposition_table_move
                         },
                         nodes: 1,
+                        qnodes: 0,
+                        selective_depth: ply,
                     });
                 }
             }
@@ -513,6 +531,8 @@ where
         transposition_table_move,
     );
     let mut nodes = 1_u64;
+    let mut qnodes = 0_u64;
+    let mut selective_depth = ply;
     let mut best_score = None;
     let mut best_move = None;
 
@@ -543,6 +563,10 @@ where
         nodes = nodes
             .checked_add(child.nodes)
             .ok_or(AlphaBetaSearchError::NodeCountOverflow)?;
+        qnodes = qnodes
+            .checked_add(child.qnodes)
+            .ok_or(AlphaBetaSearchError::NodeCountOverflow)?;
+        selective_depth = selective_depth.max(child.selective_depth);
         let score = -child.score;
         let replace_best = match best_score {
             Some(previous) => score > previous,
@@ -573,6 +597,8 @@ where
             score,
             best_move: Some(current),
             nodes,
+            qnodes,
+            selective_depth,
         },
         _ => return Err(AlphaBetaSearchError::MissingBestMove),
     };

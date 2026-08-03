@@ -23,6 +23,8 @@ pub struct AspirationWindowAttempt {
     pub(crate) outcome: AspirationWindowOutcome,
     pub(crate) reported_score: Score,
     pub(crate) nodes: u64,
+    pub(crate) qnodes: u64,
+    pub(crate) selective_depth: u16,
     pub(crate) transposition_diagnostics: TranspositionTableDiagnostics,
     pub(crate) hash_full: TranspositionHashFull,
     pub(crate) transposition_generation: u8,
@@ -69,6 +71,18 @@ impl AspirationWindowAttempt {
     #[must_use]
     pub const fn nodes(self) -> u64 {
         self.nodes
+    }
+
+    /// Returns quiescence nodes visited by this attempt only.
+    #[must_use]
+    pub const fn qnodes(self) -> u64 {
+        self.qnodes
+    }
+
+    /// Returns the deepest root-relative ply entered by this attempt.
+    #[must_use]
+    pub const fn selective_depth(self) -> u16 {
+        self.selective_depth
     }
 
     /// Returns transposition counters produced by this attempt only.
