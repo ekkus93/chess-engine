@@ -162,28 +162,28 @@ impl SearchRequest {
 
     /// Adds a maximum completed depth.
     #[must_use]
-    pub const fn with_depth(mut self, depth: u16) -> Self {
+    pub fn with_depth(mut self, depth: u16) -> Self {
         self.limits = self.limits.with_depth(depth);
         self
     }
 
     /// Adds a hard cumulative node budget.
     #[must_use]
-    pub const fn with_nodes(mut self, nodes: u64) -> Self {
+    pub fn with_nodes(mut self, nodes: u64) -> Self {
         self.limits = self.limits.with_nodes(nodes);
         self
     }
 
     /// Adds a soft time budget checked after completed iterations.
     #[must_use]
-    pub const fn with_soft_time(mut self, soft_time: Duration) -> Self {
+    pub fn with_soft_time(mut self, soft_time: Duration) -> Self {
         self.limits = self.limits.with_soft_time(soft_time);
         self
     }
 
     /// Adds a hard time budget checked inside the production search tree.
     #[must_use]
-    pub const fn with_hard_time(mut self, hard_time: Duration) -> Self {
+    pub fn with_hard_time(mut self, hard_time: Duration) -> Self {
         self.limits = self.limits.with_hard_time(hard_time);
         self
     }
@@ -197,7 +197,7 @@ impl SearchRequest {
 
     /// Enables the optional bounded one-ply-per-line check extension.
     #[must_use]
-    pub const fn with_check_extension(mut self) -> Self {
+    pub fn with_check_extension(mut self) -> Self {
         self.limits = self.limits.with_check_extension();
         self
     }
