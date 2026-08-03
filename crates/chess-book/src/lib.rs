@@ -103,10 +103,8 @@ pub trait OpeningBook: Send + Sync {
     type Error: Error + Send + Sync + 'static;
 
     /// Returns all book candidates for `position`.
-    fn candidates(
-        &self,
-        position: &Position,
-    ) -> Result<Vec<BookMove<Self::Metadata>>, Self::Error>;
+    fn candidates(&self, position: &Position)
+        -> Result<Vec<BookMove<Self::Metadata>>, Self::Error>;
 }
 
 /// Explicit adapter-owned construction boundary for an opening book.
@@ -151,11 +149,7 @@ mod tests {
     }
 
     fn e2e4() -> chess_core::Move {
-        chess_core::Move::new(
-            square("e2"),
-            square("e4"),
-            MoveKind::DoublePawnPush,
-        )
+        chess_core::Move::new(square("e2"), square("e4"), MoveKind::DoublePawnPush)
     }
 
     #[derive(Clone, Copy, Debug)]
