@@ -1,4 +1,4 @@
-name: Task 17.1 preflight
+name: Task 17.1 closure
 
 on:
   push:
@@ -9,11 +9,11 @@ permissions:
   contents: write
 
 concurrency:
-  group: task17-preflight-rust-engine
+  group: task17-closure-rust-engine
   cancel-in-progress: true
 
 jobs:
-  preflight:
+  close-task:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -22,69 +22,200 @@ jobs:
           ref: rust-engine
           fetch-depth: 0
 
-      - name: Skip the second evidence commit
+      - name: Skip the closure commit
         id: guard
         shell: bash
         run: |
-          if [[ "$(git log -1 --pretty=%s)" == "ci: record Task 17.1 preflight 2" ]]; then
+          if [[ "$(git log -1 --pretty=%s)" == "docs: close Task 17.1 protocol loop" ]]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Correct response borrowing in tests
+      - name: Close Task 17.1 trackers
         if: steps.guard.outputs.skip != 'true'
         shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
 
-          path = Path("crates/chess-uci/src/lib.rs")
-          text = path.read_text()
-          text = text.replace("search_command(UciSession", "search_command(&UciSession")
-          text = text.replace(
-              "search_command(\n            UciSession",
-              "search_command(\n            &UciSession",
+          def replace_exact(path: str, old: str, new: str) -> None:
+              target = Path(path)
+              text = target.read_text()
+              if text.count(old) != 1:
+                  raise SystemExit(f"expected one replacement in {path}, found {text.count(old)}")
+              target.write_text(text.replace(old, new))
+
+          replace_exact(
+              "docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md",
+              """## 17.1 Protocol loop
+
+          - [ ] `uci`.
+          - [ ] `isready`.
+          - [ ] `ucinewgame`.
+          - [ ] `setoption` for supported options.
+          - [ ] `position startpos`.
+          - [ ] `position fen` with six fields.
+          - [ ] replay `moves`.
+          - [ ] `go depth`.
+          - [ ] `go nodes`.
+          - [ ] `go movetime`.
+          - [ ] clock/increment/moves-to-go search.
+          - [ ] `go infinite`.
+          - [ ] `stop`.
+          - [ ] `quit`.
+          """,
+              """## 17.1 Protocol loop
+
+          - [x] `uci`.
+          - [x] `isready`.
+          - [x] `ucinewgame`.
+          - [x] `setoption` for supported options.
+          - [x] `position startpos`.
+          - [x] `position fen` with six fields.
+          - [x] replay `moves`.
+          - [x] `go depth`.
+          - [x] `go nodes`.
+          - [x] `go movetime`.
+          - [x] clock/increment/moves-to-go search.
+          - [x] `go infinite`.
+          - [x] `stop`.
+          - [x] `quit`.
+          """,
           )
-          path.write_text(text)
+
+          replace_exact(
+              "docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md",
+              """# Task 17: Linux UCI executable — NOT STARTED
+          - [ ] 17.1 Protocol loop.
+          - [ ] 17.2 Search worker.
+          - [ ] 17.3 Time manager.
+          - [ ] 17.4 Output.
+          - [ ] 17.5 Integration tests.
+          - [ ] Task 17 gate.
+          """,
+              """# Task 17: Linux UCI executable — IN PROGRESS
+          - [x] 17.1 Protocol loop.
+          - [ ] 17.2 Search worker.
+          - [ ] 17.3 Time manager.
+          - [ ] 17.4 Output.
+          - [ ] 17.5 Integration tests.
+          - [ ] Task 17 gate.
+
+          ### Task 17.1 completion evidence
+
+          - Implementation: `crates/chess-uci/src/lib.rs`, `crates/chess-uci/src/main.rs`, and the direct `chess-core` dependency in `crates/chess-uci/Cargo.toml`.
+          - Public protocol API: `UciSession`, `UciResponse`, `UciEvent`, `SearchRequest`, `GoCommand`, `EngineOptions`, `run_protocol_loop`, and `run_stdio`.
+          - Supported commands: `uci`, `isready`, `ucinewgame`, advertised `setoption`, transactional `position startpos`, strict six-field `position fen`, legal move replay, all required `go` forms, `stop`, and `quit`.
+          - Position replacement is transactional: malformed FEN, malformed move syntax, and illegal replay leave the active `Game` and repetition history unchanged.
+          - `go` creates an immutable game/options/limit snapshot. Search execution, worker ownership, time budgeting, periodic output, and `bestmove` remain explicitly assigned to Tasks 17.2 through 17.4.
+          - Contract documentation: `docs/RUST_UCI_PROTOCOL_LOOP.md`.
+          - Exact validated implementation SHA: `60f70463c9ad9abf99c8b3d7923df8037bc6f894`.
+          - Validation: rustfmt, locked all-target workspace check, strict Clippy with warnings denied, 18 focused UCI tests, and the complete workspace test suite all passed.
+          - Task 17.1 is complete. Task 17.2 UCI search worker is next.
+          """,
+          )
+
+          replace_exact(
+              "docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md",
+              """## Immediate next operations
+
+          1. Implement Task 17.1 as a fail-loud Linux UCI protocol loop over the completed Task 16 search boundary.
+          2. Support `uci`, `isready`, `ucinewgame`, supported `setoption`, `position startpos`, six-field `position fen`, move replay, all specified `go` forms, `stop`, and `quit`.
+          3. Keep parsing, position replacement, and move replay transactional so malformed commands cannot corrupt the active game state.
+          4. Add deterministic protocol transcripts covering valid commands, malformed commands, terminal positions, repeated position replacement, and clean shutdown.
+          5. Preserve Task 16 cancellation, legal PV, best-move fallback, node/time accounting, and exact root restoration through the adapter boundary.
+          6. Keep the Task 17.2 worker thread and Task 17.3 time manager separate from the initial protocol-loop implementation.
+          """,
+              """## Immediate next operations
+
+          1. Implement Task 17.2 as an adapter-owned UCI search worker over immutable `SearchRequest` snapshots.
+          2. Give every active search its own `SearchStopFlag`; do not introduce process-global mutable search control.
+          3. Define replacement rules for `go`, `stop`, `ucinewgame`, `position`, and `quit` while a worker is active.
+          4. Join completed or stopped workers cleanly and preserve protocol-thread responsiveness for `isready`.
+          5. Convert the Task 17.1 typed `go` request into `SearchLimits` without implementing clock allocation ahead of Task 17.3.
+          6. Add deterministic worker tests proving stop interrupts active search and quit performs an orderly shutdown.
+          """,
+          )
+
+          status_path = Path("docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md")
+          status = status_path.read_text()
+          old_phase = "**Current phase:** Task 16 complete; Task 17.1 Linux UCI protocol loop is next"
+          new_phase = "**Current phase:** Task 17.1 complete; Task 17.2 UCI search worker is next"
+          if status.count(old_phase) != 1:
+              raise SystemExit("unexpected Ralph phase marker")
+          status = status.replace(old_phase, new_phase)
+
+          old_row = "| 16 / gate | `836ca0563f9a8dce44eb78997e28335a9d8fcdce` | `30785853401` / `91599164384` | all iterative-deepening, aspiration, PV, limit, cancellation, result, and bounded-extension integration gates green |"
+          new_row = old_row + "\n| 17.1 | `60f70463c9ad9abf99c8b3d7923df8037bc6f894` | one-shot full preflight | protocol session, transactional position replay, typed go requests, 18 focused tests, and full workspace gate green |"
+          if status.count(old_row) != 1:
+              raise SystemExit("unexpected Task 16 status row")
+          status = status.replace(old_row, new_row)
+
+          marker = "## Task 12 completion"
+          section = """## Task 17.1 completion
+
+          Implemented and validated:
+
+          - Linux stdin/stdout protocol entry point through `chess_uci::run_stdio`;
+          - reusable buffered `run_protocol_loop` without process-global I/O redirection;
+          - stateful `UciSession` ownership of one exact `Game` and supported options;
+          - UCI handshake, readiness, new-game reset, supported options, start-position and strict six-field FEN setup;
+          - transactional legal move replay with fail-visible malformed and illegal input handling;
+          - typed depth, node, move-time, clock, increment, moves-to-go, and infinite search requests;
+          - immutable game/options snapshots for the Task 17.2 worker boundary;
+          - distinct stop and quit events and clean buffered shutdown;
+          - `docs/RUST_UCI_PROTOCOL_LOOP.md`.
+
+          Evidence:
+
+          - Exact validated implementation SHA: `60f70463c9ad9abf99c8b3d7923df8037bc6f894`.
+          - Focused UCI tests: 18 passed.
+          - Full validation: rustfmt, locked workspace all-target check, strict Clippy with warnings denied, focused UCI tests, and complete workspace tests passed.
+          - First preflight correction removed one unnecessary leaked option-name allocation; the second corrected five test-only response borrows. No production behavior was weakened and no lint suppression was added.
+          - Task 17.2 owns the search worker, explicit stop-token lifecycle, and clean join behavior. Task 17.3 owns clock allocation, and Task 17.4 owns search output and `bestmove`.
+
+          """
+          if status.count(marker) != 1:
+              raise SystemExit("unexpected Ralph completion marker")
+          status_path.write_text(status.replace(marker, section + marker))
           PY
-          cargo fmt --all
 
-      - name: Run bounded validation
-        if: steps.guard.outputs.skip != 'true'
-        id: validate
-        shell: bash
-        run: |
-          set +e
-          log=docs/TASK17_1_PREFLIGHT.log
-          : > "$log"
-          status=0
-          run_check() {
-            echo "$ $*" | tee -a "$log"
-            "$@" >> "$log" 2>&1
-            rc=$?
-            echo "exit=$rc" | tee -a "$log"
-            if [[ $rc -ne 0 && $status -eq 0 ]]; then status=$rc; fi
-          }
-          run_check cargo fmt --all -- --check
-          run_check cargo check --locked --workspace --all-targets --all-features
-          run_check cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
-          run_check cargo test --locked -p chess-uci
-          run_check cargo test --locked --workspace --all-features
-          echo "status=$status" >> "$GITHUB_OUTPUT"
-          exit 0
-
-      - name: Commit source and evidence
+      - name: Verify Task 17.1 closure
         if: steps.guard.outputs.skip != 'true'
         shell: bash
         run: |
+          set -euo pipefail
+          grep -F -- '- [x] `uci`.' docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md
+          grep -F -- '- [x] `quit`.' docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md
+          grep -F -- '# Task 17: Linux UCI executable — IN PROGRESS' docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md
+          grep -F -- '- [x] 17.1 Protocol loop.' docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md
+          grep -F -- '**Current phase:** Task 17.1 complete; Task 17.2 UCI search worker is next' docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
+          grep -F -- '| 17.1 | `60f70463c9ad9abf99c8b3d7923df8037bc6f894` | one-shot full preflight |' docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
+          test -f docs/RUST_UCI_PROTOCOL_LOOP.md
+
+      - name: Run permanent-quality-equivalent validation
+        if: steps.guard.outputs.skip != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all -- --check
+          cargo check --locked --workspace --all-targets --all-features
+          cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+          cargo test --locked -p chess-uci
+          cargo test --locked --workspace --all-features
+
+      - name: Commit Task 17.1 closure
+        if: steps.guard.outputs.skip != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add crates/chess-uci/src/lib.rs docs/TASK17_1_PREFLIGHT.log
+          git add \
+            docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md \
+            docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md \
+            docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
           git diff --cached --check
-          git commit -m "ci: record Task 17.1 preflight 2"
+          git commit -m "docs: close Task 17.1 protocol loop"
           git push origin HEAD:rust-engine
-
-      - name: Fail when validation failed
-        if: steps.guard.outputs.skip != 'true' && steps.validate.outputs.status != '0'
-        run: exit 1
