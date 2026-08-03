@@ -5,6 +5,7 @@
 //! on one adapter-owned worker with request-local cancellation and no global
 //! mutable search control.
 
+mod time_manager;
 mod worker;
 
 use std::io::{self, BufRead, Write};
