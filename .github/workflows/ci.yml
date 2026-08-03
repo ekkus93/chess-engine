@@ -10,13 +10,103 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: rust-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  apply-task19-4:
+    name: Apply Task 19.4 implementation
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: task19-4-adapter-integration
+          fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Apply implementation
+        run: |
+          python3 .github/task19_4_apply.py
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('crates/chess-uci/src/main.rs')
+          content = path.read_text()
+          redundant = '''fn run_protocol_loop<R, W>(input: R, output: W) -> io::Result<()>
+          where
+              R: BufRead,
+              W: Write + Send + 'static,
+          {
+              run_protocol_loop_with_book(input, output, None)
+          }
+
+          '''
+          if content.count(redundant) != 1:
+              raise SystemExit('expected exactly one redundant run_protocol_loop wrapper')
+          path.write_text(content.replace(redundant, '', 1))
+
+          contract = Path('crates/chess-jni/tests/jni_contract.rs')
+          content = contract.read_text()
+          kotlin_old = 'occurrences(KOTLIN_WRAPPER, &format!("external fun {method}"))'
+          kotlin_new = 'occurrences(KOTLIN_WRAPPER, &format!("external fun {method}("))'
+          if content.count(kotlin_old) != 1:
+              raise SystemExit('expected exactly one Kotlin JNI declaration counter')
+          content = content.replace(kotlin_old, kotlin_new, 1)
+
+          rust_old = '&format!("Java_com_ekkus93_chessengine_NativeChessEngineBindings_{method}")'
+          rust_new = '&format!("Java_com_ekkus93_chessengine_NativeChessEngineBindings_{method}\\\"]")'
+          if content.count(rust_old) != 1:
+              raise SystemExit('expected exactly one Rust JNI export counter')
+          contract.write_text(content.replace(rust_old, rust_new, 1))
+
+          process_test = Path('crates/chess-uci/tests/uci_process.rs')
+          content = process_test.read_text()
+          count_old = 'let actual = (0..5)'
+          count_new = 'let actual = (0..6)'
+          if content.count(count_old) != 1:
+              raise SystemExit('expected exactly one UCI handshake line count')
+          content = content.replace(count_old, count_new, 1)
+          expected_old = '''        "option name CheckExtension type check default false".to_owned(),
+        "uciok".to_owned(),
+'''
+          expected_new = '''        "option name CheckExtension type check default false".to_owned(),
+        "option name OwnBook type check default false".to_owned(),
+        "uciok".to_owned(),
+'''
+          if content.count(expected_old) != 1:
+              raise SystemExit('expected exactly one UCI handshake transcript anchor')
+          process_test.write_text(content.replace(expected_old, expected_new, 1))
+          PY
+
+      - name: Format and lock
+        run: |
+          cargo fmt --all
+          cargo generate-lockfile
+
+      - name: Validate implementation
+        run: |
+          cargo check --locked --workspace --all-targets --all-features
+          cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+          cargo test --locked --workspace --all-features
+
+      - name: Commit implementation and remove temporary controls
+        run: |
+          git checkout origin/rust-engine -- .github/workflows/ci.yml
+          rm .github/task19_4_apply.py .github/workflows/task19-4-apply.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m 'Implement Task 19.4 opening-book adapters'
+          git push origin HEAD:task19-4-adapter-integration
+
   rust-quality:
     name: Rust workspace quality
     runs-on: ubuntu-24.04
