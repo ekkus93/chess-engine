@@ -1,0 +1,41 @@
+name: Task 19.4 implementation patch
+
+on:
+  push:
+    branches:
+      - task19-4-adapter-integration
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: task19-4-adapter-integration
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Apply implementation
+        run: python3 .github/task19_4_apply.py
+      - name: Format and lock
+        run: |
+          cargo fmt --all
+          cargo generate-lockfile
+      - name: Validate Rust implementation
+        run: |
+          cargo check --locked --workspace --all-targets --all-features
+          cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+          cargo test --locked --workspace --all-features
+      - name: Commit implementation and remove temporary controls
+        run: |
+          rm .github/task19_4_apply.py .github/workflows/task19-4-apply.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m 'Implement Task 19.4 opening-book adapters'
+          git push origin HEAD:task19-4-adapter-integration
