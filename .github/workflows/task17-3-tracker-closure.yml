@@ -1,6 +1,9 @@
 name: Task 17.3 tracker closure
 
 on:
+  push:
+    branches:
+      - rust-engine
   pull_request:
     branches:
       - rust-engine
@@ -75,7 +78,8 @@ jobs:
           if "### Task 17.2 completion evidence" not in todo:
               todo = todo.replace(task18, evidence + task18, 1)
           elif "### Task 17.3 completion evidence" not in todo:
-              todo = todo.replace(task18, evidence.split("### Task 17.3 completion evidence", 1)[1].join(["### Task 17.3 completion evidence", task18]), 1)
+              task17_3 = "### Task 17.3 completion evidence" + evidence.split("### Task 17.3 completion evidence", 1)[1]
+              todo = todo.replace(task18, task17_3 + task18, 1)
 
           immediate = todo.index("## Immediate next operations")
           todo = todo[:immediate] + """## Immediate next operations
