@@ -1,6 +1,6 @@
 # Rust UCI Search Worker
 
-Task 17.2 connects the Task 17.1 protocol parser to the production Task 16 search boundary without introducing process-global mutable search state.
+Task 17.2 connects the Task 17.1 protocol parser to the production Task 16 search boundary without introducing process-global mutable search state. Task 17.3 adds deterministic UCI clock allocation before the worker starts.
 
 ## Ownership
 
@@ -26,27 +26,28 @@ The adapter applies one deterministic lifecycle policy:
 5. `quit` and input EOF perform an orderly stop and join before returning.
 6. A malformed `position` command does not change session state and does not stop the active worker.
 
-Task 17.4 will convert completed or stopped worker results into `info` and `bestmove` output. Task 17.2 retains the typed result but deliberately emits no search-result text.
+Task 17.4 will convert completed or stopped worker results into `info` and `bestmove` output. The worker retains the typed result but deliberately emits no successful search-result text yet.
 
 ## Limit conversion
 
-The worker converts these Task 17.1 request forms directly into `SearchLimits`:
+The worker converts Task 17.1 requests into `SearchLimits`:
 
 - `go depth` to a completed-depth ceiling;
 - `go nodes` to a cumulative production-node budget;
-- `go movetime` to a hard wall-clock budget;
-- combinations of depth, nodes, and move time;
+- `go movetime` to an exact hard wall-clock budget;
+- UCI clocks to Task 17.3 soft and hard wall-clock budgets;
+- combinations of depth, nodes, and clock budgets;
 - `go infinite` to an explicit-stop-only request.
 
-Every request, including finite requests, receives its own `SearchStopFlag`, so `stop`, replacement, and shutdown can interrupt work during a depth.
+Every request, including finite and clock-managed requests, receives its own `SearchStopFlag`, so `stop`, replacement, and shutdown can interrupt work during a depth.
 
-Clock, increment, and moves-to-go allocation remains exclusively owned by Task 17.3. Such requests fail synchronously with `SearchWorkerError::ClockManagementPending`; no worker thread is started and no provisional fixed-depth policy is substituted.
+Clock allocation selects the current position's side-to-move clock and increment, reserves wall-clock safety time, accounts for `movestogo`, and produces validated nonzero soft and hard budgets. Missing or zero side-to-move clocks fail synchronously before a worker thread is started. The complete policy is documented in `docs/RUST_UCI_TIME_MANAGER.md`.
 
 ## Failure behavior
 
 Worker setup and execution are fail-loud through `SearchWorkerError`:
 
-- unsupported pre-time-manager clock allocation;
+- missing or unusable side-to-move clock data;
 - invalid typed search limits;
 - fixed transposition-table allocation failure;
 - production iterative-deepening failure;
@@ -57,17 +58,16 @@ The protocol adapter reports worker failures as `info string error: ...` while p
 
 ## Non-goals
 
-Task 17.2 does not implement:
+Tasks 17.2 and 17.3 do not implement:
 
-- clock allocation or safety margins;
 - periodic iterative-deepening `info` output;
 - score, node, NPS, hash-full, or PV formatting;
 - `bestmove` or ponder output;
 - full process-level transcript coverage.
 
-Those remain Tasks 17.3 through 17.5.
+Those remain Tasks 17.4 and 17.5.
 
-## Completion evidence
+## Task 17.2 completion evidence
 
 Task 17.2 was validated at implementation SHA `d058353692f9f7c350e55dfae2d1a7c21ac64666` through temporary validation PR `#212`, workflow run `30788461155`, job `91606833594`.
 
@@ -87,4 +87,4 @@ The exact implementation passed:
 
 Validation corrections were limited to canonical rustfmt output and removal of one test-only method from the production binary. No lint suppression, fallback search policy, or lifecycle relaxation was introduced.
 
-Task 17.2 is complete. Task 17.3 owns deterministic UCI clock allocation, while Task 17.4 owns periodic search information and final `bestmove` output.
+Task 17.2 is complete. Task 17.3 is also complete; Task 17.4 owns periodic search information and final `bestmove` output.
