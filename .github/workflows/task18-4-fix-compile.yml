@@ -1,0 +1,47 @@
+name: Task 18.4 Fix Compile
+
+on:
+  push:
+    branches:
+      - task18-4-android-jni
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: task18-4-fix-compile-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: task18-4-android-jni
+          fetch-depth: 0
+
+      - name: Install rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Apply exact compiler corrections
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/task18_4_fix_compile.py
+          cargo fmt --all
+          git rm .github/workflows/task18-4-fix-compile.yml scripts/task18_4_fix_compile.py
+
+      - name: Commit correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add crates/chess-jni/src/bridge.rs
+          git commit -m "jni: match pinned JNI throwable API"
+          git push origin HEAD:task18-4-android-jni
