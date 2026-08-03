@@ -39,6 +39,9 @@ jobs:
       - name: Correct root-window constructor
         run: python3 scripts/fix_task_16_2_const_window.py "$GITHUB_WORKSPACE"
 
+      - name: Normalize attempt construction
+        run: python3 scripts/fix_task_16_2_attempt_construction.py "$GITHUB_WORKSPACE"
+
       - name: Format generated Rust
         run: cargo fmt --all
 
@@ -71,7 +74,8 @@ jobs:
             scripts/task_14_5_exclusion_audit.py \
             scripts/implement_task_16_2.py \
             scripts/fix_task_16_2_audit_witness.py \
-            scripts/fix_task_16_2_const_window.py
+            scripts/fix_task_16_2_const_window.py \
+            scripts/fix_task_16_2_attempt_construction.py
 
       - name: Run Task 14.5 exclusion audit
         run: python3 scripts/task_14_5_exclusion_audit.py
@@ -169,7 +173,8 @@ jobs:
           git rm \
             scripts/implement_task_16_2.py \
             scripts/fix_task_16_2_audit_witness.py \
-            scripts/fix_task_16_2_const_window.py
+            scripts/fix_task_16_2_const_window.py \
+            scripts/fix_task_16_2_attempt_construction.py
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add \
