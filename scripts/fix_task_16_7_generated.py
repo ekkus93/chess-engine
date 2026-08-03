@@ -56,4 +56,107 @@ replace_once(
     "test-only legacy PV helper",
 )
 
+iterative_path = "crates/chess-search/src/iterative_deepening.rs"
+replace_once(
+    iterative_path,
+    "fn search_completed_iteration(\n",
+    """#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct IterationSearchPolicy {
+    half_width_centipawns: i32,
+    check_extension_enabled: bool,
+}
+
+fn search_completed_iteration(
+""",
+    "iteration policy declaration",
+)
+
+replace_once(
+    iterative_path,
+    """        half_width_centipawns,
+        false,
+        transposition_table,
+        &mut cancellation,
+""",
+    """        IterationSearchPolicy {
+            half_width_centipawns,
+            check_extension_enabled: false,
+        },
+        transposition_table,
+        &mut cancellation,
+""",
+    "baseline iteration policy",
+)
+
+replace_once(
+    iterative_path,
+    """            DEFAULT_ASPIRATION_HALF_WIDTH_CENTIPAWNS,
+            check_extension_enabled,
+            transposition_table,
+            &mut controller,
+""",
+    """            IterationSearchPolicy {
+                half_width_centipawns: DEFAULT_ASPIRATION_HALF_WIDTH_CENTIPAWNS,
+                check_extension_enabled,
+            },
+            transposition_table,
+            &mut controller,
+""",
+    "limited iteration policy",
+)
+
+replace_once(
+    iterative_path,
+    """    center: Option<Score>,
+    half_width_centipawns: i32,
+    check_extension_enabled: bool,
+    transposition_table: &mut TranspositionTable,
+""",
+    """    center: Option<Score>,
+    policy: IterationSearchPolicy,
+    transposition_table: &mut TranspositionTable,
+""",
+    "iteration helper signature",
+)
+
+replace_once(
+    iterative_path,
+    "aspiration_window(score, half_width_centipawns)",
+    "aspiration_window(score, policy.half_width_centipawns)",
+    "aspiration policy width",
+)
+
+replace_once(
+    iterative_path,
+    """        initial_window,
+        check_extension_enabled,
+        transposition_table,
+""",
+    """        initial_window,
+        policy.check_extension_enabled,
+        transposition_table,
+""",
+    "initial attempt policy",
+)
+
+replace_once(
+    iterative_path,
+    """                AlphaBetaWindow::full(),
+                check_extension_enabled,
+                transposition_table,
+""",
+    """                AlphaBetaWindow::full(),
+                policy.check_extension_enabled,
+                transposition_table,
+""",
+    "retry attempt policy",
+)
+
+replace_once(
+    iterative_path,
+    "        !check_extension_enabled,\n",
+    "        !policy.check_extension_enabled,\n",
+    "PV table policy",
+)
+
 print("Task 16.7 generated wiring corrected")
