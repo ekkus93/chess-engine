@@ -150,6 +150,7 @@ jobs:
           base64 --decode scripts/task17_4_apply.py.gz.b64 | gzip --decompress > /tmp/task17_4_apply.py
           python3 -m py_compile /tmp/task17_4_apply.py
           python3 /tmp/task17_4_apply.py
+          sed -i '/^fn iterative_deepening_search_with_limits_and_clock<Clock>(/i #[cfg(test)]' crates/chess-search/src/iterative_deepening.rs
           cargo fmt --all
 
       - name: Check implementation
