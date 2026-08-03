@@ -266,9 +266,7 @@ mod tests {
 
     #[test]
     fn worker_limit_conversion_uses_the_position_side_to_move() {
-        let command = command(
-            "go wtime 90000 btime 12000 winc 5000 binc 400 movestogo 10",
-        );
+        let command = command("go wtime 90000 btime 12000 winc 5000 binc 400 movestogo 10");
         let white = build_search_limits(
             command,
             EngineOptions::default(),
