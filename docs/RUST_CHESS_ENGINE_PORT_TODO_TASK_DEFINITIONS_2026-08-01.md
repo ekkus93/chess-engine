@@ -938,14 +938,14 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 17.5 Integration tests
 
-- [ ] Handshake transcript.
-- [ ] Start position and FEN setup.
-- [ ] Illegal move input handling.
-- [ ] Fixed-depth legal best move.
-- [ ] Mate/stalemate `bestmove 0000` or documented compliant representation.
-- [ ] `stop` interrupts active search.
-- [ ] `quit` exits cleanly.
-- [ ] No stdout redirection or global state leakage between test sessions.
+- [x] Handshake transcript.
+- [x] Start position and FEN setup.
+- [x] Illegal move input handling.
+- [x] Fixed-depth legal best move.
+- [x] Mate/stalemate `bestmove 0000` or documented compliant representation.
+- [x] `stop` interrupts active search.
+- [x] `quit` exits cleanly.
+- [x] No stdout redirection or global state leakage between test sessions.
 
 **Task 17 gate:** Common UCI GUI workflows pass integration tests and stop works during a depth.
 

@@ -80,4 +80,4 @@ Permanent clean-tree validation:
 - job: `91659743430`;
 - formatting, locked all-target/all-feature workspace compilation, strict Clippy, the complete workspace test suite, authoritative release perft, rustdoc with warnings denied, debug and release builds, and the independent differential corpus with seeded playouts all passed.
 
-Task 17.4 is complete. Task 17.5 process integration testing is next.
+Task 17.4 is complete. Task 17.5 and the overall Task 17 gate are also complete. Task 18.1 Rust facade work is next.

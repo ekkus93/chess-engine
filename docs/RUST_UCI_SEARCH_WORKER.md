@@ -77,4 +77,4 @@ Task 17.3 implementation SHA: `1c71f8dfa8449190ea8ae860386b6566b9176cbd`.
 
 Task 17.4 implementation SHA: `0f0ed39b31aca077173359c5807c1afaffb3e9e4`.
 
-Tasks 17.2 through 17.4 are complete. Task 17.5 process integration testing is next.
+Tasks 17.2 through 17.5 and the overall Task 17 gate are complete. Task 18.1 Rust facade work is next.

@@ -839,13 +839,13 @@ Evidence:
 - The overall Task 16 gate is complete: deterministic depth/node behavior, responsive timed/explicit cancellation, legal PVs, exact aspiration recovery, unified result accounting, and finite optional extension semantics all passed together.
 - Task 17.1 protocol loop is complete; Task 17.2 UCI search worker is next.
 
-# Task 17: Linux UCI executable — IN PROGRESS
+# Task 17: Linux UCI executable — COMPLETE
 - [x] 17.1 Protocol loop.
 - [x] 17.2 Search worker.
 - [x] 17.3 Time manager.
 - [x] 17.4 Output.
-- [ ] 17.5 Integration tests.
-- [ ] Task 17 gate.
+- [x] 17.5 Integration tests.
+- [x] Task 17 gate.
 
 ### Task 17.1 completion evidence
 
@@ -870,6 +870,19 @@ Evidence:
 - Contract documentation: `docs/RUST_UCI_SEARCH_OUTPUT.md` and the updated worker contract.
 - Implementation SHA: `0f0ed39b31aca077173359c5807c1afaffb3e9e4`.
 - Task 17.4 is complete. Task 17.5 UCI process integration tests are next.
+
+
+### Task 17.5 and Task 17 gate completion evidence
+
+- Implementation: `crates/chess-uci/tests/uci_process.rs` and `docs/RUST_UCI_PROCESS_INTEGRATION.md`.
+- Seven real child-process tests cover the exact handshake, readiness, start-position and six-field FEN setup, fail-visible transactional illegal input, fixed-depth legal best moves, checkmate/stalemate `bestmove 0000`, active-search `stop`, active-search `quit`, and concurrent session/stdout isolation.
+- Every process read and exit is bounded. Cleanup closes stdin, terminates a stuck child, waits for it, and joins the stdout reader thread.
+- The harness uses standard-library process and synchronization APIs only; it performs no stdout redirection and introduces no process-global mutable state.
+- Implementation SHA: `67b6c97a476e1323bc2bd96ecf14870fc2ed3139`.
+- Permanent validation: run `30828959858`, job `91737751003`.
+- Results: seven subprocess tests passed; formatting, locked all-target/all-feature workspace compilation, strict Clippy without suppressions, the complete workspace tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and the independent differential oracle all passed.
+- Differential validation covered 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- Task 17.5 and the overall Task 17 Linux UCI executable gate are complete. Task 18.1 Rust facade work is next.
 
 # Task 18: Safe API, C ABI, and JNI — NOT STARTED
 - [ ] 18.1 Rust facade.

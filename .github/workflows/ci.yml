@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: rust-ci-${{ github.workflow }}-${{ github.ref }}
@@ -123,34 +123,3 @@ jobs:
           --games 12
           --plies 48
           --seed 0xC0FFEE
-
-  task17-5-close:
-    name: Close Task 17.5 trackers
-    if: >-
-      github.event_name == 'pull_request' &&
-      github.event.pull_request.title == 'Task 17.5 UCI process integration tests' &&
-      github.event.pull_request.head.ref == 'task17-5-integration'
-    needs: rust-quality
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: task17-5-integration
-          fetch-depth: 0
-
-      - name: Apply completion evidence and restore permanent CI
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 -m py_compile scripts/task17_5_close.py
-          python3 scripts/task17_5_close.py
-          git show 249c5467c2cb3a60bf02ac99c7acb57ed8f91c39:.github/workflows/ci.yml > .github/workflows/ci.yml
-          rm scripts/task17_5_close.py
-          git diff --check
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git diff --cached --check
-          git commit -m "docs: close Task 17 UCI gate"
-          git push origin HEAD:task17-5-integration

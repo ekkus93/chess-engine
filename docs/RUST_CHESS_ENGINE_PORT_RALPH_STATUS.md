@@ -1,9 +1,9 @@
 # Rust Chess Engine Port Ralph Loop Status
 
-**Updated:** 2026-08-02  
+**Updated:** 2026-08-03
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 17.4 complete; Task 17.5 UCI process integration tests are next
+**Current phase:** Task 17 complete; Task 18.1 Rust facade is next
 
 ## Completed gates
 
@@ -52,6 +52,7 @@
 | 17.2 | `d058353692f9f7c350e55dfae2d1a7c21ac64666` | documented permanent gate | adapter-owned worker, request-local cancellation, deterministic joins |
 | 17.3 | `1c71f8dfa8449190ea8ae860386b6566b9176cbd` | documented permanent gate | side-to-move clock allocation with soft/hard budgets and safety reserve |
 | 17.4 | `0f0ed39b31aca077173359c5807c1afaffb3e9e4` | final permanent gate recorded in output contract | synchronized iteration info, typed scores, nodes/NPS/time/hashfull/PV, exactly-once bestmove |
+| 17.5 / 17 gate | `67b6c97a476e1323bc2bd96ecf14870fc2ed3139` | `30828959858` / `91737751003` | seven real subprocess workflows, bounded stop/quit, legal best moves, terminal null moves, and concurrent-session isolation; complete permanent gate green |
 
 ## Task 17.1 completion
 
@@ -93,6 +94,30 @@ Implemented and validated in the Task 17.4 slice:
 Implementation SHA: `0f0ed39b31aca077173359c5807c1afaffb3e9e4`.
 
 Task 17.5 owns complete process transcripts and common GUI workflow integration tests.
+
+
+## Task 17.5 and Task 17 gate completion
+
+Implemented and validated:
+
+- a real subprocess harness around the Cargo-built `chess-uci` executable;
+- exact handshake and readiness transcripts;
+- start-position replay and strict six-field FEN workflows;
+- fail-visible, transactional illegal move handling;
+- legal fixed-depth best moves checked against `chess-core`;
+- checkmate and stalemate `bestmove 0000` behavior;
+- bounded active-search `stop` and `quit` behavior;
+- two concurrent engine sessions with isolated state and stdout;
+- `docs/RUST_UCI_PROCESS_INTEGRATION.md`.
+
+Evidence:
+
+- implementation SHA: `67b6c97a476e1323bc2bd96ecf14870fc2ed3139`;
+- permanent CI run/job: `30828959858` / `91737751003`;
+- seven subprocess integration tests passed;
+- the complete permanent workspace gate passed without lint suppression or production-code changes.
+
+Task 17 is complete. Task 18.1 Rust facade work is next.
 
 ## Task 12 completion
 
