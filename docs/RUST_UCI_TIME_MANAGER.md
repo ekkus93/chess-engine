@@ -104,3 +104,25 @@ Task 17.3 does not implement:
 - final `bestmove` output.
 
 Search-result formatting and emission remain Task 17.4. Process-level UCI transcript coverage remains Task 17.5.
+
+## Completion evidence
+
+The exact Task 17.3 implementation SHA `1c71f8dfa8449190ea8ae860386b6566b9176cbd` was validated through temporary PR `#214`, workflow run `30789829090`, job `91610825428`.
+
+The validated tree passed:
+
+- workspace and validation-asset checks;
+- the permanent Task 14.5 exclusion audit;
+- committed-lockfile and workspace-metadata checks;
+- canonical rustfmt;
+- locked all-target, all-feature workspace compilation;
+- strict Clippy with warnings denied and no suppression;
+- the complete workspace test suite, including eight allocator tests and four worker-limit integration tests;
+- authoritative release perft;
+- rustdoc with warnings denied;
+- debug and release workspace builds;
+- the independent differential corpus and seeded playout oracle.
+
+Validation corrections were limited to canonical rustfmt and moving a reserve-inspection accessor behind the test configuration so no test-only API remained dead in the production executable. The allocation formula, limits, error behavior, and safety invariants were unchanged.
+
+Task 17.3 is complete. Task 17.4 UCI search output is next.
