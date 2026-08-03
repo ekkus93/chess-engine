@@ -1,2 +1,3 @@
 Trusted one-shot Task 19.2 closure trigger.
 Synchronize event after the base workflow guard was simplified.
+Synchronize event using the repository's allowed pull_request trigger.
