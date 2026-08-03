@@ -83,5 +83,8 @@ Explicit `ChessEngine.close` remains authoritative and is exercised in every suc
 - Host JVM job `91800574845` passed four tests, including 24 repeated lifecycles and live observation of `nativeSearch` on `chess-engine-search`.
 - Android job `91800574914` produced and verified API-24 ARM64 and x86_64 JNI libraries, built the AAR and test APK, and passed three tests on an Android 15/API-35 x86_64 emulator, including 16 repeated lifecycles and Android-main-thread exclusion.
 - Hosted toolchain: Ubuntu 24.04, Java 17.0.19, Gradle 8.9, AGP 8.7.3, Kotlin 2.0.21, compile SDK 35, NDK 29.0.14206865 with clang 21.0.0, and emulator 37.1.11.0.
+- Tracker-closure SHA: `31ef73ef4c663cfbee5476817c6d0ba4ed1ac8c1`.
+- Permanent Android workflow restoration SHA: `564c89786511cebb9fb4eda1239db7f128593719`.
+- Temporary trigger cleanup SHA: `caf0c33ef19f359903f7f208bb2277b1782de8b5`.
 - The permanent Android workflow is read-only and generated JNI/APK/Gradle outputs remain ignored.
 - Task 18.5 and the overall Task 18 gate are complete.
