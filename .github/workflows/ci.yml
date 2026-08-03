@@ -31,7 +31,11 @@ jobs:
           fetch-depth: 0
 
       - name: Apply Task 16.7 implementation
-        run: python3 scripts/implement_task_16_7.py "$GITHUB_WORKSPACE"
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/fix_task_16_7_patcher.py "$GITHUB_WORKSPACE"
+          python3 scripts/implement_task_16_7.py "$GITHUB_WORKSPACE"
 
       - name: Format generated Rust
         run: cargo fmt --all
@@ -62,6 +66,7 @@ jobs:
           python3 -m py_compile \
             scripts/differential_oracle.py \
             scripts/task_14_5_exclusion_audit.py \
+            scripts/fix_task_16_7_patcher.py \
             scripts/implement_task_16_7.py
 
       - name: Run Task 14.5 exclusion audit
@@ -159,7 +164,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git rm scripts/implement_task_16_7.py
+          git rm scripts/fix_task_16_7_patcher.py scripts/implement_task_16_7.py
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add \
