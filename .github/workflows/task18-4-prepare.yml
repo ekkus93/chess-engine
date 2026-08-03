@@ -13,6 +13,7 @@ concurrency:
   group: task18-4-prepare-${{ github.ref }}
   cancel-in-progress: true
 
+# One-shot normalization and cross-build gate for Task 18.4.
 jobs:
   prepare:
     runs-on: ubuntu-24.04
