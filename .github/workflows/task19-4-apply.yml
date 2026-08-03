@@ -43,11 +43,17 @@ jobs:
 
           contract = Path('crates/chess-jni/tests/jni_contract.rs')
           content = contract.read_text()
-          old = 'occurrences(KOTLIN_WRAPPER, &format!("external fun {method}"))'
-          new = 'occurrences(KOTLIN_WRAPPER, &format!("external fun {method}("))'
-          if content.count(old) != 1:
-              raise SystemExit('expected exactly one JNI declaration counter')
-          contract.write_text(content.replace(old, new, 1))
+          kotlin_old = 'occurrences(KOTLIN_WRAPPER, &format!("external fun {method}"))'
+          kotlin_new = 'occurrences(KOTLIN_WRAPPER, &format!("external fun {method}("))'
+          if content.count(kotlin_old) != 1:
+              raise SystemExit('expected exactly one Kotlin JNI declaration counter')
+          content = content.replace(kotlin_old, kotlin_new, 1)
+
+          rust_old = '&format!("Java_com_ekkus93_chessengine_NativeChessEngineBindings_{method}")'
+          rust_new = '&format!("Java_com_ekkus93_chessengine_NativeChessEngineBindings_{method}\\\"]")'
+          if content.count(rust_old) != 1:
+              raise SystemExit('expected exactly one Rust JNI export counter')
+          contract.write_text(content.replace(rust_old, rust_new, 1))
           PY
       - name: Format and lock
         run: |
