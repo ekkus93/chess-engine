@@ -6,9 +6,9 @@ use std::{
 };
 
 use chess_search::{
-    iterative_deepening_search_with_limits_and_transposition_table,
-    IterativeDeepeningSearchError, SearchLimitError, SearchLimits, SearchResult, SearchStopFlag,
-    TranspositionTable, TranspositionTableAllocationError,
+    iterative_deepening_search_with_limits_and_transposition_table, IterativeDeepeningSearchError,
+    SearchLimitError, SearchLimits, SearchResult, SearchStopFlag, TranspositionTable,
+    TranspositionTableAllocationError,
 };
 use chess_uci::{EngineOptions, GoCommand, SearchRequest};
 
@@ -37,14 +37,16 @@ pub enum SearchWorkerError {
 impl fmt::Display for SearchWorkerError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::ClockManagementPending => formatter.write_str(
-                "clock-based go requests require the Task 17.3 UCI time manager",
-            ),
+            Self::ClockManagementPending => formatter
+                .write_str("clock-based go requests require the Task 17.3 UCI time manager"),
             Self::InvalidLimits(error) => error.fmt(formatter),
             Self::TranspositionTableAllocation(error) => error.fmt(formatter),
             Self::Search(error) => error.fmt(formatter),
             Self::ThreadSpawn { kind, message } => {
-                write!(formatter, "failed to spawn UCI search worker ({kind:?}): {message}")
+                write!(
+                    formatter,
+                    "failed to spawn UCI search worker ({kind:?}): {message}"
+                )
             }
             Self::ThreadPanicked => formatter.write_str("UCI search worker panicked"),
         }
@@ -154,11 +156,7 @@ impl SearchWorkerSlot {
 
     /// Joins a naturally completed worker without blocking.
     pub fn reap_finished(&mut self) -> Option<Result<SearchResult, SearchWorkerError>> {
-        if !self
-            .active
-            .as_ref()
-            .is_some_and(SearchWorker::is_finished)
-        {
+        if !self.active.as_ref().is_some_and(SearchWorker::is_finished) {
             return None;
         }
         self.active.take().map(SearchWorker::join)
@@ -293,10 +291,7 @@ mod tests {
             .start(request("go depth 1"))
             .expect("replacement worker starts")
             .expect("prior worker result is returned");
-        assert_eq!(
-            replaced.termination(),
-            SearchLimitTermination::ExplicitStop
-        );
+        assert_eq!(replaced.termination(), SearchLimitTermination::ExplicitStop);
         assert!(slot.is_active());
         let _replacement = slot.stop().expect("replacement worker joins");
         assert!(!slot.is_active());
