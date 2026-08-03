@@ -1,14 +1,15 @@
 name: Task 19.4 Trusted Apply
 
 on:
-  issues:
+  pull_request:
+    branches:
+      - master
     types:
-      - opened
-      - edited
+      - synchronize
 
 permissions:
   contents: write
-  issues: read
+  pull-requests: read
 
 concurrency:
   group: task19-4-trusted-apply
@@ -16,13 +17,25 @@ concurrency:
 
 jobs:
   apply:
-    if: >-
-      github.event.issue.title == '[run-task19-4-apply]'
-      && github.event.issue.user.login == 'ekkus93'
-      && github.repository == 'ekkus93/chess-engine'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    env:
+      PR_TITLE: ${{ github.event.pull_request.title }}
+      PR_USER: ${{ github.event.pull_request.user.login }}
+      PR_HEAD: ${{ github.event.pull_request.head.ref }}
+      PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+      REPOSITORY: ${{ github.repository }}
     steps:
+      - name: Verify trusted trigger identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$PR_TITLE" = '[run-task19-4-apply-pr]'
+          test "$PR_USER" = 'ekkus93'
+          test "$PR_HEAD" = 'task19-4-trusted-trigger'
+          test "$PR_HEAD_REPO" = 'ekkus93/chess-engine'
+          test "$REPOSITORY" = 'ekkus93/chess-engine'
+
       - uses: actions/checkout@v4
         with:
           ref: task19-4-adapter-integration
