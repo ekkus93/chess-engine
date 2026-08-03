@@ -166,7 +166,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git rm \
+          git rm -f \
             scripts/fix_task_16_7_generated.py \
             scripts/fix_task_16_7_patcher.py \
             scripts/implement_task_16_7.py
