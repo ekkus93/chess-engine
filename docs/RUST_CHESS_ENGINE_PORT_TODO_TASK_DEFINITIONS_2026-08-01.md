@@ -838,11 +838,11 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 16.2 Aspiration windows
 
-- [ ] Center on prior iteration score.
-- [ ] Detect fail-low and fail-high.
-- [ ] Re-search with a safe expanded/full window.
-- [ ] Record retry diagnostics.
-- [ ] Add regression proving a bound cannot be mistaken for an exact root score.
+- [x] Center on prior iteration score.
+- [x] Detect fail-low and fail-high.
+- [x] Re-search with a safe expanded/full window.
+- [x] Record retry diagnostics.
+- [x] Add regression proving a bound cannot be mistaken for an exact root score.
 
 ## 16.3 Principal variation
 

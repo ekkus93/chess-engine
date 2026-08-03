@@ -3,7 +3,7 @@
 **Updated:** 2026-08-02  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Tasks 16.1 and 16.3 complete; Task 16.2 aspiration windows is next
+**Current phase:** Tasks 16.1–16.3 complete; Task 16.4 search limits is next
 
 ## Completed gates
 
@@ -41,6 +41,7 @@
 | 15.6 | `bd4d5d581c0e82f892435b2874732ac632c2e1f5` | `30768512470` / `91551420579` | bounded counters and hash-full sampling, reproducible probe/store benchmark, four focused tests, 188 Rust tests, depth-four perft, and differential oracle green |
 | 15 / gate | `682114cd2452b04e1f24af1150928baaff779aa8` | `30770018597` / `91555458016` | production alpha-beta integration, 193 Rust tests, two release node-reduction witnesses, depth-four perft, and differential oracle green |
 | 16.1 | `886ad953952b3a409800fcf7e8699365f94f0271` | `30772536115` / `91562076526` | full-window iterative deepening, five focused tests, 198 Rust tests, depth-four perft, and differential oracle green |
+| 16.2 | `8af24520fd72faffff1cab74581f056a083cfb13` | `30779589438` / `91581508274` | bounded aspiration retries, fail-low/fail-high exact recovery, 206 Rust tests, depth-four perft, and differential oracle green |
 | 16.3 | `e8afc9959a60519c6d5617963521e1707d37c6a9` | `30776274173` / `91572310565` | safe legal PV reconstruction, ponder support, 204 Rust tests, depth-four perft, and differential oracle green |
 
 ## Task 12 completion
@@ -538,7 +539,7 @@ Evidence:
 - The clean implementation delta is limited to three Rust modules, one integration-test file, and one contract document.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 15 and Tasks 16.1/16.3 are complete. Task 16.2 aspiration windows is next.
+- Task 15 and Tasks 16.1/16.3 are complete. Task 16.4 search limits is next.
 
 ## Task 16.1 completion
 
@@ -564,7 +565,37 @@ Evidence:
 - The first validation iteration found canonical rustfmt differences only. The second found a test-only assumption that sparse bounded hash-full sampling must observe an occupied slot; the assertion was corrected to the documented sampling contract without production changes.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 16.1 and Task 16.3 are complete. Task 16.2 aspiration windows is next.
+- Task 16.1 and Task 16.3 are complete. Task 16.4 search limits is next.
+
+## Task 16.2 completion
+
+Implemented and validated:
+
+- a typed internal root-window search boundary that classifies exact, fail-low, and fail-high outcomes;
+- depth-one complete-window search and later ±50-centipawn windows centered on the prior exact completed score;
+- exactly one complete-window recovery attempt after either bound outcome;
+- an invariant that bound attempts expose no exact score and cannot populate the completed iteration, PV, or ponder result;
+- one transposition-table generation per depth, including retries;
+- immutable per-attempt alpha/beta, outcome, score, node, TT-counter, hash-full, and generation diagnostics;
+- checked aggregate node accounting and saturating aggregate TT diagnostics across attempts;
+- mate-boundary complete-window fallback and a fail-loud unexpected-full-window-bound error;
+- deterministic fail-low/fail-high recovery regressions and updated iterative-deepening equivalence/restoration coverage;
+- `docs/RUST_ASPIRATION_WINDOWS.md` and updated `docs/RUST_ITERATIVE_DEEPENING.md`.
+
+Evidence:
+
+- Production implementation commit: `c1d1c61caf85fd230b48a4b9026b9aa8b7ae79bf`.
+- Exact clean validated SHA: `8af24520fd72faffff1cab74581f056a083cfb13`.
+- Permanent CI run/job: `30779589438` / `91581508274`.
+- Results: permanent exclusion audit over 15 production Rust files, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy without suppressions, 206 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- Both forced bound regressions prove `exact_score() == None` before one complete-window retry recovers the independent exact score and canonical move.
+- Retry diagnostics prove one generation per logical depth and exact per-attempt plus aggregate accounting.
+- Position, detached history, incremental Zobrist identity, PV legality, and ponder behavior remain restored and deterministic.
+- The validation loop corrected the permanent audit witness, a private non-const comparison, and a strict-Clippy constructor shape without suppressions or semantic relaxation.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 16.4 search limits is next.
 
 ## Task 16.3 completion
 
@@ -595,7 +626,7 @@ Evidence:
 ## Task 16 active scope
 
 - [x] Implement Task 16.1 iterative deepening.
-- [ ] Implement Task 16.2 aspiration windows.
+- [x] Implement Task 16.2 aspiration windows.
 - [x] Implement Task 16.3 principal variation.
 - [ ] Implement Task 16.4 search limits.
 - [ ] Implement Task 16.5 responsive cancellation.
@@ -639,4 +670,4 @@ Evidence:
 - [x] Add mate-in-one, mated, stalemate, draw, shorter-mate, and longer-survival fixtures.
 - [x] Pass exact-head rustfmt, Cargo check, Clippy, tests, rustdoc, debug, release, perft, and differential gates.
 
-No pull request has been created; work remains on `rust-engine`. Task 16.2 aspiration windows is the next operation.
+No pull request has been created; work remains on `rust-engine`. Task 16.4 search limits is the next operation.
