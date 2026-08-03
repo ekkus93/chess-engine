@@ -871,15 +871,15 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 16.6 Search result API
 
-- [ ] best move;
-- [ ] ponder move;
-- [ ] typed score;
-- [ ] completed depth;
-- [ ] selective depth;
-- [ ] nodes and qnodes;
-- [ ] elapsed time;
-- [ ] PV;
-- [ ] termination reason.
+- [x] best move;
+- [x] ponder move;
+- [x] typed score;
+- [x] completed depth;
+- [x] selective depth;
+- [x] nodes and qnodes;
+- [x] elapsed time;
+- [x] PV;
+- [x] termination reason.
 
 ## 16.7 Optional check extension
 
