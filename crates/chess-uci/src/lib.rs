@@ -678,7 +678,7 @@ mod tests {
 
     #[test]
     fn go_depth_and_nodes_are_typed() {
-        let command = search_command(UciSession::new().handle_line("go depth 6 nodes 9000"));
+        let command = search_command(&UciSession::new().handle_line("go depth 6 nodes 9000"));
         assert_eq!(command.depth(), Some(6));
         assert_eq!(command.nodes(), Some(9000));
         assert!(!command.is_infinite());
@@ -686,14 +686,14 @@ mod tests {
 
     #[test]
     fn go_movetime_is_typed() {
-        let command = search_command(UciSession::new().handle_line("go movetime 250"));
+        let command = search_command(&UciSession::new().handle_line("go movetime 250"));
         assert_eq!(command.move_time_ms(), Some(250));
     }
 
     #[test]
     fn go_clock_fields_are_typed() {
         let command = search_command(
-            UciSession::new()
+            &UciSession::new()
                 .handle_line("go wtime 60000 btime 55000 winc 1000 binc 500 movestogo 20"),
         );
         assert_eq!(command.white_time_ms(), Some(60000));
@@ -705,8 +705,8 @@ mod tests {
 
     #[test]
     fn go_infinite_and_empty_go_require_explicit_stop() {
-        assert!(search_command(UciSession::new().handle_line("go infinite")).is_infinite());
-        assert!(search_command(UciSession::new().handle_line("go")).is_infinite());
+        assert!(search_command(&UciSession::new().handle_line("go infinite")).is_infinite());
+        assert!(search_command(&UciSession::new().handle_line("go")).is_infinite());
     }
 
     #[test]
