@@ -30,7 +30,9 @@ enum class ChessEngineErrorCode(val nativeCode: Int) {
     GAME_OVER(13),
     GAME_ERROR(14),
     INVALID_WEIGHT_SET(15),
+    INVALID_OPENING_BOOK(16),
     SEARCH_ERROR(20),
+    OPENING_BOOK_ERROR(21),
     ALLOCATION_FAILURE(30),
     INVALID_BUFFER(31),
     INTERNAL_ERROR(100),
@@ -371,6 +373,9 @@ class ChessEngine private constructor(
 
     fun fen(): String = withHandle(NativeChessEngineBindings::nativeFen)
 
+    fun openingBookMove(): String? =
+        withHandle(NativeChessEngineBindings::nativeOpeningBookMove).ifEmpty { null }
+
     fun legalMoves(): List<String> =
         withHandle(NativeChessEngineBindings::nativeLegalMoves)
             .takeIf { it.isNotEmpty() }
@@ -496,6 +501,26 @@ class ChessEngine private constructor(
                 ),
             )
         }
+
+        fun createWithIndexedBook(
+            indexedBook: ByteArray,
+            transpositionTableMebibytes: Long = DEFAULT_TRANSPOSITION_TABLE_MEBIBYTES,
+            openingBookEnabled: Boolean = true,
+        ): ChessEngine {
+            require(indexedBook.isNotEmpty()) { "indexed opening-book bytes cannot be empty" }
+            require(transpositionTableMebibytes > 0) {
+                "transposition-table budget must be greater than zero"
+            }
+            return ChessEngine(
+                NativeHandleState(
+                    NativeChessEngineBindings.nativeCreateWithIndexedBook(
+                        transpositionTableMebibytes,
+                        indexedBook,
+                        openingBookEnabled,
+                    ),
+                ),
+            )
+        }
     }
 }
 
@@ -507,10 +532,16 @@ internal object NativeChessEngineBindings {
 
     external fun nativeVersion(): String
     external fun nativeCreate(transpositionTableMebibytes: Long): Long
+    external fun nativeCreateWithIndexedBook(
+        transpositionTableMebibytes: Long,
+        indexedBook: ByteArray,
+        enabled: Boolean,
+    ): Long
     external fun nativeDestroy(handle: Long)
     external fun nativeResetPosition(handle: Long)
     external fun nativeSetPosition(handle: Long, fen: String)
     external fun nativeFen(handle: Long): String
+    external fun nativeOpeningBookMove(handle: Long): String
     external fun nativeLegalMoves(handle: Long): String
     external fun nativePlayMove(handle: Long, move: String)
     external fun nativeGameStatus(handle: Long): String

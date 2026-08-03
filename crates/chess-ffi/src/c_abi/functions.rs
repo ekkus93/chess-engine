@@ -68,6 +68,17 @@ unsafe fn write_copy<T>(destination: *mut T, value: T) {
     unsafe { ptr::write_unaligned(destination, value) };
 }
 
+unsafe fn read_bytes<'a>(data: *const u8, len: usize, label: &str) -> AbiResult<&'a [u8]> {
+    if len == 0 {
+        return Ok(&[]);
+    }
+    if data.is_null() {
+        return Err(null_pointer(label));
+    }
+    // SAFETY: The C caller guarantees a readable byte range of exactly `len` bytes.
+    Ok(unsafe { slice::from_raw_parts(data, len) })
+}
+
 unsafe fn read_utf8<'a>(data: *const u8, len: usize, label: &str) -> AbiResult<&'a str> {
     if len == 0 {
         return Ok("");
@@ -98,6 +109,8 @@ fn engine_failure(error: EngineError) -> AbiFailure {
             ChessEngineResultCode::AllocationFailure
         }
         EngineError::InvalidWeightSet(_) => ChessEngineResultCode::InvalidWeightSet,
+        EngineError::InvalidOpeningBook(_) => ChessEngineResultCode::InvalidOpeningBook,
+        EngineError::OpeningBookSelection(_) => ChessEngineResultCode::OpeningBookError,
     };
     AbiFailure::new(code, error.to_string())
 }
@@ -578,6 +591,48 @@ pub unsafe extern "C" fn chess_engine_create(
     })
 }
 
+/// Creates one opaque engine from explicit indexed opening-book bytes.
+///
+/// # Safety
+///
+/// Pointer contracts match [`chess_engine_create`]. `book_data` must reference
+/// exactly `book_len` readable bytes. `book_enabled` must be zero or one.
+#[no_mangle]
+pub unsafe extern "C" fn chess_engine_create_with_indexed_book(
+    config: *const ChessEngineConfig,
+    book_data: *const u8,
+    book_len: usize,
+    book_enabled: u8,
+    out_handle: *mut ChessEngineHandle,
+) -> ChessEngineResultCode {
+    boundary(|| {
+        if out_handle.is_null() {
+            return Err(null_pointer("output engine handle"));
+        }
+        // SAFETY: Required by this function's C contract and checked for null above.
+        unsafe { write_copy(out_handle, CHESS_ENGINE_NULL_HANDLE) };
+        if book_enabled > 1 {
+            return Err(invalid_argument(
+                "opening-book enabled value must be zero or one",
+            ));
+        }
+        let config = if config.is_null() {
+            EngineConfig::new()
+        } else {
+            // SAFETY: Required by this function's C contract.
+            validate_config(unsafe { read_copy(config) })?
+        }
+        .with_opening_book_enabled(book_enabled != 0);
+        // SAFETY: Required by this function's C contract.
+        let bytes = unsafe { read_bytes(book_data, book_len, "opening-book input") }?;
+        let engine = Engine::new_with_indexed_book_bytes(config, bytes).map_err(engine_failure)?;
+        let handle = insert_engine(engine)?;
+        // SAFETY: Required by this function's C contract and checked for null above.
+        unsafe { write_copy(out_handle, handle) };
+        Ok(())
+    })
+}
+
 /// Invalidates one opaque engine token.
 #[no_mangle]
 pub extern "C" fn chess_engine_destroy(handle: ChessEngineHandle) -> ChessEngineResultCode {
@@ -638,6 +693,34 @@ pub unsafe extern "C" fn chess_engine_get_fen(
             engine.fen()
         };
         let buffer = allocate_buffer(fen.into_bytes())?;
+        // SAFETY: Required by this function's C contract and checked for null above.
+        unsafe { write_copy(out_buffer, buffer) };
+        Ok(())
+    })
+}
+
+/// Returns the selected legal opening-book move, or an empty buffer.
+///
+/// # Safety
+///
+/// `out_buffer` must point to a fresh writable [`ChessEngineBuffer`] record.
+#[no_mangle]
+pub unsafe extern "C" fn chess_engine_get_opening_book_move(
+    handle: ChessEngineHandle,
+    out_buffer: *mut ChessEngineBuffer,
+) -> ChessEngineResultCode {
+    boundary(|| {
+        if out_buffer.is_null() {
+            return Err(null_pointer("output opening-book move buffer"));
+        }
+        // SAFETY: Required by this function's C contract and checked for null above.
+        unsafe { write_copy(out_buffer, ChessEngineBuffer::empty()) };
+        let entry = resolve_engine(handle)?;
+        let selected = {
+            let mut engine = lock_engine(&entry)?;
+            engine.opening_book_move().map_err(engine_failure)?
+        };
+        let buffer = allocate_buffer(selected.unwrap_or_default().into_bytes())?;
         // SAFETY: Required by this function's C contract and checked for null above.
         unsafe { write_copy(out_buffer, buffer) };
         Ok(())

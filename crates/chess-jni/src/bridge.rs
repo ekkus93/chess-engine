@@ -4,8 +4,9 @@ use std::{panic::AssertUnwindSafe, ptr};
 use chess_ffi::c_abi::{
     chess_engine_buffer_free, chess_engine_cancellation_cancel, chess_engine_cancellation_create,
     chess_engine_cancellation_destroy, chess_engine_cancellation_is_cancelled,
-    chess_engine_cancellation_reset, chess_engine_create, chess_engine_destroy,
-    chess_engine_get_fen, chess_engine_get_game_status, chess_engine_get_legal_moves,
+    chess_engine_cancellation_reset, chess_engine_create, chess_engine_create_with_indexed_book,
+    chess_engine_destroy, chess_engine_get_fen, chess_engine_get_game_status,
+    chess_engine_get_legal_moves, chess_engine_get_opening_book_move,
     chess_engine_get_weight_identity, chess_engine_last_error_message, chess_engine_play_move,
     chess_engine_reset_position, chess_engine_search, chess_engine_search_result_free,
     chess_engine_set_position, chess_engine_version, ChessEngineBuffer,
@@ -247,6 +248,37 @@ pub(crate) fn create_engine(transposition_table_mebibytes: jlong) -> BridgeResul
     Ok(token_to_jlong(handle))
 }
 
+pub(crate) fn create_engine_with_indexed_book(
+    transposition_table_mebibytes: jlong,
+    book_bytes: &[u8],
+    enabled: jboolean,
+) -> BridgeResult<jlong> {
+    let table_size = u64::try_from(transposition_table_mebibytes).map_err(|_| {
+        BridgeError::InvalidArgument(
+            "transposition-table budget must be a positive signed 64-bit value".to_owned(),
+        )
+    })?;
+    if table_size == 0 {
+        return Err(BridgeError::InvalidArgument(
+            "transposition-table budget must be greater than zero".to_owned(),
+        ));
+    }
+    let mut config = ChessEngineConfig::new();
+    config.transposition_table_mebibytes = table_size;
+    let mut handle = CHESS_ENGINE_NULL_HANDLE;
+    // SAFETY: All records and the immutable byte range remain live for the call.
+    ensure_code(unsafe {
+        chess_engine_create_with_indexed_book(
+            &config,
+            book_bytes.as_ptr(),
+            book_bytes.len(),
+            if enabled == JNI_FALSE { 0 } else { 1 },
+            &mut handle,
+        )
+    })?;
+    Ok(token_to_jlong(handle))
+}
+
 pub(crate) fn destroy_engine(handle: jlong) -> BridgeResult<()> {
     ensure_code(chess_engine_destroy(token_from_jlong(handle)))
 }
@@ -266,6 +298,13 @@ pub(crate) fn fen(handle: jlong) -> BridgeResult<String> {
     take_text(|output| {
         // SAFETY: `output` points to a fresh writable buffer record.
         unsafe { chess_engine_get_fen(token_from_jlong(handle), output) }
+    })
+}
+
+pub(crate) fn opening_book_move(handle: jlong) -> BridgeResult<String> {
+    take_text(|output| {
+        // SAFETY: `output` points to a fresh writable buffer record.
+        unsafe { chess_engine_get_opening_book_move(token_from_jlong(handle), output) }
     })
 }
 

@@ -11,10 +11,12 @@ fn kotlin_native_declarations_match_exact_rust_export_names() {
     let methods = [
         "nativeVersion",
         "nativeCreate",
+        "nativeCreateWithIndexedBook",
         "nativeDestroy",
         "nativeResetPosition",
         "nativeSetPosition",
         "nativeFen",
+        "nativeOpeningBookMove",
         "nativeLegalMoves",
         "nativePlayMove",
         "nativeGameStatus",
@@ -29,14 +31,14 @@ fn kotlin_native_declarations_match_exact_rust_export_names() {
 
     for method in methods {
         assert_eq!(
-            occurrences(KOTLIN_WRAPPER, &format!("external fun {method}")),
+            occurrences(KOTLIN_WRAPPER, &format!("external fun {method}(")),
             1,
             "Kotlin must declare {method} exactly once"
         );
         assert_eq!(
             occurrences(
                 RUST_EXPORTS,
-                &format!("Java_com_ekkus93_chessengine_NativeChessEngineBindings_{method}")
+                &format!("Java_com_ekkus93_chessengine_NativeChessEngineBindings_{method}\"]")
             ),
             1,
             "Rust must export {method} exactly once"

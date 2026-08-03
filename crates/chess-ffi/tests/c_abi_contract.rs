@@ -1,5 +1,7 @@
 use std::{ptr, slice, str};
 
+use chess_book::{IndexedBook, IndexedBookRecord};
+use chess_core::Position;
 use chess_ffi::c_abi::*;
 
 const STARTING_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -320,4 +322,59 @@ fn versioned_input_records_fail_closed() {
     );
     assert_eq!(result, ChessEngineSearchResult::new());
     assert_eq!(chess_engine_destroy(engine), ChessEngineResultCode::Ok);
+}
+
+#[test]
+fn explicit_indexed_book_round_trips_through_additive_abi() {
+    let position = Position::starting();
+    let record = IndexedBookRecord::new(
+        &position,
+        "e2e4".parse().expect("test move syntax is valid"),
+        100,
+    )
+    .expect("test record is valid");
+    let bytes = IndexedBook::from_records(vec![record])
+        .expect("test book is valid")
+        .to_bytes();
+    let mut config = ChessEngineConfig::new();
+    config.transposition_table_mebibytes = 1;
+    let mut handle = CHESS_ENGINE_NULL_HANDLE;
+    // SAFETY: All input and output ranges are valid for the call.
+    assert_eq!(
+        unsafe {
+            chess_engine_create_with_indexed_book(
+                &config,
+                bytes.as_ptr(),
+                bytes.len(),
+                1,
+                &mut handle,
+            )
+        },
+        ChessEngineResultCode::Ok
+    );
+    let mut selected = ChessEngineBuffer::empty();
+    // SAFETY: `selected` is a fresh writable output record.
+    assert_eq!(
+        unsafe { chess_engine_get_opening_book_move(handle, &mut selected) },
+        ChessEngineResultCode::Ok
+    );
+    assert_eq!(buffer_text(&selected), "e2e4");
+    free_buffer(&mut selected);
+    assert_eq!(chess_engine_destroy(handle), ChessEngineResultCode::Ok);
+
+    let mut invalid_handle = CHESS_ENGINE_NULL_HANDLE;
+    // SAFETY: The invalid byte range is readable and the output is writable.
+    assert_eq!(
+        unsafe {
+            chess_engine_create_with_indexed_book(
+                &config,
+                b"bad".as_ptr(),
+                3,
+                1,
+                &mut invalid_handle,
+            )
+        },
+        ChessEngineResultCode::InvalidOpeningBook
+    );
+    assert_eq!(invalid_handle, CHESS_ENGINE_NULL_HANDLE);
 }

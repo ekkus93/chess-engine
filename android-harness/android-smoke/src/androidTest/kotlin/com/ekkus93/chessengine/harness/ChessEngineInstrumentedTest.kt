@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -37,6 +38,24 @@ class ChessEngineInstrumentedTest {
             assertTrue(engine.fen().contains(" b "))
             engine.resetPosition()
             assertEquals(startingFen, engine.fen())
+        }
+    }
+
+    @Test(timeout = 60_000L)
+    fun packagedIndexedBookAssetIsExplicitAndMissingEntriesFallThrough() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        ChessEngineAssetFactory.create(context).use { engine ->
+            assertEquals("e2e4", engine.openingBookMove())
+            engine.playMove("e2e4")
+            assertNull(engine.openingBookMove())
+            val result = engine.search(SearchRequest(depth = 1)).await()
+            assertEquals(SearchTerminationKind.DEPTH, result.terminationKind)
+            assertTrue(result.bestMove in engine.legalMoves())
+        }
+
+        ChessEngine.create().use { engine ->
+            assertNull(engine.openingBookMove())
+            assertTrue(engine.search(SearchRequest(depth = 1)).await().bestMove != null)
         }
     }
 
