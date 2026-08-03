@@ -1,9 +1,9 @@
 name: Task 19.4 implementation patch
 
 on:
-  push:
+  pull_request:
     branches:
-      - task19-4-adapter-integration
+      - rust-engine
 
 permissions:
   contents: write
