@@ -37,7 +37,7 @@
 | 13 | **Complete** — reference negamax, alpha-beta, shallow equivalence, immutability, and terminal/mate-distance fixtures. |
 | 14 | **Complete** — quiescence, tactical/quiet ordering, consolidated correctness, and exclusion audit. |
 | 15 | **Complete** — bounded, mate-safe transposition table integrated into production alpha-beta with deterministic node-reduction evidence. |
-| 16 | **Active** — Tasks 16.1–16.4 complete; Task 16.5 responsive cancellation next. |
+| 16 | **Active** — Tasks 16.1–16.5 complete; Task 16.6 final result API next. |
 | 17–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
@@ -686,7 +686,7 @@ Evidence:
 - [x] 16.2 Aspiration windows.
 - [x] 16.3 Principal variation.
 - [x] 16.4 Limits.
-- [ ] 16.5 Cancellation.
+- [x] 16.5 Cancellation.
 - [ ] 16.6 Result API.
 - [ ] 16.7 Optional extension.
 - [ ] Task 16 gate.
@@ -708,7 +708,7 @@ Evidence:
 - The initial validation found only canonical rustfmt changes; the next found an invalid test assumption about sparse bounded hash-full sampling. Production semantics did not change.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Tasks 16.1–16.3 are complete. Task 16.5 responsive cancellation is next; cancellation recovery, the final result API, and extensions remain deferred.
+- Tasks 16.1–16.3 are complete. Task 16.6 final result API is next; cancellation recovery, the final result API, and extensions remain deferred.
 
 ### Task 16.2 completion evidence
 
@@ -729,7 +729,7 @@ Evidence:
 - Initial validation iterations found an audit-witness shape requirement, one invalid private `const fn` qualifier, and one eight-argument internal constructor rejected by strict Clippy. Each was corrected directly without changing the aspiration contract or adding a suppression.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 16.5 responsive cancellation is next. Tasks 16.5–16.7 and the overall Task 16 gate remain open.
+- Task 16.6 final result API is next. Tasks 16.5–16.7 and the overall Task 16 gate remain open.
 
 ### Task 16.3 completion evidence
 
@@ -750,7 +750,7 @@ Evidence:
 - The first compiler iteration found only an ambiguous integer literal in a collision test; adding an explicit `u64` fixed the test without changing production behavior.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 16.2 aspiration windows is complete. Task 16.4 search limits is the next operation.
+- Tasks 16.1–16.5 are complete. Task 16.6 final result API is the next operation.
 
 ### Task 16.4 completion evidence
 
@@ -772,7 +772,29 @@ Evidence:
 - Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 16.5 responsive cancellation is next. Tasks 16.6–16.7 and the overall Task 16 gate remain open.
+- Task 16.6 final result API is next. Tasks 16.6–16.7 and the overall Task 16 gate remain open.
+
+### Task 16.5 completion evidence
+
+- Implementation: the formal polling contract in `crates/chess-search/src/cancellation.rs`, deterministic fallback integration in `crates/chess-search/src/iterative_deepening.rs`, and release benchmarking in `crates/chess-tools`.
+- Public APIs: `CANCELLATION_CHECK_INTERVAL_NODES`, `SearchCancellationFallback`, and `LimitedIterativeDeepeningSearchResult::fallback`.
+- The production polling interval is explicitly one alpha-beta or quiescence node. Child boundaries also poll before applying the next legal move, so cancellation cannot require completion of an arbitrary subtree or depth.
+- Interrupted search frames pop reversible history and unmake every active move before propagating typed cancellation. Position, detached history, current history identity, incremental Zobrist identity, and recomputed Zobrist identity restore exactly.
+- An interrupted partial depth contributes no exact score, move, PV, ponder move, aspiration record, or completed-node total. Every earlier fully completed exact iteration remains authoritative.
+- When no iteration completed, the result exposes either `FirstLegalMove`, selected from deterministic legal-generation order at the unchanged root, or `NoLegalMove` for a terminal root. The fallback is unscored and is not represented as a completed depth.
+- Deterministic regressions inject a request after 64 production nodes, prove observation within the one-node bound, cover one-node and preset-stop fallbacks, preserve the prior completed iteration, and verify exact root restoration.
+- Release benchmark command: `cargo run --locked -p chess-tools --release -- cancel-bench ITERATIONS`.
+- Hosted smoke output for four samples: `cancel<TAB>4<TAB>64<TAB>0<TAB>404<TAB>186<TAB>5435046110819296062`; it observed zero additional nodes after each request. Nanosecond values are informational, while the one-node bound is enforced.
+- Contract documentation: `docs/RUST_RESPONSIVE_CANCELLATION.md`; `docs/RUST_SEARCH_LIMITS.md` and `docs/RUST_ITERATIVE_DEEPENING.md` updated through Task 16.5.
+- Production implementation commit: `68f86a53c31dd5f1448e99fb7def8bb220f2222f`.
+- Exact clean validated implementation SHA: `128f52e8fb7d7e9974605fc840eb13d3ecc021a6`.
+- Permanent CI run/job: `30782361257` / `91589434579`.
+- Results: permanent exclusion audit over 16 production Rust files, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy without suppressions, 218 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- The first implementation validation exposed one localized Rust iterator tail-expression lifetime error. Materializing the fallback value before return corrected it without changing behavior or adding a suppression.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 16.6 final result API is next. Task 16.7 and the overall Task 16 gate remain open.
 
 # Task 17: Linux UCI executable — NOT STARTED
 - [ ] 17.1 Protocol loop.
@@ -891,9 +913,9 @@ Evidence:
 
 ## Immediate next operations
 
-1. Implement Task 16.5 responsive cancellation with a documented bounded node-check interval and latency target.
-2. Prove active recursive state unwinds before returning and the exact root position, detached history, and Zobrist identity are restored.
-3. Preserve the last fully completed exact iteration when cancellation interrupts a later depth.
-4. Define and test the fallback result when cancellation occurs before depth one completes.
-5. Add deterministic cancellation-point regressions plus a reproducible cancellation-latency benchmark.
-6. Preserve Task 16.4 limit semantics while keeping the final unified result API in Task 16.6 and check extensions in Task 16.7.
+1. Implement Task 16.6 as one unified public search-result API over completed, limited, and pre-depth-one fallback outcomes.
+2. Expose best move, ponder move, typed score, completed depth, selective depth, nodes and qnodes, elapsed time, legal PV, and typed termination reason.
+3. Keep exact completed-iteration data distinct from deterministic unscored fallback data.
+4. Preserve aspiration exactness, one-node cancellation responsiveness, limit precedence, legal PV reconstruction, and exact root restoration.
+5. Add deterministic result-shape tests for normal completion, every limit category, cancellation after a completed depth, cancellation before depth one, and terminal roots.
+6. Leave Task 16.7 check extensions optional and keep the overall Task 16 gate open until the result API and final integration evidence are complete.

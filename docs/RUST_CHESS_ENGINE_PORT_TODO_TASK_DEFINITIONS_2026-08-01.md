@@ -862,12 +862,12 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 16.5 Responsive cancellation
 
-- [ ] Check inside the tree at bounded node intervals.
-- [ ] Stop before arbitrary full-depth completion.
-- [ ] Preserve root position.
-- [ ] Return last fully completed iteration.
-- [ ] Define fallback when no iteration completed.
-- [ ] Benchmark cancellation latency.
+- [x] Check inside the tree at bounded node intervals.
+- [x] Stop before arbitrary full-depth completion.
+- [x] Preserve root position.
+- [x] Return last fully completed iteration.
+- [x] Define fallback when no iteration completed.
+- [x] Benchmark cancellation latency.
 
 ## 16.6 Search result API
 
