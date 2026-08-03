@@ -24,12 +24,11 @@ jobs:
   dispatch-rust-engine:
     name: Dispatch pending rust-engine validation
     if: >-
-      github.ref == 'refs/heads/master' &&
-      (github.event_name == 'schedule' ||
-       (github.event_name == 'issues' &&
-        github.event.issue.title == '[dispatch-rust-engine-ci]') ||
-       (github.event_name == 'pull_request' &&
-        github.event.pull_request.title == '[dispatch-rust-engine-ci-direct]'))
+      (github.event_name == 'schedule' && github.ref == 'refs/heads/master') ||
+      (github.event_name == 'issues' &&
+       github.event.issue.title == '[dispatch-rust-engine-ci]') ||
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.title == '[dispatch-rust-engine-ci-direct]')
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     env:
