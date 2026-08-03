@@ -708,7 +708,7 @@ Evidence:
 - The initial validation found only canonical rustfmt changes; the next found an invalid test assumption about sparse bounded hash-full sampling. Production semantics did not change.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 16 is complete. Task 17.1 protocol loop is next.
+- Task 16 is complete. Task 17.1 protocol loop is complete; Task 17.2 UCI search worker is next.
 
 ### Task 16.2 completion evidence
 
@@ -729,7 +729,7 @@ Evidence:
 - Initial validation iterations found an audit-witness shape requirement, one invalid private `const fn` qualifier, and one eight-argument internal constructor rejected by strict Clippy. Each was corrected directly without changing the aspiration contract or adding a suppression.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 16 is complete. Task 17.1 protocol loop is next.
+- Task 16 is complete. Task 17.1 protocol loop is complete; Task 17.2 UCI search worker is next.
 
 ### Task 16.3 completion evidence
 
@@ -750,7 +750,7 @@ Evidence:
 - The first compiler iteration found only an ambiguous integer literal in a collision test; adding an explicit `u64` fixed the test without changing production behavior.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 16 is complete. Task 17.1 protocol loop is next.
+- Task 16 is complete. Task 17.1 protocol loop is complete; Task 17.2 UCI search worker is next.
 
 ### Task 16.4 completion evidence
 
@@ -772,7 +772,7 @@ Evidence:
 - Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 16 is complete. Task 17.1 protocol loop is next.
+- Task 16 is complete. Task 17.1 protocol loop is complete; Task 17.2 UCI search worker is next.
 
 ### Task 16.5 completion evidence
 
@@ -794,7 +794,7 @@ Evidence:
 - The first implementation validation exposed one localized Rust iterator tail-expression lifetime error. Materializing the fallback value before return corrected it without changing behavior or adding a suppression.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 16 is complete. Task 17.1 protocol loop is next.
+- Task 16 is complete. Task 17.1 protocol loop is complete; Task 17.2 UCI search worker is next.
 
 ### Task 16.6 completion evidence
 
@@ -815,7 +815,7 @@ Evidence:
 - The implementation passed its first compiler, strict-Clippy, test, rustdoc, build, perft, and oracle iteration without a source correction or suppression.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 16 is complete. Task 17.1 protocol loop is next.
+- Task 16 is complete. Task 17.1 protocol loop is complete; Task 17.2 UCI search worker is next.
 
 ### Task 16.7 and Task 16 gate completion evidence
 
@@ -837,7 +837,7 @@ Evidence:
 - Validation corrections were limited to fail-closed generator assertions, two mechanical policy-wiring sites, a test-only helper classification, a private argument-policy grouping required by strict Clippy, and final temporary-generator cleanup. No lint suppression, gate downgrade, or semantic relaxation was used.
 - The clean implementation delta contains eight search modules, one focused integration-test file, and three contract documents. No temporary script or workflow modification remains.
 - The overall Task 16 gate is complete: deterministic depth/node behavior, responsive timed/explicit cancellation, legal PVs, exact aspiration recovery, unified result accounting, and finite optional extension semantics all passed together.
-- Task 17.1 protocol loop is next.
+- Task 17.1 protocol loop is complete; Task 17.2 UCI search worker is next.
 
 # Task 17: Linux UCI executable — IN PROGRESS
 - [x] 17.1 Protocol loop.
