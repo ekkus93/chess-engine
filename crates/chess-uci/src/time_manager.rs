@@ -178,8 +178,7 @@ mod tests {
     use chess_uci::{GoCommand, UciEvent, UciSession};
 
     use super::{
-        allocate_time_budget, UciTimeManagerError, DEFAULT_MOVES_TO_GO,
-        MINIMUM_SAFETY_RESERVE_MS,
+        allocate_time_budget, UciTimeManagerError, DEFAULT_MOVES_TO_GO, MINIMUM_SAFETY_RESERVE_MS,
     };
 
     fn command(input: &str) -> GoCommand {
@@ -230,9 +229,7 @@ mod tests {
 
     #[test]
     fn asymmetric_clocks_and_increments_follow_the_side_to_move() {
-        let command = command(
-            "go wtime 90000 btime 12000 winc 5000 binc 400 movestogo 10",
-        );
+        let command = command("go wtime 90000 btime 12000 winc 5000 binc 400 movestogo 10");
         let white = allocate_time_budget(command, Color::White)
             .expect("white clock is valid")
             .expect("white budget exists");
@@ -273,12 +270,10 @@ mod tests {
         for (remaining_ms, reserve_ms, soft_ms, hard_ms) in
             [(1, 0, 1, 1), (10, 9, 1, 1), (100, 10, 3, 6)]
         {
-            let budget = allocate_time_budget(
-                command(&format!("go wtime {remaining_ms}")),
-                Color::White,
-            )
-            .expect("positive clock is valid")
-            .expect("clock budget exists");
+            let budget =
+                allocate_time_budget(command(&format!("go wtime {remaining_ms}")), Color::White)
+                    .expect("positive clock is valid")
+                    .expect("clock budget exists");
             assert_eq!(budget.safety_reserve(), Duration::from_millis(reserve_ms));
             assert_eq!(budget.soft(), Duration::from_millis(soft_ms));
             assert_eq!(budget.hard(), Duration::from_millis(hard_ms));
@@ -291,15 +286,11 @@ mod tests {
     fn missing_or_zero_side_to_move_clock_fails_loudly() {
         assert_eq!(
             allocate_time_budget(command("go btime 1000"), Color::White),
-            Err(UciTimeManagerError::MissingSideToMoveClock {
-                side: Color::White,
-            })
+            Err(UciTimeManagerError::MissingSideToMoveClock { side: Color::White })
         );
         assert_eq!(
             allocate_time_budget(command("go wtime 0 btime 1000"), Color::White),
-            Err(UciTimeManagerError::ZeroSideToMoveClock {
-                side: Color::White,
-            })
+            Err(UciTimeManagerError::ZeroSideToMoveClock { side: Color::White })
         );
     }
 
