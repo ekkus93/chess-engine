@@ -66,3 +66,25 @@ Task 17.2 does not implement:
 - full process-level transcript coverage.
 
 Those remain Tasks 17.3 through 17.5.
+
+## Completion evidence
+
+Task 17.2 was validated at implementation SHA `d058353692f9f7c350e55dfae2d1a7c21ac64666` through temporary validation PR `#212`, workflow run `30788461155`, job `91606833594`.
+
+The exact implementation passed:
+
+- workspace and validation-asset checks;
+- the permanent Task 14.5 exclusion audit;
+- committed-lockfile and workspace-metadata checks;
+- `cargo fmt --all -- --check`;
+- locked all-target, all-feature workspace compilation;
+- strict Clippy with warnings denied;
+- the complete workspace test suite, including five focused worker and protocol-lifecycle tests;
+- authoritative release perft;
+- rustdoc with warnings denied;
+- debug and release workspace builds;
+- the independent differential corpus and seeded playout oracle.
+
+Validation corrections were limited to canonical rustfmt output and removal of one test-only method from the production binary. No lint suppression, fallback search policy, or lifecycle relaxation was introduced.
+
+Task 17.2 is complete. Task 17.3 owns deterministic UCI clock allocation, while Task 17.4 owns periodic search information and final `bestmove` output.
