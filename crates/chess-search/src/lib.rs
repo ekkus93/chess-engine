@@ -9,6 +9,7 @@ mod aspiration;
 mod cancellation;
 mod evaluation;
 mod iterative_deepening;
+mod limits;
 mod move_ordering;
 mod principal_variation;
 mod quiescence;
@@ -35,9 +36,13 @@ pub use evaluation::{
     EvaluationTerm, EvaluationTrace,
 };
 pub use iterative_deepening::{
-    iterative_deepening_search, iterative_deepening_search_with_transposition_table,
-    IterativeDeepeningIteration, IterativeDeepeningSearchError, IterativeDeepeningSearchResult,
+    iterative_deepening_search, iterative_deepening_search_with_limits,
+    iterative_deepening_search_with_limits_and_transposition_table,
+    iterative_deepening_search_with_transposition_table, IterativeDeepeningIteration,
+    IterativeDeepeningSearchError, IterativeDeepeningSearchResult,
+    LimitedIterativeDeepeningSearchResult,
 };
+pub use limits::{SearchLimitError, SearchLimitTermination, SearchLimits, SearchStopFlag};
 pub use principal_variation::{
     PrincipalVariation, PrincipalVariationError, PrincipalVariationTermination,
 };

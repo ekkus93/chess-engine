@@ -12,8 +12,13 @@ use crate::{
         AspirationWindowAttempt, AspirationWindowDiagnostics, AspirationWindowOutcome,
         DEFAULT_ASPIRATION_HALF_WIDTH_CENTIPAWNS,
     },
+    cancellation::NeverCancelled,
+    limits::{
+        SearchClock, SearchLimitController, SearchLimitError, SearchLimitTermination, SearchLimits,
+        WallClock,
+    },
     principal_variation::{reconstruct_principal_variation, PrincipalVariationError},
-    PrincipalVariation, Score, TranspositionHashFull, TranspositionTable,
+    PrincipalVariation, Score, SearchCancellationProbe, TranspositionHashFull, TranspositionTable,
     TranspositionTableAllocationError, TranspositionTableDiagnostics, MAX_MATE_PLY,
 };
 
@@ -150,9 +155,52 @@ impl IterativeDeepeningSearchResult {
     }
 }
 
+/// Exact completed iterations plus the limit that stopped the request.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LimitedIterativeDeepeningSearchResult {
+    completed: IterativeDeepeningSearchResult,
+    termination: SearchLimitTermination,
+    searched_nodes: u64,
+}
+
+impl LimitedIterativeDeepeningSearchResult {
+    /// Returns only fully exact completed iterations.
+    #[must_use]
+    pub const fn completed(&self) -> &IterativeDeepeningSearchResult {
+        &self.completed
+    }
+
+    /// Consumes the wrapper and returns the exact completed iterations.
+    #[must_use]
+    pub fn into_completed(self) -> IterativeDeepeningSearchResult {
+        self.completed
+    }
+
+    /// Returns the winning deterministic termination reason.
+    #[must_use]
+    pub const fn termination(&self) -> SearchLimitTermination {
+        self.termination
+    }
+
+    /// Returns every production node entered, including discarded partial work.
+    #[must_use]
+    pub const fn searched_nodes(&self) -> u64 {
+        self.searched_nodes
+    }
+
+    /// Returns nodes entered by the interrupted, non-completed depth.
+    #[must_use]
+    pub fn incomplete_nodes(&self) -> u64 {
+        self.searched_nodes
+            .saturating_sub(self.completed.total_nodes())
+    }
+}
+
 /// A fail-loud iterative-deepening error.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum IterativeDeepeningSearchError {
+    /// A typed limit request was invalid.
+    InvalidLimits(SearchLimitError),
     /// Iterative deepening requires at least one completed depth.
     ZeroMaximumDepth,
     /// The requested maximum exceeds the supported mate-distance domain.
@@ -200,6 +248,7 @@ pub enum IterativeDeepeningSearchError {
 impl fmt::Display for IterativeDeepeningSearchError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::InvalidLimits(error) => error.fmt(formatter),
             Self::ZeroMaximumDepth => {
                 formatter.write_str("iterative-deepening maximum depth must be at least one")
             }
@@ -302,6 +351,132 @@ pub fn iterative_deepening_search_with_transposition_table(
     })
 }
 
+/// Searches under a validated combination of depth, node, time, infinite, and stop limits.
+pub fn iterative_deepening_search_with_limits(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    limits: SearchLimits,
+) -> Result<LimitedIterativeDeepeningSearchResult, IterativeDeepeningSearchError> {
+    limits
+        .validate()
+        .map_err(IterativeDeepeningSearchError::InvalidLimits)?;
+    let mut transposition_table = TranspositionTable::new(DEFAULT_TRANSPOSITION_TABLE_MEBIBYTES)
+        .map_err(IterativeDeepeningSearchError::TranspositionTableAllocation)?;
+    iterative_deepening_search_with_limits_and_transposition_table(
+        position,
+        history,
+        limits,
+        &mut transposition_table,
+    )
+}
+
+/// Searches under typed limits using one caller-owned bounded table.
+pub fn iterative_deepening_search_with_limits_and_transposition_table(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    limits: SearchLimits,
+    transposition_table: &mut TranspositionTable,
+) -> Result<LimitedIterativeDeepeningSearchResult, IterativeDeepeningSearchError> {
+    iterative_deepening_search_with_limits_and_clock(
+        position,
+        history,
+        limits,
+        transposition_table,
+        WallClock::start(),
+    )
+}
+
+fn iterative_deepening_search_with_limits_and_clock<Clock>(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    limits: SearchLimits,
+    transposition_table: &mut TranspositionTable,
+    clock: Clock,
+) -> Result<LimitedIterativeDeepeningSearchResult, IterativeDeepeningSearchError>
+where
+    Clock: SearchClock,
+{
+    let mut controller = SearchLimitController::new(limits, clock)
+        .map_err(IterativeDeepeningSearchError::InvalidLimits)?;
+    let mut iterations: Vec<IterativeDeepeningIteration> = Vec::new();
+    let mut total_nodes = 0_u64;
+
+    loop {
+        let completed_depth = iterations
+            .last()
+            .map_or(0, IterativeDeepeningIteration::depth);
+        if let Some(termination) = controller.boundary_termination(completed_depth) {
+            return Ok(limited_result(
+                iterations,
+                total_nodes,
+                termination,
+                controller.visited_nodes(),
+            ));
+        }
+
+        iterations.try_reserve(1).map_err(|_| {
+            IterativeDeepeningSearchError::IterationStorageAllocation {
+                maximum_depth: controller.iteration_ceiling(),
+            }
+        })?;
+        let depth = completed_depth.saturating_add(1);
+        let center = iterations.last().map(IterativeDeepeningIteration::score);
+        let iteration = match search_completed_iteration_with_cancellation(
+            position,
+            history,
+            depth,
+            center,
+            DEFAULT_ASPIRATION_HALF_WIDTH_CENTIPAWNS,
+            transposition_table,
+            &mut controller,
+        ) {
+            Ok(iteration) => iteration,
+            Err(error) => {
+                if matches!(
+                    error,
+                    IterativeDeepeningSearchError::IterationFailed {
+                        error: AlphaBetaSearchError::Cancelled,
+                        ..
+                    }
+                ) {
+                    if let Some(termination) = controller.termination() {
+                        return Ok(limited_result(
+                            iterations,
+                            total_nodes,
+                            termination,
+                            controller.visited_nodes(),
+                        ));
+                    }
+                }
+                return Err(error);
+            }
+        };
+
+        total_nodes = total_nodes.checked_add(iteration.nodes()).ok_or(
+            IterativeDeepeningSearchError::NodeCountOverflow {
+                completed_depth: depth - 1,
+            },
+        )?;
+        iterations.push(iteration);
+    }
+}
+
+fn limited_result(
+    iterations: Vec<IterativeDeepeningIteration>,
+    total_nodes: u64,
+    termination: SearchLimitTermination,
+    searched_nodes: u64,
+) -> LimitedIterativeDeepeningSearchResult {
+    LimitedIterativeDeepeningSearchResult {
+        completed: IterativeDeepeningSearchResult {
+            iterations,
+            total_nodes,
+        },
+        termination,
+        searched_nodes,
+    }
+}
+
 fn search_completed_iteration(
     position: &mut Position,
     history: &mut SearchHistory,
@@ -310,6 +485,30 @@ fn search_completed_iteration(
     half_width_centipawns: i32,
     transposition_table: &mut TranspositionTable,
 ) -> Result<IterativeDeepeningIteration, IterativeDeepeningSearchError> {
+    let mut cancellation = NeverCancelled;
+    search_completed_iteration_with_cancellation(
+        position,
+        history,
+        depth,
+        center,
+        half_width_centipawns,
+        transposition_table,
+        &mut cancellation,
+    )
+}
+
+fn search_completed_iteration_with_cancellation<Probe>(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    depth: u16,
+    center: Option<Score>,
+    half_width_centipawns: i32,
+    transposition_table: &mut TranspositionTable,
+    cancellation: &mut Probe,
+) -> Result<IterativeDeepeningIteration, IterativeDeepeningSearchError>
+where
+    Probe: SearchCancellationProbe + ?Sized,
+{
     prepare_alpha_beta_iteration(position, history, depth, transposition_table)
         .map_err(|error| IterativeDeepeningSearchError::IterationFailed { depth, error })?;
 
@@ -322,6 +521,7 @@ fn search_completed_iteration(
         depth,
         initial_window,
         transposition_table,
+        cancellation,
     )?;
 
     let mut nodes = initial_attempt.nodes();
@@ -336,6 +536,7 @@ fn search_completed_iteration(
                 depth,
                 AlphaBetaWindow::full(),
                 transposition_table,
+                cancellation,
             )?;
             nodes = nodes.checked_add(retry_attempt.nodes()).ok_or(
                 IterativeDeepeningSearchError::NodeCountOverflow {
@@ -377,19 +578,24 @@ fn search_completed_iteration(
     })
 }
 
-fn run_attempt(
+fn run_attempt<Probe>(
     position: &mut Position,
     history: &mut SearchHistory,
     depth: u16,
     window: AlphaBetaWindow,
     transposition_table: &mut TranspositionTable,
-) -> Result<(AlphaBetaRootWindowResult, AspirationWindowAttempt), IterativeDeepeningSearchError> {
+    cancellation: &mut Probe,
+) -> Result<(AlphaBetaRootWindowResult, AspirationWindowAttempt), IterativeDeepeningSearchError>
+where
+    Probe: SearchCancellationProbe + ?Sized,
+{
     let result = alpha_beta_search_window_in_current_generation(
         position,
         history,
         depth,
         window,
         transposition_table,
+        cancellation,
     )
     .map_err(|error| IterativeDeepeningSearchError::IterationFailed { depth, error })?;
     let search_result = result.result();
@@ -525,5 +731,108 @@ mod aspiration_tests {
     #[test]
     fn fail_high_bound_is_not_promoted_and_full_window_retry_recovers_exactly() {
         assert_forced_retry(-1_000, AspirationWindowOutcome::FailHigh);
+    }
+}
+
+#[cfg(test)]
+mod limit_tests {
+    use std::{cell::Cell, time::Duration};
+
+    use chess_core::{Position, SearchHistory};
+
+    use super::iterative_deepening_search_with_limits_and_clock;
+    use crate::{limits::SearchClock, SearchLimitTermination, SearchLimits, TranspositionTable};
+
+    struct ScriptedClock {
+        values: Vec<Duration>,
+        index: Cell<usize>,
+    }
+
+    impl ScriptedClock {
+        fn new(values: Vec<Duration>) -> Self {
+            assert!(!values.is_empty());
+            Self {
+                values,
+                index: Cell::new(0),
+            }
+        }
+    }
+
+    impl SearchClock for ScriptedClock {
+        fn elapsed(&self) -> Duration {
+            let index = self.index.get();
+            self.index.set(index.saturating_add(1));
+            self.values
+                .get(index)
+                .copied()
+                .unwrap_or_else(|| *self.values.last().expect("clock has a terminal value"))
+        }
+    }
+
+    fn terminal_root() -> Position {
+        "7k/6Q1/6K1/8/8/8/8/8 b - - 0 1"
+            .parse()
+            .expect("terminal limit-test FEN is valid")
+    }
+
+    #[test]
+    fn soft_time_is_checked_after_one_exact_completed_iteration() {
+        let mut position = terminal_root();
+        let snapshot = position.clone();
+        let mut history = SearchHistory::from_position(&position);
+        let history_snapshot = history.clone();
+        let mut table = TranspositionTable::new(1).expect("bounded table allocates");
+        let limit = Duration::from_millis(1);
+
+        let result = iterative_deepening_search_with_limits_and_clock(
+            &mut position,
+            &mut history,
+            SearchLimits::new().with_depth(3).with_soft_time(limit),
+            &mut table,
+            ScriptedClock::new(vec![limit]),
+        )
+        .expect("soft-time search returns exact completed work");
+
+        assert_eq!(
+            result.termination(),
+            SearchLimitTermination::SoftTime { limit }
+        );
+        assert_eq!(result.completed().completed_depth(), 1);
+        assert_eq!(result.completed().total_nodes(), 1);
+        assert_eq!(result.searched_nodes(), 1);
+        assert_eq!(table.generation(), 1);
+        assert_eq!(position, snapshot);
+        assert_eq!(history, history_snapshot);
+        assert_eq!(position.zobrist(), position.recomputed_zobrist());
+    }
+
+    #[test]
+    fn hard_time_wins_before_starting_the_next_depth() {
+        let mut position = terminal_root();
+        let snapshot = position.clone();
+        let mut history = SearchHistory::from_position(&position);
+        let history_snapshot = history.clone();
+        let mut table = TranspositionTable::new(1).expect("bounded table allocates");
+        let limit = Duration::from_millis(1);
+
+        let result = iterative_deepening_search_with_limits_and_clock(
+            &mut position,
+            &mut history,
+            SearchLimits::new().with_depth(3).with_hard_time(limit),
+            &mut table,
+            ScriptedClock::new(vec![Duration::ZERO, Duration::ZERO, limit]),
+        )
+        .expect("hard-time search returns prior exact work");
+
+        assert_eq!(
+            result.termination(),
+            SearchLimitTermination::HardTime { limit }
+        );
+        assert_eq!(result.completed().completed_depth(), 1);
+        assert_eq!(result.searched_nodes(), 1);
+        assert_eq!(table.generation(), 1);
+        assert_eq!(position, snapshot);
+        assert_eq!(history, history_snapshot);
+        assert_eq!(position.zobrist(), position.recomputed_zobrist());
     }
 }

@@ -338,22 +338,25 @@ pub(crate) fn prepare_alpha_beta_iteration(
     Ok(())
 }
 
-pub(crate) fn alpha_beta_search_window_in_current_generation(
+pub(crate) fn alpha_beta_search_window_in_current_generation<Probe>(
     position: &mut Position,
     history: &mut SearchHistory,
     depth: u16,
     window: AlphaBetaWindow,
     transposition_table: &mut TranspositionTable,
-) -> Result<AlphaBetaRootWindowResult, AlphaBetaSearchError> {
+    cancellation: &mut Probe,
+) -> Result<AlphaBetaRootWindowResult, AlphaBetaSearchError>
+where
+    Probe: SearchCancellationProbe + ?Sized,
+{
     validate_search_inputs(position, history, depth)?;
-    let mut cancellation = NeverCancelled;
     let result = run_search_in_current_generation(
         position,
         history,
         depth,
         window,
         transposition_table,
-        &mut cancellation,
+        cancellation,
     )?;
     let outcome = if window.is_full() {
         AspirationWindowOutcome::Exact
@@ -425,9 +428,6 @@ where
     let mut alpha = window.alpha;
     let original_alpha = window.alpha;
     let beta = window.beta;
-    if context.cancellation.should_cancel() {
-        return Err(AlphaBetaSearchError::Cancelled);
-    }
 
     if depth == 0 {
         let quiescence_context = QuiescenceContext {
@@ -444,6 +444,10 @@ where
             context.ordering,
             &mut *context.cancellation,
         );
+    }
+
+    if context.cancellation.on_node() {
+        return Err(AlphaBetaSearchError::Cancelled);
     }
 
     let tokens = position.legal_move_tokens()?;

@@ -113,7 +113,7 @@ pub(crate) fn search_quiescence_node<Probe>(
 where
     Probe: SearchCancellationProbe + ?Sized,
 {
-    if cancellation.should_cancel() {
+    if cancellation.on_node() {
         return Err(AlphaBetaSearchError::Cancelled);
     }
 
