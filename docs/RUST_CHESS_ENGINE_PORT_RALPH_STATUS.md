@@ -3,7 +3,7 @@
 **Updated:** 2026-08-03
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 18 complete; Task 19.1 opening-book abstraction is next
+**Current phase:** Task 19.1 opening-book abstraction complete; Task 19.2 backend format is next
 
 ## Completed gates
 
@@ -58,6 +58,7 @@
 | 18.3 | `0789ac65590ccafb55b2b86b73873edfba1c7b55` | `30841137129` / `91778174797` | complete Rust-through-ABI lifecycle, 128× engine/cancellation churn, invalid-input preservation, active cross-thread cancellation, exact buffer ownership, and exported test-fault containment; 297 Rust tests green |
 | 18.4 | `466c7b504832afa2bf993cb10dcc0c12aefcf1c5` | `30844134371` / `91788114660` | Android JNI exports and typed Kotlin owner, background search, request-local cancellation, error mapping, deterministic close/reaper policy, nine focused JNI tests, 306 Rust tests, and AArch64 ELF proof `1fc49b6126ecb9faa4c0f167b272945d65aebbf1` green |
 | 18.5 / 18 gate | `0af14c4bdb7e8de645f27182a788e5eef5297d5f` | Rust `30847895229` / `91800574469`; Android `30847895345` / `91800574845`, `91800574914` | real host JVM JNI contract, ARM64/x86_64 Android builds, API-35 emulator lifecycle, live off-main native-search proof, 24 host and 16 Android repeated lifecycles; complete Task 18 gate green |
+| 19.1 | `6ce31141d0d4516696f1e9d17ee018606ef7bd4b` | Rust `30852253445` / `91814805656`; Android `30852253399` / `91814815286`, `91814815151` | adapter-neutral `chess-book` crate, typed `OpeningBook`/`BookProvider`, generic weighted `BookMove`, four focused tests, no core/search I/O dependencies; 310 Rust tests and Android regressions green |
 
 ## Task 17.1 completion
 
@@ -1001,3 +1002,25 @@ Evidence:
 - [x] Pass exact-head rustfmt, Cargo check, Clippy, tests, rustdoc, debug, release, perft, and differential gates.
 
 No pull request has been created; work remains on `rust-engine`. Task 17.1 Linux UCI protocol loop is the next operation.
+
+## Task 19.1 completion
+
+Implemented and validated:
+
+- dedicated platform-neutral `chess-book` workspace crate depending only on `chess-core`;
+- `BookMove<M = ()>` with semantic engine move, `u32` relative weight, and optional backend metadata;
+- `OpeningBook` as a `Send + Sync` validated-position query with typed fail-visible errors;
+- `BookProvider` as an explicit adapter-owned construction boundary with `Ok(None)` for intentionally disabled book support;
+- no filesystem, asset, environment, network, global-discovery, or platform dependency in `chess-core` or `chess-search`;
+- four focused contract tests covering value preservation, dynamic injection, explicit enable/disable, and typed lookup failure;
+- parser/format, selection, legality validation, UCI/safe-API integration, and Android assets remain explicitly deferred to Tasks 19.2–19.5.
+
+Evidence:
+
+- Exact validated implementation SHA: `6ce31141d0d4516696f1e9d17ee018606ef7bd4b`.
+- Permanent Rust validation: run `30852253445`, job `91814805656`.
+- Permanent Android regression validation: run `30852253399`, host JVM job `91814815286`, emulator job `91814815151`.
+- Results: committed lockfile, metadata, rustfmt, workspace check, strict Clippy, 310 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, differential oracle, host JVM JNI, dual Android ABI build, APK build, and API-35 emulator lifecycle all passed.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- The first executable validation found only canonical rustfmt output; no API, dependency boundary, error policy, test, or gate was weakened.
+- Task 19.2 backend format is next. The overall Task 19 gate remains open.

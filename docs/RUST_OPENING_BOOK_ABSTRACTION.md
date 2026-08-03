@@ -66,3 +66,15 @@ The crate tests prove:
 4. lookup failures remain typed and cannot be mistaken for an empty candidate list.
 
 The permanent workspace workflow is the authoritative compiler, strict-Clippy, lockfile, rustdoc, test, perft, build, and differential-oracle gate for this contract.
+
+## Completion evidence
+
+- Exact validated implementation SHA: `6ce31141d0d4516696f1e9d17ee018606ef7bd4b`.
+- Permanent Rust validation: run `30852253445`, job `91814805656`.
+- Permanent Android regression validation: run `30852253399`, host JVM job `91814815286`, emulator job `91814815151`.
+- Four focused `chess-book` tests passed; the complete workspace executed 310 non-doc Rust tests with zero failures.
+- Release depth-four perft, rustdoc with warnings denied, debug/release builds, and the differential oracle all passed.
+- Differential evidence: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- The Android regression gate rebuilt and verified both JNI ABIs, passed host JVM tests, rebuilt the AAR/test APK, and passed the API-35 emulator lifecycle.
+- The only implementation-validation correction was canonical rustfmt output.
+- Task 19.1 is complete. Tasks 19.2–19.5 and the overall Task 19 gate remain open.

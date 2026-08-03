@@ -991,7 +991,7 @@ Evidence:
 - Task 19.1 opening-book abstraction is next.
 
 # Task 19: Opening book — NOT STARTED
-- [ ] 19.1 Abstraction.
+- [x] 19.1 Abstraction.
 - [ ] 19.2 Format.
 - [ ] 19.3 Policies.
 - [ ] 19.4 Integration.

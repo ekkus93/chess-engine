@@ -1016,9 +1016,9 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 19.1 Core abstraction
 
-- [ ] Define adapter-facing `OpeningBook`/`BookProvider` trait outside `chess-core`.
-- [ ] Define `BookMove` with move, weight, and optional metadata.
-- [ ] Ensure no filesystem dependency enters core/search crates.
+- [x] Define adapter-facing `OpeningBook`/`BookProvider` trait outside `chess-core`.
+- [x] Define `BookMove` with move, weight, and optional metadata.
+- [x] Ensure no filesystem dependency enters core/search crates.
 
 ## 19.2 Backend format
 
