@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from pathlib import Path
 
+# Comment-only trigger after the registered Android workflow is syntactically valid.
 IMPLEMENTATION_SHA = "0af14c4bdb7e8de645f27182a788e5eef5297d5f"
 RUST_RUN = "30847895229"
 RUST_JOB = "91800574469"
