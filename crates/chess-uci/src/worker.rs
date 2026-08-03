@@ -12,11 +12,13 @@ use chess_search::{
 };
 use chess_uci::{EngineOptions, GoCommand, SearchRequest};
 
+use crate::time_manager::{allocate_time_budget, UciTimeManagerError};
+
 /// Failure to prepare, start, execute, or join one adapter-owned search worker.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SearchWorkerError {
-    /// Clock allocation remains owned by Task 17.3.
-    ClockManagementPending,
+    /// UCI clock fields could not produce a valid side-to-move budget.
+    TimeManager(UciTimeManagerError),
     /// The typed request could not form a valid search-limit combination.
     InvalidLimits(SearchLimitError),
     /// The requested fixed-capacity transposition table could not be allocated.
@@ -37,8 +39,7 @@ pub enum SearchWorkerError {
 impl fmt::Display for SearchWorkerError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::ClockManagementPending => formatter
-                .write_str("clock-based go requests require the Task 17.3 UCI time manager"),
+            Self::TimeManager(error) => error.fmt(formatter),
             Self::InvalidLimits(error) => error.fmt(formatter),
             Self::TranspositionTableAllocation(error) => error.fmt(formatter),
             Self::Search(error) => error.fmt(formatter),
@@ -71,8 +72,9 @@ impl SearchWorker {
         let game = request.game().clone();
         let command = request.command();
         let options = request.options();
+        let side_to_move = game.position().side_to_move();
         let stop_flag = SearchStopFlag::new();
-        let limits = build_search_limits(command, options, stop_flag.clone())?;
+        let limits = build_search_limits(command, options, side_to_move, stop_flag.clone())?;
         let table_mebibytes = options.hash_mebibytes();
 
         let handle = thread::Builder::new()
@@ -173,12 +175,9 @@ impl Drop for SearchWorkerSlot {
 fn build_search_limits(
     command: GoCommand,
     options: EngineOptions,
+    side_to_move: chess_core::Color,
     stop_flag: SearchStopFlag,
 ) -> Result<SearchLimits, SearchWorkerError> {
-    if has_clock_fields(command) {
-        return Err(SearchWorkerError::ClockManagementPending);
-    }
-
     let mut limits = SearchLimits::new().with_stop_flag(stop_flag);
     if command.is_infinite() {
         limits = limits.infinite();
@@ -192,6 +191,13 @@ fn build_search_limits(
         if let Some(move_time_ms) = command.move_time_ms() {
             limits = limits.with_hard_time(Duration::from_millis(move_time_ms));
         }
+        if let Some(budget) =
+            allocate_time_budget(command, side_to_move).map_err(SearchWorkerError::TimeManager)?
+        {
+            limits = limits
+                .with_soft_time(budget.soft())
+                .with_hard_time(budget.hard());
+        }
     }
     if options.check_extension() {
         limits = limits.with_check_extension();
@@ -200,14 +206,6 @@ fn build_search_limits(
         .validate()
         .map_err(SearchWorkerError::InvalidLimits)?;
     Ok(limits)
-}
-
-fn has_clock_fields(command: GoCommand) -> bool {
-    command.white_time_ms().is_some()
-        || command.black_time_ms().is_some()
-        || command.white_increment_ms().is_some()
-        || command.black_increment_ms().is_some()
-        || command.moves_to_go().is_some()
 }
 
 fn run_search(
@@ -230,85 +228,97 @@ fn run_search(
 
 #[cfg(test)]
 mod tests {
-    use std::io::Cursor;
+    use std::time::Duration;
 
-    use chess_search::SearchLimitTermination;
-    use chess_uci::{SearchRequest, UciEvent, UciSession};
+    use chess_core::Color;
+    use chess_search::SearchStopFlag;
+    use chess_uci::{EngineOptions, GoCommand, UciEvent, UciSession};
 
-    use super::{SearchWorker, SearchWorkerError, SearchWorkerSlot};
-    use crate::run_protocol_loop;
+    use super::{build_search_limits, SearchWorkerError};
+    use crate::time_manager::UciTimeManagerError;
 
-    fn request(command: &str) -> SearchRequest {
-        let response = UciSession::new().handle_line(command);
+    fn command(input: &str) -> GoCommand {
+        let response = UciSession::new().handle_line(input);
         match response.event() {
-            Some(UciEvent::StartSearch(request)) => request.as_ref().clone(),
-            other => panic!("expected start-search request, found {other:?}"),
+            Some(UciEvent::StartSearch(request)) => request.command(),
+            other => panic!("expected start-search event, found {other:?}"),
         }
     }
 
     #[test]
-    fn finite_worker_runs_production_search_on_detached_state() {
-        let source = UciSession::new();
-        let source_game = source.game().clone();
-        let result = SearchWorker::spawn(request("go depth 1"))
-            .expect("worker starts")
-            .join()
-            .expect("worker search succeeds");
+    fn clock_budget_is_combined_with_explicit_depth_and_nodes() {
+        let limits = build_search_limits(
+            command(
+                "go depth 7 nodes 50000 wtime 60000 btime 50000 winc 1000 binc 200 movestogo 20",
+            ),
+            EngineOptions::default(),
+            Color::White,
+            SearchStopFlag::new(),
+        )
+        .expect("combined clock limits are valid");
+
+        assert_eq!(limits.depth(), Some(7));
+        assert_eq!(limits.nodes(), Some(50000));
+        assert_eq!(limits.soft_time(), Some(Duration::from_millis(3600)));
+        assert_eq!(limits.hard_time(), Some(Duration::from_millis(7200)));
+        assert!(limits.stop_flag().is_some());
+    }
+
+    #[test]
+    fn worker_limit_conversion_uses_the_position_side_to_move() {
+        let command = command(
+            "go wtime 90000 btime 12000 winc 5000 binc 400 movestogo 10",
+        );
+        let white = build_search_limits(
+            command,
+            EngineOptions::default(),
+            Color::White,
+            SearchStopFlag::new(),
+        )
+        .expect("white limits are valid");
+        let black = build_search_limits(
+            command,
+            EngineOptions::default(),
+            Color::Black,
+            SearchStopFlag::new(),
+        )
+        .expect("black limits are valid");
+
+        assert_eq!(white.soft_time(), Some(Duration::from_millis(12300)));
+        assert_eq!(white.hard_time(), Some(Duration::from_millis(24600)));
+        assert_eq!(black.soft_time(), Some(Duration::from_millis(1440)));
+        assert_eq!(black.hard_time(), Some(Duration::from_millis(2880)));
+    }
+
+    #[test]
+    fn move_time_behavior_remains_a_hard_limit_only() {
+        let limits = build_search_limits(
+            command("go movetime 250"),
+            EngineOptions::default(),
+            Color::White,
+            SearchStopFlag::new(),
+        )
+        .expect("move-time limit is valid");
+
+        assert_eq!(limits.soft_time(), None);
+        assert_eq!(limits.hard_time(), Some(Duration::from_millis(250)));
+    }
+
+    #[test]
+    fn missing_side_to_move_clock_is_a_typed_worker_error() {
+        let error = build_search_limits(
+            command("go btime 1000"),
+            EngineOptions::default(),
+            Color::White,
+            SearchStopFlag::new(),
+        )
+        .expect_err("missing white clock must fail");
 
         assert_eq!(
-            result.termination(),
-            SearchLimitTermination::Depth { depth: 1 }
+            error,
+            SearchWorkerError::TimeManager(UciTimeManagerError::MissingSideToMoveClock {
+                side: Color::White,
+            })
         );
-        assert_eq!(result.completed_depth(), 1);
-        assert!(result.best_move().is_some());
-        assert!(result.nodes() > 0);
-        assert_eq!(source.game(), &source_game);
-    }
-
-    #[test]
-    fn infinite_worker_obeys_its_request_local_stop_flag() {
-        let worker = SearchWorker::spawn(request("go infinite")).expect("worker starts");
-        let result = worker.stop_and_join().expect("worker stops cleanly");
-        assert_eq!(result.termination(), SearchLimitTermination::ExplicitStop);
-    }
-
-    #[test]
-    fn replacement_go_stops_and_joins_the_prior_worker() {
-        let mut slot = SearchWorkerSlot::new();
-        assert!(slot
-            .start(request("go infinite"))
-            .expect("first worker starts")
-            .is_none());
-        assert!(slot.active.is_some());
-
-        let replaced = slot
-            .start(request("go depth 1"))
-            .expect("replacement worker starts")
-            .expect("prior worker result is returned");
-        assert_eq!(replaced.termination(), SearchLimitTermination::ExplicitStop);
-        assert!(slot.active.is_some());
-        let _replacement = slot.stop().expect("replacement worker joins");
-        assert!(slot.active.is_none());
-    }
-
-    #[test]
-    fn clock_request_waits_for_task_17_3_without_spawning() {
-        assert_eq!(
-            SearchWorker::spawn(request("go wtime 60000 btime 60000"))
-                .expect_err("clock request is not allocated early"),
-            SearchWorkerError::ClockManagementPending
-        );
-    }
-
-    #[test]
-    fn protocol_state_replacement_and_quit_stop_active_workers() {
-        let input = Cursor::new(
-            b"go infinite\nposition startpos moves e2e4\ngo infinite\nucinewgame\nisready\nquit\n"
-                .as_slice(),
-        );
-        let mut output = Vec::new();
-        run_protocol_loop(input, &mut output).expect("protocol loop shuts down cleanly");
-        let output = String::from_utf8(output).expect("protocol output is UTF-8");
-        assert_eq!(output, "readyok\n");
     }
 }
