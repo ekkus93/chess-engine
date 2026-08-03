@@ -3,7 +3,7 @@
 **Updated:** 2026-08-02  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Tasks 16.1–16.6 complete; Task 16.7 optional bounded check extension is next
+**Current phase:** Task 16 complete; Task 17.1 Linux UCI protocol loop is next
 
 ## Completed gates
 
@@ -46,6 +46,8 @@
 | 16.4 | `8a48ee45199e58db76adee4e4fc4adaf131566d2` | `30780915406` / `91585230626` | typed depth/node/time/infinite/stop limits, partial-depth discard, 214 Rust tests, depth-four perft, and differential oracle green |
 | 16.5 | `128f52e8fb7d7e9974605fc840eb13d3ecc021a6` | `30782361257` / `91589434579` | one-node cancellation bound, deterministic fallback, latency benchmark, 218 Rust tests, depth-four perft, and differential oracle green |
 | 16.6 | `dcde800f4c5a08c07fe57724ed672f2abd122157` | `30783666840` / `91593059900` | unified typed result snapshot, request-wide node/qnode/seldepth/time accounting, 222 Rust tests, depth-four perft, and differential oracle green |
+| 16.7 | `836ca0563f9a8dce44eb78997e28335a9d8fcdce` | `30785853401` / `91599164384` | explicit one-ply-per-line check extension, path-safe TT/PV policy, diagnostics, 229 Rust tests, depth-four perft, and differential oracle green |
+| 16 / gate | `836ca0563f9a8dce44eb78997e28335a9d8fcdce` | `30785853401` / `91599164384` | all iterative-deepening, aspiration, PV, limit, cancellation, result, and bounded-extension integration gates green |
 
 ## Task 12 completion
 
@@ -654,7 +656,7 @@ Evidence:
 - The implementation passed its first compiler and strict-Clippy iteration without source corrections or suppressions.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 16.7 optional bounded check extension is next; Task 16.7 and the overall Task 16 gate remain open.
+- Task 16 is complete. Task 17.1 protocol loop is next.
 
 ## Task 16.5 completion
 
@@ -682,7 +684,7 @@ Evidence:
 - The initial compiler iteration found one fallback iterator lifetime issue. A local materialized value fixed it without semantic relaxation or lint suppression.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 16.7 optional bounded check extension is next; Task 16.7 and the overall Task 16 gate remain open.
+- Task 16 is complete. Task 17.1 protocol loop is next.
 
 ## Task 16.6 completion
 
@@ -712,9 +714,36 @@ Evidence:
 - The clean implementation delta contains only seven search modules, one integration-test file, and three contract documents.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 16.7 optional bounded check extension is next. The overall Task 16 gate remains open.
+- Task 16 is complete. Task 17.1 protocol loop is next.
 
-## Task 16 active scope
+## Task 16.7 and Task 16 gate completion
+
+Implemented and validated:
+
+- explicit opt-in through `SearchLimits::with_check_extension`, with baseline behavior unchanged by default;
+- exactly one additional check ply per root-to-leaf path, enforced by a value-passed finite budget;
+- budget-exhausted and mate-domain-blocked decisions that never create an extension chain;
+- path-safe suppression of TT scores and stores while preserving complete-key legal move-ordering hints;
+- legal bounded root-PV behavior without following incompatible selective-search table chains;
+- request-wide applied/exhausted/blocked diagnostics, including interrupted partial work;
+- unchanged one-node cancellation responsiveness, node/time accounting, aspiration exactness, and exact root restoration;
+- three focused unit tests, four integration tests, and updated search-limit/result contracts;
+- `docs/RUST_CHECK_EXTENSION.md`.
+
+Evidence:
+
+- Production implementation commit: `54d98563f253df3ef055470a5fd4b2ee8b32947a`.
+- Exact clean validated SHA: `836ca0563f9a8dce44eb78997e28335a9d8fcdce`.
+- Permanent CI run/job: `30785853401` / `91599164384`.
+- Results: permanent exclusion audit over 17 production Rust files, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy without suppressions, 229 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- The deterministic extension witness records applied work only when opted in; the repeat search preserves move, score, node count, diagnostics, legal PV, position, and history.
+- A seeded incompatible exact TT score cannot bypass extension search. A 64-node interrupted request preserves partial extension diagnostics and restores all root invariants.
+- Validation fixes addressed generator matching, mechanical policy wiring, a test-only PV helper, strict-Clippy argument grouping, and temporary-script deletion; no production warning was suppressed and no gate was weakened.
+- The clean implementation delta contains eight search modules, one integration-test file, and three contract documents; permanent CI is restored byte-for-byte.
+- Task 16.1–16.7 and the overall Task 16 gate are complete. Task 17.1 protocol loop is next.
+
+## Task 16 completed scope
 
 - [x] Implement Task 16.1 iterative deepening.
 - [x] Implement Task 16.2 aspiration windows.
@@ -722,8 +751,8 @@ Evidence:
 - [x] Implement Task 16.4 search limits.
 - [x] Implement Task 16.5 responsive cancellation.
 - [x] Implement Task 16.6 final result API.
-- [ ] Consider Task 16.7 optional bounded check extension.
-- [ ] Pass the overall Task 16 gate.
+- [x] Implement Task 16.7 optional bounded check extension.
+- [x] Pass the overall Task 16 gate.
 
 ## Task 15 completed scope
 
@@ -761,4 +790,4 @@ Evidence:
 - [x] Add mate-in-one, mated, stalemate, draw, shorter-mate, and longer-survival fixtures.
 - [x] Pass exact-head rustfmt, Cargo check, Clippy, tests, rustdoc, debug, release, perft, and differential gates.
 
-No pull request has been created; work remains on `rust-engine`. Task 16.7 optional bounded check extension is the next operation.
+No pull request has been created; work remains on `rust-engine`. Task 17.1 Linux UCI protocol loop is the next operation.

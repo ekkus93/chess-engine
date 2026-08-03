@@ -883,11 +883,11 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 16.7 Optional check extension
 
-- [ ] Add a bounded check extension only after baseline tests pass.
-- [ ] Prevent unbounded extension chains.
-- [ ] Record extension diagnostics.
+- [x] Add a bounded check extension only after baseline tests pass.
+- [x] Prevent unbounded extension chains.
+- [x] Record extension diagnostics.
 
-**Task 16 gate:** Fixed-depth/node searches are deterministic, timed searches cancel responsively, PVs are legal, and aspiration recovery never promotes an inexact inferior move.
+**Task 16 gate — COMPLETE:** Fixed-depth/node searches are deterministic, timed searches cancel responsively, PVs are legal, aspiration recovery never promotes an inexact inferior move, and the optional check extension is explicitly bounded.
 
 ---
 

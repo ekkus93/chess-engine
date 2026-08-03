@@ -37,7 +37,7 @@
 | 13 | **Complete** — reference negamax, alpha-beta, shallow equivalence, immutability, and terminal/mate-distance fixtures. |
 | 14 | **Complete** — quiescence, tactical/quiet ordering, consolidated correctness, and exclusion audit. |
 | 15 | **Complete** — bounded, mate-safe transposition table integrated into production alpha-beta with deterministic node-reduction evidence. |
-| 16 | **Active** — Tasks 16.1–16.6 complete; Task 16.7 optional bounded check extension next. |
+| 16 | **Complete** — iterative deepening, aspiration recovery, legal PVs, limits, responsive cancellation, unified results, and bounded optional check extension. |
 | 17–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
@@ -681,15 +681,15 @@ Evidence:
 - The clean implementation delta contains only three Rust modules, one integration-test file, and one contract document; no temporary workflow, script, unbounded map, or fallback remains.
 - Task 15 and Tasks 16.1/16.3 are complete. Task 16.2 aspiration windows is next.
 
-# Task 16: Iterative deepening, PV, limits, cancellation — ACTIVE
+# Task 16: Iterative deepening, PV, limits, cancellation — COMPLETE
 - [x] 16.1 Iterative deepening.
 - [x] 16.2 Aspiration windows.
 - [x] 16.3 Principal variation.
 - [x] 16.4 Limits.
 - [x] 16.5 Cancellation.
 - [x] 16.6 Result API.
-- [ ] 16.7 Optional extension.
-- [ ] Task 16 gate.
+- [x] 16.7 Optional extension.
+- [x] Task 16 gate.
 
 ### Task 16.1 completion evidence
 
@@ -708,7 +708,7 @@ Evidence:
 - The initial validation found only canonical rustfmt changes; the next found an invalid test assumption about sparse bounded hash-full sampling. Production semantics did not change.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Tasks 16.1–16.6 are complete. Task 16.7 optional bounded check extension is next.
+- Task 16 is complete. Task 17.1 protocol loop is next.
 
 ### Task 16.2 completion evidence
 
@@ -729,7 +729,7 @@ Evidence:
 - Initial validation iterations found an audit-witness shape requirement, one invalid private `const fn` qualifier, and one eight-argument internal constructor rejected by strict Clippy. Each was corrected directly without changing the aspiration contract or adding a suppression.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 16.7 optional bounded check extension is next; Task 16.7 and the overall Task 16 gate remain open.
+- Task 16 is complete. Task 17.1 protocol loop is next.
 
 ### Task 16.3 completion evidence
 
@@ -750,7 +750,7 @@ Evidence:
 - The first compiler iteration found only an ambiguous integer literal in a collision test; adding an explicit `u64` fixed the test without changing production behavior.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Tasks 16.1–16.6 are complete. Task 16.7 optional bounded check extension is the next operation.
+- Task 16 is complete. Task 17.1 protocol loop is next.
 
 ### Task 16.4 completion evidence
 
@@ -772,7 +772,7 @@ Evidence:
 - Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 16.7 optional bounded check extension is next; Task 16.7 and the overall Task 16 gate remain open.
+- Task 16 is complete. Task 17.1 protocol loop is next.
 
 ### Task 16.5 completion evidence
 
@@ -794,7 +794,7 @@ Evidence:
 - The first implementation validation exposed one localized Rust iterator tail-expression lifetime error. Materializing the fallback value before return corrected it without changing behavior or adding a suppression.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 16.7 optional bounded check extension is next; Task 16.7 and the overall Task 16 gate remain open.
+- Task 16 is complete. Task 17.1 protocol loop is next.
 
 ### Task 16.6 completion evidence
 
@@ -815,7 +815,29 @@ Evidence:
 - The implementation passed its first compiler, strict-Clippy, test, rustdoc, build, perft, and oracle iteration without a source correction or suppression.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 16.7 optional bounded check extension is next. The overall Task 16 gate remains open.
+- Task 16 is complete. Task 17.1 protocol loop is next.
+
+### Task 16.7 and Task 16 gate completion evidence
+
+- Implementation: `crates/chess-search/src/check_extension.rs`, integrated through `alpha_beta.rs`, `cancellation.rs`, `limits.rs`, `iterative_deepening.rs`, `principal_variation.rs`, and transposition probing.
+- Public APIs: `SearchLimits::with_check_extension`, `SearchLimits::check_extension_enabled`, `CheckExtensionDiagnostics`, `CheckExtensionEvent`, `MAX_CHECK_EXTENSIONS_PER_LINE`, and `SearchResult::check_extension_diagnostics`.
+- The feature is explicitly opt-in and disabled by default. Existing fixed-depth and limit-controlled requests preserve their prior baseline behavior.
+- A checking child may receive exactly one additional ply per root-to-leaf path. The remaining budget is passed by value, consumed on application, and cannot be shared or replenished by siblings or later checks.
+- Later checking nodes on the same path remain at nominal depth and are recorded as budget-exhausted. The mate-score ply ceiling blocks an extension that would leave the supported score domain.
+- Extension-enabled searches suppress TT score reuse and storage because remaining extension budget is path-dependent and absent from the Zobrist key. Complete-key legal TT moves remain ordering hints only.
+- PV reconstruction remains legal and bounded: the searched root move is validated, while extension-enabled requests do not continue through incompatible pre-existing TT score chains.
+- Request-wide diagnostics report eligible checking nodes, applied extensions, exhausted-budget nodes, and mate-domain-blocked nodes, including work from an interrupted depth.
+- Three unit tests prove the one-extension budget, disabled/nonchecking behavior, and mate-domain blocking. Four integration tests prove explicit opt-in, deterministic result/PV behavior, seeded TT-score rejection, node-limited diagnostics, and exact root/history/Zobrist restoration.
+- Contract documentation: `docs/RUST_CHECK_EXTENSION.md`; search-limit and result-API contracts updated through Task 16.7.
+- Production implementation commit: `54d98563f253df3ef055470a5fd4b2ee8b32947a`.
+- Exact clean validated implementation SHA: `836ca0563f9a8dce44eb78997e28335a9d8fcdce`.
+- Permanent CI run/job: `30785853401` / `91599164384`.
+- Results: permanent exclusion audit over 17 production Rust files, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy without suppressions, 229 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- Validation corrections were limited to fail-closed generator assertions, two mechanical policy-wiring sites, a test-only helper classification, a private argument-policy grouping required by strict Clippy, and final temporary-generator cleanup. No lint suppression, gate downgrade, or semantic relaxation was used.
+- The clean implementation delta contains eight search modules, one focused integration-test file, and three contract documents. No temporary script or workflow modification remains.
+- The overall Task 16 gate is complete: deterministic depth/node behavior, responsive timed/explicit cancellation, legal PVs, exact aspiration recovery, unified result accounting, and finite optional extension semantics all passed together.
+- Task 17.1 protocol loop is next.
 
 # Task 17: Linux UCI executable — NOT STARTED
 - [ ] 17.1 Protocol loop.
@@ -934,9 +956,9 @@ Evidence:
 
 ## Immediate next operations
 
-1. Evaluate and implement Task 16.7 only as a bounded, explicitly optional check extension that cannot create unbounded selective depth.
-2. Define exact extension eligibility, maximum extension budget, interaction with mate-distance scoring, and cancellation/limit accounting before implementation.
-3. Prove the extension preserves deterministic root choice, legal PV reconstruction, TT depth semantics, and exact position/history/Zobrist restoration.
-4. Add tactical witnesses showing useful horizon improvement without weakening the Task 16.5 cancellation bound or Task 16.6 result accounting.
-5. Run the overall Task 16 integration gate after Task 16.7 is either implemented and validated or explicitly declined with documented rationale.
-6. Keep Task 17 UCI worker/protocol integration deferred until the Task 16 gate is complete.
+1. Implement Task 17.1 as a fail-loud Linux UCI protocol loop over the completed Task 16 search boundary.
+2. Support `uci`, `isready`, `ucinewgame`, supported `setoption`, `position startpos`, six-field `position fen`, move replay, all specified `go` forms, `stop`, and `quit`.
+3. Keep parsing, position replacement, and move replay transactional so malformed commands cannot corrupt the active game state.
+4. Add deterministic protocol transcripts covering valid commands, malformed commands, terminal positions, repeated position replacement, and clean shutdown.
+5. Preserve Task 16 cancellation, legal PV, best-move fallback, node/time accounting, and exact root restoration through the adapter boundary.
+6. Keep the Task 17.2 worker thread and Task 17.3 time manager separate from the initial protocol-loop implementation.
