@@ -1029,10 +1029,10 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 19.3 Selection policies
 
-- [ ] deterministic highest weight;
-- [ ] weighted random;
-- [ ] explicit local RNG seed;
-- [ ] legal-move validation before return.
+- [x] deterministic highest weight;
+- [x] weighted random;
+- [x] explicit local RNG seed;
+- [x] legal-move validation before return.
 
 ## 19.4 Adapter integration
 

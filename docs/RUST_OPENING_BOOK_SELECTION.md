@@ -71,3 +71,15 @@ Task 19.3 does not:
 - close the overall Task 19 gate.
 
 Those behaviors remain assigned to Tasks 19.4 and 19.5.
+
+## Completion evidence
+
+- Exact merged implementation SHA: `82b5100f501fe4e4a845d5fb3bdbb1c8fe7d34ef`.
+- Exact PR head validated before rebase merge: `4bb4e30f457b9b84e09485cf51629ab0b3c6d37d`; the production policy blob is unchanged at the merged SHA.
+- Permanent Rust validation: run `30859905206`, job `91839380997`.
+- Permanent Android regression validation: run `30859905203`, host JVM job `91839428990`, API-35 emulator job `91839429013`.
+- Six focused Task 19.3 policy and legality tests passed; `chess-book` executed 17 tests and the complete workspace executed 323 non-documentation Rust tests with zero failures.
+- Committed lockfile verification, workspace metadata, rustfmt, all-target/all-feature compilation, strict Clippy with warnings denied, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and the independent differential oracle passed.
+- Differential validation covered 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- The unchanged Android gate rebuilt and verified both JNI ABIs, passed host JVM tests, rebuilt the AAR/test APK, and passed the API-35 emulator lifecycle.
+- Task 19.3 is complete. Tasks 19.4–19.5 and the overall Task 19 gate remain open.
