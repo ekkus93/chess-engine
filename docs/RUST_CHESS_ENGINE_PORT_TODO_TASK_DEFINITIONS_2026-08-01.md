@@ -955,17 +955,17 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 18.1 Safe Rust facade
 
-- [ ] `EngineConfig`.
-- [ ] `Engine::new`.
-- [ ] set/reset position.
-- [ ] canonical FEN retrieval.
-- [ ] legal moves.
-- [ ] play move.
-- [ ] game status.
-- [ ] search.
-- [ ] cancellation handle.
-- [ ] version and weight identity.
-- [ ] ownership and thread-safety rustdoc.
+- [x] `EngineConfig`.
+- [x] `Engine::new`.
+- [x] set/reset position.
+- [x] canonical FEN retrieval.
+- [x] legal moves.
+- [x] play move.
+- [x] game status.
+- [x] search.
+- [x] cancellation handle.
+- [x] version and weight identity.
+- [x] ownership and thread-safety rustdoc.
 
 ## 18.2 C ABI
 

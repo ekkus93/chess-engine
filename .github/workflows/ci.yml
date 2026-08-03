@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - rust-engine
-      - task18-1-safe-facade
   pull_request:
     branches:
       - rust-engine
@@ -124,33 +123,3 @@ jobs:
           --games 12
           --plies 48
           --seed 0xC0FFEE
-
-  close-task-18-1:
-    name: Close Task 18.1 trackers
-    if: github.event_name == 'push' && github.ref == 'refs/heads/task18-1-safe-facade'
-    needs: rust-quality
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: task18-1-safe-facade
-          fetch-depth: 0
-
-      - name: Apply completion evidence and restore permanent CI
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 -m py_compile scripts/task18_1_close.py
-          python3 scripts/task18_1_close.py
-          git show 45342435fe5d2cad592f51e24e0e4292769e52e8:.github/workflows/ci.yml > .github/workflows/ci.yml
-          rm scripts/task18_1_close.py
-          git diff --check
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git diff --cached --check
-          git commit -m "docs: close Task 18.1 safe facade"
-          git push origin HEAD:task18-1-safe-facade

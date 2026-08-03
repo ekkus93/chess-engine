@@ -3,7 +3,7 @@
 **Updated:** 2026-08-03
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 17 complete; Task 18.1 Rust facade is next
+**Current phase:** Task 18.1 safe Rust facade complete; Task 18.2 C ABI is next
 
 ## Completed gates
 
@@ -53,6 +53,7 @@
 | 17.3 | `1c71f8dfa8449190ea8ae860386b6566b9176cbd` | documented permanent gate | side-to-move clock allocation with soft/hard budgets and safety reserve |
 | 17.4 | `0f0ed39b31aca077173359c5807c1afaffb3e9e4` | final permanent gate recorded in output contract | synchronized iteration info, typed scores, nodes/NPS/time/hashfull/PV, exactly-once bestmove |
 | 17.5 / 17 gate | `67b6c97a476e1323bc2bd96ecf14870fc2ed3139` | `30828959858` / `91737751003` | seven real subprocess workflows, bounded stop/quit, legal best moves, terminal null moves, and concurrent-session isolation; complete permanent gate green |
+| 18.1 | `fc375ce7c35a9b8e82c83c8a0ac54e23a60986be` | `30832682431` / `91750223690` | safe stateful facade, transactional positions, legal UCI moves, immutable synchronous search, cross-thread cancellation, identities, and ownership/thread-safety contract; 285 Rust tests green |
 
 ## Task 17.1 completion
 
@@ -118,6 +119,33 @@ Evidence:
 - the complete permanent workspace gate passed without lint suppression or production-code changes.
 
 Task 17 is complete. Task 18.1 Rust facade work is next.
+
+
+## Task 18.1 completion
+
+Implemented and validated:
+
+- `EngineConfig` with explicit fixed transposition-table capacity;
+- stateful `Engine::new` owning one `Game` and one bounded table;
+- transactional set/reset position and canonical FEN retrieval;
+- deterministic legal UCI moves, legal move application, and game status;
+- synchronous limit-controlled search on detached position/history state;
+- clone-shareable request-local cancellation, including active infinite-search cancellation from another thread;
+- engine version and validated baseline evaluation-weight identity;
+- typed facade errors and explicit allocation failures;
+- ownership and thread-safety rustdoc with compiler-derived `Send`/`Sync` assertions;
+- a safe module that forbids unsafe code;
+- `docs/RUST_SAFE_ENGINE_FACADE.md`.
+
+Evidence:
+
+- implementation SHA: `fc375ce7c35a9b8e82c83c8a0ac54e23a60986be`;
+- permanent CI run/job: `30832682431` / `91750223690`;
+- nine focused safe-facade tests passed;
+- 285 executed non-doc Rust tests passed;
+- the complete permanent workspace gate and independent differential oracle passed without lint suppression or lower-layer production changes.
+
+Task 18.1 is complete. Task 18.2 C ABI work is next.
 
 ## Task 12 completion
 

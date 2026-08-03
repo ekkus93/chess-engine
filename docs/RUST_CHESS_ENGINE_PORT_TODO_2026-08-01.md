@@ -884,13 +884,32 @@ Evidence:
 - Differential validation covered 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - Task 17.5 and the overall Task 17 Linux UCI executable gate are complete. Task 18.1 Rust facade work is next.
 
-# Task 18: Safe API, C ABI, and JNI — NOT STARTED
-- [ ] 18.1 Rust facade.
+# Task 18: Safe API, C ABI, and JNI — IN PROGRESS
+- [x] 18.1 Rust facade.
 - [ ] 18.2 C ABI.
 - [ ] 18.3 C tests.
 - [ ] 18.4 JNI.
 - [ ] 18.5 Android harness.
 - [ ] Task 18 gate.
+
+
+### Task 18.1 completion evidence
+
+- Implementation: `crates/chess-ffi/src/safe.rs`, public exports in `crates/chess-ffi/src/lib.rs`, direct `chess-core` and `chess-search` dependencies, and `crates/chess-ffi/tests/safe_facade.rs`.
+- Public facade: `EngineConfig`, `Engine`, `SearchRequest`, `SearchCancellationHandle`, `EvaluationWeightIdentity`, `EngineError`, and `ENGINE_VERSION`.
+- `Engine` owns one history-aware `Game` and one fixed-capacity transposition table. It borrows no caller memory, opens no files, starts no threads, and uses no process-global mutable state.
+- Position replacement is strict and transactional. Canonical six-field FEN, deterministic legal UCI moves, legal move application, terminal rejection, and authoritative game status are exposed without duplicating chess rules.
+- Search is synchronous and runs on cloned position/history state, preserving the played game on success, cancellation, and errors. Finite depth/node/time requests and explicit infinite-search cancellation use the existing typed search contract.
+- Cancellation is request-local and clone-shareable across threads. `Engine: Send` and `SearchCancellationHandle: Send + Sync` are compiler-checked; no manual thread-safety implementation exists.
+- Version and evaluator identity report the package version and the validated built-in baseline weight schema, identifier, and checksum. Caller-supplied weights are intentionally not claimed before the complete search path supports them.
+- The safe facade module forbids unsafe code. Task 18.2 owns the separate narrow C ABI boundary.
+- Contract documentation: `docs/RUST_SAFE_ENGINE_FACADE.md`.
+- Implementation SHA: `fc375ce7c35a9b8e82c83c8a0ac54e23a60986be`.
+- Permanent validation: run `30832682431`, job `91750223690`.
+- Results: nine focused facade tests and 285 executed non-doc Rust tests passed; rustfmt, committed lockfile, locked all-target/all-feature compilation, strict Clippy without suppressions, release depth-four perft, rustdoc with warnings denied, debug/release builds, and the independent differential oracle all passed.
+- Differential validation covered 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- Validation corrections were limited to exact rustfmt output and removing invalid `const fn` qualifiers from five fluent request builders. No semantics, safety policy, lower-layer production code, or gate was weakened.
+- Task 18.1 is complete. Task 18.2 C ABI work is next.
 
 # Task 19: Opening book — NOT STARTED
 - [ ] 19.1 Abstraction.
@@ -993,9 +1012,9 @@ Evidence:
 
 ## Immediate next operations
 
-1. Implement Task 17.5 process-level UCI integration tests over the real binary.
-2. Cover handshake, start-position and six-field FEN setup, illegal move handling, and fixed-depth legal best move.
-3. Cover mate and stalemate `bestmove 0000` behavior.
-4. Prove `stop` interrupts an active search and still emits exactly one final move.
-5. Prove `quit` and EOF stop and join cleanly without stale final output.
-6. Prove independent sessions do not leak stdout, worker state, or mutable search control.
+1. Implement Task 18.2 as a narrow C ABI over the completed safe Rust facade.
+2. Add opaque engine handles, ABI version query, and explicit create/destroy operations.
+3. Define UTF-8 input lengths, structured result codes, and retrievable error messages.
+4. Define output-buffer ownership and the matching free contract.
+5. Reject null and invalid handles without exposing Rust layouts.
+6. Contain every externally callable boundary with `catch_unwind`.
