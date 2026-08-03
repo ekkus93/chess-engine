@@ -19,9 +19,7 @@ pub use indexed::{
     BookPositionKey, IndexedBook, IndexedBookError, IndexedBookRecord, INDEXED_BOOK_FORMAT_VERSION,
     INDEXED_BOOK_KEY_SCHEMA_VERSION,
 };
-pub use policy::{
-    BookSelectionError, BookSelectionMode, BookSelector, IndexedBookQueryError,
-};
+pub use policy::{BookSelectionError, BookSelectionMode, BookSelector, IndexedBookQueryError};
 
 /// One weighted move returned by an opening book.
 ///
