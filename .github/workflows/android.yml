@@ -173,17 +173,15 @@ jobs:
             docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md
           git diff --cached --check
           mapfile -t changed < <(git diff --cached --name-only)
-          expected=$(cat <<'EOF'
-.github/workflows/android.yml
-.github/workflows/task18-5-close.yml
-docs/RUST_ANDROID_JNI.md
-docs/RUST_ANDROID_TEST_HARNESS.md
-docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
-docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md
-docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md
-scripts/task18_5_close.py
-EOF
-          )
+          expected=$(printf '%s\n' \
+            '.github/workflows/android.yml' \
+            '.github/workflows/task18-5-close.yml' \
+            'docs/RUST_ANDROID_JNI.md' \
+            'docs/RUST_ANDROID_TEST_HARNESS.md' \
+            'docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md' \
+            'docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md' \
+            'docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md' \
+            'scripts/task18_5_close.py')
           actual=$(printf '%s\n' "${changed[@]}")
           test "${actual}" = "${expected}"
           git commit -m "docs: close Task 18.5 and Task 18 gate"
