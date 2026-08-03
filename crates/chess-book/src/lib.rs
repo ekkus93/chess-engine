@@ -9,6 +9,7 @@
 //! caller-supplied validated [`Position`].
 
 mod indexed;
+mod policy;
 
 use std::error::Error;
 
@@ -17,6 +18,9 @@ use chess_core::{Move, Position};
 pub use indexed::{
     BookPositionKey, IndexedBook, IndexedBookError, IndexedBookRecord, INDEXED_BOOK_FORMAT_VERSION,
     INDEXED_BOOK_KEY_SCHEMA_VERSION,
+};
+pub use policy::{
+    BookSelectionError, BookSelectionMode, BookSelector, IndexedBookQueryError,
 };
 
 /// One weighted move returned by an opening book.
@@ -100,9 +104,9 @@ impl<M> BookMove<M> {
 /// corruption, unsupported formats, and other failures must be returned as a
 /// typed error rather than converted into an empty result.
 ///
-/// Candidate legality validation and selection policy belong to later adapter
-/// integration stages; this abstraction does not silently filter or select a
-/// move.
+/// Implementations must not suppress malformed or position-illegal records.
+/// [`BookSelector`] independently verifies every returned move against exact
+/// generated legal identities before applying a deterministic or seeded policy.
 pub trait OpeningBook: Send + Sync {
     /// Optional backend-defined diagnostics associated with each candidate.
     type Metadata: Send + Sync + 'static;
