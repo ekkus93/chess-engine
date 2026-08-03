@@ -91,6 +91,8 @@ On Linux this produces the shared and static library forms under `target/release
 
 Implementation SHA: `d1c4a9195acfc63dc2f9af52531c4ba01e9a2dc9`.
 
+Tracker-closure SHA: `336361b48fa0fd48d2ce7ff8ee0c48f29c130de0`.
+
 Permanent implementation validation:
 
 - PR: `#232`;
