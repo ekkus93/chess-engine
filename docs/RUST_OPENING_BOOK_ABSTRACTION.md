@@ -64,3 +64,5 @@ The crate tests prove:
 2. `OpeningBook` can be injected through a trait object and queried with a validated position;
 3. `BookProvider` requires explicit configuration and can represent no configured book; and
 4. lookup failures remain typed and cannot be mistaken for an empty candidate list.
+
+The permanent workspace workflow is the authoritative compiler, strict-Clippy, lockfile, rustdoc, test, perft, build, and differential-oracle gate for this contract.
