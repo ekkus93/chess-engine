@@ -853,12 +853,12 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 16.4 Search limits
 
-- [ ] depth;
-- [ ] nodes;
-- [ ] soft time;
-- [ ] hard time;
-- [ ] infinite;
-- [ ] explicit stop flag.
+- [x] depth;
+- [x] nodes;
+- [x] soft time;
+- [x] hard time;
+- [x] infinite;
+- [x] explicit stop flag.
 
 ## 16.5 Responsive cancellation
 

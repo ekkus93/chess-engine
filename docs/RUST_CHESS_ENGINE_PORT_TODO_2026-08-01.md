@@ -37,7 +37,7 @@
 | 13 | **Complete** — reference negamax, alpha-beta, shallow equivalence, immutability, and terminal/mate-distance fixtures. |
 | 14 | **Complete** — quiescence, tactical/quiet ordering, consolidated correctness, and exclusion audit. |
 | 15 | **Complete** — bounded, mate-safe transposition table integrated into production alpha-beta with deterministic node-reduction evidence. |
-| 16 | **Active** — Tasks 16.1–16.3 complete; Task 16.4 search limits next. |
+| 16 | **Active** — Tasks 16.1–16.4 complete; Task 16.5 responsive cancellation next. |
 | 17–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
@@ -685,7 +685,7 @@ Evidence:
 - [x] 16.1 Iterative deepening.
 - [x] 16.2 Aspiration windows.
 - [x] 16.3 Principal variation.
-- [ ] 16.4 Limits.
+- [x] 16.4 Limits.
 - [ ] 16.5 Cancellation.
 - [ ] 16.6 Result API.
 - [ ] 16.7 Optional extension.
@@ -708,7 +708,7 @@ Evidence:
 - The initial validation found only canonical rustfmt changes; the next found an invalid test assumption about sparse bounded hash-full sampling. Production semantics did not change.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Tasks 16.1–16.3 are complete. Task 16.4 search limits is next; cancellation recovery, the final result API, and extensions remain deferred.
+- Tasks 16.1–16.3 are complete. Task 16.5 responsive cancellation is next; cancellation recovery, the final result API, and extensions remain deferred.
 
 ### Task 16.2 completion evidence
 
@@ -729,7 +729,7 @@ Evidence:
 - Initial validation iterations found an audit-witness shape requirement, one invalid private `const fn` qualifier, and one eight-argument internal constructor rejected by strict Clippy. Each was corrected directly without changing the aspiration contract or adding a suppression.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 16.4 search limits is next. Tasks 16.5–16.7 and the overall Task 16 gate remain open.
+- Task 16.5 responsive cancellation is next. Tasks 16.5–16.7 and the overall Task 16 gate remain open.
 
 ### Task 16.3 completion evidence
 
@@ -751,6 +751,28 @@ Evidence:
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
 - Task 16.2 aspiration windows is complete. Task 16.4 search limits is the next operation.
+
+### Task 16.4 completion evidence
+
+- Implementation: `crates/chess-search/src/limits.rs`, cancellation-aware root-window orchestration in `crates/chess-search/src/iterative_deepening.rs`, and exact node-entry hooks in `alpha_beta.rs`, `quiescence.rs`, and `cancellation.rs`.
+- Public APIs: `SearchLimits`, `SearchStopFlag`, `SearchLimitError`, `SearchLimitTermination`, `LimitedIterativeDeepeningSearchResult`, `iterative_deepening_search_with_limits`, and `iterative_deepening_search_with_limits_and_transposition_table`.
+- Supported limits: bounded depth, exact cumulative production-node budget, soft time, hard time, infinite mode, and a clone-shareable atomic explicit-stop flag.
+- Validation rejects zero limits, soft time greater than hard time, finite requests without an automatic limit, infinite requests with automatic limits, and infinite requests without a stop flag before table or root mutation.
+- Deterministic precedence is explicit stop, hard time, nodes, completed depth, soft time, then the maximum supported depth ceiling.
+- Soft time is applied only after a fully exact iteration. Hard time, node limits, and explicit stop are checked through the production alpha-beta/quiescence tree.
+- Limit interruption discards the incomplete depth while retaining every preceding exact iteration, canonical best move, legal PV, ponder move, and completed diagnostics.
+- `searched_nodes` counts completed work plus interrupted partial work; `incomplete_nodes` exposes only discarded partial work.
+- Existing fixed-depth iterative-deepening APIs preserve their prior behavior through the same cancellation-aware internal boundary with `NeverCancelled`.
+- Deterministic regressions cover exact depth equivalence, exact node-budget stopping one node into a later depth, finite and infinite preset-stop behavior, invalid-limit fail-fast behavior, deterministic soft/hard clock boundaries, table-generation behavior, and exact position/history/Zobrist restoration.
+- Contract documentation: `docs/RUST_SEARCH_LIMITS.md`; `docs/RUST_ITERATIVE_DEEPENING.md` updated through Task 16.4.
+- Production implementation commit: `1cbe0264418afbcddc564b1e4972c4819fb0a6f8`.
+- Exact clean validated implementation SHA: `8a48ee45199e58db76adee4e4fc4adaf131566d2`.
+- Permanent CI run/job: `30780915406` / `91585230626`.
+- Results: permanent exclusion audit over 16 production Rust files, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy without suppressions, 214 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 16.5 responsive cancellation is next. Tasks 16.6–16.7 and the overall Task 16 gate remain open.
 
 # Task 17: Linux UCI executable — NOT STARTED
 - [ ] 17.1 Protocol loop.
@@ -869,9 +891,9 @@ Evidence:
 
 ## Immediate next operations
 
-1. Implement Task 16.4 typed search limits for depth, nodes, soft time, hard time, infinite search, and an explicit stop flag.
-2. Define deterministic precedence and validation for conflicting or invalid limit combinations.
-3. Thread limit checks through iterative deepening and the production tree without weakening exact root restoration.
-4. Preserve the last fully completed iteration as the stable result boundary when a later depth reaches a limit.
-5. Add fixed regressions for each limit category, boundary behavior, deterministic stop points where applicable, and exact position/history/Zobrist restoration.
-6. Keep responsive cancellation latency/fallback details in Task 16.5, the final unified result API in Task 16.6, and check extensions in Task 16.7.
+1. Implement Task 16.5 responsive cancellation with a documented bounded node-check interval and latency target.
+2. Prove active recursive state unwinds before returning and the exact root position, detached history, and Zobrist identity are restored.
+3. Preserve the last fully completed exact iteration when cancellation interrupts a later depth.
+4. Define and test the fallback result when cancellation occurs before depth one completes.
+5. Add deterministic cancellation-point regressions plus a reproducible cancellation-latency benchmark.
+6. Preserve Task 16.4 limit semantics while keeping the final unified result API in Task 16.6 and check extensions in Task 16.7.

@@ -3,7 +3,7 @@
 **Updated:** 2026-08-02  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Tasks 16.1–16.3 complete; Task 16.4 search limits is next
+**Current phase:** Tasks 16.1–16.4 complete; Task 16.5 responsive cancellation is next
 
 ## Completed gates
 
@@ -43,6 +43,7 @@
 | 16.1 | `886ad953952b3a409800fcf7e8699365f94f0271` | `30772536115` / `91562076526` | full-window iterative deepening, five focused tests, 198 Rust tests, depth-four perft, and differential oracle green |
 | 16.2 | `8af24520fd72faffff1cab74581f056a083cfb13` | `30779589438` / `91581508274` | bounded aspiration retries, fail-low/fail-high exact recovery, 206 Rust tests, depth-four perft, and differential oracle green |
 | 16.3 | `e8afc9959a60519c6d5617963521e1707d37c6a9` | `30776274173` / `91572310565` | safe legal PV reconstruction, ponder support, 204 Rust tests, depth-four perft, and differential oracle green |
+| 16.4 | `8a48ee45199e58db76adee4e4fc4adaf131566d2` | `30780915406` / `91585230626` | typed depth/node/time/infinite/stop limits, partial-depth discard, 214 Rust tests, depth-four perft, and differential oracle green |
 
 ## Task 12 completion
 
@@ -539,7 +540,7 @@ Evidence:
 - The clean implementation delta is limited to three Rust modules, one integration-test file, and one contract document.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 15 and Tasks 16.1/16.3 are complete. Task 16.4 search limits is next.
+- Task 15 and Tasks 16.1/16.3 are complete. Task 16.5 responsive cancellation is next.
 
 ## Task 16.1 completion
 
@@ -565,7 +566,7 @@ Evidence:
 - The first validation iteration found canonical rustfmt differences only. The second found a test-only assumption that sparse bounded hash-full sampling must observe an occupied slot; the assertion was corrected to the documented sampling contract without production changes.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 16.1 and Task 16.3 are complete. Task 16.4 search limits is next.
+- Task 16.1 and Task 16.3 are complete. Task 16.5 responsive cancellation is next.
 
 ## Task 16.2 completion
 
@@ -595,7 +596,7 @@ Evidence:
 - The validation loop corrected the permanent audit witness, a private non-const comparison, and a strict-Clippy constructor shape without suppressions or semantic relaxation.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 16.4 search limits is next.
+- Task 16.5 responsive cancellation is next.
 
 ## Task 16.3 completion
 
@@ -621,14 +622,44 @@ Evidence:
 - The initial compiler pass found only one test-only ambiguous integer literal; an explicit `u64` annotation resolved it without production semantic changes.
 - First-party warnings: none.
 - Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
-- Task 16.3 is complete. Task 16.2 aspiration windows remains open and is next.
+- Tasks 16.1–16.4 are complete. Task 16.5 responsive cancellation is next.
+
+## Task 16.4 completion
+
+Implemented and validated:
+
+- typed depth, exact cumulative node, soft-time, hard-time, infinite, and explicit-stop limits;
+- a clone-shareable atomic `SearchStopFlag` suitable for an external search controller;
+- fail-loud validation and deterministic precedence for conflicting or simultaneously reached limits;
+- exact production-node accounting through one `on_node` hook per alpha-beta or quiescence node;
+- soft-time stopping only at exact iteration boundaries and hard/node/stop interruption inside the production tree;
+- preservation of every fully completed exact iteration and rejection of all partial-depth result/PV/ponder data;
+- exact searched-node and incomplete-node reporting, including interrupted aspiration work;
+- reuse of one bounded TT and exact restoration of position, detached history, and incremental/recomputed Zobrist identity;
+- deterministic integration and scripted-clock regressions;
+- `docs/RUST_SEARCH_LIMITS.md` and updated `docs/RUST_ITERATIVE_DEEPENING.md`.
+
+Evidence:
+
+- Production implementation commit: `1cbe0264418afbcddc564b1e4972c4819fb0a6f8`.
+- Exact clean validated SHA: `8a48ee45199e58db76adee4e4fc4adaf131566d2`.
+- Permanent CI run/job: `30780915406` / `91585230626`.
+- Results: permanent exclusion audit over 16 production Rust files, committed lockfile, metadata, rustfmt, Cargo check, strict Clippy without suppressions, 214 executed non-doc Rust tests, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and independent differential validation passed.
+- Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- The exact node-budget regression completes depth one, enters exactly one node of depth two, reports that node as incomplete work, discards the partial depth, and preserves the complete depth-one result.
+- Preset finite and infinite stop requests terminate before table generation or root mutation; invalid combinations fail before allocation or search mutation.
+- Scripted clocks prove soft-time boundary stopping and hard-time precedence without wall-clock flakiness.
+- The implementation passed its first compiler and strict-Clippy iteration without source corrections or suppressions.
+- First-party warnings: none.
+- Accepted external notices: GitHub Actions Node runtime, dependency `punycode`, and `url.parse()` deprecation notices only.
+- Task 16.5 responsive cancellation is next. Tasks 16.6–16.7 and the overall Task 16 gate remain open.
 
 ## Task 16 active scope
 
 - [x] Implement Task 16.1 iterative deepening.
 - [x] Implement Task 16.2 aspiration windows.
 - [x] Implement Task 16.3 principal variation.
-- [ ] Implement Task 16.4 search limits.
+- [x] Implement Task 16.4 search limits.
 - [ ] Implement Task 16.5 responsive cancellation.
 - [ ] Implement Task 16.6 final result API.
 - [ ] Consider Task 16.7 optional bounded check extension.
@@ -670,4 +701,4 @@ Evidence:
 - [x] Add mate-in-one, mated, stalemate, draw, shorter-mate, and longer-survival fixtures.
 - [x] Pass exact-head rustfmt, Cargo check, Clippy, tests, rustdoc, debug, release, perft, and differential gates.
 
-No pull request has been created; work remains on `rust-engine`. Task 16.4 search limits is the next operation.
+No pull request has been created; work remains on `rust-engine`. Task 16.5 responsive cancellation is the next operation.
