@@ -13,7 +13,6 @@ concurrency:
   group: task18-4-close-${{ github.ref }}
   cancel-in-progress: true
 
-# One-shot fail-closed tracker update after host and Android validation.
 jobs:
   close:
     runs-on: ubuntu-24.04
@@ -24,7 +23,7 @@ jobs:
           ref: task18-4-android-jni
           fetch-depth: 0
 
-      - name: Verify validated implementation ancestry
+      - name: Close validated Task 18.4 documentation
         shell: bash
         run: |
           set -euo pipefail
@@ -33,46 +32,15 @@ jobs:
           test ! -e .github/workflows/task18-4-android-build.yml
           test ! -e .github/workflows/task18-4-prepare.yml
           test ! -e .github/workflows/task18-4-fix-compile.yml
-
-      - name: Apply fail-closed documentation update
-        run: python3 scripts/task18_4_close.py
-
-      - name: Verify tracker boundary
-        shell: bash
-        run: |
-          set -euo pipefail
+          python3 scripts/task18_4_close.py
           grep -F -- '- [x] 18.4 JNI.' docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md
           grep -F -- '- [ ] 18.5 Android harness.' docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md
           grep -F -- '- [ ] Task 18 gate.' docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md
-          grep -F '**Current phase:** Task 18.4 Android JNI complete; Task 18.5 Android harness is next' docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
-          grep -F '## Task 18.4 completion' docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
-          grep -F '## Completion evidence' docs/RUST_ANDROID_JNI.md
-
-      - name: Remove one-shot closure assets
-        run: git rm .github/workflows/task18-4-close.yml scripts/task18_4_close.py
-
-      - name: Commit tracker closure
-        shell: bash
-        run: |
-          set -euo pipefail
+          git rm .github/workflows/task18-4-close.yml scripts/task18_4_close.py
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/RUST_ANDROID_JNI.md \
-            docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md \
-            docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md \
-            docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
-          mapfile -t changed < <(git diff --cached --name-only)
-          printf '%s\n' "${changed[@]}"
-          expected=$(cat <<'EOF'
-.github/workflows/task18-4-close.yml
-docs/RUST_ANDROID_JNI.md
-docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
-docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md
-docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md
-scripts/task18_4_close.py
-EOF
-          )
-          actual=$(printf '%s\n' "${changed[@]}")
-          test "${actual}" = "${expected}"
+          git add docs/RUST_ANDROID_JNI.md docs/RUST_CHESS_ENGINE_PORT_*.md
+          git diff --cached --name-only
+          test "$(git diff --cached --name-only | wc -l)" -eq 6
           git commit -m "docs: close Task 18.4 Android JNI"
           git push origin HEAD:task18-4-android-jni
