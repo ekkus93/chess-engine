@@ -36,6 +36,9 @@ jobs:
       - name: Normalize Task 14.5 full-window witness
         run: python3 scripts/fix_task_16_2_audit_witness.py "$GITHUB_WORKSPACE"
 
+      - name: Correct root-window constructor
+        run: python3 scripts/fix_task_16_2_const_window.py "$GITHUB_WORKSPACE"
+
       - name: Format generated Rust
         run: cargo fmt --all
 
@@ -67,7 +70,8 @@ jobs:
             scripts/differential_oracle.py \
             scripts/task_14_5_exclusion_audit.py \
             scripts/implement_task_16_2.py \
-            scripts/fix_task_16_2_audit_witness.py
+            scripts/fix_task_16_2_audit_witness.py \
+            scripts/fix_task_16_2_const_window.py
 
       - name: Run Task 14.5 exclusion audit
         run: python3 scripts/task_14_5_exclusion_audit.py
@@ -164,7 +168,8 @@ jobs:
           set -euo pipefail
           git rm \
             scripts/implement_task_16_2.py \
-            scripts/fix_task_16_2_audit_witness.py
+            scripts/fix_task_16_2_audit_witness.py \
+            scripts/fix_task_16_2_const_window.py
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add \
