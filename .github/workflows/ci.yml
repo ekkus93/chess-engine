@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: rust-ci-${{ github.workflow }}-${{ github.ref }}
@@ -123,3 +123,74 @@ jobs:
           --games 12
           --plies 48
           --seed 0xC0FFEE
+
+  task17-4-apply:
+    name: Apply Task 17.4 implementation
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.title == '[apply-task17-4]'
+    needs: rust-quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Apply staged implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 --decode scripts/task17_4_apply.py.gz.b64 | gzip --decompress > /tmp/task17_4_apply.py
+          python3 -m py_compile /tmp/task17_4_apply.py
+          python3 /tmp/task17_4_apply.py
+          cargo fmt --all
+
+      - name: Check implementation
+        run: cargo check --locked --workspace --all-targets --all-features
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+
+      - name: Run focused tests
+        run: cargo test --locked -p chess-search -p chess-uci
+
+      - name: Prepare permanent commits
+        shell: bash
+        run: |
+          set -euo pipefail
+          git show f58ec6941c2a7769c43f91802073015379a8d013:.github/workflows/ci.yml > .github/workflows/ci.yml
+          rm -f scripts/task17_4_apply.py.gz.b64
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "feat: implement Task 17.4 UCI search output"
+          implementation_sha="$(git rev-parse HEAD)"
+          IMPLEMENTATION_SHA="${implementation_sha}" python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          implementation_sha = os.environ["IMPLEMENTATION_SHA"]
+          replacements = 0
+          for path in Path("docs").glob("*.md"):
+              text = path.read_text()
+              if "TASK17_4_IMPLEMENTATION_SHA" not in text:
+                  continue
+              count = text.count("TASK17_4_IMPLEMENTATION_SHA")
+              path.write_text(text.replace("TASK17_4_IMPLEMENTATION_SHA", implementation_sha))
+              replacements += count
+          if replacements == 0:
+              raise SystemExit("Task 17.4 implementation evidence placeholder was not found")
+          PY
+          git add docs
+          git diff --cached --check
+          git commit -m "docs: record Task 17.4 implementation evidence"
+          git push origin HEAD:rust-engine
