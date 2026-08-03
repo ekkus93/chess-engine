@@ -912,29 +912,29 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 17.2 UCI search worker
 
-- [ ] Adapter-owned worker thread.
-- [ ] No process-global mutable search control.
-- [ ] Explicit stop token.
-- [ ] Clean shutdown and join behavior.
-- [ ] Safe new-game/position replacement rules.
+- [x] Adapter-owned worker thread.
+- [x] No process-global mutable search control.
+- [x] Explicit stop token.
+- [x] Clean shutdown and join behavior.
+- [x] Safe new-game/position replacement rules.
 
 ## 17.3 Time manager
 
-- [ ] Convert clocks into soft/hard budgets, not fixed depth.
-- [ ] Reserve safety margin.
-- [ ] Account for increment and moves-to-go.
-- [ ] Unit-test boundary cases and low-time behavior.
+- [x] Convert clocks into soft/hard budgets, not fixed depth.
+- [x] Reserve safety margin.
+- [x] Account for increment and moves-to-go.
+- [x] Unit-test boundary cases and low-time behavior.
 
 ## 17.4 Output
 
-- [ ] periodic `info depth`;
-- [ ] typed `score cp` or `score mate`;
-- [ ] nodes;
-- [ ] nps;
-- [ ] time;
-- [ ] hashfull when available;
-- [ ] PV;
-- [ ] `bestmove` and optional ponder.
+- [x] periodic `info depth`;
+- [x] typed `score cp` or `score mate`;
+- [x] nodes;
+- [x] nps;
+- [x] time;
+- [x] hashfull when available;
+- [x] PV;
+- [x] `bestmove` and optional ponder.
 
 ## 17.5 Integration tests
 

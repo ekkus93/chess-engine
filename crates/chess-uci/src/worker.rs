@@ -1,20 +1,27 @@
 use core::fmt;
 use std::{
     io,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
     thread::{self, JoinHandle},
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use chess_search::{
-    iterative_deepening_search_with_limits_and_transposition_table, IterativeDeepeningSearchError,
-    SearchLimitError, SearchLimits, SearchResult, SearchStopFlag, TranspositionTable,
-    TranspositionTableAllocationError,
+    iterative_deepening_search_with_limits_and_transposition_table_and_observer,
+    IterativeDeepeningSearchError, SearchLimitError, SearchLimits, SearchResult, SearchStopFlag,
+    TranspositionTable, TranspositionTableAllocationError,
 };
 use chess_uci::{EngineOptions, GoCommand, SearchRequest};
 
-use crate::time_manager::{allocate_time_budget, UciTimeManagerError};
+use crate::{
+    output::SearchOutput,
+    time_manager::{allocate_time_budget, UciTimeManagerError},
+};
 
-/// Failure to prepare, start, execute, or join one adapter-owned search worker.
+/// Failure to prepare, start, execute, report, or join one adapter-owned search worker.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SearchWorkerError {
     /// UCI clock fields could not produce a valid side-to-move budget.
@@ -25,6 +32,13 @@ pub enum SearchWorkerError {
     TranspositionTableAllocation(TranspositionTableAllocationError),
     /// Production iterative deepening failed.
     Search(IterativeDeepeningSearchError),
+    /// Search-thread output failed.
+    Output {
+        /// Portable I/O error classification.
+        kind: io::ErrorKind,
+        /// Original output error text.
+        message: String,
+    },
     /// The operating system rejected creation of the named worker thread.
     ThreadSpawn {
         /// Portable I/O error classification.
@@ -36,6 +50,24 @@ pub enum SearchWorkerError {
     ThreadPanicked,
 }
 
+impl SearchWorkerError {
+    fn from_output_error(error: io::Error) -> Self {
+        Self::Output {
+            kind: error.kind(),
+            message: error.to_string(),
+        }
+    }
+
+    /// Returns whether the worker already emitted the underlying failure.
+    #[must_use]
+    pub const fn was_reported_by_worker(&self) -> bool {
+        matches!(
+            self,
+            Self::TranspositionTableAllocation(_) | Self::Search(_)
+        )
+    }
+}
+
 impl fmt::Display for SearchWorkerError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -43,6 +75,9 @@ impl fmt::Display for SearchWorkerError {
             Self::InvalidLimits(error) => error.fmt(formatter),
             Self::TranspositionTableAllocation(error) => error.fmt(formatter),
             Self::Search(error) => error.fmt(formatter),
+            Self::Output { kind, message } => {
+                write!(formatter, "UCI search output failed ({kind:?}): {message}")
+            }
             Self::ThreadSpawn { kind, message } => {
                 write!(
                     formatter,
@@ -57,9 +92,9 @@ impl fmt::Display for SearchWorkerError {
 impl std::error::Error for SearchWorkerError {}
 
 /// One adapter-owned search thread and its request-local explicit stop token.
-#[derive(Debug)]
 pub struct SearchWorker {
     stop_flag: SearchStopFlag,
+    emit_final: Arc<AtomicBool>,
     handle: JoinHandle<Result<SearchResult, SearchWorkerError>>,
 }
 
@@ -68,7 +103,10 @@ impl SearchWorker {
     ///
     /// No process-global mutable state is used. The worker owns a detached
     /// position, repetition history, transposition table, and stop flag.
-    pub fn spawn(request: SearchRequest) -> Result<Self, SearchWorkerError> {
+    pub fn spawn(
+        request: SearchRequest,
+        output: Arc<dyn SearchOutput>,
+    ) -> Result<Self, SearchWorkerError> {
         let game = request.game().clone();
         let command = request.command();
         let options = request.options();
@@ -76,21 +114,49 @@ impl SearchWorker {
         let stop_flag = SearchStopFlag::new();
         let limits = build_search_limits(command, options, side_to_move, stop_flag.clone())?;
         let table_mebibytes = options.hash_mebibytes();
+        let emit_final = Arc::new(AtomicBool::new(true));
+        let worker_emit_final = Arc::clone(&emit_final);
+        let progress_stop = stop_flag.clone();
 
         let handle = thread::Builder::new()
             .name("chess-uci-search".to_owned())
-            .spawn(move || run_search(game, limits, table_mebibytes))
+            .spawn(move || {
+                let outcome = run_search(
+                    game,
+                    limits,
+                    table_mebibytes,
+                    progress_stop,
+                    Arc::clone(&output),
+                );
+                match outcome {
+                    Ok(result) => {
+                        if worker_emit_final.load(Ordering::Acquire) {
+                            output
+                                .report_bestmove(&result)
+                                .map_err(SearchWorkerError::from_output_error)?;
+                        }
+                        Ok(result)
+                    }
+                    Err(error) => {
+                        if !matches!(&error, SearchWorkerError::Output { .. }) {
+                            output
+                                .report_error(&error.to_string())
+                                .map_err(SearchWorkerError::from_output_error)?;
+                        }
+                        Err(error)
+                    }
+                }
+            })
             .map_err(|error| SearchWorkerError::ThreadSpawn {
                 kind: error.kind(),
                 message: error.to_string(),
             })?;
 
-        Ok(Self { stop_flag, handle })
-    }
-
-    /// Requests an orderly stop at the production search cancellation boundary.
-    pub fn request_stop(&self) {
-        self.stop_flag.request_stop();
+        Ok(Self {
+            stop_flag,
+            emit_final,
+            handle,
+        })
     }
 
     /// Returns whether the worker thread has returned and can be joined without blocking.
@@ -106,47 +172,62 @@ impl SearchWorker {
             .map_err(|_| SearchWorkerError::ThreadPanicked)?
     }
 
-    /// Requests cancellation and then joins the worker exactly once.
+    /// Requests explicit UCI `stop`, preserving one final `bestmove` record.
     pub fn stop_and_join(self) -> Result<SearchResult, SearchWorkerError> {
-        self.request_stop();
+        self.stop_flag.request_stop();
+        self.join()
+    }
+
+    /// Cancels stale work and suppresses a final move from the replaced position.
+    pub fn discard_and_join(self) -> Result<SearchResult, SearchWorkerError> {
+        self.emit_final.store(false, Ordering::Release);
+        self.stop_flag.request_stop();
         self.join()
     }
 }
 
 /// Single active-search slot owned by one UCI adapter session.
-///
-/// Starting a replacement search stops and joins the prior worker before the
-/// new worker is installed. Position/new-game replacement and shutdown use the
-/// same stop-and-join path through [`Self::stop`].
-#[derive(Debug, Default)]
 pub struct SearchWorkerSlot {
     active: Option<SearchWorker>,
+    output: Arc<dyn SearchOutput>,
 }
 
 impl SearchWorkerSlot {
-    /// Creates an empty adapter-owned worker slot.
+    /// Creates an empty adapter-owned worker slot using one synchronized output boundary.
     #[must_use]
-    pub const fn new() -> Self {
-        Self { active: None }
+    pub fn new(output: Arc<dyn SearchOutput>) -> Self {
+        Self {
+            active: None,
+            output,
+        }
     }
 
     /// Stops and joins a prior worker, then starts the replacement request.
     ///
-    /// The returned result, when present, belongs to the replaced worker.
+    /// A replacement `go` is treated like an explicit stop of the prior request,
+    /// so the prior worker emits exactly one final move before the new search starts.
     pub fn start(
         &mut self,
         request: SearchRequest,
     ) -> Result<Option<SearchResult>, SearchWorkerError> {
         let previous = self.stop()?;
-        self.active = Some(SearchWorker::spawn(request)?);
+        self.active = Some(SearchWorker::spawn(request, Arc::clone(&self.output))?);
         Ok(previous)
     }
 
-    /// Requests stop and joins the active worker, if one exists.
+    /// Requests explicit stop and joins the active worker, if one exists.
     pub fn stop(&mut self) -> Result<Option<SearchResult>, SearchWorkerError> {
         self.active
             .take()
             .map(SearchWorker::stop_and_join)
+            .transpose()
+    }
+
+    /// Cancels and joins stale work without emitting a final move.
+    pub fn discard(&mut self) -> Result<Option<SearchResult>, SearchWorkerError> {
+        self.active
+            .take()
+            .map(SearchWorker::discard_and_join)
             .transpose()
     }
 
@@ -158,16 +239,16 @@ impl SearchWorkerSlot {
         self.active.take().map(SearchWorker::join)
     }
 
-    /// Performs the same orderly stop-and-join operation used by `quit` and EOF.
+    /// Performs an orderly stale-result-suppressing stop for `quit` and EOF.
     pub fn shutdown(&mut self) -> Result<Option<SearchResult>, SearchWorkerError> {
-        self.stop()
+        self.discard()
     }
 }
 
 impl Drop for SearchWorkerSlot {
     fn drop(&mut self) {
         if let Some(worker) = self.active.take() {
-            let _ignored = worker.stop_and_join();
+            let _ignored = worker.discard_and_join();
         }
     }
 }
@@ -212,35 +293,110 @@ fn run_search(
     game: chess_core::Game,
     limits: SearchLimits,
     table_mebibytes: usize,
+    progress_stop: SearchStopFlag,
+    output: Arc<dyn SearchOutput>,
 ) -> Result<SearchResult, SearchWorkerError> {
     let mut position = game.position().clone();
     let mut history = game.search_history();
     let mut transposition_table = TranspositionTable::new(table_mebibytes)
         .map_err(SearchWorkerError::TranspositionTableAllocation)?;
-    iterative_deepening_search_with_limits_and_transposition_table(
+    let started = Instant::now();
+    let mut output_error = None;
+
+    let result = iterative_deepening_search_with_limits_and_transposition_table_and_observer(
         &mut position,
         &mut history,
         limits,
         &mut transposition_table,
-    )
-    .map_err(SearchWorkerError::Search)
+        |progress| {
+            if output_error.is_some() {
+                return;
+            }
+            if let Err(error) = output.report_progress(progress, started.elapsed()) {
+                progress_stop.request_stop();
+                output_error = Some(SearchWorkerError::from_output_error(error));
+            }
+        },
+    );
+
+    if let Some(error) = output_error {
+        return Err(error);
+    }
+    result.map_err(SearchWorkerError::Search)
 }
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
+    use std::{
+        io,
+        sync::{Arc, Mutex},
+        time::Duration,
+    };
 
     use chess_core::Color;
-    use chess_search::SearchStopFlag;
-    use chess_uci::{EngineOptions, GoCommand, UciEvent, UciSession};
+    use chess_search::{SearchProgress, SearchResult, SearchStopFlag};
+    use chess_uci::{EngineOptions, GoCommand, SearchRequest, UciEvent, UciSession};
 
-    use super::{build_search_limits, SearchWorkerError};
-    use crate::time_manager::UciTimeManagerError;
+    use super::{build_search_limits, SearchWorker, SearchWorkerError};
+    use crate::{output::SearchOutput, time_manager::UciTimeManagerError};
+
+    #[derive(Default)]
+    struct RecordingOutput {
+        depths: Mutex<Vec<u16>>,
+        final_count: Mutex<usize>,
+        errors: Mutex<Vec<String>>,
+        fail_progress: bool,
+    }
+
+    impl RecordingOutput {
+        fn depths(&self) -> Vec<u16> {
+            self.depths.lock().expect("depth lock").clone()
+        }
+
+        fn final_count(&self) -> usize {
+            *self.final_count.lock().expect("final-count lock")
+        }
+    }
+
+    impl SearchOutput for RecordingOutput {
+        fn report_progress(
+            &self,
+            progress: SearchProgress<'_>,
+            _elapsed: Duration,
+        ) -> io::Result<()> {
+            if self.fail_progress {
+                return Err(io::Error::other("synthetic progress failure"));
+            }
+            self.depths
+                .lock()
+                .expect("depth lock")
+                .push(progress.iteration().depth());
+            Ok(())
+        }
+
+        fn report_bestmove(&self, _result: &SearchResult) -> io::Result<()> {
+            let mut count = self.final_count.lock().expect("final-count lock");
+            *count += 1;
+            Ok(())
+        }
+
+        fn report_error(&self, message: &str) -> io::Result<()> {
+            self.errors
+                .lock()
+                .expect("error lock")
+                .push(message.to_owned());
+            Ok(())
+        }
+    }
 
     fn command(input: &str) -> GoCommand {
+        request(input).command()
+    }
+
+    fn request(input: &str) -> SearchRequest {
         let response = UciSession::new().handle_line(input);
         match response.event() {
-            Some(UciEvent::StartSearch(request)) => request.command(),
+            Some(UciEvent::StartSearch(request)) => request.as_ref().clone(),
             other => panic!("expected start-search event, found {other:?}"),
         }
     }
@@ -318,5 +474,56 @@ mod tests {
                 side: Color::White,
             })
         );
+    }
+
+    #[test]
+    fn natural_completion_reports_each_depth_and_one_final_move() {
+        let recorder = Arc::new(RecordingOutput::default());
+        let output: Arc<dyn SearchOutput> = recorder.clone();
+        let worker = SearchWorker::spawn(request("go depth 2"), output)
+            .expect("worker starts from a valid request");
+        let result = worker.join().expect("worker search succeeds");
+
+        assert_eq!(result.completed_depth(), 2);
+        assert_eq!(recorder.depths(), vec![1, 2]);
+        assert_eq!(recorder.final_count(), 1);
+    }
+
+    #[test]
+    fn explicit_stop_reports_exactly_one_final_move() {
+        let recorder = Arc::new(RecordingOutput::default());
+        let output: Arc<dyn SearchOutput> = recorder.clone();
+        let worker =
+            SearchWorker::spawn(request("go infinite"), output).expect("infinite worker starts");
+        let _result = worker.stop_and_join().expect("explicit stop joins");
+
+        assert_eq!(recorder.final_count(), 1);
+    }
+
+    #[test]
+    fn stale_discard_suppresses_final_move() {
+        let recorder = Arc::new(RecordingOutput::default());
+        let output: Arc<dyn SearchOutput> = recorder.clone();
+        let worker =
+            SearchWorker::spawn(request("go infinite"), output).expect("infinite worker starts");
+        let _result = worker.discard_and_join().expect("stale worker joins");
+
+        assert_eq!(recorder.final_count(), 0);
+    }
+
+    #[test]
+    fn output_failure_is_typed_and_requests_search_stop() {
+        let recorder = Arc::new(RecordingOutput {
+            fail_progress: true,
+            ..RecordingOutput::default()
+        });
+        let output: Arc<dyn SearchOutput> = recorder;
+        let worker = SearchWorker::spawn(request("go depth 3"), output)
+            .expect("worker starts before synthetic output failure");
+        let error = worker
+            .join()
+            .expect_err("progress output failure is returned");
+
+        assert!(matches!(error, SearchWorkerError::Output { .. }));
     }
 }

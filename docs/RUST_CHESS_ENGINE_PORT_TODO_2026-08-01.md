@@ -841,9 +841,9 @@ Evidence:
 
 # Task 17: Linux UCI executable — IN PROGRESS
 - [x] 17.1 Protocol loop.
-- [ ] 17.2 Search worker.
-- [ ] 17.3 Time manager.
-- [ ] 17.4 Output.
+- [x] 17.2 Search worker.
+- [x] 17.3 Time manager.
+- [x] 17.4 Output.
 - [ ] 17.5 Integration tests.
 - [ ] Task 17 gate.
 
@@ -858,6 +858,18 @@ Evidence:
 - Exact validated implementation SHA: `60f70463c9ad9abf99c8b3d7923df8037bc6f894`.
 - Validation: rustfmt, locked all-target workspace check, strict Clippy with warnings denied, 18 focused UCI tests, and the complete workspace test suite all passed.
 - Task 17.1 is complete. Task 17.2 UCI search worker is next.
+
+### Task 17.4 completion evidence
+
+- Implementation: `crates/chess-search/src/iterative_deepening.rs`, `crates/chess-uci/src/output.rs`, `worker.rs`, and `main.rs`.
+- A protocol-neutral observer reports every exact completed depth without giving `chess-search` any UCI or I/O dependency.
+- The adapter emits serialized `info depth`, `seldepth`, typed centipawn or mate score, cumulative nodes, overflow-safe NPS, elapsed milliseconds, bounded `hashfull`, and legal PV fields.
+- Natural completion and explicit `stop` emit exactly one `bestmove`; ponder is included when the legal PV contains a reply; terminal roots use `bestmove 0000`.
+- Position replacement, `ucinewgame`, `quit`, EOF, and slot drop suppress stale final output while preserving deterministic stop-and-join behavior.
+- Output failures are typed, request cancellation, and are never silently discarded.
+- Contract documentation: `docs/RUST_UCI_SEARCH_OUTPUT.md` and the updated worker contract.
+- Implementation SHA: `TASK17_4_IMPLEMENTATION_SHA`.
+- Task 17.4 is complete. Task 17.5 UCI process integration tests are next.
 
 # Task 18: Safe API, C ABI, and JNI — NOT STARTED
 - [ ] 18.1 Rust facade.
@@ -968,9 +980,9 @@ Evidence:
 
 ## Immediate next operations
 
-1. Implement Task 17.2 as an adapter-owned UCI search worker over immutable `SearchRequest` snapshots.
-2. Give every active search its own `SearchStopFlag`; do not introduce process-global mutable search control.
-3. Define replacement rules for `go`, `stop`, `ucinewgame`, `position`, and `quit` while a worker is active.
-4. Join completed or stopped workers cleanly and preserve protocol-thread responsiveness for `isready`.
-5. Convert the Task 17.1 typed `go` request into `SearchLimits` without implementing clock allocation ahead of Task 17.3.
-6. Add deterministic worker tests proving stop interrupts active search and quit performs an orderly shutdown.
+1. Implement Task 17.5 process-level UCI integration tests over the real binary.
+2. Cover handshake, start-position and six-field FEN setup, illegal move handling, and fixed-depth legal best move.
+3. Cover mate and stalemate `bestmove 0000` behavior.
+4. Prove `stop` interrupts an active search and still emits exactly one final move.
+5. Prove `quit` and EOF stop and join cleanly without stale final output.
+6. Prove independent sessions do not leak stdout, worker state, or mutable search control.

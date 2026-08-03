@@ -125,4 +125,4 @@ The validated tree passed:
 
 Validation corrections were limited to canonical rustfmt and moving a reserve-inspection accessor behind the test configuration so no test-only API remained dead in the production executable. The allocation formula, limits, error behavior, and safety invariants were unchanged.
 
-Task 17.3 is complete. Task 17.4 UCI search output is next.
+Task 17.3 is complete. Task 17.4 UCI search output is also complete; Task 17.5 process integration testing is next.

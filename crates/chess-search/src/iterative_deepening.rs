@@ -125,6 +125,41 @@ impl IterativeDeepeningIteration {
     }
 }
 
+/// Protocol-neutral snapshot emitted after one exact iteration completes.
+#[derive(Clone, Copy, Debug)]
+pub struct SearchProgress<'a> {
+    iteration: &'a IterativeDeepeningIteration,
+    nodes: u64,
+    qnodes: u64,
+    selective_depth: u16,
+}
+
+impl<'a> SearchProgress<'a> {
+    /// Returns the exact completed iteration represented by this snapshot.
+    #[must_use]
+    pub const fn iteration(self) -> &'a IterativeDeepeningIteration {
+        self.iteration
+    }
+
+    /// Returns every production node entered through this completed depth.
+    #[must_use]
+    pub const fn nodes(self) -> u64 {
+        self.nodes
+    }
+
+    /// Returns every quiescence node entered through this completed depth.
+    #[must_use]
+    pub const fn qnodes(self) -> u64 {
+        self.qnodes
+    }
+
+    /// Returns the deepest root-relative ply entered through this completed depth.
+    #[must_use]
+    pub const fn selective_depth(self) -> u16 {
+        self.selective_depth
+    }
+}
+
 /// Completed depth-by-depth results from one iterative-deepening search.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IterativeDeepeningSearchResult {
@@ -540,15 +575,41 @@ pub fn iterative_deepening_search_with_limits_and_transposition_table(
     limits: SearchLimits,
     transposition_table: &mut TranspositionTable,
 ) -> Result<SearchResult, IterativeDeepeningSearchError> {
-    iterative_deepening_search_with_limits_and_clock(
+    iterative_deepening_search_with_limits_and_transposition_table_and_observer(
+        position,
+        history,
+        limits,
+        transposition_table,
+        |_| {},
+    )
+}
+
+/// Searches under typed limits while observing every exact completed iteration.
+///
+/// The observer is called synchronously on the search thread after cumulative
+/// counters have been updated and before the next depth begins. It receives no
+/// protocol or I/O capability and cannot alter search decisions.
+pub fn iterative_deepening_search_with_limits_and_transposition_table_and_observer<Observer>(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    limits: SearchLimits,
+    transposition_table: &mut TranspositionTable,
+    observer: Observer,
+) -> Result<SearchResult, IterativeDeepeningSearchError>
+where
+    Observer: for<'a> FnMut(SearchProgress<'a>),
+{
+    iterative_deepening_search_with_limits_and_clock_and_observer(
         position,
         history,
         limits,
         transposition_table,
         WallClock::start(),
+        observer,
     )
 }
 
+#[cfg(test)]
 fn iterative_deepening_search_with_limits_and_clock<Clock>(
     position: &mut Position,
     history: &mut SearchHistory,
@@ -558,6 +619,28 @@ fn iterative_deepening_search_with_limits_and_clock<Clock>(
 ) -> Result<SearchResult, IterativeDeepeningSearchError>
 where
     Clock: SearchClock,
+{
+    iterative_deepening_search_with_limits_and_clock_and_observer(
+        position,
+        history,
+        limits,
+        transposition_table,
+        clock,
+        |_| {},
+    )
+}
+
+fn iterative_deepening_search_with_limits_and_clock_and_observer<Clock, Observer>(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    limits: SearchLimits,
+    transposition_table: &mut TranspositionTable,
+    clock: Clock,
+    mut observer: Observer,
+) -> Result<SearchResult, IterativeDeepeningSearchError>
+where
+    Clock: SearchClock,
+    Observer: for<'a> FnMut(SearchProgress<'a>),
 {
     let check_extension_enabled = limits.check_extension_enabled();
     let mut controller = SearchLimitController::new(limits, clock)
@@ -638,6 +721,12 @@ where
             },
         )?;
         selective_depth = selective_depth.max(iteration.selective_depth());
+        observer(SearchProgress {
+            iteration: &iteration,
+            nodes: controller.visited_nodes(),
+            qnodes: controller.visited_qnodes(),
+            selective_depth: controller.selective_depth(),
+        });
         iterations.push(iteration);
     }
 }
@@ -990,7 +1079,10 @@ mod limit_tests {
 
     use chess_core::{Position, SearchHistory};
 
-    use super::iterative_deepening_search_with_limits_and_clock;
+    use super::{
+        iterative_deepening_search_with_limits_and_clock,
+        iterative_deepening_search_with_limits_and_clock_and_observer,
+    };
     use crate::{limits::SearchClock, SearchLimitTermination, SearchLimits, TranspositionTable};
 
     struct ScriptedClock {
@@ -1083,6 +1175,47 @@ mod limit_tests {
         assert_eq!(result.searched_nodes(), 1);
         assert_eq!(result.elapsed(), limit);
         assert_eq!(table.generation(), 1);
+        assert_eq!(position, snapshot);
+        assert_eq!(history, history_snapshot);
+        assert_eq!(position.zobrist(), position.recomputed_zobrist());
+    }
+
+    #[test]
+    fn observer_receives_every_completed_depth_in_order() {
+        let mut position = terminal_root();
+        let snapshot = position.clone();
+        let mut history = SearchHistory::from_position(&position);
+        let history_snapshot = history.clone();
+        let mut table = TranspositionTable::new(1).expect("bounded table allocates");
+        let mut observed = Vec::new();
+
+        let result = iterative_deepening_search_with_limits_and_clock_and_observer(
+            &mut position,
+            &mut history,
+            SearchLimits::new().with_depth(3),
+            &mut table,
+            ScriptedClock::new(vec![Duration::ZERO]),
+            |progress| {
+                observed.push((
+                    progress.iteration().depth(),
+                    progress.nodes(),
+                    progress.qnodes(),
+                    progress.selective_depth(),
+                ));
+            },
+        )
+        .expect("observed depth search succeeds");
+
+        assert_eq!(result.completed_depth(), 3);
+        assert_eq!(
+            observed.iter().map(|entry| entry.0).collect::<Vec<_>>(),
+            vec![1, 2, 3]
+        );
+        assert!(observed.windows(2).all(|window| window[0].1 <= window[1].1));
+        assert_eq!(
+            observed.last().map(|entry| entry.1),
+            Some(result.completed().total_nodes())
+        );
         assert_eq!(position, snapshot);
         assert_eq!(history, history_snapshot);
         assert_eq!(position.zobrist(), position.recomputed_zobrist());

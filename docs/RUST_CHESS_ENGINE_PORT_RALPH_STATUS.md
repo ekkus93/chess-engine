@@ -3,7 +3,7 @@
 **Updated:** 2026-08-02  
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 17.1 complete; Task 17.2 UCI search worker is next
+**Current phase:** Task 17.4 complete; Task 17.5 UCI process integration tests are next
 
 ## Completed gates
 
@@ -49,6 +49,9 @@
 | 16.7 | `836ca0563f9a8dce44eb78997e28335a9d8fcdce` | `30785853401` / `91599164384` | explicit one-ply-per-line check extension, path-safe TT/PV policy, diagnostics, 229 Rust tests, depth-four perft, and differential oracle green |
 | 16 / gate | `836ca0563f9a8dce44eb78997e28335a9d8fcdce` | `30785853401` / `91599164384` | all iterative-deepening, aspiration, PV, limit, cancellation, result, and bounded-extension integration gates green |
 | 17.1 | `60f70463c9ad9abf99c8b3d7923df8037bc6f894` | one-shot full preflight | protocol session, transactional position replay, typed go requests, 18 focused tests, and full workspace gate green |
+| 17.2 | `d058353692f9f7c350e55dfae2d1a7c21ac64666` | documented permanent gate | adapter-owned worker, request-local cancellation, deterministic joins |
+| 17.3 | `1c71f8dfa8449190ea8ae860386b6566b9176cbd` | documented permanent gate | side-to-move clock allocation with soft/hard budgets and safety reserve |
+| 17.4 | `TASK17_4_IMPLEMENTATION_SHA` | final permanent gate recorded in output contract | synchronized iteration info, typed scores, nodes/NPS/time/hashfull/PV, exactly-once bestmove |
 
 ## Task 17.1 completion
 
@@ -71,6 +74,25 @@ Evidence:
 - Full validation: rustfmt, locked workspace all-target check, strict Clippy with warnings denied, focused UCI tests, and complete workspace tests passed.
 - First preflight correction removed one unnecessary leaked option-name allocation; the second corrected five test-only response borrows. No production behavior was weakened and no lint suppression was added.
 - Task 17.2 owns the search worker, explicit stop-token lifecycle, and clean join behavior. Task 17.3 owns clock allocation, and Task 17.4 owns search output and `bestmove`.
+
+## Task 17.4 completion
+
+Implemented and validated in the Task 17.4 slice:
+
+- protocol-neutral completed-iteration observation in `chess-search`;
+- synchronized adapter output while the protocol thread waits for input;
+- periodic exact-depth UCI information with typed score, nodes, NPS, time, hash fullness, and legal PV;
+- exactly one final best move for natural completion and explicit stop;
+- optional ponder from the legal PV;
+- `bestmove 0000` for no-legal-move roots;
+- stale-result suppression after position/new-game replacement, quit, EOF, and drop;
+- fail-loud output errors tied into request-local cancellation;
+- focused observer, formatter, lifecycle, and output-failure tests;
+- `docs/RUST_UCI_SEARCH_OUTPUT.md`.
+
+Implementation SHA: `TASK17_4_IMPLEMENTATION_SHA`.
+
+Task 17.5 owns complete process transcripts and common GUI workflow integration tests.
 
 ## Task 12 completion
 
