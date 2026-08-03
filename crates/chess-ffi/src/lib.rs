@@ -12,6 +12,4 @@ pub use safe::{
 };
 
 pub use chess_core::{Color, DrawReason, GameStatus};
-pub use chess_search::{
-    Score, SearchCancellationFallback, SearchLimitTermination, SearchResult,
-};
+pub use chess_search::{Score, SearchCancellationFallback, SearchLimitTermination, SearchResult};
