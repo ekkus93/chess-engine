@@ -4,6 +4,7 @@
 //! `chess-core` and `chess-search`. Task 18.2 adds a narrow C adapter with opaque
 //! handles, versioned records, length-delimited UTF-8, owned output buffers,
 //! structured result codes, and panic containment without exposing Rust layouts.
+//! The canonical consumer declaration is `include/chess_engine.h`.
 
 pub mod c_abi;
 mod safe;
