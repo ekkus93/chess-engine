@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: rust-ci-${{ github.workflow }}-${{ github.ref }}
@@ -26,6 +26,28 @@ jobs:
       RUST_BACKTRACE: "1"
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+
+      - name: Apply Task 16.5 implementation
+        run: python3 scripts/implement_task_16_5.py "$GITHUB_WORKSPACE"
+
+      - name: Format generated Rust
+        run: cargo fmt --all
+
+      - name: Verify Task 16.5 assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f crates/chess-search/tests/search_responsive_cancellation.rs
+          test -f docs/RUST_RESPONSIVE_CANCELLATION.md
+          grep -F -- 'pub const CANCELLATION_CHECK_INTERVAL_NODES: u64 = 1;' crates/chess-search/src/cancellation.rs
+          grep -F -- 'pub enum SearchCancellationFallback' crates/chess-search/src/iterative_deepening.rs
+          grep -F -- 'pub const fn fallback(&self)' crates/chess-search/src/iterative_deepening.rs
+          grep -F -- 'pub struct CancellationBenchmarkRow' crates/chess-tools/src/lib.rs
+          grep -F -- 'pub fn benchmark_cancellation' crates/chess-tools/src/lib.rs
+          grep -F -- '"cancel-bench" =>' crates/chess-tools/src/main.rs
 
       - name: Verify workspace and validation assets
         shell: bash
@@ -40,7 +62,8 @@ jobs:
           test -f scripts/task_14_5_exclusion_audit.py
           python3 -m py_compile \
             scripts/differential_oracle.py \
-            scripts/task_14_5_exclusion_audit.py
+            scripts/task_14_5_exclusion_audit.py \
+            scripts/implement_task_16_5.py
 
       - name: Run Task 14.5 exclusion audit
         run: python3 scripts/task_14_5_exclusion_audit.py
@@ -91,6 +114,17 @@ jobs:
       - name: Run tests
         run: cargo test --locked --workspace --all-features
 
+      - name: Run focused cancellation tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --locked -p chess-search --test search_responsive_cancellation
+          cargo test --locked -p chess-search --test search_limits
+          cargo test --locked -p chess-tools cancellation_benchmark_enforces_the_node_bound_and_repeats_its_checksum
+
+      - name: Run cancellation benchmark smoke
+        run: cargo run --locked -p chess-tools --release -- cancel-bench 4
+
       - name: Run authoritative release perft
         run: cargo test --locked -p chess-core --release authoritative_perft_depth_four -- --ignored --exact
 
@@ -123,3 +157,26 @@ jobs:
           --games 12
           --plies 48
           --seed 0xC0FFEE
+
+      - name: Commit Task 16.5 without workflow changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm scripts/implement_task_16_5.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            crates/chess-search/src/alpha_beta.rs \
+            crates/chess-search/src/cancellation.rs \
+            crates/chess-search/src/iterative_deepening.rs \
+            crates/chess-search/src/lib.rs \
+            crates/chess-search/tests/search_limits.rs \
+            crates/chess-search/tests/search_responsive_cancellation.rs \
+            crates/chess-tools/src/lib.rs \
+            crates/chess-tools/src/main.rs \
+            docs/RUST_ITERATIVE_DEEPENING.md \
+            docs/RUST_RESPONSIVE_CANCELLATION.md \
+            docs/RUST_SEARCH_LIMITS.md
+          git diff --cached --check
+          git commit -m "feat: add responsive cancellation contract"
+          git push origin HEAD:rust-engine
