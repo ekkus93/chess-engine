@@ -18,7 +18,7 @@ use chess_ffi::c_abi::{
     CHESS_ENGINE_SEARCH_FLAG_SOFT_TIME,
 };
 use jni::{
-    objects::{JObject, JString, JValue},
+    objects::{JObject, JString, JThrowable, JValue},
     sys::{jboolean, jint, jlong, jstring, JNI_FALSE, JNI_TRUE},
     JNIEnv,
 };
@@ -110,7 +110,7 @@ fn throw_bridge_error(env: &mut JNIEnv<'_>, error: &BridgeError) {
 
     match exception {
         Ok(value) => {
-            let _ = env.throw(value);
+            let _ = env.throw(JThrowable::from(value));
         }
         Err(_) => {
             let _ = env.exception_clear();
@@ -457,10 +457,10 @@ pub(crate) fn null_jstring() -> jstring {
 mod tests {
     use super::{search_request, token_from_jlong, token_to_jlong, SearchArguments};
     use chess_ffi::c_abi::{
-        CHESS_ENGINE_SEARCH_FLAG_CANCELLATION, CHESS_ENGINE_SEARCH_FLAG_CHECK_EXTENSION,
-        CHESS_ENGINE_SEARCH_FLAG_DEPTH, CHESS_ENGINE_SEARCH_FLAG_HARD_TIME,
-        CHESS_ENGINE_SEARCH_FLAG_INFINITE, CHESS_ENGINE_SEARCH_FLAG_NODES,
-        CHESS_ENGINE_SEARCH_FLAG_SOFT_TIME,
+        ChessEngineResultCode, CHESS_ENGINE_SEARCH_FLAG_CANCELLATION,
+        CHESS_ENGINE_SEARCH_FLAG_CHECK_EXTENSION, CHESS_ENGINE_SEARCH_FLAG_DEPTH,
+        CHESS_ENGINE_SEARCH_FLAG_HARD_TIME, CHESS_ENGINE_SEARCH_FLAG_INFINITE,
+        CHESS_ENGINE_SEARCH_FLAG_NODES, CHESS_ENGINE_SEARCH_FLAG_SOFT_TIME,
     };
     use jni::sys::{JNI_FALSE, JNI_TRUE};
 
