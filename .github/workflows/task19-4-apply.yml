@@ -21,7 +21,25 @@ jobs:
         with:
           components: rustfmt, clippy
       - name: Apply implementation
-        run: python3 .github/task19_4_apply.py
+        run: |
+          python3 .github/task19_4_apply.py
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('crates/chess-uci/src/main.rs')
+          content = path.read_text()
+          redundant = '''fn run_protocol_loop<R, W>(input: R, output: W) -> io::Result<()>
+          where
+              R: BufRead,
+              W: Write + Send + 'static,
+          {
+              run_protocol_loop_with_book(input, output, None)
+          }
+
+          '''
+          if content.count(redundant) != 1:
+              raise SystemExit('expected exactly one redundant run_protocol_loop wrapper')
+          path.write_text(content.replace(redundant, '', 1))
+          PY
       - name: Format and lock
         run: |
           cargo fmt --all
