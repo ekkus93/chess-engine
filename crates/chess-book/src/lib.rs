@@ -1,15 +1,23 @@
 #![forbid(unsafe_code)]
-//! Platform-neutral opening-book contracts for engine adapters.
+//! Platform-neutral opening-book contracts and validated indexed data.
 //!
-//! This crate defines only value types and dependency-injection traits. It
-//! performs no filesystem, asset, environment, network, or process-global
-//! discovery. Platform adapters may implement [`BookProvider`] with whatever
-//! explicit I/O policy they require, while [`OpeningBook`] remains a pure query
-//! over a caller-supplied validated [`Position`].
+//! This crate defines dependency-injection traits plus an in-memory parser and
+//! serializer for the versioned project-specific indexed format. It performs
+//! no filesystem, asset, environment, network, or process-global discovery.
+//! Platform adapters may implement [`BookProvider`] with whatever explicit I/O
+//! policy they require, while [`OpeningBook`] remains a pure query over a
+//! caller-supplied validated [`Position`].
+
+mod indexed;
 
 use std::error::Error;
 
 use chess_core::{Move, Position};
+
+pub use indexed::{
+    BookPositionKey, IndexedBook, IndexedBookError, IndexedBookRecord,
+    INDEXED_BOOK_FORMAT_VERSION, INDEXED_BOOK_KEY_SCHEMA_VERSION,
+};
 
 /// One weighted move returned by an opening book.
 ///
