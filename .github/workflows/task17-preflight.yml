@@ -1,0 +1,139 @@
+name: Task 17.1 preflight
+
+on:
+  push:
+    branches:
+      - rust-engine
+
+permissions:
+  contents: write
+
+concurrency:
+  group: task17-preflight-rust-engine
+  cancel-in-progress: true
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+
+      - name: Skip the evidence commit
+        id: guard
+        shell: bash
+        run: |
+          if [[ "$(git log -1 --pretty=%s)" == "ci: record Task 17.1 preflight" ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Apply bounded source correction
+        if: steps.guard.outputs.skip != 'true'
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("crates/chess-uci/src/lib.rs")
+          text = path.read_text()
+          text = text.replace(
+              '''        match parse_setoption(tokens) {
+                      Ok(("Hash", value)) => match parse_hash_mebibytes(&value) {''',
+              '''        match parse_setoption(tokens) {
+                      Ok((name, value)) if name == "Hash" => match parse_hash_mebibytes(&value) {''',
+          )
+          text = text.replace(
+              '''            Ok(("CheckExtension", value)) => match parse_boolean(&value) {''',
+              '''            Ok((name, value)) if name == "CheckExtension" => match parse_boolean(&value) {''',
+          )
+          old = '''fn parse_setoption(tokens: &[&str]) -> Result<(&str, String), String> {
+              if tokens.first().copied() != Some("name") {
+                  return Err("setoption requires `name <option> value <value>`".to_owned());
+              }
+              let value_index = tokens
+                  .iter()
+                  .position(|token| *token == "value")
+                  .ok_or_else(|| "setoption requires a value".to_owned())?;
+              if value_index <= 1 {
+                  return Err("setoption option name is empty".to_owned());
+              }
+              if value_index + 1 >= tokens.len() {
+                  return Err("setoption value is empty".to_owned());
+              }
+              let name = tokens[1..value_index].join(" ");
+              let value = tokens[value_index + 1..].join(" ");
+              match name.as_str() {
+                  "Hash" => Ok(("Hash", value)),
+                  "CheckExtension" => Ok(("CheckExtension", value)),
+                  _ => Ok((Box::leak(name.into_boxed_str()), value)),
+              }
+          }
+          '''
+          new = '''fn parse_setoption(tokens: &[&str]) -> Result<(String, String), String> {
+              if tokens.first().copied() != Some("name") {
+                  return Err("setoption requires `name <option> value <value>`".to_owned());
+              }
+              let value_index = tokens
+                  .iter()
+                  .position(|token| *token == "value")
+                  .ok_or_else(|| "setoption requires a value".to_owned())?;
+              if value_index <= 1 {
+                  return Err("setoption option name is empty".to_owned());
+              }
+              if value_index + 1 >= tokens.len() {
+                  return Err("setoption value is empty".to_owned());
+              }
+              let name = tokens[1..value_index].join(" ");
+              let value = tokens[value_index + 1..].join(" ");
+              Ok((name, value))
+          }
+          '''
+          if old not in text:
+              raise SystemExit("expected parse_setoption block was not found")
+          path.write_text(text.replace(old, new))
+          PY
+          cargo fmt --all
+
+      - name: Run bounded validation
+        if: steps.guard.outputs.skip != 'true'
+        id: validate
+        shell: bash
+        run: |
+          set +e
+          log=docs/TASK17_1_PREFLIGHT.log
+          : > "$log"
+          status=0
+          run_check() {
+            echo "$ $*" | tee -a "$log"
+            "$@" >> "$log" 2>&1
+            rc=$?
+            echo "exit=$rc" | tee -a "$log"
+            if [[ $rc -ne 0 && $status -eq 0 ]]; then status=$rc; fi
+          }
+          run_check cargo fmt --all -- --check
+          run_check cargo check --locked --workspace --all-targets --all-features
+          run_check cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+          run_check cargo test --locked -p chess-uci
+          run_check cargo test --locked --workspace --all-features
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Commit source and evidence
+        if: steps.guard.outputs.skip != 'true'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add crates/chess-uci/src/lib.rs Cargo.lock docs/TASK17_1_PREFLIGHT.log
+          git diff --cached --check
+          git commit -m "ci: record Task 17.1 preflight"
+          git push origin HEAD:rust-engine
+
+      - name: Fail when validation failed
+        if: steps.guard.outputs.skip != 'true' && steps.validate.outputs.status != '0'
+        run: exit 1
