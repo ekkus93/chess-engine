@@ -49,4 +49,11 @@ replace_once(
     "test TT context policy",
 )
 
+replace_once(
+    "crates/chess-search/src/principal_variation.rs",
+    "pub(crate) fn reconstruct_principal_variation(\n",
+    "#[cfg(test)]\npub(crate) fn reconstruct_principal_variation(\n",
+    "test-only legacy PV helper",
+)
+
 print("Task 16.7 generated wiring corrected")
