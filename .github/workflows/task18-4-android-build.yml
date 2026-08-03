@@ -1,0 +1,69 @@
+name: Task 18.4 Android Build
+
+on:
+  push:
+    branches:
+      - task18-4-android-jni
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: task18-4-android-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android-aarch64:
+    name: Android AArch64 JNI library
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: task18-4-android-jni
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Resolve hosted Android NDK
+        id: ndk
+        shell: bash
+        run: |
+          set -euo pipefail
+          NDK_HOME="${ANDROID_NDK_LATEST_HOME:-}"
+          if [[ -z "${NDK_HOME}" || ! -d "${NDK_HOME}" ]]; then
+            NDK_HOME="$(find "${ANDROID_SDK_ROOT}/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          fi
+          test -d "${NDK_HOME}"
+          echo "home=${NDK_HOME}" >> "${GITHUB_OUTPUT}"
+          "${NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/clang" --version
+
+      - name: Build locked AArch64 release library
+        env:
+          ANDROID_NDK_HOME: ${{ steps.ndk.outputs.home }}
+          ANDROID_API_LEVEL: "24"
+        run: bash scripts/build_android_jni.sh
+
+      - name: Verify Android ELF artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          LIBRARY=target/aarch64-linux-android/release/libchess_jni.so
+          test -s "${LIBRARY}"
+          file "${LIBRARY}" | tee /tmp/chess-jni-file.txt
+          grep -F 'ELF 64-bit LSB shared object, ARM aarch64' /tmp/chess-jni-file.txt
+          readelf -h "${LIBRARY}" | tee /tmp/chess-jni-elf-header.txt
+          grep -E 'Machine:[[:space:]]+AArch64' /tmp/chess-jni-elf-header.txt
+          readelf -Ws "${LIBRARY}" | grep -F 'Java_com_ekkus93_chessengine_NativeChessEngineBindings_nativeSearch'
+
+      - name: Remove one-shot Android workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/task18-4-android-build.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "ci: record Task 18.4 Android build pass"
+          git push origin HEAD:task18-4-android-jni
