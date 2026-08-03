@@ -10,7 +10,7 @@ permissions:
 
 concurrency:
   group: task19-4-trusted-apply
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   apply-and-validate:
@@ -102,5 +102,6 @@ jobs:
           git fetch origin rust-engine
           git switch -C rust-engine origin/rust-engine
           git rm .github/workflows/task19-4-trusted-apply.yml
+          test ! -e .github/task19-4-trigger.txt || git rm .github/task19-4-trigger.txt
           git commit -m 'Remove Task 19.4 trusted apply trigger'
           git push origin HEAD:rust-engine
