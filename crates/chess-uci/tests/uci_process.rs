@@ -208,7 +208,7 @@ fn game_after_moves(moves: &[&str]) -> Game {
         let legal_moves = game.legal_moves().expect("generate fixture legal moves");
         let current = legal_moves
             .iter()
-            .find(|candidate| syntax.matches(candidate))
+            .find(|candidate| syntax.matches(*candidate))
             .expect("fixture move is legal");
         game.make_move(current).expect("apply fixture move");
     }
