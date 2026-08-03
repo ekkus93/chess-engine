@@ -40,4 +40,6 @@ Permanent implementation validation:
 - formatting, locked all-target/all-feature workspace compilation, strict Clippy with warnings denied, the complete workspace test suite, authoritative release depth-four perft, rustdoc with warnings denied, debug and release builds, and the independent differential corpus with seeded playouts all passed;
 - differential validation covered 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 
+Authoritative tracker closure SHA: `8c65f2d2043eb46a4a508af08b35bfad990f9228`.
+
 Task 17.5 and the overall Task 17 Linux UCI executable gate are complete. Task 18.1 Rust facade work is next.
