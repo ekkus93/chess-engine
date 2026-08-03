@@ -38,6 +38,7 @@ impl UciTimeBudget {
     }
 
     /// Returns the clock time deliberately excluded from both budgets.
+    #[cfg(test)]
     #[must_use]
     pub(crate) const fn safety_reserve(self) -> Duration {
         self.safety_reserve
