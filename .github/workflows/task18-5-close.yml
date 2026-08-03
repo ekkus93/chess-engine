@@ -18,6 +18,7 @@ concurrency:
   group: task18-5-close-${{ github.ref }}
   cancel-in-progress: true
 
+# Trigger commit after the workflow exists on the pull-request branch.
 jobs:
   close:
     runs-on: ubuntu-24.04
