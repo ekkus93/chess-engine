@@ -51,7 +51,7 @@
 | 17.1 | `60f70463c9ad9abf99c8b3d7923df8037bc6f894` | one-shot full preflight | protocol session, transactional position replay, typed go requests, 18 focused tests, and full workspace gate green |
 | 17.2 | `d058353692f9f7c350e55dfae2d1a7c21ac64666` | documented permanent gate | adapter-owned worker, request-local cancellation, deterministic joins |
 | 17.3 | `1c71f8dfa8449190ea8ae860386b6566b9176cbd` | documented permanent gate | side-to-move clock allocation with soft/hard budgets and safety reserve |
-| 17.4 | `TASK17_4_IMPLEMENTATION_SHA` | final permanent gate recorded in output contract | synchronized iteration info, typed scores, nodes/NPS/time/hashfull/PV, exactly-once bestmove |
+| 17.4 | `0f0ed39b31aca077173359c5807c1afaffb3e9e4` | final permanent gate recorded in output contract | synchronized iteration info, typed scores, nodes/NPS/time/hashfull/PV, exactly-once bestmove |
 
 ## Task 17.1 completion
 
@@ -90,7 +90,7 @@ Implemented and validated in the Task 17.4 slice:
 - focused observer, formatter, lifecycle, and output-failure tests;
 - `docs/RUST_UCI_SEARCH_OUTPUT.md`.
 
-Implementation SHA: `TASK17_4_IMPLEMENTATION_SHA`.
+Implementation SHA: `0f0ed39b31aca077173359c5807c1afaffb3e9e4`.
 
 Task 17.5 owns complete process transcripts and common GUI workflow integration tests.
 

@@ -868,7 +868,7 @@ Evidence:
 - Position replacement, `ucinewgame`, `quit`, EOF, and slot drop suppress stale final output while preserving deterministic stop-and-join behavior.
 - Output failures are typed, request cancellation, and are never silently discarded.
 - Contract documentation: `docs/RUST_UCI_SEARCH_OUTPUT.md` and the updated worker contract.
-- Implementation SHA: `TASK17_4_IMPLEMENTATION_SHA`.
+- Implementation SHA: `0f0ed39b31aca077173359c5807c1afaffb3e9e4`.
 - Task 17.4 is complete. Task 17.5 UCI process integration tests are next.
 
 # Task 18: Safe API, C ABI, and JNI — NOT STARTED

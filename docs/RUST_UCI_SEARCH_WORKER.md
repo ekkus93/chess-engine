@@ -75,6 +75,6 @@ Task 17.2 implementation SHA: `d058353692f9f7c350e55dfae2d1a7c21ac64666`.
 
 Task 17.3 implementation SHA: `1c71f8dfa8449190ea8ae860386b6566b9176cbd`.
 
-Task 17.4 implementation SHA: `TASK17_4_IMPLEMENTATION_SHA`.
+Task 17.4 implementation SHA: `0f0ed39b31aca077173359c5807c1afaffb3e9e4`.
 
 Tasks 17.2 through 17.4 are complete. Task 17.5 process integration testing is next.

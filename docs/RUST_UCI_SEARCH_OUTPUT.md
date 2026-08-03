@@ -71,7 +71,7 @@ Full process transcripts, GUI workflow coverage, and stop/quit subprocess tests 
 
 ## Completion evidence
 
-Implementation SHA: `TASK17_4_IMPLEMENTATION_SHA`.
+Implementation SHA: `0f0ed39b31aca077173359c5807c1afaffb3e9e4`.
 
 The permanent full-workspace validation run and job are recorded after the clean implementation tree is validated.
 
