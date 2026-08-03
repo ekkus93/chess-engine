@@ -1,14 +1,14 @@
 name: Task 19.2 Trusted Closure
 
 on:
-  issues:
+  pull_request_target:
     types:
       - opened
-      - edited
+      - synchronize
 
 permissions:
   contents: write
-  issues: read
+  pull-requests: read
 
 concurrency:
   group: task19-2-trusted-closure
@@ -17,8 +17,10 @@ concurrency:
 jobs:
   close:
     if: >-
-      github.event.issue.title == '[run-task19-2-closure]'
-      && github.event.issue.user.login == 'ekkus93'
+      github.event.pull_request.title == '[run-task19-2-closure-pr]'
+      && github.event.pull_request.user.login == 'ekkus93'
+      && github.event.pull_request.head.ref == 'task19-2-trusted-trigger'
+      && github.event.pull_request.head.repo.full_name == 'ekkus93/chess-engine'
       && github.repository == 'ekkus93/chess-engine'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
