@@ -16,10 +16,7 @@ use jni::{
 };
 
 #[export_name = "Java_com_ekkus93_chessengine_NativeChessEngineBindings_nativeVersion"]
-pub extern "system" fn native_version(
-    mut env: JNIEnv<'_>,
-    _binding: JObject<'_>,
-) -> jstring {
+pub extern "system" fn native_version(mut env: JNIEnv<'_>, _binding: JObject<'_>) -> jstring {
     boundary(&mut env, null_jstring(), |env| {
         output_string(env, &bridge::version()?)
     })
@@ -37,11 +34,7 @@ pub extern "system" fn native_create(
 }
 
 #[export_name = "Java_com_ekkus93_chessengine_NativeChessEngineBindings_nativeDestroy"]
-pub extern "system" fn native_destroy(
-    mut env: JNIEnv<'_>,
-    _binding: JObject<'_>,
-    handle: jlong,
-) {
+pub extern "system" fn native_destroy(mut env: JNIEnv<'_>, _binding: JObject<'_>, handle: jlong) {
     boundary(&mut env, (), |_env| bridge::destroy_engine(handle));
 }
 
@@ -138,9 +131,7 @@ pub extern "system" fn native_cancellation_destroy(
     _binding: JObject<'_>,
     handle: jlong,
 ) {
-    boundary(&mut env, (), |_env| {
-        bridge::destroy_cancellation(handle)
-    });
+    boundary(&mut env, (), |_env| bridge::destroy_cancellation(handle));
 }
 
 #[export_name = "Java_com_ekkus93_chessengine_NativeChessEngineBindings_nativeCancellationCancel"]
@@ -158,9 +149,7 @@ pub extern "system" fn native_cancellation_reset(
     _binding: JObject<'_>,
     handle: jlong,
 ) {
-    boundary(&mut env, (), |_env| {
-        bridge::reset_cancellation(handle)
-    });
+    boundary(&mut env, (), |_env| bridge::reset_cancellation(handle));
 }
 
 #[export_name = "Java_com_ekkus93_chessengine_NativeChessEngineBindings_nativeCancellationIsCancelled"]

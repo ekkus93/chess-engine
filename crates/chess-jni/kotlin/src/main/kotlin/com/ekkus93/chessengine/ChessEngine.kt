@@ -3,7 +3,6 @@ package com.ekkus93.chessengine
 import java.io.Closeable
 import java.lang.ref.PhantomReference
 import java.lang.ref.ReferenceQueue
-import java.util.Collections
 import java.util.concurrent.Callable
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutionException
@@ -482,7 +481,7 @@ class ChessEngine private constructor(
         lifecycleLock.read { operation(state.requireOpen()) }
 
     companion object {
-        private const val DEFAULT_TRANSPOSITION_TABLE_MEBIBYTES = 16L
+        private const val DEFAULT_TRANSPOSITION_TABLE_MEBIBYTES = 1L
         private const val CLOSE_TIMEOUT_SECONDS = 10L
 
         fun create(

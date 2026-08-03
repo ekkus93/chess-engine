@@ -1,6 +1,5 @@
-const KOTLIN_WRAPPER: &str = include_str!(
-    "../kotlin/src/main/kotlin/com/ekkus93/chessengine/ChessEngine.kt"
-);
+const KOTLIN_WRAPPER: &str =
+    include_str!("../kotlin/src/main/kotlin/com/ekkus93/chessengine/ChessEngine.kt");
 const RUST_EXPORTS: &str = include_str!("../src/lib.rs");
 
 fn occurrences(haystack: &str, needle: &str) -> usize {
@@ -37,9 +36,7 @@ fn kotlin_native_declarations_match_exact_rust_export_names() {
         assert_eq!(
             occurrences(
                 RUST_EXPORTS,
-                &format!(
-                    "Java_com_ekkus93_chessengine_NativeChessEngineBindings_{method}"
-                )
+                &format!("Java_com_ekkus93_chessengine_NativeChessEngineBindings_{method}")
             ),
             1,
             "Rust must export {method} exactly once"
