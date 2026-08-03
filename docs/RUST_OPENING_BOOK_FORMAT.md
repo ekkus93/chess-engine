@@ -115,6 +115,7 @@ Those behaviors remain assigned to Tasks 19.3 through 19.5.
 ## Completion evidence
 
 - Exact validated implementation SHA: `781e876563e8b21bb50e6fa83af6afe92b260910`.
+- Exact tracker-closure SHA: `968dcfd85e55cca6d8b0f5ba5a682ad9aa167c85`.
 - Permanent Rust validation: run `30855596855`, job `91825754603`.
 - Permanent Android regression validation: run `30855596897`, host JVM job `91825818389`, API-35 emulator job `91825818440`.
 - Seven focused indexed-format tests passed; the complete workspace executed 317 non-doc Rust tests with zero failures.
