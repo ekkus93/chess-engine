@@ -1,16 +1,27 @@
 use std::time::Duration;
 
-use chess_core::{Position, SearchHistory};
+use chess_core::{Move, Position, SearchHistory};
 use chess_search::{
     iterative_deepening_search, iterative_deepening_search_with_limits,
     iterative_deepening_search_with_limits_and_transposition_table, IterativeDeepeningSearchError,
-    SearchLimitError, SearchLimitTermination, SearchLimits, SearchStopFlag, TranspositionTable,
+    SearchCancellationFallback, SearchLimitError, SearchLimitTermination, SearchLimits,
+    SearchStopFlag, TranspositionTable,
 };
 
 fn benchmark_position() -> Position {
     "7k/8/8/1p2q3/2P1Q3/8/K7/8 w - - 0 1"
         .parse()
         .expect("search-limit benchmark FEN is valid")
+}
+
+fn first_legal_move(root: &Position) -> Move {
+    let mut position = root.clone();
+    position
+        .legal_moves()
+        .expect("fallback legal generation succeeds")
+        .iter()
+        .next()
+        .expect("benchmark root has a legal move")
 }
 
 fn assert_restored(
@@ -51,6 +62,7 @@ fn depth_limit_matches_fixed_iterative_deepening_exactly() {
     assert_eq!(result.completed(), &expected);
     assert_eq!(result.searched_nodes(), expected.total_nodes());
     assert_eq!(result.incomplete_nodes(), 0);
+    assert_eq!(result.fallback(), None);
     assert_restored(&position, &position_snapshot, &history, &history_snapshot);
 }
 
@@ -87,7 +99,45 @@ fn node_limit_discards_partial_depth_and_preserves_last_exact_iteration() {
     assert_eq!(result.completed(), &depth_one);
     assert_eq!(result.searched_nodes(), node_limit);
     assert_eq!(result.incomplete_nodes(), 1);
+    assert_eq!(result.fallback(), None);
     assert_eq!(table.generation(), 2);
+    assert_restored(&position, &position_snapshot, &history, &history_snapshot);
+}
+
+#[test]
+fn node_limit_before_depth_one_returns_the_deterministic_legal_fallback() {
+    let root = benchmark_position();
+    let expected = first_legal_move(&root);
+    let mut position = root.clone();
+    let position_snapshot = position.clone();
+    let mut history = SearchHistory::from_position(&position);
+    let history_snapshot = history.clone();
+    let mut table = TranspositionTable::new(1).expect("bounded table allocates");
+
+    let result = iterative_deepening_search_with_limits_and_transposition_table(
+        &mut position,
+        &mut history,
+        SearchLimits::new().with_nodes(1),
+        &mut table,
+    )
+    .expect("one-node cancellation returns a fallback");
+
+    assert_eq!(
+        result.termination(),
+        SearchLimitTermination::Nodes { nodes: 1 }
+    );
+    assert_eq!(result.completed().completed_depth(), 0);
+    assert_eq!(result.searched_nodes(), 1);
+    assert_eq!(result.incomplete_nodes(), 1);
+    assert_eq!(
+        result.fallback(),
+        Some(SearchCancellationFallback::FirstLegalMove(expected))
+    );
+    assert_eq!(
+        result.fallback().and_then(|fallback| fallback.best_move()),
+        Some(expected)
+    );
+    assert_eq!(table.generation(), 1);
     assert_restored(&position, &position_snapshot, &history, &history_snapshot);
 }
 
@@ -100,6 +150,7 @@ fn preset_stop_flag_stops_finite_and_infinite_requests_before_mutation() {
         let stop = SearchStopFlag::new();
         stop.request_stop();
         let mut position = benchmark_position();
+        let expected = first_legal_move(&position);
         let position_snapshot = position.clone();
         let mut history = SearchHistory::from_position(&position);
         let history_snapshot = history.clone();
@@ -115,9 +166,47 @@ fn preset_stop_flag_stops_finite_and_infinite_requests_before_mutation() {
         assert_eq!(result.termination(), SearchLimitTermination::ExplicitStop);
         assert_eq!(result.completed().completed_depth(), 0);
         assert_eq!(result.searched_nodes(), 0);
+        assert_eq!(
+            result.fallback(),
+            Some(SearchCancellationFallback::FirstLegalMove(expected))
+        );
         assert_eq!(table.generation(), 0);
         assert_restored(&position, &position_snapshot, &history, &history_snapshot);
     }
+}
+
+#[test]
+fn terminal_preset_stop_returns_an_explicit_no_legal_move_fallback() {
+    let stop = SearchStopFlag::new();
+    stop.request_stop();
+    let mut position: Position = "7k/6Q1/6K1/8/8/8/8/8 b - - 0 1"
+        .parse()
+        .expect("terminal fallback FEN is valid");
+    let position_snapshot = position.clone();
+    let mut history = SearchHistory::from_position(&position);
+    let history_snapshot = history.clone();
+    let mut table = TranspositionTable::new(1).expect("bounded table allocates");
+
+    let result = iterative_deepening_search_with_limits_and_transposition_table(
+        &mut position,
+        &mut history,
+        SearchLimits::new().with_depth(3).with_stop_flag(stop),
+        &mut table,
+    )
+    .expect("terminal preset stop returns a typed fallback");
+
+    assert_eq!(result.termination(), SearchLimitTermination::ExplicitStop);
+    assert_eq!(result.completed().completed_depth(), 0);
+    assert_eq!(
+        result.fallback(),
+        Some(SearchCancellationFallback::NoLegalMove)
+    );
+    assert_eq!(
+        result.fallback().and_then(|fallback| fallback.best_move()),
+        None
+    );
+    assert_eq!(table.generation(), 0);
+    assert_restored(&position, &position_snapshot, &history, &history_snapshot);
 }
 
 #[test]

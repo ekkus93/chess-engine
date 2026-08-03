@@ -1,3 +1,10 @@
+/// Maximum production-node interval between cooperative cancellation checks.
+///
+/// The current correctness-first policy checks every alpha-beta and quiescence
+/// node. Child boundaries also check before applying the next move, so an
+/// observed request cannot require completion of an arbitrary subtree or depth.
+pub const CANCELLATION_CHECK_INTERVAL_NODES: u64 = 1;
+
 /// Cooperative cancellation source for recursive search.
 ///
 /// Search calls `on_node` exactly once for each production node and calls
@@ -10,8 +17,9 @@ pub trait SearchCancellationProbe {
 
     /// Enters one production search node and returns whether it should stop.
     ///
-    /// The default preserves the historical callback contract. Limit-aware
-    /// controllers override this hook to account one node before searching it.
+    /// The default checks the source for every node, which satisfies
+    /// [`CANCELLATION_CHECK_INTERVAL_NODES`]. Limit-aware controllers override
+    /// this hook to account one node while retaining the same polling bound.
     fn on_node(&mut self) -> bool {
         self.should_cancel()
     }

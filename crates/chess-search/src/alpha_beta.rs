@@ -284,7 +284,7 @@ where
     run_validated_search(position, history, depth, transposition_table, cancellation)
 }
 
-fn validate_search_inputs(
+pub(crate) fn validate_search_inputs(
     position: &Position,
     history: &SearchHistory,
     depth: u16,

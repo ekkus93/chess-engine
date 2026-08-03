@@ -9,13 +9,13 @@ use std::{env, fs, io, process::ExitCode, time::Instant};
 
 use chess_search::EvaluationWeightSet;
 use chess_tools::{
-    benchmark_evaluation, benchmark_transposition, deserialize_weight_set, divide,
-    evaluation_trace, legal_uci, perft, play_uci, run_oracle, serialize_weight_set, suite,
+    benchmark_cancellation, benchmark_evaluation, benchmark_transposition, deserialize_weight_set,
+    divide, evaluation_trace, legal_uci, perft, play_uci, run_oracle, serialize_weight_set, suite,
     STARTING_FEN,
 };
 
 fn usage() -> &'static str {
-    "usage:\n  chess-tools legal [FEN]\n  chess-tools play UCI [FEN]\n  chess-tools perft DEPTH [FEN]\n  chess-tools divide DEPTH [FEN]\n  chess-tools suite MAX_DEPTH\n  chess-tools eval [FEN]\n  chess-tools eval-bench ITERATIONS [FEN]\n  chess-tools tt-bench ITERATIONS\n  chess-tools weights-export\n  chess-tools weights-validate PATH\n  chess-tools oracle"
+    "usage:\n  chess-tools legal [FEN]\n  chess-tools play UCI [FEN]\n  chess-tools perft DEPTH [FEN]\n  chess-tools divide DEPTH [FEN]\n  chess-tools suite MAX_DEPTH\n  chess-tools eval [FEN]\n  chess-tools eval-bench ITERATIONS [FEN]\n  chess-tools tt-bench ITERATIONS\n  chess-tools cancel-bench ITERATIONS\n  chess-tools weights-export\n  chess-tools weights-validate PATH\n  chess-tools oracle"
 }
 
 fn parse_depth(value: &str) -> Result<u8, String> {
@@ -139,6 +139,23 @@ fn run(arguments: &[String]) -> Result<(), String> {
                     row.operation, row.iterations, row.elapsed_nanos, row.checksum
                 );
             }
+        }
+        "cancel-bench" => {
+            if arguments.len() != 2 {
+                return Err(usage().to_owned());
+            }
+            let iterations = parse_iterations(&arguments[1])?;
+            let row = benchmark_cancellation(iterations).map_err(|error| error.to_string())?;
+            println!(
+                "{}\t{}\t{}\t{}\t{}\t{}\t{}",
+                row.operation,
+                row.iterations,
+                row.request_after_nodes,
+                row.maximum_response_nodes,
+                row.total_latency_nanos,
+                row.maximum_latency_nanos,
+                row.checksum
+            );
         }
         "weights-export" => {
             if arguments.len() != 1 {

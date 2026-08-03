@@ -66,7 +66,7 @@ The limit-aware entry points return `LimitedIterativeDeepeningSearchResult`:
 - `searched_nodes()` includes completed and discarded work;
 - `incomplete_nodes()` isolates discarded partial work.
 
-A cancelled depth cannot contribute a score, best move, PV, ponder move, aspiration record, or completed node total. The caller can inspect the last completed iteration when one exists. Task 16.5 remains responsible for the formal no-completed-iteration fallback and cancellation-latency benchmark. Task 16.6 remains responsible for the final unified engine result API.
+A cancelled depth cannot contribute a score, best move, PV, ponder move, aspiration record, or completed node total. The caller can inspect the last completed iteration when one exists. When no iteration completed, `fallback()` returns a deterministic first legal move or an explicit terminal `NoLegalMove` value. The one-node polling bound and cancellation benchmark are documented in `docs/RUST_RESPONSIVE_CANCELLATION.md`. Task 16.6 remains responsible for the final unified engine result API.
 
 ## Entry points
 

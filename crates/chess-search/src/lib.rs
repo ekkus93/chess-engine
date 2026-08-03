@@ -30,7 +30,7 @@ pub use aspiration::{
     AspirationWindowAttempt, AspirationWindowDiagnostics, AspirationWindowOutcome,
     DEFAULT_ASPIRATION_HALF_WIDTH_CENTIPAWNS,
 };
-pub use cancellation::SearchCancellationProbe;
+pub use cancellation::{SearchCancellationProbe, CANCELLATION_CHECK_INTERVAL_NODES};
 pub use evaluation::{
     evaluate, evaluate_term, evaluate_trace, evaluate_trace_with_weights, evaluate_with_weights,
     EvaluationTerm, EvaluationTrace,
@@ -40,7 +40,7 @@ pub use iterative_deepening::{
     iterative_deepening_search_with_limits_and_transposition_table,
     iterative_deepening_search_with_transposition_table, IterativeDeepeningIteration,
     IterativeDeepeningSearchError, IterativeDeepeningSearchResult,
-    LimitedIterativeDeepeningSearchResult,
+    LimitedIterativeDeepeningSearchResult, SearchCancellationFallback,
 };
 pub use limits::{SearchLimitError, SearchLimitTermination, SearchLimits, SearchStopFlag};
 pub use principal_variation::{

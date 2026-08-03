@@ -5,8 +5,8 @@ use chess_core::{Move, Position, SearchHistory};
 use crate::{
     alpha_beta::{
         alpha_beta_search_window_in_current_generation, prepare_alpha_beta_iteration,
-        AlphaBetaRootWindowResult, AlphaBetaSearchError, AlphaBetaSearchResult, AlphaBetaWindow,
-        DEFAULT_TRANSPOSITION_TABLE_MEBIBYTES,
+        validate_search_inputs, AlphaBetaRootWindowResult, AlphaBetaSearchError,
+        AlphaBetaSearchResult, AlphaBetaWindow, DEFAULT_TRANSPOSITION_TABLE_MEBIBYTES,
     },
     aspiration::{
         AspirationWindowAttempt, AspirationWindowDiagnostics, AspirationWindowOutcome,
@@ -155,12 +155,33 @@ impl IterativeDeepeningSearchResult {
     }
 }
 
+/// Deterministic emergency result when cancellation precedes depth one.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SearchCancellationFallback {
+    /// The first move in deterministic legal-generation order.
+    FirstLegalMove(Move),
+    /// The root is terminal and has no legal move.
+    NoLegalMove,
+}
+
+impl SearchCancellationFallback {
+    /// Returns the emergency legal move, or `None` for a terminal root.
+    #[must_use]
+    pub const fn best_move(self) -> Option<Move> {
+        match self {
+            Self::FirstLegalMove(current) => Some(current),
+            Self::NoLegalMove => None,
+        }
+    }
+}
+
 /// Exact completed iterations plus the limit that stopped the request.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LimitedIterativeDeepeningSearchResult {
     completed: IterativeDeepeningSearchResult,
     termination: SearchLimitTermination,
     searched_nodes: u64,
+    fallback: Option<SearchCancellationFallback>,
 }
 
 impl LimitedIterativeDeepeningSearchResult {
@@ -193,6 +214,15 @@ impl LimitedIterativeDeepeningSearchResult {
     pub fn incomplete_nodes(&self) -> u64 {
         self.searched_nodes
             .saturating_sub(self.completed.total_nodes())
+    }
+
+    /// Returns the deterministic emergency result when no depth completed.
+    ///
+    /// Once any exact iteration completes, that iteration is authoritative and
+    /// this method returns `None`.
+    #[must_use]
+    pub const fn fallback(&self) -> Option<SearchCancellationFallback> {
+        self.fallback
     }
 }
 
@@ -398,6 +428,7 @@ where
 {
     let mut controller = SearchLimitController::new(limits, clock)
         .map_err(IterativeDeepeningSearchError::InvalidLimits)?;
+    let fallback = cancellation_fallback(position, history)?;
     let mut iterations: Vec<IterativeDeepeningIteration> = Vec::new();
     let mut total_nodes = 0_u64;
 
@@ -411,6 +442,7 @@ where
                 total_nodes,
                 termination,
                 controller.visited_nodes(),
+                fallback,
             ));
         }
 
@@ -445,6 +477,7 @@ where
                             total_nodes,
                             termination,
                             controller.visited_nodes(),
+                            fallback,
                         ));
                     }
                 }
@@ -461,12 +494,35 @@ where
     }
 }
 
+fn cancellation_fallback(
+    position: &mut Position,
+    history: &SearchHistory,
+) -> Result<SearchCancellationFallback, IterativeDeepeningSearchError> {
+    validate_search_inputs(position, history, 1)
+        .map_err(|error| IterativeDeepeningSearchError::IterationFailed { depth: 1, error })?;
+    let tokens = position.legal_move_tokens().map_err(|error| {
+        IterativeDeepeningSearchError::IterationFailed {
+            depth: 1,
+            error: AlphaBetaSearchError::from(error),
+        }
+    })?;
+    let fallback = tokens
+        .iter()
+        .next()
+        .map_or(SearchCancellationFallback::NoLegalMove, |token| {
+            SearchCancellationFallback::FirstLegalMove(token.move_made())
+        });
+    Ok(fallback)
+}
+
 fn limited_result(
     iterations: Vec<IterativeDeepeningIteration>,
     total_nodes: u64,
     termination: SearchLimitTermination,
     searched_nodes: u64,
+    root_fallback: SearchCancellationFallback,
 ) -> LimitedIterativeDeepeningSearchResult {
+    let fallback = iterations.is_empty().then_some(root_fallback);
     LimitedIterativeDeepeningSearchResult {
         completed: IterativeDeepeningSearchResult {
             iterations,
@@ -474,6 +530,7 @@ fn limited_result(
         },
         termination,
         searched_nodes,
+        fallback,
     }
 }
 

@@ -10,12 +10,13 @@ use std::{
     time::Instant,
 };
 
-use chess_core::{Move, Position, UciMove};
+use chess_core::{Move, Position, SearchHistory, UciMove};
 use chess_search::{
-    evaluate_term, evaluate_trace as search_evaluate_trace, EvaluationTerm, EvaluationTrace,
-    EvaluationWeightSet, Score, TranspositionBound, TranspositionEntry, TranspositionProbeRequest,
+    alpha_beta_search_with_cancellation, evaluate_term, evaluate_trace as search_evaluate_trace,
+    AlphaBetaSearchError, EvaluationTerm, EvaluationTrace, EvaluationWeightSet, Score,
+    SearchCancellationProbe, TranspositionBound, TranspositionEntry, TranspositionProbeRequest,
     TranspositionProbeScore, TranspositionScore, TranspositionScoreReuse, TranspositionStoreAction,
-    TranspositionTable,
+    TranspositionTable, CANCELLATION_CHECK_INTERVAL_NODES,
 };
 
 pub use weights_io::{deserialize_weight_set, serialize_weight_set};
@@ -369,6 +370,168 @@ pub fn benchmark_transposition(
     Ok(vec![store_row, probe_row])
 }
 
+/// One cancellation-response benchmark result.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct CancellationBenchmarkRow {
+    /// Stable operation name.
+    pub operation: &'static str,
+    /// Number of independent cancellation samples.
+    pub iterations: u64,
+    /// Production nodes entered before the synthetic external request.
+    pub request_after_nodes: u64,
+    /// Largest observed number of additional node entries after the request.
+    pub maximum_response_nodes: u64,
+    /// Sum of measured request-to-return latency in nanoseconds.
+    pub total_latency_nanos: u128,
+    /// Largest measured request-to-return latency in nanoseconds.
+    pub maximum_latency_nanos: u128,
+    /// Deterministic accumulator over node and restoration evidence.
+    pub checksum: u64,
+}
+
+const CANCELLATION_BENCHMARK_REQUEST_AFTER_NODES: u64 = 64;
+const CANCELLATION_BENCHMARK_DEPTH: u16 = 5;
+
+struct CancellationLatencyProbe {
+    entered_nodes: u64,
+    request_after_nodes: u64,
+    requested_at_node: Option<u64>,
+    observed_at_node: Option<u64>,
+    requested_at: Option<Instant>,
+    observed_latency_nanos: Option<u128>,
+}
+
+impl CancellationLatencyProbe {
+    const fn new(request_after_nodes: u64) -> Self {
+        Self {
+            entered_nodes: 0,
+            request_after_nodes,
+            requested_at_node: None,
+            observed_at_node: None,
+            requested_at: None,
+            observed_latency_nanos: None,
+        }
+    }
+
+    fn observe(&mut self) {
+        if self.observed_at_node.is_none() {
+            self.observed_at_node = Some(self.entered_nodes);
+            self.observed_latency_nanos = Some(
+                self.requested_at
+                    .expect("benchmark request timestamp exists")
+                    .elapsed()
+                    .as_nanos(),
+            );
+        }
+    }
+}
+
+impl SearchCancellationProbe for CancellationLatencyProbe {
+    fn should_cancel(&mut self) -> bool {
+        if self.requested_at_node.is_some() {
+            self.observe();
+            return true;
+        }
+        if self.entered_nodes >= self.request_after_nodes {
+            self.requested_at_node = Some(self.entered_nodes);
+            self.requested_at = Some(Instant::now());
+        }
+        false
+    }
+
+    fn on_node(&mut self) -> bool {
+        if self.requested_at_node.is_some() {
+            self.observe();
+            return true;
+        }
+        self.entered_nodes = self.entered_nodes.saturating_add(1);
+        false
+    }
+}
+
+/// Benchmarks deterministic mid-tree cancellation detection and unwind latency.
+///
+/// Wall-clock values are informational. The enforced correctness threshold is
+/// the exported node interval: no sample may enter more than
+/// `CANCELLATION_CHECK_INTERVAL_NODES` additional nodes after the request.
+pub fn benchmark_cancellation(iterations: u64) -> Result<CancellationBenchmarkRow, ToolError> {
+    if iterations == 0 {
+        return Err(ToolError::new(
+            "cancellation benchmark requires at least one iteration",
+        ));
+    }
+
+    let mut maximum_response_nodes = 0_u64;
+    let mut total_latency_nanos = 0_u128;
+    let mut maximum_latency_nanos = 0_u128;
+    let mut checksum = 0_u64;
+
+    for sample in 0..iterations {
+        let mut position = Position::starting();
+        let position_snapshot = position.clone();
+        let mut history = SearchHistory::from_position(&position);
+        let history_snapshot = history.clone();
+        let mut probe = CancellationLatencyProbe::new(CANCELLATION_BENCHMARK_REQUEST_AFTER_NODES);
+
+        let result = alpha_beta_search_with_cancellation(
+            &mut position,
+            &mut history,
+            CANCELLATION_BENCHMARK_DEPTH,
+            &mut probe,
+        );
+        if result != Err(AlphaBetaSearchError::Cancelled) {
+            return Err(ToolError::new(
+                "cancellation benchmark search did not terminate through cancellation",
+            ));
+        }
+        if position != position_snapshot
+            || history != history_snapshot
+            || position.zobrist() != position.recomputed_zobrist()
+            || history.current_zobrist() != Some(position.zobrist())
+        {
+            return Err(ToolError::new(
+                "cancellation benchmark failed exact root restoration",
+            ));
+        }
+
+        let requested_at_node = probe
+            .requested_at_node
+            .ok_or_else(|| ToolError::new("cancellation benchmark did not issue a request"))?;
+        let observed_at_node = probe
+            .observed_at_node
+            .ok_or_else(|| ToolError::new("cancellation benchmark did not observe the request"))?;
+        let response_nodes = observed_at_node.saturating_sub(requested_at_node);
+        if response_nodes > CANCELLATION_CHECK_INTERVAL_NODES {
+            return Err(ToolError::new(format!(
+                "cancellation response used {response_nodes} nodes; bound is {CANCELLATION_CHECK_INTERVAL_NODES}"
+            )));
+        }
+        let latency_nanos = probe
+            .observed_latency_nanos
+            .ok_or_else(|| ToolError::new("cancellation benchmark did not measure latency"))?;
+
+        maximum_response_nodes = maximum_response_nodes.max(response_nodes);
+        total_latency_nanos = total_latency_nanos.saturating_add(latency_nanos);
+        maximum_latency_nanos = maximum_latency_nanos.max(latency_nanos);
+        checksum = checksum
+            .wrapping_mul(0x9e37_79b9_7f4a_7c15)
+            .wrapping_add(requested_at_node.rotate_left(7))
+            .wrapping_add(observed_at_node.rotate_left(17))
+            .wrapping_add(position.zobrist())
+            .wrapping_add(sample);
+    }
+
+    Ok(CancellationBenchmarkRow {
+        operation: "cancel",
+        iterations,
+        request_after_nodes: CANCELLATION_BENCHMARK_REQUEST_AFTER_NODES,
+        maximum_response_nodes,
+        total_latency_nanos,
+        maximum_latency_nanos,
+        checksum,
+    })
+}
+
 fn sanitize_error(error: &ToolError) -> String {
     error
         .to_string()
@@ -456,9 +619,11 @@ pub fn run_oracle<R: BufRead, W: Write>(reader: R, mut writer: W) -> Result<(), 
 mod tests {
     use std::io::Cursor;
 
+    use chess_search::CANCELLATION_CHECK_INTERVAL_NODES;
+
     use super::{
-        benchmark_transposition, divide, legal_uci, perft_fixtures, play_uci, run_oracle,
-        STARTING_FEN,
+        benchmark_cancellation, benchmark_transposition, divide, legal_uci, perft_fixtures,
+        play_uci, run_oracle, STARTING_FEN,
     };
 
     #[test]
@@ -499,6 +664,20 @@ mod tests {
         assert_eq!(lines[0], "ok\t400");
         assert!(lines[1].starts_with("ok\t"));
         assert_eq!(lines[2], "ok\tbye");
+    }
+
+    #[test]
+    fn cancellation_benchmark_enforces_the_node_bound_and_repeats_its_checksum() {
+        assert!(benchmark_cancellation(0).is_err());
+        let first = benchmark_cancellation(4).expect("cancellation benchmark succeeds");
+        let second = benchmark_cancellation(4).expect("cancellation benchmark repeats");
+
+        assert_eq!(first.operation, "cancel");
+        assert_eq!(first.iterations, 4);
+        assert_eq!(first.request_after_nodes, 64);
+        assert!(first.maximum_response_nodes <= CANCELLATION_CHECK_INTERVAL_NODES);
+        assert!(first.maximum_latency_nanos <= first.total_latency_nanos);
+        assert_eq!(first.checksum, second.checksum);
     }
 
     #[test]
