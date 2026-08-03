@@ -14,11 +14,14 @@ use crate::{
         DEFAULT_ASPIRATION_HALF_WIDTH_CENTIPAWNS,
     },
     cancellation::NeverCancelled,
+    check_extension::CheckExtensionDiagnostics,
     limits::{
         SearchClock, SearchLimitController, SearchLimitError, SearchLimitTermination, SearchLimits,
         WallClock,
     },
-    principal_variation::{reconstruct_principal_variation, PrincipalVariationError},
+    principal_variation::{
+        reconstruct_principal_variation_with_table_policy, PrincipalVariationError,
+    },
     PrincipalVariation, Score, SearchCancellationProbe, TranspositionHashFull, TranspositionTable,
     TranspositionTableAllocationError, TranspositionTableDiagnostics, MAX_MATE_PLY,
 };
@@ -227,6 +230,7 @@ pub struct SearchResult {
     qnodes: u64,
     selective_depth: u16,
     elapsed: Duration,
+    check_extension_diagnostics: CheckExtensionDiagnostics,
     fallback: Option<SearchCancellationFallback>,
 }
 
@@ -297,6 +301,12 @@ impl SearchResult {
     #[must_use]
     pub const fn elapsed(&self) -> Duration {
         self.elapsed
+    }
+
+    /// Returns request-wide bounded check-extension decisions, including partial work.
+    #[must_use]
+    pub const fn check_extension_diagnostics(&self) -> CheckExtensionDiagnostics {
+        self.check_extension_diagnostics
     }
 
     /// Returns the deepest completed legal principal variation.
@@ -549,6 +559,7 @@ fn iterative_deepening_search_with_limits_and_clock<Clock>(
 where
     Clock: SearchClock,
 {
+    let check_extension_enabled = limits.check_extension_enabled();
     let mut controller = SearchLimitController::new(limits, clock)
         .map_err(IterativeDeepeningSearchError::InvalidLimits)?;
     let fallback = cancellation_fallback(position, history)?;
@@ -582,7 +593,10 @@ where
             history,
             depth,
             center,
-            DEFAULT_ASPIRATION_HALF_WIDTH_CENTIPAWNS,
+            IterationSearchPolicy {
+                half_width_centipawns: DEFAULT_ASPIRATION_HALF_WIDTH_CENTIPAWNS,
+                check_extension_enabled,
+            },
             transposition_table,
             &mut controller,
         ) {
@@ -680,8 +694,15 @@ where
         qnodes: controller.visited_qnodes(),
         selective_depth: controller.selective_depth(),
         elapsed: controller.elapsed(),
+        check_extension_diagnostics: controller.check_extension_diagnostics(),
         fallback,
     }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct IterationSearchPolicy {
+    half_width_centipawns: i32,
+    check_extension_enabled: bool,
 }
 
 fn search_completed_iteration(
@@ -698,7 +719,10 @@ fn search_completed_iteration(
         history,
         depth,
         center,
-        half_width_centipawns,
+        IterationSearchPolicy {
+            half_width_centipawns,
+            check_extension_enabled: false,
+        },
         transposition_table,
         &mut cancellation,
     )
@@ -709,7 +733,7 @@ fn search_completed_iteration_with_cancellation<Probe>(
     history: &mut SearchHistory,
     depth: u16,
     center: Option<Score>,
-    half_width_centipawns: i32,
+    policy: IterationSearchPolicy,
     transposition_table: &mut TranspositionTable,
     cancellation: &mut Probe,
 ) -> Result<IterativeDeepeningIteration, IterativeDeepeningSearchError>
@@ -720,13 +744,14 @@ where
         .map_err(|error| IterativeDeepeningSearchError::IterationFailed { depth, error })?;
 
     let initial_window = center.map_or_else(AlphaBetaWindow::full, |score| {
-        aspiration_window(score, half_width_centipawns)
+        aspiration_window(score, policy.half_width_centipawns)
     });
     let (initial_result, initial_attempt) = run_attempt(
         position,
         history,
         depth,
         initial_window,
+        policy.check_extension_enabled,
         transposition_table,
         cancellation,
     )?;
@@ -744,6 +769,7 @@ where
                 history,
                 depth,
                 AlphaBetaWindow::full(),
+                policy.check_extension_enabled,
                 transposition_table,
                 cancellation,
             )?;
@@ -774,11 +800,14 @@ where
 
     let aspiration_diagnostics =
         AspirationWindowDiagnostics::new(center, initial_attempt, full_window_retry);
-    let principal_variation =
-        reconstruct_principal_variation(position, depth, result.best_move(), transposition_table)
-            .map_err(
-            |error| IterativeDeepeningSearchError::PrincipalVariationFailed { depth, error },
-        )?;
+    let principal_variation = reconstruct_principal_variation_with_table_policy(
+        position,
+        depth,
+        result.best_move(),
+        transposition_table,
+        !policy.check_extension_enabled,
+    )
+    .map_err(|error| IterativeDeepeningSearchError::PrincipalVariationFailed { depth, error })?;
     let final_attempt = aspiration_diagnostics.final_attempt();
 
     Ok(IterativeDeepeningIteration {
@@ -800,6 +829,7 @@ fn run_attempt<Probe>(
     history: &mut SearchHistory,
     depth: u16,
     window: AlphaBetaWindow,
+    check_extension_enabled: bool,
     transposition_table: &mut TranspositionTable,
     cancellation: &mut Probe,
 ) -> Result<(AlphaBetaRootWindowResult, AspirationWindowAttempt), IterativeDeepeningSearchError>
@@ -811,6 +841,7 @@ where
         history,
         depth,
         window,
+        check_extension_enabled,
         transposition_table,
         cancellation,
     )

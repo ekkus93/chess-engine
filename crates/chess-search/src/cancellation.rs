@@ -1,3 +1,5 @@
+use crate::CheckExtensionEvent;
+
 /// Maximum production-node interval between cooperative cancellation checks.
 ///
 /// The current correctness-first policy checks every alpha-beta and quiescence
@@ -41,6 +43,12 @@ pub trait SearchCancellationProbe {
     fn on_quiescence_node(&mut self, _ply: u16) -> bool {
         self.on_node()
     }
+
+    /// Records one optional bounded check-extension decision.
+    ///
+    /// The default is observationally inert. Limit-aware controllers override
+    /// this hook so diagnostics include completed and interrupted work.
+    fn on_check_extension(&mut self, _event: CheckExtensionEvent) {}
 }
 
 impl<Callback> SearchCancellationProbe for Callback

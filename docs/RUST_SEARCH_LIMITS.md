@@ -92,3 +92,12 @@ The pre-existing fixed-depth APIs retain their original exact behavior and error
 ## Task 16.6 result accounting
 
 The final `SearchResult` reports request-wide elapsed time, nodes, qnodes, and selective depth. These totals include discarded partial work; exact score, move, PV, ponder move, and completed depth still come only from the last fully completed iteration.
+
+
+## Optional bounded check extension
+
+`SearchLimits::with_check_extension()` opts the request into the Task 16.7
+one-ply-per-line check extension. The feature is not an automatic stopping limit
+and is valid in finite or infinite mode. Its extra nodes remain subject to the
+same node, hard-time, and explicit-stop checkpoints. Request-wide extension
+diagnostics include interrupted partial work.

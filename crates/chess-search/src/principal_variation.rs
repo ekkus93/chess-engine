@@ -114,11 +114,28 @@ impl fmt::Display for PrincipalVariationError {
 
 impl std::error::Error for PrincipalVariationError {}
 
+#[cfg(test)]
 pub(crate) fn reconstruct_principal_variation(
     root: &Position,
     requested_depth: u16,
     root_best_move: Option<Move>,
     transposition_table: &TranspositionTable,
+) -> Result<PrincipalVariation, PrincipalVariationError> {
+    reconstruct_principal_variation_with_table_policy(
+        root,
+        requested_depth,
+        root_best_move,
+        transposition_table,
+        true,
+    )
+}
+
+pub(crate) fn reconstruct_principal_variation_with_table_policy(
+    root: &Position,
+    requested_depth: u16,
+    root_best_move: Option<Move>,
+    transposition_table: &TranspositionTable,
+    allow_table_continuation: bool,
 ) -> Result<PrincipalVariation, PrincipalVariationError> {
     let mut moves = Vec::new();
     moves
@@ -147,8 +164,10 @@ pub(crate) fn reconstruct_principal_variation(
 
         let candidate = if ply == 0 {
             root_best_move
-        } else {
+        } else if allow_table_continuation {
             transposition_table.principal_variation_move(position.zobrist(), remaining_depth)
+        } else {
+            None
         };
         let Some(candidate) = candidate else {
             let termination = if ply == 0 {

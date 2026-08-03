@@ -18,6 +18,8 @@ pub enum TranspositionScoreReuse {
     Allowed,
     /// Cached scores are suppressed because repetition history may affect value.
     SuppressedForRepetition,
+    /// Cached scores are suppressed because selective-extension budget is path-dependent.
+    SuppressedForSelectiveExtension,
 }
 
 /// Complete information required to probe one transposition-table position.
@@ -231,7 +233,7 @@ fn reusable_score(
     entry: TranspositionEntry,
     request: TranspositionProbeRequest,
 ) -> Result<Option<TranspositionProbeScore>, TranspositionProbeError> {
-    if request.score_reuse() == TranspositionScoreReuse::SuppressedForRepetition
+    if request.score_reuse() != TranspositionScoreReuse::Allowed
         || entry.depth() < request.required_depth()
     {
         return Ok(None);

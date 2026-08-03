@@ -7,7 +7,9 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::{SearchCancellationProbe, MAX_MATE_PLY};
+use crate::{
+    CheckExtensionDiagnostics, CheckExtensionEvent, SearchCancellationProbe, MAX_MATE_PLY,
+};
 
 /// Thread-safe explicit stop signal shared with a running search.
 #[derive(Clone, Debug, Default)]
@@ -48,6 +50,7 @@ pub struct SearchLimits {
     hard_time: Option<Duration>,
     infinite: bool,
     stop_flag: Option<SearchStopFlag>,
+    check_extension: bool,
 }
 
 impl SearchLimits {
@@ -61,6 +64,7 @@ impl SearchLimits {
             hard_time: None,
             infinite: false,
             stop_flag: None,
+            check_extension: false,
         }
     }
 
@@ -109,6 +113,13 @@ impl SearchLimits {
         self
     }
 
+    /// Enables the optional one-ply-per-line check extension.
+    #[must_use]
+    pub const fn with_check_extension(mut self) -> Self {
+        self.check_extension = true;
+        self
+    }
+
     /// Returns the requested maximum depth.
     #[must_use]
     pub const fn depth(&self) -> Option<u16> {
@@ -143,6 +154,12 @@ impl SearchLimits {
     #[must_use]
     pub const fn stop_flag(&self) -> Option<&SearchStopFlag> {
         self.stop_flag.as_ref()
+    }
+
+    /// Returns whether the optional bounded check extension is enabled.
+    #[must_use]
+    pub const fn check_extension_enabled(&self) -> bool {
+        self.check_extension
     }
 
     /// Validates all values and combinations without mutating search state.
@@ -315,6 +332,7 @@ pub(crate) struct SearchLimitController<Clock> {
     visited_nodes: u64,
     visited_qnodes: u64,
     selective_depth: u16,
+    check_extension_diagnostics: CheckExtensionDiagnostics,
     termination: Option<SearchLimitTermination>,
 }
 
@@ -330,6 +348,7 @@ where
             visited_nodes: 0,
             visited_qnodes: 0,
             selective_depth: 0,
+            check_extension_diagnostics: CheckExtensionDiagnostics::default(),
             termination: None,
         })
     }
@@ -344,6 +363,10 @@ where
 
     pub(crate) const fn selective_depth(&self) -> u16 {
         self.selective_depth
+    }
+
+    pub(crate) const fn check_extension_diagnostics(&self) -> CheckExtensionDiagnostics {
+        self.check_extension_diagnostics
     }
 
     pub(crate) fn elapsed(&self) -> Duration {
@@ -453,6 +476,10 @@ where
     fn on_quiescence_node(&mut self, ply: u16) -> bool {
         self.enter_node(ply, true)
     }
+
+    fn on_check_extension(&mut self, event: CheckExtensionEvent) {
+        self.check_extension_diagnostics.record(event);
+    }
 }
 
 #[cfg(test)]
@@ -520,6 +547,11 @@ mod tests {
             .with_stop_flag(stop)
             .validate()
             .is_ok());
+        assert!(!SearchLimits::new().with_depth(1).check_extension_enabled());
+        assert!(SearchLimits::new()
+            .with_depth(1)
+            .with_check_extension()
+            .check_extension_enabled());
     }
 
     #[test]

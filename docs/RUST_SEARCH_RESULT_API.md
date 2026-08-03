@@ -32,3 +32,12 @@ Each production node reports its root-relative ply through the cancellation prob
 ## Compatibility
 
 `LimitedIterativeDeepeningSearchResult` remains a type alias for `SearchResult`, and `searched_nodes()` remains an accessor alias. New integrations should use `SearchResult`, `nodes()`, and `qnodes()`.
+
+
+## Check-extension diagnostics
+
+The Task 16.7 opt-in policy adds
+`SearchResult::check_extension_diagnostics()`. These request-wide counters cover
+applied, exhausted-budget, and mate-domain-blocked decisions from both completed
+and interrupted work. They do not turn partial search data into an exact score or
+completed iteration.

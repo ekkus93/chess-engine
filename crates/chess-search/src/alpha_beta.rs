@@ -5,6 +5,7 @@ use chess_core::{LegalMoveError, Move, Position, SearchHistory, SearchHistoryErr
 use crate::{
     aspiration::AspirationWindowOutcome,
     cancellation::NeverCancelled,
+    check_extension::{decide_check_extension, MAX_CHECK_EXTENSIONS_PER_LINE},
     move_ordering::{ordered_legal_moves_with_state_and_tt_move, MoveOrdering, QuietOrderingState},
     quiescence::{search_quiescence_node, QuiescenceContext},
     search_common::resolved_node_score,
@@ -336,6 +337,7 @@ where
         history,
         depth,
         AlphaBetaWindow::full(),
+        false,
         transposition_table,
         cancellation,
     )
@@ -357,6 +359,7 @@ pub(crate) fn alpha_beta_search_window_in_current_generation<Probe>(
     history: &mut SearchHistory,
     depth: u16,
     window: AlphaBetaWindow,
+    check_extension_enabled: bool,
     transposition_table: &mut TranspositionTable,
     cancellation: &mut Probe,
 ) -> Result<AlphaBetaRootWindowResult, AlphaBetaSearchError>
@@ -369,6 +372,7 @@ where
         history,
         depth,
         window,
+        check_extension_enabled,
         transposition_table,
         cancellation,
     )?;
@@ -389,6 +393,7 @@ fn run_search_in_current_generation<Probe>(
     history: &mut SearchHistory,
     depth: u16,
     window: AlphaBetaWindow,
+    check_extension_enabled: bool,
     transposition_table: &mut TranspositionTable,
     cancellation: &mut Probe,
 ) -> Result<AlphaBetaSearchResult, AlphaBetaSearchError>
@@ -405,6 +410,7 @@ where
         ordering: MoveOrdering::Quiet,
         quiet_ordering: &mut quiet_ordering,
         transposition_table: Some(transposition_table),
+        check_extension_enabled,
         cancellation,
     };
     let result = search_node(position, history, depth, 0, window, &mut context);
@@ -425,6 +431,7 @@ where
     ordering: MoveOrdering,
     quiet_ordering: &'a mut QuietOrderingState,
     transposition_table: Option<&'a mut TranspositionTable>,
+    check_extension_enabled: bool,
     cancellation: &'a mut Probe,
 }
 
@@ -433,6 +440,34 @@ fn search_node<Probe>(
     history: &mut SearchHistory,
     depth: u16,
     ply: u16,
+    window: AlphaBetaWindow,
+    context: &mut AlphaBetaContext<'_, Probe>,
+) -> Result<AlphaBetaSearchResult, AlphaBetaSearchError>
+where
+    Probe: SearchCancellationProbe + ?Sized,
+{
+    let extension_budget = if context.check_extension_enabled {
+        MAX_CHECK_EXTENSIONS_PER_LINE
+    } else {
+        0
+    };
+    search_node_with_extensions(
+        position,
+        history,
+        depth,
+        ply,
+        extension_budget,
+        window,
+        context,
+    )
+}
+
+fn search_node_with_extensions<Probe>(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    depth: u16,
+    ply: u16,
+    extension_budget: u16,
     window: AlphaBetaWindow,
     context: &mut AlphaBetaContext<'_, Probe>,
 ) -> Result<AlphaBetaSearchResult, AlphaBetaSearchError>
@@ -480,7 +515,7 @@ where
         });
     }
 
-    let score_reuse = transposition_score_reuse(position);
+    let score_reuse = transposition_score_reuse(position, context.check_extension_enabled);
     let mut transposition_table_move = None;
     if let Some(table) = context.transposition_table.as_deref_mut() {
         let request = TranspositionProbeRequest::new(
@@ -548,7 +583,26 @@ where
             alpha: -beta,
             beta: -alpha,
         };
-        let child = search_node(position, history, depth - 1, ply + 1, child_window, context);
+        let child_in_check = position.is_in_check(position.side_to_move());
+        let extension = decide_check_extension(
+            depth,
+            ply,
+            child_in_check,
+            context.check_extension_enabled,
+            extension_budget,
+        );
+        if let Some(event) = extension.event() {
+            context.cancellation.on_check_extension(event);
+        }
+        let child = search_node_with_extensions(
+            position,
+            history,
+            extension.child_depth(),
+            ply + 1,
+            extension.remaining_budget(),
+            child_window,
+            context,
+        );
         let history_restore = history.pop_position(history_undo);
         let position_restore = position.unmake_move(position_undo);
 
@@ -627,8 +681,13 @@ where
     Ok(result)
 }
 
-fn transposition_score_reuse(position: &Position) -> TranspositionScoreReuse {
-    if position.halfmove_clock().get() == 0 {
+fn transposition_score_reuse(
+    position: &Position,
+    check_extension_enabled: bool,
+) -> TranspositionScoreReuse {
+    if check_extension_enabled {
+        TranspositionScoreReuse::SuppressedForSelectiveExtension
+    } else if position.halfmove_clock().get() == 0 {
         TranspositionScoreReuse::Allowed
     } else {
         TranspositionScoreReuse::SuppressedForRepetition
@@ -674,6 +733,7 @@ mod ordering_tests {
             ordering,
             quiet_ordering: &mut quiet_ordering,
             transposition_table: None,
+            check_extension_enabled: false,
             cancellation: &mut cancellation,
         };
         let result = search_node(&mut position, &mut history, depth, 0, window, &mut context)
@@ -700,6 +760,7 @@ mod ordering_tests {
             ordering: MoveOrdering::Generation,
             quiet_ordering: &mut quiet_ordering,
             transposition_table: None,
+            check_extension_enabled: false,
             cancellation: &mut cancellation,
         };
         let child = search_node(position, history, 0, 1, full_window(), &mut context);
@@ -806,6 +867,7 @@ mod ordering_tests {
                 ordering: MoveOrdering::Quiet,
                 quiet_ordering: &mut quiet_ordering,
                 transposition_table: Some(&mut table),
+                check_extension_enabled: false,
                 cancellation: &mut cancellation,
             };
             search_node(&mut position, &mut history, depth, 1, window, &mut context)
