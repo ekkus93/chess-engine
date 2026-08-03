@@ -3,7 +3,7 @@ name: Task 19.2 Close
 on:
   push:
     branches:
-      - task19-2-opening-book-format
+      - rust-engine
   workflow_dispatch:
 
 permissions:
@@ -21,29 +21,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: task19-2-opening-book-format
+          ref: rust-engine
           fetch-depth: 0
 
       - name: Apply guarded closure
         shell: bash
         run: |
           set -euo pipefail
-          if [[ ! -f scripts/task19_2_close.py ]]; then
-            echo "Task 19.2 closure script is already absent; no action required."
-            exit 0
-          fi
+          test -f scripts/task19_2_close.py
           git merge-base --is-ancestor 781e876563e8b21bb50e6fa83af6afe92b260910 HEAD
           python3 scripts/task19_2_close.py
-          git rm scripts/task19_2_close.py
+          git rm scripts/task19_2_close.py .github/workflows/task19-2-close.yml
 
       - name: Verify and commit closure
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --quiet && git diff --cached --quiet; then
-            echo "No closure changes to commit."
-            exit 0
-          fi
           grep -F -- '- [x] Choose Polyglot or a versioned project-specific indexed format.' docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md
           grep -F -- '- [x] 19.2 Format.' docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md
           grep -F -- '- [ ] 19.3 Policies.' docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md
@@ -59,4 +52,4 @@ jobs:
             docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md
           git diff --cached --check
           git commit -m "docs: close Task 19.2"
-          git push origin HEAD:task19-2-opening-book-format
+          git push origin HEAD:rust-engine
