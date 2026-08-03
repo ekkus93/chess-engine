@@ -54,6 +54,24 @@ jobs:
           if content.count(rust_old) != 1:
               raise SystemExit('expected exactly one Rust JNI export counter')
           contract.write_text(content.replace(rust_old, rust_new, 1))
+
+          process_test = Path('crates/chess-uci/tests/uci_process.rs')
+          content = process_test.read_text()
+          count_old = 'let actual = (0..5)'
+          count_new = 'let actual = (0..6)'
+          if content.count(count_old) != 1:
+              raise SystemExit('expected exactly one UCI handshake line count')
+          content = content.replace(count_old, count_new, 1)
+          expected_old = '''        "option name CheckExtension type check default false".to_owned(),
+        "uciok".to_owned(),
+'''
+          expected_new = '''        "option name CheckExtension type check default false".to_owned(),
+        "option name OwnBook type check default false".to_owned(),
+        "uciok".to_owned(),
+'''
+          if content.count(expected_old) != 1:
+              raise SystemExit('expected exactly one UCI handshake transcript anchor')
+          process_test.write_text(content.replace(expected_old, expected_new, 1))
           PY
       - name: Format and lock
         run: |
