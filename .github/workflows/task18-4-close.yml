@@ -13,6 +13,7 @@ concurrency:
   group: task18-4-close-${{ github.ref }}
   cancel-in-progress: true
 
+# One-shot fail-closed tracker update after host and Android validation.
 jobs:
   close:
     runs-on: ubuntu-24.04
