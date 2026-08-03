@@ -71,4 +71,6 @@ Permanent implementation validation:
 
 Validation corrections were limited to exact rustfmt normalization and changing five fluent `SearchRequest` builders from `const fn` to ordinary methods because `SearchLimits` may own a shared cancellation handle with a non-const destructor. No public semantics, safety contract, lower-layer production code, lint policy, or validation gate was weakened.
 
+Authoritative tracker closure SHA: `73f6548687202eac86106102f3fc9e41650c0e57`.
+
 Task 18.1 is complete. Task 18.2 C ABI work is next.
