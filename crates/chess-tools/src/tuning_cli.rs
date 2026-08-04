@@ -4,8 +4,7 @@ use std::{collections::BTreeMap, fs, path::Path};
 
 use chess_search::{EvaluationWeightSet, EvaluationWeights};
 use chess_tune::{
-    KCalibrationConfig, SpsaCheckpoint, SpsaConfig, SpsaOptimizer, SpsaSchedule,
-    SpsaWeightBounds,
+    KCalibrationConfig, SpsaCheckpoint, SpsaConfig, SpsaOptimizer, SpsaSchedule, SpsaWeightBounds,
 };
 
 use chess_tools::tuning::{
@@ -102,9 +101,9 @@ impl TuningFileConfig {
         };
         let parse_u64 = |key: &str| parse_unsigned(get(key)?, key);
         let parse_f64 = |key: &str| {
-            get(key)?.parse::<f64>().map_err(|error| {
-                format!("invalid floating-point tuning field {key:?}: {error}")
-            })
+            get(key)?
+                .parse::<f64>()
+                .map_err(|error| format!("invalid floating-point tuning field {key:?}: {error}"))
         };
         let maximum_iterations = parse_u64("maximum_iterations")?;
         let advance_iterations = parse_u64("advance_iterations")?;
@@ -197,9 +196,11 @@ pub(crate) fn run_tuning_command(arguments: &[String]) -> Result<(), String> {
                 return Err("resume requires the exact previous tuning configuration".to_owned());
             }
             let checkpoint_path = path.join("checkpoint.bin");
-            let bytes = fs::read(&checkpoint_path)
-                .map_err(|error| format!("failed to read checkpoint {checkpoint_path:?}: {error}"))?;
-            let checkpoint = SpsaCheckpoint::from_bytes(&bytes).map_err(|error| error.to_string())?;
+            let bytes = fs::read(&checkpoint_path).map_err(|error| {
+                format!("failed to read checkpoint {checkpoint_path:?}: {error}")
+            })?;
+            let checkpoint =
+                SpsaCheckpoint::from_bytes(&bytes).map_err(|error| error.to_string())?;
             if checkpoint.random_seed() != file_config.random_seed {
                 return Err("resume random_seed differs from checkpoint".to_owned());
             }
