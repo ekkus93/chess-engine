@@ -17,63 +17,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  repair_ruff:
-    name: Apply targeted Ruff repairs
-    if: github.event_name == 'push'
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-      - name: Apply deterministic source fixes
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          replacements = {
-              Path("chess_game/chess/eval_weights.py"): [
-                  (
-                      "return dict(zip(keys, self._mating_bases))",
-                      "return dict(zip(keys, self._mating_bases, strict=True))",
-                  ),
-              ],
-              Path("chess_game/chess/pawn_structure_evaluation.py"): [
-                  (
-                      "for current, previous in zip(occupied_files[1:], occupied_files):",
-                      "for current, previous in zip(occupied_files[1:], occupied_files, strict=False):",
-                  ),
-              ],
-          }
-
-          for path, edits in replacements.items():
-              text = path.read_text(encoding="utf-8")
-              for old, new in edits:
-                  count = text.count(old)
-                  if count != 1:
-                      raise SystemExit(f"expected one occurrence in {path}: {old!r}; found {count}")
-                  text = text.replace(old, new)
-              path.write_text(text, encoding="utf-8")
-
-          test_path = Path("tests/test_online_learning.py")
-          test_text = test_path.read_text(encoding="utf-8")
-          old_loop = "for i in range("
-          loop_count = test_text.count(old_loop)
-          if loop_count != 9:
-              raise SystemExit(f"expected nine unused loop counters; found {loop_count}")
-          test_path.write_text(test_text.replace(old_loop, "for _ in range("), encoding="utf-8")
-          PY
-      - name: Commit source fixes
-        run: |
-          if git diff --quiet; then
-            echo "No repairs required."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add chess_game/chess/eval_weights.py chess_game/chess/pawn_structure_evaluation.py tests/test_online_learning.py
-          git commit -m "fix: resolve remaining Ruff B violations"
-          git push origin HEAD:master
-
   ruff:
     name: Ruff
     runs-on: ubuntu-24.04
