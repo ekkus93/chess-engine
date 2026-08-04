@@ -282,7 +282,7 @@ fn sliding_summary(samples: usize, scale: u64) -> Result<BenchmarkSummary, Strin
 }
 
 fn legal_moves_summary(samples: usize, scale: u64) -> Result<BenchmarkSummary, String> {
-    let positions = parse_positions()?;
+    let mut positions = parse_positions()?;
     let position_count = positions.len() as u64;
     run_benchmark("movegen.legal", samples, 4_000 * scale, |iteration| {
         let index = (iteration % position_count) as usize;
