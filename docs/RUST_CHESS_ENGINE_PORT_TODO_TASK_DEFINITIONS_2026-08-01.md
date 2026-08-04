@@ -1423,57 +1423,67 @@ Measured decisions (each candidate was evaluated; none justified a correctness-s
 
 ## 25.1 CI matrix
 
-- [ ] Linux debug tests.
-- [ ] Linux release tests/perft.
-- [ ] Clippy all targets/features.
-- [ ] rustdoc.
-- [ ] AArch64 cross-build.
-- [ ] Android AArch64 build.
-- [ ] JNI smoke/instrumented job where infrastructure supports it.
-- [ ] Miri subset.
-- [ ] sanitizer job.
-- [ ] fuzz smoke job.
-- [ ] slow/nightly perft.
-- [ ] optional strength/performance scheduled job.
-- [ ] keep Python validation until migration signoff.
+- [x] Linux debug tests.
+- [x] Linux release tests/perft.
+- [x] Clippy all targets/features.
+- [x] rustdoc.
+- [x] Native AArch64 debug, test-build, and release build.
+- [x] Android AArch64 and x86-64 JNI builds.
+- [x] Host-JVM JNI plus API-35 smoke/instrumentation jobs.
+- [x] Miri subset.
+- [x] sanitizer job.
+- [x] fuzz smoke and bounded-campaign job.
+- [x] slow/nightly perft.
+- [x] scheduled strength and performance jobs.
+- [x] Python engine validation retired after migration signoff; pinned Python remains only for the Rust differential oracle.
 
 ## 25.2 Documentation
 
-- [ ] workspace architecture;
-- [ ] coordinate system;
-- [ ] move encoding;
-- [ ] position invariants;
-- [ ] make/unmake;
-- [ ] FEN and move notation;
-- [ ] draw semantics;
-- [ ] hashing/repetition;
-- [ ] search and score convention;
-- [ ] TT policy;
-- [ ] evaluation terms and weights;
-- [ ] UCI usage;
-- [ ] C ABI ownership;
-- [ ] Android integration;
-- [ ] perft/differential/fuzz commands;
-- [ ] self-play/tuning reproducibility.
+- [x] workspace architecture;
+- [x] coordinate system;
+- [x] move encoding;
+- [x] position invariants;
+- [x] make/unmake;
+- [x] FEN and move notation;
+- [x] draw semantics;
+- [x] hashing/repetition;
+- [x] search and score convention;
+- [x] TT policy;
+- [x] evaluation terms and weights;
+- [x] UCI usage;
+- [x] C ABI ownership;
+- [x] Android integration;
+- [x] perft/differential/fuzz commands;
+- [x] self-play/tuning reproducibility.
 
 ## 25.3 Developer commands
 
-- [ ] One documented bootstrap command.
-- [ ] One fast validation command.
-- [ ] One full validation command.
-- [ ] One perft command.
-- [ ] One UCI run command.
-- [ ] One Android build command.
-- [ ] One self-play command.
-- [ ] One tuning command.
+- [x] One documented bootstrap command.
+- [x] One fast validation command.
+- [x] One full validation command.
+- [x] One perft command.
+- [x] One UCI run command.
+- [x] One Android build command.
+- [x] One self-play command.
+- [x] One strict offline tuning/resume command that always emits an inactive candidate.
 
 ## 25.4 Generated artifacts
 
-- [ ] Do not commit transient benchmark/output files unintentionally.
-- [ ] Version schemas and fixtures intentionally.
-- [ ] Document generated Zobrist/book/weight artifacts.
+- [x] Do not commit transient benchmark/output files unintentionally.
+- [x] Version schemas and fixtures intentionally.
+- [x] Document generated Zobrist/book/weight artifacts.
+- [x] Reject unsafe tracked filenames and known transient output through a permanent audit.
 
-**Task 25 gate:** A new developer can build, test, run UCI, run perft, and build Android integration from repository documentation.
+**Task 25 gate:** A new developer can build, test, run UCI, run perft, build Android integration, replay robustness commands, generate self-play data, and run/resume offline tuning from repository documentation. **COMPLETE.**
+
+Evidence:
+
+- implementation head `c5ed48c8a34d08ce50737854ab89e4d8750c4988`;
+- Rust `30960887750 / 92164348613, 92164348643`;
+- Android `30960887754 / 92164348735, 92164348754, 92164348772`, artifact `8912951788`;
+- Robustness `30960887763 / 92164348688, 92164348732, 92164348765`;
+- Performance `30960887740 / 92164348575, 92164348589`;
+- Strength implementation/control `8622917fbd5c544363a2b07d9b450cc13d08f564`, `30960468240 / 92163056674`, artifact `8912726774`.
 
 ---
 

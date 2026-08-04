@@ -3,7 +3,7 @@
 **Updated:** 2026-08-04
 **Branch:** `master`
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 24 performance gate complete; Task 25 developer workflows are next while the independent Task 21 activation gate remains open
+**Current phase:** Task 25 developer-workflow gate complete; Task 26 v0.1 functional-engine signoff is next while the independent Task 21 activation gate remains open
 
 ## Completed gates
 
@@ -73,6 +73,7 @@
 | 23.1 | `4483c1661a975bc9f64c1f725618930e31968e74` | Rust `30940733222` / `92098127153`; Android `30940732968` / `92098189450`, `92098189412`, `92098189386` | deterministic legal-position properties cover square/move/FEN, make/unmake, hash, legal-move safety, internal invariants, evaluator symmetry, and legal reversible PVs; all permanent gates green |
 | 23 / gate | `469c9c67ab53c276509fc7bad0c4adc209c815b7` | Robustness `30944117733 / 92109744098, 92109744189, 92109744065`; Rust `30944118025 / 92109744577`; Android `30944117802 / 92109760102, 92109760118, 92109760076` | seven fuzz targets / 1,792 bounded runs, Miri, ASan/LSan, TSan, one minimized permanent C ABI regression found and fixed; complete gate green |
 | 24 / gate | `45f2263238f93a5ec4f06f4d4cbdef18f9b7def3` | CI `30952260291 / 92136935775`; Performance `30952260264 / 92136936026, 92136935996`; Robustness `30952260237 / 92136935690, 92136935729, 92136935792`; Android `30952260236 / 92136936014, 92136936160, 92136936153` | dual-architecture baselines, profile/allocation evidence, Android metrics, conservative budgets, and all independent gates green |
+| 25 / gate | `c5ed48c8a34d08ce50737854ab89e4d8750c4988` | Rust `30960887750 / 92164348613, 92164348643`; Android `30960887754 / 92164348735, 92164348754, 92164348772`; Robustness `30960887763 / 92164348688, 92164348732, 92164348765`; Performance `30960887740 / 92164348575, 92164348589`; Strength `30960468240 / 92163056674` | Rust-only developer dispatcher, native ARM64 coverage, scheduled strength, strict offline tuning, complete workflow docs, artifact policy/audit, and all independent gates green |
 
 ## Task 17.1 completion
 
@@ -1280,3 +1281,28 @@ Task 23 is complete. Task 24 performance hardening is next. The independent Task
 - Contract: `docs/RUST_PERFORMANCE_GATES.md`.
 
 Task 24 is complete. Task 25 is next; the independent Task 21 activation gate remains open.
+
+## Task 25 completion
+
+Implemented and validated:
+
+- one repository-supported dispatcher, `scripts/dev.sh`, for bootstrap, fast/full validation, perft, UCI, Android, self-play, tuning, fuzz smoke, and artifact audit;
+- native Linux ARM64 debug, test-build, and release coverage alongside the existing x86-64 correctness gate;
+- a scheduled/manual 200-pair, 400-game baseline strength control that remains independent from correctness and activation;
+- strict version-1 offline tuning configuration, fresh/resume SPSA execution, atomic output-directory publication, complete report/candidate/checkpoint output, and an explicit inactive-candidate marker;
+- complete developer, fuzzing, tuning, and generated-artifact documentation;
+- a permanent generated-artifact audit that rejects unsafe tracked filenames and transient build/output paths;
+- removal of the stale Task 24 observer and the empty literal-wildcard filename that broke portable artifact handling;
+- retirement of Python engine CI after migration signoff, while retaining pinned `python-chess` solely as the Rust differential oracle.
+
+Evidence:
+
+- exact validated implementation head: `c5ed48c8a34d08ce50737854ab89e4d8750c4988`;
+- Rust run/jobs: `30960887750 / 92164348613, 92164348643`;
+- Android run/jobs: `30960887754 / 92164348735, 92164348754, 92164348772`; artifact `8912951788`;
+- Robustness run/jobs: `30960887763 / 92164348688, 92164348732, 92164348765`;
+- Performance run/jobs: `30960887740 / 92164348575, 92164348589`;
+- Strength workflow introduction/control: `8622917fbd5c544363a2b07d9b450cc13d08f564`, `30960468240 / 92163056674`, artifact `8912726774`;
+- all formatting, locked metadata, strict Clippy, workspace tests, release perft, warning-free rustdoc, debug/release builds, differential oracle, native ARM64 builds, Android/JNI lifecycle tests, fuzz/Miri/sanitizers, performance budgets, and strength control passed.
+
+Task 25 is complete. Task 26 v0.1 functional-engine signoff is next. The independent Task 21 tuned-candidate activation gate remains open.

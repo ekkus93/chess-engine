@@ -2288,3 +2288,10 @@ learning's default cache path.
 - Android metrics: legal-move JNI average 1,832,214 ns; fixed-node search 89,106 total nodes in 896,094,777 ns (99,438 nodes/s); cancellation 4,388,550 ns; native heap deltas 1,053,504 bytes at 1 MiB and 16,781,168 bytes at 16 MiB.
 - Legal generation and quiescence are measured redesign candidates; no correctness-sensitive optimization was accepted without dedicated evidence.
 - Task 25 is next. The independent Task 21 tuned-candidate activation gate remains open.
+
+## 2026-08-04T23:47:24Z - GPT-5.6 Thinking - Rust port Task 25 developer-workflow gate complete
+- Completed Task 25 on `master` at validated implementation head `c5ed48c8a34d08ce50737854ab89e4d8750c4988`.
+- Added the single `scripts/dev.sh` developer entry point, native ARM64 workspace coverage, scheduled/manual 400-game strength control, strict offline tuning/resume with atomic inactive-candidate output, complete developer/fuzz/tuning/artifact documentation, and a permanent generated-artifact/portable-filename audit.
+- Retired Python engine development and Python CI after migration signoff; Python remains only as the pinned `python-chess` runtime for the Rust differential oracle.
+- Validation: Rust `30960887750 / 92164348613, 92164348643`; Android `30960887754 / 92164348735, 92164348754, 92164348772`, artifact `8912951788`; Robustness `30960887763 / 92164348688, 92164348732, 92164348765`; Performance `30960887740 / 92164348575, 92164348589`; Strength `30960468240 / 92163056674`, artifact `8912726774`.
+- Task 26 v0.1 functional-engine signoff is next. The independent Task 21 tuned-candidate activation gate remains open.

@@ -1145,18 +1145,19 @@ Evidence:
 - Callgrind `30950461692 / 92130944944 / 8908923833` measured `Position::legal_moves` at 98.31% inclusive perft cost and quiescence at 95.46% inclusive fixed-node-search cost.
 - Direct legal generation and SEE/quiescence redesign remain measured follow-up candidates; no correctness-sensitive optimization was made speculatively.
 
-# Task 25: CI, documentation, and workflows — PARTIAL
+# Task 25: CI, documentation, and workflows — COMPLETE
 
 ## 25.1 CI
 - [x] Linux rustfmt/check/Clippy/tests/rustdoc/debug/release.
-- [x] Python validation preserved separately.
+- [x] Python engine validation intentionally retired after migration signoff; Python remains only as the pinned differential-oracle runtime.
 - [x] Exact-SHA status publisher and deterministic dispatcher.
 - [x] Release depth-four authoritative perft in permanent CI.
 - [x] Scheduled/manual depth-five authoritative perft.
-- [x] AArch64 compile CI.
-- [x] Android compile and JNI CI.
+- [x] Native AArch64 debug, test-build, and release CI.
+- [x] Android dual-ABI compile, host-JVM JNI, lint, APK/test-APK, and API-35 instrumentation CI.
 - [x] Miri, sanitizer, and fuzz gates.
-- [ ] Scheduled strength testing.
+- [x] Scheduled/manual 200-pair, 400-game strength-control workflow.
+- [x] Scheduled dual-architecture performance and Callgrind workflow.
 
 ## 25.2 Documentation
 - [x] Workspace architecture.
@@ -1173,19 +1174,32 @@ Evidence:
 - [x] Baseline evaluator and trace.
 - [x] Search and transposition table.
 - [x] ABI/JNI.
-- [ ] Differential fuzzing.
+- [x] Differential fuzzing, Miri, and sanitizer commands.
 - [x] Self-play and versioned datasets.
-- [ ] Tuning.
+- [x] Strict offline tuning, resume, reporting, inactive-candidate, and activation-boundary workflow.
 
 ## 25.3 Commands and artifacts
-- [x] Full Task 0/1 validation command, committed lockfile, ignored targets/worktrees.
+- [x] One documented bootstrap command.
+- [x] One fast validation command.
+- [x] One full validation command.
 - [x] Perft, divide, legal, play, suite, and oracle commands.
 - [x] Evaluation trace, evaluation benchmark, weight export, and weight validation commands.
-- [ ] General bootstrap and fast-validation wrapper commands.
 - [x] Self-play generation, validation, and replay commands.
-- [ ] UCI, Android, and tuning command documentation.
-- [ ] Versioned schema/fixture/generated-artifact policy across all future artifacts.
-- [ ] Task 25 gate.
+- [x] UCI, Android, fuzz-smoke, self-play, and tuning command documentation.
+- [x] Strict versioned tuning configuration and atomic inactive-candidate output.
+- [x] Versioned schema/fixture/generated-artifact policy and permanent portability audit.
+- [x] Stale Task 24 observer and unsafe literal-wildcard filename removed.
+- [x] Task 25 gate.
+
+Task 25 evidence:
+
+- Exact validated implementation head: `c5ed48c8a34d08ce50737854ab89e4d8750c4988`.
+- Rust CI: `30960887750 / 92164348613, 92164348643` (x86-64 and native ARM64 complete).
+- Android: `30960887754 / 92164348735, 92164348754, 92164348772`; metric artifact `8912951788`.
+- Robustness: `30960887763 / 92164348688, 92164348732, 92164348765`.
+- Performance: `30960887740 / 92164348575, 92164348589`.
+- Strength workflow introduction/control: implementation parent `8622917fbd5c544363a2b07d9b450cc13d08f564`, run/job `30960468240 / 92163056674`, artifact `8912726774`; the formatting-only child did not match the intentionally narrow strength path filter.
+- Developer entry point: `scripts/dev.sh`; contracts: `docs/RUST_DEVELOPER_WORKFLOWS.md`, `docs/RUST_FUZZING.md`, `docs/RUST_TUNING_WORKFLOW.md`, and `docs/RUST_GENERATED_ARTIFACT_POLICY.md`.
 
 # Task 26: v0.1 signoff — NOT STARTED
 - [ ] 26.1 Rules.
@@ -1204,6 +1218,6 @@ Evidence:
 
 ## Immediate next operations
 
-1. Begin Task 25 by consolidating bootstrap, fast/full validation, UCI, Android, self-play, tuning, and generated-artifact workflows into a new-developer path.
-2. Audit remaining Task 25 documentation and CI checkboxes against repository reality before adding duplicate infrastructure.
+1. Begin Task 26 v0.1 functional-engine signoff against the specification, with exact evidence for rules, search, adapters, quality, and release behavior.
+2. Audit the Task 26 checklist against the already completed gates before adding duplicate validation or release infrastructure.
 3. Independently produce a real tuned Task 21 candidate and run the existing 200-pair activation protocol; keep that gate open until a candidate passes and is explicitly activated.
