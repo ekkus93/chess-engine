@@ -1104,12 +1104,23 @@ Evidence:
 - Defender coordination and extra endgame phase-specific scaling were rejected as overlap. The remaining six areas were rejected for insufficient strength evidence. No term or weight was activated.
 - `review_loop_guidance`, `anti_drift_guidance`, transcript move preferences, historical-position windows, and unmeasured terms remain excluded.
 
-# Task 23: Robustness gates — NOT STARTED
-- [ ] 23.1 Properties.
+# Task 23: Robustness gates — PARTIAL
+- [x] 23.1 Properties.
 - [ ] 23.2 Fuzzing.
 - [ ] 23.3 Runtime analysis.
 - [ ] 23.4 Failure preservation.
 - [ ] Task 23 gate.
+
+### Task 23.1 completion evidence
+
+- Added deterministic legal-position property harnesses in `crates/chess-core/tests/property_invariants.rs` and `crates/chess-search/tests/property_search.rs`.
+- Covered all 64 square conversions, every packed move field combination, FEN stability, exact make/unmake restoration, incremental/full hash equality, generated legal-move acceptance, king safety, internal invariants, exact evaluator mirror symmetry, and legal reversible principal variations.
+- Six curated legal roots × four fixed seeds exercise up to 48 plies in core; 24 generated legal positions exercise depth-two search/PV properties.
+- Reproduction and permanent counterexample-preservation policy is documented in `docs/RUST_PROPERTY_TESTING.md`.
+- Implementation head: `4483c1661a975bc9f64c1f725618930e31968e74`.
+- Rust run/job: `30940733222` / `92098127153`.
+- Android run/jobs: `30940732968` / `92098189450`, `92098189412`, `92098189386`.
+- All permanent Rust and Android gates passed. Task 23 remains open for fuzzing, runtime analysis, and formal failure-corpus preservation.
 
 # Task 24: Performance hardening — NOT STARTED
 - [ ] 24.1 Benchmarks.
@@ -1178,7 +1189,7 @@ Evidence:
 
 ## Immediate next operations
 
-1. Begin Task 23.1 property tests, starting with square/move/FEN round-trips, make/unmake restoration, hash equality, legal-move safety, evaluator symmetry, and legal PV sequences.
-2. Add Task 23.2 parser/state fuzz targets and preserve every minimized failure as a permanent regression input.
+1. Add Task 23.2 FEN, UCI-move, legal-sequence/unmake, repetition/history, weight, opening-book, and C-ABI fuzz targets.
+2. Preserve every minimized Task 23.2 failure under a documented corpus path as a named permanent regression before fixing it.
 3. Establish the Task 23.3 Miri/sanitizer/FFI lifecycle subset without weakening existing correctness gates.
 4. Independently, produce a real tuned Task 21 candidate and run the existing 200-pair activation protocol; keep the Task 21 gate open until a candidate passes and is explicitly activated.

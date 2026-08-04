@@ -3,7 +3,7 @@
 **Updated:** 2026-08-04
 **Branch:** `rust-engine`
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 22 evidence protocol complete; Task 23 robustness gates are next while the independent Task 21 activation gate remains open
+**Current phase:** Task 23.1 deterministic property testing complete; Task 23.2 fuzzing is next while the independent Task 21 activation gate remains open
 
 ## Completed gates
 
@@ -70,6 +70,7 @@
 | 21.4 | `fd179e57462226392ab9c61bc9f26bc7cbb63cc1` | Rust `30929481202` / `92060204891`; Android `30929479894` / `92060200320`, `92060200325`, `92060200573` | versioned checksummed reports with initial/final train and validation MSE, all 810 named deltas, complete data/engine/source/checkpoint/weight identities, exact command/configuration, atomic persistence, inactive candidate artifacts, and all permanent gates green |
 | 21.5 | `664bf7cb51fae8bff8298925513b242fd9f33cee` | Rust `30935448972` / `92080314407`; Android `30935448944` / `92080314104`, `92080314087`, `92080314012`; control `30935079798` / `92079069382` | explicit weighted search, correctness-first validation, 200 distinct color-balanced opening pairs, fixed provenance, one-sided 95% strength gate, atomic inactive evidence, 400-game baseline control correctly rejected, and all permanent gates green |
 | 22 / gate | `3653f86148dca0bb7f4168706ffc47a28bc4a10e` | `30938602274` / `92090934559` | eight-area protocol, symmetry/cost/search/match evidence, explicit rejection decisions, checksum `0ad7dcc3dda4cdfb`, no activation |
+| 23.1 | `4483c1661a975bc9f64c1f725618930e31968e74` | Rust `30940733222` / `92098127153`; Android `30940732968` / `92098189450`, `92098189412`, `92098189386` | deterministic legal-position properties cover square/move/FEN, make/unmake, hash, legal-move safety, internal invariants, evaluator symmetry, and legal reversible PVs; all permanent gates green |
 
 ## Task 17.1 completion
 
@@ -1212,3 +1213,29 @@ Controlled evidence:
 - formatting, locked workspace compilation, strict Clippy, 21 normal library tests plus binary/integration/doc tests, and the ignored controlled evidence run passed.
 
 The prohibited Python guidance concepts remain excluded. Task 22 is complete with no advanced term accepted or activated. Task 23 robustness work is next; the separate overall Task 21 activation gate remains open.
+
+## Task 23.1 completion
+
+Implemented and validated:
+
+- exhaustive square index/coordinate/algebraic round trips across all 64 squares;
+- exhaustive packed-move source, destination, kind, and promotion preservation;
+- deterministic legal-position generation from six real roots with four fixed seeds and up to 48 plies;
+- canonical FEN parse/serialize/parse stability after every generated transition;
+- generated legal-move acceptance through the checked public API and moving-king safety after every move;
+- complete internal occupancy/king-cache/en-passant invariants and incremental/full Zobrist equality after every transition;
+- immediate and full-sequence make/unmake exact restoration;
+- 24 generated search cases with exact color-swapped vertical-mirror evaluator symmetry;
+- depth-two principal variations proven legal, king-safe, invariant-preserving, hash-correct, and fully reversible;
+- explicit caller-position and search-history immutability checks;
+- fixed case/seed/root/ply/FEN/move diagnostics and a documented permanent counterexample-preservation policy in `docs/RUST_PROPERTY_TESTING.md`.
+
+Evidence:
+
+- helper-free implementation head: `4483c1661a975bc9f64c1f725618930e31968e74`;
+- permanent Rust run/job: `30940733222` / `92098127153`;
+- permanent Android run/jobs: `30940732968` / `92098189450`, `92098189412`, `92098189386`;
+- formatting, locked workspace compilation, strict Clippy without first-party suppression, complete Rust tests, authoritative release perft, warning-free rustdoc, debug/release builds, differential validation, Android/Kotlin lint, host JVM JNI, dual-ABI native verification, APK/test-APK construction, and API-35 instrumentation all passed;
+- no property counterexample was found in the committed deterministic corpus.
+
+Task 23.1 is complete. Task 23 remains open for Task 23.2 fuzzing, Task 23.3 runtime analysis, and Task 23.4 minimized-failure preservation.

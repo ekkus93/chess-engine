@@ -1282,16 +1282,29 @@ For each proposed term:
 
 ## 23.1 Property tests
 
-- [ ] all 64 square conversions;
-- [ ] move encode/decode;
-- [ ] FEN round-trip;
-- [ ] make/unmake restoration;
-- [ ] incremental/full hash equality;
-- [ ] generated legal move accepted;
-- [ ] legal move preserves king safety;
-- [ ] internal occupancy invariants;
-- [ ] evaluator symmetry;
-- [ ] legal PV sequence.
+- [x] all 64 square conversions;
+- [x] move encode/decode;
+- [x] FEN round-trip;
+- [x] make/unmake restoration;
+- [x] incremental/full hash equality;
+- [x] generated legal move accepted;
+- [x] legal move preserves king safety;
+- [x] internal occupancy invariants;
+- [x] evaluator symmetry;
+- [x] legal PV sequence.
+
+### Task 23.1 completion evidence
+
+- `crates/chess-core/tests/property_invariants.rs` exhaustively covers all 64 squares and every source/destination/`MoveKind` packed-move combination.
+- Six real legal root positions and four fixed seeds drive up to 48 plies per run while checking canonical FEN round trips, checked legal-move acceptance, king safety, internal invariants, incremental/full hash equality, immediate restoration, and complete-sequence reverse restoration.
+- `crates/chess-search/tests/property_search.rs` generates 24 deterministic legal positions, proves exact color-swapped vertical-mirror evaluation symmetry, and verifies every depth-two principal variation as a legal, king-safe, invariant-preserving, hash-correct, fully reversible sequence.
+- Both property harnesses verify that caller-owned positions and search histories remain unchanged by read-only generation, legality checks, and search.
+- Failure diagnostics preserve the exact case or hexadecimal seed, root, ply, FEN, and move needed for reproduction. Any future counterexample must be minimized and committed as a permanent regression before its defect is closed.
+- Contract: `docs/RUST_PROPERTY_TESTING.md`.
+- Helper-free implementation head: `4483c1661a975bc9f64c1f725618930e31968e74`.
+- Permanent Rust run/job: `30940733222` / `92098127153`.
+- Permanent Android run/jobs: `30940732968` / `92098189450`, `92098189412`, `92098189386`.
+- Formatting, locked workspace compilation, strict Clippy without suppression, complete Rust tests, authoritative release perft, warning-free rustdoc, debug/release builds, differential validation, Android/Kotlin lint, host JVM JNI, dual-ABI native verification, APK/test-APK construction, and API-35 instrumentation passed.
 
 ## 23.2 Fuzz targets
 

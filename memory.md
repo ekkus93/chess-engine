@@ -2268,3 +2268,9 @@ Status doc: docs/TEXEL_FAIL_LOUD_STATUS.md. Gates: ruff/mypy clean, pylint 10.00
 fast suite 1093 passed, slow suite 171 passed (0:56:13). load_weights_or_default
 retained intentionally only for the auto tuned-weight cache (ai.py:130) and online
 learning's default cache path.
+
+## 2026-08-04T18:57:19Z - GPT-5.6 Thinking - Task 23.1 deterministic property testing complete
+- Added `crates/chess-core/tests/property_invariants.rs`, `crates/chess-search/tests/property_search.rs`, and `docs/RUST_PROPERTY_TESTING.md` on `rust-engine`.
+- The fixed-seed legal-position harness covers all 64 square conversions, packed move fields, canonical FEN stability, exact make/unmake restoration, incremental/full Zobrist equality, generated legal-move acceptance, king safety, internal invariants, evaluator mirror symmetry, legal reversible principal variations, and caller-state immutability.
+- Helper-free implementation head `4483c1661a975bc9f64c1f725618930e31968e74` passed permanent Rust run/job `30940733222` / `92098127153`; Android run `30940732968` passed lint, host JNI, dual-ABI packaging, and API-35 instrumentation.
+- No deterministic property counterexample was found. Future failures must be minimized and committed as named permanent regressions before their defects are closed. Task 23.2 fuzzing is next; the independent Task 21 activation gate remains open.
