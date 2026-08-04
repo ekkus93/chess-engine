@@ -1,0 +1,87 @@
+[package]
+name = "chess-engine-fuzz"
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.75"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[features]
+default = []
+fuzzing = ["dep:libfuzzer-sys"]
+
+[dependencies]
+chess-book = { path = "../crates/chess-book" }
+chess-core = { path = "../crates/chess-core" }
+chess-ffi = { path = "../crates/chess-ffi" }
+chess-search = { path = "../crates/chess-search" }
+chess-tune = { path = "../crates/chess-tune" }
+libfuzzer-sys = { version = "0.4.10", optional = true }
+
+[lints.rust]
+warnings = "deny"
+unsafe_op_in_unsafe_fn = "deny"
+
+[lints.clippy]
+all = "deny"
+
+[[bin]]
+name = "fen_parser"
+path = "fuzz_targets/fen_parser.rs"
+test = false
+doc = false
+bench = false
+required-features = ["fuzzing"]
+
+[[bin]]
+name = "uci_move_parser"
+path = "fuzz_targets/uci_move_parser.rs"
+test = false
+doc = false
+bench = false
+required-features = ["fuzzing"]
+
+[[bin]]
+name = "legal_sequence"
+path = "fuzz_targets/legal_sequence.rs"
+test = false
+doc = false
+bench = false
+required-features = ["fuzzing"]
+
+[[bin]]
+name = "game_history"
+path = "fuzz_targets/game_history.rs"
+test = false
+doc = false
+bench = false
+required-features = ["fuzzing"]
+
+[[bin]]
+name = "weight_parser"
+path = "fuzz_targets/weight_parser.rs"
+test = false
+doc = false
+bench = false
+required-features = ["fuzzing"]
+
+[[bin]]
+name = "opening_book_parser"
+path = "fuzz_targets/opening_book_parser.rs"
+test = false
+doc = false
+bench = false
+required-features = ["fuzzing"]
+
+[[bin]]
+name = "c_abi_buffers_handles"
+path = "fuzz_targets/c_abi_buffers_handles.rs"
+test = false
+doc = false
+bench = false
+required-features = ["fuzzing"]
+
+[workspace]
+members = ["."]
