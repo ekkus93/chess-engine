@@ -8,18 +8,18 @@ use std::{
     path::Path,
 };
 
-use chess_core::{Color, Position, SearchHistory};
+use chess_core::{Position, SearchHistory};
 use chess_search::{
     iterative_deepening_search_with_limits_and_transposition_table_and_weights,
     EvaluationWeightSet, SearchLimits, TranspositionTable,
 };
 use chess_tune::{NamedWeightArtifact, NamedWeightArtifactError};
 
-use crate::{perft, perft_fixtures, ToolError};
 use crate::self_play::{
-    run_weighted_validation_game, ClaimableDrawPolicy, OpeningSuite, SelfPlayLimit,
-    SelfPlayResult, SelfPlaySideConfig, SelfPlayTermination, WeightedValidationGameConfig,
+    run_weighted_validation_game, ClaimableDrawPolicy, OpeningSuite, SelfPlayResult,
+    SelfPlaySideConfig, SelfPlayTermination, WeightedValidationGameConfig,
 };
+use crate::{perft, perft_fixtures, ToolError};
 
 /// Current candidate-validation report schema.
 pub const CANDIDATE_VALIDATION_SCHEMA_VERSION: u16 = 1;
@@ -68,7 +68,9 @@ impl CandidateValidationProvenance {
 
     fn validate(&self) -> Result<(), ToolError> {
         if self.engine_identifier == 0 {
-            return Err(ToolError::new("validation engine identifier must be non-zero"));
+            return Err(ToolError::new(
+                "validation engine identifier must be non-zero",
+            ));
         }
         if self.engine_version.is_empty() || self.exact_command.is_empty() {
             return Err(ToolError::new(
@@ -96,11 +98,7 @@ pub struct CandidateValidationConfig {
 
 impl CandidateValidationConfig {
     /// Creates a production validation configuration.
-    pub fn new(
-        pair_count: u32,
-        seed: u64,
-        side: SelfPlaySideConfig,
-    ) -> Result<Self, ToolError> {
+    pub fn new(pair_count: u32, seed: u64, side: SelfPlaySideConfig) -> Result<Self, ToolError> {
         let value = Self {
             pair_count,
             seed,
@@ -136,10 +134,7 @@ impl CandidateValidationConfig {
     }
 
     /// Sets the maximum unfinished-game rate in parts per thousand.
-    pub fn with_maximum_unfinished_per_mille(
-        mut self,
-        maximum: u16,
-    ) -> Result<Self, ToolError> {
+    pub fn with_maximum_unfinished_per_mille(mut self, maximum: u16) -> Result<Self, ToolError> {
         self.maximum_unfinished_per_mille = maximum;
         self.validate(MINIMUM_VALIDATION_PAIRS)?;
         Ok(self)
@@ -430,10 +425,14 @@ impl CandidateValidationReport {
         }
         let expected_games = self.config.pair_count.saturating_mul(2) as usize;
         if self.correctness.passed() && self.games.len() != expected_games {
-            return Err(ToolError::new("successful correctness gate requires every paired game"));
+            return Err(ToolError::new(
+                "successful correctness gate requires every paired game",
+            ));
         }
         if !self.correctness.passed() && !self.games.is_empty() {
-            return Err(ToolError::new("match games must not run after a correctness failure"));
+            return Err(ToolError::new(
+                "match games must not run after a correctness failure",
+            ));
         }
         for pair in 0..self.config.pair_count {
             let games = self
@@ -447,7 +446,9 @@ impl CandidateValidationReport {
                     || games[0].opening_identifier != games[1].opening_identifier
                     || games[0].pair_seed != games[1].pair_seed)
             {
-                return Err(ToolError::new("validation pair is not exactly color-balanced"));
+                return Err(ToolError::new(
+                    "validation pair is not exactly color-balanced",
+                ));
             }
         }
         let counted = self
@@ -456,7 +457,9 @@ impl CandidateValidationReport {
             .saturating_add(self.candidate_losses)
             .saturating_add(self.unfinished) as usize;
         if counted != self.games.len() {
-            return Err(ToolError::new("validation result counts do not match games"));
+            return Err(ToolError::new(
+                "validation result counts do not match games",
+            ));
         }
         for value in [
             self.mean_pair_score,
@@ -479,15 +482,35 @@ impl CandidateValidationReport {
         let mut output = String::new();
         line(&mut output, FORMAT_MARKER);
         field(&mut output, "schema", CANDIDATE_VALIDATION_SCHEMA_VERSION);
-        hex_field(&mut output, "report_identifier", CANDIDATE_VALIDATION_IDENTIFIER);
-        hex_field(&mut output, "engine_identifier", self.provenance.engine_identifier);
-        text_field(&mut output, "engine_version", &self.provenance.engine_version);
-        field(&mut output, "source_commit", encode_hex(&self.provenance.source_commit));
+        hex_field(
+            &mut output,
+            "report_identifier",
+            CANDIDATE_VALIDATION_IDENTIFIER,
+        );
+        hex_field(
+            &mut output,
+            "engine_identifier",
+            self.provenance.engine_identifier,
+        );
+        text_field(
+            &mut output,
+            "engine_version",
+            &self.provenance.engine_version,
+        );
+        field(
+            &mut output,
+            "source_commit",
+            encode_hex(&self.provenance.source_commit),
+        );
         text_field(&mut output, "exact_command", &self.provenance.exact_command);
         field(&mut output, "pair_count", self.config.pair_count);
         field(&mut output, "game_count", self.games.len());
         field(&mut output, "seed", self.config.seed);
-        field(&mut output, "minimum_required_pairs", MINIMUM_VALIDATION_PAIRS);
+        field(
+            &mut output,
+            "minimum_required_pairs",
+            MINIMUM_VALIDATION_PAIRS,
+        );
         field(&mut output, "search_limit", self.config.side.limit());
         field(
             &mut output,
@@ -517,7 +540,11 @@ impl CandidateValidationReport {
         );
         hex_field(&mut output, "baseline_identifier", self.baseline_identifier);
         hex_field(&mut output, "baseline_checksum", self.baseline_checksum);
-        hex_field(&mut output, "candidate_identifier", self.candidate_identifier);
+        hex_field(
+            &mut output,
+            "candidate_identifier",
+            self.candidate_identifier,
+        );
         hex_field(&mut output, "candidate_checksum", self.candidate_checksum);
         hex_field(
             &mut output,
@@ -533,8 +560,16 @@ impl CandidateValidationReport {
         field(&mut output, "perft_depth", self.correctness.perft_depth);
         field(&mut output, "perft_cases", self.correctness.perft_cases);
         field(&mut output, "perft_passed", self.correctness.perft_passed);
-        field(&mut output, "tactical_cases", self.correctness.tactical_cases);
-        field(&mut output, "tactical_passed", self.correctness.tactical_passed);
+        field(
+            &mut output,
+            "tactical_cases",
+            self.correctness.tactical_cases,
+        );
+        field(
+            &mut output,
+            "tactical_passed",
+            self.correctness.tactical_passed,
+        );
         field(&mut output, "candidate_wins", self.candidate_wins);
         field(&mut output, "draws", self.draws);
         field(&mut output, "candidate_losses", self.candidate_losses);
@@ -554,7 +589,11 @@ impl CandidateValidationReport {
         field(&mut output, "activated", self.activated());
         for (index, game) in self.games.iter().enumerate() {
             let prefix = format!("game.{index}");
-            field(&mut output, &format!("{prefix}.pair_index"), game.pair_index);
+            field(
+                &mut output,
+                &format!("{prefix}.pair_index"),
+                game.pair_index,
+            );
             field(&mut output, &format!("{prefix}.pair_seed"), game.pair_seed);
             text_field(
                 &mut output,
@@ -582,11 +621,7 @@ impl CandidateValidationReport {
                 &format!("{prefix}.moves"),
                 &game.moves.join(" "),
             );
-            text_field(
-                &mut output,
-                &format!("{prefix}.final_fen"),
-                &game.final_fen,
-            );
+            text_field(&mut output, &format!("{prefix}.final_fen"), &game.final_fen);
         }
         hex_field(&mut output, "checksum", self.checksum);
         Ok(output)
@@ -624,14 +659,17 @@ fn run_candidate_validation_internal(
         .validate()
         .map_err(named_artifact_error)?;
     if openings.lines().is_empty() {
-        return Err(ToolError::new("candidate validation opening suite is empty"));
+        return Err(ToolError::new(
+            "candidate validation opening suite is empty",
+        ));
     }
 
     let baseline = EvaluationWeightSet::baseline();
     baseline
         .validate()
         .map_err(|error| ToolError::new(error.to_string()))?;
-    let candidate = EvaluationWeightSet::new(candidate_artifact.identifier, candidate_artifact.weights);
+    let candidate =
+        EvaluationWeightSet::new(candidate_artifact.identifier, candidate_artifact.weights);
     candidate
         .validate()
         .map_err(|error| ToolError::new(error.to_string()))?;
@@ -681,11 +719,13 @@ fn run_candidate_validation_internal(
     )?;
     let opening_offset = (splitmix64(config.seed) % openings.lines().len() as u64) as usize;
     let mut pair_scores = Vec::with_capacity(config.pair_count as usize);
-    report.games.reserve(config.pair_count.saturating_mul(2) as usize);
+    report
+        .games
+        .reserve(config.pair_count.saturating_mul(2) as usize);
 
     for pair_index in 0..config.pair_count {
-        let opening = &openings.lines()
-            [(opening_offset + pair_index as usize) % openings.lines().len()];
+        let opening =
+            &openings.lines()[(opening_offset + pair_index as usize) % openings.lines().len()];
         let pair_seed = splitmix64(config.seed ^ u64::from(pair_index));
         let candidate_white = run_weighted_validation_game(
             opening,
@@ -731,9 +771,7 @@ fn run_candidate_validation_internal(
     } else {
         u64::from(report.unfinished) * 1_000 / report.games.len() as u64
     };
-    report.decision = if unfinished_per_mille
-        > u64::from(config.maximum_unfinished_per_mille)
-    {
+    report.decision = if unfinished_per_mille > u64::from(config.maximum_unfinished_per_mille) {
         CandidateValidationDecision::RejectedUnfinishedRate
     } else if lower_bound > 0.5 + config.minimum_score_margin {
         CandidateValidationDecision::Accepted
@@ -764,10 +802,12 @@ pub fn write_candidate_validation_report_atomic(
         .write(true)
         .create_new(true)
         .open(temporary)
-        .map_err(|error| ToolError::new(format!(
-            "failed to create temporary validation report {}: {error}",
-            temporary.display()
-        )))?;
+        .map_err(|error| {
+            ToolError::new(format!(
+                "failed to create temporary validation report {}: {error}",
+                temporary.display()
+            ))
+        })?;
     if let Err(error) = file
         .write_all(text.as_bytes())
         .and_then(|()| file.flush())
@@ -796,7 +836,9 @@ fn run_correctness_suite(
     perft_depth: u8,
 ) -> Result<CandidateCorrectnessSummary, ToolError> {
     if !(1..=5).contains(&perft_depth) {
-        return Err(ToolError::new("candidate perft depth must be between one and five"));
+        return Err(ToolError::new(
+            "candidate perft depth must be between one and five",
+        ));
     }
     let fixtures = perft_fixtures()?;
     let mut perft_cases = 0_u32;
@@ -818,19 +860,15 @@ fn run_correctness_suite(
             3_u16,
             &["f7e8", "f7f8", "f7g7", "f7h7"][..],
         ),
-        (
-            "4Q2k/8/4K3/8/8/8/8/8 b - - 0 1",
-            6_u16,
-            &["h8g7"][..],
-        ),
+        ("4Q2k/8/4K3/8/8/8/8/8 b - - 0 1", 6_u16, &["h8g7"][..]),
     ];
     let mut tactical_passed = true;
     for (fen, depth, acceptable) in tactical {
-        let mut position = Position::from_fen(fen)
-            .map_err(|error| ToolError::new(error.to_string()))?;
+        let mut position =
+            Position::from_fen(fen).map_err(|error| ToolError::new(error.to_string()))?;
         let mut history = SearchHistory::from_position(&position);
-        let mut table = TranspositionTable::new(8)
-            .map_err(|error| ToolError::new(error.to_string()))?;
+        let mut table =
+            TranspositionTable::new(8).map_err(|error| ToolError::new(error.to_string()))?;
         let search = iterative_deepening_search_with_limits_and_transposition_table_and_weights(
             &mut position,
             &mut history,
@@ -864,19 +902,23 @@ fn append_game(
     score: f64,
 ) -> Result<(), ToolError> {
     match game.result() {
-        SelfPlayResult::WhiteWin if candidate_color == CandidateColor::White
-            | SelfPlayResult::BlackWin if candidate_color == CandidateColor::Black =>
-        {
-            report.candidate_wins = report
-                .candidate_wins
-                .checked_add(1)
-                .ok_or_else(|| ToolError::new("candidate win count overflow"))?;
-        }
         SelfPlayResult::WhiteWin | SelfPlayResult::BlackWin => {
-            report.candidate_losses = report
-                .candidate_losses
-                .checked_add(1)
-                .ok_or_else(|| ToolError::new("candidate loss count overflow"))?;
+            let candidate_won = matches!(
+                (game.result(), candidate_color),
+                (SelfPlayResult::WhiteWin, CandidateColor::White)
+                    | (SelfPlayResult::BlackWin, CandidateColor::Black)
+            );
+            if candidate_won {
+                report.candidate_wins = report
+                    .candidate_wins
+                    .checked_add(1)
+                    .ok_or_else(|| ToolError::new("candidate win count overflow"))?;
+            } else {
+                report.candidate_losses = report
+                    .candidate_losses
+                    .checked_add(1)
+                    .ok_or_else(|| ToolError::new("candidate loss count overflow"))?;
+            }
         }
         SelfPlayResult::Draw => {
             report.draws = report
@@ -908,10 +950,18 @@ fn append_game(
 fn candidate_score(result: SelfPlayResult, candidate_color: CandidateColor) -> f64 {
     match result {
         SelfPlayResult::WhiteWin => {
-            if candidate_color == CandidateColor::White { 1.0 } else { 0.0 }
+            if candidate_color == CandidateColor::White {
+                1.0
+            } else {
+                0.0
+            }
         }
         SelfPlayResult::BlackWin => {
-            if candidate_color == CandidateColor::Black { 1.0 } else { 0.0 }
+            if candidate_color == CandidateColor::Black {
+                1.0
+            } else {
+                0.0
+            }
         }
         SelfPlayResult::Draw | SelfPlayResult::Unfinished => 0.5,
     }
@@ -983,7 +1033,11 @@ fn float_field(output: &mut String, name: &str, value: f64) {
 }
 
 fn text_field(output: &mut String, name: &str, value: &str) {
-    field(output, &format!("{name}.utf8_hex"), encode_hex(value.as_bytes()));
+    field(
+        output,
+        &format!("{name}.utf8_hex"),
+        encode_hex(value.as_bytes()),
+    );
 }
 
 fn encode_hex(bytes: &[u8]) -> String {
@@ -1010,9 +1064,10 @@ fn hash_bytes(mut hash: u64, bytes: &[u8]) -> u64 {
 #[cfg(test)]
 mod tests {
     use chess_search::EvaluationWeights;
+
+    use crate::self_play::SelfPlayLimit;
     use chess_tune::{
-        NamedWeightArtifact, TrainingDatasetProvenance, TrainingMetadata,
-        TrainingRunProvenance,
+        NamedWeightArtifact, TrainingDatasetProvenance, TrainingMetadata, TrainingRunProvenance,
     };
 
     use super::*;
@@ -1046,10 +1101,22 @@ mod tests {
 
     #[test]
     fn candidate_score_is_color_relative_and_unfinished_is_separate() {
-        assert_eq!(candidate_score(SelfPlayResult::WhiteWin, CandidateColor::White), 1.0);
-        assert_eq!(candidate_score(SelfPlayResult::WhiteWin, CandidateColor::Black), 0.0);
-        assert_eq!(candidate_score(SelfPlayResult::Draw, CandidateColor::White), 0.5);
-        assert_eq!(candidate_score(SelfPlayResult::Unfinished, CandidateColor::Black), 0.5);
+        assert_eq!(
+            candidate_score(SelfPlayResult::WhiteWin, CandidateColor::White),
+            1.0
+        );
+        assert_eq!(
+            candidate_score(SelfPlayResult::WhiteWin, CandidateColor::Black),
+            0.0
+        );
+        assert_eq!(
+            candidate_score(SelfPlayResult::Draw, CandidateColor::White),
+            0.5
+        );
+        assert_eq!(
+            candidate_score(SelfPlayResult::Unfinished, CandidateColor::Black),
+            0.5
+        );
     }
 
     #[test]
@@ -1089,21 +1156,24 @@ mod tests {
             1,
         )
         .expect("first run");
-        let second = run_candidate_validation_internal(
-            provenance,
-            config,
-            &openings(),
-            &artifact(),
-            1,
-            1,
-        )
-        .expect("second run");
+        let second =
+            run_candidate_validation_internal(provenance, config, &openings(), &artifact(), 1, 1)
+                .expect("second run");
         assert_eq!(first, second);
         assert_eq!(first.games.len(), 2);
-        assert_ne!(first.games[0].candidate_color, first.games[1].candidate_color);
-        assert_eq!(first.games[0].opening_identifier, first.games[1].opening_identifier);
+        assert_ne!(
+            first.games[0].candidate_color,
+            first.games[1].candidate_color
+        );
+        assert_eq!(
+            first.games[0].opening_identifier,
+            first.games[1].opening_identifier
+        );
         assert!(!first.activated());
         assert_eq!(first.checksum, first.computed_checksum());
-        assert!(first.serialize().expect("serialize").contains("activated=false"));
+        assert!(first
+            .serialize()
+            .expect("serialize")
+            .contains("activated=false"));
     }
 }

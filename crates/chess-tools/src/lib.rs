@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 //! Deterministic offline validation primitives for the Rust chess engine.
 
+pub mod candidate_validation;
 pub mod self_play;
 pub mod tuning;
 mod weights_io;
