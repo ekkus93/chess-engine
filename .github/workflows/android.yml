@@ -152,13 +152,8 @@ jobs:
             -no-snapshot -no-window -gpu swiftshader_indirect
             -noaudio -no-boot-anim -camera-back none
           script: |
-            set -eu
-            gradle -p android-harness \
-              :android-smoke:connectedDebugAndroidTest \
-              --no-daemon --stacktrace --console=plain
-            adb logcat -d | grep -F 'TASK24_ANDROID_METRIC' \
-              | sed 's/^.*TASK24_ANDROID_METRIC/TASK24_ANDROID_METRIC/' \
-              | sort -u | tee task24-android-performance.txt
+            gradle -p android-harness :android-smoke:connectedDebugAndroidTest --no-daemon --stacktrace --console=plain
+            adb logcat -d | grep -F 'TASK24_ANDROID_METRIC' | sed 's/^.*TASK24_ANDROID_METRIC/TASK24_ANDROID_METRIC/' | sort -u | tee task24-android-performance.txt
             test -s task24-android-performance.txt
 
       - name: Preserve Android performance evidence
