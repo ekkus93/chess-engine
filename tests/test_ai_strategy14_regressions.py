@@ -15,7 +15,6 @@ from chess_game.chess.move import Move
 from chess_game.chess.types import Color, PieceType
 from tests.helpers import sq
 
-
 pytestmark = pytest.mark.slow
 
 

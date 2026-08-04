@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import multiprocessing as mp
 from pathlib import Path
-from typing import TYPE_CHECKING, NamedTuple, Optional
+from typing import TYPE_CHECKING, NamedTuple
 
 import numpy as np
 
@@ -136,13 +136,13 @@ def outcomes_from_sf(
 
 
 def compute_sf_feature_matrix(
-    annotated_db: "AnnotatedPositionDB",
+    annotated_db: AnnotatedPositionDB,
     weights: EvalWeights,
     k: float,
     *,
     eps: float = 1.0,
     n_jobs: int = 14,
-) -> Optional[FeatureMatrix]:
+) -> FeatureMatrix | None:
     """Compute a FeatureMatrix using Stockfish scores as outcome targets.
 
     Filters to positions where ``sf_score_cp`` is not ``None`` (excludes mate

@@ -6,7 +6,7 @@ doesn't have to carry them as instance methods.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from chess_game.chess.board.castling import CastlingValidator
 from chess_game.chess.position_utils import position_key
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from chess_game.chess.board.board import Board
 
 
-def is_in_check(board: "Board", color: Color) -> bool:  # noqa: F821
+def is_in_check(board: Board, color: Color) -> bool:
     """Check if the given color's king is currently in check."""
     king_sq = board.find_king(color)
     if king_sq is None:
@@ -25,7 +25,7 @@ def is_in_check(board: "Board", color: Color) -> bool:  # noqa: F821
     return CastlingValidator.is_square_attacked(board, king_sq, enemy)
 
 
-def is_checkmate(board: "Board", color: Optional[Color] = None) -> bool:  # noqa: F821
+def is_checkmate(board: Board, color: Color | None = None) -> bool:
     """Check if the given color (or side-to-move) is in checkmate."""
     c = color if color is not None else board.turn
     if not is_in_check(board, c):
@@ -33,7 +33,7 @@ def is_checkmate(board: "Board", color: Optional[Color] = None) -> bool:  # noqa
     return len(board.get_legal_moves_for_color(c)) == 0
 
 
-def is_stalemate(board: "Board", color: Optional[Color] = None) -> bool:  # noqa: F821
+def is_stalemate(board: Board, color: Color | None = None) -> bool:
     """Check if the given color (or side-to-move) is in stalemate."""
     c = color if color is not None else board.turn
     if is_in_check(board, c):
@@ -41,31 +41,31 @@ def is_stalemate(board: "Board", color: Optional[Color] = None) -> bool:  # noqa
     return len(board.get_legal_moves_for_color(c)) == 0
 
 
-def is_threefold_repetition(board: "Board", position_counts: dict[str, int]) -> bool:
+def is_threefold_repetition(board: Board, position_counts: dict[str, int]) -> bool:
     """Check whether the current position has occurred at least three times."""
 
     return position_counts.get(position_key(board), 0) >= 3
 
 
-def is_fivefold_repetition(board: "Board", position_counts: dict[str, int]) -> bool:
+def is_fivefold_repetition(board: Board, position_counts: dict[str, int]) -> bool:
     """Check whether the current position has occurred at least five times."""
 
     return position_counts.get(position_key(board), 0) >= 5
 
 
-def is_fifty_move_rule(board: "Board") -> bool:
+def is_fifty_move_rule(board: Board) -> bool:
     """Check whether fifty full moves have elapsed without a pawn move or capture."""
 
     return board.halfmove_clock >= 100
 
 
-def is_seventy_five_move_rule(board: "Board") -> bool:
+def is_seventy_five_move_rule(board: Board) -> bool:
     """Check whether seventy-five full moves have elapsed without a pawn move or capture."""
 
     return board.halfmove_clock >= 150
 
 
-def is_insufficient_material(board: "Board") -> bool:
+def is_insufficient_material(board: Board) -> bool:
     """Check whether neither side has enough material to ever force checkmate."""
 
     pieces = [piece for row in board.board for piece in row if piece is not None]
@@ -84,7 +84,7 @@ def is_insufficient_material(board: "Board") -> bool:
     return _same_color_bishops_only(non_kings)
 
 
-def is_dead_position(board: "Board") -> bool:
+def is_dead_position(board: Board) -> bool:
     """Check whether no legal sequence can ever lead to checkmate."""
 
     pieces = [piece for row in board.board for piece in row if piece is not None]
@@ -110,9 +110,9 @@ def is_dead_position(board: "Board") -> bool:
 
 
 def terminal_message(
-    board: "Board",
-    position_counts: Optional[dict[str, int]] = None,
-) -> Optional[str]:
+    board: Board,
+    position_counts: dict[str, int] | None = None,
+) -> str | None:
     """Return an end-of-game message when the current board is terminal."""
 
     message = _mate_or_stalemate_message(board)
@@ -121,14 +121,14 @@ def terminal_message(
     return _draw_message(board, position_counts)
 
 
-def record_position(board: "Board", position_counts: dict[str, int]) -> None:
+def record_position(board: Board, position_counts: dict[str, int]) -> None:
     """Record the current position for repetition tracking."""
 
     key = position_key(board)
     position_counts[key] = position_counts.get(key, 0) + 1
 
 
-def _mate_or_stalemate_message(board: "Board") -> Optional[str]:
+def _mate_or_stalemate_message(board: Board) -> str | None:
     """Return a terminal non-draw message when the side to move is mated."""
 
     if is_checkmate(board):
@@ -140,12 +140,12 @@ def _mate_or_stalemate_message(board: "Board") -> Optional[str]:
 
 
 def _draw_message(
-    board: "Board",
-    position_counts: Optional[dict[str, int]],
-) -> Optional[str]:
+    board: Board,
+    position_counts: dict[str, int] | None,
+) -> str | None:
     """Return the first matching draw-state message, if any."""
 
-    message: Optional[str] = None
+    message: str | None = None
     if position_counts is not None and is_fivefold_repetition(board, position_counts):
         message = "Draw by fivefold repetition."
     elif is_seventy_five_move_rule(board):

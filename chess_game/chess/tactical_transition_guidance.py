@@ -98,9 +98,7 @@ def _safe_capture_bonus(
     score = 0
     if after.danger <= before.danger and after.invasion_lines <= before.invasion_lines:
         score += TACTICAL_TRANSITION_SAFE_CAPTURE_BONUS
-    if captured_piece.kind == PieceType.PAWN and int(move.end.col) in {3, 4}:
-        score += TACTICAL_TRANSITION_CENTRAL_CAPTURE_BONUS
-    elif captured_piece.kind in {
+    if captured_piece.kind == PieceType.PAWN and int(move.end.col) in {3, 4} or captured_piece.kind in {
         PieceType.KNIGHT,
         PieceType.BISHOP,
         PieceType.ROOK,

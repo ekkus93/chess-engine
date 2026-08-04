@@ -1,10 +1,9 @@
 """Move data structure and algebraic notation parser."""
 
 from dataclasses import dataclass
-from typing import Optional
 
-from chess_game.chess.coords import algebraic_to_index
 from chess_game.chess.constants import ConstantSquare
+from chess_game.chess.coords import algebraic_to_index
 from chess_game.chess.types import PieceType
 
 
@@ -14,7 +13,7 @@ class Move:
 
     start: ConstantSquare
     end: ConstantSquare
-    promotion: Optional[PieceType] = None
+    promotion: PieceType | None = None
 
 
 def parse_move_notation(move_str: str) -> Move:
@@ -28,7 +27,7 @@ def parse_move_notation(move_str: str) -> Move:
     start = algebraic_to_index(move_str[0:2])
     end = algebraic_to_index(move_str[2:4])
 
-    promotion: Optional[PieceType] = None
+    promotion: PieceType | None = None
     if len(move_str) == 5:
         promo_map = {
             "q": PieceType.QUEEN,

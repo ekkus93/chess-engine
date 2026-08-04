@@ -17,7 +17,7 @@ def _apply_moves(board: Board, *move_texts: str) -> None:
         assert board.make_move(move.start, move.end, move.promotion)
 
 
-def _is_legal(board: Board, move) -> bool:  # noqa: ANN001
+def _is_legal(board: Board, move) -> bool:
     legal = {(start, end, promotion) for start, end, promotion in board.get_legal_moves()}
     return (move.start, move.end, move.promotion) in legal
 
@@ -55,7 +55,7 @@ def test_opening_book_miss_falls_back_to_search_with_legal_move() -> None:
     assert _is_legal(board, move)
 
 
-def test_custom_book_miss_still_falls_back_to_search(tmp_path) -> None:  # noqa: ANN001
+def test_custom_book_miss_still_falls_back_to_search(tmp_path) -> None:
     """Custom book load should not block fallback search when no line matches."""
 
     custom_book_path = tmp_path / "custom_book.json"

@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable
-
-from chess_game.chess.types import Piece, PieceType
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from chess_game.chess.constants import (
     Color,
     ConstantSquare,
 )
+from chess_game.chess.types import Piece, PieceType
 
 if TYPE_CHECKING:
     from chess_game.chess.board.board import Board

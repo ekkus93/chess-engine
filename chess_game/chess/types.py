@@ -1,22 +1,22 @@
 """Chess piece and move data types."""
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from chess_game.chess.constants import (
-    ConstantSquare,
+    ColConstant,
     Color,
+    ConstantSquare,
     PieceType,
     RowConstant,
-    ColConstant,
 )
 
 if TYPE_CHECKING:
-    from chess_game.chess.board.move_validation import MoveValidator
-    from chess_game.chess.board.move_execution import MoveExecutor
-    from chess_game.chess.board.promotion import PromotionValidator
     from chess_game.chess.board.en_passant import EnPassantValidator
+    from chess_game.chess.board.move_execution import MoveExecutor
+    from chess_game.chess.board.move_validation import MoveValidator
     from chess_game.chess.board.piece_validation import PieceMoveChecker
+    from chess_game.chess.board.promotion import PromotionValidator
 
 
 @dataclass(slots=True)
@@ -29,25 +29,25 @@ class Piece:
 
     color: Color
     kind: PieceType
-    _square: Optional[ConstantSquare] = None
+    _square: ConstantSquare | None = None
 
     @property
-    def row(self) -> Optional[RowConstant]:
+    def row(self) -> RowConstant | None:
         """The row constant of the piece's current square, or None if unplaced."""
         return self._square.row if self._square else None
 
     @property
-    def col(self) -> Optional[ColConstant]:
+    def col(self) -> ColConstant | None:
         """The column constant of the piece's current square, or None if unplaced."""
         return self._square.col if self._square else None
 
     @property
-    def square(self) -> Optional[ConstantSquare]:
+    def square(self) -> ConstantSquare | None:
         """The ConstantSquare of the piece's current position, or None if unplaced."""
         return self._square
 
     @square.setter
-    def square(self, value: Optional[ConstantSquare]) -> None:
+    def square(self, value: ConstantSquare | None) -> None:
         """Set the piece's current square."""
         self._square = value
 
@@ -78,7 +78,7 @@ class MoveCounters:
 class GameMetadata:
     """Mutable board metadata that is separate from piece placement."""
 
-    en_passant_target: Optional[ConstantSquare] = None
+    en_passant_target: ConstantSquare | None = None
     castling_rights: CastlingRights = field(default_factory=CastlingRights)
     move_counters: MoveCounters = field(default_factory=MoveCounters)
 
@@ -100,4 +100,4 @@ class LegalMove:
 
     start: ConstantSquare
     end: ConstantSquare
-    promotion: Optional[PieceType] = None
+    promotion: PieceType | None = None

@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.board.game_state import (
+    is_dead_position,
     is_fifty_move_rule,
     is_fivefold_repetition,
-    is_dead_position,
     is_insufficient_material,
     is_seventy_five_move_rule,
     is_threefold_repetition,

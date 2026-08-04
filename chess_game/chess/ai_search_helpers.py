@@ -1,7 +1,31 @@
 """Search helper functions shared by the AI module."""
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
+from chess_game.chess.ai_repetition_tracking import (
+    RepetitionPolicy,
+    position_occurrence_count,
+    repetition_score,
+    search_position_counts,
+)
+from chess_game.chess.ai_root_selection import (
+    initial_root_window,
+    prefer_root_move,
+    rerun_full_window_if_needed,
+    update_alpha_beta,
+)
+from chess_game.chess.ai_root_stability import (
+    _high_danger_root_bonus,
+    _ignore_near_promotion_passer_penalty,
+    _opening_root_bonus,
+    _pawn_structure_change_root_bonus,
+    root_stability_adjustment,
+)
+from chess_game.chess.ai_selective_extensions import (
+    check_extension,
+    selective_extension_bonus,
+)
 from chess_game.chess.board import Board
 from chess_game.chess.defensive_priorities import (
     DANGEROUS_KING_PRESSURE_THRESHOLD,
@@ -9,30 +33,6 @@ from chess_game.chess.defensive_priorities import (
 )
 from chess_game.chess.move import Move
 from chess_game.chess.types import LegalMove, PieceType
-from chess_game.chess.ai_root_selection import (
-    initial_root_window,
-    prefer_root_move,
-    rerun_full_window_if_needed,
-    update_alpha_beta,
-)
-from chess_game.chess.ai_repetition_tracking import (
-    RepetitionPolicy,
-    position_occurrence_count,
-    repetition_score,
-    search_position_counts,
-)
-from chess_game.chess.ai_root_stability import (
-    root_stability_adjustment,
-    _high_danger_root_bonus,
-    _ignore_near_promotion_passer_penalty,
-    _opening_root_bonus,
-    _pawn_structure_change_root_bonus,
-)
-from chess_game.chess.ai_selective_extensions import (
-    check_extension,
-    selective_extension_bonus,
-)
-
 
 # Public facade: ai_search_helpers re-exports names that moved into the extracted
 # ai_root_selection / ai_root_stability / ai_selective_extensions / repetition
@@ -41,6 +41,10 @@ from chess_game.chess.ai_selective_extensions import (
 __all__ = [
     "DANGEROUS_KING_PRESSURE_THRESHOLD",
     "RepetitionPolicy",
+    "_high_danger_root_bonus",
+    "_ignore_near_promotion_passer_penalty",
+    "_opening_root_bonus",
+    "_pawn_structure_change_root_bonus",
     "check_extension",
     "defensive_capture_bonus",
     "initial_root_window",
@@ -57,10 +61,6 @@ __all__ = [
     "search_position_counts",
     "selective_extension_bonus",
     "update_alpha_beta",
-    "_high_danger_root_bonus",
-    "_ignore_near_promotion_passer_penalty",
-    "_opening_root_bonus",
-    "_pawn_structure_change_root_bonus",
 ]
 
 

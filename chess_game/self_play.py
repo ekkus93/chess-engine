@@ -9,14 +9,17 @@ import signal
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 from chess_game.chess.ai import BestMoveOptions, get_best_move
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import record_position, terminal_message
 from chess_game.chess.constants import ConstantSquare
 from chess_game.chess.coords import index_to_algebraic
-from chess_game.chess.opening_book import OpeningBook, OpeningBookError, get_bundled_opening_book
+from chess_game.chess.opening_book import (
+    OpeningBook,
+    OpeningBookError,
+    get_bundled_opening_book,
+)
 from chess_game.chess.types import Color, LegalMove, PieceType
 from chess_game.texel.game_result import outcome_from_message
 from chess_game.texel.online_learning import (
@@ -41,10 +44,10 @@ class _MoveSelectionParams:
 
     board: Board
     depth: int
-    timeout: Optional[float]
-    position_counts: Optional[dict[str, int]] = None
+    timeout: float | None
+    position_counts: dict[str, int] | None = None
     use_opening_book: bool = True
-    opening_book: Optional[OpeningBook] = None
+    opening_book: OpeningBook | None = None
 
 
 @dataclass
@@ -54,9 +57,9 @@ class _SelfPlayOptions:
     max_moves: int = 1000
     verbose: bool = True
     use_opening_book: bool = True
-    opening_book: Optional[OpeningBook] = None
+    opening_book: OpeningBook | None = None
     online_learning: bool = False
-    learning_config: Optional[OnlineLearningConfig] = None
+    learning_config: OnlineLearningConfig | None = None
 
 
 PROMOTION_SUFFIXES = {
@@ -70,7 +73,7 @@ PROMOTION_SUFFIXES = {
 def _move_to_algebraic(
     start: ConstantSquare,
     end: ConstantSquare,
-    promotion: Optional[PieceType],
+    promotion: PieceType | None,
 ) -> str:
     """Format a move as algebraic notation like e2e4 or e7e8q."""
     base = index_to_algebraic(start) + index_to_algebraic(end)
@@ -79,7 +82,7 @@ def _move_to_algebraic(
     return base
 
 
-def _get_best_move_with_timeout(params: _MoveSelectionParams) -> Optional[LegalMove]:
+def _get_best_move_with_timeout(params: _MoveSelectionParams) -> LegalMove | None:
     """Run get_best_move with a POSIX alarm-based timeout.
 
     If timeout is None, search runs to completion at the requested depth.
@@ -221,7 +224,7 @@ def _run_self_play_internal(
         options: Configuration options for the game.
     """
 
-    def _pick_move(board: Board, base_depth: int) -> Optional[LegalMove]:
+    def _pick_move(board: Board, base_depth: int) -> LegalMove | None:
         """Helper to pick a move with current game context."""
         if options.use_opening_book:
             book = options.opening_book or get_bundled_opening_book()
@@ -283,7 +286,7 @@ def _run_self_play_internal(
 def run_self_play(
     depth_white: int = 2,
     depth_black: int = 2,
-    options: Optional[_SelfPlayOptions] = None,
+    options: _SelfPlayOptions | None = None,
 ) -> None:
     """Run a self-play game with the AI playing both sides."""
     effective_options = options or _SelfPlayOptions()
@@ -297,7 +300,7 @@ class _MultiGameConfig:
     depth_white: int = 2
     depth_black: int = 2
     num_games: int = 1
-    output_dir: Optional[Path] = None
+    output_dir: Path | None = None
     play_options: _SelfPlayOptions = field(default_factory=_SelfPlayOptions)
 
 
@@ -404,7 +407,7 @@ def main():
         print("Error: --games must be >= 1", file=sys.stderr)
         sys.exit(1)
 
-    opening_book: Optional[OpeningBook] = None
+    opening_book: OpeningBook | None = None
     if not args.no_opening_book and args.opening_book:
         try:
             opening_book = OpeningBook.from_file(args.opening_book)

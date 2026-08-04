@@ -24,7 +24,6 @@ from chess_game.chess.ai import INF, MinimaxParams, SearchContext, position_key
 from chess_game.chess.board import Board
 from chess_game.chess.move import Move
 from chess_game.chess.types import LegalMove
-
 from tests.helpers import sq
 
 
@@ -64,7 +63,7 @@ class _ScriptedEval:
         self._script = script
         self._calls: dict = defaultdict(int)
 
-    def __call__(self, board, move, params, alpha, beta):  # noqa: ARG002 - signature match
+    def __call__(self, board, move, params, alpha, beta):
         key = (move.start, move.end)
         self._calls[key] += 1
         bounded, exact = self._script[key]

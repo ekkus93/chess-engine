@@ -10,10 +10,10 @@ from chess_game.chess.strategy_utils import (
     center_distance,
     iter_color_pieces,
     king_coordinates,
+    most_advanced_passer,
     non_king_material_lead,
     opposite_color,
     passed_pawns_for_color,
-    most_advanced_passer,
 )
 from chess_game.chess.types import Color, PieceType
 

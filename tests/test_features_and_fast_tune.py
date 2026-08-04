@@ -8,24 +8,23 @@ import numpy as np
 import pytest
 
 from chess_game.chess.eval_weights import EvalWeights
+from chess_game.texel.fast_tune import (
+    AdamConfig,
+    FastTuneConfig,
+    calibrate_k_fast,
+    fast_gradient,
+    fast_mse,
+    fast_tune,
+    optimize_adam,
+)
 from chess_game.texel.features import (
     FeatureMatrix,
     compute_feature_matrix,
     load_features,
     save_features,
 )
-from chess_game.texel.fast_tune import (
-    AdamConfig,
-    FastTuneConfig,
-    calibrate_k_fast,
-    fast_mse,
-    fast_gradient,
-    fast_tune,
-    optimize_adam,
-)
 from chess_game.texel.learn_loop import RoundResult
 from chess_game.texel.position_db import PositionDB
-
 
 # ---------------------------------------------------------------------------
 # Tiny synthetic dataset: two positions with known outcomes

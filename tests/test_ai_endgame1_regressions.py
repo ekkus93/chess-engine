@@ -17,7 +17,6 @@ from chess_game.chess.types import Color, LegalMove, PieceType
 from tests.helpers import sq
 from tests.test_ai_quality import _move_order_score
 
-
 pytestmark = pytest.mark.slow
 
 # Stable equal-score selection for regression targets (no opening book, no RNG).

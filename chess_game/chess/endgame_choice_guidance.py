@@ -7,8 +7,9 @@ from dataclasses import dataclass
 from chess_game.chess.ai_repetition_patterns import move_undoes_last_own_move
 from chess_game.chess.board import Board
 from chess_game.chess.board.attack_utils import piece_attacks_square
-from chess_game.chess.defensive_priorities import king_defense_profile
 from chess_game.chess.constants import get_square_constant
+from chess_game.chess.defensive_priorities import king_defense_profile
+from chess_game.chess.evaluation import evaluate
 from chess_game.chess.move import Move
 from chess_game.chess.strategy_utils import (
     both_queens_on_board,
@@ -23,7 +24,6 @@ from chess_game.chess.strategy_utils import (
     passed_pawns_for_color,
     path_clear_between,
 )
-from chess_game.chess.evaluation import evaluate
 from chess_game.chess.types import Color, PieceType
 
 _MAX_NON_KING_PIECES = 8

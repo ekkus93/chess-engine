@@ -17,7 +17,7 @@ def test_no_opening_book_wins_over_bad_custom_path(monkeypatch) -> None:
         """Stub opening book type for CLI loading tests."""
 
         @classmethod
-        def from_file(cls, path: str):  # noqa: ANN206
+        def from_file(cls, path: str):
             called["from_file"] = True
             raise AssertionError(f"OpeningBook.from_file should not be called: {path}")
 

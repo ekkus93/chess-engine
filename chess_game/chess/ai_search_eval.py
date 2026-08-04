@@ -8,22 +8,32 @@ import without depending back on ``ai.py``.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from chess_game.chess.ai_search_helpers import RepetitionPolicy
 from chess_game.chess.ai_search_types import DRAW_SCORE, MATE_SCORE, SearchContext
 from chess_game.chess.ai_transposition import position_key
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import (
     is_dead_position as _gs_is_dead_position,
+)
+from chess_game.chess.board.game_state import (
     is_fifty_move_rule as _gs_is_fifty_move_rule,
+)
+from chess_game.chess.board.game_state import (
     is_fivefold_repetition as _gs_is_fivefold,
+)
+from chess_game.chess.board.game_state import (
     is_in_check as _gs_is_in_check,
+)
+from chess_game.chess.board.game_state import (
     is_insufficient_material as _gs_is_insufficient_material,
+)
+from chess_game.chess.board.game_state import (
     is_seventy_five_move_rule as _gs_is_seventy_five_move_rule,
 )
 from chess_game.chess.evaluation import (
     evaluate,
+)
+from chess_game.chess.evaluation import (
     get_evaluation_breakdown as _get_evaluation_breakdown,
 )
 from chess_game.chess.evaluation_tables import (
@@ -41,13 +51,13 @@ def _progress_score(board: Board) -> int:
     return _get_evaluation_breakdown(board)["progress"]
 
 
-def _ctx_evaluate(board: Board, context: Optional[SearchContext]) -> int:
+def _ctx_evaluate(board: Board, context: SearchContext | None) -> int:
     """Evaluate board using the weights stored in context (or defaults)."""
     weights = context.weights if context is not None else None
     return evaluate(board, weights)
 
 
-def _make_evaluate_fn(context: Optional[SearchContext]):
+def _make_evaluate_fn(context: SearchContext | None):
     """Return an evaluate callable that captures context weights."""
 
     def _fn(board: Board) -> int:
@@ -56,7 +66,7 @@ def _make_evaluate_fn(context: Optional[SearchContext]):
     return _fn
 
 
-def make_repetition_policy(context: Optional[SearchContext]) -> RepetitionPolicy:
+def make_repetition_policy(context: SearchContext | None) -> RepetitionPolicy:
     """Build the repetition policy shared by the main search and quiescence."""
 
     return RepetitionPolicy(
@@ -71,7 +81,7 @@ def make_repetition_policy(context: Optional[SearchContext]) -> RepetitionPolicy
 
 def _is_forced_draw(
     board: Board,
-    position_counts: Optional[dict[str, int]],
+    position_counts: dict[str, int] | None,
 ) -> bool:
     return (
         _gs_is_fifty_move_rule(board)
@@ -86,8 +96,8 @@ def _terminal_score(
     board: Board,
     legal_moves: list[Move],
     ply: int = 0,
-    position_counts: Optional[dict[str, int]] = None,
-) -> Optional[int]:
+    position_counts: dict[str, int] | None = None,
+) -> int | None:
     """Return a terminal score for draws and checkmate; None when non-terminal.
 
     Covers all draw states supported by the board/game-state API:

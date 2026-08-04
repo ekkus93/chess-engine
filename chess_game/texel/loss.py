@@ -4,10 +4,11 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from chess_game.chess import Board
-from chess_game.chess.ai import INF as _INF, SearchContext, quiescence
+from chess_game.chess.ai import INF as _INF
+from chess_game.chess.ai import SearchContext, quiescence
 from chess_game.chess.eval_weights import EvalWeights
 from chess_game.chess.evaluation import evaluate
 from chess_game.chess.types import Color
@@ -53,7 +54,7 @@ def mean_squared_error(
     pairs: list[tuple[str, float]],
     weights: EvalWeights,
     k: float = DEFAULT_K,
-    opts: Optional[LossOptions] = None,
+    opts: LossOptions | None = None,
 ) -> float:
     """MSE between sigmoid(eval) and game outcome over (fen, outcome) pairs.
 

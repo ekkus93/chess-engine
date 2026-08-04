@@ -2,19 +2,21 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING
 
-from chess_game.chess.constants import Color, ConstantSquare, KNIGHT_MOVE_OFFSETS
-from chess_game.chess.types import Piece, PieceType
 from chess_game.chess.board.attack_utils import piece_attacks_square
 from chess_game.chess.board.castling import CastlingValidator
 from chess_game.chess.board.en_passant import EnPassantValidator
 from chess_game.chess.board.path_validator import PathValidator
 from chess_game.chess.board.promotion import PROMOTION_PIECES
-from chess_game.chess.pieces.piece_movers import PieceMovers
 from chess_game.chess.constants import (
+    KNIGHT_MOVE_OFFSETS,
+    Color,
+    ConstantSquare,
     get_square_constant,
 )
+from chess_game.chess.pieces.piece_movers import PieceMovers
+from chess_game.chess.types import Piece, PieceType
 
 if TYPE_CHECKING:
     from chess_game.chess.board.board import Board
@@ -48,7 +50,7 @@ class MoveValidator:
         self,
         from_square: ConstantSquare,
         to_square: ConstantSquare,
-        pseudo_legal: Optional[List[ConstantSquare]] = None,
+        pseudo_legal: list[ConstantSquare] | None = None,
     ) -> bool:
         """Check if a move is valid.
 
@@ -96,7 +98,7 @@ class MoveValidator:
 
     def _get_source_piece(
         self, from_square: ConstantSquare, to_square: ConstantSquare
-    ) -> Optional[Piece]:
+    ) -> Piece | None:
         """Get the piece at from_square, validating basic move constraints."""
         piece = self.board.get_piece(from_square)
         if piece is None:
@@ -142,13 +144,13 @@ class MoveValidator:
             self.board, from_square, to_square, piece.color, piece.color
         )
 
-    def _get_castling_moves(self, piece: Piece) -> List[ConstantSquare]:
+    def _get_castling_moves(self, piece: Piece) -> list[ConstantSquare]:
         """Get castling destination squares if the piece is a king."""
         if piece.kind != PieceType.KING:
             return []
         assert piece.square is not None
 
-        moves: List[ConstantSquare] = []
+        moves: list[ConstantSquare] = []
         king_row = int(piece.square.row)
 
         if CastlingValidator.can_castle_kingside(self.board, piece.color):
@@ -182,8 +184,8 @@ class MoveValidator:
 
     def get_legal_moves(
         self,
-        from_square: Optional[ConstantSquare] = None,
-    ) -> List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]]:
+        from_square: ConstantSquare | None = None,
+    ) -> list[tuple[ConstantSquare, ConstantSquare, PieceType | None]]:
         """Get all legal moves (with check validation).
 
         When from_square is None, iterates only pieces of side-to-move.
@@ -195,7 +197,7 @@ class MoveValidator:
                 return []
             return self._get_legal_moves_for_piece(piece, from_square)
 
-        all_moves: List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]] = []
+        all_moves: list[tuple[ConstantSquare, ConstantSquare, PieceType | None]] = []
         for row in range(8):
             for col in range(8):
                 piece = self.board.board[row][col]
@@ -212,14 +214,14 @@ class MoveValidator:
         self,
         piece: Piece,
         from_square: ConstantSquare,
-    ) -> List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]]:
+    ) -> list[tuple[ConstantSquare, ConstantSquare, PieceType | None]]:
         """Get all legal moves for a given piece from a given square."""
         pseudo_legal = self.piece_movers.get_valid_moves(piece, self.board)
         castling_moves = (
             self._get_castling_moves(piece) if piece.kind == PieceType.KING else []
         )
 
-        moves: List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]] = []
+        moves: list[tuple[ConstantSquare, ConstantSquare, PieceType | None]] = []
         for to_square in (*pseudo_legal, *castling_moves):
             # pseudo_legal is reused so is_valid_move's geometry check does not
             # regenerate the piece's moves for every candidate (castling squares
@@ -286,7 +288,7 @@ class MoveValidator:
 
     def _simulate_en_passant(
         self, piece: Piece, from_square: ConstantSquare, to_square: ConstantSquare
-    ) -> "Board":
+    ) -> Board:
         """Simulate en passant capture on a cloned board."""
         temp_board = self.board.clone()
         temp_piece = Piece(
@@ -305,7 +307,7 @@ class MoveValidator:
         return temp_board
 
     def _is_square_attacked_by_color(
-        self, board: "Board", square: ConstantSquare, color: Color
+        self, board: Board, square: ConstantSquare, color: Color
     ) -> bool:
         """Check if square is attacked by any piece of the given color."""
         target_row = int(square.row)
@@ -331,7 +333,7 @@ class MoveValidator:
         )
 
     def _is_attacked_by_pawn(
-        self, board: "Board", target_row: int, target_col: int, color: Color
+        self, board: Board, target_row: int, target_col: int, color: Color
     ) -> bool:
         """Check whether a pawn of the given color attacks the target square."""
         pawn_row = target_row + 1 if color == Color.WHITE else target_row - 1
@@ -351,7 +353,7 @@ class MoveValidator:
         return False
 
     def _is_attacked_by_knight(
-        self, board: "Board", target_row: int, target_col: int, color: Color
+        self, board: Board, target_row: int, target_col: int, color: Color
     ) -> bool:
         """Check whether a knight of the given color attacks the target square."""
         for row_offset, col_offset in KNIGHT_MOVE_OFFSETS:
@@ -369,7 +371,7 @@ class MoveValidator:
         return False
 
     def _is_attacked_by_king(
-        self, board: "Board", target_row: int, target_col: int, color: Color
+        self, board: Board, target_row: int, target_col: int, color: Color
     ) -> bool:
         """Check whether a king of the given color attacks the target square."""
         for row_offset in (-1, 0, 1):
@@ -391,10 +393,10 @@ class MoveValidator:
 
     def _is_attacked_on_rays(
         self,
-        board: "Board",
-        target: Tuple[int, int],
+        board: Board,
+        target: tuple[int, int],
         color: Color,
-        ray_config: tuple[Tuple[Tuple[int, int], ...], frozenset[PieceType]],
+        ray_config: tuple[tuple[tuple[int, int], ...], frozenset[PieceType]],
     ) -> bool:
         """Check whether a sliding piece attacks the target square along any ray."""
         target_row, target_col = target
@@ -441,7 +443,7 @@ class MoveValidator:
         attacker: Piece,
         attacker_square: ConstantSquare,
         target_square: ConstantSquare,
-        board: "Board",
+        board: Board,
     ) -> bool:
         """Check if attacker can attack target via shared attack_utils."""
         return piece_attacks_square(

@@ -11,20 +11,17 @@ from __future__ import annotations
 
 import json
 import random
+from collections.abc import Mapping
 from dataclasses import dataclass
 from functools import lru_cache
 from importlib import resources
 from pathlib import Path
-from typing import TYPE_CHECKING, Mapping, Optional
 
 from chess_game.chess.board import Board
 from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.move import parse_move_notation
 from chess_game.chess.position_utils import position_key
 from chess_game.chess.types import Color, LegalMove
-
-if TYPE_CHECKING:
-    pass
 
 
 class OpeningBookError(ValueError):
@@ -37,7 +34,7 @@ class OpeningLine:
 
     name: str
     side: str
-    eco: Optional[str]
+    eco: str | None
     moves: tuple[str, ...]
     weight: int
     tags: tuple[str, ...]
@@ -49,14 +46,14 @@ class BookMove:
 
     move: LegalMove
     name: str
-    eco: Optional[str]
+    eco: str | None
     weight: int
     line_index: int
     ply_index: int
     tags: tuple[str, ...]
 
 
-def load_opening_book_data(path: Optional[Path | str] = None) -> dict:
+def load_opening_book_data(path: Path | str | None = None) -> dict:
     """Load opening book JSON data.
 
     If path is None, load bundled JSON using importlib.resources.
@@ -227,7 +224,7 @@ class OpeningBook:
         lines = parse_opening_lines(data)
         return cls(lines, data)
 
-    def _move_identity(self, move) -> tuple[object, object, Optional[object]]:
+    def _move_identity(self, move) -> tuple[object, object, object | None]:
         """Extract move identity from either LegalMove dataclass or tuple format.
 
         Returns (start, end, promotion) tuple.
@@ -334,7 +331,7 @@ class OpeningBook:
 
         return legal_candidates
 
-    def find_book_move(self, board: Board) -> Optional[LegalMove]:
+    def find_book_move(self, board: Board) -> LegalMove | None:
         """Find the best book move for the current position.
 
         Deterministic selection: highest weight, then lowest line_index,
@@ -359,8 +356,8 @@ class OpeningBook:
         return sorted_candidates[0].move
 
     def find_book_move_random(
-        self, board: Board, rng: Optional[random.Random] = None
-    ) -> Optional[LegalMove]:
+        self, board: Board, rng: random.Random | None = None
+    ) -> LegalMove | None:
         """Sample a book move for the current position proportional to candidate weights.
 
         This produces varied self-play games while still favouring higher-weighted

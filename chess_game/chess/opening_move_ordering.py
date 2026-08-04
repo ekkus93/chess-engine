@@ -525,9 +525,7 @@ def _is_castled_shelter_pawn_advance(board: Board, move: Move) -> bool:
     king_row = int(king_square.row)
     if king_row != home_row:
         return False
-    if king_col == 6:
-        ref_col = 6
-    elif king_col == 4 and _has_kingside_castling_rights(board, color):
+    if king_col == 6 or king_col == 4 and _has_kingside_castling_rights(board, color):
         ref_col = 6
     else:
         return False

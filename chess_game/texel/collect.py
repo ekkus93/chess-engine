@@ -5,7 +5,6 @@ import argparse
 import dataclasses
 import random
 from pathlib import Path
-from typing import Optional
 
 from chess_game.chess import Board
 from chess_game.chess.ai import BestMoveOptions, get_best_move
@@ -34,11 +33,11 @@ class CollectionOptions:
     db_path: Path
     num_games: int = 200
     depth: int = 1
-    weights: Optional[EvalWeights] = None
+    weights: EvalWeights | None = None
     verbose: bool = False
     skip_opening_plies: int = 10
     max_moves: int = 200
-    seed: Optional[int] = None
+    seed: int | None = None
     max_move_result: str = "draw"
 
     def __post_init__(self) -> None:
@@ -74,11 +73,11 @@ def _is_draw_by_rule(
 def _play_game(
     options: CollectionOptions,
     rng: random.Random,
-) -> Optional[GameRecord]:
+) -> GameRecord | None:
     """Play one self-play game and return a GameRecord, or None if discarded."""
     board = Board()
     positions: list[str] = []
-    outcome: Optional[float] = None
+    outcome: float | None = None
     position_counts: dict[str, int] = {}
 
     for ply in range(options.max_moves):

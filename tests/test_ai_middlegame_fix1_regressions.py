@@ -16,7 +16,6 @@ from chess_game.chess.types import Color, PieceType
 from tests.helpers import sq
 from tests.test_ai_quality import _move_order_score
 
-
 pytestmark = pytest.mark.slow
 
 

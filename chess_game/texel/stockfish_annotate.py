@@ -19,7 +19,6 @@ from __future__ import annotations
 import contextlib
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Optional
 
 from chess_game.chess.board import Board
 from chess_game.chess.types import Color
@@ -47,9 +46,9 @@ class StockfishProcess:
         self._depth = depth
         self._stockfish_path = stockfish_path
         self._stack = contextlib.ExitStack()
-        self._proc: Optional[subprocess.Popen] = None
+        self._proc: subprocess.Popen | None = None
 
-    def __enter__(self) -> "StockfishProcess":
+    def __enter__(self) -> StockfishProcess:
         self._proc = self._stack.enter_context(
             subprocess.Popen(
                 [self._stockfish_path],
@@ -93,7 +92,7 @@ class StockfishProcess:
             if not line or line.startswith(token):
                 break
 
-    def eval_fen(self, fen: str) -> Optional[int]:
+    def eval_fen(self, fen: str) -> int | None:
         """Return the White-relative centipawn score for *fen*, or None for mate.
 
         Sends ``position fen <fen>`` then ``go depth <depth>`` and reads until
@@ -104,7 +103,7 @@ class StockfishProcess:
         self._send(f"position fen {fen}")
         self._send(f"go depth {self._depth}")
 
-        last_score_cp: Optional[int] = None
+        last_score_cp: int | None = None
         is_mate = False
 
         while True:
@@ -138,7 +137,7 @@ class StockfishProcess:
 
     def find_best_move(
         self, start_fen: str, move_history: list[str]
-    ) -> Optional[str]:
+    ) -> str | None:
         """Return the best-move UCI string from *start_fen* after *move_history*.
 
         Returns ``None`` if the position has no legal moves.
@@ -169,7 +168,7 @@ def annotate_fens(
     depth: int = 10,
     n_workers: int = 4,
     stockfish_path: str = _STOCKFISH_PATH,
-) -> dict[str, Optional[int]]:
+) -> dict[str, int | None]:
     """Annotate a list of FEN strings with Stockfish centipawn evaluations.
 
     Launches *n_workers* Stockfish processes and distributes FENs across them
@@ -193,10 +192,10 @@ def annotate_fens(
     for i, fen in enumerate(fens):
         slices[i % n_workers].append(fen)
 
-    results: dict[str, Optional[int]] = {}
+    results: dict[str, int | None] = {}
 
-    def _worker(worker_fens: list[str]) -> dict[str, Optional[int]]:
-        partial: dict[str, Optional[int]] = {}
+    def _worker(worker_fens: list[str]) -> dict[str, int | None]:
+        partial: dict[str, int | None] = {}
         with StockfishProcess(stockfish_path=stockfish_path, depth=depth) as sf:
             for fen in worker_fens:
                 partial[fen] = sf.eval_fen(fen)
@@ -220,7 +219,7 @@ def annotate_db(
     depth: int = 10,
     n_workers: int = 4,
     stockfish_path: str = _STOCKFISH_PATH,
-) -> dict[str, Optional[int]]:
+) -> dict[str, int | None]:
     """Annotate all positions in *db* with Stockfish centipawn evaluations.
 
     Args:

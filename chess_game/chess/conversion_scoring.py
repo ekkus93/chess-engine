@@ -15,23 +15,6 @@ from chess_game.chess.board import Board
 from chess_game.chess.board.attack_utils import piece_attacks_square
 from chess_game.chess.board.game_state import is_in_check
 from chess_game.chess.constants import get_square_constant
-from chess_game.chess.defensive_priorities import (
-    DANGEROUS_KING_PRESSURE_THRESHOLD,
-    king_danger_index,
-)
-from chess_game.chess.evaluation_tables import MATERIAL_VALUES
-from chess_game.chess.move import Move
-from chess_game.chess.strategy_utils import (
-    heavy_piece_file_support_rows,
-    is_advanced_passer,
-    iter_color_pieces,
-    materially_ahead_color,
-    non_king_piece_count_at_most,
-    non_king_piece_kinds,
-    opposite_color,
-)
-from chess_game.chess.types import Color, PieceType
-
 from chess_game.chess.conversion_guidance_constants import (
     _CONVERSION_DISTANCE_PRESSURE_BONUS,
     _COUNTERPLAY_LINE_PENALTY,
@@ -60,6 +43,22 @@ from chess_game.chess.conversion_guidance_constants import (
     _TRADE_QUALITY_BONUS,
     _TRIVIAL_CONVERSION_TRANSITION_BONUS,
 )
+from chess_game.chess.defensive_priorities import (
+    DANGEROUS_KING_PRESSURE_THRESHOLD,
+    king_danger_index,
+)
+from chess_game.chess.evaluation_tables import MATERIAL_VALUES
+from chess_game.chess.move import Move
+from chess_game.chess.strategy_utils import (
+    heavy_piece_file_support_rows,
+    is_advanced_passer,
+    iter_color_pieces,
+    materially_ahead_color,
+    non_king_piece_count_at_most,
+    non_king_piece_kinds,
+    opposite_color,
+)
+from chess_game.chess.types import Color, PieceType
 
 
 @dataclass(frozen=True)

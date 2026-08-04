@@ -14,8 +14,8 @@ from chess_game.chess.strategy_utils import (
     most_advanced_passer,
     non_king_piece_kinds,
     opposite_color,
-    pawn_path_to_promotion_is_clear,
     passed_pawns_for_color,
+    pawn_path_to_promotion_is_clear,
 )
 from chess_game.chess.types import Color, PieceType
 

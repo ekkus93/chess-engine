@@ -4,8 +4,7 @@ from chess_game.chess import ai
 from chess_game.chess.ai import get_best_move, get_evaluation_breakdown, position_key
 from chess_game.chess.ai_search_helpers import RepetitionPolicy, repetition_score
 from chess_game.chess.board import Board, create_piece
-from chess_game.chess.types import LegalMove
-from chess_game.chess.types import Color, PieceType
+from chess_game.chess.types import Color, LegalMove, PieceType
 from tests.helpers import sq
 from tests.test_ai_quality import _move_order_score
 

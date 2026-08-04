@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
-from chess_game.chess.types import Piece, PieceType
-from chess_game.chess.constants import ConstantSquare
-from chess_game.chess.constants import Color
 from chess_game.chess.board.castling import CastlingValidator
 from chess_game.chess.board.promotion import PromotionValidator
-from chess_game.chess.constants import get_row_constant, get_col_constant
+from chess_game.chess.constants import (
+    Color,
+    ConstantSquare,
+    get_col_constant,
+    get_row_constant,
+)
+from chess_game.chess.types import Piece, PieceType
+
 if TYPE_CHECKING:
     from chess_game.chess.board.board import Board
 
@@ -26,8 +30,8 @@ class MoveExecutor:  # pylint: disable=too-few-public-methods
         self,
         from_square: ConstantSquare,
         to_square: ConstantSquare,
-        promotion_piece: Optional[PieceType] = None,
-        _start_piece: Optional[Piece] = None,
+        promotion_piece: PieceType | None = None,
+        _start_piece: Piece | None = None,
     ) -> bool:
         """Execute a validated move on the board."""
         piece = self.board.get_piece(from_square)
@@ -60,7 +64,7 @@ class MoveExecutor:  # pylint: disable=too-few-public-methods
         piece: Piece,
         from_square: ConstantSquare,
         to_square: ConstantSquare,
-        promotion_piece: Optional[PieceType],
+        promotion_piece: PieceType | None,
     ) -> None:
         if promotion_piece is None:
             promotion_piece = self.promotion_validator.get_default_promotion_piece(

@@ -4,8 +4,8 @@ from chess_game.chess import ai
 from chess_game.chess.ai import get_best_move, get_evaluation_breakdown
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.types import Color, LegalMove, PieceType
-from tests.test_ai_quality import _empty_board_with_kings, _move_order_score
 from tests.helpers import sq
+from tests.test_ai_quality import _empty_board_with_kings, _move_order_score
 
 
 def test_development_breakdown_rewards_early_central_control() -> None:

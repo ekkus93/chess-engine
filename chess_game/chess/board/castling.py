@@ -4,24 +4,24 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from chess_game.chess.constants import Color
+from chess_game.chess.board.attack_utils import piece_attacks_square
 from chess_game.chess.constants import (
-    ROW_1,
-    ROW_8,
+    COL_A,
+    COL_B,
+    COL_C,
+    COL_D,
     COL_E,
     COL_F,
     COL_G,
-    COL_C,
-    COL_B,
-    COL_A,
-    COL_D,
     COL_H,
+    ROW_1,
+    ROW_8,
+    Color,
     ConstantSquare,
     get_row_constant,
     get_square_constant,
 )
-from chess_game.chess.types import PieceType, CastlingRights
-from chess_game.chess.board.attack_utils import piece_attacks_square
+from chess_game.chess.types import CastlingRights, PieceType
 
 if TYPE_CHECKING:
     from chess_game.chess.board.board import Board

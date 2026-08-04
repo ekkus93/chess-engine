@@ -20,7 +20,12 @@ import numpy as np
 
 from chess_game.chess.eval_weights import EvalWeights
 from chess_game.texel.annotated_position_db import AnnotatedPositionDB
-from chess_game.texel.fast_tune import AdamConfig, FastTuneConfig, calibrate_k_fast, fast_tune
+from chess_game.texel.fast_tune import (
+    AdamConfig,
+    FastTuneConfig,
+    calibrate_k_fast,
+    fast_tune,
+)
 from chess_game.texel.features import (
     FeatureMatrix,
     compute_sf_feature_matrix,

@@ -11,20 +11,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from chess_game.chess.board.attack_utils import piece_attacks_square
-from chess_game.chess.board import Board
-from chess_game.chess.board.game_state import is_checkmate, is_in_check
-from chess_game.chess.defensive_priorities import (
-    DANGEROUS_KING_PRESSURE_THRESHOLD,
-    king_defense_profile,
-)
-from chess_game.chess.move import Move
-from chess_game.chess.strategy_utils import (
-    king_coordinates,
-    path_clear_between,
-)
-from chess_game.chess.types import Color, PieceType
-
 from chess_game.chess.ai_quiet_ordering_constants import (
     QUIET_CHECK_BREAK_DEFENDER_BONUS,
     QUIET_CHECK_DRIVING_BONUS,
@@ -37,6 +23,19 @@ from chess_game.chess.ai_quiet_ordering_constants import (
     QUIET_SELF_EXPOSING_CHECK_PENALTY,
     QUIET_USEFUL_CHECK_BONUS,
 )
+from chess_game.chess.board import Board
+from chess_game.chess.board.attack_utils import piece_attacks_square
+from chess_game.chess.board.game_state import is_checkmate, is_in_check
+from chess_game.chess.defensive_priorities import (
+    DANGEROUS_KING_PRESSURE_THRESHOLD,
+    king_defense_profile,
+)
+from chess_game.chess.move import Move
+from chess_game.chess.strategy_utils import (
+    king_coordinates,
+    path_clear_between,
+)
+from chess_game.chess.types import Color, PieceType
 
 
 @dataclass(frozen=True)

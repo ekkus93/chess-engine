@@ -5,12 +5,11 @@ from __future__ import annotations
 from chess_game.chess.board import Board
 from chess_game.chess.move import Move
 from chess_game.chess.strategy_utils import (
-    king_coordinates,
     iter_color_pieces,
+    king_coordinates,
     opposite_color,
 )
 from chess_game.chess.types import Color, PieceType
-
 
 # Material thresholds for forced-win detection
 # _is_bare_king() already prevents false positives, so any modest material
@@ -84,7 +83,7 @@ def forced_win_move_bonus(board: Board, move: Move, color: Color) -> int:
 
 
 def forced_win_root_bonus(
-    board: "Board", move: "Move", _child_board: "Board", color: Color
+    board: Board, move: Move, _child_board: Board, color: Color
 ) -> int:
     """Root-level tiebreak bonus that accelerates forced-win conversion.
 

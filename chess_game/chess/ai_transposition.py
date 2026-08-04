@@ -8,8 +8,6 @@ never depends back on ``ai.py``. ``ai.py`` re-exports the names callers rely on.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from chess_game.chess.ai_search_helpers import (
     position_occurrence_count as _position_occurrence_count,
 )
@@ -52,14 +50,14 @@ def _is_mate_score(score: int) -> bool:
     return abs(score) >= MATE_SCORE - MATE_SCORE_MARGIN
 
 
-def _record_tt_hit(context: Optional[SearchContext]) -> None:
+def _record_tt_hit(context: SearchContext | None) -> None:
     """Record a transposition-table hit when stats are enabled."""
 
     if context is not None and context.stats is not None:
         context.stats.tt_hits += 1
 
 
-def _record_tt_usage(context: Optional[SearchContext], entry: TTEntry) -> None:
+def _record_tt_usage(context: SearchContext | None, entry: TTEntry) -> None:
     """Record the kind and depth of a TT reuse."""
 
     if context is None or context.stats is None:
@@ -77,7 +75,7 @@ def _record_tt_usage(context: Optional[SearchContext], entry: TTEntry) -> None:
 def _check_tt_cache(
     board: Board,
     params: MinimaxParams,
-) -> Optional[tuple[int, LegalMove | None]]:
+) -> tuple[int, LegalMove | None] | None:
     """Check transposition table for a cached result.
 
     Mate-score entries are ignored until proper normalization exists.

@@ -16,8 +16,8 @@ from chess_game.chess.opening_book import (
     OpeningBook,
     OpeningBookError,
     get_bundled_opening_book,
-    parse_opening_lines,
     load_opening_book_data,
+    parse_opening_lines,
 )
 from chess_game.chess.types import LegalMove
 

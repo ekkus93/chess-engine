@@ -6,6 +6,7 @@ from chess_game.chess.board import Board
 from chess_game.chess.board.attack_utils import piece_attacks_square
 from chess_game.chess.board.game_state import is_in_check
 from chess_game.chess.constants import get_square_constant
+from chess_game.chess.low_material_race_guidance import endgame_race_context
 from chess_game.chess.move import Move
 from chess_game.chess.strategy_utils import (
     ENDGAME_PRINCIPAL_PIECE_KINDS,
@@ -18,7 +19,6 @@ from chess_game.chess.strategy_utils import (
     opposite_color,
     passed_pawns_for_color,
 )
-from chess_game.chess.low_material_race_guidance import endgame_race_context
 from chess_game.chess.types import Color, PieceType
 
 _MAX_NON_KING_PIECES = 8

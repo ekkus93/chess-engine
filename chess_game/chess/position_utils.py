@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from chess_game.chess.board import Board
 
 
-def position_key(board: "Board") -> str:
+def position_key(board: Board) -> str:
     """Generate a position key using board state relevant to repetition."""
 
     pieces: list[str] = []

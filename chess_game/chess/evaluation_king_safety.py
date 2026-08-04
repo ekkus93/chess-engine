@@ -9,8 +9,16 @@ tension, heavy-piece lane pressure). Imports shared primitives from
 
 from __future__ import annotations
 
-
 from chess_game.chess.board import Board
+from chess_game.chess.constants import (
+    ConstantSquare,
+    get_col_constant,
+    get_row_constant,
+)
+from chess_game.chess.defensive_priorities import (
+    h_pawn_exposure_penalty as _h_pawn_exposure_penalty,
+)
+from chess_game.chess.eval_weights import EvalWeights
 from chess_game.chess.evaluation_helpers import (
     _color_sign,
     _find_king,
@@ -19,24 +27,23 @@ from chess_game.chess.evaluation_helpers import (
     _iter_color_pieces,
     _opponent,
 )
-from chess_game.chess.constants import ConstantSquare, get_col_constant, get_row_constant
-from chess_game.chess.eval_weights import EvalWeights
-from chess_game.chess.defensive_priorities import (
-    h_pawn_exposure_penalty as _h_pawn_exposure_penalty,
+from chess_game.chess.evaluation_tables import (
+    CENTER_FILES,
 )
 from chess_game.chess.opening_development import (
     unforced_shelter_loosening_penalty as _unforced_shelter_loosening_penalty,
 )
-from chess_game.chess.tactical_transition_guidance import (
-    tactical_transition_king_penalty as _tactical_transition_king_penalty,
-)
 from chess_game.chess.strategy_utils import (
     iter_king_squares as _iter_king_squares,
+)
+from chess_game.chess.strategy_utils import (
     path_clear_between as _path_clear_between,
+)
+from chess_game.chess.strategy_utils import (
     scale_signed as _scale_signed,
 )
-from chess_game.chess.evaluation_tables import (
-    CENTER_FILES,
+from chess_game.chess.tactical_transition_guidance import (
+    tactical_transition_king_penalty as _tactical_transition_king_penalty,
 )
 from chess_game.chess.types import Color, PieceType
 

@@ -1,9 +1,7 @@
 """Coordinate conversion helpers for chess notation."""
 
-from typing import Tuple
 
 from chess_game.chess.constants import (
-    ConstantSquare,
     ROW_1,
     ROW_2,
     ROW_3,
@@ -12,9 +10,9 @@ from chess_game.chess.constants import (
     ROW_6,
     ROW_7,
     ROW_8,
+    ConstantSquare,
+    get_col_constant,
 )
-
-from chess_game.chess.constants import get_col_constant
 
 # Canonical coordinate definitions
 # Files: a b c d e f g h
@@ -100,7 +98,7 @@ def index_to_algebraic(square: ConstantSquare) -> str:
     return f"{file_char}{rank}"
 
 
-def parse_algebraic_move(move_str: str) -> Tuple[ConstantSquare, ConstantSquare]:
+def parse_algebraic_move(move_str: str) -> tuple[ConstantSquare, ConstantSquare]:
     """Parse algebraic notation like 'e2e4' into start and end positions.
 
     Args:

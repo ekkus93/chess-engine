@@ -11,8 +11,8 @@ from pathlib import Path
 import pytest
 
 from chess_game.chess.eval_weights import EvalWeights
-from chess_game.texel.tune import TuningConfig, run_tuning
 from chess_game.texel.position_db import GameRecord, PositionDB
+from chess_game.texel.tune import TuningConfig, run_tuning
 from chess_game.texel.weights_io import (
     load_optional_weights,
     load_weights,

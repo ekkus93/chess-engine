@@ -3,14 +3,6 @@
 
 from chess_game.chess.board import Board
 from chess_game.chess.board.attack_utils import piece_attacks_square
-from chess_game.chess.move import Move
-from chess_game.chess.strategy_utils import (
-    is_capture_move,
-    iter_color_pieces,
-    passed_pawns_for_color,
-)
-from chess_game.chess.types import Color, PieceType
-
 from chess_game.chess.conversion_guidance_constants import (
     _ANTI_QUEEN_TRADE_MIN_LEAD,
     _ANTI_QUEEN_TRADE_PENALTY,
@@ -56,19 +48,26 @@ from chess_game.chess.conversion_scoring import (
     _trade_quality_score,
     _trivial_conversion_transition_bonus,
 )
+from chess_game.chess.move import Move
+from chess_game.chess.strategy_utils import (
+    is_capture_move,
+    iter_color_pieces,
+    passed_pawns_for_color,
+)
+from chess_game.chess.types import Color, PieceType
 
 # Public facade: conversion_guidance re-exports names that moved into
 # conversion_guidance_constants / conversion_scoring, so existing imports of
 # chess_game.chess.conversion_guidance.<name> keep resolving for callers and tests.
 __all__ = [
+    "_anti_queen_trade_root_penalty",
+    "_better_side_plan_switch_penalty",
+    "_conversion_context",
+    "_passer_advance_bonus",
+    "low_material_conversion_root_bonus",
     "winning_conversion_evaluation_score",
     "winning_conversion_order_bonus",
     "winning_conversion_root_bonus",
-    "low_material_conversion_root_bonus",
-    "_conversion_context",
-    "_passer_advance_bonus",
-    "_anti_queen_trade_root_penalty",
-    "_better_side_plan_switch_penalty",
 ]
 
 

@@ -19,7 +19,6 @@ from chess_game.chess.piece_coordination import (
 from chess_game.chess.types import Color, PieceType
 from tests.helpers import sq
 
-
 # ---------------------------------------------------------------------------
 # PiecePlacementProfile
 # ---------------------------------------------------------------------------

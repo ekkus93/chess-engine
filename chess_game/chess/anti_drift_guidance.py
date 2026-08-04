@@ -2,8 +2,8 @@
 
 from dataclasses import dataclass
 
-from chess_game.chess.board import Board
 from chess_game.chess.ai_repetition_patterns import move_undoes_last_own_move
+from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_in_check
 from chess_game.chess.defensive_priorities import king_danger_index
 from chess_game.chess.move import Move

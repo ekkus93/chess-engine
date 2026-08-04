@@ -135,7 +135,6 @@ def test_play_game_propagates_weights_to_get_best_move(monkeypatch) -> None:
 
     def fake_get_best_move(board, depth, book_options=None):
         captured.append(book_options)
-        return None  # end the game immediately after the first call
 
     monkeypatch.setattr(collect_mod, "get_best_move", fake_get_best_move)
 

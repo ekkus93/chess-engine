@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import io
 import sys
-from typing import Optional
+
 import pytest
 
 from chess_game.chess.board import Board
@@ -11,8 +11,8 @@ from chess_game.chess.constants import PieceType
 from chess_game.chess.types import Color, LegalMove
 from chess_game.uci import (
     UciState,
-    _GoParams,
     _allocate_time,
+    _GoParams,
     _time_to_depth,
     handle_debug,
     handle_go,
@@ -34,7 +34,7 @@ def _make_move(
     start_col: int,
     end_row: int,
     end_col: int,
-    promotion: Optional[PieceType] = None,
+    promotion: PieceType | None = None,
 ) -> LegalMove:
     from chess_game.chess.constants import ConstantSquare
 
@@ -356,7 +356,7 @@ def _tc(
     btime: int,
     winc: int = 0,
     binc: int = 0,
-    movestogo: Optional[int] = None,
+    movestogo: int | None = None,
 ) -> _GoParams:
     return _GoParams(wtime_ms=wtime, btime_ms=btime, winc_ms=winc, binc_ms=binc, movestogo=movestogo)
 

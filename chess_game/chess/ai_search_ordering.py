@@ -8,16 +8,18 @@ it never depends back on ``ai.py``.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from chess_game.chess.ai_board_utils import clone_with_move as _make_copy_with_move
-from chess_game.chess.ai_capture_ordering import capture_order_score as _shared_capture_order_score
+from chess_game.chess.ai_capture_ordering import (
+    capture_order_score as _shared_capture_order_score,
+)
 from chess_game.chess.ai_move_ordering import (
     make_quiet_order_context,
     quiet_strategy_order_score,
 )
 from chess_game.chess.ai_search_helpers import (
     promotion_order_score as _promotion_order_score,
+)
+from chess_game.chess.ai_search_helpers import (
     same_legal_move as _same_legal_move,
 )
 from chess_game.chess.ai_search_types import MinimaxParams, SearchContext
@@ -43,7 +45,7 @@ def _move_sort_key(move: Move | LegalMove) -> tuple[int, int, str]:
 def _order_moves(
     board: Board,
     legal_moves: list[Move],
-    params: Optional[MinimaxParams] = None,
+    params: MinimaxParams | None = None,
 ) -> list[Move]:
     """Sort moves for better pruning order."""
 
@@ -59,7 +61,7 @@ def _order_moves(
 def _move_order_score(
     board: Board,
     move: Move,
-    params: Optional[MinimaxParams],
+    params: MinimaxParams | None,
     quiet_order_context=None,
 ) -> int:
     """Return a move-ordering score.
@@ -96,7 +98,7 @@ def _capture_order_score(board: Board, move: Move) -> int:
     return _shared_capture_order_score(board, move, _make_copy_with_move)
 
 
-def _tt_best_move(board: Board, context: SearchContext) -> Optional[LegalMove]:
+def _tt_best_move(board: Board, context: SearchContext) -> LegalMove | None:
     """Return the TT move for the current board if one exists."""
     if context.transposition_table is None:
         return None

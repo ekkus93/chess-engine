@@ -2,27 +2,9 @@
 
 from chess_game.chess.board import Board
 from chess_game.chess.conversion_guidance import winning_conversion_evaluation_score
-from chess_game.chess.defensive_endgame_guidance import defensive_endgame_evaluation_score
-from chess_game.chess.eval_weights import EvalWeights
-from chess_game.chess.heavy_piece_endgame_guidance import (
-    heavy_piece_endgame_evaluation_score,
+from chess_game.chess.defensive_endgame_guidance import (
+    defensive_endgame_evaluation_score,
 )
-from chess_game.chess.low_material_coordination_guidance import (
-    low_material_coordination_evaluation_score,
-)
-from chess_game.chess.low_material_race_guidance import low_material_race_evaluation_score
-from chess_game.chess.low_material_race_guidance import endgame_race_evaluation_score
-from chess_game.chess.passer_race_guidance import passer_race_evaluation_score
-from chess_game.chess.evaluation_tables import (
-    STARTING_NON_PAWN_MATERIAL,
-)
-from chess_game.chess.rook_endgame_guidance import rook_endgame_evaluation_score
-
-from chess_game.chess.strategy_utils import (
-    iter_board_pieces,
-    scale_signed,
-)
-from chess_game.chess.types import Color, PieceType
 from chess_game.chess.endgame_evaluation_helpers import (
     _ROOK_SEVENTH_RANK_ENDGAME_BONUS,
     _active_king_score,
@@ -39,8 +21,8 @@ from chess_game.chess.endgame_evaluation_helpers import (
     _king_cutoff_score,
     _king_escort_passed_pawn_score,
     _material_advantage,
-    _mating_material_score,
     _material_without_kings,
+    _mating_material_score,
     _opponent,
     _passed_pawn_advancement_progress,
     _promotion_square_control_score,
@@ -51,10 +33,36 @@ from chess_game.chess.endgame_evaluation_helpers import (
     _rook_vs_bishop_king_conversion_bonus,
     _total_non_pawn_material,
 )
+from chess_game.chess.eval_weights import EvalWeights
+from chess_game.chess.evaluation_tables import (
+    STARTING_NON_PAWN_MATERIAL,
+)
+from chess_game.chess.heavy_piece_endgame_guidance import (
+    heavy_piece_endgame_evaluation_score,
+)
+from chess_game.chess.low_material_coordination_guidance import (
+    low_material_coordination_evaluation_score,
+)
+from chess_game.chess.low_material_race_guidance import (
+    endgame_race_evaluation_score,
+    low_material_race_evaluation_score,
+)
+from chess_game.chess.passer_race_guidance import passer_race_evaluation_score
+from chess_game.chess.rook_endgame_guidance import rook_endgame_evaluation_score
+from chess_game.chess.strategy_utils import (
+    iter_board_pieces,
+    scale_signed,
+)
+from chess_game.chess.types import Color, PieceType
 
 # Public facade: the endgame helper layer moved into endgame_evaluation_helpers;
 # re-export the names callers/tests import from chess_game.chess.endgame_evaluation.
 __all__ = [
+    "_ROOK_SEVENTH_RANK_ENDGAME_BONUS",
+    "_heavy_endgame_king_activity_bonus",
+    "_rook_bishop_vs_rook_conversion_bonus",
+    "_rook_seventh_rank_endgame_score",
+    "_rook_vs_bishop_king_conversion_bonus",
     "evaluate_conversion",
     "evaluate_endgame_races",
     "evaluate_endgame_technique",
@@ -64,11 +72,6 @@ __all__ = [
     "evaluate_progress",
     "evaluate_queen_vs_rook",
     "evaluate_rook_endgames",
-    "_ROOK_SEVENTH_RANK_ENDGAME_BONUS",
-    "_heavy_endgame_king_activity_bonus",
-    "_rook_bishop_vs_rook_conversion_bonus",
-    "_rook_seventh_rank_endgame_score",
-    "_rook_vs_bishop_king_conversion_bonus",
 ]
 
 

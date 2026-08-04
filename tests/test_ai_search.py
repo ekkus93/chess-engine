@@ -5,6 +5,7 @@ from __future__ import annotations
 import time
 
 import pytest
+
 from chess_game.chess.ai import (
     MATE_SCORE,
     SearchStats,
@@ -15,13 +16,15 @@ from chess_game.chess.ai import (
     position_key,
     search_root_depth,
 )
-from chess_game.chess.coords import index_to_algebraic
-from chess_game.chess.ai_search_helpers import root_stability_adjustment, selective_extension_bonus
+from chess_game.chess.ai_search_helpers import (
+    root_stability_adjustment,
+    selective_extension_bonus,
+)
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.board.game_state import is_checkmate
+from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.move import Move
-from chess_game.chess.types import Color, PieceType
-from chess_game.chess.types import LegalMove
+from chess_game.chess.types import Color, LegalMove, PieceType
 from tests.helpers import (
     make_mate_in_one_white_position,
     make_search_context,
@@ -920,7 +923,9 @@ def test_tt_entry_score_is_int():
 
 
 def _score_move_at_depth_zero(board: Board, move: LegalMove) -> int:
-    from chess_game.chess.ai import MinimaxParams  # pylint: disable=import-outside-toplevel
+    from chess_game.chess.ai import (
+        MinimaxParams,  # pylint: disable=import-outside-toplevel
+    )
     child = board.clone()
     assert child.make_move(move.start, move.end, promotion=move.promotion)
     # Match production line_history so ply-adjusted mate scores are consistent
@@ -944,7 +949,9 @@ def test_tt_stores_score_producing_move_when_root_tiebreak_selects_different(
     Note: This test uses a non-mate position because mate scores are now excluded from TT
     until proper ply-based normalization exists.
     """
-    from chess_game.chess.ai import MATE_SCORE  # pylint: disable=import-outside-toplevel
+    from chess_game.chess.ai import (
+        MATE_SCORE,  # pylint: disable=import-outside-toplevel
+    )
 
     # Use a position with a winning but non-mate evaluation
     board = Board()
@@ -991,13 +998,19 @@ def test_tt_stores_score_producing_move_when_root_tiebreak_selects_different(
 
 def test_is_mate_score_at_exact_mate_score():
     """_is_mate_score(MATE_SCORE) should return True."""
-    from chess_game.chess.ai import MATE_SCORE, _is_mate_score  # pylint: disable=import-outside-toplevel
+    from chess_game.chess.ai import (  # pylint: disable=import-outside-toplevel
+        MATE_SCORE,
+        _is_mate_score,
+    )
     assert _is_mate_score(MATE_SCORE)
 
 
 def test_is_mate_score_within_margin():
     """_is_mate_score returns True for scores within MATE_SCORE_MARGIN."""
-    from chess_game.chess.ai import MATE_SCORE, _is_mate_score  # pylint: disable=import-outside-toplevel
+    from chess_game.chess.ai import (  # pylint: disable=import-outside-toplevel
+        MATE_SCORE,
+        _is_mate_score,
+    )
     assert _is_mate_score(MATE_SCORE - 1)
     assert _is_mate_score(MATE_SCORE - 500)
     assert _is_mate_score(-MATE_SCORE + 1)
@@ -1005,7 +1018,9 @@ def test_is_mate_score_within_margin():
 
 def test_is_mate_score_normal_evaluation():
     """_is_mate_score returns False for normal evaluation scores."""
-    from chess_game.chess.ai import _is_mate_score  # pylint: disable=import-outside-toplevel
+    from chess_game.chess.ai import (
+        _is_mate_score,  # pylint: disable=import-outside-toplevel
+    )
     assert not _is_mate_score(500)
     assert not _is_mate_score(0)
     assert not _is_mate_score(-500)
@@ -1036,7 +1051,10 @@ def test_tt_skips_mate_scores():
 
 def test_tt_stores_normal_scores():
     """_store_tt_cache should still store normal non-mate scores."""
-    from chess_game.chess.ai import MinimaxParams, _store_tt_cache  # pylint: disable=import-outside-toplevel
+    from chess_game.chess.ai import (  # pylint: disable=import-outside-toplevel
+        MinimaxParams,
+        _store_tt_cache,
+    )
     board = make_simple_board_with_legal_moves()
     tt: dict = {}
     context = make_search_context(tt=tt)
@@ -1313,7 +1331,7 @@ def test_search_goes_deeper_in_structure_changing_defensive_moments() -> None:
 
 def test_seeded_get_best_move_is_reproducible() -> None:
     """Repeated seeded calls to get_best_move should return the same move."""
-    from chess_game.chess.ai import get_best_move, BestMoveOptions
+    from chess_game.chess.ai import BestMoveOptions, get_best_move
     board = Board()
     opts = BestMoveOptions(use_opening_book=False, deterministic=True, rng_seed=42)
     move1 = get_best_move(board, depth=1, book_options=opts)
@@ -1323,7 +1341,7 @@ def test_seeded_get_best_move_is_reproducible() -> None:
 
 def test_different_seeds_can_produce_different_results() -> None:
     """Different seeds can produce different moves (if tie-breaking matters)."""
-    from chess_game.chess.ai import get_best_move, BestMoveOptions
+    from chess_game.chess.ai import BestMoveOptions, get_best_move
     # Using deterministic=False to allow seed to affect randomness
     board = Board()
     opts1 = BestMoveOptions(use_opening_book=False, deterministic=False, rng_seed=42)

@@ -4,8 +4,8 @@ from chess_game.chess import ai
 from chess_game.chess.ai import get_best_move
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.types import Color, LegalMove, PieceType
-from tests.test_ai_quality import _move_order_score, _empty_board_with_kings
 from tests.helpers import sq
+from tests.test_ai_quality import _empty_board_with_kings, _move_order_score
 
 
 def _build_board(pieces: list[tuple[str, Color, PieceType]], turn: Color) -> Board:

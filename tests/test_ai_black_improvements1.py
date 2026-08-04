@@ -217,7 +217,7 @@ def test_quiet_cycle_penalty_fires_for_rook_reversal() -> None:
     assert quiet_cycle_penalty(board, _m("e7e8"), PieceType.ROOK) > 0
 
     # Structural test: combined undo penalty for heavy pieces should be >= 90
-    from chess_game.chess.ai_repetition_patterns import (  # noqa: PLC0415
+    from chess_game.chess.ai_repetition_patterns import (
         QUIET_HEAVY_UNDO_MOVE_PENALTY,
         QUIET_UNDO_MOVE_PENALTY,
     )

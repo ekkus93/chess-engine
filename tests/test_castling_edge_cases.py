@@ -1,7 +1,8 @@
 from __future__ import annotations
+
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.types import Color, PieceType
-from tests.helpers import sq, assert_empty
+from tests.helpers import assert_empty, sq
 
 
 # =============================================================================

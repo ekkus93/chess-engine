@@ -6,11 +6,14 @@ the tests remain self-contained and do not depend on game artifacts in tmp/.
 
 from __future__ import annotations
 
-from chess_game.chess.ai_capture_ordering import capture_order_score
 from chess_game.chess.ai_board_utils import clone_with_move
+from chess_game.chess.ai_capture_ordering import capture_order_score
 from chess_game.chess.ai_move_ordering import quiet_strategy_order_score
 from chess_game.chess.board.board import Board, create_piece
-from chess_game.chess.defensive_priorities import h_pawn_exposure_penalty, king_danger_index
+from chess_game.chess.defensive_priorities import (
+    h_pawn_exposure_penalty,
+    king_danger_index,
+)
 from chess_game.chess.move import Move, parse_move_notation
 from chess_game.chess.types import Color, PieceType
 from tests.helpers import sq

@@ -2,19 +2,14 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
-
 from chess_game.chess.board import Board, create_piece
-from chess_game.chess.constants import Color
 from chess_game.chess.constants import (
+    Color,
     ConstantSquare,
     get_col_constant,
     get_row_constant,
 )
 from chess_game.chess.types import PieceType
-
-if TYPE_CHECKING:
-    pass
 
 
 def _setup_kings(board: Board) -> None:
@@ -34,7 +29,7 @@ def setup_kings(board: Board) -> None:
     _setup_kings(board)
 
 
-def get_piece(board: Board, square: tuple) -> Optional[object]:
+def get_piece(board: Board, square: tuple) -> object | None:
     """Get a piece from the board."""
     return board.get_piece(
         ConstantSquare(row=get_row_constant(square[0]), col=get_col_constant(square[1]))

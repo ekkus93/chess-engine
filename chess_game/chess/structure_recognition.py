@@ -4,9 +4,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from chess_game.chess.board.attack_utils import piece_attacks_square
-from chess_game.chess.constants import ConstantSquare, get_col_constant, get_row_constant
 from chess_game.chess.board import Board
+from chess_game.chess.board.attack_utils import piece_attacks_square
+from chess_game.chess.constants import (
+    ConstantSquare,
+    get_col_constant,
+    get_row_constant,
+)
 from chess_game.chess.move import Move
 from chess_game.chess.strategy_utils import (
     center_distance,

@@ -8,7 +8,6 @@ from chess_game.chess.eval_weights import EvalWeights
 from chess_game.chess.evaluation import evaluate
 from chess_game.texel.loss import calibrate_k, mean_squared_error, sigmoid
 
-
 STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
 
@@ -142,8 +141,8 @@ class TestLossOptions:
     def test_white_material_advantage_gives_positive_score(self) -> None:
         """Evaluator should return positive score when White has material advantage."""
         from chess_game.chess import Board, create_piece
-        from chess_game.chess.types import Color, PieceType
         from chess_game.chess.evaluation import evaluate
+        from chess_game.chess.types import Color, PieceType
         from tests.helpers import sq
 
         board = Board()
@@ -162,8 +161,8 @@ class TestLossOptions:
     def test_black_material_advantage_gives_negative_score(self) -> None:
         """Evaluator should return negative score when Black has material advantage."""
         from chess_game.chess import Board, create_piece
-        from chess_game.chess.types import Color, PieceType
         from chess_game.chess.evaluation import evaluate
+        from chess_game.chess.types import Color, PieceType
         from tests.helpers import sq
 
         board = Board()
@@ -182,8 +181,8 @@ class TestLossOptions:
     def test_score_sign_independent_of_side_to_move(self) -> None:
         """Evaluator score sign should be independent of whose turn it is."""
         from chess_game.chess import Board, create_piece
-        from chess_game.chess.types import Color, PieceType
         from chess_game.chess.evaluation import evaluate
+        from chess_game.chess.types import Color, PieceType
         from tests.helpers import sq
 
         board1 = Board()
@@ -226,6 +225,7 @@ class TestTexelLossKParameter:
     def test_non_default_k_changes_mse(self) -> None:
         """Doubling k changes MSE for a nonzero-eval position (k is not ignored)."""
         import pytest
+
         from chess_game.texel.loss import DEFAULT_K
 
         weights = EvalWeights.default()
@@ -242,6 +242,7 @@ class TestTexelLossKParameter:
     def test_k_kwarg_matches_loss_options(self) -> None:
         """mean_squared_error(k=) must equal mean_squared_error(opts=LossOptions(k=))."""
         import pytest
+
         from chess_game.texel.loss import LossOptions
 
         weights = EvalWeights.default()
@@ -255,6 +256,7 @@ class TestTexelLossKParameter:
     def test_default_k_used_when_unspecified(self) -> None:
         """Omitting k uses DEFAULT_K (explicit DEFAULT_K matches the default call)."""
         import pytest
+
         from chess_game.texel.loss import DEFAULT_K
 
         weights = EvalWeights.default()

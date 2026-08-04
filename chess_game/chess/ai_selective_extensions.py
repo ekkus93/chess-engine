@@ -8,45 +8,44 @@ re-exports the public names so existing imports keep working.
 
 from __future__ import annotations
 
-
+from chess_game.chess.ai_plan_guidance import (
+    keeps_tactical_stability,
+)
 from chess_game.chess.ai_repetition_patterns import (
     move_undoes_last_own_move,
+)
+from chess_game.chess.ai_root_stability import (
+    _is_simple_endgame,
 )
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_in_check
 from chess_game.chess.defensive_containment_guidance import (
     heavy_piece_defense_extension_bonus,
 )
-from chess_game.chess.ai_plan_guidance import (
-    keeps_tactical_stability,
+from chess_game.chess.defensive_priorities import (
+    DANGEROUS_KING_PRESSURE_THRESHOLD,
+    king_danger_index,
+    king_defense_profile,
+    king_needs_shelter,
 )
+from chess_game.chess.endgame_emergency_defense import (
+    endgame_emergency_extension_bonus,
+)
+from chess_game.chess.evaluation_tables import MATERIAL_VALUES
 from chess_game.chess.low_material_race_guidance import endgame_race_extension_bonus
 from chess_game.chess.middlegame_practicality_guidance import (
     middlegame_practicality_extension_bonus,
-)
-from chess_game.chess.defensive_priorities import (
-    DANGEROUS_KING_PRESSURE_THRESHOLD,
-    king_defense_profile,
-    king_danger_index,
-    king_needs_shelter,
 )
 from chess_game.chess.move import Move
 from chess_game.chess.opponent_plans import opponent_plan_profile
 from chess_game.chess.passer_race_guidance import (
     passer_race_extension_bonus,
 )
-from chess_game.chess.endgame_emergency_defense import (
-    endgame_emergency_extension_bonus,
-)
 from chess_game.chess.strategy_utils import (
     is_capture_move,
     king_coordinates,
 )
 from chess_game.chess.types import Color, PieceType
-from chess_game.chess.evaluation_tables import MATERIAL_VALUES
-from chess_game.chess.ai_root_stability import (
-    _is_simple_endgame,
-)
 
 
 def check_extension(child_board: Board, extension_budget: int) -> int:

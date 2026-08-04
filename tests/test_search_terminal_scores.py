@@ -20,7 +20,6 @@ from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.types import Color, LegalMove, PieceType
 from tests.helpers import make_search_context, make_search_params, sq
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

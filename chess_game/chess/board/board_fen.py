@@ -8,7 +8,7 @@ avoid a runtime import cycle with ``board.py``.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING
 
 from chess_game.chess.board.board_setup import create_piece
 from chess_game.chess.constants import Color, ConstantSquare, get_square_constant
@@ -20,8 +20,8 @@ if TYPE_CHECKING:
 
 
 def _fen_parse_fields(
-    parts: List[str],
-) -> Tuple[str, str, str, str, int, int]:
+    parts: list[str],
+) -> tuple[str, str, str, str, int, int]:
     """Extract the six FEN fields from the already-split token list."""
     placement, turn_str = parts[0], parts[1]
     castling_str = parts[2] if len(parts) > 2 else "KQkq"
@@ -32,8 +32,8 @@ def _fen_parse_fields(
 
 
 def _fen_init_state(
-    board: "Board",
-    fields: Tuple[str, str, str, str, int, int],
+    board: Board,
+    fields: tuple[str, str, str, str, int, int],
 ) -> None:
     """Populate a bare Board's __dict__ with the meta-state from FEN fields tuple."""
     _, turn_str, castling_str, ep_str, halfmove, fullmove = fields
@@ -44,7 +44,7 @@ def _fen_init_state(
         black_kingside="k" in castling_str,
         black_queenside="q" in castling_str,
     )
-    ep_target: Optional[ConstantSquare] = None
+    ep_target: ConstantSquare | None = None
     if ep_str != "-":
         ep_target = algebraic_to_index(ep_str)
     board.__dict__["_state"] = GameMetadata(
@@ -58,7 +58,7 @@ def _fen_init_state(
 
 
 def _fen_parse_placement(
-    board: "Board",
+    board: Board,
     fen_to_piece: dict,
     placement: str,
 ) -> None:

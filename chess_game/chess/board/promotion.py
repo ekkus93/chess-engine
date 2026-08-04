@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 
-from chess_game.chess.constants import Color
+from chess_game.chess.constants import Color, ConstantSquare
 from chess_game.chess.types import Piece, PieceType
-from chess_game.chess.constants import ConstantSquare
 
 if TYPE_CHECKING:
     from chess_game.chess.board.board import Board
@@ -43,7 +42,7 @@ class PromotionValidator:
 
     def get_promotion_options(
         self, piece: Piece, _to_square: ConstantSquare
-    ) -> List[PieceType]:
+    ) -> list[PieceType]:
         """Return all valid promotion piece types for a pawn."""
         if piece.kind != PieceType.PAWN:
             return []
@@ -55,7 +54,7 @@ class PromotionValidator:
         return isinstance(piece_type, PieceType) and piece_type in PROMOTION_PIECES
 
     def is_valid_promotion_choice(
-        self, piece: Piece, end_pos: ConstantSquare, promotion: Optional[PieceType]
+        self, piece: Piece, end_pos: ConstantSquare, promotion: PieceType | None
     ) -> bool:
         """Return True if the promotion choice is valid for this move."""
         if promotion is None:

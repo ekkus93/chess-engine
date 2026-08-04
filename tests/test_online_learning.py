@@ -8,9 +8,12 @@ import pytest
 
 import chess_game.chess.ai as _ai_module
 from chess_game.chess.ai import invalidate_weights_cache
-from chess_game.texel.online_learning import OnlineLearningConfig, record_game_and_update_weights
-from chess_game.texel.position_db import GameRecord, PositionDB
 from chess_game.texel.collect import CollectionOptions
+from chess_game.texel.online_learning import (
+    OnlineLearningConfig,
+    record_game_and_update_weights,
+)
+from chess_game.texel.position_db import GameRecord, PositionDB
 
 _STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
@@ -600,7 +603,7 @@ class TestOnlineLearningMockedBehavior:
 
     def test_5_4_max_move_discard_no_positions_stored(self, tmp_path: Path) -> None:
         """5.4: When max_move_result='discard', positions from max-move games not stored."""
-        from chess_game.texel.position_db import PositionDB, GameRecord
+        from chess_game.texel.position_db import GameRecord, PositionDB
 
         db_path = tmp_path / "test.jsonl"
 

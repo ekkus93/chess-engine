@@ -39,8 +39,9 @@ def test_calibrate_k_reduces_mse_vs_default_k() -> None:
 def test_calibrate_and_save_k_writes_file(tmp_path: Path) -> None:
     """calibrate_and_save_k writes a JSON file with the 'k' key."""
     import json
-    from chess_game.texel.position_db import PositionDB
+
     from chess_game.texel.loss import calibrate_and_save_k
+    from chess_game.texel.position_db import PositionDB
 
     db = PositionDB()
     from chess_game.texel.position_db import GameRecord

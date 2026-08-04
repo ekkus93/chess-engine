@@ -1,8 +1,8 @@
 """Integration tests for board state transitions: castling rights and en-passant targets."""
 
 from chess_game.chess.ai import get_best_move
-from chess_game.chess.board.board import create_piece
 from chess_game.chess.board import Board
+from chess_game.chess.board.board import create_piece
 from chess_game.chess.constants import Color, PieceType
 from chess_game.chess.coords import algebraic_to_index
 

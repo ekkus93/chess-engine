@@ -11,7 +11,6 @@ from chess_game.chess.color import Color
 from chess_game.chess.types import PieceType
 from tests.helpers import sq
 
-
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 def _setup_promotion_board(

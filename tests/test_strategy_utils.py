@@ -31,7 +31,6 @@ from chess_game.chess.strategy_utils import (
 from chess_game.chess.types import Color, PieceType
 from tests.helpers import sq
 
-
 # ---------------------------------------------------------------------------
 # iter_board_pieces / iter_color_pieces
 # ---------------------------------------------------------------------------

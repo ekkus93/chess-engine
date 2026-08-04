@@ -1,6 +1,7 @@
 """Helpers for discouraging low-value repetition and quiet shuffling."""
 
 from __future__ import annotations
+
 from typing import cast
 
 from chess_game.chess.board import Board

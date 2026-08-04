@@ -18,7 +18,6 @@ from chess_game.chess.ai import INF, MATE_SCORE, get_best_move, quiescence
 from chess_game.chess.board.game_state import is_in_check
 from chess_game.chess.evaluation import evaluate
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

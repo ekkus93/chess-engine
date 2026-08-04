@@ -39,10 +39,9 @@ class PieceType(IntEnum):
 
 
 # AlgebraicSquare is a NamedTuple for algebraic notation
-AlgebraicSquare = NamedTuple(
-    "AlgebraicSquare",
-    [("file", str), ("rank", int)],
-)
+class AlgebraicSquare(NamedTuple):
+    file: str
+    rank: int
 
 
 class RowConstant:
@@ -219,7 +218,7 @@ COL_H = ColConstant(7)  # file h
 class ConstantSquare:
     """Type-safe representation of a board square using constant coordinate objects."""
 
-    __slots__ = ("row", "col")
+    __slots__ = ("col", "row")
 
     def __init__(self, row: RowConstant, col: ColConstant) -> None:
         self.row = row

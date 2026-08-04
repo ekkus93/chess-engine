@@ -7,7 +7,7 @@ Extracted from ``ai_search_helpers.py``. These are pure scoring/selection helper
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from chess_game.chess.move import Move
 from chess_game.chess.types import LegalMove
@@ -120,8 +120,8 @@ def update_best_result(
     move: Move,
     child_score: int,
     best_score: int,
-    best_move: Optional[LegalMove],
-) -> tuple[int, Optional[LegalMove]]:
+    best_move: LegalMove | None,
+) -> tuple[int, LegalMove | None]:
     """Update the best move/score for the current node."""
 
     better_score = child_score > best_score if is_maximizing else child_score < best_score

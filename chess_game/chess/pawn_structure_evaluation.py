@@ -3,12 +3,16 @@
 from dataclasses import dataclass
 
 from chess_game.chess.board import Board
-from chess_game.chess.constants import ConstantSquare, get_col_constant, get_row_constant
+from chess_game.chess.constants import (
+    ConstantSquare,
+    get_col_constant,
+    get_row_constant,
+)
 from chess_game.chess.eval_weights import EvalWeights
-from chess_game.chess.opening_development import undeveloped_minor_piece_count
 from chess_game.chess.evaluation_tables import (
     CENTER_FILES,
 )
+from chess_game.chess.opening_development import undeveloped_minor_piece_count
 from chess_game.chess.strategy_utils import both_queens_on_board, is_passed_pawn
 from chess_game.chess.types import Color, PieceType
 

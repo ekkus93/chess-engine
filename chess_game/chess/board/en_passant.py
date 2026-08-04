@@ -5,11 +5,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from chess_game.chess.board.game_state import is_in_check
-from chess_game.chess.constants import Color
 from chess_game.chess.constants import (
-    get_row_constant,
-    get_col_constant,
+    Color,
     ConstantSquare,
+    get_col_constant,
+    get_row_constant,
 )
 from chess_game.chess.types import Piece, PieceType
 

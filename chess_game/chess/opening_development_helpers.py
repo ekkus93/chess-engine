@@ -8,14 +8,16 @@ castling-state predicate helpers (each calls no other opening_development functi
 from __future__ import annotations
 
 from chess_game.chess.board import Board
-from chess_game.chess.constants import ConstantSquare, get_col_constant, get_row_constant
+from chess_game.chess.constants import (
+    ConstantSquare,
+    get_col_constant,
+    get_row_constant,
+)
 from chess_game.chess.eval_weights import EvalWeights
 from chess_game.chess.strategy_utils import (
     iter_color_pieces,
 )
 from chess_game.chess.types import Color, PieceType
-
-
 
 
 def _is_wing_knight_lunge(color: Color, row: int, col: int) -> bool:

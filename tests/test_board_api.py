@@ -1,7 +1,7 @@
 """Board API tests (Task 1–6 of BIG_FIX1_TODO)."""
 
-from chess_game.chess.board import Board, create_piece, ConstantSquare
-from chess_game.chess.constants import RowConstant, ColConstant
+from chess_game.chess.board import Board, ConstantSquare, create_piece
+from chess_game.chess.constants import ColConstant, RowConstant
 from chess_game.chess.types import Color, PieceType
 from tests.helpers import sq
 

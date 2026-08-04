@@ -8,9 +8,9 @@ from chess_game.chess.coords import algebraic_to_index
 from chess_game.chess.opening_book import OpeningBook
 from chess_game.chess.types import Color, LegalMove, PieceType
 from chess_game.self_play import (
+    _get_best_move_with_timeout,
     _MoveSelectionParams,
     _SelfPlayOptions,
-    _get_best_move_with_timeout,
     run_self_play,
 )
 
@@ -124,11 +124,9 @@ class TestSelfPlayBoardStateIntegrity:
 
         def fake_get_best_move(_board, **kwargs):
             del kwargs
-            pass
 
         def fake_terminal_message(_board, _counts):
             del _counts
-            pass
 
         monkeypatch.setattr(self_play_module, "Board", fake_board_factory)
         monkeypatch.setattr(self_play_module, "get_best_move", fake_get_best_move)

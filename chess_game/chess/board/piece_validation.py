@@ -27,7 +27,7 @@ _PIECE_CHECKERS = {
 class PieceMoveChecker:
     """Validates moves for specific piece types by delegating to MoveValidator."""
 
-    def __init__(self, board: "Board") -> None:  # noqa: F821
+    def __init__(self, board: Board) -> None:
         self._board = board
 
     def _check_piece_move(

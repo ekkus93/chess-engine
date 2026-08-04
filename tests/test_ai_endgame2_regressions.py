@@ -14,7 +14,6 @@ from chess_game.chess.passer_race_guidance import (
 from chess_game.chess.types import Color, PieceType
 from tests.helpers import sq
 
-
 pytestmark = pytest.mark.slow
 
 

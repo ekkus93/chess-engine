@@ -2,18 +2,79 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 import random
 import time
 
-from chess_game.chess.board import Board
+from chess_game.chess.ai_board_utils import (
+    clone_with_move as _make_copy_with_move,
+)
+from chess_game.chess.ai_board_utils import (
+    get_legal_moves,
+)
+from chess_game.chess.ai_quiescence_helpers import (
+    _quiescence_capture_score as _quiescence_capture_score_impl,
+)
+from chess_game.chess.ai_quiescence_helpers import (
+    _quiescence_check_score as _quiescence_check_score_impl,
+)
+from chess_game.chess.ai_quiescence_helpers import (
+    _quiescence_structure_follow_up_score as _quiescence_structure_follow_up_score_impl,
+)
+from chess_game.chess.ai_quiescence_helpers import (
+    _quiescence_tactical_score as _quiescence_tactical_score_impl,
+)
+from chess_game.chess.ai_quiescence_search import _quiescence, quiescence
+from chess_game.chess.ai_search_eval import (
+    _terminal_score,
+    make_repetition_policy,
+)
+from chess_game.chess.ai_search_helpers import (
+    check_extension as _check_extension,
+)
+from chess_game.chess.ai_search_helpers import (
+    initial_root_window as _initial_root_window,
+)
+from chess_game.chess.ai_search_helpers import (
+    prefer_root_move as _prefer_root_move,
+)
+from chess_game.chess.ai_search_helpers import (
+    record_depth_timing as _record_depth_timing,
+)
+from chess_game.chess.ai_search_helpers import (
+    record_root_research as _record_root_research,
+)
+from chess_game.chess.ai_search_helpers import (
+    record_selective_extension as _record_selective_extension,
+)
+from chess_game.chess.ai_search_helpers import (
+    repetition_score as _repetition_score,
+)
+from chess_game.chess.ai_search_helpers import (
+    rerun_full_window_if_needed as _rerun_full_window_if_needed,
+)
+from chess_game.chess.ai_search_helpers import (
+    root_stability_adjustment as _root_stability_adjustment,
+)
+from chess_game.chess.ai_search_helpers import (
+    search_position_counts as _search_position_counts,
+)
+from chess_game.chess.ai_search_helpers import (
+    selective_extension_bonus as _selective_extension_bonus,
+)
+from chess_game.chess.ai_search_helpers import (
+    update_alpha_beta as _update_alpha_beta,
+)
+from chess_game.chess.ai_search_ordering import (
+    _move_order_score,
+    _move_sort_key,
+    _order_moves,
+)
 from chess_game.chess.ai_search_types import (
     ASPIRATION_WINDOW,
-    BestMoveOptions,
     DRAW_SCORE,
     INF,
     MATE_SCORE,
+    BestMoveOptions,
     MinimaxParams,
     QuiescenceParams,
     SearchContext,
@@ -27,59 +88,36 @@ from chess_game.chess.ai_transposition import (
     _store_tt_cache,
     position_key,
 )
-from chess_game.chess.ai_search_eval import (
-    _terminal_score,
-    make_repetition_policy,
-)
-from chess_game.chess.ai_search_ordering import (
-    _move_order_score,
-    _move_sort_key,
-    _order_moves,
-)
-from chess_game.chess.ai_quiescence_search import _quiescence, quiescence
-from chess_game.chess.ai_board_utils import (
-    clone_with_move as _make_copy_with_move,
-    get_legal_moves,
-)
-from chess_game.chess.ai_quiescence_helpers import (
-    _quiescence_capture_score as _quiescence_capture_score_impl,
-    _quiescence_check_score as _quiescence_check_score_impl,
-    _quiescence_structure_follow_up_score as _quiescence_structure_follow_up_score_impl,
-    _quiescence_tactical_score as _quiescence_tactical_score_impl,
-)
-from chess_game.chess.ai_search_helpers import (
-    initial_root_window as _initial_root_window,
-    record_depth_timing as _record_depth_timing,
-    record_root_research as _record_root_research,
-    record_selective_extension as _record_selective_extension,
-    repetition_score as _repetition_score,
-    prefer_root_move as _prefer_root_move,
-    root_stability_adjustment as _root_stability_adjustment,
-    rerun_full_window_if_needed as _rerun_full_window_if_needed,
-    check_extension as _check_extension,
-    selective_extension_bonus as _selective_extension_bonus,
-    search_position_counts as _search_position_counts,
-    update_alpha_beta as _update_alpha_beta,
-)
 from chess_game.chess.ai_weight_cache import (
     get as _wc_get,
+)
+from chess_game.chess.ai_weight_cache import (
     invalidate_weights_cache as _invalidate_weights_cache,
+)
+from chess_game.chess.ai_weight_cache import (
     is_loaded as _wc_is_loaded,
+)
+from chess_game.chess.ai_weight_cache import (
     set_cache as _wc_set,
 )
+from chess_game.chess.board import Board
 from chess_game.chess.eval_weights import EvalWeights
 from chess_game.chess.evaluation import (
     evaluate,
-    get_evaluation_breakdown as _get_evaluation_breakdown,
 )
-from chess_game.texel.weights_io import (
-    TUNED_WEIGHTS_PATH as _TUNED_WEIGHTS_PATH,
-    load_weights_or_default as _load_weights_or_default,
+from chess_game.chess.evaluation import (
+    get_evaluation_breakdown as _get_evaluation_breakdown,
 )
 from chess_game.chess.move import Move
 from chess_game.chess.opening_book import get_bundled_opening_book
 from chess_game.chess.position_utils import position_key as _shared_position_key
 from chess_game.chess.types import Color, LegalMove
+from chess_game.texel.weights_io import (
+    TUNED_WEIGHTS_PATH as _TUNED_WEIGHTS_PATH,
+)
+from chess_game.texel.weights_io import (
+    load_weights_or_default as _load_weights_or_default,
+)
 
 get_evaluation_breakdown = _get_evaluation_breakdown
 _quiescence_capture_score = _quiescence_capture_score_impl
@@ -92,24 +130,14 @@ _quiescence_tactical_score = _quiescence_tactical_score_impl
 # them here marks the intentional re-exports for the linters and documents the
 # surface that tests and tooling import from chess_game.chess.ai.
 __all__ = [
-    "get_best_move",
-    "minimax",
-    "minimax_no_prune",
-    "quiescence",
-    "search_root_depth",
-    "evaluate",
-    "get_evaluation_breakdown",
-    "invalidate_weights_cache",
-    "get_legal_moves",
+    "DRAW_SCORE",
+    "INF",
+    "MATE_SCORE",
     "BestMoveOptions",
     "MinimaxParams",
     "SearchContext",
     "SearchStats",
     "TTFlag",
-    "INF",
-    "MATE_SCORE",
-    "DRAW_SCORE",
-    "position_key",
     "_evaluate_child_move",
     "_is_mate_score",
     "_move_order_score",
@@ -119,10 +147,20 @@ __all__ = [
     "_root_stability_adjustment",
     "_store_tt_cache",
     "_terminal_score",
+    "evaluate",
+    "get_best_move",
+    "get_evaluation_breakdown",
+    "get_legal_moves",
+    "invalidate_weights_cache",
+    "minimax",
+    "minimax_no_prune",
+    "position_key",
+    "quiescence",
+    "search_root_depth",
 ]
 
 
-def _get_effective_weights(weights: Optional[EvalWeights]) -> EvalWeights:
+def _get_effective_weights(weights: EvalWeights | None) -> EvalWeights:
     """Resolve the effective weights to use, loading from disk if needed."""
     if weights is not None:
         return weights
@@ -140,7 +178,7 @@ def invalidate_weights_cache() -> None:
     _invalidate_weights_cache()
 
 
-def _record_search_node(context: Optional[SearchContext]) -> None:
+def _record_search_node(context: SearchContext | None) -> None:
     """Increment node counters when diagnostics are enabled."""
 
     if context is None:
@@ -154,7 +192,7 @@ def _record_search_node(context: Optional[SearchContext]) -> None:
 def minimax(
     board: Board,
     params: MinimaxParams,
-) -> tuple[int, Optional[LegalMove]]:
+) -> tuple[int, LegalMove | None]:
     """Standard minimax with alpha-beta pruning."""
 
     _record_search_node(params.context)
@@ -202,9 +240,9 @@ def minimax(
 
 def _tie_break(
     move: Move,
-    current_best: Optional[LegalMove],
+    current_best: LegalMove | None,
     deterministic: bool,
-    rng: Optional[random.Random] = None,
+    rng: random.Random | None = None,
 ) -> bool:
     """Return True when the new move should replace the current best on equal score."""
     if deterministic:
@@ -237,9 +275,9 @@ def _fold_search_best(
     params: MinimaxParams,
     child_score: int,
     search_best_score: int,
-    search_best_move: Optional[LegalMove],
+    search_best_move: LegalMove | None,
     move: Move,
-) -> tuple[int, Optional[LegalMove], bool]:
+) -> tuple[int, LegalMove | None, bool]:
     """Fold one child result into the running search best.
 
     Returns ``(search_best_score, search_best_move, is_better)`` where ``is_better``
@@ -265,14 +303,14 @@ def _search_move_loop(
     board: Board,
     ordered_moves: list[Move],
     params: MinimaxParams,
-) -> tuple[int, Optional[LegalMove]]:
+) -> tuple[int, LegalMove | None]:
     """Search one ply of child moves with alpha-beta pruning."""
 
     search_best_score = -INF if params.is_maximizing else INF
-    search_best_move: Optional[LegalMove] = None
+    search_best_move: LegalMove | None = None
     selected_score = -INF if params.is_maximizing else INF
     best_root_tiebreak = -INF if params.is_maximizing else INF
-    root_selected_move: Optional[LegalMove] = None
+    root_selected_move: LegalMove | None = None
     alpha = params.alpha
     beta = params.beta
 
@@ -459,7 +497,7 @@ def _leaf_extension_bonus(
     return extension_bonus
 
 
-def _record_cutoff(context: Optional[SearchContext], move: Move) -> None:
+def _record_cutoff(context: SearchContext | None, move: Move) -> None:
     """Record cutoff diagnostics and killer moves."""
 
     if context is None:
@@ -478,8 +516,8 @@ def _iterative_deepening_best_move(
     depth: int,
     is_maximizing: bool,
     context: SearchContext,
-) -> Optional[LegalMove]:
-    best_move: Optional[LegalMove] = None
+) -> LegalMove | None:
+    best_move: LegalMove | None = None
     previous_score = 0
     for current_depth in range(1, depth + 1):
         context.last_best_move = best_move
@@ -493,7 +531,7 @@ def _iterative_deepening_best_move(
             # material). Return the best move found so far, or fall back to the first
             # legal move. The engine must always return a move when legal moves exist.
             root_legal = get_legal_moves(board)
-            fallback: Optional[LegalMove] = (
+            fallback: LegalMove | None = (
                 LegalMove(
                     start=root_legal[0].start,
                     end=root_legal[0].end,
@@ -512,10 +550,10 @@ def _iterative_deepening_best_move(
 def get_best_move(
     board: Board,
     depth: int,
-    stats: Optional[SearchStats] = None,
-    position_counts: Optional[dict[str, int]] = None,
-    book_options: Optional[BestMoveOptions] = None,
-) -> Optional[LegalMove]:
+    stats: SearchStats | None = None,
+    position_counts: dict[str, int] | None = None,
+    book_options: BestMoveOptions | None = None,
+) -> LegalMove | None:
     """Get the best move for the current position at the requested depth."""
     if depth < 1:
         raise ValueError("depth must be >= 1")
@@ -561,7 +599,7 @@ def _search_root_depth(
     is_maximizing: bool,
     previous_score: int,
     context: SearchContext,
-) -> tuple[int, Optional[LegalMove]]:
+) -> tuple[int, LegalMove | None]:
     """Search one iterative-deepening layer, rerunning on aspiration failure."""
     alpha, beta = _initial_root_window(depth, previous_score, ASPIRATION_WINDOW, INF)
     while True:
@@ -588,7 +626,7 @@ def search_root_depth(
     is_maximizing: bool,
     previous_score: int,
     context: SearchContext,
-) -> tuple[int, Optional[LegalMove]]:
+) -> tuple[int, LegalMove | None]:
     """Public wrapper for root-depth search used by diagnostics and tests."""
 
     return _search_root_depth(board, depth, is_maximizing, previous_score, context)
@@ -598,7 +636,7 @@ def minimax_no_prune(
     board: Board,
     depth: int,
     is_maximizing: bool,
-    nodes: Optional[list[int]] = None,
+    nodes: list[int] | None = None,
 ) -> int:
     """No-prune minimax reference for tests and shallow benchmarks."""
 

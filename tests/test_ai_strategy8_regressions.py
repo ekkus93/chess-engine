@@ -17,7 +17,10 @@ from chess_game.chess.conversion_guidance import (
     _better_side_plan_switch_penalty,
     _conversion_context,
 )
-from chess_game.chess.endgame_choice_guidance import _choice_context, _theater_switch_penalty
+from chess_game.chess.endgame_choice_guidance import (
+    _choice_context,
+    _theater_switch_penalty,
+)
 from chess_game.chess.types import Color, LegalMove, PieceType
 from tests.helpers import sq
 

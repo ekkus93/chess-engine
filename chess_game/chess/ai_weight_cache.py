@@ -10,14 +10,14 @@ been updated.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from chess_game.chess.eval_weights import EvalWeights
 
 # List-boxing makes the values mutable across module re-imports and allows
 # both ai.py and online_learning.py to share the same cache without globals.
-_cache: list[Optional["EvalWeights"]] = [None]
+_cache: list[EvalWeights | None] = [None]
 _loaded: list[bool] = [False]
 
 
@@ -26,12 +26,12 @@ def is_loaded() -> bool:
     return _loaded[0]
 
 
-def get() -> Optional["EvalWeights"]:
+def get() -> EvalWeights | None:
     """Return the cached weights (may be None if not yet loaded)."""
     return _cache[0]
 
 
-def set_cache(weights: Optional["EvalWeights"]) -> None:
+def set_cache(weights: EvalWeights | None) -> None:
     """Store *weights* in the cache and mark it as loaded."""
     _cache[0] = weights
     _loaded[0] = True

@@ -4,25 +4,24 @@ from __future__ import annotations
 
 import pytest
 
-from chess_game.chess.board import Board, create_piece
+from chess_game.chess.ai import get_best_move
+from chess_game.chess.ai_search_helpers import _opening_root_bonus
 from chess_game.chess.anti_drift_guidance import (
     anti_drift_order_bonus,
     anti_drift_root_bonus,
 )
+from chess_game.chess.board import Board, create_piece
 from chess_game.chess.conversion_guidance import (
     winning_conversion_order_bonus,
     winning_conversion_root_bonus,
 )
-from chess_game.chess.ai import get_best_move
-from chess_game.chess.ai_search_helpers import _opening_root_bonus
 from chess_game.chess.defensive_containment_guidance import (
     heavy_piece_defense_order_bonus,
     heavy_piece_defense_root_bonus,
 )
-from chess_game.chess.passer_race_guidance import passer_race_order_bonus
-from chess_game.chess.types import LegalMove
 from chess_game.chess.move import Move
-from chess_game.chess.types import Color, PieceType
+from chess_game.chess.passer_race_guidance import passer_race_order_bonus
+from chess_game.chess.types import Color, LegalMove, PieceType
 from tests.helpers import sq
 
 

@@ -5,8 +5,8 @@ import dataclasses
 import json
 import math
 import random
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Optional
 
 from chess_game.chess.eval_weights import EVAL_WEIGHTS_FLAT_LENGTH, EvalWeights
 from chess_game.texel.loss import DEFAULT_K, LossOptions, mean_squared_error
@@ -15,10 +15,10 @@ from chess_game.texel.position_db import PositionDB
 # EVAL_WEIGHTS_FLAT_LENGTH is re-exported as part of the public API so that
 # callers can discover the flat-list dimension without importing eval_weights.
 __all__ = [
-    "SPSAOptions",
-    "optimize",
-    "_clip_weights",
     "EVAL_WEIGHTS_FLAT_LENGTH",
+    "SPSAOptions",
+    "_clip_weights",
+    "optimize",
 ]
 
 LossFn = Callable[[list[tuple[str, float]], EvalWeights], float]
@@ -45,12 +45,12 @@ class SPSAOptions:
     perturbation_size: float = 1.0
     perturbation_decay: float = 0.101
     stability_constant: int = 100
-    batch_size: Optional[int] = None
+    batch_size: int | None = None
     checkpoint_every: int = 500
-    checkpoint_path: Optional[Path] = None
+    checkpoint_path: Path | None = None
     verbose: bool = True
-    loss_options: Optional[LossOptions] = None
-    seed: Optional[int] = None
+    loss_options: LossOptions | None = None
+    seed: int | None = None
 
     def __post_init__(self) -> None:
         """Reject unsafe option values at construction time."""
@@ -82,7 +82,7 @@ def make_spsa_options(
     max_iterations: int,
     batch_size: int,
     loss_options: LossOptions,
-    seed: Optional[int] = None,
+    seed: int | None = None,
 ) -> SPSAOptions:
     """Build SPSAOptions for an unattended tune: quiet, no checkpoint file.
 

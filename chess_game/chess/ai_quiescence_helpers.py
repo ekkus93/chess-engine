@@ -2,21 +2,22 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
-from chess_game.chess.ai_board_utils import clone_with_move as _make_copy_with_move, move_colors
+from chess_game.chess.ai_board_utils import clone_with_move as _make_copy_with_move
+from chess_game.chess.ai_board_utils import move_colors
 from chess_game.chess.ai_search_helpers import promotion_order_score
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_in_check as _gs_is_in_check
 from chess_game.chess.defensive_priorities import king_defense_profile
+from chess_game.chess.evaluation_tables import MATERIAL_VALUES
 from chess_game.chess.move import Move
+from chess_game.chess.strategy_utils import is_capture_move
 from chess_game.chess.structure_recognition import (
     structure_capture_bonus,
     structure_profile,
 )
-from chess_game.chess.strategy_utils import is_capture_move
 from chess_game.chess.types import Color, PieceType
-from chess_game.chess.evaluation_tables import MATERIAL_VALUES
 
 _MVV_OFFSET = 100_000
 

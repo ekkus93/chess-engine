@@ -12,7 +12,6 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 from chess_game.chess.eval_weights import EvalWeights
 from chess_game.chess.move import Move
@@ -26,7 +25,7 @@ DRAW_SCORE = 0
 ASPIRATION_WINDOW = 150
 MAX_QUIESCENCE_DEPTH = 4
 MAX_QUIESCENCE_MOVES = 8
-LegalMoveKey = tuple[object, object, Optional[PieceType]]
+LegalMoveKey = tuple[object, object, PieceType | None]
 
 
 class TTFlag(Enum):
@@ -225,7 +224,7 @@ class BestMoveOptions:
     use_opening_book: bool = True
     opening_book: OpeningBook | None = None
     random_opening_book: bool = False
-    weights: Optional[EvalWeights] = None
+    weights: EvalWeights | None = None
     deterministic: bool = False
     rng_seed: int | None = None
 
@@ -234,15 +233,15 @@ class BestMoveOptions:
 class SearchContext:
     """Shared search state reused across recursive calls."""
 
-    transposition_table: Optional[dict[str, TTEntry]] = None
-    last_best_move: Optional[LegalMove] = None
-    nodes_searched: Optional[list[int]] = None
-    stats: Optional[SearchStats] = None
-    killer_moves: Optional[list[LegalMoveKey]] = None
-    position_counts: Optional[dict[str, int]] = None
-    weights: Optional[EvalWeights] = None
+    transposition_table: dict[str, TTEntry] | None = None
+    last_best_move: LegalMove | None = None
+    nodes_searched: list[int] | None = None
+    stats: SearchStats | None = None
+    killer_moves: list[LegalMoveKey] | None = None
+    position_counts: dict[str, int] | None = None
+    weights: EvalWeights | None = None
     deterministic: bool = False
-    rng: Optional[random.Random] = None
+    rng: random.Random | None = None
 
 
 @dataclass
@@ -253,7 +252,7 @@ class MinimaxParams:
     alpha: int
     beta: int
     is_maximizing: bool
-    context: Optional[SearchContext] = None
+    context: SearchContext | None = None
     line_history: tuple[str, ...] = ()
     extension_budget: int = 1
 
@@ -265,7 +264,7 @@ class QuiescenceParams:
     alpha: int
     beta: int
     is_maximizing: bool
-    context: Optional[SearchContext] = None
+    context: SearchContext | None = None
     depth_remaining: int = MAX_QUIESCENCE_DEPTH
     line_history: tuple[str, ...] = ()
     legal_moves: tuple[Move, ...] | None = None

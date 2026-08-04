@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import random
 from pathlib import Path
-from typing import Optional
 
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_checkmate, is_stalemate
@@ -57,7 +56,7 @@ def _play_game(
             break
 
         current_sf = white if ply % 2 == 0 else black
-        best_move_uci: Optional[str] = current_sf.find_best_move(start_fen, move_history)
+        best_move_uci: str | None = current_sf.find_best_move(start_fen, move_history)
 
         if best_move_uci is None:
             break

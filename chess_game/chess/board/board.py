@@ -5,52 +5,55 @@ to specialized modules for validation, execution, and special rules.
 """
 
 from __future__ import annotations
-from typing import List, Optional, Tuple
 
-from chess_game.chess.constants import Color
-from chess_game.chess.types import (
-    PieceType,
-    Piece,
-    CastlingRights,
-    BoardValidators,
-    GameMetadata,
-    MoveCounters,
-)
-from chess_game.chess.board.move_validation import MoveValidator
-from chess_game.chess.board.move_execution import MoveExecutor
-from chess_game.chess.board.castling import (
-    CastlingValidator,
-    _clear_castling_for_color,
-    _clear_captured_rook_castling_right,
-    _clear_rook_castling_right,
-)
-from chess_game.chess.board.promotion import PromotionValidator
-from chess_game.chess.board.en_passant import EnPassantValidator
-from chess_game.chess.board.piece_validation import PieceMoveChecker
-from chess_game.chess.board.game_state import (
-    is_in_check as _gs_is_in_check,
-    is_checkmate as _gs_is_checkmate,
-    is_stalemate as _gs_is_stalemate,
-)
-from chess_game.chess.coords import index_to_algebraic
-from chess_game.chess.constants import (
-    ConstantSquare,
-    get_row_constant,
-    get_col_constant,
-    get_square_constant,
-)
-from chess_game.chess.board.board_setup import create_piece, create_starting_grid
 from chess_game.chess.board.board_fen import (
     _fen_init_state,
     _fen_parse_fields,
     _fen_parse_placement,
 )
+from chess_game.chess.board.board_setup import create_piece, create_starting_grid
+from chess_game.chess.board.castling import (
+    CastlingValidator,
+    _clear_captured_rook_castling_right,
+    _clear_castling_for_color,
+    _clear_rook_castling_right,
+)
+from chess_game.chess.board.en_passant import EnPassantValidator
+from chess_game.chess.board.game_state import (
+    is_checkmate as _gs_is_checkmate,
+)
+from chess_game.chess.board.game_state import (
+    is_in_check as _gs_is_in_check,
+)
+from chess_game.chess.board.game_state import (
+    is_stalemate as _gs_is_stalemate,
+)
+from chess_game.chess.board.move_execution import MoveExecutor
+from chess_game.chess.board.move_validation import MoveValidator
+from chess_game.chess.board.piece_validation import PieceMoveChecker
+from chess_game.chess.board.promotion import PromotionValidator
+from chess_game.chess.constants import (
+    Color,
+    ConstantSquare,
+    get_col_constant,
+    get_row_constant,
+    get_square_constant,
+)
+from chess_game.chess.coords import index_to_algebraic
+from chess_game.chess.types import (
+    BoardValidators,
+    CastlingRights,
+    GameMetadata,
+    MoveCounters,
+    Piece,
+    PieceType,
+)
 
-LegalMove = tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]
+LegalMove = tuple[ConstantSquare, ConstantSquare, PieceType | None]
 
 # Public surface of this module (create_piece is re-exported from board_setup;
 # the board package and external callers import it from chess_game.chess.board.board).
-__all__ = ["Board", "create_piece", "offset_square", "forward_one", "LegalMove"]
+__all__ = ["Board", "LegalMove", "create_piece", "forward_one", "offset_square"]
 
 
 def offset_square(s: ConstantSquare, dr: int, dc: int) -> ConstantSquare:
@@ -81,16 +84,16 @@ class Board:
         fullmove_number: Full move number starting at 1 and incrementing after Black
     """
 
-    en_passant_target: Optional[ConstantSquare]
+    en_passant_target: ConstantSquare | None
     castling_rights: CastlingRights
     halfmove_clock: int
     fullmove_number: int
 
     def __init__(self) -> None:
-        self.board: List[List[Optional[Piece]]] = create_starting_grid()
+        self.board: list[list[Piece | None]] = create_starting_grid()
         self.turn = Color.WHITE
         self._state = GameMetadata()
-        self._move_history: List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]] = []
+        self._move_history: list[tuple[ConstantSquare, ConstantSquare, PieceType | None]] = []
 
     @property
     def _validators(self) -> BoardValidators:
@@ -149,7 +152,7 @@ class Board:
 
     # ---- board accessors ----
 
-    def get_piece(self, square: ConstantSquare) -> Optional[Piece]:
+    def get_piece(self, square: ConstantSquare) -> Piece | None:
         """Get piece at square."""
         if isinstance(square, tuple):
             square = ConstantSquare(
@@ -161,7 +164,7 @@ class Board:
             return self.board[row][col]
         return None
 
-    def set_piece(self, square: ConstantSquare, piece: Optional[Piece]) -> None:
+    def set_piece(self, square: ConstantSquare, piece: Piece | None) -> None:
         """Set piece at square."""
         if isinstance(square, tuple):
             square = ConstantSquare(
@@ -181,17 +184,17 @@ class Board:
         """Check if square is empty."""
         return self.get_piece(square) is None
 
-    def get_color_at(self, square: ConstantSquare) -> Optional[Color]:
+    def get_color_at(self, square: ConstantSquare) -> Color | None:
         """Get color of piece at square."""
         piece = self.get_piece(square)
         return piece.color if piece else None
 
-    def get_piece_type_at(self, square: ConstantSquare) -> Optional[PieceType]:
+    def get_piece_type_at(self, square: ConstantSquare) -> PieceType | None:
         """Get piece type at square."""
         piece = self.get_piece(square)
         return piece.kind if piece else None
 
-    def find_king(self, color: Color) -> Optional[ConstantSquare]:
+    def find_king(self, color: Color) -> ConstantSquare | None:
         """Find king of given color.
 
         Uses a self-validating cache: the king's last known square is remembered,
@@ -310,10 +313,10 @@ class Board:
     def _is_in_check(self, color: Color) -> bool:
         return _gs_is_in_check(self, color)
 
-    def _is_checkmate(self, color: Optional[Color] = None) -> bool:
+    def _is_checkmate(self, color: Color | None = None) -> bool:
         return _gs_is_checkmate(self, color)
 
-    def _is_stalemate(self, color: Optional[Color] = None) -> bool:
+    def _is_stalemate(self, color: Color | None = None) -> bool:
         return _gs_is_stalemate(self, color)
 
     # ---- clone ----
@@ -344,13 +347,13 @@ class Board:
 
     def _move_history_copy(
         self,
-    ) -> List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]]:
+    ) -> list[tuple[ConstantSquare, ConstantSquare, PieceType | None]]:
         """Return a copy of the move history."""
         return list(self._move_history)
 
     def _replace_move_history(
         self,
-        moves: List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]],
+        moves: list[tuple[ConstantSquare, ConstantSquare, PieceType | None]],
     ) -> None:
         """Replace the move history with a copied list."""
         self._move_history = list(moves)
@@ -358,8 +361,8 @@ class Board:
     # ---- legal moves ----
 
     def get_legal_moves(
-        self, square: Optional[ConstantSquare] = None
-    ) -> List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]]:
+        self, square: ConstantSquare | None = None
+    ) -> list[tuple[ConstantSquare, ConstantSquare, PieceType | None]]:
         """Get all legal moves from the specified square, or all side-to-move legal moves.
 
         When square is None, iterates only pieces of side-to-move.
@@ -377,7 +380,7 @@ class Board:
 
     def get_legal_moves_for_color(
         self, color: Color
-    ) -> List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]]:
+    ) -> list[tuple[ConstantSquare, ConstantSquare, PieceType | None]]:
         """Get all legal moves for a specific color regardless of turn."""
         saved_turn = self.turn
         try:
@@ -392,7 +395,7 @@ class Board:
         self,
         start_pos: ConstantSquare,
         end_pos: ConstantSquare,
-        promotion: Optional[PieceType] = None,
+        promotion: PieceType | None = None,
     ) -> bool:
         """Make a move on the board."""
         if isinstance(start_pos, tuple):
@@ -453,8 +456,8 @@ class Board:
         self,
         start_pos: ConstantSquare,
         end_pos: ConstantSquare,
-        promotion: Optional[PieceType] = None,
-        start_piece: Optional[Piece] = None,
+        promotion: PieceType | None = None,
+        start_piece: Piece | None = None,
     ) -> bool:
         """Apply a move that has already been validated as legal."""
         if start_piece is None:
@@ -548,16 +551,16 @@ class Board:
         turn_label = self.turn.name.upper()
         print(f"  Turn: {turn_label}")
 
-    def _build_board_lines(self) -> List[str]:
+    def _build_board_lines(self) -> list[str]:
         """Build the board rows for display."""
-        board_lines: List[str] = []
+        board_lines: list[str] = []
         for row_index, row in enumerate(self.board):
             rank = 8 - row_index
             cells = [self._display_cell(piece) for piece in row]
             board_lines.append(f"{rank} |{'|'.join(cells)}|")
         return board_lines
 
-    def _display_cell(self, piece: Optional[Piece]) -> str:
+    def _display_cell(self, piece: Piece | None) -> str:
         """Format one display cell."""
         if piece is None:
             return "   "
@@ -568,12 +571,12 @@ class Board:
             symbol = symbol.lower()
         return f" {symbol} "
 
-    def _build_recent_move_lines(self) -> List[str]:
+    def _build_recent_move_lines(self) -> list[str]:
         """Build move-history strings shown next to the board."""
         moves = self._move_history_copy()
         recent_moves = moves[-10:] if len(moves) > 10 else moves
         first_index = len(moves) - len(recent_moves)
-        move_lines: List[str] = []
+        move_lines: list[str] = []
         index = 0
         while index < len(recent_moves):
             move_lines.append(self._format_move_pair(recent_moves, first_index, index))
@@ -582,7 +585,7 @@ class Board:
 
     def _format_move_pair(
         self,
-        recent_moves: List[Tuple[ConstantSquare, ConstantSquare, Optional[PieceType]]],
+        recent_moves: list[tuple[ConstantSquare, ConstantSquare, PieceType | None]],
         first_index: int,
         index: int,
     ) -> str:
@@ -690,7 +693,7 @@ class Board:
         return f"{placement} {turn_char} {castling} {ep_str} {halfmove} {fullmove}"
 
     @classmethod
-    def from_fen(cls, fen: str) -> "Board":
+    def from_fen(cls, fen: str) -> Board:
         """Construct a Board from a FEN string.
 
         Supports all six FEN fields; the halfmove clock and fullmove number

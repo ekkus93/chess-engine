@@ -4,7 +4,6 @@ from __future__ import annotations
 import dataclasses
 import random
 from pathlib import Path
-from typing import Optional
 
 from chess_game.chess import Board
 from chess_game.chess.ai import BestMoveOptions, get_best_move
@@ -84,7 +83,7 @@ def _play_one_game(
     baseline: EvalWeights,
     tuned_is_white: bool,
     depth: int,
-    rng: Optional[random.Random] = None,
+    rng: random.Random | None = None,
 ) -> str:
     """Play one game; return 'tuned', 'baseline', or 'draw'."""
     board = Board()
@@ -117,7 +116,7 @@ def run_validation_match(
     num_games: int = 100,
     depth: int = 2,
     verbose: bool = False,
-    seed: Optional[int] = None,
+    seed: int | None = None,
 ) -> ValidationResult:
     """Play tuned vs baseline; alternate which side uses tuned weights."""
     result = ValidationResult()

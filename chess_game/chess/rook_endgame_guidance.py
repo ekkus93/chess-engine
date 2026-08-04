@@ -3,9 +3,8 @@
 from chess_game.chess.board import Board
 from chess_game.chess.board.attack_utils import piece_attacks_square
 from chess_game.chess.board.game_state import is_in_check
-from chess_game.chess.move import Move
 from chess_game.chess.low_material_race_guidance import endgame_race_context
-from chess_game.chess.structure_recognition import structure_profile
+from chess_game.chess.move import Move
 from chess_game.chess.strategy_utils import (
     is_advanced_passer,
     iter_color_pieces,
@@ -14,6 +13,7 @@ from chess_game.chess.strategy_utils import (
     passed_pawns_for_color,
     path_clear_between,
 )
+from chess_game.chess.structure_recognition import structure_profile
 from chess_game.chess.types import Color, PieceType
 
 _ROOK_BEHIND_OWN_PASSER_BONUS = 18

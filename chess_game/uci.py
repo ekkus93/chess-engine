@@ -17,7 +17,7 @@ import sys
 import threading
 import time
 from dataclasses import dataclass, field
-from typing import IO, Optional
+from typing import IO
 
 from chess_game.chess.ai import get_legal_moves, search_root_depth
 from chess_game.chess.ai_search_types import SearchContext, SearchStats
@@ -59,7 +59,7 @@ class _SearchControl:
     """Mutable container for the active search thread and stop signal."""
 
     stop_event: threading.Event = field(default_factory=threading.Event)
-    thread: Optional[threading.Thread] = None
+    thread: threading.Thread | None = None
 
 
 _ctrl = _SearchControl()
@@ -164,7 +164,7 @@ def handle_position(state: UciState, tokens: list[str]) -> None:
     if len(tokens) < 2:
         return
 
-    moves_idx: Optional[int] = None
+    moves_idx: int | None = None
     try:
         moves_idx = tokens.index("moves")
     except ValueError:
@@ -221,13 +221,13 @@ def _replay_moves(state: UciState, move_tokens: list[str]) -> None:
 class _GoParams:
     """Parsed parameters from a ``go`` command."""
 
-    depth: Optional[int] = None
-    movetime_ms: Optional[int] = None
-    wtime_ms: Optional[int] = None
-    btime_ms: Optional[int] = None
+    depth: int | None = None
+    movetime_ms: int | None = None
+    wtime_ms: int | None = None
+    btime_ms: int | None = None
     winc_ms: int = 0
     binc_ms: int = 0
-    movestogo: Optional[int] = None
+    movestogo: int | None = None
     infinite: bool = False
 
 
@@ -271,7 +271,7 @@ def _uci_search(
     board: Board,
     depth: int,
     position_counts: dict[str, int],
-) -> Optional[LegalMove]:
+) -> LegalMove | None:
     """Run iterative-deepening search and emit ``info`` lines per depth."""
     book_move = get_bundled_opening_book().find_book_move(board)
     if book_move is not None:
@@ -292,7 +292,7 @@ def _uci_search(
         deterministic=False,
     )
 
-    best_move: Optional[LegalMove] = None
+    best_move: LegalMove | None = None
     previous_score = 0
     t0 = time.monotonic()
 
@@ -338,7 +338,7 @@ def handle_go(state: UciState, tokens: list[str]) -> None:
     )
     _ctrl.thread.start()
 
-    timer: Optional[threading.Thread] = None
+    timer: threading.Thread | None = None
     if movetime_ms is not None:
         timer = threading.Thread(
             target=_stop_after, args=(movetime_ms,), daemon=True
@@ -351,7 +351,7 @@ def handle_go(state: UciState, tokens: list[str]) -> None:
             timer.join(timeout=0)
 
 
-def _resolve_search_depth(params: _GoParams, color: Color) -> tuple[int, Optional[int]]:
+def _resolve_search_depth(params: _GoParams, color: Color) -> tuple[int, int | None]:
     """Return (search_depth, movetime_ms) for the given go parameters."""
     if params.movetime_ms is not None:
         return _DEPTH_HIGH, params.movetime_ms
@@ -380,7 +380,7 @@ class _TimeControl:
 
     remaining_ms: int
     increment_ms: int
-    movestogo: Optional[int]
+    movestogo: int | None
 
 
 def _allocate_time(params: _GoParams, color: Color) -> int:

@@ -1,12 +1,14 @@
 from __future__ import annotations
+
 import pytest
+
 from chess_game.chess.constants import (
-    ConstantSquare,
+    COL_E,
     ROW_2,
     ROW_4,
     ROW_7,
     ROW_8,
-    COL_E,
+    ConstantSquare,
 )
 from chess_game.chess.move import parse_move_notation
 from chess_game.chess.types import PieceType

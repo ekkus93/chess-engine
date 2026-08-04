@@ -1,12 +1,15 @@
 """Helpers for scoring quiet strategic moves during search ordering."""
 
 
-from chess_game.chess.ai_repetition_patterns import quiet_cycle_penalty
-from chess_game.chess.board import Board
+from chess_game.chess.ai_check_ordering import (
+    _check_quality_bonus,
+)
+from chess_game.chess.ai_quiet_ordering_constants import (
+    QUIET_PROPHYLACTIC_LUFT_BONUS,
+    QUIET_WORST_PIECE_BONUS,
+)
 from chess_game.chess.ai_quiet_scoring import (
     QuietOrderContext,
-    is_prophylactic_h_luft,
-    make_quiet_order_context,
     _advantage_preservation_penalty,
     _bishop_passive_retreat_penalty,
     _centralization_bonus,
@@ -16,25 +19,32 @@ from chess_game.chess.ai_quiet_scoring import (
     _knight_threatens_minor_bonus,
     _pawn_bonus,
     _piece_coordination_bonus,
+    is_prophylactic_h_luft,
+    make_quiet_order_context,
 )
-from chess_game.chess.conversion_guidance import winning_conversion_order_bonus
+from chess_game.chess.ai_repetition_patterns import quiet_cycle_penalty
 from chess_game.chess.anti_drift_guidance import anti_drift_order_bonus
+from chess_game.chess.board import Board
+from chess_game.chess.conversion_guidance import winning_conversion_order_bonus
 from chess_game.chess.defensive_containment_guidance import (
     heavy_piece_defense_order_bonus,
 )
 from chess_game.chess.defensive_endgame_guidance import defensive_endgame_order_bonus
-from chess_game.chess.endgame_emergency_defense import endgame_emergency_order_bonus
-from chess_game.chess.heavy_piece_endgame_guidance import heavy_piece_endgame_order_bonus
-from chess_game.chess.low_material_race_guidance import low_material_race_order_bonus
-from chess_game.chess.low_material_race_guidance import endgame_race_order_bonus
-from chess_game.chess.middlegame_practicality_guidance import (
-    middlegame_practicality_order_bonus,
-)
 from chess_game.chess.endgame_choice_guidance import endgame_choice_order_bonus
+from chess_game.chess.endgame_emergency_defense import endgame_emergency_order_bonus
+from chess_game.chess.heavy_piece_endgame_guidance import (
+    heavy_piece_endgame_order_bonus,
+)
 from chess_game.chess.low_material_coordination_guidance import (
     low_material_coordination_order_bonus,
 )
-from chess_game.chess.simple_endgame_guidance import simple_endgame_order_bonus
+from chess_game.chess.low_material_race_guidance import (
+    endgame_race_order_bonus,
+    low_material_race_order_bonus,
+)
+from chess_game.chess.middlegame_practicality_guidance import (
+    middlegame_practicality_order_bonus,
+)
 from chess_game.chess.move import Move
 from chess_game.chess.opening_move_ordering import (
     opening_discipline_order_score,
@@ -45,32 +55,27 @@ from chess_game.chess.piece_coordination import (
     improves_worst_piece,
 )
 from chess_game.chess.rook_endgame_guidance import rook_endgame_order_bonus
-from chess_game.chess.structure_recognition import structure_plan_bonus
+from chess_game.chess.simple_endgame_guidance import simple_endgame_order_bonus
 from chess_game.chess.strategy_utils import (
     is_capture_move,
 )
+from chess_game.chess.structure_recognition import structure_plan_bonus
+from chess_game.chess.tactical_transition_guidance import (
+    tactical_transition_order_bonus,
+)
 from chess_game.chess.threat_awareness import threat_response_order_bonus
-from chess_game.chess.tactical_transition_guidance import tactical_transition_order_bonus
 from chess_game.chess.types import PieceType
-
-from chess_game.chess.ai_quiet_ordering_constants import (
-    QUIET_PROPHYLACTIC_LUFT_BONUS,
-    QUIET_WORST_PIECE_BONUS,
-)
-from chess_game.chess.ai_check_ordering import (
-    _check_quality_bonus,
-)
 
 # Public facade: ai_move_ordering re-exports names that moved into
 # ai_quiet_ordering_constants / ai_check_ordering, so existing imports of
 # chess_game.chess.ai_move_ordering.<name> keep resolving for callers and tests.
 __all__ = [
-    "make_quiet_order_context",
-    "quiet_strategy_order_score",
-    "is_prophylactic_h_luft",
     "QUIET_PROPHYLACTIC_LUFT_BONUS",
     "_bishop_passive_retreat_penalty",
     "_knight_threatens_minor_bonus",
+    "is_prophylactic_h_luft",
+    "make_quiet_order_context",
+    "quiet_strategy_order_score",
 ]
 
 

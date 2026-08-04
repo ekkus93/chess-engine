@@ -5,7 +5,6 @@ Extracted from ``board.py``. ``create_piece`` is re-exported by ``board.py`` (an
 the old ``Board._create_board`` instance method (it never used ``self``).
 """
 
-from typing import List, Optional
 
 from chess_game.chess.constants import (
     COL_A,
@@ -29,7 +28,7 @@ from chess_game.chess.types import Piece, PieceType
 
 
 def create_piece(
-    color: Color, piece_type: PieceType, square: Optional[ConstantSquare] = None
+    color: Color, piece_type: PieceType, square: ConstantSquare | None = None
 ) -> Piece:
     """Create a typed chess piece."""
     if isinstance(square, tuple):
@@ -42,12 +41,12 @@ def create_piece(
     return piece
 
 
-def create_starting_grid() -> List[List[Optional[Piece]]]:
+def create_starting_grid() -> list[list[Piece | None]]:
     """Create a standard chess board grid with the starting position.
 
     Canonical layout: row 0 = rank 8 (black), row 7 = rank 1 (white).
     """
-    board: List[List[Optional[Piece]]] = [
+    board: list[list[Piece | None]] = [
         [None for _ in range(8)] for _ in range(8)
     ]
 

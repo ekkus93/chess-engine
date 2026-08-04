@@ -4,10 +4,13 @@ from __future__ import annotations
 
 from chess_game.chess.ai import get_best_move
 from chess_game.chess.board import Board, create_piece
-from chess_game.chess.forced_win_guidance import forced_win_move_bonus, is_forced_win_endgame
+from chess_game.chess.forced_win_guidance import (
+    forced_win_move_bonus,
+    is_forced_win_endgame,
+)
 from chess_game.chess.move import Move
-from chess_game.chess.pawn_race_move_ordering import pawn_race_move_bonus
 from chess_game.chess.passer_race_guidance import explicit_pawn_race_tempo
+from chess_game.chess.pawn_race_move_ordering import pawn_race_move_bonus
 from chess_game.chess.simple_endgame_guidance import (
     simple_endgame_order_bonus,
     simple_endgame_root_bonus,

@@ -246,7 +246,7 @@ class EvalWeights:
     # ------------------------------------------------------------------
 
     @classmethod
-    def default(cls) -> "EvalWeights":
+    def default(cls) -> EvalWeights:
         """Return an instance with the current hardcoded baseline values."""
         return cls()
 
@@ -267,7 +267,7 @@ class EvalWeights:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict) -> "EvalWeights":
+    def from_dict(cls, data: dict) -> EvalWeights:
         """Reconstruct an ``EvalWeights`` from a dictionary (e.g. loaded from JSON)."""
         w = cls()
         sub_classes = {
@@ -315,8 +315,8 @@ class EvalWeights:
     def from_flat_list(
         cls,
         values: list[float],
-        reference: "EvalWeights | None" = None,
-    ) -> "EvalWeights":
+        reference: EvalWeights | None = None,
+    ) -> EvalWeights:
         """Reconstruct an ``EvalWeights`` from a flat list of floats.
 
         ``reference`` is only used to infer list shapes; if ``None`` a

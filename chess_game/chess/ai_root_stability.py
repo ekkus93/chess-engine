@@ -8,70 +8,84 @@ public names so existing imports keep working.
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from chess_game.chess.ai_board_utils import move_colors
+from chess_game.chess.ai_move_ordering import (
+    is_prophylactic_h_luft as _is_prophylactic_h_luft,
+)
+from chess_game.chess.ai_plan_guidance import (
+    plan_continuity_bonus,
+    practical_options_bonus,
+)
 from chess_game.chess.ai_repetition_patterns import (
     move_undoes_last_own_move,
     root_cycle_penalty,
+)
+from chess_game.chess.ai_repetition_tracking import (
+    position_occurrence_count,
 )
 from chess_game.chess.anti_drift_guidance import anti_drift_root_bonus
 from chess_game.chess.board import Board
 from chess_game.chess.board.game_state import is_in_check
 from chess_game.chess.conversion_guidance import (
-    low_material_conversion_root_bonus, winning_conversion_root_bonus,
+    low_material_conversion_root_bonus,
+    winning_conversion_root_bonus,
 )
 from chess_game.chess.defensive_containment_guidance import (
     heavy_piece_defense_root_bonus,
 )
 from chess_game.chess.defensive_endgame_guidance import defensive_endgame_root_bonus
-from chess_game.chess.ai_plan_guidance import (
-    plan_continuity_bonus,
-    practical_options_bonus,
+from chess_game.chess.defensive_priorities import (
+    DANGEROUS_KING_PRESSURE_THRESHOLD,
+    king_danger_index,
+    king_defense_profile,
+    king_needs_shelter,
 )
+from chess_game.chess.defensive_priorities import (
+    h_pawn_exposure_penalty as _h_pawn_exposure,
+)
+from chess_game.chess.endgame_choice_guidance import (
+    endgame_choice_king_activity_root_bonus,
+    endgame_choice_root_bonus,
+)
+from chess_game.chess.endgame_emergency_defense import (
+    endgame_emergency_root_bonus,
+)
+from chess_game.chess.evaluation_tables import (
+    MATERIAL_VALUES,
+    STARTING_NON_PAWN_MATERIAL,
+)
+from chess_game.chess.forced_win_guidance import forced_win_root_bonus
 from chess_game.chess.heavy_piece_endgame_guidance import heavy_piece_endgame_root_bonus
-from chess_game.chess.low_material_race_guidance import low_material_race_root_bonus
-from chess_game.chess.low_material_race_guidance import endgame_race_root_bonus
+from chess_game.chess.low_material_coordination_guidance import (
+    low_material_coordination_root_bonus,
+)
+from chess_game.chess.low_material_race_guidance import (
+    endgame_race_root_bonus,
+    low_material_race_root_bonus,
+)
 from chess_game.chess.middlegame_practicality_guidance import (
     middlegame_practicality_root_bonus,
 )
-from chess_game.chess.defensive_priorities import (
-    DANGEROUS_KING_PRESSURE_THRESHOLD,
-    king_defense_profile,
-    king_danger_index,
-    king_needs_shelter,
-    h_pawn_exposure_penalty as _h_pawn_exposure,
-)
 from chess_game.chess.move import Move
-from chess_game.chess.opening_move_ordering import (
-    opening_discipline_order_score,
-    undeveloped_minor_count,
-    _is_castled_shelter_pawn_advance,
-    _is_late_castling_move,
-)
 from chess_game.chess.opening_development import (
     middlegame_rim_knight_penalty as _rim_knight_penalty,
 )
 from chess_game.chess.opening_guidance import opening_guidance_bonus
-from chess_game.chess.ai_move_ordering import (
-    is_prophylactic_h_luft as _is_prophylactic_h_luft,
+from chess_game.chess.opening_move_ordering import (
+    _is_castled_shelter_pawn_advance,
+    _is_late_castling_move,
+    opening_discipline_order_score,
+    undeveloped_minor_count,
 )
 from chess_game.chess.passer_race_guidance import (
     passer_race_root_bonus,
 )
 from chess_game.chess.pawn_structure_evaluation import evaluate_pawn_structure
 from chess_game.chess.review_loop_guidance import review_loop_root_bonus
-from chess_game.chess.endgame_choice_guidance import (
-    endgame_choice_king_activity_root_bonus, endgame_choice_root_bonus,
-)
-from chess_game.chess.endgame_emergency_defense import (
-    endgame_emergency_root_bonus,
-)
-from chess_game.chess.low_material_coordination_guidance import low_material_coordination_root_bonus
 from chess_game.chess.simple_endgame_guidance import simple_endgame_root_bonus
-from chess_game.chess.threat_awareness import threat_response_root_bonus
-from chess_game.chess.tactical_transition_guidance import tactical_transition_root_bonus
-from chess_game.chess.forced_win_guidance import forced_win_root_bonus
 from chess_game.chess.strategy_utils import (
     is_capture_move,
     non_king_material_lead,
@@ -79,11 +93,9 @@ from chess_game.chess.strategy_utils import (
     passed_pawns_for_color,
     total_non_pawn_material,
 )
+from chess_game.chess.tactical_transition_guidance import tactical_transition_root_bonus
+from chess_game.chess.threat_awareness import threat_response_root_bonus
 from chess_game.chess.types import Color, PieceType
-from chess_game.chess.evaluation_tables import MATERIAL_VALUES, STARTING_NON_PAWN_MATERIAL
-from chess_game.chess.ai_repetition_tracking import (
-    position_occurrence_count,
-)
 
 _PAWN_STRUCTURE_CHANGE_ROOT_BONUS, _OPENING_CENTRAL_PAWN_ROOT_BONUS = 18, 14
 _MOVE1_CENTRAL_PAWN_BONUS = 320

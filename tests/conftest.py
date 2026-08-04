@@ -1,6 +1,9 @@
 from __future__ import annotations
+
 from collections.abc import Callable
+
 import pytest
+
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.coords import algebraic_to_index
 from chess_game.chess.types import Color, PieceType

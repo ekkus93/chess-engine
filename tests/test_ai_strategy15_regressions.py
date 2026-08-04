@@ -9,16 +9,17 @@ from chess_game.chess.ai import (
     get_best_move,
     get_evaluation_breakdown,
 )
-from chess_game.chess.ai_board_utils import get_legal_moves
-from chess_game.chess.ai_move_ordering import make_quiet_order_context, quiet_strategy_order_score
+from chess_game.chess.ai_board_utils import clone_with_move, get_legal_moves
+from chess_game.chess.ai_move_ordering import (
+    make_quiet_order_context,
+    quiet_strategy_order_score,
+)
 from chess_game.chess.ai_quiescence_helpers import select_quiescence_moves
 from chess_game.chess.ai_search_helpers import check_extension
-from chess_game.chess.ai_board_utils import clone_with_move
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.move import parse_move_notation
 from chess_game.chess.types import Color, PieceType
 from tests.helpers import sq
-
 
 _NO_BOOK = BestMoveOptions(use_opening_book=False)
 

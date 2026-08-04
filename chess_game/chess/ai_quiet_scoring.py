@@ -11,42 +11,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from chess_game.chess.board.attack_utils import piece_attacks_square
-from chess_game.chess.board import Board
-from chess_game.chess.constants import ConstantSquare, get_square_constant
-from chess_game.chess.defensive_priorities import (
-    DANGEROUS_KING_PRESSURE_THRESHOLD,
-    KingDefenseProfile,
-    king_defense_profile,
-    king_danger_index,
-    king_needs_shelter,
-    h_pawn_exposure_penalty,
+from chess_game.chess.ai_check_ordering import (
+    _offers_major_piece_trade,
+    _piece_value,
 )
-from chess_game.chess.evaluation_tables import MATERIAL_VALUES
-from chess_game.chess.move import Move
-from chess_game.chess.opening_move_ordering import (
-    is_repeat_heavy_piece_move as _opening_repeat_heavy_piece_move,
-    undeveloped_minor_count as _opening_undeveloped_minor_count,
-)
-from chess_game.chess.opponent_plans import OpponentPlanProfile, opponent_plan_profile
-from chess_game.chess.piece_coordination import (
-    bishop_coordination_bonus,
-    queen_coordination_bonus,
-    rook_coordination_bonus,
-    square_has_friendly_support as _square_has_friendly_support,
-)
-from chess_game.chess.rook_endgame_guidance import non_king_piece_kinds
-from chess_game.chess.strategy_utils import (
-    center_distance,
-    iter_color_pieces,
-    king_coordinates,
-    non_king_material_lead,
-    non_king_piece_count_at_most,
-    path_clear_between,
-)
-from chess_game.chess.types import Color, PieceType
-
 from chess_game.chess.ai_quiet_ordering_constants import (
+    _ADVANTAGE_PRESERVATION_HANGING_PENALTY,
+    _ADVANTAGE_PRESERVATION_MIN_LEAD,
+    _KNIGHT_THREATENS_MINOR_BONUS,
     ENDGAME_ORDER_MAX_NON_KING_PIECES,
     QUIET_ACTIVITY_CHASE_PENALTY,
     QUIET_ACTIVITY_COORDINATION_BONUS,
@@ -78,14 +50,45 @@ from chess_game.chess.ai_quiet_ordering_constants import (
     QUIET_RESTORE_BACK_RANK_BONUS,
     QUIET_ROOK_BEHIND_PASSER_BONUS,
     QUIET_URGENT_LUFT_BONUS,
-    _ADVANTAGE_PRESERVATION_HANGING_PENALTY,
-    _ADVANTAGE_PRESERVATION_MIN_LEAD,
-    _KNIGHT_THREATENS_MINOR_BONUS,
 )
-from chess_game.chess.ai_check_ordering import (
-    _offers_major_piece_trade,
-    _piece_value,
+from chess_game.chess.board import Board
+from chess_game.chess.board.attack_utils import piece_attacks_square
+from chess_game.chess.constants import ConstantSquare, get_square_constant
+from chess_game.chess.defensive_priorities import (
+    DANGEROUS_KING_PRESSURE_THRESHOLD,
+    KingDefenseProfile,
+    h_pawn_exposure_penalty,
+    king_danger_index,
+    king_defense_profile,
+    king_needs_shelter,
 )
+from chess_game.chess.evaluation_tables import MATERIAL_VALUES
+from chess_game.chess.move import Move
+from chess_game.chess.opening_move_ordering import (
+    is_repeat_heavy_piece_move as _opening_repeat_heavy_piece_move,
+)
+from chess_game.chess.opening_move_ordering import (
+    undeveloped_minor_count as _opening_undeveloped_minor_count,
+)
+from chess_game.chess.opponent_plans import OpponentPlanProfile, opponent_plan_profile
+from chess_game.chess.piece_coordination import (
+    bishop_coordination_bonus,
+    queen_coordination_bonus,
+    rook_coordination_bonus,
+)
+from chess_game.chess.piece_coordination import (
+    square_has_friendly_support as _square_has_friendly_support,
+)
+from chess_game.chess.rook_endgame_guidance import non_king_piece_kinds
+from chess_game.chess.strategy_utils import (
+    center_distance,
+    iter_color_pieces,
+    king_coordinates,
+    non_king_material_lead,
+    non_king_piece_count_at_most,
+    path_clear_between,
+)
+from chess_game.chess.types import Color, PieceType
 
 
 @dataclass(frozen=True)

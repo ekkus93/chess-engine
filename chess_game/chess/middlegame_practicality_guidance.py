@@ -4,8 +4,14 @@ from dataclasses import dataclass
 
 from chess_game.chess.ai_repetition_patterns import move_undoes_last_own_move
 from chess_game.chess.board import Board
+from chess_game.chess.defensive_priorities import king_defense_profile
+from chess_game.chess.evaluation_tables import (
+    MATERIAL_VALUES,
+    STARTING_NON_PAWN_MATERIAL,
+)
 from chess_game.chess.move import Move
 from chess_game.chess.opening_development import (
+    minor_on_home_square,
     opening_central_control_bonus,
     opening_king_safety_score,
     opening_king_urgency_penalty,
@@ -13,19 +19,18 @@ from chess_game.chess.opening_development import (
     opening_rook_connection_bonus,
     undeveloped_minor_piece_count,
 )
-from chess_game.chess.evaluation_tables import MATERIAL_VALUES, STARTING_NON_PAWN_MATERIAL
 from chess_game.chess.opponent_plans import opponent_plan_profile
-from chess_game.chess.opening_development import minor_on_home_square
 from chess_game.chess.strategy_utils import (
     clone_legal_child_board,
-    iter_color_pieces as _iter_color_pieces,
     materially_behind_color,
     non_king_material_lead,
     non_king_piece_kinds,
-    total_non_pawn_material,
     scale_signed,
+    total_non_pawn_material,
 )
-from chess_game.chess.defensive_priorities import king_defense_profile
+from chess_game.chess.strategy_utils import (
+    iter_color_pieces as _iter_color_pieces,
+)
 from chess_game.chess.types import Color, PieceType
 
 _ORDER_SCALE = 4

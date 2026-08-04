@@ -1,7 +1,11 @@
 """Shared helpers for strategic evaluation and move ordering."""
 
 from chess_game.chess.board import Board
-from chess_game.chess.constants import ConstantSquare, get_col_constant, get_row_constant
+from chess_game.chess.constants import (
+    ConstantSquare,
+    get_col_constant,
+    get_row_constant,
+)
 from chess_game.chess.evaluation_tables import MATERIAL_VALUES
 from chess_game.chess.move import Move
 from chess_game.chess.types import Color, PieceType

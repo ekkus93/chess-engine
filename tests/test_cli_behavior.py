@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch, MagicMock
-from chess_game.chess.constants import ROW_2, ROW_4, COL_E
-from chess_game.chess.move import parse_move_notation
-from chess_game.chess.types import Color, PieceType
+from unittest.mock import MagicMock, patch
+
 import pytest
 
+from chess_game.chess.constants import COL_E, ROW_2, ROW_4
+from chess_game.chess.move import parse_move_notation
+from chess_game.chess.types import Color, PieceType
 
 # ---------- parse_move_notation edge cases ---------- #
 

@@ -10,10 +10,10 @@ does not depend back on ``ai.py``. ``ai.py`` re-exports ``quiescence`` and calls
 
 from __future__ import annotations
 
-from typing import Optional
-
 from chess_game.chess.ai_board_utils import (
     clone_with_move as _make_copy_with_move,
+)
+from chess_game.chess.ai_board_utils import (
     get_legal_moves,
 )
 from chess_game.chess.ai_quiescence_helpers import (
@@ -44,14 +44,14 @@ from chess_game.chess.move import Move
 from chess_game.chess.types import Color
 
 
-def _record_quiescence_node(context: Optional[SearchContext]) -> None:
+def _record_quiescence_node(context: SearchContext | None) -> None:
     """Increment quiescence counters when diagnostics are enabled."""
 
     if context is not None and context.stats is not None:
         context.stats.quiescence_nodes += 1
 
 
-def _record_tactical_width(context: Optional[SearchContext], width: int) -> None:
+def _record_tactical_width(context: SearchContext | None, width: int) -> None:
     """Record tactical branching diagnostics."""
 
     if context is None or context.stats is None:
@@ -224,7 +224,7 @@ def quiescence(
     beta: int,
     is_maximizing: bool,
     *,
-    context: Optional[SearchContext] = None,
+    context: SearchContext | None = None,
     depth_remaining: int = MAX_QUIESCENCE_DEPTH,
 ) -> int:
     """Extend tactical leaf nodes through captures and promotions."""

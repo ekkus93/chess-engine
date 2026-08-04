@@ -1,7 +1,6 @@
 """Text User Interface for the chess engine."""
 from __future__ import annotations
 
-
 from textual import on
 from textual.app import App, ComposeResult
 from textual.containers import Vertical
@@ -27,10 +26,10 @@ from chess_game.tui_game import (
 # so chess_game.tui.<name> keeps resolving for callers and tests.
 __all__ = [
     "ChessApp",
-    "MainMenuScreen",
-    "GameScreen",
-    "ResignConfirmScreen",
     "EngineMoveMessage",
+    "GameScreen",
+    "MainMenuScreen",
+    "ResignConfirmScreen",
     "_GameConfig",
     "main",
 ]

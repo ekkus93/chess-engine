@@ -19,7 +19,6 @@ from chess_game.chess.threat_awareness import (
 from chess_game.chess.types import Color, PieceType
 from tests.helpers import sq
 
-
 # ---------------------------------------------------------------------------
 # ThreatWeights
 # ---------------------------------------------------------------------------

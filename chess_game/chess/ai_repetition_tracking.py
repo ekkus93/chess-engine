@@ -8,8 +8,9 @@ public names so existing imports keep working.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Optional
+from typing import Any
 
 from chess_game.chess.board import Board
 from chess_game.chess.types import Color
@@ -29,9 +30,9 @@ class RepetitionPolicy:
 
 def search_position_counts(
     board: Board,
-    position_counts: Optional[dict[str, int]],
+    position_counts: dict[str, int] | None,
     position_key: Callable[[Board], str],
-) -> Optional[dict[str, int]]:
+) -> dict[str, int] | None:
     """Return repetition counts adjusted so the current root is not double-counted."""
 
     if position_counts is None:
@@ -71,7 +72,7 @@ def repetition_score(
     context: Any,
     line_history: tuple[str, ...],
     policy: RepetitionPolicy,
-) -> Optional[int]:
+) -> int | None:
     """Return a repetition-draw score, biased against the side wasting an advantage."""
 
     if position_occurrence_count(board, context, line_history, policy.position_key) < 3:

@@ -1,8 +1,7 @@
 """Regression coverage for ENDGAME_FIX2 endgame-defense refinements."""
 
-from chess_game.chess.ai import get_evaluation_breakdown
 from chess_game.chess import ai
-from chess_game.chess.ai import position_key
+from chess_game.chess.ai import get_evaluation_breakdown, position_key
 from chess_game.chess.ai_search_helpers import RepetitionPolicy, repetition_score
 from chess_game.chess.board import Board, create_piece
 from chess_game.chess.endgame_emergency_defense import _emergency_context
@@ -10,8 +9,8 @@ from chess_game.chess.low_material_race_guidance import (
     endgame_race_context,
     endgame_race_order_bonus,
 )
-from chess_game.chess.rook_endgame_guidance import rook_endgame_order_bonus
 from chess_game.chess.move import Move
+from chess_game.chess.rook_endgame_guidance import rook_endgame_order_bonus
 from chess_game.chess.types import Color, PieceType
 from tests.helpers import sq
 from tests.test_ai_quality import _move_order_score

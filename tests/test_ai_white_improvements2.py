@@ -7,9 +7,9 @@ the tests remain self-contained and do not depend on game artifacts in tmp/.
 from __future__ import annotations
 
 from chess_game.chess.ai_move_ordering import (
+    QUIET_PROPHYLACTIC_LUFT_BONUS,
     is_prophylactic_h_luft,
     quiet_strategy_order_score,
-    QUIET_PROPHYLACTIC_LUFT_BONUS,
 )
 from chess_game.chess.board.board import Board, create_piece
 from chess_game.chess.move import Move, parse_move_notation
@@ -104,7 +104,9 @@ def test_prophylactic_luft_constant_positive() -> None:
 
 def test_tactical_transition_does_not_penalise_h3() -> None:
     """h2-h3 (1-square advance) should not receive shelter-loosening penalty."""
-    from chess_game.chess.tactical_transition_guidance import tactical_transition_order_bonus
+    from chess_game.chess.tactical_transition_guidance import (
+        tactical_transition_order_bonus,
+    )
     board = _pos_white_castled_g1()
     h3 = _m("h2h3")
     bonus = tactical_transition_order_bonus(board, h3)
@@ -127,7 +129,9 @@ def test_late_castling_urgency_fires_when_uncastled_with_queens() -> None:
 
 def test_castling_urgency_bonus_increased() -> None:
     """QUIET_OPENING_CASTLING_URGENCY_BONUS should be at least 50."""
-    from chess_game.chess.opening_move_ordering import QUIET_OPENING_CASTLING_URGENCY_BONUS
+    from chess_game.chess.opening_move_ordering import (
+        QUIET_OPENING_CASTLING_URGENCY_BONUS,
+    )
     assert QUIET_OPENING_CASTLING_URGENCY_BONUS >= 50
 
 

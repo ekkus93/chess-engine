@@ -6,9 +6,9 @@ import pytest
 
 from chess_game.chess.ai import BestMoveOptions, get_best_move
 from chess_game.chess.board import Board, create_piece
+from chess_game.chess.move import parse_move_notation
 from chess_game.chess.position_utils import position_key
 from chess_game.chess.types import Color, LegalMove, PieceType
-from chess_game.chess.move import parse_move_notation
 from tests.helpers import sq
 
 

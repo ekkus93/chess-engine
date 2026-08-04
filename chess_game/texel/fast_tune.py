@@ -26,9 +26,7 @@ from chess_game.chess.ai_weight_cache import invalidate_weights_cache
 from chess_game.chess.eval_weights import EvalWeights
 from chess_game.texel.features import FeatureMatrix
 from chess_game.texel.learn_loop import RoundResult
-
 from chess_game.texel.weights_io import TUNED_WEIGHTS_PATH, save_weights
-
 
 _LN10 = float(np.log(10.0))
 

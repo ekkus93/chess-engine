@@ -78,7 +78,7 @@ def _stub_tuning(
     monkeypatch.setattr(learn_loop, "calibrate_k", lambda pairs, w: 1.0)
     monkeypatch.setattr(learn_loop, "optimize", lambda w, db, opts: candidate_weights)
 
-    def fake_mse(pairs, weights, opts=None):  # noqa: ANN001
+    def fake_mse(pairs, weights, opts=None):
         return candidate if weights is candidate_weights else baseline
 
     monkeypatch.setattr(learn_loop, "mean_squared_error", fake_mse)

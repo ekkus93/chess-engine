@@ -15,7 +15,6 @@ from __future__ import annotations
 import json
 import math
 from pathlib import Path
-from typing import Optional
 
 from chess_game.texel.position_db import PositionDB, PositionStats
 
@@ -30,13 +29,13 @@ class AnnotatedPositionDB(PositionDB):
 
     def __init__(self) -> None:
         super().__init__()
-        self.sf_scores: dict[str, Optional[int]] = {}
+        self.sf_scores: dict[str, int | None] = {}
 
     def has_annotations(self) -> bool:
         """Return True if any position has a non-None ``sf_score_cp``."""
         return any(v is not None for v in self.sf_scores.values())
 
-    def annotated_pairs(self) -> list[tuple[str, Optional[int]]]:
+    def annotated_pairs(self) -> list[tuple[str, int | None]]:
         """Return ``(fen, sf_score_cp)`` for every position in the DB.
 
         Positions with no entry in ``sf_scores`` yield ``None`` as the score.
@@ -71,14 +70,14 @@ class AnnotatedPositionDB(PositionDB):
             self.sf_scores[pos] = _parse_sf_score(rec["sf_score_cp"])
 
     @classmethod
-    def load(cls, path: Path) -> "AnnotatedPositionDB":
+    def load(cls, path: Path) -> AnnotatedPositionDB:
         """Load an annotated DB from a JSONL file."""
         db = cls()
         db._read_rows(path)
         return db
 
 
-def _parse_sf_score(raw: object) -> Optional[int]:
+def _parse_sf_score(raw: object) -> int | None:
     """Return a validated sf_score_cp integer or None."""
     if raw is None:
         return None
@@ -91,7 +90,7 @@ def _parse_sf_score(raw: object) -> Optional[int]:
 
 def save_annotated(
     db: PositionDB,
-    scores: dict[str, Optional[int]],
+    scores: dict[str, int | None],
     path: Path,
 ) -> None:
     """Merge *db* with Stockfish *scores* and save to *path*.
@@ -111,7 +110,7 @@ def save_annotated(
 
     with path.open("w", encoding="utf-8") as f:
         for fen, _ in pairs:
-            stats: Optional[PositionStats] = stats_map[fen]
+            stats: PositionStats | None = stats_map[fen]
             if stats is None:
                 continue
             entry: dict = {

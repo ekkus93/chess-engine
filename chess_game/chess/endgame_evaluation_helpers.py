@@ -14,7 +14,6 @@ from chess_game.chess.evaluation_tables import (
     MATERIAL_VALUES,
 )
 from chess_game.chess.rook_endgame_guidance import rook_positions
-
 from chess_game.chess.strategy_utils import (
     center_distance,
     is_passed_pawn,

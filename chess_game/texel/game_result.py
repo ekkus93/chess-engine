@@ -1,9 +1,8 @@
 """Game result parsing utilities."""
 
-from typing import Optional
 
 
-def outcome_from_message(message: str) -> Optional[float]:
+def outcome_from_message(message: str) -> float | None:
     """Convert a terminal-message string to a Texel outcome float.
 
     Returns 1.0 if White wins, 0.0 if Black wins, 0.5 for any draw,

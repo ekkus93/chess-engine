@@ -5,14 +5,15 @@ import time
 import pytest
 
 from chess_game import self_play
-from chess_game.self_play import _SelfPlayOptions, run_self_play
 from chess_game.chess.ai import SearchStats, minimax, minimax_no_prune
 from chess_game.chess.board import Board
 from chess_game.chess.types import Color, LegalMove
+from chess_game.self_play import _SelfPlayOptions, run_self_play
 from tests.helpers import (
     make_search_context,
     make_search_params,
 )
+
 
 def test_depth_2_search_completes():
     """Depth-2 search on a standard position should complete within reasonable time."""

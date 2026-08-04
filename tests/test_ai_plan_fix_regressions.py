@@ -10,7 +10,6 @@ from chess_game.chess.coords import algebraic_to_index
 from chess_game.chess.types import Color, PieceType
 from tests.helpers import sq
 
-
 pytestmark = pytest.mark.slow
 
 

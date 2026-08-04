@@ -1,22 +1,18 @@
 """Opening-phase development helpers shared by evaluation and ordering."""
 
 from chess_game.chess.board import Board
-from chess_game.chess.constants import ConstantSquare, get_col_constant, get_row_constant
+from chess_game.chess.constants import (
+    ConstantSquare,
+    get_col_constant,
+    get_row_constant,
+)
 from chess_game.chess.eval_weights import EvalWeights
 from chess_game.chess.evaluation_tables import (
-    CENTRAL_SQUARES,
     CENTER_FILES,
+    CENTRAL_SQUARES,
     EXTENDED_CENTER_FILES,
     EXTENDED_CENTER_RANKS,
 )
-from chess_game.chess.strategy_utils import (
-    both_queens_on_board,
-    iter_color_pieces,
-    path_clear_between,
-    pawn_supports_square,
-    shield_pawn_support_state,
-)
-from chess_game.chess.types import Color, PieceType
 from chess_game.chess.opening_development_helpers import (
     _castling_options_remaining,
     _distant_queen_from_king_penalty,
@@ -32,6 +28,14 @@ from chess_game.chess.opening_development_helpers import (
     _queens_on_board,
     _uncastled_shell_penalty,
 )
+from chess_game.chess.strategy_utils import (
+    both_queens_on_board,
+    iter_color_pieces,
+    path_clear_between,
+    pawn_supports_square,
+    shield_pawn_support_state,
+)
+from chess_game.chess.types import Color, PieceType
 
 
 def opening_central_control_bonus(

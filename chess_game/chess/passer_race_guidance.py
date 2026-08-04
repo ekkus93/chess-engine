@@ -2,16 +2,38 @@
 
 from chess_game.chess.board import Board
 from chess_game.chess.move import Move
-from chess_game.chess.types import Color, PieceType
-
 from chess_game.chess.passer_race_helpers import (
+    _ACTIVE_ENEMY_HEAVY_PENALTY,
+    _ALLOWED_RACE_KINDS,
+    _BLOCKADE_PENALTY,
+    _CHECK_DISRUPTION_PENALTY,
+    _CHECKMATE_RESOLUTION_BONUS,
+    _CLEAR_PATH_BONUS,
+    _CONNECTED_PASSER_BONUS,
     _COSMETIC_CHECK_PENALTY,
+    _CRITICAL_ZONE_BONUS,
     _DIRECT_PUSH_BONUS,
+    _ENEMY_PASSER_DANGER_BONUS,
     _ESCORT_BONUS,
     _EVAL_SCALE,
+    _EXPLICIT_TEMPO_MARGIN_BONUS,
+    _HEAVY_SUPPORT_BONUS,
+    _HIGH_PRIORITY_PUSH_BONUS,
+    _KING_SUPPORT_BONUS,
+    _LOSING_SIDE_BAD_RACE_PENALTY,
+    _LOSING_SIDE_IRRELEVANT_ACTIVITY_PENALTY,
+    _MAX_NON_KING_PIECES,
     _ORDER_SCALE,
+    _OUTSIDE_PASSER_BONUS,
+    _PASSER_PROGRESS_BONUS,
     _PROMOTION_RESOLUTION_BONUS,
+    _PROMOTION_SQUARE_PENALTY,
+    _PROTECTED_PASSER_BONUS,
+    _RACE_TEMPO_BONUS,
     _ROOT_SCALE,
+    _STALEMATE_RESOLUTION_PENALTY,
+    _TIED_DOWN_DEFENDER_BONUS,
+    _UNSTOPPABLE_PASSER_BONUS,
     _defender_escape_bonus,
     _explicit_pawn_race_tempo,
     _has_relevant_race_targets,
@@ -28,43 +50,11 @@ from chess_game.chess.passer_race_helpers import (
     _passes_material_gate,
     _relative_race_score,
 )
-from chess_game.chess.passer_race_helpers import (
-    _ACTIVE_ENEMY_HEAVY_PENALTY,
-    _ALLOWED_RACE_KINDS,
-    _BLOCKADE_PENALTY,
-    _CHECKMATE_RESOLUTION_BONUS,
-    _CHECK_DISRUPTION_PENALTY,
-    _CLEAR_PATH_BONUS,
-    _CONNECTED_PASSER_BONUS,
-    _CRITICAL_ZONE_BONUS,
-    _ENEMY_PASSER_DANGER_BONUS,
-    _EXPLICIT_TEMPO_MARGIN_BONUS,
-    _HEAVY_SUPPORT_BONUS,
-    _HIGH_PRIORITY_PUSH_BONUS,
-    _KING_SUPPORT_BONUS,
-    _LOSING_SIDE_BAD_RACE_PENALTY,
-    _LOSING_SIDE_IRRELEVANT_ACTIVITY_PENALTY,
-    _MAX_NON_KING_PIECES,
-    _OUTSIDE_PASSER_BONUS,
-    _PASSER_PROGRESS_BONUS,
-    _PROMOTION_SQUARE_PENALTY,
-    _PROTECTED_PASSER_BONUS,
-    _RACE_TEMPO_BONUS,
-    _STALEMATE_RESOLUTION_PENALTY,
-    _TIED_DOWN_DEFENDER_BONUS,
-    _UNSTOPPABLE_PASSER_BONUS,
-)
+from chess_game.chess.types import Color, PieceType
 
 # Public facade: helper layer moved to passer_race_helpers; re-export the names
 # callers/tests import from chess_game.chess.passer_race_guidance.
 __all__ = [
-    "passer_race_evaluation_score",
-    "passer_race_order_bonus",
-    "passer_race_root_bonus",
-    "passer_race_extension_bonus",
-    "is_pawn_race_tempo_position",
-    "explicit_pawn_race_tempo",
-    "_passes_material_gate",
     "_ACTIVE_ENEMY_HEAVY_PENALTY",
     "_ALLOWED_RACE_KINDS",
     "_BLOCKADE_PENALTY",
@@ -96,6 +86,13 @@ __all__ = [
     "_STALEMATE_RESOLUTION_PENALTY",
     "_TIED_DOWN_DEFENDER_BONUS",
     "_UNSTOPPABLE_PASSER_BONUS",
+    "_passes_material_gate",
+    "explicit_pawn_race_tempo",
+    "is_pawn_race_tempo_position",
+    "passer_race_evaluation_score",
+    "passer_race_extension_bonus",
+    "passer_race_order_bonus",
+    "passer_race_root_bonus",
 ]
 
 

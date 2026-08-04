@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
-from chess_game.chess.constants import get_row_constant, get_col_constant
-from chess_game.chess.types import Piece
-from chess_game.chess.constants import ConstantSquare
 from chess_game.chess.board.attack_utils import _path_is_clear
+from chess_game.chess.constants import (
+    ConstantSquare,
+    get_col_constant,
+    get_row_constant,
+)
+from chess_game.chess.types import Piece
 
 if TYPE_CHECKING:
     from chess_game.chess.board.board import Board
@@ -18,10 +21,10 @@ class PathValidator:
 
     @staticmethod
     def is_path_clear(
-        board: "Board",
+        board: Board,
         from_square: ConstantSquare,
         to_square: ConstantSquare,
-        _ignore_color: Optional[int] = None,
+        _ignore_color: int | None = None,
     ) -> bool:
         """Check if the path between two squares is clear (no pieces blocking)."""
         if from_square == to_square:
@@ -30,8 +33,8 @@ class PathValidator:
 
     @staticmethod
     def is_piece_between(
-        board: "Board", from_square: ConstantSquare, to_square: ConstantSquare
-    ) -> Optional[Piece]:
+        board: Board, from_square: ConstantSquare, to_square: ConstantSquare
+    ) -> Piece | None:
         """Get the piece between two squares if any."""
         if from_square == to_square:
             return None

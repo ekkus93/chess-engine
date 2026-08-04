@@ -30,13 +30,20 @@ from textual.widgets import (
 )
 
 from chess_game.chess import Board, Color, PieceType
-from chess_game.chess.types import LegalMove
+from chess_game.chess.ai import BestMoveOptions, get_best_move
+from chess_game.chess.board.game_state import (
+    is_in_check,
+    record_position,
+    terminal_message,
+)
 from chess_game.chess.coords import index_to_algebraic
 from chess_game.chess.move import parse_move_notation
-from chess_game.chess.ai import BestMoveOptions, get_best_move
-from chess_game.chess.board.game_state import is_in_check, record_position, terminal_message
+from chess_game.chess.types import LegalMove
 from chess_game.texel.game_result import outcome_from_message
-from chess_game.texel.online_learning import OnlineLearningConfig, record_game_and_update_weights
+from chess_game.texel.online_learning import (
+    OnlineLearningConfig,
+    record_game_and_update_weights,
+)
 from chess_game.texel.position_db import GameRecord
 from chess_game.texel.weights_io import TUNED_WEIGHTS_PATH
 

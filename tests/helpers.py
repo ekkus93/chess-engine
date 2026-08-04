@@ -1,8 +1,7 @@
 """Helper functions for tests."""
 
 from chess_game.chess.ai import MinimaxParams, SearchContext
-from chess_game.chess.board import Board, ConstantSquare
-from chess_game.chess.board import create_piece
+from chess_game.chess.board import Board, ConstantSquare, create_piece
 from chess_game.chess.coords import algebraic_to_index
 from chess_game.chess.types import Color, PieceType
 
