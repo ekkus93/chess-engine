@@ -21,11 +21,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Archive source tree
-        run: tar --exclude=.git -czf /tmp/chess-engine-rust-engine.tar.gz .
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+      - name: Archive branch checkout
+        run: tar -czf /tmp/chess-engine-rust-engine-with-git.tar.gz .
       - uses: actions/upload-artifact@v4
         with:
-          name: task22-source-tree
-          path: /tmp/chess-engine-rust-engine.tar.gz
+          name: task22-source-tree-with-git
+          path: /tmp/chess-engine-rust-engine-with-git.tar.gz
           if-no-files-found: error
           retention-days: 1
