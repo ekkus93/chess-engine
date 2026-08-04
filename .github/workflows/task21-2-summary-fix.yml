@@ -34,3 +34,5 @@ jobs:
           git add docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md
           git commit -m 'docs: correct Task 21 program summary'
           git push origin HEAD:master
+
+# Triggered after the workflow became active on master.
