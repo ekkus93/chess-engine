@@ -26,10 +26,8 @@ use chess_search::{
 };
 use chess_tools::benchmark_cancellation;
 
-const STARTING_FEN: &str =
-    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-const KIWIPETE_FEN: &str =
-    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+const STARTING_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+const KIWIPETE_FEN: &str = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
 const ENDGAME_FEN: &str = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1";
 const TACTICAL_FEN: &str =
     "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10";
@@ -323,10 +321,15 @@ fn make_unmake_summary(samples: usize, scale: u64) -> Result<BenchmarkSummary, S
 fn full_hash_summary(samples: usize, scale: u64) -> Result<BenchmarkSummary, String> {
     let positions = parse_positions()?;
     let position_count = positions.len() as u64;
-    run_benchmark("hash.full_recompute", samples, 50_000 * scale, |iteration| {
-        let position = &positions[(iteration % position_count) as usize];
-        Ok(position.recomputed_zobrist())
-    })
+    run_benchmark(
+        "hash.full_recompute",
+        samples,
+        50_000 * scale,
+        |iteration| {
+            let position = &positions[(iteration % position_count) as usize];
+            Ok(position.recomputed_zobrist())
+        },
+    )
 }
 
 fn incremental_hash_summary(samples: usize, scale: u64) -> Result<BenchmarkSummary, String> {
@@ -402,7 +405,8 @@ fn fixed_node_search_summary(
         let root = position.clone();
         let mut history = SearchHistory::from_position(&position);
         let history_root = history.clone();
-        let mut table = TranspositionTable::new(TABLE_MEBIBYTES).map_err(|error| error.to_string())?;
+        let mut table =
+            TranspositionTable::new(TABLE_MEBIBYTES).map_err(|error| error.to_string())?;
         let limits = SearchLimits::new().with_nodes(SEARCH_NODE_LIMIT);
 
         start_allocation_tracking();
@@ -437,8 +441,8 @@ fn fixed_node_search_summary(
 }
 
 fn transposition_store_summary(samples: usize, scale: u64) -> Result<BenchmarkSummary, String> {
-    let normalized = TranspositionScore::normalize(Score::ZERO, 0)
-        .map_err(|error| error.to_string())?;
+    let normalized =
+        TranspositionScore::normalize(Score::ZERO, 0).map_err(|error| error.to_string())?;
     let mut table = TranspositionTable::new(TABLE_MEBIBYTES).map_err(|error| error.to_string())?;
     run_benchmark("tt.store", samples, 100_000 * scale, |iteration| {
         let key = iteration
@@ -459,8 +463,8 @@ fn transposition_store_summary(samples: usize, scale: u64) -> Result<BenchmarkSu
 }
 
 fn transposition_probe_summary(samples: usize, scale: u64) -> Result<BenchmarkSummary, String> {
-    let normalized = TranspositionScore::normalize(Score::ZERO, 0)
-        .map_err(|error| error.to_string())?;
+    let normalized =
+        TranspositionScore::normalize(Score::ZERO, 0).map_err(|error| error.to_string())?;
     let mut table = TranspositionTable::new(TABLE_MEBIBYTES).map_err(|error| error.to_string())?;
     let fixture_entries = table.entry_capacity().min(16_384);
     for index in 0..fixture_entries {
@@ -598,7 +602,13 @@ fn ffi_search_summary(samples: usize) -> Result<BenchmarkSummary, String> {
         allocations.push(allocation_snapshot);
     }
 
-    Ok(summarize("ffi.search_nodes", 1, elapsed, allocations, checksum))
+    Ok(summarize(
+        "ffi.search_nodes",
+        1,
+        elapsed,
+        allocations,
+        checksum,
+    ))
 }
 
 fn print_summaries(summaries: &[BenchmarkSummary]) {
@@ -631,13 +641,7 @@ fn baseline(samples: usize, scale: u64) -> Result<(), String> {
         full_hash_summary(samples, scale)?,
         incremental_hash_summary(samples, scale)?,
         evaluation_summary(samples, scale)?,
-        perft_summary(
-            "perft.starting.depth4",
-            STARTING_FEN,
-            4,
-            197_281,
-            samples,
-        )?,
+        perft_summary("perft.starting.depth4", STARTING_FEN, 4, 197_281, samples)?,
         perft_summary("perft.kiwipete.depth3", KIWIPETE_FEN, 3, 97_862, samples)?,
         perft_summary("perft.endgame.depth4", ENDGAME_FEN, 4, 43_238, samples)?,
         fixed_node_search_summary("search.starting.nodes20000", STARTING_FEN, samples)?,
