@@ -1,4 +1,4 @@
-name: Task 21.5 Opening Identity Hardening
+name: Task 21.5 Production Control Match
 
 on:
   pull_request:
@@ -9,11 +9,11 @@ permissions:
   contents: write
 
 concurrency:
-  group: task21-5-opening-identity-hardening
+  group: task21-5-production-control-match
   cancel-in-progress: false
 
 jobs:
-  harden:
+  control:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -26,10 +26,10 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Apply opening identity hardening
-        run: python3 .github/task21-5-opening-identity-hardening.py
+      - name: Add production control match
+        run: python3 .github/task21-5-production-control-test.py
 
-      - name: Validate candidate protocol
+      - name: Validate protocol and run 400-game control
         shell: bash
         run: |
           set -euo pipefail
@@ -37,13 +37,14 @@ jobs:
           cargo check --workspace --all-targets --locked
           cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
           cargo test -p chess-tools --all-features --locked
+          cargo test -p chess-tools production_control_match_runs_four_hundred_games -- --ignored --nocapture
 
-      - name: Commit opening identity hardening
+      - name: Commit production control regression
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add crates/chess-tools/src/candidate_validation.rs docs/RUST_CANDIDATE_VALIDATION.md
-          git commit -m 'task 21.5: reject duplicate semantic openings'
+          git add crates/chess-tools/src/candidate_validation.rs
+          git commit -m 'test: add Task 21.5 production control match'
           git push origin HEAD:rust-engine
