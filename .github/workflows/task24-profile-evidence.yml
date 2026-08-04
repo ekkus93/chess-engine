@@ -1,0 +1,78 @@
+name: Task 24 Profile Evidence
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/task24-profile-evidence.yml
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  profile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Callgrind
+        run: sudo apt-get update && sudo apt-get install --yes valgrind
+
+      - name: Build profiling harness
+        run: cargo build --locked --release -p chess-tools --bin performance
+
+      - name: Profile release perft
+        run: >-
+          valgrind --tool=callgrind --callgrind-out-file=callgrind.perft.out
+          target/release/performance profile-perft
+
+      - name: Profile fixed-node search
+        run: >-
+          valgrind --tool=callgrind --callgrind-out-file=callgrind.search.out
+          target/release/performance profile-search
+
+      - name: Render profile summaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          callgrind_annotate --inclusive=yes --threshold=0.5 callgrind.perft.out > callgrind.perft.txt
+          callgrind_annotate --inclusive=yes --threshold=0.5 callgrind.search.out > callgrind.search.txt
+          sed -n '1,120p' callgrind.perft.txt
+          sed -n '1,160p' callgrind.search.txt
+
+      - name: Preserve profiling evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: task24-callgrind-${{ github.sha }}
+          path: |
+            callgrind.perft.out
+            callgrind.perft.txt
+            callgrind.search.out
+            callgrind.search.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Record exact profiling run
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = [
+              'Task 24 Callgrind profiling',
+              `- head: \`${context.sha}\``,
+              `- run: https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              `- id: \`${context.runId}\``,
+              `- job status: \`${{ job.status }}\``,
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 265,
+              body,
+            });
