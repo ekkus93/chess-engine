@@ -3,11 +3,12 @@ name: Task 24 CI Observer
 on:
   workflow_run:
     workflows:
-      - Rust
-      - Android
+      - CI
+      - Android JNI
       - Robustness
       - Performance
     types:
+      - requested
       - completed
 
 permissions:
@@ -21,13 +22,14 @@ jobs:
       github.event.workflow_run.head_branch == 'master'
     runs-on: ubuntu-24.04
     steps:
-      - name: Record exact validation result
+      - name: Record exact validation state
         uses: actions/github-script@v7
         with:
           script: |
             const run = context.payload.workflow_run;
             const body = [
               `Task 24 validation: **${run.name}**`,
+              `- event: \`${context.payload.action}\``,
               `- head: \`${run.head_sha}\``,
               `- run: ${run.html_url}`,
               `- id: \`${run.id}\``,
