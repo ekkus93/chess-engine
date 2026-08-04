@@ -1,17 +1,16 @@
 name: Apply Task 24 Initial Implementation
 
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - .github/workflows/source-export.yml
+  issues:
+    types:
+      - opened
 
 permissions:
   contents: write
 
 jobs:
   apply:
+    if: github.event.issue.title == '[internal] Apply Task 24 implementation'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
