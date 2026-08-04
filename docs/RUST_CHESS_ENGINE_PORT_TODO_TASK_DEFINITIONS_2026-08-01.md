@@ -1176,17 +1176,28 @@ Implement the specification's exact D1-D4 counts for:
 - Rust run/job: `30897085986` / `91952447573`.
 - Android run/jobs: `30897085023` / `91952460052`, `91952460064`, `91952460121`.
 - Seeded SplitMix64 SPSA, explicit schedules, bounded and material-valid projection, L2 regularization, training-only updates, validation-only observation, fixed-schema checksummed checkpoints, and exact resume equivalence are implemented and permanently validated.
-- [ ] Resume validation.
+- [x] Resume validation.
 
 ## 21.4 Reports
 
-- [ ] Initial training loss.
-- [ ] Initial validation loss.
-- [ ] Final training loss.
-- [ ] Final validation loss.
-- [ ] Parameter deltas.
-- [ ] Dataset and engine identifiers.
-- [ ] Exact command/config.
+- [x] Initial training loss.
+- [x] Initial validation loss.
+- [x] Final training loss.
+- [x] Final validation loss.
+- [x] Parameter deltas.
+- [x] Dataset and engine identifiers.
+- [x] Exact command/config.
+
+### Task 21.4 completion evidence
+
+- Versioned report implementation: `crates/chess-tools/src/tuning/report.rs`.
+- Task 20 provenance adapter: `crates/chess-tools/src/tuning.rs`.
+- Contract documentation: `docs/RUST_TUNING_REPORTS.md`.
+- Exact helper-free validated implementation head: `fd179e57462226392ab9c61bc9f26bc7cbb63cc1`.
+- Rust run/job: `30929481202` / `92060204891`.
+- Android run/jobs: `30929479894` / `92060200320`, `92060200325`, `92060200573`.
+- Reports bind initial/final training and validation MSE, all 810 named parameter deltas, Task 20 and optimizer/checkpoint identities, engine/source/weight identifiers, exact command/configuration, and a semantic checksum.
+- Candidate artifacts use the existing versioned named schema and remain explicitly inactive pending Task 21.5.
 
 ## 21.5 Candidate validation
 

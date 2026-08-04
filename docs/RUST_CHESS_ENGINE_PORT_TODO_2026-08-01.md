@@ -42,7 +42,7 @@
 | 18 | **Complete** — safe API, C ABI, JNI, host JVM, and Android emulator harness. |
 | 19 | **Complete** — optional explicit opening-book support, indexed format, legal reproducible policies, adapter integration, and permanent verification gate. |
 | 20 | **Complete** — deterministic offline self-play and validated versioned datasets. |
-| 21 | **In progress** — Tasks 21.1–21.3 complete; Tasks 21.4–21.5 remain. |
+| 21 | **In progress** — Tasks 21.1–21.4 complete; Task 21.5 remains. |
 | 22–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
@@ -1031,7 +1031,7 @@ Evidence:
 - [x] 21.1 Weights.
 - [x] 21.2 Loss.
 - [x] 21.3 Optimizer.
-- [ ] 21.4 Reports.
+- [x] 21.4 Reports.
 - [ ] 21.5 Validation.
 
 ### Task 21.3 completion evidence
@@ -1042,7 +1042,18 @@ Evidence:
 - Rust run/job: `30897085986` / `91952447573`.
 - Android run/jobs: `30897085023` / `91952460052`, `91952460064`, `91952460121`.
 - Permanent formatting, workspace check, strict Clippy, complete Rust tests, release perft, rustdoc, debug/release builds, differential validation, Android/Kotlin lint, host JNI, and API-35 instrumentation passed.
-- Task 21.4 report generation and persistent artifact workflows are next; optimized weights remain inactive.
+- Task 21.4 report generation and persistent artifact workflows are complete; optimized weights remain inactive.
+
+### Task 21.4 completion evidence
+
+- Implementation: `crates/chess-tools/src/tuning/report.rs` and `crates/chess-tools/src/tuning.rs`.
+- Contract: `docs/RUST_TUNING_REPORTS.md`.
+- Exact helper-free validated SHA: `fd179e57462226392ab9c61bc9f26bc7cbb63cc1`.
+- Rust run/job: `30929481202` / `92060204891`.
+- Android run/jobs: `30929479894` / `92060200320`, `92060200325`, `92060200573`.
+- Permanent formatting, workspace check, strict Clippy, complete Rust tests, release perft, rustdoc, debug/release builds, differential validation, Android/Kotlin lint, host JNI, dual-ABI native verification, APK build, and API-35 instrumentation passed.
+- Versioned checksummed reports include all required losses, 810 named deltas, complete identities, and exact invocation/configuration. Candidate artifacts are separate and inactive.
+- Task 21.5 candidate validation is next.
 - [ ] Task 21 gate.
 
 
@@ -1145,9 +1156,8 @@ Evidence:
 
 ## Immediate next operations
 
-1. Implement Task 21.1 by enumerating tunable named evaluator parameters over the validated Task 20 dataset schema.
-2. Keep non-tunable structural constants separate from trainable weights.
-3. Define versioned tuned-weight serialization with checksum and training metadata before optimizer work.
-4. Implement Task 21.2 with explicit logistic mapping, calibrated `K`, train/validation separation, and fail-loud malformed or empty datasets.
-5. Preserve explicit candidate activation: generated weights must not become defaults before Task 21.5 validation.
-6. Leave Tasks 21.2–21.5 and the overall Task 21 gate open until their own implementation and exact-head evidence are complete.
+1. Implement Task 21.5 controlled candidate-versus-baseline validation.
+2. Use color-balanced openings, fixed seeds/opening sets, and a documented sufficient sample size.
+3. Rerun tactical, perft, and rules suites and reject any correctness regression.
+4. Keep candidate activation explicit; generated artifacts must not become defaults automatically.
+5. Leave the overall Task 21 gate open until Task 21.5 has exact-head evidence.

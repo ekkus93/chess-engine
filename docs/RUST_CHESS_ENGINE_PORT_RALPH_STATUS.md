@@ -3,7 +3,7 @@
 **Updated:** 2026-08-04
 **Branch:** `master`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 21.3 deterministic SPSA optimizer complete; Task 21.4 report work is next
+**Current phase:** Task 21.4 reproducible tuning reports complete; Task 21.5 candidate validation is next
 
 ## Completed gates
 
@@ -67,6 +67,7 @@
 | 21.1 | `8410beb6dc22684052ded86a6f2fe71cf9d1e444` | Rust `30889939723 / 91929495312`; Android `30889939726 / 91929459955, 91929459977, 91929460081` | stable 810-scalar named schema, separately versioned structural evaluator contract, strict named artifacts, complete training provenance, semantic checksums, and all permanent gates green |
 | 21.2 | `3d11b01a9de84913c6c1bfa43a37aea0197dc5be` | Rust `30894313165` / `91943462745`; Android `30894313169` / `91943477000`, `91943477036`, `91943477212` | side-to-move logistic targets, explicit training-only K calibration, occurrence-weighted MSE, held-out validation, strict Task 20 adapter, typed failure policy, and all permanent gates green |
 | 21.3 | `fc69d7d7554ab325fd72ccfc5ac94c4bb1077ae8` | Rust `30897085986` / `91952447573`; Android `30897085023` / `91952460052`, `91952460064`, `91952460121` | deterministic seeded SPSA over the 810-scalar schema, explicit bounds and L2 regularization, training/validation isolation, checksummed data/config-bound resumable checkpoints, and all permanent gates green |
+| 21.4 | `fd179e57462226392ab9c61bc9f26bc7cbb63cc1` | Rust `30929481202` / `92060204891`; Android `30929479894` / `92060200320`, `92060200325`, `92060200573` | versioned checksummed reports with initial/final train and validation MSE, all 810 named deltas, complete data/engine/source/checkpoint/weight identities, exact command/configuration, atomic persistence, inactive candidate artifacts, and all permanent gates green |
 
 ## Task 17.1 completion
 
@@ -1121,4 +1122,32 @@ Evidence:
 - formatting, locked workspace check, strict Clippy, complete Rust tests, authoritative release perft, warning-free rustdoc, debug/release builds, differential oracle, Android/Kotlin lint, host JVM JNI, dual-ABI native verification, APK build, and API-35 instrumentation all passed;
 - temporary integration workflow was removed and no branch or pull request was created.
 
-Task 21.3 is complete. Task 21.4 report work is next; no optimized candidate has been activated.
+Task 21.3 is complete. Task 21.4 report work is complete; no optimized candidate has been activated.
+
+## Task 21.4 completion
+
+Implemented and validated:
+
+- strict version-1 checksummed tuning reports;
+- initial and final occurrence-weighted training and held-out validation MSE;
+- final regularized training objective for the SPSA-selected checkpoint best;
+- all 810 named parameters with initial value, candidate value, and signed delta;
+- Task 20 schema/checksum/occurrence provenance plus the exact optimizer loss-dataset fingerprint;
+- engine version/identifier, exact source commit, initial/candidate weight identities, optimizer/config/checkpoint identities, seed, iteration count, logistic `K`, and every schedule/bound/regularization value;
+- exact command preservation using unambiguous UTF-8 hexadecimal encoding and exact IEEE-754 bit recording;
+- semantic report checksums and fail-loud binding to the exact checkpoint, configuration, dataset, and initial weights;
+- explicit same-directory temporary-file persistence with flush, synchronization, and atomic rename;
+- separately versioned `NamedWeightArtifact` candidate output with no automatic activation;
+- `docs/RUST_TUNING_REPORTS.md`.
+
+Evidence:
+
+- exact helper-free validated implementation head: `fd179e57462226392ab9c61bc9f26bc7cbb63cc1`;
+- permanent Rust run/job: `30929481202` / `92060204891`;
+- permanent Android run/jobs: `30929479894` / `92060200320`, `92060200325`, `92060200573`;
+- formatting, locked workspace check, strict Clippy, complete Rust tests, authoritative release perft, warning-free rustdoc, debug/release builds, differential oracle, Android/Kotlin lint, host JVM JNI, dual-ABI native verification, APK build, and API-35 instrumentation all passed;
+- the temporary validation workflow was removed before the recorded implementation head;
+- candidate weights remain inactive and Task 21.5 owns controlled candidate validation and any later explicit activation decision.
+
+Task 21.4 is complete. Task 21.5 candidate validation is next.
+
