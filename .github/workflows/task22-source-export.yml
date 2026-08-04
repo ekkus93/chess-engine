@@ -1,6 +1,11 @@
 name: Task 22 source export
 
 on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - .github/workflows/task22-source-export.yml
   push:
     branches:
       - rust-engine
