@@ -32,81 +32,71 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
+          from textwrap import dedent
 
           weights_path = Path('crates/chess-search/src/weights.rs')
           weights = weights_path.read_text()
-          old_import = '''    use super::{
-              EvaluationWeightSet, EvaluationWeights, StructuralWeightField, WeightValidationError,
-              BASELINE_WEIGHT_SET_ID, EVALUATION_STRUCTURE, EVALUATION_STRUCTURE_SCHEMA_VERSION,
-              EVALUATION_WEIGHT_SCHEMA_VERSION, WEIGHT_VALUE_COUNT,
-          };
-          '''
-          new_import = '''    use super::{
-              EvaluationWeightSet, EvaluationWeights, PhasedWeight, StructuralWeightField,
-              WeightValidationError, BASELINE_WEIGHT_SET_ID, EVALUATION_STRUCTURE,
-              EVALUATION_STRUCTURE_SCHEMA_VERSION, EVALUATION_WEIGHT_SCHEMA_VERSION,
-              WEIGHT_VALUE_COUNT,
-          };
-          '''
-          if old_import not in weights:
-              raise SystemExit('expected weights test import block not found')
+          old_import = 'EvaluationWeightSet, EvaluationWeights, StructuralWeightField, WeightValidationError,'
+          new_import = 'EvaluationWeightSet, EvaluationWeights, PhasedWeight, StructuralWeightField, WeightValidationError,'
+          if weights.count(old_import) != 1:
+              raise SystemExit('expected unique weights test import sequence not found')
           weights_path.write_text(weights.replace(old_import, new_import, 1))
 
           evaluation_path = Path('crates/chess-search/src/evaluation.rs')
           evaluation = evaluation_path.read_text()
-          old_header = '''use crate::{EvaluationWeights, PhasedWeight, Score};
 
-          const MAX_PHASE: u8 = 24;
-          '''
-          new_header = '''use crate::{EvaluationWeights, PhasedWeight, Score, EVALUATION_STRUCTURE};
-
-          '''
-          if old_header not in evaluation:
+          old_header = 'use crate::{EvaluationWeights, PhasedWeight, Score};\n\nconst MAX_PHASE: u8 = 24;\n'
+          new_header = 'use crate::{EvaluationWeights, PhasedWeight, Score, EVALUATION_STRUCTURE};\n'
+          if evaluation.count(old_header) != 1:
               raise SystemExit('expected evaluation header not found')
           evaluation = evaluation.replace(old_header, new_header, 1)
 
-          old_blend = '''    fn blend(self, phase: u8) -> i32 {
-              let middlegame = i32::from(phase);
-              let endgame = i32::from(MAX_PHASE - phase);
-              (self.middlegame * middlegame + self.endgame * endgame) / i32::from(MAX_PHASE)
-          }
-          '''
-          new_blend = '''    fn blend(self, phase: u8) -> i32 {
-              let maximum_phase = EVALUATION_STRUCTURE.maximum_phase;
-              let middlegame = i32::from(phase);
-              let endgame = i32::from(maximum_phase - phase);
-              (self.middlegame * middlegame + self.endgame * endgame)
-                  / i32::from(maximum_phase)
-          }
-          '''
-          if old_blend not in evaluation:
+          old_blend = dedent('''\
+              fn blend(self, phase: u8) -> i32 {
+                  let middlegame = i32::from(phase);
+                  let endgame = i32::from(MAX_PHASE - phase);
+                  (self.middlegame * middlegame + self.endgame * endgame) / i32::from(MAX_PHASE)
+              }
+          ''')
+          new_blend = dedent('''\
+              fn blend(self, phase: u8) -> i32 {
+                  let maximum_phase = EVALUATION_STRUCTURE.maximum_phase;
+                  let middlegame = i32::from(phase);
+                  let endgame = i32::from(maximum_phase - phase);
+                  (self.middlegame * middlegame + self.endgame * endgame)
+                      / i32::from(maximum_phase)
+              }
+          ''')
+          if evaluation.count(old_blend) != 1:
               raise SystemExit('expected tapered blend block not found')
           evaluation = evaluation.replace(old_blend, new_blend, 1)
 
-          old_phase = '''fn game_phase(position: &Position) -> u8 {
-              let mut phase = 0_u32;
-              for color in [Color::White, Color::Black] {
-                  phase += position.piece_bitboard(color, PieceKind::Knight).count();
-                  phase += position.piece_bitboard(color, PieceKind::Bishop).count();
-                  phase += 2 * position.piece_bitboard(color, PieceKind::Rook).count();
-                  phase += 4 * position.piece_bitboard(color, PieceKind::Queen).count();
-              }
-              u8::try_from(phase.min(u32::from(MAX_PHASE))).expect("phase is clamped below 25")
-          }
-          '''
-          new_phase = '''fn game_phase(position: &Position) -> u8 {
-              let mut phase = 0_u32;
-              for color in [Color::White, Color::Black] {
-                  for kind in PieceKind::ALL {
-                      phase += position.piece_bitboard(color, kind).count()
-                          * u32::from(EVALUATION_STRUCTURE.phase_units[kind.index()]);
+          old_phase = dedent('''\
+              fn game_phase(position: &Position) -> u8 {
+                  let mut phase = 0_u32;
+                  for color in [Color::White, Color::Black] {
+                      phase += position.piece_bitboard(color, PieceKind::Knight).count();
+                      phase += position.piece_bitboard(color, PieceKind::Bishop).count();
+                      phase += 2 * position.piece_bitboard(color, PieceKind::Rook).count();
+                      phase += 4 * position.piece_bitboard(color, PieceKind::Queen).count();
                   }
+                  u8::try_from(phase.min(u32::from(MAX_PHASE))).expect("phase is clamped below 25")
               }
-              u8::try_from(phase.min(u32::from(EVALUATION_STRUCTURE.maximum_phase)))
-                  .expect("phase is clamped to the structural maximum")
-          }
-          '''
-          if old_phase not in evaluation:
+          ''')
+          new_phase = dedent('''\
+              fn game_phase(position: &Position) -> u8 {
+                  let mut phase = 0_u32;
+                  for color in [Color::White, Color::Black] {
+                      for kind in PieceKind::ALL {
+                          phase += position.piece_bitboard(color, kind).count()
+                              * u32::from(EVALUATION_STRUCTURE.phase_units[kind.index()]);
+                      }
+                  }
+                  u8::try_from(phase.min(u32::from(EVALUATION_STRUCTURE.maximum_phase)))
+                      .expect("phase is clamped to the structural maximum")
+              }
+          ''')
+          if evaluation.count(old_phase) != 1:
               raise SystemExit('expected game phase block not found')
           evaluation_path.write_text(evaluation.replace(old_phase, new_phase, 1))
           PY
