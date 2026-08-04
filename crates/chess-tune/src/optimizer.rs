@@ -283,8 +283,10 @@ impl SpsaCheckpoint {
     }
 
     /// Current rounded runtime weights.
-    #[must_use]
-    pub fn current_weights(&self, bounds: SpsaWeightBounds) -> Result<EvaluationWeights, SpsaOptimizerError> {
+    pub fn current_weights(
+        &self,
+        bounds: SpsaWeightBounds,
+    ) -> Result<EvaluationWeights, SpsaOptimizerError> {
         let values = project_parameters(&self.current_parameters, bounds)?;
         Ok(weights_from_tunable_values(values))
     }
@@ -578,10 +580,8 @@ impl SpsaOptimizer {
         for iteration in (self.checkpoint.completed_iterations + 1)..=ending_iteration {
             self.advance_one(dataset, iteration)?;
         }
-        let current_values = project_parameters(
-            &self.checkpoint.current_parameters,
-            self.config.bounds,
-        )?;
+        let current_values =
+            project_parameters(&self.checkpoint.current_parameters, self.config.bounds)?;
         let current_weights = weights_from_tunable_values(current_values);
         let best_weights = weights_from_tunable_values(self.checkpoint.best_values);
         let current_validation_mse = dataset.mean_squared_error(
@@ -656,22 +656,15 @@ impl SpsaOptimizer {
         if !gradient_scale.is_finite() {
             return Err(SpsaOptimizerError::NonFiniteOptimizerState);
         }
-        for (parameter, direction) in self
-            .checkpoint
-            .current_parameters
-            .iter_mut()
-            .zip(delta)
-        {
+        for (parameter, direction) in self.checkpoint.current_parameters.iter_mut().zip(delta) {
             *parameter -= gain * gradient_scale * f64::from(direction);
             *parameter = parameter.clamp(
                 f64::from(self.config.bounds.minimum),
                 f64::from(self.config.bounds.maximum),
             );
         }
-        let current_values = project_parameters(
-            &self.checkpoint.current_parameters,
-            self.config.bounds,
-        )?;
+        let current_values =
+            project_parameters(&self.checkpoint.current_parameters, self.config.bounds)?;
         let current_weights = weights_from_tunable_values(current_values);
         validate_runtime_weights(current_weights)?;
         let current_objective = regularized_training_objective(
@@ -930,10 +923,7 @@ fn require_finite_positive(field: &'static str, value: f64) -> Result<(), SpsaOp
     Ok(())
 }
 
-fn require_checkpoint_finite(
-    field: &'static str,
-    value: f64,
-) -> Result<(), SpsaOptimizerError> {
+fn require_checkpoint_finite(field: &'static str, value: f64) -> Result<(), SpsaOptimizerError> {
     if !value.is_finite() {
         return Err(SpsaOptimizerError::CheckpointNonFinite { field });
     }
@@ -1013,8 +1003,7 @@ fn project_material_ordering(
         let pawn = i32::from(values[pawn_index]).clamp(minimum, maximum - 3);
         let knight = i32::from(values[knight_index]).clamp(pawn + 1, maximum - 2);
         let bishop = i32::from(values[bishop_index]).clamp(pawn + 1, maximum - 2);
-        let rook = i32::from(values[rook_index])
-            .clamp(knight.max(bishop) + 1, maximum - 1);
+        let rook = i32::from(values[rook_index]).clamp(knight.max(bishop) + 1, maximum - 1);
         let queen = i32::from(values[queen_index]).clamp(rook + 1, maximum);
         values[pawn_index] = pawn as i16;
         values[knight_index] = knight as i16;
@@ -1064,10 +1053,7 @@ fn regularized_training_objective(
 
 fn loss_dataset_fingerprint(dataset: &LossDataset) -> u64 {
     let mut hash = FNV_OFFSET;
-    for (partition_tag, positions) in [
-        (0_u8, dataset.training()),
-        (1_u8, dataset.validation()),
-    ] {
+    for (partition_tag, positions) in [(0_u8, dataset.training()), (1_u8, dataset.validation())] {
         hash = hash_bytes(hash, &[partition_tag]);
         hash = hash_bytes(hash, &(positions.len() as u64).to_le_bytes());
         for position in positions {
@@ -1225,7 +1211,8 @@ mod tests {
         staged.advance(&data, 5).expect("advance succeeds");
         let encoded = staged.checkpoint().to_bytes();
         let decoded = SpsaCheckpoint::from_bytes(&encoded).expect("checkpoint parses");
-        let mut resumed = SpsaOptimizer::resume(config(20), &data, decoded).expect("resume succeeds");
+        let mut resumed =
+            SpsaOptimizer::resume(config(20), &data, decoded).expect("resume succeeds");
         resumed.advance(&data, 7).expect("advance succeeds");
 
         assert_eq!(uninterrupted.checkpoint(), resumed.checkpoint());
@@ -1235,14 +1222,9 @@ mod tests {
     fn validation_partition_does_not_change_optimizer_state() {
         let first_data = dataset(OutcomeTarget::Win);
         let second_data = dataset(OutcomeTarget::Loss);
-        let mut first = SpsaOptimizer::new(
-            config(10),
-            99,
-            EvaluationWeights::DEFAULT,
-            &first_data,
-            k(),
-        )
-        .expect("optimizer starts");
+        let mut first =
+            SpsaOptimizer::new(config(10), 99, EvaluationWeights::DEFAULT, &first_data, k())
+                .expect("optimizer starts");
         let mut second = SpsaOptimizer::new(
             config(10),
             99,
@@ -1286,7 +1268,9 @@ mod tests {
                 assert!((-2_000..=2_000).contains(&value));
             }
         }
-        assert!(summary.best_training_objective() <= optimizer.checkpoint().best_training_objective());
+        assert!(
+            summary.best_training_objective() <= optimizer.checkpoint().best_training_objective()
+        );
     }
 
     #[test]
@@ -1316,9 +1300,13 @@ mod tests {
     #[test]
     fn advance_enforces_positive_work_and_cumulative_limit() {
         let data = dataset(OutcomeTarget::Win);
-        let mut optimizer = SpsaOptimizer::new(config(2), 1, EvaluationWeights::DEFAULT, &data, k())
-            .expect("optimizer starts");
-        assert_eq!(optimizer.advance(&data, 0), Err(SpsaOptimizerError::ZeroIterations));
+        let mut optimizer =
+            SpsaOptimizer::new(config(2), 1, EvaluationWeights::DEFAULT, &data, k())
+                .expect("optimizer starts");
+        assert_eq!(
+            optimizer.advance(&data, 0),
+            Err(SpsaOptimizerError::ZeroIterations)
+        );
         optimizer.advance(&data, 2).expect("bounded work succeeds");
         assert!(matches!(
             optimizer.advance(&data, 1),

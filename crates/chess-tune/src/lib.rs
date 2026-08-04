@@ -6,11 +6,18 @@
 //! explicit caller action.
 
 mod loss;
+mod optimizer;
 
 pub use loss::{
     logistic_result_probability, KCalibrationConfig, KCalibrationResult, LogisticK, LossDataset,
     LossPartition, LossPipelineError, LossPosition, OutcomeTarget, MAX_K_CALIBRATION_INTERVALS,
     TEXEL_EVALUATION_SCALE_CENTIPAWNS,
+};
+
+pub use optimizer::{
+    SpsaCheckpoint, SpsaConfig, SpsaOptimizer, SpsaOptimizerError, SpsaRunSummary, SpsaSchedule,
+    SpsaWeightBounds, MAX_SPSA_ITERATIONS, MAX_SPSA_WEIGHT_MAGNITUDE,
+    SPSA_CHECKPOINT_SCHEMA_VERSION, SPSA_OPTIMIZER_IDENTIFIER,
 };
 
 use core::{fmt, fmt::Write as _, iter::FusedIterator};
