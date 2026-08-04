@@ -1,0 +1,145 @@
+name: Robustness
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rust-robustness-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fuzz-smoke:
+    name: Fuzz smoke and corpus replay
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Verify fuzz workspace and corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f fuzz/Cargo.toml
+          test -f fuzz/Cargo.lock
+          test -f fuzz/corpus/README.md
+          test -f fuzz/regressions/README.md
+          cargo generate-lockfile --manifest-path fuzz/Cargo.toml
+          git diff --exit-code -- fuzz/Cargo.lock
+
+      - name: Check fuzz formatting
+        run: cargo fmt --manifest-path fuzz/Cargo.toml -- --check
+
+      - name: Run strict fuzz Clippy
+        run: >-
+          cargo clippy --manifest-path fuzz/Cargo.toml --locked
+          --lib --tests -- -D warnings
+
+      - name: Run stable fuzz entrypoint tests and corpus replay
+        run: >-
+          cargo test --manifest-path fuzz/Cargo.toml --locked
+          --lib --tests
+
+      - name: Install nightly Rust
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Install pinned cargo-fuzz
+        run: cargo +nightly install cargo-fuzz --locked --version 0.12.0
+
+      - name: Run bounded libFuzzer campaigns
+        shell: bash
+        run: |
+          set -euo pipefail
+          targets=(
+            fen_parser
+            uci_move_parser
+            legal_sequence
+            game_history
+            weight_parser
+            opening_book_parser
+            c_abi_buffers_handles
+          )
+          for target in "${targets[@]}"; do
+            cargo +nightly fuzz run --features fuzzing "${target}" "fuzz/corpus/${target}" -- \
+              -runs=256 -max_len=4096 -timeout=10
+          done
+
+  miri-core:
+    name: Miri core subset
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned nightly with Miri
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-08-01
+          components: miri, rust-src
+
+      - name: Prepare Miri
+        run: cargo +nightly-2026-08-01 miri setup
+
+      - name: Run Miri-compatible core tests
+        env:
+          MIRIFLAGS: -Zmiri-strict-provenance
+        run: >-
+          cargo +nightly-2026-08-01 miri test --locked
+          -p chess-core --test miri_core
+
+  native-sanitizers:
+    name: Native sanitizers and leak checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned nightly with instrumented standard library support
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-08-01
+          components: rust-src
+
+      - name: Run AddressSanitizer and LeakSanitizer lifecycle tests
+        env:
+          RUSTFLAGS: -Zsanitizer=address
+          RUSTDOCFLAGS: -Zsanitizer=address
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1:abort_on_error=1
+        run: >-
+          cargo +nightly-2026-08-01 test -Zbuild-std --locked
+          --target x86_64-unknown-linux-gnu
+          -p chess-ffi --test c_abi_lifecycle --all-features
+
+      - name: Run ThreadSanitizer concurrent cancellation test
+        env:
+          RUSTFLAGS: -Zsanitizer=thread
+          RUSTDOCFLAGS: -Zsanitizer=thread
+          TSAN_OPTIONS: halt_on_error=1:abort_on_error=1
+        run: >-
+          cargo +nightly-2026-08-01 test -Zbuild-std --locked
+          --target x86_64-unknown-linux-gnu
+          -p chess-ffi --test c_abi_lifecycle --all-features
+          active_infinite_search_cancels_from_another_thread -- --exact
+
+      - name: Record unsupported UBSan boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          if rustc +nightly-2026-08-01 -Z help | grep -q 'sanitizer.*undefined'; then
+            echo '::error::The documented UBSan support boundary is stale.'
+            exit 1
+          fi
+          echo 'Rust nightly exposes no general undefined sanitizer mode; Miri is the UB gate.'
