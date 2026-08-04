@@ -4,9 +4,11 @@ use chess_core::PieceKind;
 
 /// Current serialized evaluation-weight schema.
 pub const EVALUATION_WEIGHT_SCHEMA_VERSION: u16 = 1;
+/// Current non-tunable evaluator-structure schema.
+pub const EVALUATION_STRUCTURE_SCHEMA_VERSION: u16 = 1;
 /// Stable identifier for the built-in baseline weight set.
 pub const BASELINE_WEIGHT_SET_ID: u64 = 0x4241_5345_4c49_4e45;
-/// Number of signed scalar values in the canonical serialized weight vector.
+/// Number of signed scalar values in the canonical runtime weight vector.
 pub const WEIGHT_VALUE_COUNT: usize = 816;
 
 const MAX_WEIGHT_MAGNITUDE: i32 = 10_000;
@@ -33,6 +35,84 @@ impl PhasedWeight {
             middlegame,
             endgame,
         }
+    }
+}
+
+/// Non-tunable evaluator constants kept outside the named tuning vector.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct EvaluationStructure {
+    /// Structure schema version used to reject incompatible tuning artifacts.
+    pub schema_version: u16,
+    /// Maximum tapered-evaluation phase.
+    pub maximum_phase: u8,
+    /// Phase units contributed by each [`PieceKind`].
+    pub phase_units: [u8; 6],
+    /// Fixed zero material value for kings.
+    pub fixed_king_material: PhasedWeight,
+    /// Fixed zero mobility value for pawns.
+    pub fixed_pawn_mobility: PhasedWeight,
+    /// Fixed zero mobility value for kings.
+    pub fixed_king_mobility: PhasedWeight,
+}
+
+impl EvaluationStructure {
+    /// Computes the canonical checksum for the structural evaluator contract.
+    #[must_use]
+    pub fn computed_checksum(self) -> u64 {
+        let mut hash = FNV_OFFSET;
+        hash = hash_bytes(hash, &self.schema_version.to_le_bytes());
+        hash = hash_bytes(hash, &[self.maximum_phase]);
+        hash = hash_bytes(hash, &self.phase_units);
+        for value in [
+            self.fixed_king_material.middlegame,
+            self.fixed_king_material.endgame,
+            self.fixed_pawn_mobility.middlegame,
+            self.fixed_pawn_mobility.endgame,
+            self.fixed_king_mobility.middlegame,
+            self.fixed_king_mobility.endgame,
+        ] {
+            hash = hash_bytes(hash, &value.to_le_bytes());
+        }
+        hash
+    }
+}
+
+/// Authoritative non-tunable evaluator structure.
+pub const EVALUATION_STRUCTURE: EvaluationStructure = EvaluationStructure {
+    schema_version: EVALUATION_STRUCTURE_SCHEMA_VERSION,
+    maximum_phase: 24,
+    phase_units: [0, 1, 1, 2, 4, 0],
+    fixed_king_material: PhasedWeight::ZERO,
+    fixed_pawn_mobility: PhasedWeight::ZERO,
+    fixed_king_mobility: PhasedWeight::ZERO,
+};
+
+/// Fixed weight fields that are deliberately excluded from tuning.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum StructuralWeightField {
+    /// King material remains exactly zero.
+    KingMaterial,
+    /// Pawn mobility is not part of the evaluator.
+    PawnMobility,
+    /// King mobility is represented by dedicated king terms instead.
+    KingMobility,
+}
+
+impl StructuralWeightField {
+    /// Stable machine-readable field name.
+    #[must_use]
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::KingMaterial => "material.king",
+            Self::PawnMobility => "mobility.pawn",
+            Self::KingMobility => "mobility.king",
+        }
+    }
+}
+
+impl fmt::Display for StructuralWeightField {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.name())
     }
 }
 
@@ -80,16 +160,16 @@ impl EvaluationWeights {
             PhasedWeight::new(330, 320),
             PhasedWeight::new(500, 520),
             PhasedWeight::new(900, 900),
-            PhasedWeight::ZERO,
+            EVALUATION_STRUCTURE.fixed_king_material,
         ],
         piece_square: baseline_piece_square_tables(),
         mobility: [
-            PhasedWeight::ZERO,
+            EVALUATION_STRUCTURE.fixed_pawn_mobility,
             PhasedWeight::new(4, 4),
             PhasedWeight::new(5, 5),
             PhasedWeight::new(2, 4),
             PhasedWeight::new(1, 2),
-            PhasedWeight::ZERO,
+            EVALUATION_STRUCTURE.fixed_king_mobility,
         ],
         isolated_pawn: PhasedWeight::new(-12, -10),
         doubled_pawn: PhasedWeight::new(-10, -12),
@@ -105,7 +185,7 @@ impl EvaluationWeights {
         king_activity: PhasedWeight::new(0, 10),
     };
 
-    /// Returns the canonical dense value vector used for checksums and tools.
+    /// Returns the canonical dense runtime value vector used for checksums and tools.
     #[must_use]
     pub fn values(&self) -> [i16; WEIGHT_VALUE_COUNT] {
         let mut values = [0_i16; WEIGHT_VALUE_COUNT];
@@ -141,7 +221,7 @@ impl EvaluationWeights {
         values
     }
 
-    /// Reconstructs weights from the canonical dense value vector.
+    /// Reconstructs weights from the canonical dense runtime value vector.
     #[must_use]
     pub fn from_values(values: [i16; WEIGHT_VALUE_COUNT]) -> Self {
         let mut index = 0;
@@ -253,7 +333,7 @@ impl EvaluationWeightSet {
         hash
     }
 
-    /// Validates schema, identifier, value ranges, material ordering, and checksum.
+    /// Validates schema, identifier, values, structural constants, and checksum.
     pub fn validate(&self) -> Result<(), WeightValidationError> {
         if self.schema_version != EVALUATION_WEIGHT_SCHEMA_VERSION {
             return Err(WeightValidationError::SchemaVersion {
@@ -269,6 +349,7 @@ impl EvaluationWeightSet {
                 return Err(WeightValidationError::WeightOutOfRange { index, value });
             }
         }
+        validate_structural_weights(self.weights)?;
         validate_material(self.weights.material)?;
         let expected = self.computed_checksum();
         if self.checksum != expected {
@@ -290,6 +371,12 @@ pub enum WeightValidationError {
     EmptyIdentifier,
     /// One scalar exceeded the supported magnitude.
     WeightOutOfRange { index: usize, value: i16 },
+    /// A non-tunable fixed field differed from the evaluator structure.
+    StructuralConstantMismatch {
+        field: StructuralWeightField,
+        expected: PhasedWeight,
+        found: PhasedWeight,
+    },
     /// Material values do not retain the required ordering.
     InvalidMaterialOrdering,
     /// Serialized checksum did not match the canonical value.
@@ -306,6 +393,15 @@ impl fmt::Display for WeightValidationError {
             Self::WeightOutOfRange { index, value } => {
                 write!(formatter, "weight value {index} is out of range: {value}")
             }
+            Self::StructuralConstantMismatch {
+                field,
+                expected,
+                found,
+            } => write!(
+                formatter,
+                "structural weight {field} must remain {}/{}, found {}/{}",
+                expected.middlegame, expected.endgame, found.middlegame, found.endgame
+            ),
             Self::InvalidMaterialOrdering => formatter.write_str(
                 "material values must be positive, ordered pawn < minor < rook < queen, and king = 0",
             ),
@@ -339,6 +435,35 @@ fn hash_bytes(mut hash: u64, bytes: &[u8]) -> u64 {
         hash = hash.wrapping_mul(FNV_PRIME);
     }
     hash
+}
+
+fn validate_structural_weights(weights: EvaluationWeights) -> Result<(), WeightValidationError> {
+    for (field, expected, found) in [
+        (
+            StructuralWeightField::KingMaterial,
+            EVALUATION_STRUCTURE.fixed_king_material,
+            weights.material[PieceKind::King.index()],
+        ),
+        (
+            StructuralWeightField::PawnMobility,
+            EVALUATION_STRUCTURE.fixed_pawn_mobility,
+            weights.mobility[PieceKind::Pawn.index()],
+        ),
+        (
+            StructuralWeightField::KingMobility,
+            EVALUATION_STRUCTURE.fixed_king_mobility,
+            weights.mobility[PieceKind::King.index()],
+        ),
+    ] {
+        if found != expected {
+            return Err(WeightValidationError::StructuralConstantMismatch {
+                field,
+                expected,
+                found,
+            });
+        }
+    }
+    Ok(())
 }
 
 fn validate_material(material: [PhasedWeight; 6]) -> Result<(), WeightValidationError> {
@@ -412,8 +537,11 @@ const fn absolute_difference(left: i16, right: i16) -> i16 {
 
 #[cfg(test)]
 mod tests {
+    use chess_core::PieceKind;
+
     use super::{
-        EvaluationWeightSet, EvaluationWeights, WeightValidationError, BASELINE_WEIGHT_SET_ID,
+        EvaluationWeightSet, EvaluationWeights, StructuralWeightField, WeightValidationError,
+        BASELINE_WEIGHT_SET_ID, EVALUATION_STRUCTURE, EVALUATION_STRUCTURE_SCHEMA_VERSION,
         EVALUATION_WEIGHT_SCHEMA_VERSION, WEIGHT_VALUE_COUNT,
     };
 
@@ -423,6 +551,29 @@ mod tests {
         let values = weights.values();
         assert_eq!(values.len(), WEIGHT_VALUE_COUNT);
         assert_eq!(EvaluationWeights::from_values(values), weights);
+    }
+
+    #[test]
+    fn evaluator_structure_is_explicit_and_stable() {
+        assert_eq!(
+            EVALUATION_STRUCTURE.schema_version,
+            EVALUATION_STRUCTURE_SCHEMA_VERSION
+        );
+        assert_eq!(EVALUATION_STRUCTURE.maximum_phase, 24);
+        assert_eq!(EVALUATION_STRUCTURE.phase_units, [0, 1, 1, 2, 4, 0]);
+        assert_ne!(EVALUATION_STRUCTURE.computed_checksum(), 0);
+        assert_eq!(
+            EvaluationWeights::DEFAULT.material[PieceKind::King.index()],
+            EVALUATION_STRUCTURE.fixed_king_material
+        );
+        assert_eq!(
+            EvaluationWeights::DEFAULT.mobility[PieceKind::Pawn.index()],
+            EVALUATION_STRUCTURE.fixed_pawn_mobility
+        );
+        assert_eq!(
+            EvaluationWeights::DEFAULT.mobility[PieceKind::King.index()],
+            EVALUATION_STRUCTURE.fixed_king_mobility
+        );
     }
 
     #[test]
@@ -436,7 +587,7 @@ mod tests {
     }
 
     #[test]
-    fn validation_rejects_schema_identifier_checksum_and_material_corruption() {
+    fn validation_rejects_schema_identifier_checksum_material_and_structure_corruption() {
         let baseline = EvaluationWeightSet::baseline();
         let wrong_schema = EvaluationWeightSet::from_parts(
             baseline.schema_version + 1,
@@ -463,11 +614,22 @@ mod tests {
         ));
 
         let mut invalid_weights = baseline.weights;
-        invalid_weights.material[0].middlegame = 1_000;
+        invalid_weights.material[PieceKind::Pawn.index()].middlegame = 1_000;
         let invalid_material = EvaluationWeightSet::new(1, invalid_weights);
         assert_eq!(
             invalid_material.validate(),
             Err(WeightValidationError::InvalidMaterialOrdering)
         );
+
+        let mut invalid_structure = baseline.weights;
+        invalid_structure.mobility[PieceKind::Pawn.index()] = PhasedWeight::new(1, 0);
+        let invalid_structure = EvaluationWeightSet::new(1, invalid_structure);
+        assert!(matches!(
+            invalid_structure.validate(),
+            Err(WeightValidationError::StructuralConstantMismatch {
+                field: StructuralWeightField::PawnMobility,
+                ..
+            })
+        ));
     }
 }
