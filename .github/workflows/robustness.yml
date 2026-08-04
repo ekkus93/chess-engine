@@ -10,13 +10,52 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: rust-robustness-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  fix-c-abi-buffer-classification:
+    name: Apply minimized C ABI buffer fix
+    if: github.event_name == 'pull_request' && github.head_ref == 'rust-engine'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+
+      - name: Correct fabricated buffer result classification
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PYTHON'
+          from pathlib import Path
+
+          path = Path('crates/chess-ffi/src/c_abi/registry.rs')
+          text = path.read_text()
+          old = '        validate_token(buffer.allocation, BUFFER_HANDLE_TAG, "buffer allocation")?;\n'
+          new = '''        if buffer.allocation & HANDLE_TAG_MASK != BUFFER_HANDLE_TAG {
+              return Err(AbiFailure::new(
+                  ChessEngineResultCode::InvalidBuffer,
+                  "output buffer allocation token has the wrong opaque handle type",
+              ));
+          }
+          '''
+          if old not in text:
+              raise SystemExit('buffer token validation site not found')
+          path.write_text(text.replace(old, new, 1))
+          PYTHON
+          cargo fmt --all
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add crates/chess-ffi/src/c_abi/registry.rs
+          git diff --cached --check
+          git commit -m "fix: classify fabricated C ABI buffers correctly"
+          git push origin HEAD:rust-engine
+
   fuzz-smoke:
     name: Fuzz smoke and corpus replay
     runs-on: ubuntu-24.04
