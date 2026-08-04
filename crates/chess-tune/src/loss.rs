@@ -61,11 +61,7 @@ pub struct KCalibrationConfig {
 
 impl KCalibrationConfig {
     /// Creates an inclusive calibration grid with `intervals + 1` candidates.
-    pub fn new(
-        minimum: f64,
-        maximum: f64,
-        intervals: u32,
-    ) -> Result<Self, LossPipelineError> {
+    pub fn new(minimum: f64, maximum: f64, intervals: u32) -> Result<Self, LossPipelineError> {
         let minimum = LogisticK::new(minimum)?;
         let maximum = LogisticK::new(maximum)?;
         if minimum.value() >= maximum.value() {
@@ -114,10 +110,7 @@ impl KCalibrationConfig {
     fn candidate(self, index: u32) -> LogisticK {
         debug_assert!(index <= self.intervals);
         let fraction = f64::from(index) / f64::from(self.intervals);
-        LogisticK(
-            self.minimum.value()
-                + (self.maximum.value() - self.minimum.value()) * fraction,
-        )
+        LogisticK(self.minimum.value() + (self.maximum.value() - self.minimum.value()) * fraction)
     }
 }
 
@@ -244,7 +237,7 @@ impl LossDataset {
             LossPartition::Validation => &self.validation,
         };
         let evaluated = evaluate_positions(samples, weights);
-        mean_squared_error_for_evaluated(&evaluated)
+        mean_squared_error_for_evaluated(&evaluated, k)
     }
 
     /// Calibrates `K` exclusively on the training partition.
@@ -289,8 +282,7 @@ impl KCalibrationResult {
 /// Maps a side-to-move centipawn score to an expected game result.
 #[must_use]
 pub fn logistic_result_probability(evaluation_centipawns: i32, k: LogisticK) -> f64 {
-    let exponent = std::f64::consts::LN_10 * k.value()
-        * f64::from(evaluation_centipawns)
+    let exponent = std::f64::consts::LN_10 * k.value() * f64::from(evaluation_centipawns)
         / TEXEL_EVALUATION_SCALE_CENTIPAWNS;
     if exponent >= 0.0 {
         1.0 / (1.0 + (-exponent).exp())
@@ -323,7 +315,10 @@ impl fmt::Display for LossPipelineError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Self::InvalidLogisticK { value } => {
-                write!(formatter, "logistic K must be finite and positive, found {value}")
+                write!(
+                    formatter,
+                    "logistic K must be finite and positive, found {value}"
+                )
             }
             Self::InvalidCalibrationRange { minimum, maximum } => write!(
                 formatter,
@@ -391,8 +386,7 @@ fn mean_squared_error_for_evaluated(
     for position in positions {
         let predicted = logistic_result_probability(position.evaluation_centipawns, k);
         let difference = predicted - position.outcome.probability();
-        weighted_squared_error +=
-            difference * difference * f64::from(position.occurrences);
+        weighted_squared_error += difference * difference * f64::from(position.occurrences);
         total_occurrences = total_occurrences
             .checked_add(u64::from(position.occurrences))
             .ok_or(LossPipelineError::OccurrenceCountOverflow {
@@ -502,8 +496,7 @@ mod tests {
             },
         ];
         let predicted = logistic_result_probability(400, k);
-        let expected =
-            (3.0 * (predicted - 1.0).powi(2) + (predicted - 0.5).powi(2)) / 4.0;
+        let expected = (3.0 * (predicted - 1.0).powi(2) + (predicted - 0.5).powi(2)) / 4.0;
         let actual = mean_squared_error_for_evaluated(&positions, k).expect("loss is valid");
         assert!((actual - expected).abs() < 1.0e-15);
     }

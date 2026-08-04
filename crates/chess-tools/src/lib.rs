@@ -2,6 +2,7 @@
 //! Deterministic offline validation primitives for the Rust chess engine.
 
 pub mod self_play;
+pub mod tuning;
 mod weights_io;
 
 use core::fmt;

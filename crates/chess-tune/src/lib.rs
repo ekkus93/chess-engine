@@ -5,6 +5,14 @@
 //! outside the runtime search crate. Loading or activating an artifact is an
 //! explicit caller action.
 
+mod loss;
+
+pub use loss::{
+    logistic_result_probability, KCalibrationConfig, KCalibrationResult, LogisticK, LossDataset,
+    LossPartition, LossPipelineError, LossPosition, OutcomeTarget, MAX_K_CALIBRATION_INTERVALS,
+    TEXEL_EVALUATION_SCALE_CENTIPAWNS,
+};
+
 use core::{fmt, fmt::Write as _, iter::FusedIterator};
 
 use chess_core::{PieceKind, Square};
