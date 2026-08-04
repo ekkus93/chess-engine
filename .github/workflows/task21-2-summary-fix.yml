@@ -1,0 +1,36 @@
+name: Task 21.2 Summary Fix
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Correct live summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md')
+          text = path.read_text()
+          old = '| 21 | **In progress** — Task 21.1 complete; Tasks 21.2–21.5 remain. |'
+          new = '| 21 | **In progress** — Tasks 21.1–21.2 complete; Tasks 21.3–21.5 remain. |'
+          if text.count(old) != 1:
+              raise SystemExit('stale Task 21 summary row was not found exactly once')
+          path.write_text(text.replace(old, new, 1))
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md
+          git commit -m 'docs: correct Task 21 program summary'
+          git push origin HEAD:master
