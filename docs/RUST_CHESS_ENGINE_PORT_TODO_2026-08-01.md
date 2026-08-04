@@ -41,7 +41,8 @@
 | 17 | **Complete** — Linux UCI executable. |
 | 18 | **Complete** — safe API, C ABI, JNI, host JVM, and Android emulator harness. |
 | 19 | **Complete** — optional explicit opening-book support, indexed format, legal reproducible policies, adapter integration, and permanent verification gate. |
-| 20–24 | **Not started**. |
+| 20 | **Complete** — deterministic offline self-play and validated versioned datasets. |
+| 21–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
 
@@ -1006,15 +1007,24 @@ Evidence:
 - Rust run/job: `30867122750` / `91861324627`; 332 non-documentation tests, permanent opening-book audit, strict workspace gates, release depth-four perft, and differential oracle passed.
 - Android run/jobs: `30867122736` / `91861324588`, `91861324637`; host JVM, ARM64/x86_64 verification, APK build, and API-35 instrumentation passed.
 - Opening-book support is optional and disabled by default; all paths, bytes, assets, enablement decisions, and RNG seeds remain explicitly adapter supplied.
-- Task 20 offline self-play is next.
-- [ ] Task 19 gate.
+- Task 20 offline self-play is complete; Task 21 named-schema tuning is next.
 
-# Task 20: Self-play and datasets — NOT STARTED
-- [ ] 20.1 Configuration.
-- [ ] 20.2 Records.
-- [ ] 20.3 Schema.
-- [ ] 20.4 Quality.
-- [ ] Task 20 gate.
+# Task 20: Self-play and datasets — COMPLETE
+- [x] 20.1 Configuration.
+- [x] 20.2 Records.
+- [x] 20.3 Schema.
+- [x] 20.4 Quality.
+- [x] Task 20 gate.
+
+### Task 20 completion evidence
+
+- Merged implementation SHA: `333398c5913309193cb81b91c4af3deff2fd5adf`.
+- Exact validated evidence head: `1fae5fa8d830a524d6ff8d36ba42ed557112c79a`.
+- Rust run/job: `30875333307` / `91885547979`; 336 non-documentation tests, the four focused Task 20 regressions, release perft, documentation, builds, and differential validation passed.
+- Android run/jobs: `30875333292` / `91885547947`, `91885547972`; host JVM, dual-ABI native verification, APK build, and API-35 instrumentation passed.
+- `chess-tools` now provides explicit `self-play`, `self-play-validate`, and `self-play-replay` commands over strict version-1 configuration, opening, game, and position schemas.
+- Seeded opening rotation, per-game seeds, independent side limits, complete engine/evaluator/search provenance, deterministic train/validation/test assignment, replay validation, duplicate occurrence accounting, and explicit opening/maximum-ply filtering are enforced.
+- Task 21.1 named weight-schema integration is next.
 
 # Task 21: Named-schema tuning — NOT STARTED
 - [ ] 21.1 Weights.
@@ -1074,14 +1084,16 @@ Evidence:
 - [x] Search and transposition table.
 - [x] ABI/JNI.
 - [ ] Differential fuzzing.
-- [ ] Self-play and tuning.
+- [x] Self-play and versioned datasets.
+- [ ] Tuning.
 
 ## 25.3 Commands and artifacts
 - [x] Full Task 0/1 validation command, committed lockfile, ignored targets/worktrees.
 - [x] Perft, divide, legal, play, suite, and oracle commands.
 - [x] Evaluation trace, evaluation benchmark, weight export, and weight validation commands.
 - [ ] General bootstrap and fast-validation wrapper commands.
-- [ ] UCI, Android, self-play, and tuning commands.
+- [x] Self-play generation, validation, and replay commands.
+- [ ] UCI, Android, and tuning command documentation.
 - [ ] Versioned schema/fixture/generated-artifact policy across all future artifacts.
 - [ ] Task 25 gate.
 
@@ -1102,9 +1114,9 @@ Evidence:
 
 ## Immediate next operations
 
-1. Implement Task 19.1 as a deterministic opening-book abstraction with no mandatory book dependency.
-2. Define explicit probe inputs and typed no-entry/error outcomes without coupling the core rules layer to a file format.
-3. Preserve legal-move validation and deterministic policy hooks at the adapter/search boundary.
-4. Keep all book loading explicit; do not add automatic filesystem discovery or process-global state.
-5. Add focused abstraction tests before selecting the Task 19.2 persisted format.
-6. Leave Tasks 19.2–19.5 and the overall Task 19 gate open until their own evidence is complete.
+1. Implement Task 21.1 by enumerating tunable named evaluator parameters over the validated Task 20 dataset schema.
+2. Keep non-tunable structural constants separate from trainable weights.
+3. Define versioned tuned-weight serialization with checksum and training metadata before optimizer work.
+4. Implement Task 21.2 with explicit logistic mapping, calibrated `K`, train/validation separation, and fail-loud malformed or empty datasets.
+5. Preserve explicit candidate activation: generated weights must not become defaults before Task 21.5 validation.
+6. Leave Tasks 21.2–21.5 and the overall Task 21 gate open until their own implementation and exact-head evidence are complete.

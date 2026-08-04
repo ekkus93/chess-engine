@@ -124,3 +124,5 @@ The Task 20 gate requires the strict workspace checks, release perft, differenti
 - Differential validation covered 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - Host JVM JNI passed, ARM64/x86_64 native artifacts and exported symbols were verified, the Android AAR/test APK built, and the API-35 instrumentation lifecycle passed.
 - The first compiler iteration found two mechanical ownership mismatches in the new module. Both were corrected without changing the schema, behavior, tests, or quality gate; the exact corrected head passed all permanent workflows.
+
+Task 20 merged at `333398c5913309193cb81b91c4af3deff2fd5adf` after exact evidence head `1fae5fa8d830a524d6ff8d36ba42ed557112c79a` passed the permanent Rust and Android workflows. Task 20 and its overall gate are complete; Task 21.1 named weight-schema integration is next.
