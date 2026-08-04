@@ -87,3 +87,9 @@ There is no fallback parser, implicit split reassignment, unfinished-game draw c
 - typed `SelfPlayLossDatasetError` failures.
 
 Task 21.3 may repeatedly evaluate candidate `EvaluationWeights` against the same parsed `LossDataset`. Task 21.4 owns persistent reports, and Task 21.5 owns final held-out and playing-strength validation.
+
+## Validation evidence
+
+The helper-free implementation head `3d11b01a9de84913c6c1bfa43a37aea0197dc5be` passed the permanent Rust workflow run `30894313165` and job `91943462745`, including formatting, workspace checks, strict Clippy, complete Rust tests, authoritative release perft, warning-free rustdoc, debug and release builds, and differential-oracle validation.
+
+The same head passed Android workflow run `30894313169`: Android/Kotlin lint job `91943477000`, host JVM JNI contract job `91943477036`, and Android API-35 JNI smoke job `91943477212`.
