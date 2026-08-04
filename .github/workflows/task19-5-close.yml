@@ -1,0 +1,73 @@
+name: Task 19.5 Tracker Closure
+
+on:
+  pull_request:
+    branches:
+      - master
+    types:
+      - synchronize
+
+permissions:
+  contents: write
+
+jobs:
+  close:
+    name: close
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'task19-5-closure-trigger' &&
+      github.event.pull_request.title == '[run-task19-5-closure-pr]' &&
+      github.event.pull_request.user.login == 'ekkus93'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Verify trusted trigger identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ github.event.pull_request.head.repo.full_name }}" = "${{ github.repository }}"
+          test "${{ github.event.pull_request.head.ref }}" = "task19-5-closure-trigger"
+          test "${{ github.event.pull_request.title }}" = "[run-task19-5-closure-pr]"
+          test "${{ github.event.pull_request.user.login }}" = "ekkus93"
+
+      - name: Check out tracker closure branch
+        uses: actions/checkout@v4
+        with:
+          ref: task19-5-tracker-closure
+          fetch-depth: 0
+          path: closure
+
+      - name: Apply guarded tracker closure
+        working-directory: closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/task19_5_close.py
+          test ! -e .github/task19_5_close.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo '::error::Tracker closure produced no changes.'
+            exit 1
+          fi
+          git commit -m "docs: complete Task 19 opening-book gate"
+          git push origin HEAD:task19-5-tracker-closure
+
+      - name: Check out trusted default branch
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+          path: trusted
+
+      - name: Remove trusted closure trigger
+        working-directory: trusted
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/task19-5-close.yml
+          git commit -m "ci: remove Task 19.5 tracker closure trigger"
+          git push origin HEAD:master
