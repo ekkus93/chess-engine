@@ -18,16 +18,16 @@ chess-uci = "chess_game.uci:uci_loop"
 [project.optional-dependencies]
 test = ["pytest", "pytest-asyncio>=0.23"]
 lint = [
-    "mypy",
-    "pylint",
-    "ruff",
+    "mypy==2.3.0",
+    "pylint==4.0.6",
+    "ruff==0.16.1",
 ]
 dev = [
-    "mypy",
-    "pylint",
+    "mypy==2.3.0",
+    "pylint==4.0.6",
     "pytest",
     "pytest-asyncio>=0.23",
-    "ruff",
+    "ruff==0.16.1",
 ]
 
 [tool.pytest.ini_options]
@@ -41,6 +41,10 @@ markers = [
 target-version = "py311"
 
 [tool.ruff.lint]
+# Keep the enforced rule set stable across Ruff releases. These groups cover
+# syntax/runtime errors, undefined or unused names, import ordering, Python 3.11
+# modernization, common bug patterns, and unnecessary collection construction.
+select = ["E4", "E7", "E9", "F", "I", "UP", "B", "C4"]
 extend-ignore = ["E741"]
 
 [tool.mypy]
@@ -69,6 +73,12 @@ max-module-lines = 800
 [tool.pylint.basic]
 # TODO is used for deferred correctness work (e.g. TT mate-score normalization).
 notes = ["FIXME", "XXX"]
+
+[tool.pylint.messages_control]
+# These are presentation-only findings. The module-size, design, type, runtime,
+# and correctness checks remain enabled. duplicate-code is a false positive for
+# the intentionally mirrored package-level export lists.
+disable = ["line-too-long", "missing-class-docstring", "duplicate-code"]
 
 [tool.setuptools.packages.find]
 include = ["chess_game*"]
