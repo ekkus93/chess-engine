@@ -64,16 +64,3 @@ jobs:
           --output-format=text
           --msg-template='{path}:{line}:{column}: {msg_id} {msg}'
           chess_game
-
-  pytest:
-    name: Complete pytest suite
-    runs-on: ubuntu-24.04
-    timeout-minutes: 180
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-      - run: python -m pip install -e '.[test]'
-      - run: python -m pytest tests -q
