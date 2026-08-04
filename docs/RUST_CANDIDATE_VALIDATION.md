@@ -44,7 +44,7 @@ Permanent CI independently reruns the complete Rust test suite, release perft, d
 
 ## Color-balanced match protocol
 
-The production minimum is **200 independent opening pairs**, which means **400 games**.
+The production minimum is **200 independent opening pairs**, which means **400 games**. The fixed suite must contain at least 200 distinct opening lines; production validation rejects any configuration that would reuse an opening as a second independent pair.
 
 For each pair:
 
