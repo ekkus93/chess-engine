@@ -1,0 +1,21 @@
+CHESS_TUNING_CONFIG	1
+# Replace source_commit and identifiers for every real run.
+engine_identifier=0x5441534b32350001
+initial_weight_identifier=0x424153454c494e45
+candidate_weight_identifier=0x43414e4449444154
+source_commit=1111111111111111111111111111111111111111
+generated_at_unix_seconds=1
+maximum_iterations=100
+advance_iterations=10
+learning_rate=0.01
+step_decay=0.602
+perturbation_size=2.0
+perturbation_decay=0.101
+stability_constant=10.0
+minimum_weight=-2000
+maximum_weight=2000
+regularization_strength=0.000001
+random_seed=7
+k_minimum=0.01
+k_maximum=2.0
+k_intervals=200

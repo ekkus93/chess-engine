@@ -1,0 +1,59 @@
+name: Strength
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/strength.yml
+  workflow_dispatch:
+  schedule:
+    - cron: "43 7 * * 3"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rust-strength-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  baseline-control:
+    name: 200-pair candidate-validation control
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo data
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-engine-strength-control
+
+      - name: Run 400-game color-balanced control
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --locked -p chess-tools --release \
+            candidate_validation::tests::production_control_match_runs_four_hundred_games \
+            -- --ignored --exact --nocapture \
+            | tee strength-control.txt
+          grep -F 'task21_5_control' strength-control.txt
+          grep -F 'pairs=200' strength-control.txt
+          grep -F 'games=400' strength-control.txt
+          grep -F 'decision=rejected_strength' strength-control.txt
+          grep -F 'activated=false' strength-control.txt
+
+      - name: Preserve strength evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: strength-control-${{ github.sha }}
+          path: strength-control.txt
+          if-no-files-found: error
+          retention-days: 30

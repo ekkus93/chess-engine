@@ -1,147 +1,53 @@
-# Chess Engine — Project Context
+# Chess Engine — Rust project context
 
-## What this is
+The Rust workspace is the active implementation. The Python engine remains only as historical/reference material; Python feature development and Python CI are retired.
 
-A correct, test-driven chess rules engine with a minimax AI (alpha-beta pruning) and text-based CLI.
+## Mandatory workflow
 
-**Correctness comes before features.** GUI is not yet implemented.
+- Work directly on `master`.
+- Do not create a branch or pull request unless the user explicitly asks.
+- Follow `docs/RUST_CHESS_ENGINE_PORT_SPEC_2026-08-01.md` and the authoritative Task tracker.
+- Use `bash scripts/dev.sh help` for supported developer entry points.
+- Do not mark completion until exact permanent CI evidence exists.
 
-## Coordinate Convention
-
-- **row 0 = rank 8** (black's back rank), **row 7 = rank 1** (white's back rank)
-- **col 0 = file a**, **col 7 = file h**
-- White pawns move toward smaller row numbers, black pawns toward larger row numbers
-
-## Project Structure
-
-```
-chess_game/
-  main.py                  # CLI entry point
-  chess/
-    __init__.py            # Public API: Board, Move, Piece, Color, PieceType, LegalMove
-    types.py               # Piece, CastlingRights, BoardValidators, LegalMove dataclasses
-    color.py               # Color enum
-    coords.py              # Coordinate constants and helpers
-    constants.py           # Board size, piece values
-    move.py                # Move parsing
-    ai.py                  # Main AI: get_best_move, minimax entry
-    evaluation.py          # Board position evaluation
-    ai_search_helpers.py   # Minimax helpers, TT, aspiration windows, selective extensions
-    ai_move_ordering.py    # Move ordering for search
-    ai_quiescence_helpers.py  # Quiescence search
-    ai_capture_ordering.py   # Capture move ordering
-    ai_repetition_patterns.py # Reposition detection for draws
-    ai_board_utils.py      # Board utilities for AI
-    ai_plan_guidance.py    # Plan-based evaluation signals
-    strategy_utils.py      # Shared strategy helpers
-    opening_book.py        # Opening book lookup
-    opening_development.py # Opening development scoring
-    opening_move_ordering.py # Opening-specific move ordering
-    opening_guidance.py    # Opening guidance signals
-    conversion_guidance.py # Winning-side conversion heuristics
-    defensive_containment_guidance.py  # Heavy-piece defense vs passers
-    defensive_endgame_guidance.py      # Endgame defense
-    defensive_priorities.py             # Defensive move prioritization
-    threat_awareness.py      # Threat detection and response
-    anti_drift_guidance.py   # Prevents aimless piece shuffling
-    tactical_transition_guidance.py # Transition move quality
-    review_loop_guidance.py  # Transcript-driven practical guidance
-    simple_endgame_guidance.py   # Low-material endgame guidance
-    endgame_evaluation.py        # Endgame-specific evaluation
-    endgame_choice_guidance.py   # Endgame repetition/cutoff policy
-    endgame_emergency_defense.py # Emergency defense triggers
-    low_material_race_guidance.py    # Low-material passed-pawn races
-    low_material_coordination_guidance.py # Bishop/king sparse endings
-    passer_race_guidance.py      # Heavy-piece passed-pawn race scoring
-    heavy_piece_endgame_guidance.py  # Queen/rook ending guidance
-    rook_endgame_guidance.py           # Rook-specific endgame
-    forced_win_guidance.py             # Clearly won position handling
-    pawn_race_move_ordering.py         # Pawn race ordering
-    pawn_structure_evaluation.py       # Pawn structure scoring
-    piece_coordination.py              # Piece coordination signals
-    opponent_plans.py                  # Opponent plan recognition
-    structure_recognition.py           # Positional structure patterns
-    middlegame_practicality_guidance.py # Middlegame practicality
-    evaluation_tables.py       # Piece-square tables
-    board/
-      board.py              # Board class (top-level interface)
-      move_execution.py     # Move execution logic
-      move_validation.py    # Legal move validation
-      game_state.py         # Check, checkmate, stalemate
-      castling.py           # Castling rules and rights
-      en_passant.py         # En passant rules
-      promotion.py          # Promotion validation
-      attack_utils.py       # Square attack detection
-      path_validator.py     # Path clearance for sliders
-      piece_validation.py   # Piece-specific validation
-    pieces/
-      piece_movers.py       # Movement rules per piece type
-tests/                       # Test suite
-docs/                        # Documentation
-```
-
-## Python Environment
-
-This project uses **uv** for environment management. A `.venv` (Python 3.11) is already created.
-Always prefix commands with `uv run` — do **not** use the system or mambaforge Python directly.
-
-## Running the CLI
+## Standard commands
 
 ```bash
-uv run python -m chess_game.main
+bash scripts/dev.sh bootstrap
+bash scripts/dev.sh fast
+bash scripts/dev.sh full
+bash scripts/dev.sh perft
+bash scripts/dev.sh uci
+bash scripts/dev.sh android
+bash scripts/dev.sh fuzz-smoke
 ```
 
-Move input: `e2e4`, `g1f3`, `e7e8q` (promotion suffixes: `q`, `r`, `b`, `n`).
+The complete command and artifact contract is `docs/RUST_DEVELOPER_WORKFLOWS.md`.
 
-## Running Tests
+## Architecture
 
-```bash
-uv run python -m pytest tests/ -q -m "not slow"   # Fast suite
-uv run python -m pytest tests/ -q -m "slow"       # Slow AI regressions
-uv run python -m pytest tests/ -q                 # Full suite
-```
+- `chess-core`: values, positions, FEN/UCI notation, legal moves, make/unmake, history, hashing, perft.
+- `chess-search`: evaluation, TT, negamax/alpha-beta, quiescence, iterative deepening, limits, cancellation.
+- `chess-book`: explicit book interfaces and indexed format.
+- `chess-uci`, `chess-ffi`, `chess-jni`: outward adapters.
+- `chess-tools`, `chess-tune`: offline evidence, self-play, loss, SPSA, reports, and validation.
+- `android-harness`: Kotlin/JVM and API-35 lifecycle integration.
+- `fuzz`: separate locked fuzz workspace.
 
-## Linting
+Core/search forbid unsafe code. Recursive search must not clone positions per child or construct string keys. No conventional-path artifact discovery is allowed. C/JNI boundaries must catch panics and preserve ownership contracts.
 
-```bash
-uv run python -m ruff check chess_game tests
-uv run python -m mypy chess_game
-uv run python -m pylint chess_game               # Target: 10.00/10
-```
+## Correctness policy
 
-## Key Conventions
+Correctness comes before strength and speed. Keep exact perft, restoration, incremental hash/repetition identity, differential oracle, property tests, fuzz, Miri, sanitizers, Android/JNI lifecycle, performance, and strength evidence independent and fail-closed.
 
-- **Structural fixes over pragmas.** Never use pylint disable comments to silence warnings — refactor the code instead.
-- **Test-driven.** Add tests before or alongside implementation changes.
-- **Pylint 10.00/10 is the gate.** Every change must pass `ruff`, `mypy`, `pylint`, and the full test suite before committing.
-- **Keep public API stable.** `Board`, `Move`, `Piece`, `Color`, `PieceType`, `LegalMove` are the stable interface.
-- **Coordinate system:** row 0 = rank 8, col 0 = file a. See `docs/coordinate_system.md` for details.
-- **Memory file:** `memory.md` tracks project history. Update it with new relevant information, timestamped, including model used.
+Never add first-party `allow`/`expect` lint suppression. Never delete a regression input or weaken an assertion to obtain a green run.
 
-## Development Workflow
+## Generated artifacts
 
-1. Address tasks sequentially when following a TODO tracker in `docs/`.
-2. Run `ruff`, `mypy`, `pylint`, and `pytest` after each change.
-3. Commit only when all checks pass.
-4. Update TODO files to reflect progress.
-5. Update `memory.md` with timestamps and model used.
+Follow `docs/RUST_GENERATED_ARTIFACT_POLICY.md`. Self-play data, tuning output, checkpoints, current benchmarks, Callgrind files, Android captures, and build output are transient unless deliberately promoted with schema, provenance, checksum, validator/replay, and review rationale.
 
-## Relevant Files
+Tuning candidates are always inactive. Task 21 validation and activation are independent boundaries.
 
-- `pyproject.toml`: Dependencies, tool config (ruff, mypy, pytest markers)
-- `mypy.ini`: Mypy configuration
-- `memory.md`: Persistent project memory — always consulted at session start
+## Tracking and memory
 
-## Memory file
-- You have access to a persistent memory file, memory.md, that stores context about the project, previous interactions, and user preferences.
-- Use this memory to inform your decisions, remember user preferences, and maintain continuity across sessions. 
-- Before sending back a response, update memory.md with any new relevant information learned during the interaction. Make sure to timestamp and format entries clearly.
-- Include the GitHub Copilot model used for the entry in the heading line so memory history records both time and model (for example: `## 2024-06-01T12:00:00Z - GPT-5.4 - User prefers concise responses`).
-- **NEVER fabricate or guess timestamps.** Always obtain the current time by running `date -u +"%Y-%m-%dT%H:%M:%SZ"` in the terminal immediately before writing the entry. If the entry describes a specific commit, use `git log -1 --format="%aI" <hash>` for that commit's actual timestamp.
-- For each entry, add an ISO 8601 timestamp and a brief description of the information added. For example:
-```markdown
-
-## 2024-06-01T12:00:00Z - GPT-5.4 - User prefers concise responses
-- User has expressed a preference for concise, to-the-point answers without unnecessary elaboration.
-```
-
+Update the Task TODO, Ralph status, and `memory.md` after validated evidence. Obtain exact UTC timestamps with `date -u +"%Y-%m-%dT%H:%M:%SZ"`; never invent them. Include the model name in memory headings.

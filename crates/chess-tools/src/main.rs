@@ -7,7 +7,10 @@
 
 use std::{env, fs, io, process::ExitCode, time::Instant};
 
+mod tuning_cli;
+
 use chess_search::EvaluationWeightSet;
+
 use chess_tools::self_play::{
     generate_self_play_dataset, OpeningSuite, SelfPlayDataset, SelfPlayFileConfig,
     SELF_PLAY_DATASET_SCHEMA_VERSION,
@@ -19,7 +22,7 @@ use chess_tools::{
 };
 
 fn usage() -> &'static str {
-    "usage:\n  chess-tools legal [FEN]\n  chess-tools play UCI [FEN]\n  chess-tools perft DEPTH [FEN]\n  chess-tools divide DEPTH [FEN]\n  chess-tools suite MAX_DEPTH\n  chess-tools eval [FEN]\n  chess-tools eval-bench ITERATIONS [FEN]\n  chess-tools tt-bench ITERATIONS\n  chess-tools cancel-bench ITERATIONS\n  chess-tools weights-export\n  chess-tools weights-validate PATH\n  chess-tools self-play CONFIG_PATH OUTPUT_PATH\n  chess-tools self-play-validate DATASET_PATH\n  chess-tools self-play-replay DATASET_PATH GAME_ID\n  chess-tools oracle"
+    "usage:\n  chess-tools legal [FEN]\n  chess-tools play UCI [FEN]\n  chess-tools perft DEPTH [FEN]\n  chess-tools divide DEPTH [FEN]\n  chess-tools suite MAX_DEPTH\n  chess-tools eval [FEN]\n  chess-tools eval-bench ITERATIONS [FEN]\n  chess-tools tt-bench ITERATIONS\n  chess-tools cancel-bench ITERATIONS\n  chess-tools weights-export\n  chess-tools weights-validate PATH\n  chess-tools self-play CONFIG_PATH OUTPUT_PATH\n  chess-tools self-play-validate DATASET_PATH\n  chess-tools self-play-replay DATASET_PATH GAME_ID\n  chess-tools tune CONFIG_PATH DATASET_PATH OUTPUT_DIR [PREVIOUS_OUTPUT_DIR]\n  chess-tools oracle"
 }
 
 fn parse_depth(value: &str) -> Result<u8, String> {
@@ -233,6 +236,9 @@ fn run(arguments: &[String]) -> Result<(), String> {
             println!("result\t{}", replay.result());
             println!("termination\t{}", replay.termination());
             println!("final_fen\t{}", replay.final_fen());
+        }
+        "tune" => {
+            tuning_cli::run_tuning_command(&arguments[1..])?;
         }
         "oracle" => {
             if arguments.len() != 1 {

@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "${ROOT}"
+
+usage() {
+  cat <<'EOF'
+usage: bash scripts/dev.sh COMMAND [ARGUMENTS]
+
+Commands:
+  bootstrap                         Install/check pinned developer prerequisites.
+  fast                              Run the standard fast Rust validation gate.
+  full                              Run the complete local Rust validation gate.
+  perft [DEPTH]                     Run the authoritative perft suite (default: 4).
+  uci [--book PATH]                 Run the Linux UCI engine on stdin/stdout.
+  android                           Build JNI libraries and the Android harness.
+  self-play CONFIG OUTPUT           Generate one versioned offline dataset.
+  tune CONFIG DATASET OUTPUT [CKPT] Run/resume offline SPSA; candidate stays inactive.
+  fuzz-smoke                        Run stable fuzz entrypoint and corpus regressions.
+  artifact-audit                    Audit tracked filenames and generated artifacts.
+EOF
+}
+
+require_command() {
+  command -v "$1" >/dev/null 2>&1 || {
+    echo "developer-workflow: required command not found: $1" >&2
+    exit 1
+  }
+}
+
+bootstrap() {
+  require_command rustup
+  require_command cargo
+  require_command python3
+  rustup component add rustfmt clippy
+  rustup target add aarch64-unknown-linux-gnu aarch64-linux-android x86_64-linux-android
+  cargo fetch --locked
+  if [[ ! -x .venv-oracle/bin/python ]]; then
+    python3 -m venv .venv-oracle
+  fi
+  .venv-oracle/bin/python -m pip install --disable-pip-version-check --upgrade pip
+  .venv-oracle/bin/python -m pip install --disable-pip-version-check --requirement requirements/oracle.txt
+  echo "developer-workflow: bootstrap complete"
+}
+
+artifact_audit() {
+  require_command python3
+  python3 scripts/task_25_artifact_audit.py
+  python3 -m unittest discover -s scripts/tests -p 'test_*.py'
+  bash -n scripts/dev.sh scripts/build_android_jni.sh scripts/prepare_android_harness_jni.sh
+}
+
+fast() {
+  require_command cargo
+  artifact_audit
+  cargo fmt --all -- --check
+  cargo check --locked --workspace --all-targets --all-features
+  cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+  cargo test --locked --workspace --all-features
+}
+
+full() {
+  fast
+  cargo test --locked -p chess-core --release authoritative_perft_depth_four -- --ignored --exact
+  RUSTDOCFLAGS='-D warnings' cargo doc --locked --workspace --all-features --no-deps
+  cargo build --locked --workspace --all-features
+  cargo build --locked --workspace --all-features --release
+  if [[ ! -x .venv-oracle/bin/python ]]; then
+    echo "developer-workflow: run 'bash scripts/dev.sh bootstrap' before full validation" >&2
+    exit 1
+  fi
+  .venv-oracle/bin/python scripts/differential_oracle.py \
+    --binary target/release/chess-tools \
+    --corpus fixtures/differential_corpus.tsv \
+    --games 12 --plies 48 --seed 0xC0FFEE
+}
+
+android() {
+  require_command cargo
+  require_command java
+  require_command gradle
+  : "${ANDROID_NDK_HOME:?Set ANDROID_NDK_HOME to the Android NDK root.}"
+  export ANDROID_API_LEVEL="${ANDROID_API_LEVEL:-24}"
+  bash scripts/prepare_android_harness_jni.sh
+  gradle -p android-harness \
+    :android-smoke:lintDebug \
+    :android-smoke:assembleDebug \
+    :android-smoke:assembleDebugAndroidTest \
+    :host-jvm:test \
+    --no-daemon --stacktrace --console=plain
+}
+
+command="${1:-}"
+if [[ -z "${command}" ]]; then
+  usage
+  exit 2
+fi
+shift
+case "${command}" in
+  bootstrap) [[ $# -eq 0 ]] || { usage; exit 2; }; bootstrap ;;
+  fast) [[ $# -eq 0 ]] || { usage; exit 2; }; fast ;;
+  full) [[ $# -eq 0 ]] || { usage; exit 2; }; full ;;
+  perft)
+    [[ $# -le 1 ]] || { usage; exit 2; }
+    cargo run --locked --release -p chess-tools -- suite "${1:-4}"
+    ;;
+  uci)
+    cargo run --locked --release -p chess-uci -- "$@"
+    ;;
+  android) [[ $# -eq 0 ]] || { usage; exit 2; }; android ;;
+  self-play)
+    [[ $# -eq 2 ]] || { usage; exit 2; }
+    cargo run --locked --release -p chess-tools -- self-play "$1" "$2"
+    ;;
+  tune)
+    [[ $# -eq 3 || $# -eq 4 ]] || { usage; exit 2; }
+    cargo run --locked --release -p chess-tools -- tune "$@"
+    ;;
+  fuzz-smoke)
+    [[ $# -eq 0 ]] || { usage; exit 2; }
+    cargo fmt --manifest-path fuzz/Cargo.toml -- --check
+    cargo clippy --manifest-path fuzz/Cargo.toml --locked --lib --tests -- -D warnings
+    cargo test --manifest-path fuzz/Cargo.toml --locked --lib --tests
+    ;;
+  artifact-audit) [[ $# -eq 0 ]] || { usage; exit 2; }; artifact_audit ;;
+  help|-h|--help) usage ;;
+  *) usage; exit 2 ;;
+esac

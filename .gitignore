@@ -27,3 +27,13 @@ run_copilot.sh
 run_claude.sh
 .opencode/
 tmp/
+
+# Rust developer workflow outputs
+.venv-oracle/
+tuning-output/
+self-play-output/
+callgrind.*
+performance-*.tsv
+task24-android-performance.txt
+android-harness/.gradle/
+android-harness/**/build/

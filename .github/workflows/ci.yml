@@ -39,11 +39,23 @@ jobs:
           test -f scripts/differential_oracle.py
           test -f scripts/task_14_5_exclusion_audit.py
           test -f scripts/task_19_5_opening_book_audit.py
+          test -f scripts/task_25_artifact_audit.py
+          test -f scripts/dev.sh
+          test -f fixtures/tuning_config.example
+          test -f docs/RUST_DEVELOPER_WORKFLOWS.md
+          test -f docs/RUST_GENERATED_ARTIFACT_POLICY.md
           test -f crates/chess-book/tests/task_19_5.rs
           python3 -m py_compile \
             scripts/differential_oracle.py \
             scripts/task_14_5_exclusion_audit.py \
-            scripts/task_19_5_opening_book_audit.py
+            scripts/task_19_5_opening_book_audit.py \
+            scripts/task_25_artifact_audit.py
+
+      - name: Run Task 25 developer-workflow audits
+        run: |
+          python3 scripts/task_25_artifact_audit.py
+          python3 -m unittest discover -s scripts/tests -p 'test_*.py'
+          bash -n scripts/dev.sh scripts/build_android_jni.sh scripts/prepare_android_harness_jni.sh
 
       - name: Run Task 14.5 exclusion audit
         run: python3 scripts/task_14_5_exclusion_audit.py
@@ -129,3 +141,32 @@ jobs:
           --games 12
           --plies 48
           --seed 0xC0FFEE
+  linux-arm64-build:
+    name: Linux ARM64 workspace build
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 60
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo data
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-engine-arm64-workspace
+
+      - name: Validate ARM64 workspace metadata
+        run: cargo metadata --locked --format-version 1 --no-deps
+
+      - name: Build debug ARM64 workspace
+        run: cargo build --locked --workspace --all-features
+
+      - name: Compile ARM64 workspace tests
+        run: cargo test --locked --workspace --all-features --no-run
+
+      - name: Build release ARM64 workspace
+        run: cargo build --locked --workspace --all-features --release

@@ -1,25 +1,15 @@
 ---
-description: Run ruff, mypy, pylint, and the full pytest suite. Use only when the user explicitly invokes this skill.
+description: Run the repository's Rust fast validation workflow. Use only when the user explicitly invokes this skill.
 allowed-tools:
-  - Bash(uv run python -m ruff *)
-  - Bash(uv run python -m mypy *)
-  - Bash(uv run python -m pylint *)
-  - Bash(uv run python -m pytest *)
+  - Bash(bash scripts/dev.sh fast)
 ---
 
-# Lint and Test
+# Lint and test
 
-Run all linters and the full test suite in sequence. Report results clearly.
-
-## Steps
-
-Run these commands in order:
+Run the authoritative fast Rust gate:
 
 ```bash
-uv run python -m ruff check chess_game tests
-uv run python -m mypy chess_game
-uv run python -m pylint chess_game --score=y
-uv run python -m pytest tests/ -q
+bash scripts/dev.sh fast
 ```
 
-Stop at the first failure and report the error. If all pass, confirm each check passed and the final test count.
+Stop at the first failure and report the exact command and diagnostic. Do not substitute Python lint/test commands; Python development and Python CI are retired.

@@ -4,9 +4,11 @@ on:
   workflow_run:
     workflows:
       - CI
-      - Python CI
       - Android JNI
       - Slow perft
+      - Robustness
+      - Performance
+      - Strength
     types:
       - completed
 
