@@ -1,0 +1,174 @@
+name: Task 21.1 Tracker Closure
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+concurrency:
+  group: task21-tracker-closure
+  cancel-in-progress: false
+
+jobs:
+  close:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Record Task 21.1 completion
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          evidence_sha = '8410beb6dc22684052ded86a6f2fe71cf9d1e444'
+          rust_run = '30889939723'
+          rust_job = '91929495312'
+          android_run = '30889939726'
+          host_job = '91929459955'
+          emulator_job = '91929459977'
+          lint_job = '91929460081'
+
+          definitions_path = Path('docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md')
+          definitions = definitions_path.read_text()
+          definitions = definitions.replace(
+              '- Task 20 is complete; Task 21.1 named weight-schema integration is next.',
+              '- Task 20 is complete; Task 21.1 named weight-schema integration is complete and Task 21.2 loss-pipeline work is next.',
+              1,
+          )
+          old_definitions = '''## 21.1 Weight schema integration
+
+- [ ] Enumerate tunable named parameters.
+- [ ] Preserve non-tunable structural constants separately.
+- [ ] Version serialization.
+- [ ] Include checksum and training metadata.
+'''
+          new_definitions = f'''## 21.1 Weight schema integration
+
+- [x] Enumerate tunable named parameters.
+- [x] Preserve non-tunable structural constants separately.
+- [x] Version serialization.
+- [x] Include checksum and training metadata.
+
+### Task 21.1 completion evidence
+
+- Runtime structural contract: `chess_search::EVALUATION_STRUCTURE`, with an independent schema version and checksum for maximum phase, phase units, fixed king material, and fixed pawn/king mobility.
+- Named tuning contract: `crates/chess-tune/src/lib.rs`, exposing 810 stable scalar names and indices while restoring all fixed structural fields outside the tuning vector.
+- Artifact contract: strict version-1 named serialization with complete training-run and dataset provenance plus checksums covering schemas, structure, metadata, parameter names, and values.
+- Contract documentation: `docs/RUST_NAMED_WEIGHT_SCHEMA.md`.
+- Exact validated implementation head: `{evidence_sha}`.
+- Permanent Rust run/job: `{rust_run}` / `{rust_job}`; formatting, workspace check, strict Clippy, complete tests, authoritative release perft, warning-free rustdoc, debug/release builds, and differential validation passed.
+- Permanent Android run/jobs: `{android_run}` / `{host_job}`, `{emulator_job}`, `{lint_job}`; host JNI tests, API-35 instrumentation, and Android/Kotlin lint passed.
+- Candidate artifacts remain explicitly inactive; Task 21.2 owns the loss pipeline.
+'''
+          if definitions.count(old_definitions) != 1:
+              raise SystemExit('Task 21.1 definitions block was not found exactly once')
+          definitions_path.write_text(definitions.replace(old_definitions, new_definitions, 1))
+
+          todo_path = Path('docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md')
+          todo = todo_path.read_text()
+          summary_old = '| 21–24 | **Not started**. |'
+          summary_new = '| 21 | **In progress** — Task 21.1 named weight-schema integration complete; Tasks 21.2–21.5 remain. |\n| 22–24 | **Not started**. |'
+          if todo.count(summary_old) != 1:
+              raise SystemExit('Task 21–24 summary row was not found exactly once')
+          todo = todo.replace(summary_old, summary_new, 1)
+          todo = todo.replace(
+              '- Task 21.1 named weight-schema integration is next.',
+              '- Task 21.1 named weight-schema integration is complete; Task 21.2 loss-pipeline work is next.',
+              1,
+          )
+          old_todo = '''# Task 21: Named-schema tuning — NOT STARTED
+- [ ] 21.1 Weights.
+- [ ] 21.2 Loss.
+- [ ] 21.3 Optimizer.
+- [ ] 21.4 Reports.
+- [ ] 21.5 Validation.
+'''
+          new_todo = f'''# Task 21: Named-schema tuning — IN PROGRESS
+- [x] 21.1 Weights.
+- [ ] 21.2 Loss.
+- [ ] 21.3 Optimizer.
+- [ ] 21.4 Reports.
+- [ ] 21.5 Validation.
+
+### Task 21.1 completion evidence
+
+- Added a stable 810-scalar named tuning schema spanning non-king material, all piece-square values, knight/bishop/rook/queen mobility, and twelve phased evaluator features.
+- Separated and versioned maximum phase, phase units, fixed king material, and fixed pawn/king mobility through `EVALUATION_STRUCTURE`; runtime tapered evaluation consumes that structure directly.
+- Added strict version-1 named artifacts with complete source/trainer/dataset/split/seed/iteration/timestamp provenance and semantic checksums covering parameter names and values.
+- Added fail-loud validation, structural restoration, deterministic serialization, malformed-name/checksum/provenance regressions, and `docs/RUST_NAMED_WEIGHT_SCHEMA.md`.
+- Exact validated implementation head: `{evidence_sha}`.
+- Rust run/job: `{rust_run}` / `{rust_job}`.
+- Android run/jobs: `{android_run}` / `{host_job}`, `{emulator_job}`, `{lint_job}`.
+- All permanent Rust quality/correctness gates, Android/Kotlin lint, host JNI tests, and API-35 instrumentation passed.
+- Task 21.2 loss-pipeline work is next; no candidate weight artifact is automatically activated.
+'''
+          if todo.count(old_todo) != 1:
+              raise SystemExit('Task 21 live-status block was not found exactly once')
+          todo_path.write_text(todo.replace(old_todo, new_todo, 1))
+
+          ralph_path = Path('docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md')
+          ralph = ralph_path.read_text()
+          ralph = ralph.replace(
+              '**Current phase:** Task 20 offline self-play and versioned datasets complete; Task 21.1 named weight-schema integration is next',
+              '**Current phase:** Task 21.1 named weight-schema integration complete; Task 21.2 loss-pipeline work is next',
+              1,
+          )
+          task20_row = '| 20 / gate | `1fae5fa8d830a524d6ff8d36ba42ed557112c79a` | Rust `30875333307` / `91885547979`; Android `30875333292` / `91885547947`, `91885547972` | deterministic offline self-play, strict version-1 game/position datasets, replay validation, full provenance, explicit splitting/filtering, four focused regressions, 336 Rust tests, release perft, differential oracle, host JVM, dual-ABI Android, APK, and API-35 instrumentation green; merged `333398c5913309193cb81b91c4af3deff2fd5adf` |'
+          task21_row = f'| 21.1 | `{evidence_sha}` | Rust `{rust_run}` / `{rust_job}`; Android `{android_run}` / `{host_job}`, `{emulator_job}`, `{lint_job}` | stable 810-scalar named schema, separately versioned structural evaluator contract, strict named artifact serialization, complete training provenance, semantic checksums, focused regressions, and all permanent Rust/Android gates green |'
+          if ralph.count(task20_row) != 1:
+              raise SystemExit('Task 20 Ralph table row was not found exactly once')
+          ralph = ralph.replace(task20_row, task20_row + '\n' + task21_row, 1)
+          ralph = ralph.replace(
+              'Task 20 is complete. Task 21.1 named weight-schema integration is next.',
+              'Task 20 is complete. Task 21.1 named weight-schema integration is complete; Task 21.2 loss-pipeline work is next.',
+              1,
+          )
+          task21_section = f'''
+
+## Task 21.1 completion
+
+Implemented and validated:
+
+- 810 stable tunable scalar names and indices for non-king material, all piece-square values, supported mobility terms, and twelve phased evaluator features;
+- a separately versioned and checksummed evaluator-structure contract for maximum phase, phase units, fixed king material, and fixed pawn/king mobility;
+- runtime tapered evaluation wired directly to that structural contract;
+- strict version-1 line-oriented named artifacts with exact parameter order and fail-loud parsing;
+- complete trainer, source-commit, dataset, split-size, seed, iteration, and generation-time provenance;
+- semantic artifact checksums covering schema versions, evaluator structure, metadata, parameter names, and values;
+- explicit candidate non-activation and `docs/RUST_NAMED_WEIGHT_SCHEMA.md`.
+
+Evidence:
+
+- exact validated implementation head: `{evidence_sha}`;
+- Rust run/job: `{rust_run}` / `{rust_job}`;
+- Android run/jobs: `{android_run}` / `{host_job}`, `{emulator_job}`, `{lint_job}`;
+- permanent formatting, workspace check, strict Clippy, complete Rust tests, authoritative release perft, warning-free rustdoc, debug/release builds, differential oracle, Android/Kotlin lint, host JNI, and API-35 instrumentation all passed.
+
+Task 21.1 is complete. Task 21.2 loss-pipeline work is next.
+'''
+          if '## Task 21.1 completion' in ralph:
+              raise SystemExit('Task 21.1 Ralph completion section already exists')
+          ralph_path.write_text(ralph.rstrip() + task21_section + '\n')
+          PY
+
+      - name: Commit Task 21.1 tracker closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md \
+            docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md \
+            docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
+          git commit -m 'docs: close Task 21.1 named weight schema'
+          git push origin HEAD:master
