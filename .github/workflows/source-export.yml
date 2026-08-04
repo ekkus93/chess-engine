@@ -8,7 +8,7 @@ on:
       - .github/workflows/source-export.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   export:
@@ -25,3 +25,13 @@ jobs:
           path: /tmp/chess-engine-master.tar.gz
           if-no-files-found: error
           retention-days: 1
+      - name: Record export run
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s\n' "${GITHUB_RUN_ID}" > .github/source-export-run.txt
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .github/source-export-run.txt
+          git commit -m "ci: record Task 24 source export run"
+          git push
