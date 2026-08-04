@@ -8,17 +8,21 @@ on:
     branches:
       - master
   workflow_dispatch:
+  issues:
+    types:
+      - opened
 
 permissions:
-  contents: read
+  contents: write
   issues: write
 
 concurrency:
-  group: python-ci-${{ github.workflow }}-${{ github.ref }}
+  group: python-ci-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
   python-quality:
+    if: github.event_name != 'issues'
     name: Python 3.11 quality
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -118,3 +122,56 @@ jobs:
               --body-file "${RUNNER_TEMP}/failure.md"
             exit "${status}"
           fi
+
+  fix-import-order:
+    if: >-
+      github.event_name == 'issues' &&
+      github.actor == 'ekkus93' &&
+      github.event.issue.title == '[fix-python-import-order-on-master]'
+    name: Fix Python import order on master
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TRIGGER_ISSUE: ${{ github.event.issue.number }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          token: ${{ github.token }}
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install lint dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[lint]'
+
+      - name: Apply Ruff import ordering and push master
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m ruff check --fix --select I chess_game tests
+          python -m ruff check chess_game tests
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add chess_game tests
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            gh issue comment "${TRIGGER_ISSUE}" --repo "${GITHUB_REPOSITORY}" \
+              --body 'Ruff reported no import-order changes to commit.'
+          else
+            git commit -m 'style(python): normalize import ordering'
+            git push origin HEAD:master
+            repair_sha="$(git rev-parse HEAD)"
+            gh issue comment "${TRIGGER_ISSUE}" --repo "${GITHUB_REPOSITORY}" \
+              --body "Ruff import ordering was repaired directly on master at ${repair_sha}."
+          fi
+
+          gh issue close "${TRIGGER_ISSUE}" --repo "${GITHUB_REPOSITORY}" --reason completed
