@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: rust-ci-${{ github.workflow }}-${{ github.ref }}
@@ -129,44 +129,3 @@ jobs:
           --games 12
           --plies 48
           --seed 0xC0FFEE
-
-  task23-bootstrap:
-    name: Apply Task 23 robustness source files
-    if: github.event_name == 'pull_request' && github.head_ref == 'rust-engine'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: rust-engine
-          fetch-depth: 0
-
-      - name: Install stable Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-
-      - name: Execute source-only Task 23 applicator
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PYTHON'
-          from pathlib import Path
-
-          lines = Path('.github/workflows/task23-apply.yml').read_text().splitlines()
-          marker = '      - name: Apply Task 23 files'
-          start = lines.index(marker)
-          run_index = lines.index('        run: |', start) + 1
-          full_script = '\n'.join(line[10:] for line in lines[run_index:]) + '\n'
-          prefix = full_script.split('rm .github/workflows/task23-apply.yml', 1)[0]
-          suffix = (
-              'git config user.name "github-actions[bot]"\n'
-              'git config user.email "41898282+github-actions[bot]@users.noreply.github.com"\n'
-              'git add crates/chess-core/tests/miri_core.rs docs/RUST_ROBUSTNESS_GATES.md fuzz\n'
-              'git diff --cached --check\n'
-              'git commit -m "test: add Task 23 robustness targets"\n'
-              'git push origin HEAD:rust-engine\n'
-          )
-          Path('/tmp/task23-apply.sh').write_text(prefix + suffix)
-          PYTHON
-          bash /tmp/task23-apply.sh
