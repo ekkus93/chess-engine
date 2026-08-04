@@ -1,0 +1,32 @@
+name: Task 23.1 source export
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - .github/workflows/task23-1-export.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 1
+      - name: Archive branch source
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar --exclude=.git -czf /tmp/chess-engine-task23-source.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chess-engine-task23-source
+          path: /tmp/chess-engine-task23-source.tar.gz
+          if-no-files-found: error
+          retention-days: 1
