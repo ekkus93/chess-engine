@@ -1,0 +1,190 @@
+name: Task 21.4 Tracker Close
+
+on:
+  push:
+    branches:
+      - rust-engine
+
+permissions:
+  contents: write
+
+concurrency:
+  group: task21-4-tracker-close
+  cancel-in-progress: false
+
+jobs:
+  close:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+
+      - name: Close authoritative Task 21.4 trackers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: Path, old: str, new: str) -> None:
+              text = path.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected one marker, found {count}: {old[:100]!r}')
+              path.write_text(text.replace(old, new, 1))
+
+          definitions = Path('docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md')
+          replace_once(
+              definitions,
+              '''## 21.4 Reports
+
+          - [ ] Initial training loss.
+          - [ ] Initial validation loss.
+          - [ ] Final training loss.
+          - [ ] Final validation loss.
+          - [ ] Parameter deltas.
+          - [ ] Dataset and engine identifiers.
+          - [ ] Exact command/config.
+          ''',
+              '''## 21.4 Reports
+
+          - [x] Initial training loss.
+          - [x] Initial validation loss.
+          - [x] Final training loss.
+          - [x] Final validation loss.
+          - [x] Parameter deltas.
+          - [x] Dataset and engine identifiers.
+          - [x] Exact command/config.
+
+          ### Task 21.4 completion evidence
+
+          - Versioned report implementation: `crates/chess-tools/src/tuning/report.rs`.
+          - Task 20 provenance adapter: `crates/chess-tools/src/tuning.rs`.
+          - Contract documentation: `docs/RUST_TUNING_REPORTS.md`.
+          - Exact helper-free validated implementation head: `fd179e57462226392ab9c61bc9f26bc7cbb63cc1`.
+          - Rust run/job: `30929481202` / `92060204891`.
+          - Android run/jobs: `30929479894` / `92060200320`, `92060200325`, `92060200573`.
+          - Reports bind initial/final training and validation MSE, all 810 named parameter deltas, Task 20 and optimizer/checkpoint identities, engine/source/weight identifiers, exact command/configuration, and a semantic checksum.
+          - Candidate artifacts use the existing versioned named schema and remain explicitly inactive pending Task 21.5.
+          ''',
+          )
+          replace_once(definitions, '- [ ] Resume validation.', '- [x] Resume validation.')
+
+          live = Path('docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md')
+          replace_once(
+              live,
+              '| 21 | **In progress** — Tasks 21.1–21.3 complete; Tasks 21.4–21.5 remain. |',
+              '| 21 | **In progress** — Tasks 21.1–21.4 complete; Task 21.5 remains. |',
+          )
+          replace_once(
+              live,
+              '''# Task 21: Named-schema tuning — IN PROGRESS
+          - [x] 21.1 Weights.
+          - [x] 21.2 Loss.
+          - [x] 21.3 Optimizer.
+          - [ ] 21.4 Reports.
+          - [ ] 21.5 Validation.
+          ''',
+              '''# Task 21: Named-schema tuning — IN PROGRESS
+          - [x] 21.1 Weights.
+          - [x] 21.2 Loss.
+          - [x] 21.3 Optimizer.
+          - [x] 21.4 Reports.
+          - [ ] 21.5 Validation.
+          ''',
+          )
+          replace_once(
+              live,
+              '''- Task 21.4 report generation and persistent artifact workflows are next; optimized weights remain inactive.
+          - [ ] Task 21 gate.
+          ''',
+              '''- Task 21.4 report generation and persistent artifact workflows are complete; optimized weights remain inactive.
+
+          ### Task 21.4 completion evidence
+
+          - Implementation: `crates/chess-tools/src/tuning/report.rs` and `crates/chess-tools/src/tuning.rs`.
+          - Contract: `docs/RUST_TUNING_REPORTS.md`.
+          - Exact helper-free validated SHA: `fd179e57462226392ab9c61bc9f26bc7cbb63cc1`.
+          - Rust run/job: `30929481202` / `92060204891`.
+          - Android run/jobs: `30929479894` / `92060200320`, `92060200325`, `92060200573`.
+          - Permanent formatting, workspace check, strict Clippy, complete Rust tests, release perft, rustdoc, debug/release builds, differential validation, Android/Kotlin lint, host JNI, dual-ABI native verification, APK build, and API-35 instrumentation passed.
+          - Versioned checksummed reports include all required losses, 810 named deltas, complete identities, and exact invocation/configuration. Candidate artifacts are separate and inactive.
+          - Task 21.5 candidate validation is next.
+          - [ ] Task 21 gate.
+          ''',
+          )
+          replace_once(
+              live,
+              '''1. Implement Task 21.1 by enumerating tunable named evaluator parameters over the validated Task 20 dataset schema.
+          2. Keep non-tunable structural constants separate from trainable weights.
+          3. Define versioned tuned-weight serialization with checksum and training metadata before optimizer work.
+          4. Implement Task 21.2 with explicit logistic mapping, calibrated `K`, train/validation separation, and fail-loud malformed or empty datasets.
+          5. Preserve explicit candidate activation: generated weights must not become defaults before Task 21.5 validation.
+          6. Leave Tasks 21.2–21.5 and the overall Task 21 gate open until their own implementation and exact-head evidence are complete.
+          ''',
+              '''1. Implement Task 21.5 controlled candidate-versus-baseline validation.
+          2. Use color-balanced openings, fixed seeds/opening sets, and a documented sufficient sample size.
+          3. Rerun tactical, perft, and rules suites and reject any correctness regression.
+          4. Keep candidate activation explicit; generated artifacts must not become defaults automatically.
+          5. Leave the overall Task 21 gate open until Task 21.5 has exact-head evidence.
+          ''',
+          )
+
+          ralph = Path('docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md')
+          replace_once(
+              ralph,
+              '**Current phase:** Task 21.3 deterministic SPSA optimizer complete; Task 21.4 report work is next',
+              '**Current phase:** Task 21.4 reproducible tuning reports complete; Task 21.5 candidate validation is next',
+          )
+          row = '| 21.3 | `fc69d7d7554ab325fd72ccfc5ac94c4bb1077ae8` | Rust `30897085986` / `91952447573`; Android `30897085023` / `91952460052`, `91952460064`, `91952460121` | deterministic seeded SPSA over the 810-scalar schema, explicit bounds and L2 regularization, training/validation isolation, checksummed data/config-bound resumable checkpoints, and all permanent gates green |'
+          replace_once(
+              ralph,
+              row,
+              row + '\n| 21.4 | `fd179e57462226392ab9c61bc9f26bc7cbb63cc1` | Rust `30929481202` / `92060204891`; Android `30929479894` / `92060200320`, `92060200325`, `92060200573` | versioned checksummed reports with initial/final train and validation MSE, all 810 named deltas, complete data/engine/source/checkpoint/weight identities, exact command/configuration, atomic persistence, inactive candidate artifacts, and all permanent gates green |',
+          )
+          replace_once(
+              ralph,
+              'Task 21.3 is complete. Task 21.4 report work is next; no optimized candidate has been activated.',
+              '''Task 21.3 is complete. Task 21.4 report work is complete; no optimized candidate has been activated.
+
+          ## Task 21.4 completion
+
+          Implemented and validated:
+
+          - strict version-1 checksummed tuning reports;
+          - initial and final occurrence-weighted training and held-out validation MSE;
+          - final regularized training objective for the SPSA-selected checkpoint best;
+          - all 810 named parameters with initial value, candidate value, and signed delta;
+          - Task 20 schema/checksum/occurrence provenance plus the exact optimizer loss-dataset fingerprint;
+          - engine version/identifier, exact source commit, initial/candidate weight identities, optimizer/config/checkpoint identities, seed, iteration count, logistic `K`, and every schedule/bound/regularization value;
+          - exact command preservation using unambiguous UTF-8 hexadecimal encoding and exact IEEE-754 bit recording;
+          - semantic report checksums and fail-loud binding to the exact checkpoint, configuration, dataset, and initial weights;
+          - explicit same-directory temporary-file persistence with flush, synchronization, and atomic rename;
+          - separately versioned `NamedWeightArtifact` candidate output with no automatic activation;
+          - `docs/RUST_TUNING_REPORTS.md`.
+
+          Evidence:
+
+          - exact helper-free validated implementation head: `fd179e57462226392ab9c61bc9f26bc7cbb63cc1`;
+          - permanent Rust run/job: `30929481202` / `92060204891`;
+          - permanent Android run/jobs: `30929479894` / `92060200320`, `92060200325`, `92060200573`;
+          - formatting, locked workspace check, strict Clippy, complete Rust tests, authoritative release perft, warning-free rustdoc, debug/release builds, differential oracle, Android/Kotlin lint, host JVM JNI, dual-ABI native verification, APK build, and API-35 instrumentation all passed;
+          - the temporary validation workflow was removed before the recorded implementation head;
+          - candidate weights remain inactive and Task 21.5 owns controlled candidate validation and any later explicit activation decision.
+
+          Task 21.4 is complete. Task 21.5 candidate validation is next.
+          ''',
+          )
+          PY
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md \
+            docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md \
+            docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
+          git commit -m 'docs: close Task 21.4 reports'
+          git push origin HEAD:rust-engine
