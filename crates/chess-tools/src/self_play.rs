@@ -43,8 +43,9 @@ impl SelfPlayLimit {
         match self {
             Self::Depth(depth) => SearchLimits::new().with_depth(depth),
             Self::Nodes(nodes) => SearchLimits::new().with_nodes(nodes),
-            Self::TimeMilliseconds(milliseconds) => SearchLimits::new()
-                .with_hard_time(Duration::from_millis(milliseconds)),
+            Self::TimeMilliseconds(milliseconds) => {
+                SearchLimits::new().with_hard_time(Duration::from_millis(milliseconds))
+            }
         }
     }
 
@@ -245,9 +246,7 @@ impl FromStr for DatasetSplit {
             "train" => Ok(Self::Train),
             "validation" => Ok(Self::Validation),
             "test" => Ok(Self::Test),
-            _ => Err(ToolError::new(format!(
-                "invalid dataset split {value:?}"
-            ))),
+            _ => Err(ToolError::new(format!("invalid dataset split {value:?}"))),
         }
     }
 }
@@ -296,9 +295,7 @@ impl DatasetSplitPercentages {
                 "train, validation, and test percentages must all be nonzero",
             ));
         }
-        let total = u16::from(self.train)
-            + u16::from(self.validation)
-            + u16::from(self.test);
+        let total = u16::from(self.train) + u16::from(self.validation) + u16::from(self.test);
         if total != 100 {
             return Err(ToolError::new(format!(
                 "dataset split percentages must total 100, found {total}"
@@ -535,8 +532,7 @@ impl SelfPlayFileConfig {
         let white = parse_side_config(&mut values, "white")?;
         let black = parse_side_config(&mut values, "black")?;
         let claimable_draw_policy = take_required(&mut values, "claimable_draw")?.parse()?;
-        let opening_position_policy =
-            take_required(&mut values, "opening_positions")?.parse()?;
+        let opening_position_policy = take_required(&mut values, "opening_positions")?.parse()?;
         let splits = DatasetSplitPercentages::new(
             parse_number(&take_required(&mut values, "split_train")?, "split_train")?,
             parse_number(
@@ -632,9 +628,8 @@ impl OpeningSuite {
         let header = lines
             .next()
             .ok_or_else(|| ToolError::new("opening suite is empty"))?;
-        let expected_header = format!(
-            "CHESS_SELF_PLAY_OPENINGS\t{SELF_PLAY_OPENING_SCHEMA_VERSION}"
-        );
+        let expected_header =
+            format!("CHESS_SELF_PLAY_OPENINGS\t{SELF_PLAY_OPENING_SCHEMA_VERSION}");
         if header != expected_header {
             return Err(ToolError::new(format!(
                 "invalid opening-suite header {header:?}"
@@ -793,9 +788,7 @@ impl FromStr for SelfPlayTermination {
             "automatic_draw" => Ok(Self::AutomaticDraw(parse_draw_reason(detail)?)),
             "claimed_draw" => Ok(Self::ClaimedDraw(parse_draw_reason(detail)?)),
             "maximum_ply" => Ok(Self::MaximumPly(parse_number(detail, "maximum ply")?)),
-            _ => Err(ToolError::new(format!(
-                "invalid termination kind {kind:?}"
-            ))),
+            _ => Err(ToolError::new(format!("invalid termination kind {kind:?}"))),
         }
     }
 }
@@ -1201,9 +1194,8 @@ impl SelfPlayDataset {
         let header = lines
             .next()
             .ok_or_else(|| ToolError::new("self-play dataset is empty"))?;
-        let expected_header = format!(
-            "CHESS_SELF_PLAY_DATASET\t{SELF_PLAY_DATASET_SCHEMA_VERSION}"
-        );
+        let expected_header =
+            format!("CHESS_SELF_PLAY_DATASET\t{SELF_PLAY_DATASET_SCHEMA_VERSION}");
         if header != expected_header {
             return Err(ToolError::new(format!(
                 "invalid self-play dataset header {header:?}"
@@ -1378,8 +1370,8 @@ impl SelfPlayDataset {
 
         let opening_offset = (splitmix64(self.config.seed) % self.openings.len() as u64) as usize;
         for (index, game) in self.games.iter().enumerate() {
-            let expected_id = u32::try_from(index)
-                .map_err(|_| ToolError::new("game index exceeds u32"))?;
+            let expected_id =
+                u32::try_from(index).map_err(|_| ToolError::new("game index exceeds u32"))?;
             if game.game_id != expected_id {
                 return Err(ToolError::new(format!(
                     "expected game id {expected_id}, found {}",
@@ -1408,18 +1400,14 @@ impl SelfPlayDataset {
             }
             validate_side_provenance(&game.white)?;
             validate_side_provenance(&game.black)?;
-            if game.white.config != self.config.white
-                || game.black.config != self.config.black
-            {
+            if game.white.config != self.config.white || game.black.config != self.config.black {
                 return Err(ToolError::new(format!(
                     "game {} side configuration mismatch",
                     game.game_id
                 )));
             }
             validate_text_field("replay command", &game.replay_command)?;
-            if game.replay_command.is_empty()
-                || !game.replay_command.contains("self-play-replay")
-            {
+            if game.replay_command.is_empty() || !game.replay_command.contains("self-play-replay") {
                 return Err(ToolError::new(format!(
                     "game {} has no reproducible replay command",
                     game.game_id
@@ -1579,8 +1567,7 @@ pub fn generate_self_play_dataset(
         let opening = &openings.lines[opening_index];
         let game_seed = game_seed(config.seed, game_id);
         let split = config.splits.assign(game_seed);
-        let (game, raw_positions, result, termination) =
-            run_game(config, opening, &white, &black)?;
+        let (game, raw_positions, result, termination) = run_game(config, opening, &white, &black)?;
         let moves = game.moves().iter().map(Move::to_uci).collect::<Vec<_>>();
         let replay_command = format!(
             "chess-tools self-play-replay {} {game_id}",
@@ -1632,15 +1619,7 @@ fn run_game(
     opening: &OpeningLine,
     white: &SideProvenance,
     black: &SideProvenance,
-) -> Result<
-    (
-        Game,
-        Vec<RawPosition>,
-        SelfPlayResult,
-        SelfPlayTermination,
-    ),
-    ToolError,
-> {
+) -> Result<(Game, Vec<RawPosition>, SelfPlayResult, SelfPlayTermination), ToolError> {
     let mut game = Game::new(
         Position::from_fen(&opening.initial_fen)
             .map_err(|error| ToolError::new(error.to_string()))?,
@@ -1908,8 +1887,8 @@ fn parse_opening_record(line: &str) -> Result<OpeningLine, ToolError> {
         return Err(ToolError::new("expected OPENING record"));
     }
     validate_identifier(fields[1])?;
-    let position = Position::from_fen(fields[2])
-        .map_err(|error| ToolError::new(error.to_string()))?;
+    let position =
+        Position::from_fen(fields[2]).map_err(|error| ToolError::new(error.to_string()))?;
     if position.to_fen() != fields[2] {
         return Err(ToolError::new("embedded opening FEN is not canonical"));
     }
@@ -1985,11 +1964,8 @@ fn parse_side_provenance(fields: &[&str]) -> Result<SideProvenance, ToolError> {
         weight_schema_version: parse_number(fields[1], "weight schema")?,
         weight_identifier: parse_hex_u64(fields[2], "weight identifier")?,
         weight_checksum: parse_hex_u64(fields[3], "weight checksum")?,
-        config: SelfPlaySideConfig::new(
-            parse_number(fields[5], "TT MiB")?,
-            fields[4].parse()?,
-        )
-        .with_check_extension(parse_bool(fields[6], "check extension")?),
+        config: SelfPlaySideConfig::new(parse_number(fields[5], "TT MiB")?, fields[4].parse()?)
+            .with_check_extension(parse_bool(fields[6], "check extension")?),
     })
 }
 
@@ -2006,11 +1982,10 @@ fn parse_side_config(
         &take_required(values, &format!("{prefix}_check_extension"))?,
         "check extension",
     )?;
-    Ok(SelfPlaySideConfig::new(
-        transposition_table_mebibytes,
-        limit,
+    Ok(
+        SelfPlaySideConfig::new(transposition_table_mebibytes, limit)
+            .with_check_extension(check_extension),
     )
-    .with_check_extension(check_extension))
 }
 
 fn is_config_key(key: &str) -> bool {
@@ -2035,10 +2010,7 @@ fn is_config_key(key: &str) -> bool {
     )
 }
 
-fn take_required(
-    values: &mut HashMap<String, String>,
-    key: &str,
-) -> Result<String, ToolError> {
+fn take_required(values: &mut HashMap<String, String>, key: &str) -> Result<String, ToolError> {
     values
         .remove(key)
         .ok_or_else(|| ToolError::new(format!("missing self-play config key {key:?}")))
@@ -2108,9 +2080,7 @@ fn parse_draw_reason(value: &str) -> Result<DrawReason, ToolError> {
         "fifty_move_rule" => Ok(DrawReason::FiftyMoveRule),
         "seventy_five_move_rule" => Ok(DrawReason::SeventyFiveMoveRule),
         "dead_position" => Ok(DrawReason::DeadPosition),
-        _ => Err(ToolError::new(format!(
-            "invalid draw reason {value:?}"
-        ))),
+        _ => Err(ToolError::new(format!("invalid draw reason {value:?}"))),
     }
 }
 
@@ -2147,7 +2117,11 @@ fn parse_hex_u64(value: &str, context: &str) -> Result<u64, ToolError> {
         .map_err(|error| ToolError::new(format!("invalid {context} {value:?}: {error}")))
 }
 
-fn exact_fields<'a>(line: &'a str, expected: usize, context: &str) -> Result<Vec<&'a str>, ToolError> {
+fn exact_fields<'a>(
+    line: &'a str,
+    expected: usize,
+    context: &str,
+) -> Result<Vec<&'a str>, ToolError> {
     let fields = line.split('\t').collect::<Vec<_>>();
     if fields.len() != expected {
         return Err(ToolError::new(format!(
@@ -2172,7 +2146,10 @@ fn validate_identifier(value: &str) -> Result<(), ToolError> {
 }
 
 fn validate_text_field(context: &str, value: &str) -> Result<(), ToolError> {
-    if value.bytes().any(|byte| matches!(byte, b'\t' | b'\r' | b'\n')) {
+    if value
+        .bytes()
+        .any(|byte| matches!(byte, b'\t' | b'\r' | b'\n'))
+    {
         return Err(ToolError::new(format!(
             "{context} must not contain tabs or newlines"
         )));
@@ -2204,9 +2181,10 @@ fn duplicate_key(position: &SelfPlayPositionRecord) -> String {
 }
 
 fn shell_quote(value: &str) -> String {
-    if value.bytes().all(|byte| {
-        byte.is_ascii_alphanumeric() || matches!(byte, b'/' | b'.' | b'_' | b'-')
-    }) {
+    if value
+        .bytes()
+        .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'/' | b'.' | b'_' | b'-'))
+    {
         value.to_owned()
     } else {
         format!("'{}'", value.replace('\'', "'\"'\"'"))
