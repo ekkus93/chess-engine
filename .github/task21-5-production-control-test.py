@@ -57,7 +57,7 @@ insert = '''    fn production_openings() -> OpeningSuite {
     #[ignore = "production 200-pair control match"]
     fn production_control_match_runs_four_hundred_games() {
         let side = SelfPlaySideConfig::new(1, SelfPlayLimit::Depth(1));
-        let config = CandidateValidationConfig::new(MINIMUM_VALIDATION_PAIRS, 0x2150_400, side)
+        let config = CandidateValidationConfig::new(MINIMUM_VALIDATION_PAIRS, 0x0215_0400, side)
             .expect("production config")
             .with_maximum_plies(4)
             .expect("short control games")
