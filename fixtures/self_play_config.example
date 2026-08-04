@@ -1,0 +1,16 @@
+schema=1
+games=4
+seed=12345
+maximum_plies=256
+white_limit=depth:3
+white_tt_mib=16
+white_check_extension=false
+black_limit=depth:3
+black_tt_mib=16
+black_check_extension=false
+claimable_draw=accept
+opening_positions=exclude
+split_train=80
+split_validation=10
+split_test=10
+opening_path=fixtures/self_play_openings.tsv
