@@ -1,5 +1,5 @@
 status=1
-source_commit=3ef2edde481713327222948f269ae191f2083a5d
+source_commit=dbafaa915bd815207188c7622f0e0ef1dc92781b
 
 ===== apply =====
-crates/chess-search/src/quiescence.rs: expected one match, found 0: '\nlet child = search_quiescence_node(\n    position,\n    history,\n    child_context,\n    -beta,\n    -alpha,\n    ordering,\n    cancellation,\n);\n'
+crates/chess-search/src/iterative_deepening.rs: expected one structural match, found 0: 'policy,\ntransposition_table,\n&mut controller,'
