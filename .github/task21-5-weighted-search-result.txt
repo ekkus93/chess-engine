@@ -1,63 +1,135 @@
 status=101
-source_commit=d47b77cb66ea45924cd99ff8e91eb6e975b20bf8
+source_commit=da5e32864ea255f0afcc994f24ddf9dadae4eac1
 
 ===== apply =====
+
+===== cleanup =====
 
 ===== fmt =====
 
 ===== check =====
 [1m[92m    Updating[0m crates.io index
 [1m[92m Downloading[0m crates ...
-[1m[92m  Downloaded[0m cfg-if v1.0.4
-[1m[92m  Downloaded[0m cesu8 v1.1.0
-[1m[92m  Downloaded[0m bytes v1.12.1
-[1m[92m  Downloaded[0m jni-sys v0.3.1
-[1m[92m  Downloaded[0m jni-sys-macros v0.4.1
-[1m[92m  Downloaded[0m jni-sys v0.4.1
-[1m[92m  Downloaded[0m same-file v1.0.6
-[1m[92m  Downloaded[0m walkdir v2.5.0
-[1m[92m  Downloaded[0m thiserror v1.0.69
-[1m[92m  Downloaded[0m thiserror-impl v1.0.69
-[1m[92m  Downloaded[0m quote v1.0.47
-[1m[92m  Downloaded[0m jni v0.21.1
-[1m[92m  Downloaded[0m unicode-ident v1.0.24
-[1m[92m  Downloaded[0m combine v4.6.7
-[1m[92m  Downloaded[0m log v0.4.33
 [1m[92m  Downloaded[0m proc-macro2 v1.0.107
-[1m[92m  Downloaded[0m memchr v2.8.3
+[1m[92m  Downloaded[0m jni-sys v0.3.1
+[1m[92m  Downloaded[0m thiserror v1.0.69
+[1m[92m  Downloaded[0m quote v1.0.47
 [1m[92m  Downloaded[0m syn v2.0.119
+[1m[92m  Downloaded[0m jni-sys v0.4.1
+[1m[92m  Downloaded[0m bytes v1.12.1
+[1m[92m  Downloaded[0m combine v4.6.7
+[1m[92m  Downloaded[0m cesu8 v1.1.0
+[1m[92m  Downloaded[0m thiserror-impl v1.0.69
+[1m[92m  Downloaded[0m jni-sys-macros v0.4.1
+[1m[92m  Downloaded[0m jni v0.21.1
+[1m[92m  Downloaded[0m log v0.4.33
+[1m[92m  Downloaded[0m memchr v2.8.3
+[1m[92m  Downloaded[0m walkdir v2.5.0
+[1m[92m  Downloaded[0m unicode-ident v1.0.24
+[1m[92m  Downloaded[0m same-file v1.0.6
+[1m[92m  Downloaded[0m cfg-if v1.0.4
 [1m[92m    Checking[0m chess-core v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-core)
 [1m[92m   Compiling[0m proc-macro2 v1.0.107
-[1m[92m   Compiling[0m quote v1.0.47
 [1m[92m   Compiling[0m unicode-ident v1.0.24
+[1m[92m   Compiling[0m quote v1.0.47
 [1m[92m   Compiling[0m thiserror v1.0.69
 [1m[92m   Compiling[0m jni-sys v0.3.1
-[1m[92m    Checking[0m memchr v2.8.3
 [1m[92m    Checking[0m bytes v1.12.1
+[1m[92m    Checking[0m memchr v2.8.3
 [1m[92m    Checking[0m cesu8 v1.1.0
 [1m[92m    Checking[0m combine v4.6.7
-[1m[92m    Checking[0m chess-search v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-search)
-[1m[91merror[0m[1m: unused import: `alpha_beta_search_window_in_current_generation`[0m
- [1m[94m--> [0mcrates/chess-search/src/iterative_deepening.rs:8:9
-  [1m[94m|[0m
-[1m[94m8[0m [1m[94m|[0m         alpha_beta_search_window_in_current_generation,
-  [1m[94m|[0m         [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
-  [1m[94m|[0m
-  [1m[94m= [0m[1mnote[0m: `-D unused-imports` implied by `-D warnings`
-  [1m[94m= [0m[1mhelp[0m: to override `-D warnings` add `#[allow(unused_imports)]`
-
-[1m[92m    Checking[0m chess-book v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-book)
 [1m[92m   Compiling[0m syn v2.0.119
+[1m[92m    Checking[0m chess-search v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-search)
+[1m[92m    Checking[0m chess-book v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-book)
 [1m[92m    Checking[0m log v0.4.33
 [1m[92m    Checking[0m cfg-if v1.0.4
-[1m[91merror[0m[1m: function `alpha_beta_search_window_in_current_generation` is never used[0m
-   [1m[94m--> [0mcrates/chess-search/src/alpha_beta.rs:357:15
-    [1m[94m|[0m
-[1m[94m357[0m [1m[94m|[0m pub(crate) fn alpha_beta_search_window_in_current_generation<Probe>(
-    [1m[94m|[0m               [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
-    [1m[94m|[0m
-    [1m[94m= [0m[1mnote[0m: `-D dead-code` implied by `-D warnings`
-    [1m[94m= [0m[1mhelp[0m: to override `-D warnings` add `#[expect(dead_code)]` or `#[allow(dead_code)]`
+[1m[92m    Checking[0m chess-tune v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-tune)
+[1m[92m    Checking[0m chess-ffi v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-ffi)
+[1m[92m    Checking[0m chess-tools v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-tools)
+[1m[92m    Checking[0m chess-uci v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-uci)
+[1m[92m   Compiling[0m jni-sys-macros v0.4.1
+[1m[92m   Compiling[0m thiserror-impl v1.0.69
+[1m[92m    Checking[0m jni-sys v0.4.1
+[1m[92m    Checking[0m jni v0.21.1
+[1m[92m    Checking[0m chess-jni v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-jni)
+[1m[92m    Finished[0m `dev` profile [unoptimized + debuginfo] target(s) in 7.10s
 
-[1m[91merror[0m: could not compile `chess-search` (lib) due to 2 previous errors
+===== clippy =====
+[1m[92m    Checking[0m chess-core v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-core)
+[1m[92m    Checking[0m chess-search v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-search)
+[1m[92m    Checking[0m chess-book v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-book)
+[1m[91merror[0m[1m: this function has too many arguments (8/7)[0m
+   [1m[94m--> [0mcrates/chess-search/src/alpha_beta.rs:357:1
+    [1m[94m|[0m
+[1m[94m357[0m [1m[94m|[0m [1m[91m/[0m pub(crate) fn alpha_beta_search_window_in_current_generation_with_weights<Probe>(
+[1m[94m358[0m [1m[94m|[0m [1m[91m|[0m     position: &mut Position,
+[1m[94m359[0m [1m[94m|[0m [1m[91m|[0m     history: &mut SearchHistory,
+[1m[94m360[0m [1m[94m|[0m [1m[91m|[0m     depth: u16,
+[1m[94m...[0m   [1m[91m|[0m
+[1m[94m367[0m [1m[94m|[0m [1m[91m|[0m where
+[1m[94m368[0m [1m[94m|[0m [1m[91m|[0m     Probe: SearchCancellationProbe + ?Sized,
+    [1m[94m|[0m [1m[91m|____________________________________________^[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mhelp[0m: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#too_many_arguments
+    [1m[94m= [0m[1mnote[0m: `-D clippy::too-many-arguments` implied by `-D clippy::all`
+    [1m[94m= [0m[1mhelp[0m: to override `-D clippy::all` add `#[allow(clippy::too_many_arguments)]`
+
+[1m[91merror[0m[1m: this function has too many arguments (8/7)[0m
+   [1m[94m--> [0mcrates/chess-search/src/alpha_beta.rs:417:1
+    [1m[94m|[0m
+[1m[94m417[0m [1m[94m|[0m [1m[91m/[0m fn run_search_in_current_generation_with_weights<Probe>(
+[1m[94m418[0m [1m[94m|[0m [1m[91m|[0m     position: &mut Position,
+[1m[94m419[0m [1m[94m|[0m [1m[91m|[0m     history: &mut SearchHistory,
+[1m[94m420[0m [1m[94m|[0m [1m[91m|[0m     depth: u16,
+[1m[94m...[0m   [1m[91m|[0m
+[1m[94m427[0m [1m[94m|[0m [1m[91m|[0m where
+[1m[94m428[0m [1m[94m|[0m [1m[91m|[0m     Probe: SearchCancellationProbe + ?Sized,
+    [1m[94m|[0m [1m[91m|____________________________________________^[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mhelp[0m: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#too_many_arguments
+
+[1m[91merror[0m[1m: this function has too many arguments (8/7)[0m
+   [1m[94m--> [0mcrates/chess-search/src/iterative_deepening.rs:869:1
+    [1m[94m|[0m
+[1m[94m869[0m [1m[94m|[0m [1m[91m/[0m fn search_completed_iteration_with_cancellation<Probe>(
+[1m[94m870[0m [1m[94m|[0m [1m[91m|[0m     position: &mut Position,
+[1m[94m871[0m [1m[94m|[0m [1m[91m|[0m     history: &mut SearchHistory,
+[1m[94m872[0m [1m[94m|[0m [1m[91m|[0m     depth: u16,
+[1m[94m...[0m   [1m[91m|[0m
+[1m[94m879[0m [1m[94m|[0m [1m[91m|[0m where
+[1m[94m880[0m [1m[94m|[0m [1m[91m|[0m     Probe: SearchCancellationProbe + ?Sized,
+    [1m[94m|[0m [1m[91m|____________________________________________^[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mhelp[0m: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#too_many_arguments
+
+[1m[91merror[0m[1m: this function has too many arguments (8/7)[0m
+   [1m[94m--> [0mcrates/chess-search/src/iterative_deepening.rs:968:1
+    [1m[94m|[0m
+[1m[94m968[0m [1m[94m|[0m [1m[91m/[0m fn run_attempt<Probe>(
+[1m[94m969[0m [1m[94m|[0m [1m[91m|[0m     position: &mut Position,
+[1m[94m970[0m [1m[94m|[0m [1m[91m|[0m     history: &mut SearchHistory,
+[1m[94m971[0m [1m[94m|[0m [1m[91m|[0m     depth: u16,
+[1m[94m...[0m   [1m[91m|[0m
+[1m[94m978[0m [1m[94m|[0m [1m[91m|[0m where
+[1m[94m979[0m [1m[94m|[0m [1m[91m|[0m     Probe: SearchCancellationProbe + ?Sized,
+    [1m[94m|[0m [1m[91m|____________________________________________^[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mhelp[0m: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#too_many_arguments
+
+[1m[91merror[0m[1m: this function has too many arguments (8/7)[0m
+   [1m[94m--> [0mcrates/chess-search/src/quiescence.rs:128:1
+    [1m[94m|[0m
+[1m[94m128[0m [1m[94m|[0m [1m[91m/[0m pub(crate) fn search_quiescence_node_with_weights<Probe>(
+[1m[94m129[0m [1m[94m|[0m [1m[91m|[0m     position: &mut Position,
+[1m[94m130[0m [1m[94m|[0m [1m[91m|[0m     history: &mut SearchHistory,
+[1m[94m131[0m [1m[94m|[0m [1m[91m|[0m     context: QuiescenceContext,
+[1m[94m...[0m   [1m[91m|[0m
+[1m[94m138[0m [1m[94m|[0m [1m[91m|[0m where
+[1m[94m139[0m [1m[94m|[0m [1m[91m|[0m     Probe: SearchCancellationProbe + ?Sized,
+    [1m[94m|[0m [1m[91m|____________________________________________^[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mhelp[0m: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#too_many_arguments
+
+[1m[91merror[0m: could not compile `chess-search` (lib) due to 5 previous errors
 [1m[33mwarning[0m: build failed, waiting for other jobs to finish...
+[1m[91merror[0m: could not compile `chess-search` (lib test) due to 5 previous errors
