@@ -52,6 +52,9 @@ jobs:
             run_step cleanup2 python3 .github/task21-5-weighted-search-cleanup2.py || status=$?
           fi
           if [ "$status" -eq 0 ]; then
+            run_step cleanup3 python3 .github/task21-5-weighted-search-cleanup3.py || status=$?
+          fi
+          if [ "$status" -eq 0 ]; then
             run_step fmt cargo fmt --all || status=$?
           fi
           if [ "$status" -eq 0 ]; then
