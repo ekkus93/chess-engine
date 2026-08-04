@@ -11,11 +11,10 @@ use chess_search::{
     EVALUATION_STRUCTURE_SCHEMA_VERSION, EVALUATION_WEIGHT_SCHEMA_VERSION,
 };
 use chess_tune::{
-    tunable_values, LogisticK, LossDataset, LossPartition, LossPipelineError,
-    NamedWeightArtifact, NamedWeightArtifactError, OutcomeTarget, SpsaCheckpoint, SpsaConfig,
-    SpsaOptimizer, SpsaOptimizerError, TrainingDatasetProvenance, TrainingMetadata,
-    TrainingRunProvenance, TunableParameter, TUNABLE_PARAMETER_COUNT,
-    SPSA_OPTIMIZER_IDENTIFIER,
+    tunable_values, LogisticK, LossDataset, LossPartition, LossPipelineError, NamedWeightArtifact,
+    NamedWeightArtifactError, OutcomeTarget, SpsaCheckpoint, SpsaConfig, SpsaOptimizer,
+    SpsaOptimizerError, TrainingDatasetProvenance, TrainingMetadata, TrainingRunProvenance,
+    TunableParameter, SPSA_OPTIMIZER_IDENTIFIER, TUNABLE_PARAMETER_COUNT,
 };
 
 /// Current strict tuning-report schema.
@@ -188,16 +187,12 @@ impl TuningReport {
             config.fingerprint(),
         )?;
 
-        let initial_set = EvaluationWeightSet::new(
-            provenance.initial_weight_identifier,
-            initial_weights,
-        );
+        let initial_set =
+            EvaluationWeightSet::new(provenance.initial_weight_identifier, initial_weights);
         initial_set.validate()?;
         let candidate_weights = checkpoint.best_weights();
-        let candidate_set = EvaluationWeightSet::new(
-            provenance.candidate_weight_identifier,
-            candidate_weights,
-        );
+        let candidate_set =
+            EvaluationWeightSet::new(provenance.candidate_weight_identifier, candidate_weights);
         candidate_set.validate()?;
 
         let initial_training_loss = dataset.mean_squared_error(
@@ -264,9 +259,7 @@ impl TuningReport {
     }
 
     /// Iterates all 810 deltas in canonical named-schema order.
-    pub fn parameter_deltas(
-        &self,
-    ) -> impl ExactSizeIterator<Item = TuningParameterDelta> + '_ {
+    pub fn parameter_deltas(&self) -> impl ExactSizeIterator<Item = TuningParameterDelta> + '_ {
         TunableParameter::all().map(|parameter| TuningParameterDelta {
             parameter,
             initial: parameter.value(&self.initial_weights),
@@ -359,8 +352,14 @@ impl TuningReport {
         }
         hash = hash_text(hash, &self.provenance.engine_version);
         hash = hash_bytes(hash, &self.provenance.source_commit);
-        hash = hash_bytes(hash, &self.provenance.initial_weight_identifier.to_le_bytes());
-        hash = hash_bytes(hash, &self.provenance.candidate_weight_identifier.to_le_bytes());
+        hash = hash_bytes(
+            hash,
+            &self.provenance.initial_weight_identifier.to_le_bytes(),
+        );
+        hash = hash_bytes(
+            hash,
+            &self.provenance.candidate_weight_identifier.to_le_bytes(),
+        );
         hash = hash_text(hash, &self.provenance.exact_command);
         hash = hash_bytes(hash, &EVALUATION_WEIGHT_SCHEMA_VERSION.to_le_bytes());
         hash = hash_bytes(hash, &EVALUATION_STRUCTURE_SCHEMA_VERSION.to_le_bytes());
@@ -424,7 +423,11 @@ impl TuningReport {
             "engine_identifier",
             self.provenance.engine_identifier,
         );
-        text_field(&mut output, "engine_version", &self.provenance.engine_version);
+        text_field(
+            &mut output,
+            "engine_version",
+            &self.provenance.engine_version,
+        );
         field(
             &mut output,
             "source_commit",
@@ -474,11 +477,7 @@ impl TuningReport {
             "optimizer_config_fingerprint",
             self.config.fingerprint(),
         );
-        hex_field(
-            &mut output,
-            "checkpoint_checksum",
-            self.checkpoint_checksum,
-        );
+        hex_field(&mut output, "checkpoint_checksum", self.checkpoint_checksum);
         field(
             &mut output,
             "maximum_iterations",
@@ -562,11 +561,7 @@ impl TuningReport {
             "initial_validation_loss",
             self.initial_validation_loss,
         );
-        float_field(
-            &mut output,
-            "final_training_loss",
-            self.final_training_loss,
-        );
+        float_field(&mut output, "final_training_loss", self.final_training_loss);
         float_field(
             &mut output,
             "final_validation_loss",
@@ -668,7 +663,10 @@ impl fmt::Display for TuningReportError {
                 "{field} mismatch: stored {stored}, recomputed {recomputed}"
             ),
             Self::InvalidLoss { field, value } => {
-                write!(formatter, "{field} must be finite and non-negative, found {value}")
+                write!(
+                    formatter,
+                    "{field} must be finite and non-negative, found {value}"
+                )
             }
             Self::Optimizer(error) => write!(formatter, "invalid optimizer state: {error}"),
             Self::Loss(error) => write!(formatter, "loss evaluation failed: {error}"),
@@ -750,11 +748,7 @@ fn regularized_training_objective(
     training_loss + regularization_strength * mean_squared_delta
 }
 
-fn require_u64(
-    field: &'static str,
-    expected: u64,
-    found: u64,
-) -> Result<(), TuningReportError> {
+fn require_u64(field: &'static str, expected: u64, found: u64) -> Result<(), TuningReportError> {
     if expected != found {
         return Err(TuningReportError::ValueMismatch {
             field,
@@ -771,10 +765,7 @@ fn require_float(
     recomputed: f64,
 ) -> Result<(), TuningReportError> {
     let tolerance = 1.0e-12 * stored.abs().max(recomputed.abs()).max(1.0);
-    if !stored.is_finite()
-        || !recomputed.is_finite()
-        || (stored - recomputed).abs() > tolerance
-    {
+    if !stored.is_finite() || !recomputed.is_finite() || (stored - recomputed).abs() > tolerance {
         return Err(TuningReportError::LossMismatch {
             field,
             stored,
@@ -808,9 +799,12 @@ fn loss_dataset_fingerprint(dataset: &LossDataset) -> u64 {
 
 fn checkpoint_checksum(checkpoint: &SpsaCheckpoint) -> Result<u64, TuningReportError> {
     let bytes = checkpoint.to_bytes();
-    let tail = bytes.get(bytes.len().saturating_sub(8)..).ok_or(
-        TuningReportError::InvalidProvenance("checkpoint checksum is missing"),
-    )?;
+    let tail =
+        bytes
+            .get(bytes.len().saturating_sub(8)..)
+            .ok_or(TuningReportError::InvalidProvenance(
+                "checkpoint checksum is missing",
+            ))?;
     let checksum: [u8; 8] = tail.try_into().map_err(|_| {
         TuningReportError::InvalidProvenance("checkpoint checksum length is invalid")
     })?;
@@ -878,7 +872,11 @@ fn float_field(output: &mut String, name: &str, value: f64) {
 }
 
 fn text_field(output: &mut String, name: &str, value: &str) {
-    field(output, &format!("{name}.utf8_hex"), encode_hex(value.as_bytes()));
+    field(
+        output,
+        &format!("{name}.utf8_hex"),
+        encode_hex(value.as_bytes()),
+    );
 }
 
 fn encode_hex(bytes: &[u8]) -> String {
