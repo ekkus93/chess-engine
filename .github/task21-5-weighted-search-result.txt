@@ -1,0 +1,5 @@
+status=1
+source_commit=a8c485bb17bd2dccb2c907261c1dffa06c4b30c5
+
+===== apply =====
+crates/chess-search/src/quiescence.rs: expected one match, found 0: '\nlet child = search_quiescence_node(\n    position,\n    history,\n    child_context,\n    -beta,\n    -alpha,\n    ordering,\n    cancellation,\n);\n'
