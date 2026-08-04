@@ -42,7 +42,7 @@
 | 18 | **Complete** — safe API, C ABI, JNI, host JVM, and Android emulator harness. |
 | 19 | **Complete** — optional explicit opening-book support, indexed format, legal reproducible policies, adapter integration, and permanent verification gate. |
 | 20 | **Complete** — deterministic offline self-play and validated versioned datasets. |
-| 21 | **In progress** — Task 21.1 complete; Tasks 21.2–21.5 remain. |
+| 21 | **In progress** — Tasks 21.1–21.2 complete; Tasks 21.3–21.5 remain. |
 | 22–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
