@@ -2,6 +2,7 @@
 
 use core::fmt;
 use std::{
+    collections::HashSet,
     fmt::Write as _,
     fs::{self, OpenOptions},
     io::Write as _,
@@ -672,6 +673,15 @@ fn run_candidate_validation_internal(
             openings.lines().len()
         )));
     }
+    let mut semantic_openings = HashSet::with_capacity(openings.lines().len());
+    for opening in openings.lines() {
+        let key = (opening.initial_fen().to_owned(), opening.moves().to_vec());
+        if !semantic_openings.insert(key) {
+            return Err(ToolError::new(
+                "candidate validation opening suite contains duplicate semantic openings",
+            ));
+        }
+    }
 
     let baseline = EvaluationWeightSet::baseline();
     baseline
@@ -1131,6 +1141,43 @@ mod tests {
             run_candidate_validation_internal(provenance, config, &openings(), &artifact(), 1, 1)
                 .expect_err("one opening cannot support two independent pairs");
         assert!(error.to_string().contains("distinct opening per pair"));
+    }
+
+    #[test]
+    fn differently_named_duplicate_openings_are_rejected() {
+        let duplicate_openings = OpeningSuite::from_text(concat!(
+            "CHESS_SELF_PLAY_OPENINGS\t1\n",
+            "first\trnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1\te2e4 e7e5\n",
+            "second\trnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1\te2e4 e7e5\n",
+        ))
+        .expect("syntactically valid duplicate opening suite");
+        let side = SelfPlaySideConfig::new(1, SelfPlayLimit::Depth(1));
+        let config = CandidateValidationConfig {
+            pair_count: 2,
+            seed: 42,
+            side,
+            maximum_plies: 6,
+            claimable_draw_policy: ClaimableDrawPolicy::Accept,
+            minimum_score_margin: 0.0,
+            maximum_unfinished_per_mille: 1_000,
+        };
+        let provenance = CandidateValidationProvenance::new(
+            1,
+            "test".to_owned(),
+            [1; 20],
+            "candidate-test".to_owned(),
+        )
+        .expect("provenance");
+        let error = run_candidate_validation_internal(
+            provenance,
+            config,
+            &duplicate_openings,
+            &artifact(),
+            1,
+            1,
+        )
+        .expect_err("semantic duplicates must fail");
+        assert!(error.to_string().contains("duplicate semantic openings"));
     }
 
     #[test]
