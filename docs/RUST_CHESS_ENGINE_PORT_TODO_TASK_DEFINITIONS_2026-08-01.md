@@ -1058,7 +1058,7 @@ Implement the specification's exact D1-D4 counts for:
 - Permanent Rust run/job: `30867122750` / `91861324627`.
 - Permanent Android run/jobs: `30867122736` / `91861324588`, `91861324637`.
 - Four dedicated public-API regressions and the permanent fail-closed no-auto-discovery audit passed with the complete 332-test Rust workspace and Android adapter gates.
-- Task 19 is complete; Task 20 is next.
+- Task 19 is complete; Task 20 is also complete and Task 21 is next.
 
 ---
 
@@ -1066,45 +1066,55 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 20.1 Self-play configuration
 
-- [ ] Independent engine config per side.
-- [ ] Fixed depth/node/time limits.
-- [ ] Fixed seed.
-- [ ] Opening diversification source.
-- [ ] Maximum ply policy.
-- [ ] Draw/adjudication policy.
-- [ ] Output path supplied explicitly.
+- [x] Independent engine config per side.
+- [x] Fixed depth/node/time limits.
+- [x] Fixed seed.
+- [x] Opening diversification source.
+- [x] Maximum ply policy.
+- [x] Draw/adjudication policy.
+- [x] Output path supplied explicitly.
 
 ## 20.2 Game records
 
-- [ ] Moves and final result.
-- [ ] Initial position/opening identifier.
-- [ ] engine version per side.
-- [ ] evaluator/weight identity per side.
-- [ ] search limits.
-- [ ] seed.
-- [ ] termination/adjudication reason.
-- [ ] reproducible replay command.
+- [x] Moves and final result.
+- [x] Initial position/opening identifier.
+- [x] engine version per side.
+- [x] evaluator/weight identity per side.
+- [x] search limits.
+- [x] seed.
+- [x] termination/adjudication reason.
+- [x] reproducible replay command.
 
 ## 20.3 Position dataset schema
 
-- [ ] Versioned record format.
-- [ ] Lossless FEN or equivalent.
-- [ ] Outcome.
-- [ ] Side to move.
-- [ ] Game ID and ply.
-- [ ] Engine/evaluator metadata.
-- [ ] Filtering metadata.
-- [ ] Explicit train/validation/test split.
+- [x] Versioned record format.
+- [x] Lossless FEN or equivalent.
+- [x] Outcome.
+- [x] Side to move.
+- [x] Game ID and ply.
+- [x] Engine/evaluator metadata.
+- [x] Filtering metadata.
+- [x] Explicit train/validation/test split.
 
 ## 20.4 Data quality
 
-- [ ] Reject empty output as success.
-- [ ] Define duplicate handling.
-- [ ] Exclude or mark opening positions according to explicit policy.
-- [ ] Define treatment of max-ply games; do not silently call all of them valid draws.
-- [ ] Add deterministic small-run integration test.
+- [x] Reject empty output as success.
+- [x] Define duplicate handling.
+- [x] Exclude or mark opening positions according to explicit policy.
+- [x] Define treatment of max-ply games; do not silently call all of them valid draws.
+- [x] Add deterministic small-run integration test.
 
-**Task 20 gate:** A seeded self-play run can be replayed and produces a validated, versioned dataset with complete provenance.
+**Task 20 gate:** A seeded self-play run can be replayed and produces a validated, versioned dataset with complete provenance. **Complete.**
+
+### Task 20 completion evidence
+
+- Merged implementation SHA: `333398c5913309193cb81b91c4af3deff2fd5adf`.
+- Exact validated evidence head: `1fae5fa8d830a524d6ff8d36ba42ed557112c79a`.
+- Permanent Rust run/job: `30875333307` / `91885547979`; 336 non-documentation Rust tests, including four focused Task 20 integration tests, passed.
+- Permanent Android run/jobs: `30875333292` / `91885547947`, `91885547972`; host JVM, ARM64/x86_64 verification, APK build, and API-35 instrumentation passed.
+- Strict formatting, compilation, Clippy, release depth-four perft, rustdoc, debug/release builds, and the differential oracle passed.
+- The deterministic seeded suite proved replayable games, versioned lossless records, complete provenance, explicit splitting/filtering, exact duplicate accounting, unfinished maximum-ply handling, and fail-loud empty-output rejection.
+- Task 20 is complete; Task 21.1 named weight-schema integration is next.
 
 ---
 

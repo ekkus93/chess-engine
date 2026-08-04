@@ -3,7 +3,7 @@
 **Updated:** 2026-08-03
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 19 opening-book support complete; Task 20 offline self-play is next
+**Current phase:** Task 20 offline self-play and versioned datasets complete; Task 21.1 named weight-schema integration is next
 
 ## Completed gates
 
@@ -63,6 +63,7 @@
 | 19.3 | `82b5100f501fe4e4a845d5fb3bdbb1c8fe7d34ef` | Rust `30859905206` / `91839380997`; Android `30859905203` / `91839428990`, `91839429013` | exact indexed UCI-to-legal-move resolution, generic candidate revalidation, deterministic highest-weight policy with canonical tie ordering, explicit local-seed SplitMix64 weighted policy, six focused tests; 323 Rust tests and Android regressions green |
 | 19.4 | `5b8e2117c64922e97cbe356caa44a51075da7b52` | Rust `30863525297` / `91850371126`; Android `30863525289` / `91850370864`, `91850370917` | explicit UCI `OwnBook` and `--book` injection, safe-facade policy/configuration, additive C ABI/JNI byte injection, Android asset adapter, and disabled/absent/no-entry search fallback; 328 Rust tests and Android regressions green |
 | 19.5 / 19 gate | `5d70737bf12cbfa16441730b7a64629212b28683` | Rust `30867122750` / `91861324627`; Android `30867122736` / `91861324588`, `91861324637` | four public-API regressions, permanent no-auto-discovery audit, 332 Rust tests, release perft, differential oracle, host JVM, dual-ABI Android, APK, and API-35 instrumentation green; Task 19 complete |
+| 20 / gate | `1fae5fa8d830a524d6ff8d36ba42ed557112c79a` | Rust `30875333307` / `91885547979`; Android `30875333292` / `91885547947`, `91885547972` | deterministic offline self-play, strict version-1 game/position datasets, replay validation, full provenance, explicit splitting/filtering, four focused regressions, 336 Rust tests, release perft, differential oracle, host JVM, dual-ABI Android, APK, and API-35 instrumentation green; merged `333398c5913309193cb81b91c4af3deff2fd5adf` |
 
 ## Task 17.1 completion
 
@@ -1028,3 +1029,26 @@ Evidence:
 - Differential validation: 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
 - The first executable validation found only canonical rustfmt output; no API, dependency boundary, error policy, test, or gate was weakened.
 - Task 19.2 backend format is next. The overall Task 19 gate remains open.
+
+## Task 20 completion
+
+Implemented and validated:
+
+- independent fixed White and Black search configurations with depth, node, or time limits;
+- explicit seed, opening source, maximum-ply policy, claimable-draw policy, output path, and train/validation/test percentages;
+- strict version-1 configuration, opening, game, and position formats;
+- complete game moves, result, opening identity, engine/evaluator/search provenance, termination reason, and replay command;
+- lossless canonical FEN position rows with side to move, game/ply identity, split, filtering metadata, and duplicate occurrence counts;
+- replay validation of every game and retained position without rerunning search;
+- explicit unfinished maximum-ply outcomes, opening-position policy, fail-loud empty output, and deterministic exact duplicate handling;
+- `self-play`, `self-play-validate`, and `self-play-replay` commands plus example inputs and `docs/RUST_SELF_PLAY_DATASET.md`.
+
+Evidence:
+
+- merged implementation SHA: `333398c5913309193cb81b91c4af3deff2fd5adf`;
+- exact validated evidence head: `1fae5fa8d830a524d6ff8d36ba42ed557112c79a`;
+- Rust run/job: `30875333307` / `91885547979`;
+- Android run/jobs: `30875333292` / `91885547947`, `91885547972`;
+- 336 non-documentation Rust tests and all permanent quality, perft, documentation, build, differential, host JVM, dual-ABI, APK, and API-35 gates passed.
+
+Task 20 is complete. Task 21.1 named weight-schema integration is next.
