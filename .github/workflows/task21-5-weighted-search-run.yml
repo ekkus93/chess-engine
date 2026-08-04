@@ -1,9 +1,9 @@
 name: Task 21.5 Weighted Search Run
 
 on:
-  push:
+  pull_request:
     branches:
-      - rust-engine
+      - master
 
 permissions:
   contents: write
