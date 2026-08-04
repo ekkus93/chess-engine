@@ -1114,7 +1114,7 @@ Implement the specification's exact D1-D4 counts for:
 - Permanent Android run/jobs: `30875333292` / `91885547947`, `91885547972`; host JVM, ARM64/x86_64 verification, APK build, and API-35 instrumentation passed.
 - Strict formatting, compilation, Clippy, release depth-four perft, rustdoc, debug/release builds, and the differential oracle passed.
 - The deterministic seeded suite proved replayable games, versioned lossless records, complete provenance, explicit splitting/filtering, exact duplicate accounting, unfinished maximum-ply handling, and fail-loud empty-output rejection.
-- Task 20 is complete; Task 21.1 named weight-schema integration is next.
+- Task 20 is complete; Task 21.1 named weight-schema integration is complete; Task 21.2 loss-pipeline work is next.
 
 ---
 
@@ -1122,10 +1122,21 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 21.1 Weight schema integration
 
-- [ ] Enumerate tunable named parameters.
-- [ ] Preserve non-tunable structural constants separately.
-- [ ] Version serialization.
-- [ ] Include checksum and training metadata.
+- [x] Enumerate tunable named parameters.
+- [x] Preserve non-tunable structural constants separately.
+- [x] Version serialization.
+- [x] Include checksum and training metadata.
+
+
+### Task 21.1 completion evidence
+
+- Added 810 stable named tunable scalars while keeping evaluator structural constants outside the tuning vector.
+- Added independently versioned/checksummed evaluator structure and strict version-1 named artifacts with complete training provenance.
+- Contract: `docs/RUST_NAMED_WEIGHT_SCHEMA.md`.
+- Exact validated implementation head: `8410beb6dc22684052ded86a6f2fe71cf9d1e444`.
+- Rust run/job: `30889939723 / 91929495312`.
+- Android run/jobs: `30889939726 / 91929459955, 91929459977, 91929460081`.
+- All permanent Rust, Android/Kotlin lint, host JNI, and API-35 gates passed. Candidate artifacts remain explicitly inactive.
 
 ## 21.2 Loss pipeline
 

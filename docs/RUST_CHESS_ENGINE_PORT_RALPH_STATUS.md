@@ -3,7 +3,7 @@
 **Updated:** 2026-08-03
 **Branch:** `master`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 20 offline self-play and versioned datasets complete; Task 21.1 named weight-schema integration is next
+**Current phase:** Task 21.1 named weight-schema integration complete; Task 21.2 loss-pipeline work is next
 
 ## Completed gates
 
@@ -64,6 +64,7 @@
 | 19.4 | `5b8e2117c64922e97cbe356caa44a51075da7b52` | Rust `30863525297` / `91850371126`; Android `30863525289` / `91850370864`, `91850370917` | explicit UCI `OwnBook` and `--book` injection, safe-facade policy/configuration, additive C ABI/JNI byte injection, Android asset adapter, and disabled/absent/no-entry search fallback; 328 Rust tests and Android regressions green |
 | 19.5 / 19 gate | `5d70737bf12cbfa16441730b7a64629212b28683` | Rust `30867122750` / `91861324627`; Android `30867122736` / `91861324588`, `91861324637` | four public-API regressions, permanent no-auto-discovery audit, 332 Rust tests, release perft, differential oracle, host JVM, dual-ABI Android, APK, and API-35 instrumentation green; Task 19 complete |
 | 20 / gate | `1fae5fa8d830a524d6ff8d36ba42ed557112c79a` | Rust `30875333307` / `91885547979`; Android `30875333292` / `91885547947`, `91885547972` | deterministic offline self-play, strict version-1 game/position datasets, replay validation, full provenance, explicit splitting/filtering, four focused regressions, 336 Rust tests, release perft, differential oracle, host JVM, dual-ABI Android, APK, and API-35 instrumentation green; merged `333398c5913309193cb81b91c4af3deff2fd5adf` |
+| 21.1 | `8410beb6dc22684052ded86a6f2fe71cf9d1e444` | Rust `30889939723 / 91929495312`; Android `30889939726 / 91929459955, 91929459977, 91929460081` | stable 810-scalar named schema, separately versioned structural evaluator contract, strict named artifacts, complete training provenance, semantic checksums, and all permanent gates green |
 
 ## Task 17.1 completion
 
@@ -1051,4 +1052,23 @@ Evidence:
 - Android run/jobs: `30875333292` / `91885547947`, `91885547972`;
 - 336 non-documentation Rust tests and all permanent quality, perft, documentation, build, differential, host JVM, dual-ABI, APK, and API-35 gates passed.
 
-Task 20 is complete. Task 21.1 named weight-schema integration is next.
+Task 20 is complete. Task 21.1 named weight-schema integration is complete; Task 21.2 loss-pipeline work is next.
+
+## Task 21.1 completion
+
+Implemented and validated:
+
+- 810 stable named tunable scalars;
+- separately versioned and checksummed evaluator structural constants consumed by runtime evaluation;
+- strict version-1 named artifacts with complete trainer, source, dataset, split, seed, iteration, and timestamp provenance;
+- semantic checksums over schemas, structure, metadata, parameter names, and values;
+- explicit candidate non-activation and `docs/RUST_NAMED_WEIGHT_SCHEMA.md`.
+
+Evidence:
+
+- exact validated implementation head: `8410beb6dc22684052ded86a6f2fe71cf9d1e444`;
+- Rust run/job: `30889939723 / 91929495312`;
+- Android run/jobs: `30889939726 / 91929459955, 91929459977, 91929460081`;
+- all permanent Rust, Android/Kotlin lint, host JNI, and API-35 gates passed.
+
+Task 21.1 is complete. Task 21.2 loss-pipeline work is next.

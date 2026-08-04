@@ -42,7 +42,8 @@
 | 18 | **Complete** — safe API, C ABI, JNI, host JVM, and Android emulator harness. |
 | 19 | **Complete** — optional explicit opening-book support, indexed format, legal reproducible policies, adapter integration, and permanent verification gate. |
 | 20 | **Complete** — deterministic offline self-play and validated versioned datasets. |
-| 21–24 | **Not started**. |
+| 21 | **In progress** — Task 21.1 complete; Tasks 21.2–21.5 remain. |
+| 22–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
 
@@ -1024,15 +1025,24 @@ Evidence:
 - Android run/jobs: `30875333292` / `91885547947`, `91885547972`; host JVM, dual-ABI native verification, APK build, and API-35 instrumentation passed.
 - `chess-tools` now provides explicit `self-play`, `self-play-validate`, and `self-play-replay` commands over strict version-1 configuration, opening, game, and position schemas.
 - Seeded opening rotation, per-game seeds, independent side limits, complete engine/evaluator/search provenance, deterministic train/validation/test assignment, replay validation, duplicate occurrence accounting, and explicit opening/maximum-ply filtering are enforced.
-- Task 21.1 named weight-schema integration is next.
+- Task 21.1 named weight-schema integration is complete; Task 21.2 loss-pipeline work is next.
 
-# Task 21: Named-schema tuning — NOT STARTED
-- [ ] 21.1 Weights.
+# Task 21: Named-schema tuning — IN PROGRESS
+- [x] 21.1 Weights.
 - [ ] 21.2 Loss.
 - [ ] 21.3 Optimizer.
 - [ ] 21.4 Reports.
 - [ ] 21.5 Validation.
 - [ ] Task 21 gate.
+
+
+### Task 21.1 completion evidence
+
+- Stable 810-scalar named schema, separately versioned structural constants, strict named serialization, complete training provenance, semantic checksums, and focused corruption/round-trip regressions implemented.
+- Exact validated implementation head: `8410beb6dc22684052ded86a6f2fe71cf9d1e444`.
+- Rust run/job: `30889939723 / 91929495312`.
+- Android run/jobs: `30889939726 / 91929459955, 91929459977, 91929460081`.
+- Task 21.2 loss-pipeline work is next; candidate weights are not automatically activated.
 
 # Task 22: Advanced classical terms — NOT STARTED
 - [ ] 22.1 Protocol.
