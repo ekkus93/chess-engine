@@ -206,7 +206,7 @@ def _pawn_island_penalty(
     if not occupied_files:
         return 0
     islands = 1
-    for current, previous in zip(occupied_files[1:], occupied_files):
+    for current, previous in zip(occupied_files[1:], occupied_files, strict=False):
         if current != previous + 1:
             islands += 1
     return max(0, islands - 1) * weights.pawns.pawn_island_penalty

@@ -198,7 +198,7 @@ class MatingWeights:
     def mating_material_base(self) -> dict[str, int]:
         """Return ``{endgame_type: base_score}``."""
         keys = ["KQK", "KRK", "KRRK", "KQRK"]
-        return dict(zip(keys, self._mating_bases))
+        return dict(zip(keys, self._mating_bases, strict=True))
 
 
 # ---------------------------------------------------------------------------

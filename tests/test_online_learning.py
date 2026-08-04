@@ -189,7 +189,7 @@ class TestSmallValidationSet:
         weights_path = tmp_path / "weights.json"
 
         db = PositionDB()
-        for i in range(100):
+        for _ in range(100):
             db.add_game(GameRecord(positions=[_STARTING_FEN], outcome=0.5))
         db.save(db_path)
 
@@ -217,7 +217,7 @@ class TestOnlineLearningMockedBehavior:
 
         # Pre-populate DB
         db = PositionDB()
-        for i in range(60):
+        for _ in range(60):
             db.add_game(GameRecord(positions=[_STARTING_FEN], outcome=0.5))
         db.save(db_path)
 
@@ -260,7 +260,7 @@ class TestOnlineLearningMockedBehavior:
         weights_path = tmp_path / "weights.json"
 
         db = PositionDB()
-        for i in range(60):
+        for _ in range(60):
             db.add_game(GameRecord(positions=[_STARTING_FEN], outcome=0.5))
         db.save(db_path)
 
@@ -301,7 +301,7 @@ class TestOnlineLearningMockedBehavior:
         weights_path = tmp_path / "weights.json"
 
         db = PositionDB()
-        for i in range(60):
+        for _ in range(60):
             db.add_game(GameRecord(positions=[_STARTING_FEN], outcome=0.5))
         db.save(db_path)
 
@@ -341,7 +341,7 @@ class TestOnlineLearningMockedBehavior:
         weights_path = tmp_path / "weights.json"
 
         db = PositionDB()
-        for i in range(60):
+        for _ in range(60):
             db.add_game(GameRecord(positions=[_STARTING_FEN], outcome=0.5))
         db.save(db_path)
 
@@ -379,7 +379,7 @@ class TestOnlineLearningMockedBehavior:
         weights_path = tmp_path / "weights.json"
 
         db = PositionDB()
-        for i in range(60):
+        for _ in range(60):
             db.add_game(GameRecord(positions=[_STARTING_FEN], outcome=0.5))
         db.save(db_path)
 
@@ -438,7 +438,7 @@ class TestOnlineLearningMockedBehavior:
 
         # Pre-populate DB
         db = PositionDB()
-        for i in range(60):
+        for _ in range(60):
             db.add_game(GameRecord(positions=[_STARTING_FEN], outcome=0.5))
         db.save(db_path)
 
@@ -499,7 +499,7 @@ class TestOnlineLearningMockedBehavior:
 
         # Pre-populate DB with only 10 positions (too small for meaningful split)
         db = PositionDB()
-        for i in range(10):
+        for _ in range(10):
             db.add_game(GameRecord(positions=[_STARTING_FEN], outcome=0.5))
         db.save(db_path)
 
@@ -541,7 +541,7 @@ class TestOnlineLearningMockedBehavior:
 
         # Pre-populate DB
         db = PositionDB()
-        for i in range(60):
+        for _ in range(60):
             db.add_game(GameRecord(positions=[_STARTING_FEN], outcome=0.5))
         db.save(db_path)
 
