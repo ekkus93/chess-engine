@@ -1,3 +1,4 @@
+# Supply the dataset output path explicitly as the second self-play CLI argument.
 schema=1
 games=4
 seed=12345
