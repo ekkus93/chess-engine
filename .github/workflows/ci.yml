@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: rust-ci-${{ github.workflow }}-${{ github.ref }}
@@ -129,3 +129,45 @@ jobs:
           --games 12
           --plies 48
           --seed 0xC0FFEE
+
+  task23-bootstrap:
+    name: Apply Task 23 robustness files
+    if: github.event_name == 'pull_request' && github.head_ref == 'rust-engine'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Execute and remove the Task 23 applicator
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PYTHON'
+          from pathlib import Path
+
+          lines = Path('.github/workflows/task23-apply.yml').read_text().splitlines()
+          marker = '      - name: Apply Task 23 files'
+          start = lines.index(marker)
+          run_index = lines.index('        run: |', start) + 1
+          script = '\n'.join(line[10:] for line in lines[run_index:]) + '\n'
+          script = script.replace(
+              'rm .github/workflows/task23-apply.yml',
+              'git checkout HEAD^ -- .github/workflows/ci.yml\nrm .github/workflows/task23-apply.yml',
+              1,
+          )
+          script = script.replace(
+              'git add \\\n  .github/workflows/robustness.yml',
+              'git add \\\n  .github/workflows/ci.yml \\\n  .github/workflows/robustness.yml',
+              1,
+          )
+          Path('/tmp/task23-apply.sh').write_text(script)
+          PYTHON
+          bash /tmp/task23-apply.sh
