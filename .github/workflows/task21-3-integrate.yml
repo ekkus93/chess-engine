@@ -40,6 +40,19 @@ jobs:
             python3 - <<'PY'
           from pathlib import Path
 
+          optimizer_path = Path('crates/chess-tune/src/optimizer.rs')
+          optimizer = optimizer_path.read_text()
+          old = '''    /// Current rounded runtime weights.
+              #[must_use]
+              pub fn current_weights('''
+          new = '''    /// Current rounded runtime weights.
+              pub fn current_weights('''
+          if old in optimizer:
+              optimizer = optimizer.replace(old, new, 1)
+          elif new not in optimizer:
+              raise SystemExit('current_weights Clippy repair marker was not found')
+          optimizer_path.write_text(optimizer)
+
           path = Path('crates/chess-tune/src/lib.rs')
           text = path.read_text()
           if 'mod optimizer;' not in text:
