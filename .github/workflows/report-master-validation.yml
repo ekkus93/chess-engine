@@ -1,0 +1,49 @@
+name: Report master validation
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+      - Python CI
+      - Android JNI
+      - Slow perft
+    types:
+      - completed
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+
+concurrency:
+  group: report-master-validation-${{ github.event.workflow_run.id }}
+  cancel-in-progress: false
+
+jobs:
+  report:
+    if: github.event.workflow_run.head_branch == 'master'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      ISSUE_NUMBER: '261'
+      RUN_ID: ${{ github.event.workflow_run.id }}
+      RUN_NAME: ${{ github.event.workflow_run.name }}
+      RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+      HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+      RUN_URL: ${{ github.event.workflow_run.html_url }}
+    steps:
+      - name: Publish completed run
+        shell: bash
+        run: |
+          set -euo pipefail
+          jobs="$(
+            gh api \
+              --method GET \
+              "repos/${REPOSITORY}/actions/runs/${RUN_ID}/jobs?filter=latest&per_page=100" \
+              --jq '.jobs | map("- `" + .name + "`: **" + (.conclusion // .status) + "**") | join("\n")'
+          )"
+          body="$(printf '### %s\n\n- Run: [%s](%s)\n- Head SHA: `%s`\n- Conclusion: **%s**\n\n%s\n' \
+            "${RUN_NAME}" "${RUN_ID}" "${RUN_URL}" "${HEAD_SHA}" "${RUN_CONCLUSION}" "${jobs}")"
+          gh issue comment "${ISSUE_NUMBER}" --repo "${REPOSITORY}" --body "${body}"
