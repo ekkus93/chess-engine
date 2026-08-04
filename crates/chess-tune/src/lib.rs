@@ -377,6 +377,72 @@ pub fn weights_from_tunable_values(values: [i16; TUNABLE_PARAMETER_COUNT]) -> Ev
     weights
 }
 
+/// Provenance for the optimizer invocation that produced a candidate.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct TrainingRunProvenance {
+    /// Stable identifier for the trainer implementation/configuration.
+    pub trainer_identifier: u64,
+    /// Exact 20-byte source commit used by the trainer.
+    pub source_commit: [u8; 20],
+    /// Explicit deterministic training seed.
+    pub random_seed: u64,
+    /// Number of completed optimizer iterations.
+    pub completed_iterations: u64,
+    /// Artifact creation time as Unix seconds, supplied explicitly by the caller.
+    pub generated_at_unix_seconds: u64,
+}
+
+impl TrainingRunProvenance {
+    /// Constructs explicit optimizer provenance.
+    #[must_use]
+    pub const fn new(
+        trainer_identifier: u64,
+        source_commit: [u8; 20],
+        random_seed: u64,
+        completed_iterations: u64,
+        generated_at_unix_seconds: u64,
+    ) -> Self {
+        Self {
+            trainer_identifier,
+            source_commit,
+            random_seed,
+            completed_iterations,
+            generated_at_unix_seconds,
+        }
+    }
+}
+
+/// Provenance and split sizes for the source dataset.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct TrainingDatasetProvenance {
+    /// Source dataset schema version.
+    pub schema_version: u16,
+    /// Canonical source dataset checksum.
+    pub checksum: u64,
+    /// Number of training positions.
+    pub training_positions: u64,
+    /// Number of separately held-out validation positions.
+    pub validation_positions: u64,
+}
+
+impl TrainingDatasetProvenance {
+    /// Constructs explicit source-dataset provenance.
+    #[must_use]
+    pub const fn new(
+        schema_version: u16,
+        checksum: u64,
+        training_positions: u64,
+        validation_positions: u64,
+    ) -> Self {
+        Self {
+            schema_version,
+            checksum,
+            training_positions,
+            validation_positions,
+        }
+    }
+}
+
 /// Complete reproducibility metadata for a tuned weight artifact.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct TrainingMetadata {
@@ -403,30 +469,20 @@ pub struct TrainingMetadata {
 }
 
 impl TrainingMetadata {
-    /// Constructs current-schema metadata from explicit provenance.
+    /// Constructs current-schema metadata from grouped explicit provenance.
     #[must_use]
-    pub const fn new(
-        trainer_identifier: u64,
-        source_commit: [u8; 20],
-        dataset_schema_version: u16,
-        dataset_checksum: u64,
-        training_positions: u64,
-        validation_positions: u64,
-        random_seed: u64,
-        completed_iterations: u64,
-        generated_at_unix_seconds: u64,
-    ) -> Self {
+    pub const fn new(run: TrainingRunProvenance, dataset: TrainingDatasetProvenance) -> Self {
         Self {
             schema_version: TRAINING_METADATA_SCHEMA_VERSION,
-            trainer_identifier,
-            source_commit,
-            dataset_schema_version,
-            dataset_checksum,
-            training_positions,
-            validation_positions,
-            random_seed,
-            completed_iterations,
-            generated_at_unix_seconds,
+            trainer_identifier: run.trainer_identifier,
+            source_commit: run.source_commit,
+            dataset_schema_version: dataset.schema_version,
+            dataset_checksum: dataset.checksum,
+            training_positions: dataset.training_positions,
+            validation_positions: dataset.validation_positions,
+            random_seed: run.random_seed,
+            completed_iterations: run.completed_iterations,
+            generated_at_unix_seconds: run.generated_at_unix_seconds,
         }
     }
 
@@ -975,20 +1031,20 @@ mod tests {
 
     use super::{
         tunable_values, weights_from_tunable_values, NamedWeightArtifact, NamedWeightArtifactError,
-        TrainingMetadata, TrainingMetadataError, TunableParameter, TUNABLE_PARAMETER_COUNT,
+        TrainingDatasetProvenance, TrainingMetadata, TrainingMetadataError, TrainingRunProvenance,
+        TunableParameter, TUNABLE_PARAMETER_COUNT,
     };
 
     fn metadata() -> TrainingMetadata {
         TrainingMetadata::new(
-            0x5452_4149_4e45_5231,
-            [0x11; 20],
-            1,
-            0x1122_3344_5566_7788,
-            8_000,
-            2_000,
-            0xC0FF_EE,
-            64,
-            1_785_820_000,
+            TrainingRunProvenance::new(
+                0x5452_4149_4e45_5231,
+                [0x11; 20],
+                0xC0FF_EE,
+                64,
+                1_785_820_000,
+            ),
+            TrainingDatasetProvenance::new(1, 0x1122_3344_5566_7788, 8_000, 2_000),
         )
     }
 
