@@ -1,11 +1,26 @@
 //! Adapter from validated Task 20 self-play datasets to `chess-tune` loss inputs.
 
+mod report;
+
 use core::fmt;
 
 use chess_core::{Color, Position};
-use chess_tune::{LossDataset, LossPipelineError, LossPosition, OutcomeTarget};
+use chess_tune::{
+    LossDataset, LossPipelineError, LossPosition, OutcomeTarget, TrainingDatasetProvenance,
+};
 
-use crate::self_play::{DatasetSplit, SelfPlayDataset, SelfPlayResult};
+use crate::self_play::{
+    DatasetSplit, SelfPlayDataset, SelfPlayResult, SELF_PLAY_DATASET_SCHEMA_VERSION,
+};
+
+pub use report::{
+    write_candidate_artifact_atomic, write_tuning_report_atomic, TuningParameterDelta,
+    TuningReport, TuningReportError, TuningReportProvenance, TUNING_REPORT_IDENTIFIER,
+    TUNING_REPORT_SCHEMA_VERSION,
+};
+
+const FNV_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
+const FNV_PRIME: u64 = 0x0000_0100_0000_01b3;
 
 /// Parses a strict self-play dataset and constructs training and validation loss partitions.
 pub fn loss_dataset_from_self_play_text(
@@ -14,6 +29,17 @@ pub fn loss_dataset_from_self_play_text(
     let dataset = SelfPlayDataset::from_text(text)
         .map_err(|error| SelfPlayLossDatasetError::SelfPlayDataset(error.to_string()))?;
     loss_dataset_from_self_play_dataset(&dataset)
+}
+
+/// Parses a strict Task 20 dataset and returns both loss rows and canonical source provenance.
+pub fn loss_dataset_and_provenance_from_self_play_text(
+    text: &str,
+) -> Result<(LossDataset, TrainingDatasetProvenance), SelfPlayLossDatasetError> {
+    let dataset = SelfPlayDataset::from_text(text)
+        .map_err(|error| SelfPlayLossDatasetError::SelfPlayDataset(error.to_string()))?;
+    let loss_dataset = loss_dataset_from_self_play_dataset(&dataset)?;
+    let provenance = training_dataset_provenance(&dataset, &loss_dataset)?;
+    Ok((loss_dataset, provenance))
 }
 
 /// Constructs loss inputs from an already validated self-play dataset.
@@ -56,6 +82,28 @@ pub fn loss_dataset_from_self_play_dataset(
         }
     }
     LossDataset::new(training, validation).map_err(SelfPlayLossDatasetError::LossPipeline)
+}
+
+/// Computes canonical Task 20 provenance for a validated tuning loss dataset.
+pub fn training_dataset_provenance(
+    dataset: &SelfPlayDataset,
+    loss_dataset: &LossDataset,
+) -> Result<TrainingDatasetProvenance, SelfPlayLossDatasetError> {
+    dataset
+        .validate()
+        .map_err(|error| SelfPlayLossDatasetError::SelfPlayDataset(error.to_string()))?;
+    let checksum = hash_bytes(FNV_OFFSET, dataset.to_text().as_bytes());
+    if checksum == 0 {
+        return Err(SelfPlayLossDatasetError::SelfPlayDataset(
+            "canonical self-play dataset checksum must be non-zero".to_owned(),
+        ));
+    }
+    Ok(TrainingDatasetProvenance::new(
+        SELF_PLAY_DATASET_SCHEMA_VERSION,
+        checksum,
+        loss_dataset.training_occurrences(),
+        loss_dataset.validation_occurrences(),
+    ))
 }
 
 /// Failure while parsing or adapting a self-play dataset for tuning loss.
@@ -130,6 +178,14 @@ fn outcome_for_side(outcome: SelfPlayResult, side_to_move: Color) -> Option<Outc
         SelfPlayResult::Draw => Some(OutcomeTarget::Draw),
         SelfPlayResult::Unfinished => None,
     }
+}
+
+fn hash_bytes(mut hash: u64, bytes: &[u8]) -> u64 {
+    for byte in bytes {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(FNV_PRIME);
+    }
+    hash
 }
 
 #[cfg(test)]
