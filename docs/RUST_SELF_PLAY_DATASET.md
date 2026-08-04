@@ -111,3 +111,16 @@ The permanent contract is:
 7. Empty output, malformed schemas, illegal moves, inconsistent provenance, and unmerged duplicates fail loudly.
 
 The Task 20 gate requires the strict workspace checks, release perft, differential oracle, Android regressions, and the deterministic small-run integration suite to remain green.
+
+## Validated implementation evidence
+
+- Exact validated implementation head: `c53653874d9dc0be42a13fd14dbf3c1d91aa65e0`.
+- Permanent Rust validation: run `30874964488`, job `91884494124`.
+- Permanent Android validation: run `30874964470`, host JVM job `91884531292`, API-35 emulator job `91884531273`.
+- The workspace executed 336 non-documentation Rust tests with zero failures, including all four dedicated Task 20 integration regressions.
+- The seeded small-run suite proved byte-stable repeated generation, versioned serialization and parsing, replay of every game, deterministic split and opening selection, exact duplicate merging, complete engine/evaluator/search provenance, and explicit replay commands.
+- Separate regressions proved independent node- and time-limited side configuration, maximum-ply games remain unfinished rather than silently becoming draws, opening and unfinished-position filtering is explicit, and zero-position datasets fail loudly.
+- Committed lockfile verification, workspace metadata, rustfmt, all-target/all-feature compilation, strict Clippy with warnings denied, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and the independent differential oracle passed.
+- Differential validation covered 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- Host JVM JNI passed, ARM64/x86_64 native artifacts and exported symbols were verified, the Android AAR/test APK built, and the API-35 instrumentation lifecycle passed.
+- The first compiler iteration found two mechanical ownership mismatches in the new module. Both were corrected without changing the schema, behavior, tests, or quality gate; the exact corrected head passed all permanent workflows.
