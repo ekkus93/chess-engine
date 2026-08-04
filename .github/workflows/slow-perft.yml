@@ -36,3 +36,5 @@ jobs:
 
       - name: Run depth-five fixture corpus
         run: cargo test --locked -p chess-core --release authoritative_perft_depth_five -- --ignored --exact
+
+# One-shot post-consolidation validation trigger; remove after the recorded run.
