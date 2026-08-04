@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 SCRIPT = Path(__file__).resolve().parents[1] / "compare_performance.py"
-SPEC = importlib.util.spec_from_file_location("compare_performance", SCRIPT)
+MODULE_NAME = "compare_performance"
+SPEC = importlib.util.spec_from_file_location(MODULE_NAME, SCRIPT)
 if SPEC is None or SPEC.loader is None:
     raise RuntimeError("unable to load compare_performance.py")
 MODULE = importlib.util.module_from_spec(SPEC)
+sys.modules[MODULE_NAME] = MODULE
 SPEC.loader.exec_module(MODULE)
 
 HEADER = (
