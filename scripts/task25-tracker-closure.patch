@@ -1,0 +1,249 @@
+--- a/docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md
++++ b/docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md
+@@ -1145,18 +1145,19 @@
+ - Callgrind `30950461692 / 92130944944 / 8908923833` measured `Position::legal_moves` at 98.31% inclusive perft cost and quiescence at 95.46% inclusive fixed-node-search cost.
+ - Direct legal generation and SEE/quiescence redesign remain measured follow-up candidates; no correctness-sensitive optimization was made speculatively.
+ 
+-# Task 25: CI, documentation, and workflows — PARTIAL
++# Task 25: CI, documentation, and workflows — COMPLETE
+ 
+ ## 25.1 CI
+ - [x] Linux rustfmt/check/Clippy/tests/rustdoc/debug/release.
+-- [x] Python validation preserved separately.
++- [x] Python engine validation intentionally retired after migration signoff; Python remains only as the pinned differential-oracle runtime.
+ - [x] Exact-SHA status publisher and deterministic dispatcher.
+ - [x] Release depth-four authoritative perft in permanent CI.
+ - [x] Scheduled/manual depth-five authoritative perft.
+-- [x] AArch64 compile CI.
+-- [x] Android compile and JNI CI.
++- [x] Native AArch64 debug, test-build, and release CI.
++- [x] Android dual-ABI compile, host-JVM JNI, lint, APK/test-APK, and API-35 instrumentation CI.
+ - [x] Miri, sanitizer, and fuzz gates.
+-- [ ] Scheduled strength testing.
++- [x] Scheduled/manual 200-pair, 400-game strength-control workflow.
++- [x] Scheduled dual-architecture performance and Callgrind workflow.
+ 
+ ## 25.2 Documentation
+ - [x] Workspace architecture.
+@@ -1173,19 +1174,32 @@
+ - [x] Baseline evaluator and trace.
+ - [x] Search and transposition table.
+ - [x] ABI/JNI.
+-- [ ] Differential fuzzing.
++- [x] Differential fuzzing, Miri, and sanitizer commands.
+ - [x] Self-play and versioned datasets.
+-- [ ] Tuning.
++- [x] Strict offline tuning, resume, reporting, inactive-candidate, and activation-boundary workflow.
+ 
+ ## 25.3 Commands and artifacts
+-- [x] Full Task 0/1 validation command, committed lockfile, ignored targets/worktrees.
++- [x] One documented bootstrap command.
++- [x] One fast validation command.
++- [x] One full validation command.
+ - [x] Perft, divide, legal, play, suite, and oracle commands.
+ - [x] Evaluation trace, evaluation benchmark, weight export, and weight validation commands.
+-- [ ] General bootstrap and fast-validation wrapper commands.
+ - [x] Self-play generation, validation, and replay commands.
+-- [ ] UCI, Android, and tuning command documentation.
+-- [ ] Versioned schema/fixture/generated-artifact policy across all future artifacts.
+-- [ ] Task 25 gate.
++- [x] UCI, Android, fuzz-smoke, self-play, and tuning command documentation.
++- [x] Strict versioned tuning configuration and atomic inactive-candidate output.
++- [x] Versioned schema/fixture/generated-artifact policy and permanent portability audit.
++- [x] Stale Task 24 observer and unsafe literal-wildcard filename removed.
++- [x] Task 25 gate.
++
++Task 25 evidence:
++
++- Exact validated implementation head: `c5ed48c8a34d08ce50737854ab89e4d8750c4988`.
++- Rust CI: `30960887750 / 92164348613, 92164348643` (x86-64 and native ARM64 complete).
++- Android: `30960887754 / 92164348735, 92164348754, 92164348772`; metric artifact `8912951788`.
++- Robustness: `30960887763 / 92164348688, 92164348732, 92164348765`.
++- Performance: `30960887740 / 92164348575, 92164348589`.
++- Strength workflow introduction/control: implementation parent `8622917fbd5c544363a2b07d9b450cc13d08f564`, run/job `30960468240 / 92163056674`, artifact `8912726774`; the formatting-only child did not match the intentionally narrow strength path filter.
++- Developer entry point: `scripts/dev.sh`; contracts: `docs/RUST_DEVELOPER_WORKFLOWS.md`, `docs/RUST_FUZZING.md`, `docs/RUST_TUNING_WORKFLOW.md`, and `docs/RUST_GENERATED_ARTIFACT_POLICY.md`.
+ 
+ # Task 26: v0.1 signoff — NOT STARTED
+ - [ ] 26.1 Rules.
+@@ -1204,6 +1218,6 @@
+ 
+ ## Immediate next operations
+ 
+-1. Begin Task 25 by consolidating bootstrap, fast/full validation, UCI, Android, self-play, tuning, and generated-artifact workflows into a new-developer path.
+-2. Audit remaining Task 25 documentation and CI checkboxes against repository reality before adding duplicate infrastructure.
++1. Begin Task 26 v0.1 functional-engine signoff against the specification, with exact evidence for rules, search, adapters, quality, and release behavior.
++2. Audit the Task 26 checklist against the already completed gates before adding duplicate validation or release infrastructure.
+ 3. Independently produce a real tuned Task 21 candidate and run the existing 200-pair activation protocol; keep that gate open until a candidate passes and is explicitly activated.
+--- a/docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md
++++ b/docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md
+@@ -1423,57 +1423,67 @@
+ 
+ ## 25.1 CI matrix
+ 
+-- [ ] Linux debug tests.
+-- [ ] Linux release tests/perft.
+-- [ ] Clippy all targets/features.
+-- [ ] rustdoc.
+-- [ ] AArch64 cross-build.
+-- [ ] Android AArch64 build.
+-- [ ] JNI smoke/instrumented job where infrastructure supports it.
+-- [ ] Miri subset.
+-- [ ] sanitizer job.
+-- [ ] fuzz smoke job.
+-- [ ] slow/nightly perft.
+-- [ ] optional strength/performance scheduled job.
+-- [ ] keep Python validation until migration signoff.
++- [x] Linux debug tests.
++- [x] Linux release tests/perft.
++- [x] Clippy all targets/features.
++- [x] rustdoc.
++- [x] Native AArch64 debug, test-build, and release build.
++- [x] Android AArch64 and x86-64 JNI builds.
++- [x] Host-JVM JNI plus API-35 smoke/instrumentation jobs.
++- [x] Miri subset.
++- [x] sanitizer job.
++- [x] fuzz smoke and bounded-campaign job.
++- [x] slow/nightly perft.
++- [x] scheduled strength and performance jobs.
++- [x] Python engine validation retired after migration signoff; pinned Python remains only for the Rust differential oracle.
+ 
+ ## 25.2 Documentation
+ 
+-- [ ] workspace architecture;
+-- [ ] coordinate system;
+-- [ ] move encoding;
+-- [ ] position invariants;
+-- [ ] make/unmake;
+-- [ ] FEN and move notation;
+-- [ ] draw semantics;
+-- [ ] hashing/repetition;
+-- [ ] search and score convention;
+-- [ ] TT policy;
+-- [ ] evaluation terms and weights;
+-- [ ] UCI usage;
+-- [ ] C ABI ownership;
+-- [ ] Android integration;
+-- [ ] perft/differential/fuzz commands;
+-- [ ] self-play/tuning reproducibility.
++- [x] workspace architecture;
++- [x] coordinate system;
++- [x] move encoding;
++- [x] position invariants;
++- [x] make/unmake;
++- [x] FEN and move notation;
++- [x] draw semantics;
++- [x] hashing/repetition;
++- [x] search and score convention;
++- [x] TT policy;
++- [x] evaluation terms and weights;
++- [x] UCI usage;
++- [x] C ABI ownership;
++- [x] Android integration;
++- [x] perft/differential/fuzz commands;
++- [x] self-play/tuning reproducibility.
+ 
+ ## 25.3 Developer commands
+ 
+-- [ ] One documented bootstrap command.
+-- [ ] One fast validation command.
+-- [ ] One full validation command.
+-- [ ] One perft command.
+-- [ ] One UCI run command.
+-- [ ] One Android build command.
+-- [ ] One self-play command.
+-- [ ] One tuning command.
++- [x] One documented bootstrap command.
++- [x] One fast validation command.
++- [x] One full validation command.
++- [x] One perft command.
++- [x] One UCI run command.
++- [x] One Android build command.
++- [x] One self-play command.
++- [x] One strict offline tuning/resume command that always emits an inactive candidate.
+ 
+ ## 25.4 Generated artifacts
+ 
+-- [ ] Do not commit transient benchmark/output files unintentionally.
+-- [ ] Version schemas and fixtures intentionally.
+-- [ ] Document generated Zobrist/book/weight artifacts.
+-
+-**Task 25 gate:** A new developer can build, test, run UCI, run perft, and build Android integration from repository documentation.
++- [x] Do not commit transient benchmark/output files unintentionally.
++- [x] Version schemas and fixtures intentionally.
++- [x] Document generated Zobrist/book/weight artifacts.
++- [x] Reject unsafe tracked filenames and known transient output through a permanent audit.
++
++**Task 25 gate:** A new developer can build, test, run UCI, run perft, build Android integration, replay robustness commands, generate self-play data, and run/resume offline tuning from repository documentation. **COMPLETE.**
++
++Evidence:
++
++- implementation head `c5ed48c8a34d08ce50737854ab89e4d8750c4988`;
++- Rust `30960887750 / 92164348613, 92164348643`;
++- Android `30960887754 / 92164348735, 92164348754, 92164348772`, artifact `8912951788`;
++- Robustness `30960887763 / 92164348688, 92164348732, 92164348765`;
++- Performance `30960887740 / 92164348575, 92164348589`;
++- Strength implementation/control `8622917fbd5c544363a2b07d9b450cc13d08f564`, `30960468240 / 92163056674`, artifact `8912726774`.
+ 
+ ---
+ 
+--- a/docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
++++ b/docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
+@@ -3,7 +3,7 @@
+ **Updated:** 2026-08-04
+ **Branch:** `master`
+ **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
+-**Current phase:** Task 24 performance gate complete; Task 25 developer workflows are next while the independent Task 21 activation gate remains open
++**Current phase:** Task 25 developer-workflow gate complete; Task 26 v0.1 functional-engine signoff is next while the independent Task 21 activation gate remains open
+ 
+ ## Completed gates
+ 
+@@ -73,6 +73,7 @@
+ | 23.1 | `4483c1661a975bc9f64c1f725618930e31968e74` | Rust `30940733222` / `92098127153`; Android `30940732968` / `92098189450`, `92098189412`, `92098189386` | deterministic legal-position properties cover square/move/FEN, make/unmake, hash, legal-move safety, internal invariants, evaluator symmetry, and legal reversible PVs; all permanent gates green |
+ | 23 / gate | `469c9c67ab53c276509fc7bad0c4adc209c815b7` | Robustness `30944117733 / 92109744098, 92109744189, 92109744065`; Rust `30944118025 / 92109744577`; Android `30944117802 / 92109760102, 92109760118, 92109760076` | seven fuzz targets / 1,792 bounded runs, Miri, ASan/LSan, TSan, one minimized permanent C ABI regression found and fixed; complete gate green |
+ | 24 / gate | `45f2263238f93a5ec4f06f4d4cbdef18f9b7def3` | CI `30952260291 / 92136935775`; Performance `30952260264 / 92136936026, 92136935996`; Robustness `30952260237 / 92136935690, 92136935729, 92136935792`; Android `30952260236 / 92136936014, 92136936160, 92136936153` | dual-architecture baselines, profile/allocation evidence, Android metrics, conservative budgets, and all independent gates green |
++| 25 / gate | `c5ed48c8a34d08ce50737854ab89e4d8750c4988` | Rust `30960887750 / 92164348613, 92164348643`; Android `30960887754 / 92164348735, 92164348754, 92164348772`; Robustness `30960887763 / 92164348688, 92164348732, 92164348765`; Performance `30960887740 / 92164348575, 92164348589`; Strength `30960468240 / 92163056674` | Rust-only developer dispatcher, native ARM64 coverage, scheduled strength, strict offline tuning, complete workflow docs, artifact policy/audit, and all independent gates green |
+ 
+ ## Task 17.1 completion
+ 
+@@ -1280,3 +1281,28 @@
+ - Contract: `docs/RUST_PERFORMANCE_GATES.md`.
+ 
+ Task 24 is complete. Task 25 is next; the independent Task 21 activation gate remains open.
++
++## Task 25 completion
++
++Implemented and validated:
++
++- one repository-supported dispatcher, `scripts/dev.sh`, for bootstrap, fast/full validation, perft, UCI, Android, self-play, tuning, fuzz smoke, and artifact audit;
++- native Linux ARM64 debug, test-build, and release coverage alongside the existing x86-64 correctness gate;
++- a scheduled/manual 200-pair, 400-game baseline strength control that remains independent from correctness and activation;
++- strict version-1 offline tuning configuration, fresh/resume SPSA execution, atomic output-directory publication, complete report/candidate/checkpoint output, and an explicit inactive-candidate marker;
++- complete developer, fuzzing, tuning, and generated-artifact documentation;
++- a permanent generated-artifact audit that rejects unsafe tracked filenames and transient build/output paths;
++- removal of the stale Task 24 observer and the empty literal-wildcard filename that broke portable artifact handling;
++- retirement of Python engine CI after migration signoff, while retaining pinned `python-chess` solely as the Rust differential oracle.
++
++Evidence:
++
++- exact validated implementation head: `c5ed48c8a34d08ce50737854ab89e4d8750c4988`;
++- Rust run/jobs: `30960887750 / 92164348613, 92164348643`;
++- Android run/jobs: `30960887754 / 92164348735, 92164348754, 92164348772`; artifact `8912951788`;
++- Robustness run/jobs: `30960887763 / 92164348688, 92164348732, 92164348765`;
++- Performance run/jobs: `30960887740 / 92164348575, 92164348589`;
++- Strength workflow introduction/control: `8622917fbd5c544363a2b07d9b450cc13d08f564`, `30960468240 / 92163056674`, artifact `8912726774`;
++- all formatting, locked metadata, strict Clippy, workspace tests, release perft, warning-free rustdoc, debug/release builds, differential oracle, native ARM64 builds, Android/JNI lifecycle tests, fuzz/Miri/sanitizers, performance budgets, and strength control passed.
++
++Task 25 is complete. Task 26 v0.1 functional-engine signoff is next. The independent Task 21 tuned-candidate activation gate remains open.
+--- a/memory.md
++++ b/memory.md
+@@ -2288,3 +2288,10 @@
+ - Android metrics: legal-move JNI average 1,832,214 ns; fixed-node search 89,106 total nodes in 896,094,777 ns (99,438 nodes/s); cancellation 4,388,550 ns; native heap deltas 1,053,504 bytes at 1 MiB and 16,781,168 bytes at 16 MiB.
+ - Legal generation and quiescence are measured redesign candidates; no correctness-sensitive optimization was accepted without dedicated evidence.
+ - Task 25 is next. The independent Task 21 tuned-candidate activation gate remains open.
++
++## 2026-08-04T23:47:24Z - GPT-5.6 Thinking - Rust port Task 25 developer-workflow gate complete
++- Completed Task 25 on `master` at validated implementation head `c5ed48c8a34d08ce50737854ab89e4d8750c4988`.
++- Added the single `scripts/dev.sh` developer entry point, native ARM64 workspace coverage, scheduled/manual 400-game strength control, strict offline tuning/resume with atomic inactive-candidate output, complete developer/fuzz/tuning/artifact documentation, and a permanent generated-artifact/portable-filename audit.
++- Retired Python engine development and Python CI after migration signoff; Python remains only as the pinned `python-chess` runtime for the Rust differential oracle.
++- Validation: Rust `30960887750 / 92164348613, 92164348643`; Android `30960887754 / 92164348735, 92164348754, 92164348772`, artifact `8912951788`; Robustness `30960887763 / 92164348688, 92164348732, 92164348765`; Performance `30960887740 / 92164348575, 92164348589`; Strength `30960468240 / 92163056674`, artifact `8912726774`.
++- Task 26 v0.1 functional-engine signoff is next. The independent Task 21 tuned-candidate activation gate remains open.
