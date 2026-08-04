@@ -1,0 +1,48 @@
+name: Task 23.1 normalized tracker closure
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - .github/workflows/task23-1-close-normalized.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  close:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+          fetch-depth: 0
+      - name: Apply normalized Task 23.1 closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PYTHON'
+          from pathlib import Path
+
+          workflow = Path('.github/workflows/task23-1-close.yml').read_text().splitlines()
+          start = workflow.index("          python3 - <<'PYTHON'") + 1
+          end = workflow.index("          PYTHON", start)
+          script = "\n".join(line[10:] for line in workflow[start:end]) + "\n"
+          exec(compile(script, 'task23-1-close.py', 'exec'))
+
+          for name in ('docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md', 'memory.md'):
+              path = Path(name)
+              path.write_text(path.read_text().rstrip() + "\n")
+          PYTHON
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md \
+            docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md \
+            docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md \
+            memory.md
+          git diff --cached --check
+          git commit -m "docs: close Task 23.1 property testing"
+          git push origin HEAD:rust-engine
