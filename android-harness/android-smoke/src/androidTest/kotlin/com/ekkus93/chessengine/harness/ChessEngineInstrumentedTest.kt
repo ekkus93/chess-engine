@@ -1,5 +1,6 @@
 package com.ekkus93.chessengine.harness
 
+import android.os.Debug
 import android.os.Looper
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -111,6 +112,95 @@ class ChessEngineInstrumentedTest {
         }
     }
 
+    @Test(timeout = 120_000L)
+    fun task24PerformanceEvidenceIsBoundedOnAndroid() {
+        warmNativeRuntime()
+
+        val legalIterations = 200
+        val legalElapsedNanos = ChessEngine.create().use { engine ->
+            val started = System.nanoTime()
+            repeat(legalIterations) {
+                assertEquals(20, engine.legalMoves().size)
+            }
+            System.nanoTime() - started
+        }
+        val legalAverageNanos = legalElapsedNanos / legalIterations
+        assertTrue("legal-move JNI average exceeded 100 ms", legalAverageNanos < 100_000_000L)
+
+        val (searchElapsedNanos, searchNodes) =
+            ChessEngine.create(transpositionTableMebibytes = 16).use { engine ->
+                val started = System.nanoTime()
+                val result = engine.search(SearchRequest(nodes = 50_000)).await()
+                val elapsed = System.nanoTime() - started
+                assertEquals(SearchTerminationKind.NODES, result.terminationKind)
+                assertTrue(result.bestMove in engine.legalMoves())
+                elapsed to (result.nodes + result.quiescenceNodes)
+            }
+        val nodesPerSecond = if (searchElapsedNanos == 0L) {
+            Long.MAX_VALUE
+        } else {
+            (searchNodes.toDouble() * TimeUnit.SECONDS.toNanos(1).toDouble() /
+                searchElapsedNanos.toDouble()).toLong()
+        }
+        assertTrue("fixed-node search did not make measurable progress", nodesPerSecond > 100L)
+
+        val smallHeapDelta = measuredNativeHeapDelta(1)
+        val largeHeapDelta = measuredNativeHeapDelta(16)
+        assertTrue(
+            "16 MiB table did not produce a larger native heap delta",
+            largeHeapDelta > smallHeapDelta,
+        )
+        assertTrue(
+            "16 MiB table native heap delta was implausibly small",
+            largeHeapDelta > 8L * MEBIBYTE,
+        )
+        assertTrue(
+            "16 MiB table native heap delta exceeded the broad bound",
+            largeHeapDelta < 64L * MEBIBYTE,
+        )
+
+        val cancellationElapsedNanos = ChessEngine.create().use { engine ->
+            val operation = engine.search(SearchRequest(infinite = true))
+            waitForNativeSearchThread()
+            val started = System.nanoTime()
+            assertTrue(operation.cancel())
+            val result = operation.await()
+            val elapsed = System.nanoTime() - started
+            assertEquals(SearchTerminationKind.EXPLICIT_STOP, result.terminationKind)
+            elapsed
+        }
+        assertTrue(
+            "cancellation exceeded five seconds",
+            cancellationElapsedNanos < TimeUnit.SECONDS.toNanos(5),
+        )
+
+        println("TASK24_ANDROID_METRIC legal_moves_average_ns=$legalAverageNanos")
+        println("TASK24_ANDROID_METRIC fixed_node_total_nodes=$searchNodes")
+        println("TASK24_ANDROID_METRIC fixed_node_wall_ns=$searchElapsedNanos")
+        println("TASK24_ANDROID_METRIC fixed_node_nodes_per_second=$nodesPerSecond")
+        println("TASK24_ANDROID_METRIC native_heap_delta_1mib=$smallHeapDelta")
+        println("TASK24_ANDROID_METRIC native_heap_delta_16mib=$largeHeapDelta")
+        println("TASK24_ANDROID_METRIC cancellation_ns=$cancellationElapsedNanos")
+    }
+
+    private fun warmNativeRuntime() {
+        ChessEngine.create().use { engine ->
+            assertEquals(20, engine.legalMoves().size)
+        }
+        Runtime.getRuntime().gc()
+        Thread.sleep(50)
+    }
+
+    private fun measuredNativeHeapDelta(tableMebibytes: Long): Long {
+        Runtime.getRuntime().gc()
+        Thread.sleep(50)
+        val before = Debug.getNativeHeapAllocatedSize()
+        return ChessEngine.create(transpositionTableMebibytes = tableMebibytes).use { engine ->
+            assertEquals(20, engine.legalMoves().size)
+            (Debug.getNativeHeapAllocatedSize() - before).coerceAtLeast(0L)
+        }
+    }
+
     private fun waitForNativeSearchThread(): Thread {
         val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
         while (System.nanoTime() < deadline) {
@@ -127,5 +217,9 @@ class ChessEngineInstrumentedTest {
             Thread.sleep(10)
         }
         error("native search did not become observable on chess-engine-search")
+    }
+
+    private companion object {
+        const val MEBIBYTE = 1024L * 1024L
     }
 }

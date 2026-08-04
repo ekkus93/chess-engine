@@ -1,7 +1,7 @@
 # Rust Chess Engine Port Ralph Loop Status
 
 **Updated:** 2026-08-04
-**Branch:** `rust-engine`
+**Branch:** `master`
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
 **Current phase:** Task 23 robustness gate complete; Task 24 performance hardening is next while the independent Task 21 activation gate remains open
 

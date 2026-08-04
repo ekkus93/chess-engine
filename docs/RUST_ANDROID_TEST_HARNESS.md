@@ -86,6 +86,6 @@ Explicit `ChessEngine.close` remains authoritative and is exercised in every suc
 - Tracker-closure SHA: `31ef73ef4c663cfbee5476817c6d0ba4ed1ac8c1`.
 - Permanent Android workflow restoration SHA: `564c89786511cebb9fb4eda1239db7f128593719`.
 - Temporary trigger cleanup SHA: `caf0c33ef19f359903f7f208bb2277b1782de8b5`.
-- The exact clean post-closure branch is required to pass both permanent workflows before it is fast-forwarded to `rust-engine`.
+- The exact clean post-closure branch is required to pass both permanent workflows before it is committed to `master`.
 - The permanent Android workflow is read-only and generated JNI/APK/Gradle outputs remain ignored.
 - Task 18.5 and the overall Task 18 gate are complete.

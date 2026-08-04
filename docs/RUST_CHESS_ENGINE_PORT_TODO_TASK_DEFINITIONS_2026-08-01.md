@@ -2,7 +2,7 @@
 
 **Status:** Not started  
 **Date:** 2026-08-01  
-**Target branch:** `rust-engine`  
+**Target branch:** `master`  
 **Authoritative specification:** `docs/RUST_CHESS_ENGINE_PORT_SPEC_2026-08-01.md`
 
 ---
@@ -29,7 +29,7 @@ This TODO is dependency-ordered. Later tasks may be prototyped early, but they m
 
 ## Program rules
 
-- [ ] Work only on the `rust-engine` branch unless an explicitly named follow-up branch is created.
+- [x] Work directly on `master`; do not create a branch or pull request unless the user explicitly requests one.
 - [ ] Treat the Rust specification as authoritative for the new implementation.
 - [ ] Treat Python code and tests as reference material, not as an API-compatibility contract.
 - [ ] Do not delete or broadly rewrite the Python engine during the port.

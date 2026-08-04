@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Capture the one-time Python reference baseline required by Task 0 of the Rust port.
 #
-# This script is intentionally local/manual. It is not part of rust-engine CI.
+# This script is intentionally local/manual. It is not part of master CI.
 # Run from any directory inside a clean checkout:
 #
 #   bash scripts/capture-rust-port-python-baseline.sh
@@ -16,7 +16,7 @@
 
 set -Eeuo pipefail
 
-EXPECTED_BRANCH="rust-engine"
+EXPECTED_BRANCH="master"
 FROZEN_BASELINE_SHA="f743013a84173b551eac5488c638cb48098ec6d0"
 RUN_SLOW="${RUN_SLOW:-0}"
 RUN_PYTHON_LINT="${RUN_PYTHON_LINT:-0}"
@@ -47,7 +47,7 @@ fi
 
 if ! git merge-base --is-ancestor "${FROZEN_BASELINE_SHA}" "${capture_sha}"; then
   cat >&2 <<EOF
-The current rust-engine checkout is not descended from the frozen baseline.
+The current master checkout is not descended from the frozen baseline.
 Frozen baseline: ${FROZEN_BASELINE_SHA}
 Capture SHA:     ${capture_sha}
 EOF

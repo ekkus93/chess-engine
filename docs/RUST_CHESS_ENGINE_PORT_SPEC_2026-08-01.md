@@ -2,7 +2,7 @@
 
 **Status:** Implementation specification  
 **Date:** 2026-08-01  
-**Target branch:** `rust-engine`  
+**Target branch:** `master`  
 **Primary implementation language:** Rust  
 **Source reference:** Existing Python implementation under `chess_game/`
 

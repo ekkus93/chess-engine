@@ -14,5 +14,6 @@ workspace = true
 
 [dependencies]
 chess-core = { path = "../chess-core" }
+chess-ffi = { path = "../chess-ffi" }
 chess-search = { path = "../chess-search" }
 chess-tune = { path = "../chess-tune" }

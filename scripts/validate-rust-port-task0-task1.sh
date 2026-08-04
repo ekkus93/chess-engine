@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run the complete Task 0 and Task 1 evidence gate for the Rust port.
 #
-# This script is intentionally local/manual. The rust-engine CI workflow remains
+# This script is intentionally local/manual. The master CI workflow remains
 # Rust-only; the Python baseline is captured once as historical reference evidence.
 #
 # Usage:
@@ -13,7 +13,7 @@
 
 set -Eeuo pipefail
 
-EXPECTED_BRANCH="rust-engine"
+EXPECTED_BRANCH="master"
 RUN_SLOW="${RUN_SLOW:-1}"
 RUN_PYTHON_LINT="${RUN_PYTHON_LINT:-0}"
 

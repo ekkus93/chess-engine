@@ -129,7 +129,7 @@ Task 1's license/package-metadata checkbox remains open until the owner selects 
 
 ## Required dynamic validation
 
-Run these commands from a clean `rust-engine` checkout with the stable Rust toolchain installed:
+Run these commands from a clean `master` checkout with the stable Rust toolchain installed:
 
 ```bash
 cargo fmt --all -- --check
