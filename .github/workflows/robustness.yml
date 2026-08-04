@@ -60,6 +60,8 @@ jobs:
         uses: dtolnay/rust-toolchain@nightly
 
       - name: Run bounded libFuzzer campaigns
+        env:
+          RUSTFLAGS: -Adeprecated
         shell: bash
         run: |
           set -euo pipefail
