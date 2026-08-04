@@ -1,5 +1,7 @@
 # Chess Engine
 
+[![CI/CD](https://github.com/ekkus93/chess-engine/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/ekkus93/chess-engine/actions/workflows/ci.yml)
+
 ## What this is
 
 A correct, test-driven chess rules engine with a minimax AI (alpha-beta pruning),
@@ -10,7 +12,7 @@ a Textual TUI, and a text-based CLI fallback.
 ### Coordinate Convention
 
 - **row 0 = rank 8** (black's back rank), **row 7 = rank 1** (white's back rank)
-- **col 0 = file a**, **col 7 = file h**
+- **col 0 = file a**, **col 7 = rank 1** (white's back rank)
 - White pawns move toward smaller row numbers, black pawns toward larger row numbers
 - See `docs/coordinate_system.md` for the complete reference
 
