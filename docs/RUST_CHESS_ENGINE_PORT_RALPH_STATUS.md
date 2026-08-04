@@ -3,7 +3,7 @@
 **Updated:** 2026-08-04
 **Branch:** `rust-engine`
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 23.1 deterministic property testing complete; Task 23.2 fuzzing is next while the independent Task 21 activation gate remains open
+**Current phase:** Task 23 robustness gate complete; Task 24 performance hardening is next while the independent Task 21 activation gate remains open
 
 ## Completed gates
 
@@ -71,6 +71,7 @@
 | 21.5 | `664bf7cb51fae8bff8298925513b242fd9f33cee` | Rust `30935448972` / `92080314407`; Android `30935448944` / `92080314104`, `92080314087`, `92080314012`; control `30935079798` / `92079069382` | explicit weighted search, correctness-first validation, 200 distinct color-balanced opening pairs, fixed provenance, one-sided 95% strength gate, atomic inactive evidence, 400-game baseline control correctly rejected, and all permanent gates green |
 | 22 / gate | `3653f86148dca0bb7f4168706ffc47a28bc4a10e` | `30938602274` / `92090934559` | eight-area protocol, symmetry/cost/search/match evidence, explicit rejection decisions, checksum `0ad7dcc3dda4cdfb`, no activation |
 | 23.1 | `4483c1661a975bc9f64c1f725618930e31968e74` | Rust `30940733222` / `92098127153`; Android `30940732968` / `92098189450`, `92098189412`, `92098189386` | deterministic legal-position properties cover square/move/FEN, make/unmake, hash, legal-move safety, internal invariants, evaluator symmetry, and legal reversible PVs; all permanent gates green |
+| 23 / gate | `469c9c67ab53c276509fc7bad0c4adc209c815b7` | Robustness `30944117733 / 92109744098, 92109744189, 92109744065`; Rust `30944118025 / 92109744577`; Android `30944117802 / 92109760102, 92109760118, 92109760076` | seven fuzz targets / 1,792 bounded runs, Miri, ASan/LSan, TSan, one minimized permanent C ABI regression found and fixed; complete gate green |
 
 ## Task 17.1 completion
 
@@ -1239,3 +1240,30 @@ Evidence:
 - no property counterexample was found in the committed deterministic corpus.
 
 Task 23.1 is complete. Task 23 remains open for Task 23.2 fuzzing, Task 23.3 runtime analysis, and Task 23.4 minimized-failure preservation.
+
+## Task 23 completion
+
+Implemented and validated:
+
+- seven production-boundary mutation targets in an independent locked fuzz workspace;
+- deterministic seed corpora, stable success/rejection tests, and committed corpus replay;
+- 256 bounded mutations per target, 1,792 total per workflow run;
+- Miri strict-provenance core analysis;
+- AddressSanitizer plus LeakSanitizer over the complete C ABI lifecycle suite;
+- ThreadSanitizer over active cross-thread cancellation;
+- explicit CI enforcement that general Rust UBSan is unsupported, with Miri retained as the UB gate;
+- host-JVM and API-35 JNI lifecycle validation alongside native analysis;
+- documented permanent minimization policy under `fuzz/regressions/<target>/`;
+- one real minimized one-byte C ABI semantic counterexample, permanently retained and replayed before its production fix.
+
+Evidence:
+
+- helper-free implementation head: `469c9c67ab53c276509fc7bad0c4adc209c815b7`;
+- robustness run/jobs: `30944117733 / 92109744098, 92109744189, 92109744065`;
+- Rust run/job: `30944118025 / 92109744577`;
+- Android run/jobs: `30944117802 / 92109760102, 92109760118, 92109760076`;
+- contract: `docs/RUST_ROBUSTNESS_GATES.md`;
+- minimized regression: `fuzz/regressions/c_abi_buffers_handles/forged-buffer-wrong-token-type.bin`;
+- named replay: `fuzz/tests/regression_c_abi.rs`.
+
+Task 23 is complete. Task 24 performance hardening is next. The independent Task 21 activation gate remains open until a real tuned candidate passes the 200-pair protocol and is explicitly activated.

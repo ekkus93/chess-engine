@@ -1104,23 +1104,25 @@ Evidence:
 - Defender coordination and extra endgame phase-specific scaling were rejected as overlap. The remaining six areas were rejected for insufficient strength evidence. No term or weight was activated.
 - `review_loop_guidance`, `anti_drift_guidance`, transcript move preferences, historical-position windows, and unmeasured terms remain excluded.
 
-# Task 23: Robustness gates — PARTIAL
+# Task 23: Robustness gates — COMPLETE
 - [x] 23.1 Properties.
-- [ ] 23.2 Fuzzing.
-- [ ] 23.3 Runtime analysis.
-- [ ] 23.4 Failure preservation.
-- [ ] Task 23 gate.
+- [x] 23.2 Fuzzing.
+- [x] 23.3 Runtime analysis.
+- [x] 23.4 Failure preservation.
+- [x] Task 23 gate.
 
-### Task 23.1 completion evidence
+### Task 23 completion evidence
 
-- Added deterministic legal-position property harnesses in `crates/chess-core/tests/property_invariants.rs` and `crates/chess-search/tests/property_search.rs`.
-- Covered all 64 square conversions, every packed move field combination, FEN stability, exact make/unmake restoration, incremental/full hash equality, generated legal-move acceptance, king safety, internal invariants, exact evaluator mirror symmetry, and legal reversible principal variations.
-- Six curated legal roots × four fixed seeds exercise up to 48 plies in core; 24 generated legal positions exercise depth-two search/PV properties.
-- Reproduction and permanent counterexample-preservation policy is documented in `docs/RUST_PROPERTY_TESTING.md`.
-- Implementation head: `4483c1661a975bc9f64c1f725618930e31968e74`.
-- Rust run/job: `30940733222` / `92098127153`.
-- Android run/jobs: `30940732968` / `92098189450`, `92098189412`, `92098189386`.
-- All permanent Rust and Android gates passed. Task 23 remains open for fuzzing, runtime analysis, and formal failure-corpus preservation.
+- Deterministic properties cover square/move/FEN round trips, legal generation, exact make/unmake, hash identity, internal invariants, evaluator symmetry, and legal reversible PVs.
+- Independent `fuzz/` workspace covers seven production boundaries with stable tests, committed corpus replay, and 1,792 bounded libFuzzer runs per permanent CI execution.
+- Pinned Miri strict-provenance tests, full C ABI ASan/LeakSanitizer lifecycle analysis, and TSan concurrent-cancellation analysis passed. Unsupported general Rust UBSan is recorded explicitly; Miri is the UB gate.
+- Minimized permanent regression `fuzz/regressions/c_abi_buffers_handles/forged-buffer-wrong-token-type.bin` found and fixed fabricated-buffer result-code classification while remaining committed with a named stable replay.
+- Contract: `docs/RUST_ROBUSTNESS_GATES.md`.
+- Helper-free implementation head: `469c9c67ab53c276509fc7bad0c4adc209c815b7`.
+- Robustness run/jobs: `30944117733 / 92109744098, 92109744189, 92109744065`.
+- Rust run/job: `30944118025 / 92109744577`.
+- Android run/jobs: `30944117802 / 92109760102, 92109760118, 92109760076`.
+- Task 24 performance hardening is next. The independent Task 21 tuned-candidate activation gate remains open.
 
 # Task 24: Performance hardening — NOT STARTED
 - [ ] 24.1 Benchmarks.
@@ -1140,7 +1142,7 @@ Evidence:
 - [x] Scheduled/manual depth-five authoritative perft.
 - [x] AArch64 compile CI.
 - [x] Android compile and JNI CI.
-- [ ] Miri, sanitizer, and fuzz gates.
+- [x] Miri, sanitizer, and fuzz gates.
 - [ ] Scheduled strength testing.
 
 ## 25.2 Documentation
@@ -1189,7 +1191,7 @@ Evidence:
 
 ## Immediate next operations
 
-1. Add Task 23.2 FEN, UCI-move, legal-sequence/unmake, repetition/history, weight, opening-book, and C-ABI fuzz targets.
-2. Preserve every minimized Task 23.2 failure under a documented corpus path as a named permanent regression before fixing it.
-3. Establish the Task 23.3 Miri/sanitizer/FFI lifecycle subset without weakening existing correctness gates.
+1. Begin Task 24.1 with a reproducible baseline benchmark suite for attack generation, legal moves, make/unmake, hashing, evaluation, perft, fixed-node search, TT operations, cancellation latency, and FFI calls.
+2. Profile release perft and fixed-node search before making any optimization; record allocations and re-audit clone/string/trace exclusions.
+3. Define reference hardware, toolchain, variance, and non-flaky regression budgets before enabling any performance gate.
 4. Independently, produce a real tuned Task 21 candidate and run the existing 200-pair activation protocol; keep the Task 21 gate open until a candidate passes and is explicitly activated.

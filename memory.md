@@ -2274,3 +2274,10 @@ learning's default cache path.
 - The fixed-seed legal-position harness covers all 64 square conversions, packed move fields, canonical FEN stability, exact make/unmake restoration, incremental/full Zobrist equality, generated legal-move acceptance, king safety, internal invariants, evaluator mirror symmetry, legal reversible principal variations, and caller-state immutability.
 - Helper-free implementation head `4483c1661a975bc9f64c1f725618930e31968e74` passed permanent Rust run/job `30940733222` / `92098127153`; Android run `30940732968` passed lint, host JNI, dual-ABI packaging, and API-35 instrumentation.
 - No deterministic property counterexample was found. Future failures must be minimized and committed as named permanent regressions before their defects are closed. Task 23.2 fuzzing is next; the independent Task 21 activation gate remains open.
+
+## 2026-08-04T19:43:25Z - GPT-5.6 Thinking - Task 23 robustness gate complete
+- Added the independent `fuzz/` workspace, seven production-boundary libFuzzer targets, committed seed corpora and replay tests, `crates/chess-core/tests/miri_core.rs`, permanent `.github/workflows/robustness.yml`, and `docs/RUST_ROBUSTNESS_GATES.md`.
+- Exact helper-free implementation head `469c9c67ab53c276509fc7bad0c4adc209c815b7` passed robustness run `30944117733 / 92109744098, 92109744189, 92109744065`, Rust run `30944118025 / 92109744577`, and Android run `30944117802 / 92109760102, 92109760118, 92109760076`.
+- The permanent workflow executes 1,792 bounded mutations, Miri strict-provenance analysis, ASan/LeakSanitizer C ABI lifecycle analysis, TSan cancellation analysis, and an explicit unsupported-UBSan boundary check.
+- Fuzzing found one minimized one-byte semantic C ABI defect. Input `fuzz/regressions/c_abi_buffers_handles/forged-buffer-wrong-token-type.bin` is permanently retained with a named replay; production now returns documented `InvalidBuffer` for fabricated wrong-tag buffer tokens.
+- Task 23 is complete. Task 24 performance hardening is next; the independent Task 21 activation gate remains open.

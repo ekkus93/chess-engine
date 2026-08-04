@@ -1308,29 +1308,46 @@ For each proposed term:
 
 ## 23.2 Fuzz targets
 
-- [ ] FEN parser;
-- [ ] UCI move parser;
-- [ ] random legal sequence plus reverse unmake;
-- [ ] game-history/repetition transitions;
-- [ ] weight parser;
-- [ ] opening-book parser;
-- [ ] C ABI buffers and handles.
+- [x] FEN parser;
+- [x] UCI move parser;
+- [x] random legal sequence plus reverse unmake;
+- [x] game-history/repetition transitions;
+- [x] weight parser;
+- [x] opening-book parser;
+- [x] C ABI buffers and handles.
 
 ## 23.3 Runtime analysis
 
-- [ ] Miri-compatible core test subset.
-- [ ] Address sanitizer where supported.
-- [ ] Undefined-behavior sanitizer where supported.
-- [ ] Leak checks for FFI/JNI lifecycle harness.
-- [ ] Thread sanitizer if multi-threaded adapter code warrants it.
+- [x] Miri-compatible core test subset.
+- [x] Address sanitizer where supported.
+- [x] Undefined-behavior sanitizer where supported.
+- [x] Leak checks for FFI/JNI lifecycle harness.
+- [x] Thread sanitizer if multi-threaded adapter code warrants it.
 
 ## 23.4 Failure preservation
 
-- [ ] Every crash or mismatch gets a minimized seed/input.
-- [ ] Add regression before closing the defect.
-- [ ] Store corpus inputs under a documented path.
+- [x] Every crash or mismatch gets a minimized seed/input.
+- [x] Add regression before closing the defect.
+- [x] Store corpus inputs under a documented path.
 
-**Task 23 gate:** Core parsers/state transitions survive fuzz smoke gates, FFI lifecycle has no known leak/UB, and all minimized failures are permanent regressions.
+### Task 23.2–23.4 completion evidence
+
+- Independent mutation workspace: `fuzz/`, with a committed lockfile, seven reusable entrypoints, seven thin libFuzzer targets, deterministic seed corpora, stable entrypoint tests, and committed corpus replay.
+- The permanent `Robustness` workflow runs 256 bounded mutations for each target: FEN, UCI move, legal sequence/reverse-unmake, game history/repetition, named weight artifacts, indexed opening books, and C ABI buffers/handles; total bounded campaign: 1,792 runs.
+- `crates/chess-core/tests/miri_core.rs` passes under pinned Miri with strict provenance.
+- The complete native C ABI lifecycle suite passes AddressSanitizer with leak detection. The concurrent cancellation path passes ThreadSanitizer.
+- Rust nightly exposes no general `undefined` sanitizer mode for this workspace; that unsupported boundary is checked in CI and Miri is the authoritative undefined-behavior gate rather than recording a fictitious UBSan pass.
+- Host-JVM JNI lifecycle, dual-ABI Android packaging, and API-35 instrumentation remain mandatory permanent gates alongside the native leak/UB analysis.
+- Fuzzing found the minimized one-byte input `fuzz/regressions/c_abi_buffers_handles/forged-buffer-wrong-token-type.bin` (`0x28`). It exposed a semantic result-code mismatch: a fabricated buffer token was classified as `InvalidHandle` instead of the documented `InvalidBuffer`.
+- Named stable replay: `fuzz/tests/regression_c_abi.rs::forged_buffer_with_wrong_token_type_is_rejected_as_invalid_buffer`.
+- Production correction: `crates/chess-ffi/src/c_abi/registry.rs` now classifies wrong-tag output allocation tokens as `InvalidBuffer` before registry lookup. The minimized input remains permanent.
+- Robustness contract: `docs/RUST_ROBUSTNESS_GATES.md`.
+- Helper-free implementation head: `469c9c67ab53c276509fc7bad0c4adc209c815b7`.
+- Permanent robustness run/jobs: `30944117733 / 92109744098, 92109744189, 92109744065`.
+- Permanent Rust run/job: `30944118025 / 92109744577`.
+- Permanent Android run/jobs: `30944117802 / 92109760102, 92109760118, 92109760076`.
+
+**Task 23 gate:** Core parsers/state transitions survive fuzz smoke gates, FFI lifecycle has no known leak/UB, and all minimized failures are permanent regressions. **COMPLETE.**
 
 ---
 
