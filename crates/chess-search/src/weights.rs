@@ -540,9 +540,9 @@ mod tests {
     use chess_core::PieceKind;
 
     use super::{
-        EvaluationWeightSet, EvaluationWeights, StructuralWeightField, WeightValidationError,
-        BASELINE_WEIGHT_SET_ID, EVALUATION_STRUCTURE, EVALUATION_STRUCTURE_SCHEMA_VERSION,
-        EVALUATION_WEIGHT_SCHEMA_VERSION, WEIGHT_VALUE_COUNT,
+        EvaluationWeightSet, EvaluationWeights, PhasedWeight, StructuralWeightField,
+        WeightValidationError, BASELINE_WEIGHT_SET_ID, EVALUATION_STRUCTURE,
+        EVALUATION_STRUCTURE_SCHEMA_VERSION, EVALUATION_WEIGHT_SCHEMA_VERSION, WEIGHT_VALUE_COUNT,
     };
 
     #[test]

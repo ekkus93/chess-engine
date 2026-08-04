@@ -3,9 +3,7 @@ use chess_core::{
     Bitboard, Color, PieceKind, Position, Square,
 };
 
-use crate::{EvaluationWeights, PhasedWeight, Score};
-
-const MAX_PHASE: u8 = 24;
+use crate::{EvaluationWeights, PhasedWeight, Score, EVALUATION_STRUCTURE};
 const FILE_B_TO_G: u64 = 0x7e7e_7e7e_7e7e_7e7e;
 const WHITE_SPACE_HALF: u64 = 0x0000_0000_ffff_ffff;
 const BLACK_SPACE_HALF: u64 = 0xffff_ffff_0000_0000;
@@ -198,9 +196,10 @@ impl TaperedScore {
     }
 
     fn blend(self, phase: u8) -> i32 {
+        let maximum_phase = EVALUATION_STRUCTURE.maximum_phase;
         let middlegame = i32::from(phase);
-        let endgame = i32::from(MAX_PHASE - phase);
-        (self.middlegame * middlegame + self.endgame * endgame) / i32::from(MAX_PHASE)
+        let endgame = i32::from(maximum_phase - phase);
+        (self.middlegame * middlegame + self.endgame * endgame) / i32::from(maximum_phase)
     }
 }
 
@@ -394,12 +393,13 @@ fn evaluate_king_and_space(
 fn game_phase(position: &Position) -> u8 {
     let mut phase = 0_u32;
     for color in [Color::White, Color::Black] {
-        phase += position.piece_bitboard(color, PieceKind::Knight).count();
-        phase += position.piece_bitboard(color, PieceKind::Bishop).count();
-        phase += 2 * position.piece_bitboard(color, PieceKind::Rook).count();
-        phase += 4 * position.piece_bitboard(color, PieceKind::Queen).count();
+        for kind in PieceKind::ALL {
+            phase += position.piece_bitboard(color, kind).count()
+                * u32::from(EVALUATION_STRUCTURE.phase_units[kind.index()]);
+        }
     }
-    u8::try_from(phase.min(u32::from(MAX_PHASE))).expect("phase is clamped below 25")
+    u8::try_from(phase.min(u32::from(EVALUATION_STRUCTURE.maximum_phase)))
+        .expect("phase is clamped to the structural maximum")
 }
 
 fn mobility_attacks(position: &Position, kind: PieceKind, square: Square) -> Bitboard {
