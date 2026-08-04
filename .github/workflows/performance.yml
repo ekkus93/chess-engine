@@ -1,0 +1,102 @@
+name: Performance
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+  schedule:
+    - cron: "17 9 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rust-performance-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux-baseline:
+    name: Linux performance baseline
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache Cargo data
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-engine-performance
+
+      - name: Audit performance architecture
+        run: python3 scripts/task_24_performance_audit.py
+
+      - name: Build release performance harness
+        run: cargo build --locked --release -p chess-tools --bin performance
+
+      - name: Enforce zero-allocation hot paths
+        run: target/release/performance allocation-audit | tee performance-allocation-audit.tsv
+
+      - name: Measure reproducible Linux baseline
+        run: target/release/performance baseline 7 1 | tee performance-linux.tsv
+
+      - name: Preserve benchmark evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: task24-linux-performance-${{ github.sha }}
+          path: |
+            performance-linux.tsv
+            performance-allocation-audit.tsv
+          if-no-files-found: error
+          retention-days: 30
+
+  profiling:
+    name: Scheduled release profiling
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install stable Rust and profiling tools
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Callgrind
+        run: sudo apt-get update && sudo apt-get install --yes valgrind
+
+      - name: Build profiling harness
+        run: cargo build --locked --release -p chess-tools --bin performance
+
+      - name: Profile perft
+        run: >-
+          valgrind --tool=callgrind --callgrind-out-file=callgrind.perft.out
+          target/release/performance profile-perft
+
+      - name: Profile fixed-node search
+        run: >-
+          valgrind --tool=callgrind --callgrind-out-file=callgrind.search.out
+          target/release/performance profile-search
+
+      - name: Render profile summaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          callgrind_annotate --inclusive=yes --threshold=0.5 callgrind.perft.out > callgrind.perft.txt
+          callgrind_annotate --inclusive=yes --threshold=0.5 callgrind.search.out > callgrind.search.txt
+
+      - name: Preserve profiling evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: task24-callgrind-${{ github.sha }}
+          path: |
+            callgrind.perft.out
+            callgrind.perft.txt
+            callgrind.search.out
+            callgrind.search.txt
+          if-no-files-found: error
+          retention-days: 30
