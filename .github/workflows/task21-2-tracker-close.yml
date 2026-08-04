@@ -1,0 +1,105 @@
+name: Task 21.2 Tracker Close
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+concurrency:
+  group: task21-2-tracker-close
+  cancel-in-progress: false
+
+jobs:
+  close:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update Task 21.2 trackers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          sha = '3d11b01a9de84913c6c1bfa43a37aea0197dc5be'
+          rust_run = '30894313165'
+          rust_job = '91943462745'
+          android_run = '30894313169'
+          lint_job = '91943477000'
+          host_job = '91943477036'
+          emulator_job = '91943477212'
+
+          definitions_path = Path('docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md')
+          definitions = definitions_path.read_text()
+          start = definitions.index('## 21.2 Loss pipeline')
+          end = definitions.index('\n## 21.3 Optimizer', start)
+          section = definitions[start:end]
+          section = section.replace('- [ ] ', '- [x] ')
+          if '### Task 21.2 completion evidence' not in section:
+              section += f'''\n\n### Task 21.2 completion evidence\n\n- Reusable objective implementation: `crates/chess-tune/src/loss.rs`.\n- Strict Task 20 adapter: `crates/chess-tools/src/tuning.rs`.\n- Contract documentation: `docs/RUST_TEXEL_LOSS_PIPELINE.md`.\n- Side-to-move loss/draw/win targets map to `0.0`, `0.5`, and `1.0`; evaluations use the documented base-10 Texel logistic mapping.\n- The objective is occurrence-weighted mean-squared error, preserving Task 20 deterministic duplicate counts.\n- `K` calibration uses an explicit bounded inclusive grid and training rows only; validation remains held out and test rows remain excluded.\n- Empty partitions, zero occurrences, invalid calibration inputs, malformed Task 20 datasets, invalid retained FENs, and unfinished eligible records fail loudly.\n- Exact validated implementation head: `{sha}`.\n- Permanent Rust run/job: `{rust_run}` / `{rust_job}`.\n- Permanent Android run/jobs: `{android_run}` / `{lint_job}`, `{host_job}`, `{emulator_job}`.\n- All permanent Rust quality/correctness gates, Android/Kotlin lint, host JNI tests, and API-35 instrumentation passed.\n'''
+          definitions = definitions[:start] + section + definitions[end:]
+          definitions = definitions.replace(
+              'Task 21.2 loss-pipeline work is next.',
+              'Task 21.2 loss-pipeline work is complete; Task 21.3 optimizer work is next.',
+          )
+          definitions_path.write_text(definitions)
+
+          todo_path = Path('docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md')
+          todo = todo_path.read_text()
+          todo = todo.replace('**Updated:** 2026-08-03', '**Updated:** 2026-08-04', 1)
+          start = todo.index('# Task 21: Named-schema tuning')
+          end = todo.index('\n# Task 22:', start)
+          section = todo[start:end]
+          section = section.replace('- [ ] 21.2 Loss.', '- [x] 21.2 Loss.', 1)
+          if '### Task 21.2 completion evidence' not in section:
+              section += f'''\n\n### Task 21.2 completion evidence\n\n- Added side-to-move logistic result targets, explicit bounded `K` calibration, occurrence-weighted MSE, and strict train/validation separation in `chess-tune`.\n- Added a fail-loud adapter from the validated Task 20 dataset that excludes ineligible and test rows while preserving duplicate occurrence counts.\n- Contract: `docs/RUST_TEXEL_LOSS_PIPELINE.md`.\n- Exact validated implementation head: `{sha}`.\n- Rust run/job: `{rust_run}` / `{rust_job}`.\n- Android run/jobs: `{android_run}` / `{lint_job}`, `{host_job}`, `{emulator_job}`.\n- Task 21.3 optimizer work is next; no candidate weights are activated.\n'''
+          todo = todo[:start] + section + todo[end:]
+          todo = todo.replace(
+              'Task 21.2 loss-pipeline work is next.',
+              'Task 21.2 loss-pipeline work is complete; Task 21.3 optimizer work is next.',
+          )
+          todo_path.write_text(todo)
+
+          ralph_path = Path('docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md')
+          ralph = ralph_path.read_text()
+          ralph = ralph.replace('**Updated:** 2026-08-03', '**Updated:** 2026-08-04', 1)
+          ralph = ralph.replace(
+              '**Current phase:** Task 21.1 named weight-schema integration complete; Task 21.2 loss-pipeline work is next',
+              '**Current phase:** Task 21.2 loss pipeline complete; Task 21.3 optimizer work is next',
+              1,
+          )
+          row = f'| 21.2 | `{sha}` | Rust `{rust_run}` / `{rust_job}`; Android `{android_run}` / `{lint_job}`, `{host_job}`, `{emulator_job}` | side-to-move logistic targets, explicit training-only K calibration, occurrence-weighted MSE, held-out validation, strict Task 20 adapter, typed failure policy, and all permanent gates green |'
+          if '| 21.2 |' not in ralph:
+              lines = ralph.splitlines()
+              index = next(i for i, line in enumerate(lines) if line.startswith('| 21.1 |'))
+              lines.insert(index + 1, row)
+              ralph = '\n'.join(lines) + '\n'
+          ralph = ralph.replace(
+              'Task 21.1 is complete. Task 21.2 loss-pipeline work is next.',
+              'Task 21.1 is complete. Task 21.2 loss-pipeline work is complete; Task 21.3 optimizer work is next.',
+          )
+          if '## Task 21.2 completion' not in ralph:
+              ralph = ralph.rstrip() + f'''\n\n## Task 21.2 completion\n\nImplemented and validated:\n\n- side-to-move loss, draw, and win targets;\n- numerically stable base-10 Texel logistic mapping;\n- finite positive `K` values and an explicit bounded inclusive calibration grid;\n- training-only deterministic `K` calibration with smaller-value tie retention;\n- occurrence-weighted mean-squared error preserving Task 20 duplicate multiplicity;\n- nonempty independent training and validation partitions with the test split excluded;\n- strict Task 20 parsing, eligibility filtering, result orientation, and canonical FEN reconstruction;\n- typed failures and `docs/RUST_TEXEL_LOSS_PIPELINE.md`.\n\nEvidence:\n\n- exact validated implementation head: `{sha}`;\n- Rust run/job: `{rust_run}` / `{rust_job}`;\n- Android run/jobs: `{android_run}` / `{lint_job}`, `{host_job}`, `{emulator_job}`;\n- permanent formatting, workspace check, strict Clippy, complete Rust tests, authoritative release perft, warning-free rustdoc, debug/release builds, differential oracle, Android/Kotlin lint, host JNI, and API-35 instrumentation all passed.\n\nTask 21.2 is complete. Task 21.3 optimizer work is next.\n'''
+          ralph_path.write_text(ralph)
+          PY
+
+      - name: Commit tracker closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md \
+            docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md \
+            docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
+          git commit -m 'docs: close Task 21.2 loss pipeline'
+          git push origin HEAD:master
