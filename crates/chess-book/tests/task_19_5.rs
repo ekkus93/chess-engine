@@ -37,13 +37,9 @@ fn selected_uci(
 #[test]
 fn invalid_move_is_rejected_from_indexed_book() {
     let position = Position::starting();
-    let illegal_move = "e2e5"
-        .parse::<UciMove>()
-        .expect("test UCI syntax is valid");
-    let opening_book = book(vec![
-        IndexedBookRecord::new(&position, illegal_move, 100)
-            .expect("syntax-valid record construction succeeds"),
-    ]);
+    let illegal_move = "e2e5".parse::<UciMove>().expect("test UCI syntax is valid");
+    let opening_book = book(vec![IndexedBookRecord::new(&position, illegal_move, 100)
+        .expect("syntax-valid record construction succeeds")]);
     let mut selector = BookSelector::deterministic_highest_weight();
 
     assert_eq!(
