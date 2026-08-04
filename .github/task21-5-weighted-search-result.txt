@@ -1,5 +1,54 @@
-status=1
-source_commit=dbafaa915bd815207188c7622f0e0ef1dc92781b
+status=101
+source_commit=9c7705c2909cb90dc5e34c3775c3d80165336f29
 
 ===== apply =====
-crates/chess-search/src/iterative_deepening.rs: expected one structural match, found 0: 'policy,\ntransposition_table,\n&mut controller,'
+
+===== fmt =====
+
+===== check =====
+[1m[92m    Updating[0m crates.io index
+[1m[92m Downloading[0m crates ...
+[1m[92m  Downloaded[0m same-file v1.0.6
+[1m[92m  Downloaded[0m jni-sys v0.3.1
+[1m[92m  Downloaded[0m jni-sys v0.4.1
+[1m[92m  Downloaded[0m cfg-if v1.0.4
+[1m[92m  Downloaded[0m cesu8 v1.1.0
+[1m[92m  Downloaded[0m jni-sys-macros v0.4.1
+[1m[92m  Downloaded[0m combine v4.6.7
+[1m[92m  Downloaded[0m quote v1.0.47
+[1m[92m  Downloaded[0m thiserror-impl v1.0.69
+[1m[92m  Downloaded[0m walkdir v2.5.0
+[1m[92m  Downloaded[0m thiserror v1.0.69
+[1m[92m  Downloaded[0m log v0.4.33
+[1m[92m  Downloaded[0m unicode-ident v1.0.24
+[1m[92m  Downloaded[0m proc-macro2 v1.0.107
+[1m[92m  Downloaded[0m memchr v2.8.3
+[1m[92m  Downloaded[0m bytes v1.12.1
+[1m[92m  Downloaded[0m jni v0.21.1
+[1m[92m  Downloaded[0m syn v2.0.119
+[1m[92m    Checking[0m chess-core v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-core)
+[1m[92m   Compiling[0m proc-macro2 v1.0.107
+[1m[92m   Compiling[0m unicode-ident v1.0.24
+[1m[92m   Compiling[0m quote v1.0.47
+[1m[92m   Compiling[0m jni-sys v0.3.1
+[1m[92m    Checking[0m chess-search v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-search)
+[1m[91merror[0m[1m: unused import: `alpha_beta_search_window_in_current_generation`[0m
+ [1m[94m--> [0mcrates/chess-search/src/iterative_deepening.rs:8:9
+  [1m[94m|[0m
+[1m[94m8[0m [1m[94m|[0m         alpha_beta_search_window_in_current_generation,
+  [1m[94m|[0m         [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [1m[94m|[0m
+  [1m[94m= [0m[1mnote[0m: `-D unused-imports` implied by `-D warnings`
+  [1m[94m= [0m[1mhelp[0m: to override `-D warnings` add `#[allow(unused_imports)]`
+
+[1m[91merror[0m[1m: function `alpha_beta_search_window_in_current_generation` is never used[0m
+   [1m[94m--> [0mcrates/chess-search/src/alpha_beta.rs:357:15
+    [1m[94m|[0m
+[1m[94m357[0m [1m[94m|[0m pub(crate) fn alpha_beta_search_window_in_current_generation<Probe>(
+    [1m[94m|[0m               [1m[91m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+    [1m[94m|[0m
+    [1m[94m= [0m[1mnote[0m: `-D dead-code` implied by `-D warnings`
+    [1m[94m= [0m[1mhelp[0m: to override `-D warnings` add `#[expect(dead_code)]` or `#[allow(dead_code)]`
+
+[1m[91merror[0m: could not compile `chess-search` (lib) due to 2 previous errors
+[1m[33mwarning[0m: build failed, waiting for other jobs to finish...
