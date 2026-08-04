@@ -1,4 +1,4 @@
-name: Task 23.1 source export
+name: Task 23.1 formatter
 
 on:
   pull_request:
@@ -9,24 +9,31 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  export:
+  format:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
           ref: rust-engine
-          fetch-depth: 1
-      - name: Archive branch source
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Format Task 23.1 tests
         shell: bash
         run: |
           set -euo pipefail
-          tar --exclude=.git -czf /tmp/chess-engine-task23-source.tar.gz .
-      - uses: actions/upload-artifact@v4
-        with:
-          name: chess-engine-task23-source
-          path: /tmp/chess-engine-task23-source.tar.gz
-          if-no-files-found: error
-          retention-days: 1
+          cargo fmt --all
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add crates/chess-core/tests/property_invariants.rs crates/chess-search/tests/property_search.rs
+          if git diff --cached --quiet; then
+            echo "Task 23.1 tests already formatted."
+            exit 0
+          fi
+          git diff --cached --check
+          git commit -m "style: format Task 23.1 properties"
+          git push origin HEAD:rust-engine
