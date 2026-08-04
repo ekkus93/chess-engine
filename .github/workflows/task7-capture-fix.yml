@@ -1,135 +1,298 @@
-name: Task 7 capture predicate fix
+name: Consolidate rust-engine into master
 
 on:
-  issues:
-    types:
-      - opened
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/task7-capture-fix.yml
 
 permissions:
-  actions: write
   contents: write
-  issues: write
+
+concurrency:
+  group: consolidate-rust-engine-into-master
+  cancel-in-progress: false
 
 jobs:
-  apply:
-    if: github.event.issue.title == '[apply-task7-capture-fix]'
+  consolidate:
+    if: github.actor == 'ekkus93'
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 300
     env:
-      GH_TOKEN: ${{ github.token }}
-      REPOSITORY: ${{ github.repository }}
-      TRIGGER_ISSUE: ${{ github.event.issue.number }}
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: "1"
     steps:
-      - name: Check out rust-engine
-        uses: actions/checkout@v4
-        with:
-          ref: rust-engine
-          fetch-depth: 0
-          path: engine
-
-      - name: Correct packed capture classification
-        working-directory: engine
-        shell: bash
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-
-          path = Path('crates/chess-core/src/move_encoding.rs')
-          source = path.read_text()
-          start = source.index('    /// Returns whether this move kind captures an opposing piece.')
-          end = source.index('    /// Returns whether this move kind promotes a pawn.', start)
-          replacement = '''    /// Returns whether this move kind captures an opposing piece.
-              #[must_use]
-              pub const fn is_capture(self) -> bool {
-                  matches!(
-                      self,
-                      Self::Capture
-                          | Self::EnPassant
-                          | Self::KnightPromotionCapture
-                          | Self::BishopPromotionCapture
-                          | Self::RookPromotionCapture
-                          | Self::QueenPromotionCapture
-                  )
-              }
-
-          '''.replace('              ', '    ')
-          source = source[:start] + replacement + source[end:]
-
-          marker = '    #[test]\n    fn promotion_predicate_and_identity_are_exhaustive()'
-          if 'fn capture_predicate_is_exhaustive()' not in source:
-              test = '''    #[test]
-              fn capture_predicate_is_exhaustive() {
-                  for kind in MoveKind::ALL {
-                      let expected = matches!(
-                          kind,
-                          MoveKind::Capture
-                              | MoveKind::EnPassant
-                              | MoveKind::KnightPromotionCapture
-                              | MoveKind::BishopPromotionCapture
-                              | MoveKind::RookPromotionCapture
-                              | MoveKind::QueenPromotionCapture
-                      );
-                      assert_eq!(kind.is_capture(), expected, "{kind:?}");
-                  }
-              }
-
-          '''.replace('              ', '    ')
-              source = source.replace(marker, test + marker)
-
-          path.write_text(source)
-          PY
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add crates/chess-core/src/move_encoding.rs
-          git diff --cached --check
-          git commit -m 'fix(core): correct packed capture classification'
-          git push origin HEAD:rust-engine
-          echo "PATCH_SHA=$(git rev-parse HEAD)" >>"${GITHUB_ENV}"
-
-      - name: Dispatch exact Rust CI
-        shell: bash
-        run: |
-          set -euo pipefail
-          gh api \
-            --method POST \
-            "repos/${REPOSITORY}/actions/workflows/ci.yml/dispatches" \
-            -f ref=rust-engine
-
-      - name: Report patch commit
-        shell: bash
-        run: |
-          set -euo pipefail
-          gh api \
-            --method POST \
-            "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}/comments" \
-            -f body="Applied packed capture-classification fix at rust-engine SHA ${PATCH_SHA} and dispatched CI."
-
-      - name: Remove one-shot workflow
+      - name: Check out master with complete history
         uses: actions/checkout@v4
         with:
           ref: master
           fetch-depth: 0
-          path: control
+          token: ${{ github.token }}
 
-      - name: Delete one-shot workflow from master
-        working-directory: control
+      - name: Install Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Install Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Merge rust-engine and consolidate workflows
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git rm .github/workflows/task7-capture-fix.yml
-          git commit -m 'ci: remove Task 7 capture patcher'
-          git push origin HEAD:master
+          git fetch origin rust-engine
 
-      - name: Close trigger issue
-        if: always()
+          set +e
+          git merge --no-ff --no-commit origin/rust-engine
+          merge_status=$?
+          set -e
+
+          if [[ ${merge_status} -ne 0 ]]; then
+            mapfile -t unresolved < <(git diff --name-only --diff-filter=U)
+            if [[ ${#unresolved[@]} -ne 1 || "${unresolved[0]}" != ".github/workflows/ci.yml" ]]; then
+              printf 'Unexpected merge conflicts:\n' >&2
+              printf '  %s\n' "${unresolved[@]}" >&2
+              exit 1
+            fi
+            git checkout --theirs -- .github/workflows/ci.yml
+            git add .github/workflows/ci.yml
+          fi
+
+          if git diff --name-only --diff-filter=U | grep -q .; then
+            echo 'Unresolved merge conflicts remain.' >&2
+            git diff --name-only --diff-filter=U >&2
+            exit 1
+          fi
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          for relative in (
+              '.github/workflows/ci.yml',
+              '.github/workflows/android.yml',
+          ):
+              path = Path(relative)
+              source = path.read_text(encoding='utf-8')
+              count = source.count('      - rust-engine\n')
+              if count != 2:
+                  raise SystemExit(f'{relative}: expected two rust-engine branch triggers, found {count}')
+              path.write_text(
+                  source.replace('      - rust-engine\n', '      - master\n'),
+                  encoding='utf-8',
+              )
+
+          for path in Path('docs').glob('*.md'):
+              source = path.read_text(encoding='utf-8')
+              updated = source.replace('**Branch:** `rust-engine`', '**Branch:** `master`')
+              if updated != source:
+                  path.write_text(updated, encoding='utf-8')
+          PY
+
+          rm -f \
+            .github/workflows/dispatch-ci-validation.yml \
+            .github/workflows/dispatch-rust-engine-ci-on-bootstrap.yml \
+            .github/workflows/dispatch-rust-engine-ci.yml \
+            .github/workflows/publish-ci-status-rust-engine.yml \
+            .github/workflows/task7-capture-fix.yml
+
+          git add -A
+          git diff --cached --check
+
+          actual_workflows="$(find .github/workflows -maxdepth 1 -type f -printf '%f\n' | sort)"
+          expected_workflows="$(printf '%s\n' android.yml ci.yml python-ci.yml slow-perft.yml)"
+          if [[ "${actual_workflows}" != "${expected_workflows}" ]]; then
+            echo 'Unexpected final workflow set:' >&2
+            printf '%s\n' "${actual_workflows}" >&2
+            exit 1
+          fi
+
+          git commit -m 'Merge rust-engine into master and consolidate CI'
+          test "$(git rev-list --parents -n 1 HEAD | wc -w)" -eq 3
+          git status --short
+
+      - name: Install Python project and validation dependencies
         shell: bash
         run: |
           set -euo pipefail
-          gh api \
-            --method PATCH \
-            "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}" \
-            -f state=closed \
-            -f state_reason=completed
+          python -m pip install --disable-pip-version-check --upgrade pip
+          python -m pip install --disable-pip-version-check -e '.[lint,test]'
+          python -m pip install --disable-pip-version-check --requirement requirements/oracle.txt
+
+      - name: Lint Python
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m ruff check chess_game tests
+          python -m mypy chess_game
+          python -m pylint chess_game
+
+      - name: Run all Python tests
+        run: python -m pytest tests -q
+
+      - name: Verify Rust workspace and audit assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f Cargo.toml
+          test -f Cargo.lock
+          test -f fixtures/perft.tsv
+          test -f fixtures/differential_corpus.tsv
+          test -f requirements/oracle.txt
+          test -f scripts/differential_oracle.py
+          test -f scripts/task_14_5_exclusion_audit.py
+          test -f scripts/task_19_5_opening_book_audit.py
+          test -f crates/chess-book/tests/task_19_5.rs
+          python3 -m py_compile \
+            scripts/differential_oracle.py \
+            scripts/task_14_5_exclusion_audit.py \
+            scripts/task_19_5_opening_book_audit.py
+          python3 scripts/task_14_5_exclusion_audit.py
+          python3 scripts/task_19_5_opening_book_audit.py
+          if grep \
+            --recursive \
+            --line-number \
+            --include='*.rs' \
+            --extended-regexp '#!\[(allow|expect)|#\[(allow|expect)' \
+            crates; then
+            echo 'First-party Rust lint suppression is forbidden.' >&2
+            exit 1
+          fi
+
+      - name: Verify Rust lockfile and metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo generate-lockfile
+          git diff --exit-code -- Cargo.lock
+          cargo metadata --locked --format-version 1 --no-deps
+
+      - name: Check Rust formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check Rust workspace
+        run: cargo check --locked --workspace --all-targets --all-features
+
+      - name: Run Rust Clippy
+        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+
+      - name: Run all Rust tests
+        run: cargo test --locked --workspace --all-features
+
+      - name: Run authoritative release perft
+        run: cargo test --locked -p chess-core --release authoritative_perft_depth_four -- --ignored --exact
+
+      - name: Build Rust documentation
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --locked --workspace --all-features --no-deps
+
+      - name: Build Rust debug and release workspaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --locked --workspace --all-features
+          cargo build --locked --workspace --all-features --release
+
+      - name: Run differential corpus and seeded playouts
+        run: >-
+          python scripts/differential_oracle.py
+          --binary target/release/chess-tools
+          --corpus fixtures/differential_corpus.tsv
+          --games 12
+          --plies 48
+          --seed 0xC0FFEE
+
+      - name: Run host JVM JNI contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --locked -p chess-jni --release
+          gradle -p android-harness :host-jvm:test \
+            --no-daemon --stacktrace --console=plain
+
+      - name: Resolve hosted Android NDK
+        id: ndk
+        shell: bash
+        run: |
+          set -euo pipefail
+          NDK_HOME="${ANDROID_NDK_LATEST_HOME:-}"
+          if [[ -z "${NDK_HOME}" || ! -d "${NDK_HOME}" ]]; then
+            NDK_HOME="$(find "${ANDROID_SDK_ROOT}/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          fi
+          test -d "${NDK_HOME}"
+          echo "home=${NDK_HOME}" >> "${GITHUB_OUTPUT}"
+          "${NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/clang" --version
+
+      - name: Build and verify Android native artifacts
+        env:
+          ANDROID_NDK_HOME: ${{ steps.ndk.outputs.home }}
+          ANDROID_API_LEVEL: "24"
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/prepare_android_harness_jni.sh
+          ARM64=android-harness/android-smoke/src/main/jniLibs/arm64-v8a/libchess_jni.so
+          X64=android-harness/android-smoke/src/main/jniLibs/x86_64/libchess_jni.so
+          test -s "${ARM64}"
+          test -s "${X64}"
+          file "${ARM64}" | tee /tmp/chess-arm64.txt
+          file "${X64}" | tee /tmp/chess-x64.txt
+          grep -F 'ARM aarch64' /tmp/chess-arm64.txt
+          grep -F 'x86-64' /tmp/chess-x64.txt
+          readelf -Ws "${ARM64}" | grep -F 'Java_com_ekkus93_chessengine_NativeChessEngineBindings_nativeSearch'
+          readelf -Ws "${X64}" | grep -F 'Java_com_ekkus93_chessengine_NativeChessEngineBindings_nativeSearch'
+          gradle -p android-harness \
+            :android-smoke:assembleDebug \
+            :android-smoke:assembleDebugAndroidTest \
+            --no-daemon --stacktrace --console=plain
+
+      - name: Enable KVM
+        shell: bash
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run Android API 35 JNI lifecycle
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_2
+          disable-animations: true
+          emulator-options: >-
+            -no-snapshot -no-window -gpu swiftshader_indirect
+            -noaudio -no-boot-anim -camera-back none
+          script: >-
+            gradle -p android-harness
+            :android-smoke:connectedDebugAndroidTest
+            --no-daemon --stacktrace --console=plain
+
+      - name: Verify exact tested merge tree and push master
+        shell: bash
+        run: |
+          set -euo pipefail
+          git status --short
+          test -z "$(git status --porcelain)"
+          test "$(git rev-list --parents -n 1 HEAD | wc -w)" -eq 3
+          git push origin HEAD:master
