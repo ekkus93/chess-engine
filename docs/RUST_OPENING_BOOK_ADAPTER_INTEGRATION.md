@@ -19,3 +19,15 @@ The ABI adds construction from explicit indexed bytes and a selected-book-move q
 ## Deferred Task 19.5
 
 Task 19.5 retains broader malformed-book, legality, deterministic-seed, no-entry, disabled-book, and platform regression coverage plus the overall Task 19 completion gate.
+
+## Completion evidence
+
+- Exact merged implementation SHA: `5b8e2117c64922e97cbe356caa44a51075da7b52`.
+- Exact validated implementation head before rebase merge: `d7f70e21fea900171ef5539f6ee9ee4b00c34d18`.
+- Permanent Rust validation: run `30863525297`, job `91850371126`.
+- Permanent Android validation: run `30863525289`, host JVM job `91850370864`, API-35 emulator job `91850370917`.
+- The workspace executed 328 non-documentation Rust tests with zero failures, including focused safe-facade, additive C ABI, JNI declaration, UCI option, book-hit, disabled-book, absent-book, no-entry, and corrupt-book coverage.
+- Committed lockfile verification, workspace metadata, rustfmt, all-target/all-feature compilation, strict Clippy with warnings denied, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and the independent differential oracle passed.
+- Differential validation covered 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- Host JVM JNI passed, ARM64/x86_64 native artifacts and exported symbols were verified, the Android AAR/test APK built, and the API-35 instrumentation lifecycle—including the packaged indexed-book asset example—passed.
+- Task 19.4 is complete. Task 19.5 and the overall Task 19 gate remain open.

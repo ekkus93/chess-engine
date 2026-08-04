@@ -1036,10 +1036,10 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 19.4 Adapter integration
 
-- [ ] UCI option to enable/disable book.
-- [ ] Safe API configuration.
-- [ ] Android asset-supplied book example.
-- [ ] Normal operation when no book exists.
+- [x] UCI option to enable/disable book.
+- [x] Safe API configuration.
+- [x] Android asset-supplied book example.
+- [x] Normal operation when no book exists.
 
 ## 19.5 Tests
 
