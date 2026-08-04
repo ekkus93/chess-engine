@@ -1163,10 +1163,19 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 21.3 Optimizer
 
-- [ ] Implement SPSA or another documented optimizer.
-- [ ] Seed optimizer randomness.
-- [ ] Bounds/regularization for nonsensical weights.
-- [ ] Checkpoint support.
+- [x] Implement SPSA or another documented optimizer.
+- [x] Seed optimizer randomness.
+- [x] Bounds/regularization for nonsensical weights.
+- [x] Checkpoint support.
+
+### Task 21.3 completion evidence
+
+- Deterministic optimizer: `crates/chess-tune/src/optimizer.rs`.
+- Contract documentation: `docs/RUST_SPSA_OPTIMIZER.md`.
+- Exact helper-free validated implementation head: `fc69d7d7554ab325fd72ccfc5ac94c4bb1077ae8`.
+- Rust run/job: `30897085986` / `91952447573`.
+- Android run/jobs: `30897085023` / `91952460052`, `91952460064`, `91952460121`.
+- Seeded SplitMix64 SPSA, explicit schedules, bounded and material-valid projection, L2 regularization, training-only updates, validation-only observation, fixed-schema checksummed checkpoints, and exact resume equivalence are implemented and permanently validated.
 - [ ] Resume validation.
 
 ## 21.4 Reports

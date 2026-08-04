@@ -3,7 +3,7 @@
 **Updated:** 2026-08-04
 **Branch:** `master`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 21.2 loss pipeline complete; Task 21.3 optimizer work is next
+**Current phase:** Task 21.3 deterministic SPSA optimizer complete; Task 21.4 report work is next
 
 ## Completed gates
 
@@ -66,6 +66,7 @@
 | 20 / gate | `1fae5fa8d830a524d6ff8d36ba42ed557112c79a` | Rust `30875333307` / `91885547979`; Android `30875333292` / `91885547947`, `91885547972` | deterministic offline self-play, strict version-1 game/position datasets, replay validation, full provenance, explicit splitting/filtering, four focused regressions, 336 Rust tests, release perft, differential oracle, host JVM, dual-ABI Android, APK, and API-35 instrumentation green; merged `333398c5913309193cb81b91c4af3deff2fd5adf` |
 | 21.1 | `8410beb6dc22684052ded86a6f2fe71cf9d1e444` | Rust `30889939723 / 91929495312`; Android `30889939726 / 91929459955, 91929459977, 91929460081` | stable 810-scalar named schema, separately versioned structural evaluator contract, strict named artifacts, complete training provenance, semantic checksums, and all permanent gates green |
 | 21.2 | `3d11b01a9de84913c6c1bfa43a37aea0197dc5be` | Rust `30894313165` / `91943462745`; Android `30894313169` / `91943477000`, `91943477036`, `91943477212` | side-to-move logistic targets, explicit training-only K calibration, occurrence-weighted MSE, held-out validation, strict Task 20 adapter, typed failure policy, and all permanent gates green |
+| 21.3 | `fc69d7d7554ab325fd72ccfc5ac94c4bb1077ae8` | Rust `30897085986` / `91952447573`; Android `30897085023` / `91952460052`, `91952460064`, `91952460121` | deterministic seeded SPSA over the 810-scalar schema, explicit bounds and L2 regularization, training/validation isolation, checksummed data/config-bound resumable checkpoints, and all permanent gates green |
 
 ## Task 17.1 completion
 
@@ -1094,4 +1095,30 @@ Evidence:
 - Android run/jobs: `30894313169` / `91943477000`, `91943477036`, `91943477212`;
 - permanent formatting, workspace check, strict Clippy, complete Rust tests, authoritative release perft, warning-free rustdoc, debug/release builds, differential oracle, Android/Kotlin lint, host JNI, and API-35 instrumentation all passed.
 
-Task 21.2 is complete. Task 21.3 optimizer work is next.
+Task 21.2 is complete. Task 21.3 optimizer work is complete; Task 21.4 report work is next.
+
+## Task 21.3 completion
+
+Implemented and validated:
+
+- simultaneous perturbation stochastic approximation over all 810 stable named scalar parameters;
+- explicit finite gain, decay, perturbation, stability, iteration, bound, and regularization configuration;
+- deterministic SplitMix64 perturbation directions from a caller-supplied `u64` seed;
+- training-only gradients and best-candidate selection, with validation loss observable but unable to change optimizer state;
+- inclusive scalar projection plus deterministic positive material-order preservation;
+- L2 regularization around the exact initial named vector;
+- fixed-length little-endian version-1 checkpoints with optimizer/config/dataset/K binding, RNG state, continuous parameters, initial reference, best values, objectives, and FNV-1a checksum;
+- exact uninterrupted-versus-resumed state equivalence and fail-loud corrupt/config/data/objective mismatch handling;
+- `docs/RUST_SPSA_OPTIMIZER.md`.
+
+Evidence:
+
+- integration commit: `933d65d9cd2b617460829092c85361fa134afc7a`;
+- exact helper-free validated implementation head: `fc69d7d7554ab325fd72ccfc5ac94c4bb1077ae8`;
+- integration preflight run: `30896853476`;
+- permanent Rust run/job: `30897085986` / `91952447573`;
+- permanent Android run/jobs: `30897085023` / `91952460052`, `91952460064`, `91952460121`;
+- formatting, locked workspace check, strict Clippy, complete Rust tests, authoritative release perft, warning-free rustdoc, debug/release builds, differential oracle, Android/Kotlin lint, host JVM JNI, dual-ABI native verification, APK build, and API-35 instrumentation all passed;
+- temporary integration workflow was removed and no branch or pull request was created.
+
+Task 21.3 is complete. Task 21.4 report work is next; no optimized candidate has been activated.

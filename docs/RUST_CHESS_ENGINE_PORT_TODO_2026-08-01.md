@@ -42,7 +42,7 @@
 | 18 | **Complete** — safe API, C ABI, JNI, host JVM, and Android emulator harness. |
 | 19 | **Complete** — optional explicit opening-book support, indexed format, legal reproducible policies, adapter integration, and permanent verification gate. |
 | 20 | **Complete** — deterministic offline self-play and validated versioned datasets. |
-| 21 | **In progress** — Tasks 21.1–21.2 complete; Tasks 21.3–21.5 remain. |
+| 21 | **In progress** — Tasks 21.1–21.3 complete; Tasks 21.4–21.5 remain. |
 | 22–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
@@ -1030,9 +1030,19 @@ Evidence:
 # Task 21: Named-schema tuning — IN PROGRESS
 - [x] 21.1 Weights.
 - [x] 21.2 Loss.
-- [ ] 21.3 Optimizer.
+- [x] 21.3 Optimizer.
 - [ ] 21.4 Reports.
 - [ ] 21.5 Validation.
+
+### Task 21.3 completion evidence
+
+- Implementation: `crates/chess-tune/src/optimizer.rs`.
+- Contract: `docs/RUST_SPSA_OPTIMIZER.md`.
+- Exact helper-free validated SHA: `fc69d7d7554ab325fd72ccfc5ac94c4bb1077ae8`.
+- Rust run/job: `30897085986` / `91952447573`.
+- Android run/jobs: `30897085023` / `91952460052`, `91952460064`, `91952460121`.
+- Permanent formatting, workspace check, strict Clippy, complete Rust tests, release perft, rustdoc, debug/release builds, differential validation, Android/Kotlin lint, host JNI, and API-35 instrumentation passed.
+- Task 21.4 report generation and persistent artifact workflows are next; optimized weights remain inactive.
 - [ ] Task 21 gate.
 
 
