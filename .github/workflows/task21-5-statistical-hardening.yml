@@ -1,4 +1,4 @@
-name: Task 21.5 Statistical Hardening
+name: Task 21.5 Opening Identity Hardening
 
 on:
   pull_request:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: task21-5-statistical-hardening
+  group: task21-5-opening-identity-hardening
   cancel-in-progress: false
 
 jobs:
@@ -26,8 +26,8 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Apply statistical hardening
-        run: python3 .github/task21-5-statistical-hardening.py
+      - name: Apply opening identity hardening
+        run: python3 .github/task21-5-opening-identity-hardening.py
 
       - name: Validate candidate protocol
         shell: bash
@@ -38,12 +38,12 @@ jobs:
           cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
           cargo test -p chess-tools --all-features --locked
 
-      - name: Commit statistical hardening
+      - name: Commit opening identity hardening
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add crates/chess-tools/src/candidate_validation.rs docs/RUST_CANDIDATE_VALIDATION.md
-          git commit -m 'task 21.5: require distinct validation openings'
+          git commit -m 'task 21.5: reject duplicate semantic openings'
           git push origin HEAD:rust-engine
