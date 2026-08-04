@@ -27,7 +27,7 @@ fn generated_position(case: usize) -> Position {
     let root_index = case % ROOT_FENS.len();
     let mut position = Position::from_fen(ROOT_FENS[root_index]).expect("property root is valid");
     let case_number = u64::try_from(case).expect("small property case");
-    let mut rng = DeterministicRng(0x23_01_5ea2_0000_0000 ^ case_number);
+    let mut rng = DeterministicRng(0x2301_5ea2_0000_0000 ^ case_number);
     let requested_plies = 4 + case % 20;
 
     for _ in 0..requested_plies {
