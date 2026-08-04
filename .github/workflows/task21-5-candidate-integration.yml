@@ -32,6 +32,7 @@ jobs:
           set -euo pipefail
           python3 .github/task21-5-candidate-self-play.py
           python3 .github/task21-5-candidate-fix1.py
+          python3 .github/task21-5-candidate-fix2.py
           python3 - <<'PY'
           from pathlib import Path
           path = Path('crates/chess-tools/src/lib.rs')
