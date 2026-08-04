@@ -42,6 +42,7 @@ jobs:
       - name: Run complete Python quality gate
         shell: bash
         run: |
+          set +e
           set -u
           overall=0
 
