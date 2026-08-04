@@ -1,6 +1,11 @@
 name: Slow perft
 
 on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/slow-perft.yml
   workflow_dispatch:
   schedule:
     - cron: "17 5 * * 0"
