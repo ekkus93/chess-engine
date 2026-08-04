@@ -369,9 +369,7 @@ pub fn tunable_values(weights: &EvaluationWeights) -> [i16; TUNABLE_PARAMETER_CO
 
 /// Reconstructs runtime weights while restoring all structural fields explicitly.
 #[must_use]
-pub fn weights_from_tunable_values(
-    values: [i16; TUNABLE_PARAMETER_COUNT],
-) -> EvaluationWeights {
+pub fn weights_from_tunable_values(values: [i16; TUNABLE_PARAMETER_COUNT]) -> EvaluationWeights {
     let mut weights = EvaluationWeights::DEFAULT;
     for parameter in TunableParameter::all() {
         parameter.set_value(&mut weights, values[parameter.index()]);
@@ -505,13 +503,9 @@ impl fmt::Display for TrainingMetadataError {
             Self::EmptyDatasetSchemaVersion => {
                 formatter.write_str("dataset schema version must be non-zero")
             }
-            Self::EmptyDatasetChecksum => {
-                formatter.write_str("dataset checksum must be non-zero")
-            }
+            Self::EmptyDatasetChecksum => formatter.write_str("dataset checksum must be non-zero"),
             Self::EmptyTrainingSet => formatter.write_str("training split must not be empty"),
-            Self::EmptyValidationSet => {
-                formatter.write_str("validation split must not be empty")
-            }
+            Self::EmptyValidationSet => formatter.write_str("validation split must not be empty"),
             Self::EmptyIterationCount => {
                 formatter.write_str("completed iteration count must be non-zero")
             }
@@ -585,10 +579,7 @@ impl NamedWeightArtifact {
         hash = hash_bytes(hash, &self.metadata.validation_positions.to_le_bytes());
         hash = hash_bytes(hash, &self.metadata.random_seed.to_le_bytes());
         hash = hash_bytes(hash, &self.metadata.completed_iterations.to_le_bytes());
-        hash = hash_bytes(
-            hash,
-            &self.metadata.generated_at_unix_seconds.to_le_bytes(),
-        );
+        hash = hash_bytes(hash, &self.metadata.generated_at_unix_seconds.to_le_bytes());
         hash = hash_bytes(hash, &(TUNABLE_PARAMETER_COUNT as u64).to_le_bytes());
         for parameter in TunableParameter::all() {
             let name = parameter.name();
@@ -648,24 +639,16 @@ impl NamedWeightArtifact {
         self.validate()?;
         let mut output = String::new();
         writeln!(output, "{FORMAT_MARKER}").expect("writing to String cannot fail");
-        writeln!(
-            output,
-            "artifact_schema={}",
-            self.artifact_schema_version
-        )
-        .expect("writing to String cannot fail");
+        writeln!(output, "artifact_schema={}", self.artifact_schema_version)
+            .expect("writing to String cannot fail");
         writeln!(
             output,
             "evaluation_schema={}",
             self.evaluation_schema_version
         )
         .expect("writing to String cannot fail");
-        writeln!(
-            output,
-            "structure_schema={}",
-            self.structure_schema_version
-        )
-        .expect("writing to String cannot fail");
+        writeln!(output, "structure_schema={}", self.structure_schema_version)
+            .expect("writing to String cannot fail");
         writeln!(
             output,
             "structure_checksum={:016x}",
@@ -737,8 +720,7 @@ impl NamedWeightArtifact {
             )
             .expect("writing to String cannot fail");
         }
-        writeln!(output, "checksum={:016x}", self.checksum)
-            .expect("writing to String cannot fail");
+        writeln!(output, "checksum={:016x}", self.checksum).expect("writing to String cannot fail");
         Ok(output)
     }
 
@@ -772,10 +754,7 @@ impl NamedWeightArtifact {
             validation_positions: parse_u64_field(lines[12], "validation_positions")?,
             random_seed: parse_u64_field(lines[13], "random_seed")?,
             completed_iterations: parse_u64_field(lines[14], "completed_iterations")?,
-            generated_at_unix_seconds: parse_u64_field(
-                lines[15],
-                "generated_at_unix_seconds",
-            )?,
+            generated_at_unix_seconds: parse_u64_field(lines[15], "generated_at_unix_seconds")?,
         };
         let parameter_count = parse_u64_field(lines[16], "parameter_count")?;
         if parameter_count != TUNABLE_PARAMETER_COUNT as u64 {
@@ -801,10 +780,7 @@ impl NamedWeightArtifact {
             })?;
             parameter.set_value(&mut weights, value);
         }
-        let checksum = parse_hex_u64_field(
-            lines[SERIALIZED_LINE_COUNT - 1],
-            "checksum",
-        )?;
+        let checksum = parse_hex_u64_field(lines[SERIALIZED_LINE_COUNT - 1], "checksum")?;
         let artifact = Self {
             artifact_schema_version,
             evaluation_schema_version,
@@ -943,9 +919,7 @@ fn field_value<'a>(line: &'a str, name: &str) -> Result<&'a str, NamedWeightArti
     line.strip_prefix(name)
         .and_then(|suffix| suffix.strip_prefix('='))
         .ok_or_else(|| {
-            NamedWeightArtifactError::Format(format!(
-                "expected {name}= field, found {line:?}"
-            ))
+            NamedWeightArtifactError::Format(format!("expected {name}= field, found {line:?}"))
         })
 }
 
@@ -975,10 +949,7 @@ fn parse_hex_u64_field(line: &str, name: &str) -> Result<u64, NamedWeightArtifac
     })
 }
 
-fn parse_commit_field(
-    line: &str,
-    name: &str,
-) -> Result<[u8; 20], NamedWeightArtifactError> {
+fn parse_commit_field(line: &str, name: &str) -> Result<[u8; 20], NamedWeightArtifactError> {
     let value = field_value(line, name)?;
     if value.len() != 40 || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
         return Err(NamedWeightArtifactError::Format(format!(
@@ -989,9 +960,7 @@ fn parse_commit_field(
     for (index, byte) in commit.iter_mut().enumerate() {
         let offset = index * 2;
         *byte = u8::from_str_radix(&value[offset..offset + 2], 16).map_err(|error| {
-            NamedWeightArtifactError::Format(format!(
-                "invalid {name} byte {index}: {error}"
-            ))
+            NamedWeightArtifactError::Format(format!("invalid {name} byte {index}: {error}"))
         })?;
     }
     Ok(commit)
@@ -1005,9 +974,8 @@ mod tests {
     use chess_search::{EvaluationWeights, PhasedWeight, EVALUATION_STRUCTURE};
 
     use super::{
-        tunable_values, weights_from_tunable_values, NamedWeightArtifact,
-        NamedWeightArtifactError, TrainingMetadata, TrainingMetadataError, TunableParameter,
-        TUNABLE_PARAMETER_COUNT,
+        tunable_values, weights_from_tunable_values, NamedWeightArtifact, NamedWeightArtifactError,
+        TrainingMetadata, TrainingMetadataError, TunableParameter, TUNABLE_PARAMETER_COUNT,
     };
 
     fn metadata() -> TrainingMetadata {
@@ -1034,7 +1002,10 @@ mod tests {
         assert_eq!(parameters[777].name(), "piece_square.king.h1.eg");
         assert_eq!(parameters[778].name(), "mobility.knight.mg");
         assert_eq!(parameters[809].name(), "feature.king_activity.eg");
-        let names: BTreeSet<_> = parameters.iter().map(|parameter| parameter.name()).collect();
+        let names: BTreeSet<_> = parameters
+            .iter()
+            .map(|parameter| parameter.name())
+            .collect();
         assert_eq!(names.len(), TUNABLE_PARAMETER_COUNT);
         assert_eq!(TunableParameter::from_index(TUNABLE_PARAMETER_COUNT), None);
     }
@@ -1066,8 +1037,9 @@ mod tests {
 
     #[test]
     fn artifact_round_trips_with_named_parameters_and_complete_metadata() {
-        let artifact = NamedWeightArtifact::new(0xCAFE_BABE, metadata(), EvaluationWeights::DEFAULT)
-            .expect("artifact is valid");
+        let artifact =
+            NamedWeightArtifact::new(0xCAFE_BABE, metadata(), EvaluationWeights::DEFAULT)
+                .expect("artifact is valid");
         let serialized = artifact.serialize().expect("artifact serializes");
         assert!(serialized.contains("parameter.material.pawn.mg=100\n"));
         assert!(serialized.contains("parameter.piece_square.king.h1.eg="));
