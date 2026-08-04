@@ -1043,13 +1043,22 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 19.5 Tests
 
-- [ ] invalid move rejected from book;
-- [ ] deterministic tie ordering;
-- [ ] seeded weighted selection reproducibility;
-- [ ] corrupt/unsupported data error;
-- [ ] no auto-discovery.
+- [x] invalid move rejected from book;
+- [x] deterministic tie ordering;
+- [x] seeded weighted selection reproducibility;
+- [x] corrupt/unsupported data error;
+- [x] no auto-discovery.
 
-**Task 19 gate:** Book support is optional, explicit, legal, reproducible, and platform adapters supply all I/O.
+**Task 19 gate:** Book support is optional, explicit, legal, reproducible, and platform adapters supply all I/O. **Complete.**
+
+### Task 19 completion evidence
+
+- Merged Task 19.5 implementation SHA: `d7d8455e6279fab53451bad6a5d778ce66c0a001`.
+- Exact validated evidence head: `5d70737bf12cbfa16441730b7a64629212b28683`.
+- Permanent Rust run/job: `30867122750` / `91861324627`.
+- Permanent Android run/jobs: `30867122736` / `91861324588`, `91861324637`.
+- Four dedicated public-API regressions and the permanent fail-closed no-auto-discovery audit passed with the complete 332-test Rust workspace and Android adapter gates.
+- Task 19 is complete; Task 20 is next.
 
 ---
 

@@ -3,7 +3,7 @@
 **Updated:** 2026-08-03
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 19.4 opening-book adapter integration complete; Task 19.5 opening-book tests are next
+**Current phase:** Task 19 opening-book support complete; Task 20 offline self-play is next
 
 ## Completed gates
 
@@ -62,6 +62,7 @@
 | 19.2 | `781e876563e8b21bb50e6fa83af6afe92b260910` | Rust `30855596855` / `91825754603`; Android `30855596897` / `91825818389`, `91825818440` | version-1 project-specific fixed-record indexed format, canonical four-field FEN keys, little-endian schema, header/payload CRC-32, strict structural corruption rejection, seven focused tests; 317 Rust tests and Android regressions green |
 | 19.3 | `82b5100f501fe4e4a845d5fb3bdbb1c8fe7d34ef` | Rust `30859905206` / `91839380997`; Android `30859905203` / `91839428990`, `91839429013` | exact indexed UCI-to-legal-move resolution, generic candidate revalidation, deterministic highest-weight policy with canonical tie ordering, explicit local-seed SplitMix64 weighted policy, six focused tests; 323 Rust tests and Android regressions green |
 | 19.4 | `5b8e2117c64922e97cbe356caa44a51075da7b52` | Rust `30863525297` / `91850371126`; Android `30863525289` / `91850370864`, `91850370917` | explicit UCI `OwnBook` and `--book` injection, safe-facade policy/configuration, additive C ABI/JNI byte injection, Android asset adapter, and disabled/absent/no-entry search fallback; 328 Rust tests and Android regressions green |
+| 19.5 / 19 gate | `5d70737bf12cbfa16441730b7a64629212b28683` | Rust `30867122750` / `91861324627`; Android `30867122736` / `91861324588`, `91861324637` | four public-API regressions, permanent no-auto-discovery audit, 332 Rust tests, release perft, differential oracle, host JVM, dual-ABI Android, APK, and API-35 instrumentation green; Task 19 complete |
 
 ## Task 17.1 completion
 
