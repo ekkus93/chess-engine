@@ -247,17 +247,22 @@ fn square(index: u8) -> Square {
 }
 
 fn leaper_summary(samples: usize, scale: u64) -> Result<BenchmarkSummary, String> {
-    run_benchmark("attacks.leaper_sweep", samples, 10_000 * scale, |_| {
-        let mut checksum = 0_u64;
-        for index in 0..Square::COUNT {
-            let current = square(index);
-            checksum ^= pawn_attacks(Color::White, current).bits().rotate_left(3);
-            checksum ^= pawn_attacks(Color::Black, current).bits().rotate_left(7);
-            checksum ^= knight_attacks(current).bits().rotate_left(13);
-            checksum ^= king_attacks(current).bits().rotate_left(17);
-        }
-        Ok(checksum)
-    })
+    run_benchmark(
+        "attacks.leaper_lookup",
+        samples,
+        1_000_000 * scale,
+        |iteration| {
+            let current = square(black_box((iteration & 63) as u8));
+            let color = if iteration & 64 == 0 {
+                Color::White
+            } else {
+                Color::Black
+            };
+            Ok(pawn_attacks(color, current).bits().rotate_left(3)
+                ^ knight_attacks(current).bits().rotate_left(13)
+                ^ king_attacks(current).bits().rotate_left(17))
+        },
+    )
 }
 
 fn sliding_summary(samples: usize, scale: u64) -> Result<BenchmarkSummary, String> {
