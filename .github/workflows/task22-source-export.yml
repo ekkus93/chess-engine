@@ -22,10 +22,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Archive source tree
-        run: tar --exclude=.git -czf chess-engine-rust-engine.tar.gz .
+        run: tar --exclude=.git -czf /tmp/chess-engine-rust-engine.tar.gz .
       - uses: actions/upload-artifact@v4
         with:
           name: task22-source-tree
-          path: chess-engine-rust-engine.tar.gz
+          path: /tmp/chess-engine-rust-engine.tar.gz
           if-no-files-found: error
           retention-days: 1
