@@ -15,7 +15,7 @@ use std::{
     time::Instant,
 };
 
-use chess_core::{Color, Game, Position, SearchHistory};
+use chess_core::{Color, Position, SearchHistory};
 use chess_search::{
     evaluate_with_weights,
     iterative_deepening_search_with_limits_and_transposition_table_and_weights, EvaluationWeights,
