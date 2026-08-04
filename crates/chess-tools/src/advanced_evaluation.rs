@@ -18,8 +18,8 @@ use std::{
 use chess_core::{Color, Game, Position, SearchHistory};
 use chess_search::{
     evaluate_with_weights,
-    iterative_deepening_search_with_limits_and_transposition_table_and_weights,
-    EvaluationWeights, PhasedWeight, SearchLimits, TranspositionTable,
+    iterative_deepening_search_with_limits_and_transposition_table_and_weights, EvaluationWeights,
+    PhasedWeight, SearchLimits, TranspositionTable,
 };
 
 use crate::{
@@ -127,9 +127,7 @@ impl AdvancedTermArea {
             Self::PawnMajorityCandidatePasser => {
                 "passed-pawn, connected-pawn, advancement, and tapered pawn weights"
             }
-            Self::KingZoneAttackUnits => {
-                "enemy-attacked king-zone squares and pawn-shield terms"
-            }
+            Self::KingZoneAttackUnits => "enemy-attacked king-zone squares and pawn-shield terms",
             Self::DefenderCoordination => {
                 "mobility, pawn shield, king-zone pressure, space, and piece-square tables"
             }
@@ -139,9 +137,7 @@ impl AdvancedTermArea {
             Self::MinorOutpostsBadBishops => {
                 "minor-piece mobility, piece-square tables, connected pawns, and bishop pair"
             }
-            Self::EndgameKingPasserRaces => {
-                "passed-pawn advancement and tapered king activity"
-            }
+            Self::EndgameKingPasserRaces => "passed-pawn advancement and tapered king activity",
             Self::SimplificationIncentive => {
                 "tapered material values and ordinary search evaluation after exchanges"
             }
@@ -367,7 +363,10 @@ impl AdvancedEvaluationReport {
     #[must_use]
     pub fn computed_checksum(&self) -> u64 {
         let mut hash = FNV_OFFSET;
-        hash = hash_bytes(hash, &ADVANCED_EVALUATION_REPORT_SCHEMA_VERSION.to_le_bytes());
+        hash = hash_bytes(
+            hash,
+            &ADVANCED_EVALUATION_REPORT_SCHEMA_VERSION.to_le_bytes(),
+        );
         hash = hash_bytes(hash, &self.config.pair_count.to_le_bytes());
         hash = hash_bytes(hash, &self.config.seed.to_le_bytes());
         hash = hash_bytes(hash, &self.config.maximum_plies.to_le_bytes());
@@ -400,7 +399,10 @@ impl AdvancedEvaluationReport {
             hash = hash_bytes(hash, &term.candidate_losses.to_le_bytes());
             hash = hash_bytes(hash, &term.unfinished.to_le_bytes());
             hash = hash_bytes(hash, &term.mean_pair_score.to_bits().to_le_bytes());
-            hash = hash_bytes(hash, &term.pair_score_standard_error.to_bits().to_le_bytes());
+            hash = hash_bytes(
+                hash,
+                &term.pair_score_standard_error.to_bits().to_le_bytes(),
+            );
             hash = hash_bytes(hash, &term.lower_confidence_bound.to_bits().to_le_bytes());
             hash = hash_text(hash, &term.decision.to_string());
         }
@@ -461,8 +463,11 @@ impl AdvancedEvaluationReport {
     pub fn serialize(&self) -> Result<String, ToolError> {
         self.validate()?;
         let mut output = String::new();
-        writeln!(output, "{FORMAT_MARKER}\t{ADVANCED_EVALUATION_REPORT_SCHEMA_VERSION}")
-            .expect("writing to String cannot fail");
+        writeln!(
+            output,
+            "{FORMAT_MARKER}\t{ADVANCED_EVALUATION_REPORT_SCHEMA_VERSION}"
+        )
+        .expect("writing to String cannot fail");
         writeln!(output, "pair_count={}", self.config.pair_count)
             .expect("writing to String cannot fail");
         writeln!(output, "seed={}", self.config.seed).expect("writing to String cannot fail");
@@ -495,12 +500,10 @@ impl AdvancedEvaluationReport {
             "minimum_acceptance_pairs={ADVANCED_EVALUATION_MINIMUM_ACCEPTANCE_PAIRS}"
         )
         .expect("writing to String cannot fail");
-        writeln!(output, "activated={}", self.activated())
-            .expect("writing to String cannot fail");
+        writeln!(output, "activated={}", self.activated()).expect("writing to String cannot fail");
         for (index, term) in self.terms.iter().enumerate() {
             let prefix = format!("term.{index}");
-            writeln!(output, "{prefix}.area={}", term.area)
-                .expect("writing to String cannot fail");
+            writeln!(output, "{prefix}.area={}", term.area).expect("writing to String cannot fail");
             writeln!(output, "{prefix}.definition={}", term.area.definition())
                 .expect("writing to String cannot fail");
             writeln!(output, "{prefix}.overlap={}", term.area.overlap())
@@ -521,10 +524,18 @@ impl AdvancedEvaluationReport {
                 term.probe_evaluation_nanos
             )
             .expect("writing to String cannot fail");
-            writeln!(output, "{prefix}.fixed_node_positions={}", term.fixed_node_positions)
-                .expect("writing to String cannot fail");
-            writeln!(output, "{prefix}.best_move_changes={}", term.best_move_changes)
-                .expect("writing to String cannot fail");
+            writeln!(
+                output,
+                "{prefix}.fixed_node_positions={}",
+                term.fixed_node_positions
+            )
+            .expect("writing to String cannot fail");
+            writeln!(
+                output,
+                "{prefix}.best_move_changes={}",
+                term.best_move_changes
+            )
+            .expect("writing to String cannot fail");
             writeln!(
                 output,
                 "{prefix}.absolute_score_delta_sum={}",
@@ -539,8 +550,12 @@ impl AdvancedEvaluationReport {
                 .expect("writing to String cannot fail");
             writeln!(output, "{prefix}.draws={}", term.draws)
                 .expect("writing to String cannot fail");
-            writeln!(output, "{prefix}.candidate_losses={}", term.candidate_losses)
-                .expect("writing to String cannot fail");
+            writeln!(
+                output,
+                "{prefix}.candidate_losses={}",
+                term.candidate_losses
+            )
+            .expect("writing to String cannot fail");
             writeln!(output, "{prefix}.unfinished={}", term.unfinished)
                 .expect("writing to String cannot fail");
             writeln!(
@@ -564,8 +579,7 @@ impl AdvancedEvaluationReport {
             writeln!(output, "{prefix}.decision={}", term.decision)
                 .expect("writing to String cannot fail");
         }
-        writeln!(output, "checksum={:016x}", self.checksum)
-            .expect("writing to String cannot fail");
+        writeln!(output, "checksum={:016x}", self.checksum).expect("writing to String cannot fail");
         Ok(output)
     }
 }
@@ -592,7 +606,11 @@ pub fn run_advanced_evaluation_protocol(
             &baseline,
             &probe,
         )?;
-        let decision = decide(area, config.pair_count, match_evidence.lower_confidence_bound);
+        let decision = decide(
+            area,
+            config.pair_count,
+            match_evidence.lower_confidence_bound,
+        );
         terms.push(AdvancedTermEvidence {
             area,
             fixture_count: u32::try_from(fixtures.len() / 2)
@@ -732,7 +750,9 @@ fn mirror_and_swap_fen(fen: &str) -> Result<String, ToolError> {
     }
     let ranks: Vec<_> = fields[0].split('/').collect();
     if ranks.len() != 8 {
-        return Err(ToolError::new("Task 22 fixture board must contain eight ranks"));
+        return Err(ToolError::new(
+            "Task 22 fixture board must contain eight ranks",
+        ));
     }
     let board = ranks
         .into_iter()
@@ -762,10 +782,7 @@ fn mirror_and_swap_fen(fen: &str) -> Result<String, ToolError> {
             "Task 22 mirror helper requires fixtures without castling rights",
         ));
     }
-    Ok(format!(
-        "{board} {side} - - {} {}",
-        fields[4], fields[5]
-    ))
+    Ok(format!("{board} {side} - - {} {}", fields[4], fields[5]))
 }
 
 fn verify_symmetry(
@@ -797,8 +814,9 @@ fn benchmark_weights(
     let mut baseline_checksum = 0_i64;
     for _ in 0..iterations {
         for position in fixtures {
-            baseline_checksum = baseline_checksum
-                .wrapping_add(i64::from(evaluate_with_weights(position, baseline).centipawns()));
+            baseline_checksum = baseline_checksum.wrapping_add(i64::from(
+                evaluate_with_weights(position, baseline).centipawns(),
+            ));
         }
     }
     let baseline_nanos = baseline_started.elapsed().as_nanos();
@@ -807,8 +825,9 @@ fn benchmark_weights(
     let mut probe_checksum = 0_i64;
     for _ in 0..iterations {
         for position in fixtures {
-            probe_checksum = probe_checksum
-                .wrapping_add(i64::from(evaluate_with_weights(position, probe).centipawns()));
+            probe_checksum = probe_checksum.wrapping_add(i64::from(
+                evaluate_with_weights(position, probe).centipawns(),
+            ));
         }
     }
     let probe_nanos = probe_started.elapsed().as_nanos();
@@ -840,13 +859,12 @@ fn fixed_node_comparison(
         if let (Some(baseline_score), Some(probe_score)) =
             (baseline_result.score(), probe_result.score())
         {
-            evidence.absolute_score_delta_sum = evidence.absolute_score_delta_sum.saturating_add(
-                i64::from(
+            evidence.absolute_score_delta_sum =
+                evidence.absolute_score_delta_sum.saturating_add(i64::from(
                     baseline_score
                         .centipawns()
                         .abs_diff(probe_score.centipawns()),
-                ),
-            );
+                ));
         }
     }
     Ok(evidence)
@@ -884,17 +902,15 @@ fn run_controlled_match(
         config.maximum_plies,
         ClaimableDrawPolicy::Accept,
     )?;
-    let opening_offset = (splitmix64(config.seed ^ area_index) % openings.lines().len() as u64)
-        as usize;
+    let opening_offset =
+        (splitmix64(config.seed ^ area_index) % openings.lines().len() as u64) as usize;
     let mut evidence = MatchEvidence::default();
     let mut pair_scores = Vec::with_capacity(config.pair_count as usize);
     for pair_index in 0..config.pair_count {
         let opening =
             &openings.lines()[(opening_offset + pair_index as usize) % openings.lines().len()];
-        let candidate_white =
-            run_weighted_validation_game(opening, match_config, probe, baseline)?;
-        let candidate_black =
-            run_weighted_validation_game(opening, match_config, baseline, probe)?;
+        let candidate_white = run_weighted_validation_game(opening, match_config, probe, baseline)?;
+        let candidate_black = run_weighted_validation_game(opening, match_config, baseline, probe)?;
         let white_score = record_result(&mut evidence, candidate_white.result(), Color::White);
         let black_score = record_result(&mut evidence, candidate_black.result(), Color::Black);
         pair_scores.push((white_score + black_score) * 0.5);
@@ -908,13 +924,11 @@ fn run_controlled_match(
 
 fn record_result(evidence: &mut MatchEvidence, result: SelfPlayResult, candidate: Color) -> f64 {
     match (result, candidate) {
-        (SelfPlayResult::WhiteWin, Color::White)
-        | (SelfPlayResult::BlackWin, Color::Black) => {
+        (SelfPlayResult::WhiteWin, Color::White) | (SelfPlayResult::BlackWin, Color::Black) => {
             evidence.candidate_wins = evidence.candidate_wins.saturating_add(1);
             1.0
         }
-        (SelfPlayResult::WhiteWin, Color::Black)
-        | (SelfPlayResult::BlackWin, Color::White) => {
+        (SelfPlayResult::WhiteWin, Color::Black) | (SelfPlayResult::BlackWin, Color::White) => {
             evidence.candidate_losses = evidence.candidate_losses.saturating_add(1);
             0.0
         }
@@ -962,9 +976,7 @@ fn decide(
     if area.is_overlap_rejection() {
         return AdvancedTermDecision::RejectedOverlap;
     }
-    if pair_count >= ADVANCED_EVALUATION_MINIMUM_ACCEPTANCE_PAIRS
-        && lower_confidence_bound > 0.5
-    {
+    if pair_count >= ADVANCED_EVALUATION_MINIMUM_ACCEPTANCE_PAIRS && lower_confidence_bound > 0.5 {
         AdvancedTermDecision::ReviseDedicatedImplementation
     } else {
         AdvancedTermDecision::RejectedNoStrengthEvidence
@@ -983,17 +995,37 @@ fn overlap_probe(area: AdvancedTermArea) -> EvaluationWeights {
         }
         AdvancedTermArea::DefenderCoordination => {
             add_weight(&mut weights.king_shield, 2, 0);
-            add_weight(&mut weights.mobility[chess_core::PieceKind::Knight.index()], 1, 1);
-            add_weight(&mut weights.mobility[chess_core::PieceKind::Bishop.index()], 1, 1);
+            add_weight(
+                &mut weights.mobility[chess_core::PieceKind::Knight.index()],
+                1,
+                1,
+            );
+            add_weight(
+                &mut weights.mobility[chess_core::PieceKind::Bishop.index()],
+                1,
+                1,
+            );
         }
         AdvancedTermArea::RookQueenBattery => {
             add_weight(&mut weights.rook_open_file, 4, 2);
             add_weight(&mut weights.rook_semi_open_file, 2, 1);
-            add_weight(&mut weights.mobility[chess_core::PieceKind::Queen.index()], 1, 1);
+            add_weight(
+                &mut weights.mobility[chess_core::PieceKind::Queen.index()],
+                1,
+                1,
+            );
         }
         AdvancedTermArea::MinorOutpostsBadBishops => {
-            add_weight(&mut weights.mobility[chess_core::PieceKind::Knight.index()], 1, 1);
-            add_weight(&mut weights.mobility[chess_core::PieceKind::Bishop.index()], 1, 1);
+            add_weight(
+                &mut weights.mobility[chess_core::PieceKind::Knight.index()],
+                1,
+                1,
+            );
+            add_weight(
+                &mut weights.mobility[chess_core::PieceKind::Bishop.index()],
+                1,
+                1,
+            );
             add_weight(&mut weights.bishop_pair, 4, 4);
         }
         AdvancedTermArea::EndgameKingPasserRaces => {
@@ -1127,22 +1159,17 @@ mod tests {
         for area in AdvancedTermArea::ALL {
             let fixtures = fixture_positions(area).expect("fixtures parse");
             assert_eq!(fixtures.len(), 4);
-            verify_symmetry(
-                &fixtures,
-                &EvaluationWeights::DEFAULT,
-                &overlap_probe(area),
-            )
-            .expect("fixture symmetry");
+            verify_symmetry(&fixtures, &EvaluationWeights::DEFAULT, &overlap_probe(area))
+                .expect("fixture symmetry");
         }
     }
 
     #[test]
     fn small_protocol_is_complete_checksummed_and_inactive() {
         let side = SelfPlaySideConfig::new(1, SelfPlayLimit::Depth(1));
-        let config = AdvancedEvaluationConfig::new(1, 0x2201, side, 1, 8)
-            .with_maximum_plies(4);
-        let report = run_advanced_evaluation_protocol(config, &openings(1))
-            .expect("small Task 22 protocol");
+        let config = AdvancedEvaluationConfig::new(1, 0x2201, side, 1, 8).with_maximum_plies(4);
+        let report =
+            run_advanced_evaluation_protocol(config, &openings(1)).expect("small Task 22 protocol");
         assert_eq!(report.terms.len(), AdvancedTermArea::ALL.len());
         assert_eq!(report.checksum, report.computed_checksum());
         assert!(!report.activated());
@@ -1150,16 +1177,18 @@ mod tests {
             .terms
             .iter()
             .all(|term| term.decision != AdvancedTermDecision::ReviseDedicatedImplementation));
-        assert!(report.serialize().expect("serializes").contains("activated=false"));
+        assert!(report
+            .serialize()
+            .expect("serializes")
+            .contains("activated=false"));
     }
 
     #[test]
     fn atomic_report_write_uses_explicit_same_directory_temp_path() {
         let side = SelfPlaySideConfig::new(1, SelfPlayLimit::Depth(1));
-        let config = AdvancedEvaluationConfig::new(1, 0x2202, side, 1, 8)
-            .with_maximum_plies(4);
-        let report = run_advanced_evaluation_protocol(config, &openings(1))
-            .expect("small Task 22 protocol");
+        let config = AdvancedEvaluationConfig::new(1, 0x2202, side, 1, 8).with_maximum_plies(4);
+        let report =
+            run_advanced_evaluation_protocol(config, &openings(1)).expect("small Task 22 protocol");
         let directory = env::temp_dir().join(format!(
             "chess-task22-{}-{}",
             std::process::id(),
@@ -1187,7 +1216,10 @@ mod tests {
             .with_maximum_plies(8);
         let report = run_advanced_evaluation_protocol(config, &openings(pair_count as usize))
             .expect("Task 22 controlled evidence");
-        println!("{}", report.serialize().expect("Task 22 report serialization"));
+        println!(
+            "{}",
+            report.serialize().expect("Task 22 report serialization")
+        );
         assert_eq!(report.terms.len(), 8);
         assert!(!report.activated());
         assert!(report.terms.iter().all(|term| {
