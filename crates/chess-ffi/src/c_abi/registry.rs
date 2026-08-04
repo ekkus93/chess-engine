@@ -317,7 +317,12 @@ pub(crate) fn release_buffers(buffers: &[ChessEngineBuffer]) -> AbiResult<()> {
             continue;
         }
 
-        validate_token(buffer.allocation, BUFFER_HANDLE_TAG, "buffer allocation")?;
+        if buffer.allocation & HANDLE_TAG_MASK != BUFFER_HANDLE_TAG {
+            return Err(AbiFailure::new(
+                ChessEngineResultCode::InvalidBuffer,
+                "output buffer allocation token has the wrong opaque handle type",
+            ));
+        }
         if buffers[..index]
             .iter()
             .any(|previous| previous.allocation == buffer.allocation)
