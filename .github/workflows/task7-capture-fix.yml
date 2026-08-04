@@ -1,28 +1,39 @@
 name: Consolidate rust-engine into master
 
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - .github/workflows/task7-capture-fix.yml
+  issues:
+    types:
+      - opened
 
 permissions:
   contents: write
+  issues: write
 
 concurrency:
   group: consolidate-rust-engine-into-master
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   consolidate:
-    if: github.actor == 'ekkus93'
+    if: >-
+      github.actor == 'ekkus93' &&
+      github.event.issue.title == '[consolidate-rust-engine-into-master]'
     runs-on: ubuntu-24.04
     timeout-minutes: 300
     env:
       CARGO_TERM_COLOR: always
       RUST_BACKTRACE: "1"
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      TRIGGER_ISSUE: ${{ github.event.issue.number }}
     steps:
+      - name: Report start
+        shell: bash
+        run: |
+          gh api --method POST \
+            "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}/comments" \
+            -f body="Direct master consolidation started: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
       - name: Check out master with complete history
         uses: actions/checkout@v4
         with:
@@ -126,7 +137,15 @@ jobs:
 
           git commit -m 'Merge rust-engine into master and consolidate CI'
           test "$(git rev-list --parents -n 1 HEAD | wc -w)" -eq 3
-          git status --short
+          test -z "$(git status --porcelain)"
+          echo "MERGE_SHA=$(git rev-parse HEAD)" >> "${GITHUB_ENV}"
+
+      - name: Report merge tree prepared
+        shell: bash
+        run: |
+          gh api --method POST \
+            "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}/comments" \
+            -f body="Prepared exact two-parent merge commit ${MERGE_SHA}; validation is running before master is updated."
 
       - name: Install Python project and validation dependencies
         shell: bash
@@ -146,6 +165,13 @@ jobs:
 
       - name: Run all Python tests
         run: python -m pytest tests -q
+
+      - name: Report Python validation
+        shell: bash
+        run: |
+          gh api --method POST \
+            "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}/comments" \
+            -f body="Python linting and the complete Python test suite passed at ${MERGE_SHA}."
 
       - name: Verify Rust workspace and audit assets
         shell: bash
@@ -220,6 +246,13 @@ jobs:
           --plies 48
           --seed 0xC0FFEE
 
+      - name: Report Rust validation
+        shell: bash
+        run: |
+          gh api --method POST \
+            "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}/comments" \
+            -f body="Rust audits, formatting, check, Clippy, all tests, release perft, rustdoc, debug/release builds, and differential validation passed at ${MERGE_SHA}."
+
       - name: Run host JVM JNI contract
         shell: bash
         run: |
@@ -288,11 +321,37 @@ jobs:
             :android-smoke:connectedDebugAndroidTest
             --no-daemon --stacktrace --console=plain
 
+      - name: Report Android validation
+        shell: bash
+        run: |
+          gh api --method POST \
+            "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}/comments" \
+            -f body="Host JVM JNI, ARM64/x86_64 native verification, Android APK builds, and API-35 instrumentation passed at ${MERGE_SHA}."
+
       - name: Verify exact tested merge tree and push master
         shell: bash
         run: |
           set -euo pipefail
-          git status --short
           test -z "$(git status --porcelain)"
           test "$(git rev-list --parents -n 1 HEAD | wc -w)" -eq 3
           git push origin HEAD:master
+
+      - name: Report success and close trigger issue
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api --method POST \
+            "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}/comments" \
+            -f body="Consolidation complete. master now points to tested merge commit ${MERGE_SHA}. No branch or pull request was created."
+          gh api --method PATCH \
+            "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}" \
+            -f state=closed \
+            -f state_reason=completed
+
+      - name: Report failure
+        if: failure()
+        shell: bash
+        run: |
+          gh api --method POST \
+            "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}/comments" \
+            -f body="Consolidation failed before master was updated. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
