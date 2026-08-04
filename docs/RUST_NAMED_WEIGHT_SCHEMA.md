@@ -97,3 +97,12 @@ The permanent Rust CI gate must continue to enforce:
 - differential-oracle validation.
 
 Task-specific tests verify schema size and stable names, uniqueness, tunable-vector round trips, structural restoration, complete artifact round trips, checksum coverage, malformed-name rejection, checksum corruption rejection, and incomplete-provenance rejection.
+
+## Task 21.1 validation evidence
+
+The exact validated implementation head is `8410beb6dc22684052ded86a6f2fe71cf9d1e444`.
+
+- Rust workflow run `30889939723`, job `91929495312`: formatting, workspace check, Clippy with warnings denied, complete Rust tests, authoritative release perft, warning-free rustdoc, debug/release builds, and the differential oracle passed.
+- Android workflow run `30889939726`: host JVM JNI job `91929459955`, API-35 instrumentation job `91929459977`, and Android/Kotlin lint job `91929460081` all passed.
+
+Task 21.1 is complete. Task 21.2 owns the loss pipeline.
