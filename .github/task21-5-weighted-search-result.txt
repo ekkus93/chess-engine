@@ -1,5 +1,5 @@
-status=101
-source_commit=adcb5303455a3d68b8f4cf50bf98c0ba5ee36734
+status=0
+source_commit=6aa17fb70d7d238d3fe1a3e67f799177ec3bb768
 
 ===== preprocess =====
 
@@ -9,26 +9,28 @@ source_commit=adcb5303455a3d68b8f4cf50bf98c0ba5ee36734
 
 ===== cleanup2 =====
 
+===== cleanup3 =====
+
 ===== fmt =====
 
 ===== check =====
 [1m[92m    Updating[0m crates.io index
 [1m[92m Downloading[0m crates ...
+[1m[92m  Downloaded[0m bytes v1.12.1
 [1m[92m  Downloaded[0m cfg-if v1.0.4
-[1m[92m  Downloaded[0m jni-sys v0.3.1
-[1m[92m  Downloaded[0m jni-sys-macros v0.4.1
-[1m[92m  Downloaded[0m cesu8 v1.1.0
-[1m[92m  Downloaded[0m log v0.4.33
 [1m[92m  Downloaded[0m jni-sys v0.4.1
+[1m[92m  Downloaded[0m cesu8 v1.1.0
+[1m[92m  Downloaded[0m jni-sys-macros v0.4.1
+[1m[92m  Downloaded[0m jni-sys v0.3.1
 [1m[92m  Downloaded[0m same-file v1.0.6
+[1m[92m  Downloaded[0m thiserror v1.0.69
 [1m[92m  Downloaded[0m walkdir v2.5.0
 [1m[92m  Downloaded[0m quote v1.0.47
-[1m[92m  Downloaded[0m thiserror-impl v1.0.69
-[1m[92m  Downloaded[0m thiserror v1.0.69
-[1m[92m  Downloaded[0m unicode-ident v1.0.24
-[1m[92m  Downloaded[0m proc-macro2 v1.0.107
-[1m[92m  Downloaded[0m bytes v1.12.1
 [1m[92m  Downloaded[0m jni v0.21.1
+[1m[92m  Downloaded[0m thiserror-impl v1.0.69
+[1m[92m  Downloaded[0m log v0.4.33
+[1m[92m  Downloaded[0m proc-macro2 v1.0.107
+[1m[92m  Downloaded[0m unicode-ident v1.0.24
 [1m[92m  Downloaded[0m memchr v2.8.3
 [1m[92m  Downloaded[0m combine v4.6.7
 [1m[92m  Downloaded[0m syn v2.0.119
@@ -36,29 +38,248 @@ source_commit=adcb5303455a3d68b8f4cf50bf98c0ba5ee36734
 [1m[92m   Compiling[0m proc-macro2 v1.0.107
 [1m[92m   Compiling[0m quote v1.0.47
 [1m[92m   Compiling[0m unicode-ident v1.0.24
-[1m[92m   Compiling[0m jni-sys v0.3.1
 [1m[92m   Compiling[0m thiserror v1.0.69
-[1m[92m    Checking[0m memchr v2.8.3
-[1m[92m    Checking[0m bytes v1.12.1
-[1m[92m    Checking[0m cesu8 v1.1.0
-[1m[92m    Checking[0m log v0.4.33
-[1m[92m    Checking[0m combine v4.6.7
 [1m[92m    Checking[0m chess-search v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-search)
 [1m[92m    Checking[0m chess-book v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-book)
-[1m[92m   Compiling[0m syn v2.0.119
-[1m[91merror[E0616][0m[1m: field `window` of struct `AlphaBetaSearchPolicy` is private[0m
-   [1m[94m--> [0mcrates/chess-search/src/iterative_deepening.rs:995:23
-    [1m[94m|[0m
-[1m[94m995[0m [1m[94m|[0m         alpha: policy.window.alpha(),
-    [1m[94m|[0m                       [1m[91m^^^^^^[0m [1m[91mprivate field[0m
-
+[1m[92m    Checking[0m chess-tune v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-tune)
+[1m[92m    Checking[0m chess-ffi v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-ffi)
+[1m[92m   Compiling[0m jni-sys v0.3.1
+[1m[92m    Checking[0m bytes v1.12.1
+[1m[92m    Checking[0m memchr v2.8.3
+[1m[92m    Checking[0m log v0.4.33
+[1m[92m    Checking[0m cesu8 v1.1.0
+[1m[92m    Checking[0m combine v4.6.7
 [1m[92m    Checking[0m cfg-if v1.0.4
-[1m[91merror[E0616][0m[1m: field `window` of struct `AlphaBetaSearchPolicy` is private[0m
-   [1m[94m--> [0mcrates/chess-search/src/iterative_deepening.rs:996:22
-    [1m[94m|[0m
-[1m[94m996[0m [1m[94m|[0m         beta: policy.window.beta(),
-    [1m[94m|[0m                      [1m[91m^^^^^^[0m [1m[91mprivate field[0m
+[1m[92m    Checking[0m chess-tools v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-tools)
+[1m[92m    Checking[0m chess-uci v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-uci)
+[1m[92m   Compiling[0m syn v2.0.119
+[1m[92m   Compiling[0m jni-sys-macros v0.4.1
+[1m[92m   Compiling[0m thiserror-impl v1.0.69
+[1m[92m    Checking[0m jni-sys v0.4.1
+[1m[92m    Checking[0m jni v0.21.1
+[1m[92m    Checking[0m chess-jni v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-jni)
+[1m[92m    Finished[0m `dev` profile [unoptimized + debuginfo] target(s) in 11.08s
 
-[1mFor more information about this error, try `rustc --explain E0616`.[0m
-[1m[91merror[0m: could not compile `chess-search` (lib) due to 2 previous errors
-[1m[33mwarning[0m: build failed, waiting for other jobs to finish...
+===== clippy =====
+[1m[92m    Checking[0m chess-core v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-core)
+[1m[92m    Checking[0m chess-search v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-search)
+[1m[92m    Checking[0m chess-book v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-book)
+[1m[92m    Checking[0m chess-tune v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-tune)
+[1m[92m    Checking[0m chess-ffi v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-ffi)
+[1m[92m    Checking[0m chess-uci v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-uci)
+[1m[92m    Checking[0m chess-jni v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-jni)
+[1m[92m    Checking[0m chess-tools v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-tools)
+[1m[92m    Finished[0m `dev` profile [unoptimized + debuginfo] target(s) in 4.18s
+
+===== tests =====
+[1m[92m   Compiling[0m chess-core v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-core)
+[1m[92m   Compiling[0m chess-search v0.1.0 (/home/runner/work/chess-engine/chess-engine/crates/chess-search)
+[1m[92m    Finished[0m `test` profile [unoptimized + debuginfo] target(s) in 2.56s
+[1m[92m     Running[0m unittests src/lib.rs (target/debug/deps/chess_search-6d96aa2cb2bb7d08)
+
+running 86 tests
+test alpha_beta::tests::depth_zero_evaluates_and_counts_only_the_root ... ok
+test alpha_beta::ordering_tests::transposition_move_ordering_reduces_fixed_narrow_window_tree ... ok
+test alpha_beta::tests::mate_in_one_uses_ply_relative_terminal_scoring ... ok
+test alpha_beta::tests::mismatched_history_and_excessive_depth_fail_without_mutation ... ok
+test alpha_beta::ordering_tests::seeded_quiet_cutoff_reduces_a_fixed_narrow_window_tree ... ok
+test alpha_beta::tests::terminal_and_repetition_draw_roots_resolve_without_a_move ... ok
+test check_extension::tests::disabled_and_nonchecking_children_never_extend ... ok
+test check_extension::tests::mate_score_domain_prevents_an_extra_ply ... ok
+test check_extension::tests::one_check_consumes_the_complete_path_budget ... ok
+test core_api_tests::public_legal_token_api_supports_search_crate_make_unmake ... ok
+test evaluation::tests::coarse_benchmark_groups_reconstruct_the_full_score ... ok
+test evaluation::tests::color_and_vertical_mirror_preserve_relative_score ... ok
+test evaluation::tests::pawn_trace_identifies_structure_without_hidden_terms ... ok
+test evaluation::tests::side_to_move_convention_negates_the_same_board ... ok
+test evaluation::tests::starting_position_is_exactly_symmetric ... ok
+test evaluation::tests::trace_components_sum_to_the_normal_evaluation ... ok
+test alpha_beta::ordering_tests::quiet_ordering_preserves_full_window_result_deterministically ... ok
+test alpha_beta::tests::equal_scores_keep_deterministic_first_best_move ... ok
+test iterative_deepening::limit_tests::hard_time_wins_before_starting_the_next_depth ... ok
+test iterative_deepening::limit_tests::observer_receives_every_completed_depth_in_order ... ok
+test iterative_deepening::limit_tests::soft_time_is_checked_after_one_exact_completed_iteration ... ok
+test limits::tests::invalid_values_and_combinations_are_rejected ... ok
+test limits::tests::stop_flag_clones_share_one_atomic_state ... ok
+test move_ordering::quiet_tests::explicit_tt_move_precedes_quiet_heuristics ... ok
+test move_ordering::quiet_tests::killers_precede_history_and_captures_are_not_recorded ... ok
+test move_ordering::quiet_tests::previous_pv_hook_is_an_explicit_no_op ... ok
+test move_ordering::quiet_tests::quiet_ties_use_packed_move_order ... ok
+test move_ordering::tests::captures_use_mvv_lva_with_stable_equal_keys ... ok
+test move_ordering::tests::generation_policy_preserves_exact_legal_token_order ... ok
+test move_ordering::tests::transposition_table_hook_is_an_explicit_no_op ... ok
+test move_ordering::tests::tt_move_and_promotions_precede_captures_and_quiets ... ok
+test principal_variation::tests::complete_exact_chain_is_legal_bounded_and_returns_ponder_move ... ok
+test principal_variation::tests::complete_key_collision_cannot_extend_the_line ... ok
+test principal_variation::tests::illegal_table_move_is_rejected_before_it_enters_the_pv ... ok
+test principal_variation::tests::repeated_position_terminates_a_legal_tt_cycle ... ok
+test quiescence::ordering_tests::tactical_ordering_reduces_a_fixed_cutoff_tree_without_changing_the_result ... ok
+test reference::tests::checkmate_and_stalemate_are_scored_before_static_evaluation ... ok
+test iterative_deepening::aspiration_tests::fail_high_bound_is_not_promoted_and_full_window_retry_recovers_exactly ... ok
+test reference::tests::depth_zero_evaluates_and_counts_only_the_root ... ok
+test reference::tests::mate_in_one_uses_ply_relative_terminal_scoring ... ok
+test reference::tests::mismatched_history_and_excessive_depth_fail_without_mutation ... ok
+test reference::tests::dead_fifty_move_and_repetition_draws_score_zero ... ok
+test score::tests::evaluation_scores_stay_outside_the_mate_band ... ok
+test score::tests::mate_scores_encode_distance_and_negate_exactly ... ok
+test score::tests::raw_scores_validate_the_supported_domain ... ok
+test transposition::diagnostics::tests::hash_full_sampling_is_bounded_deterministic_and_generation_aware ... ok
+test transposition::diagnostics::tests::probe_snapshot_counts_verified_and_reusable_outcomes ... ok
+test transposition::diagnostics::tests::store_snapshot_classifies_every_deterministic_action_and_resets ... ok
+test transposition::principal_variation::tests::lookup_does_not_change_search_diagnostics ... ok
+test transposition::principal_variation::tests::lookup_requires_complete_key_exact_bound_depth_and_move ... ok
+test transposition::probe::tests::complete_key_verification_rejects_cluster_collisions ... ok
+test transposition::probe::tests::exact_hit_denormalizes_mate_score_at_the_probe_ply ... ok
+test transposition::probe::tests::insufficient_depth_preserves_best_move_without_reusing_score ... ok
+test transposition::probe::tests::invalid_windows_fail_before_lookup ... ok
+test transposition::probe::tests::lower_bound_cuts_off_only_when_denormalized_score_reaches_beta ... ok
+test transposition::probe::tests::repetition_sensitive_nodes_suppress_scores_but_keep_ordering_move ... ok
+test transposition::probe::tests::score_conversion_failures_are_preserved ... ok
+test transposition::probe::tests::upper_bound_cuts_off_only_when_denormalized_score_reaches_alpha ... ok
+test transposition::store::tests::empty_slots_are_filled_in_stable_lowest_index_order ... ok
+test transposition::store::tests::equal_depth_and_age_use_lowest_slot_as_final_tie_break ... ok
+test transposition::store::tests::equal_depth_prefers_oldest_generation_across_wraparound ... ok
+test transposition::store::tests::full_cluster_replaces_shallowest_entry_before_considering_age ... ok
+test transposition::store::tests::same_key_updates_in_place_without_creating_a_duplicate ... ok
+test transposition::tests::bound_tags_are_complete_and_have_stable_compact_codes ... ok
+test transposition::tests::clear_preserves_allocation_and_generation ... ok
+test transposition::tests::entries_support_all_bounds_and_an_absent_best_move ... ok
+test transposition::tests::entry_layout_is_bounded_and_score_wrapper_has_no_overhead ... ok
+test transposition::tests::entry_round_trips_every_required_field ... ok
+test transposition::tests::four_way_clusters_use_deterministic_collision_indexing ... ok
+test transposition::tests::generation_wraps_without_clearing_existing_entries ... ok
+test transposition::tests::invalid_table_sizes_fail_loudly_without_allocating ... ok
+test transposition::tests::mib_budget_rounds_down_to_complete_fixed_clusters ... ok
+test transposition::tests::verification_uses_the_complete_key_and_entries_are_value_types ... ok
+test transposition_score::tests::inconsistent_root_relative_mates_fail_before_storage ... ok
+test transposition_score::tests::losing_mate_entry_round_trips_when_reached_at_different_plies ... ok
+test transposition_score::tests::maximum_supported_ply_reaches_both_immediate_mate_boundaries ... ok
+test transposition_score::tests::ordinary_evaluations_are_preserved_exactly_at_every_supported_ply ... ok
+test transposition_score::tests::unsupported_ply_is_rejected_for_both_conversion_directions ... ok
+test transposition_score::tests::winning_mate_entry_round_trips_when_reached_at_different_plies ... ok
+test weights::tests::baseline_set_is_explicit_valid_and_stable ... ok
+test weights::tests::baseline_weights_round_trip_through_the_canonical_vector ... ok
+test weights::tests::evaluator_structure_is_explicit_and_stable ... ok
+test weights::tests::validation_rejects_schema_identifier_checksum_material_and_structure_corruption ... ok
+test iterative_deepening::aspiration_tests::fail_low_bound_is_not_promoted_and_full_window_retry_recovers_exactly ... ok
+test reference::tests::starting_depth_two_visits_the_complete_unpruned_tree ... ok
+test alpha_beta::tests::starting_depth_three_prunes_and_restores_exactly ... ok
+
+test result: ok. 86 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.36s
+
+[1m[92m     Running[0m tests/search_check_extension.rs (target/debug/deps/search_check_extension-2e733177a2aab6f2)
+
+running 4 tests
+test check_extension_is_explicit_opt_in_and_records_applied_work ... ok
+test tight_node_limit_preserves_partial_extension_diagnostics_and_root_state ... ok
+test extension_enabled_search_cannot_reuse_a_baseline_tt_score ... ok
+test extension_search_is_deterministic_and_keeps_a_legal_root_pv ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+[1m[92m     Running[0m tests/search_equivalence.rs (target/debug/deps/search_equivalence-c7d23c2dc433bff0)
+
+running 3 tests
+test repetition_aware_searches_are_equivalent_and_restore_game_history ... ok
+test uniquely_best_tactical_move_matches_the_independent_root_score_oracle ... ok
+test curated_shallow_scores_match_and_alpha_beta_never_visits_more_nodes ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+
+[1m[92m     Running[0m tests/search_immutability.rs (target/debug/deps/search_immutability-34f6668c70269bde)
+
+running 4 tests
+test terminal_and_validation_error_paths_are_non_mutating_and_invariant_clean ... ok
+test reference_cancellation_from_inside_the_tree_restores_every_active_state ... ok
+test alpha_beta_cancellation_from_inside_the_tree_restores_every_active_state ... ok
+test repeated_successful_searches_do_not_accumulate_state_or_history_drift ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.58s
+
+[1m[92m     Running[0m tests/search_iterative_deepening.rs (target/debug/deps/search_iterative_deepening-5d7dc9f5323e1c81)
+
+running 5 tests
+test invalid_maximum_depths_fail_before_mutating_a_caller_owned_table ... ok
+test mismatched_history_fails_on_depth_one_without_mutating_table_or_position ... ok
+test terminal_roots_use_safe_full_windows_and_empty_terminal_principal_variations ... ok
+test convenience_search_reuses_one_bounded_table_and_returns_the_final_iteration ... ok
+test every_depth_is_preserved_and_matches_independent_full_window_search ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+
+[1m[92m     Running[0m tests/search_limits.rs (target/debug/deps/search_limits-8f8e87ca98fb6d56)
+
+running 6 tests
+test invalid_limit_combinations_fail_before_table_or_root_mutation ... ok
+test node_limit_before_depth_one_returns_the_deterministic_legal_fallback ... ok
+test terminal_preset_stop_returns_an_explicit_no_legal_move_fallback ... ok
+test preset_stop_flag_stops_finite_and_infinite_requests_before_mutation ... ok
+test node_limit_discards_partial_depth_and_preserves_last_exact_iteration ... ok
+test depth_limit_matches_fixed_iterative_deepening_exactly ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+
+[1m[92m     Running[0m tests/search_quiescence.rs (target/debug/deps/search_quiescence-089a214be485bb8c)
+
+running 5 tests
+test depth_zero_alpha_beta_resolves_a_hanging_capture ... ok
+test checked_leaf_searches_quiet_evasions_and_promotions_are_tactical ... ok
+test full_window_quiescence_matches_an_unpruned_tactical_oracle ... ok
+test guard_draw_and_cancellation_paths_are_fail_loud_and_reversible ... ok
+test poisoned_capture_is_rejected_after_the_forced_recapture ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+[1m[92m     Running[0m tests/search_quiescence_task_14_4.rs (target/debug/deps/search_quiescence_task_14_4-23d3def1127c6e73)
+
+running 5 tests
+test in_check_leaf_must_search_a_quiet_evasion_instead_of_standing_pat ... ok
+test quiescence_guard_is_finite_outside_check_and_fail_loud_in_check ... ok
+test horizon_capture_sequence_is_searched_to_a_quiet_position ... ok
+test promotion_sequence_is_searched_through_the_forced_recapture ... ok
+test poisoned_capture_is_revalued_by_quiescence_before_root_selection ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+[1m[92m     Running[0m tests/search_responsive_cancellation.rs (target/debug/deps/search_responsive_cancellation-b9f235324cefefdb)
+
+running 1 test
+test in_tree_request_stops_within_the_node_bound_and_restores_every_root_invariant ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+[1m[92m     Running[0m tests/search_result_api.rs (target/debug/deps/search_result_api-465268ed44b18dee)
+
+running 4 tests
+test terminal_pre_depth_one_stop_has_no_move_score_or_pv ... ok
+test pre_depth_one_stop_returns_a_move_without_inventing_search_data ... ok
+test interrupted_request_preserves_headline_fields_from_the_last_exact_iteration ... ok
+test completed_request_exposes_one_consistent_authoritative_snapshot ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+[1m[92m     Running[0m tests/search_terminals.rs (target/debug/deps/search_terminals-8535c2baa8ef19e2)
+
+running 4 tests
+test terminal_and_rule_draw_roots_have_exact_one_node_scores ... ok
+test claimable_and_automatic_repetition_roots_score_as_one_node_draws ... ok
+test shorter_forced_mate_outranks_slower_forced_mate ... ok
+test forced_loss_selects_the_line_that_delays_mate_longest ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 42.77s
+
+[1m[92m     Running[0m tests/search_transposition.rs (target/debug/deps/search_transposition-cd083efac92373b8)
+
+running 3 tests
+test illegal_exact_root_move_does_not_bypass_legal_search ... ok
+test reversible_history_suppresses_cached_root_score_and_hint ... ok
+test warm_table_exact_root_hit_reduces_nodes_and_preserves_result ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+
+[1m[92m   Doc-tests[0m chess_search
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

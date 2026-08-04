@@ -5,9 +5,10 @@ use chess_core::{Move, Position, SearchHistory};
 
 use crate::{
     alpha_beta::{
-        alpha_beta_search_window_in_current_generation, prepare_alpha_beta_iteration,
+        alpha_beta_search_window_in_current_generation_with_weights, prepare_alpha_beta_iteration,
         validate_search_inputs, AlphaBetaRootWindowResult, AlphaBetaSearchError,
-        AlphaBetaSearchResult, AlphaBetaWindow, DEFAULT_TRANSPOSITION_TABLE_MEBIBYTES,
+        AlphaBetaSearchPolicy, AlphaBetaSearchResult, AlphaBetaWindow,
+        DEFAULT_TRANSPOSITION_TABLE_MEBIBYTES,
     },
     aspiration::{
         AspirationWindowAttempt, AspirationWindowDiagnostics, AspirationWindowOutcome,
@@ -22,8 +23,9 @@ use crate::{
     principal_variation::{
         reconstruct_principal_variation_with_table_policy, PrincipalVariationError,
     },
-    PrincipalVariation, Score, SearchCancellationProbe, TranspositionHashFull, TranspositionTable,
-    TranspositionTableAllocationError, TranspositionTableDiagnostics, MAX_MATE_PLY,
+    EvaluationWeights, PrincipalVariation, Score, SearchCancellationProbe, TranspositionHashFull,
+    TranspositionTable, TranspositionTableAllocationError, TranspositionTableDiagnostics,
+    MAX_MATE_PLY,
 };
 
 /// One fully completed fixed-depth iteration.
@@ -575,11 +577,33 @@ pub fn iterative_deepening_search_with_limits_and_transposition_table(
     limits: SearchLimits,
     transposition_table: &mut TranspositionTable,
 ) -> Result<SearchResult, IterativeDeepeningSearchError> {
-    iterative_deepening_search_with_limits_and_transposition_table_and_observer(
+    iterative_deepening_search_with_limits_and_transposition_table_and_weights(
         position,
         history,
         limits,
         transposition_table,
+        &EvaluationWeights::DEFAULT,
+    )
+}
+
+/// Searches under typed limits using explicit evaluation weights.
+///
+/// The caller must not reuse one transposition table across different weight
+/// sets without clearing it because stored scores are evaluator-dependent.
+pub fn iterative_deepening_search_with_limits_and_transposition_table_and_weights(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    limits: SearchLimits,
+    transposition_table: &mut TranspositionTable,
+    weights: &EvaluationWeights,
+) -> Result<SearchResult, IterativeDeepeningSearchError> {
+    iterative_deepening_search_with_limits_and_clock_and_observer_and_weights(
+        position,
+        history,
+        limits,
+        transposition_table,
+        WallClock::start(),
+        weights,
         |_| {},
     )
 }
@@ -636,6 +660,30 @@ fn iterative_deepening_search_with_limits_and_clock_and_observer<Clock, Observer
     limits: SearchLimits,
     transposition_table: &mut TranspositionTable,
     clock: Clock,
+    observer: Observer,
+) -> Result<SearchResult, IterativeDeepeningSearchError>
+where
+    Clock: SearchClock,
+    Observer: for<'a> FnMut(SearchProgress<'a>),
+{
+    iterative_deepening_search_with_limits_and_clock_and_observer_and_weights(
+        position,
+        history,
+        limits,
+        transposition_table,
+        clock,
+        &EvaluationWeights::DEFAULT,
+        observer,
+    )
+}
+
+fn iterative_deepening_search_with_limits_and_clock_and_observer_and_weights<Clock, Observer>(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    limits: SearchLimits,
+    transposition_table: &mut TranspositionTable,
+    clock: Clock,
+    weights: &EvaluationWeights,
     mut observer: Observer,
 ) -> Result<SearchResult, IterativeDeepeningSearchError>
 where
@@ -679,6 +727,7 @@ where
             IterationSearchPolicy {
                 half_width_centipawns: DEFAULT_ASPIRATION_HALF_WIDTH_CENTIPAWNS,
                 check_extension_enabled,
+                weights,
             },
             transposition_table,
             &mut controller,
@@ -789,9 +838,10 @@ where
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct IterationSearchPolicy {
+struct IterationSearchPolicy<'a> {
     half_width_centipawns: i32,
     check_extension_enabled: bool,
+    weights: &'a EvaluationWeights,
 }
 
 fn search_completed_iteration(
@@ -811,6 +861,7 @@ fn search_completed_iteration(
         IterationSearchPolicy {
             half_width_centipawns,
             check_extension_enabled: false,
+            weights: &EvaluationWeights::DEFAULT,
         },
         transposition_table,
         &mut cancellation,
@@ -822,7 +873,7 @@ fn search_completed_iteration_with_cancellation<Probe>(
     history: &mut SearchHistory,
     depth: u16,
     center: Option<Score>,
-    policy: IterationSearchPolicy,
+    policy: IterationSearchPolicy<'_>,
     transposition_table: &mut TranspositionTable,
     cancellation: &mut Probe,
 ) -> Result<IterativeDeepeningIteration, IterativeDeepeningSearchError>
@@ -839,8 +890,11 @@ where
         position,
         history,
         depth,
-        initial_window,
-        policy.check_extension_enabled,
+        AlphaBetaSearchPolicy::new(
+            initial_window,
+            policy.check_extension_enabled,
+            policy.weights,
+        ),
         transposition_table,
         cancellation,
     )?;
@@ -857,8 +911,11 @@ where
                 position,
                 history,
                 depth,
-                AlphaBetaWindow::full(),
-                policy.check_extension_enabled,
+                AlphaBetaSearchPolicy::new(
+                    AlphaBetaWindow::full(),
+                    policy.check_extension_enabled,
+                    policy.weights,
+                ),
                 transposition_table,
                 cancellation,
             )?;
@@ -917,28 +974,26 @@ fn run_attempt<Probe>(
     position: &mut Position,
     history: &mut SearchHistory,
     depth: u16,
-    window: AlphaBetaWindow,
-    check_extension_enabled: bool,
+    policy: AlphaBetaSearchPolicy<'_>,
     transposition_table: &mut TranspositionTable,
     cancellation: &mut Probe,
 ) -> Result<(AlphaBetaRootWindowResult, AspirationWindowAttempt), IterativeDeepeningSearchError>
 where
     Probe: SearchCancellationProbe + ?Sized,
 {
-    let result = alpha_beta_search_window_in_current_generation(
+    let result = alpha_beta_search_window_in_current_generation_with_weights(
         position,
         history,
         depth,
-        window,
-        check_extension_enabled,
+        policy,
         transposition_table,
         cancellation,
     )
     .map_err(|error| IterativeDeepeningSearchError::IterationFailed { depth, error })?;
     let search_result = result.result();
     let attempt = AspirationWindowAttempt {
-        alpha: window.alpha(),
-        beta: window.beta(),
+        alpha: policy.window().alpha(),
+        beta: policy.window().beta(),
         outcome: result.outcome(),
         reported_score: search_result.score(),
         nodes: search_result.nodes(),

@@ -7,9 +7,9 @@ use crate::{
     cancellation::NeverCancelled,
     check_extension::{decide_check_extension, MAX_CHECK_EXTENSIONS_PER_LINE},
     move_ordering::{ordered_legal_moves_with_state_and_tt_move, MoveOrdering, QuietOrderingState},
-    quiescence::{search_quiescence_node, QuiescenceContext},
+    quiescence::{search_quiescence_node_with_weights, QuiescenceContext, QuiescenceSearchPolicy},
     search_common::resolved_node_score,
-    Score, SearchCancellationProbe, TranspositionBound, TranspositionEntry,
+    EvaluationWeights, Score, SearchCancellationProbe, TranspositionBound, TranspositionEntry,
     TranspositionProbeError, TranspositionProbeRequest, TranspositionProbeScore,
     TranspositionScore, TranspositionScoreConversionError, TranspositionScoreReuse,
     TranspositionTable, TranspositionTableAllocationError, MAX_MATE_PLY, MAX_QUIESCENCE_PLY,
@@ -354,12 +354,36 @@ pub(crate) fn prepare_alpha_beta_iteration(
     Ok(())
 }
 
-pub(crate) fn alpha_beta_search_window_in_current_generation<Probe>(
+#[derive(Clone, Copy)]
+pub(crate) struct AlphaBetaSearchPolicy<'a> {
+    window: AlphaBetaWindow,
+    check_extension_enabled: bool,
+    weights: &'a EvaluationWeights,
+}
+
+impl<'a> AlphaBetaSearchPolicy<'a> {
+    pub(crate) const fn new(
+        window: AlphaBetaWindow,
+        check_extension_enabled: bool,
+        weights: &'a EvaluationWeights,
+    ) -> Self {
+        Self {
+            window,
+            check_extension_enabled,
+            weights,
+        }
+    }
+
+    pub(crate) const fn window(self) -> AlphaBetaWindow {
+        self.window
+    }
+}
+
+pub(crate) fn alpha_beta_search_window_in_current_generation_with_weights<Probe>(
     position: &mut Position,
     history: &mut SearchHistory,
     depth: u16,
-    window: AlphaBetaWindow,
-    check_extension_enabled: bool,
+    policy: AlphaBetaSearchPolicy<'_>,
     transposition_table: &mut TranspositionTable,
     cancellation: &mut Probe,
 ) -> Result<AlphaBetaRootWindowResult, AlphaBetaSearchError>
@@ -367,20 +391,19 @@ where
     Probe: SearchCancellationProbe + ?Sized,
 {
     validate_search_inputs(position, history, depth)?;
-    let result = run_search_in_current_generation(
+    let result = run_search_in_current_generation_with_weights(
         position,
         history,
         depth,
-        window,
-        check_extension_enabled,
+        policy,
         transposition_table,
         cancellation,
     )?;
-    let outcome = if window.is_full() {
+    let outcome = if policy.window.is_full() {
         AspirationWindowOutcome::Exact
-    } else if result.score() <= window.alpha() {
+    } else if result.score() <= policy.window.alpha() {
         AspirationWindowOutcome::FailLow
-    } else if result.score() >= window.beta() {
+    } else if result.score() >= policy.window.beta() {
         AspirationWindowOutcome::FailHigh
     } else {
         AspirationWindowOutcome::Exact
@@ -400,6 +423,27 @@ fn run_search_in_current_generation<Probe>(
 where
     Probe: SearchCancellationProbe + ?Sized,
 {
+    run_search_in_current_generation_with_weights(
+        position,
+        history,
+        depth,
+        AlphaBetaSearchPolicy::new(window, check_extension_enabled, &EvaluationWeights::DEFAULT),
+        transposition_table,
+        cancellation,
+    )
+}
+
+fn run_search_in_current_generation_with_weights<Probe>(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    depth: u16,
+    policy: AlphaBetaSearchPolicy<'_>,
+    transposition_table: &mut TranspositionTable,
+    cancellation: &mut Probe,
+) -> Result<AlphaBetaSearchResult, AlphaBetaSearchError>
+where
+    Probe: SearchCancellationProbe + ?Sized,
+{
     transposition_table.reset_diagnostics();
 
     let initial_history_len = history.len();
@@ -410,10 +454,11 @@ where
         ordering: MoveOrdering::Quiet,
         quiet_ordering: &mut quiet_ordering,
         transposition_table: Some(transposition_table),
-        check_extension_enabled,
+        check_extension_enabled: policy.check_extension_enabled,
+        weights: policy.weights,
         cancellation,
     };
-    let result = search_node(position, history, depth, 0, window, &mut context);
+    let result = search_node(position, history, depth, 0, policy.window, &mut context);
 
     debug_assert_eq!(history.len(), initial_history_len);
     debug_assert_eq!(history.line_len(), initial_line_len);
@@ -432,6 +477,7 @@ where
     quiet_ordering: &'a mut QuietOrderingState,
     transposition_table: Option<&'a mut TranspositionTable>,
     check_extension_enabled: bool,
+    weights: &'a EvaluationWeights,
     cancellation: &'a mut Probe,
 }
 
@@ -484,13 +530,11 @@ where
             quiescence_ply: 0,
             maximum_quiescence_ply: MAX_QUIESCENCE_PLY,
         };
-        return search_quiescence_node(
+        return search_quiescence_node_with_weights(
             position,
             history,
             quiescence_context,
-            alpha,
-            beta,
-            context.ordering,
+            QuiescenceSearchPolicy::new(alpha, beta, context.ordering, context.weights),
             &mut *context.cancellation,
         );
     }
@@ -734,6 +778,7 @@ mod ordering_tests {
             quiet_ordering: &mut quiet_ordering,
             transposition_table: None,
             check_extension_enabled: false,
+            weights: &crate::EvaluationWeights::DEFAULT,
             cancellation: &mut cancellation,
         };
         let result = search_node(&mut position, &mut history, depth, 0, window, &mut context)
@@ -761,6 +806,7 @@ mod ordering_tests {
             quiet_ordering: &mut quiet_ordering,
             transposition_table: None,
             check_extension_enabled: false,
+            weights: &crate::EvaluationWeights::DEFAULT,
             cancellation: &mut cancellation,
         };
         let child = search_node(position, history, 0, 1, full_window(), &mut context);
@@ -868,6 +914,7 @@ mod ordering_tests {
                 quiet_ordering: &mut quiet_ordering,
                 transposition_table: Some(&mut table),
                 check_extension_enabled: false,
+                weights: &crate::EvaluationWeights::DEFAULT,
                 cancellation: &mut cancellation,
             };
             search_node(&mut position, &mut history, depth, 1, window, &mut context)

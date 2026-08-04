@@ -43,6 +43,7 @@ pub use iterative_deepening::{
     iterative_deepening_search, iterative_deepening_search_with_limits,
     iterative_deepening_search_with_limits_and_transposition_table,
     iterative_deepening_search_with_limits_and_transposition_table_and_observer,
+    iterative_deepening_search_with_limits_and_transposition_table_and_weights,
     iterative_deepening_search_with_transposition_table, IterativeDeepeningIteration,
     IterativeDeepeningSearchError, IterativeDeepeningSearchResult,
     LimitedIterativeDeepeningSearchResult, SearchCancellationFallback, SearchProgress,

@@ -3,10 +3,10 @@ use chess_core::{Move, Position, SearchHistory};
 use crate::{
     alpha_beta::{AlphaBetaSearchError, AlphaBetaSearchResult},
     cancellation::NeverCancelled,
-    evaluate,
+    evaluate_with_weights,
     move_ordering::{ordered_legal_moves, MoveOrdering},
     search_common::resolved_terminal_or_draw_score,
-    Score, SearchCancellationProbe, MAX_MATE_PLY,
+    EvaluationWeights, Score, SearchCancellationProbe, MAX_MATE_PLY,
 };
 
 /// Default maximum number of tactical plies searched beyond an alpha-beta leaf.
@@ -20,6 +20,30 @@ pub(crate) struct QuiescenceContext {
     pub(crate) ply: u16,
     pub(crate) quiescence_ply: u16,
     pub(crate) maximum_quiescence_ply: u16,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct QuiescenceSearchPolicy<'a> {
+    alpha: Score,
+    beta: Score,
+    ordering: MoveOrdering,
+    weights: &'a EvaluationWeights,
+}
+
+impl<'a> QuiescenceSearchPolicy<'a> {
+    pub(crate) const fn new(
+        alpha: Score,
+        beta: Score,
+        ordering: MoveOrdering,
+        weights: &'a EvaluationWeights,
+    ) -> Self {
+        Self {
+            alpha,
+            beta,
+            ordering,
+            weights,
+        }
+    }
 }
 
 /// Searches the tactical continuation of `position` with the default guard.
@@ -105,7 +129,7 @@ pub(crate) fn search_quiescence_node<Probe>(
     position: &mut Position,
     history: &mut SearchHistory,
     context: QuiescenceContext,
-    mut alpha: Score,
+    alpha: Score,
     beta: Score,
     ordering: MoveOrdering,
     cancellation: &mut Probe,
@@ -113,6 +137,31 @@ pub(crate) fn search_quiescence_node<Probe>(
 where
     Probe: SearchCancellationProbe + ?Sized,
 {
+    search_quiescence_node_with_weights(
+        position,
+        history,
+        context,
+        QuiescenceSearchPolicy::new(alpha, beta, ordering, &EvaluationWeights::DEFAULT),
+        cancellation,
+    )
+}
+
+pub(crate) fn search_quiescence_node_with_weights<Probe>(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    context: QuiescenceContext,
+    policy: QuiescenceSearchPolicy<'_>,
+    cancellation: &mut Probe,
+) -> Result<QuiescenceSearchResult, AlphaBetaSearchError>
+where
+    Probe: SearchCancellationProbe + ?Sized,
+{
+    let QuiescenceSearchPolicy {
+        mut alpha,
+        beta,
+        ordering,
+        weights,
+    } = policy;
     if cancellation.on_quiescence_node(context.ply) {
         return Err(AlphaBetaSearchError::Cancelled);
     }
@@ -147,7 +196,7 @@ where
             });
         }
     } else {
-        let stand_pat = evaluate(position);
+        let stand_pat = evaluate_with_weights(position, weights);
         best_score = Some(stand_pat);
         if stand_pat >= beta {
             return Ok(AlphaBetaSearchResult {
@@ -200,13 +249,11 @@ where
         };
         let position_undo = position.make_legal_token(token)?;
         let history_undo = history.push_position(position);
-        let child = search_quiescence_node(
+        let child = search_quiescence_node_with_weights(
             position,
             history,
             child_context,
-            -beta,
-            -alpha,
-            ordering,
+            QuiescenceSearchPolicy::new(-beta, -alpha, ordering, weights),
             cancellation,
         );
         let history_restore = history.pop_position(history_undo);
