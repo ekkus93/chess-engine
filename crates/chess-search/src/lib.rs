@@ -71,8 +71,9 @@ pub use transposition::{
 };
 pub use transposition_score::TranspositionScoreConversionError;
 pub use weights::{
-    EvaluationWeightSet, EvaluationWeights, PhasedWeight, WeightValidationError,
-    BASELINE_WEIGHT_SET_ID, EVALUATION_WEIGHT_SCHEMA_VERSION, WEIGHT_VALUE_COUNT,
+    EvaluationStructure, EvaluationWeightSet, EvaluationWeights, PhasedWeight,
+    StructuralWeightField, WeightValidationError, BASELINE_WEIGHT_SET_ID, EVALUATION_STRUCTURE,
+    EVALUATION_STRUCTURE_SCHEMA_VERSION, EVALUATION_WEIGHT_SCHEMA_VERSION, WEIGHT_VALUE_COUNT,
 };
 
 #[cfg(test)]
