@@ -1,9 +1,9 @@
 # Rust Chess Engine Port Ralph Loop Status
 
-**Updated:** 2026-08-03
+**Updated:** 2026-08-04
 **Branch:** `master`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 21.1 named weight-schema integration complete; Task 21.2 loss-pipeline work is next
+**Current phase:** Task 21.2 loss pipeline complete; Task 21.3 optimizer work is next
 
 ## Completed gates
 
@@ -65,6 +65,7 @@
 | 19.5 / 19 gate | `5d70737bf12cbfa16441730b7a64629212b28683` | Rust `30867122750` / `91861324627`; Android `30867122736` / `91861324588`, `91861324637` | four public-API regressions, permanent no-auto-discovery audit, 332 Rust tests, release perft, differential oracle, host JVM, dual-ABI Android, APK, and API-35 instrumentation green; Task 19 complete |
 | 20 / gate | `1fae5fa8d830a524d6ff8d36ba42ed557112c79a` | Rust `30875333307` / `91885547979`; Android `30875333292` / `91885547947`, `91885547972` | deterministic offline self-play, strict version-1 game/position datasets, replay validation, full provenance, explicit splitting/filtering, four focused regressions, 336 Rust tests, release perft, differential oracle, host JVM, dual-ABI Android, APK, and API-35 instrumentation green; merged `333398c5913309193cb81b91c4af3deff2fd5adf` |
 | 21.1 | `8410beb6dc22684052ded86a6f2fe71cf9d1e444` | Rust `30889939723 / 91929495312`; Android `30889939726 / 91929459955, 91929459977, 91929460081` | stable 810-scalar named schema, separately versioned structural evaluator contract, strict named artifacts, complete training provenance, semantic checksums, and all permanent gates green |
+| 21.2 | `3d11b01a9de84913c6c1bfa43a37aea0197dc5be` | Rust `30894313165` / `91943462745`; Android `30894313169` / `91943477000`, `91943477036`, `91943477212` | side-to-move logistic targets, explicit training-only K calibration, occurrence-weighted MSE, held-out validation, strict Task 20 adapter, typed failure policy, and all permanent gates green |
 
 ## Task 17.1 completion
 
@@ -1071,4 +1072,26 @@ Evidence:
 - Android run/jobs: `30889939726 / 91929459955, 91929459977, 91929460081`;
 - all permanent Rust, Android/Kotlin lint, host JNI, and API-35 gates passed.
 
-Task 21.1 is complete. Task 21.2 loss-pipeline work is next.
+Task 21.1 is complete. Task 21.2 loss-pipeline work is complete; Task 21.3 optimizer work is next.
+
+## Task 21.2 completion
+
+Implemented and validated:
+
+- side-to-move loss, draw, and win targets;
+- numerically stable base-10 Texel logistic mapping;
+- finite positive `K` values and an explicit bounded inclusive calibration grid;
+- training-only deterministic `K` calibration with smaller-value tie retention;
+- occurrence-weighted mean-squared error preserving Task 20 duplicate multiplicity;
+- nonempty independent training and validation partitions with the test split excluded;
+- strict Task 20 parsing, eligibility filtering, result orientation, and canonical FEN reconstruction;
+- typed failures and `docs/RUST_TEXEL_LOSS_PIPELINE.md`.
+
+Evidence:
+
+- exact validated implementation head: `3d11b01a9de84913c6c1bfa43a37aea0197dc5be`;
+- Rust run/job: `30894313165` / `91943462745`;
+- Android run/jobs: `30894313169` / `91943477000`, `91943477036`, `91943477212`;
+- permanent formatting, workspace check, strict Clippy, complete Rust tests, authoritative release perft, warning-free rustdoc, debug/release builds, differential oracle, Android/Kotlin lint, host JNI, and API-35 instrumentation all passed.
+
+Task 21.2 is complete. Task 21.3 optimizer work is next.

@@ -1114,7 +1114,7 @@ Implement the specification's exact D1-D4 counts for:
 - Permanent Android run/jobs: `30875333292` / `91885547947`, `91885547972`; host JVM, ARM64/x86_64 verification, APK build, and API-35 instrumentation passed.
 - Strict formatting, compilation, Clippy, release depth-four perft, rustdoc, debug/release builds, and the differential oracle passed.
 - The deterministic seeded suite proved replayable games, versioned lossless records, complete provenance, explicit splitting/filtering, exact duplicate accounting, unfinished maximum-ply handling, and fail-loud empty-output rejection.
-- Task 20 is complete; Task 21.1 named weight-schema integration is complete; Task 21.2 loss-pipeline work is next.
+- Task 20 is complete; Task 21.1 named weight-schema integration is complete; Task 21.2 loss-pipeline work is complete; Task 21.3 optimizer work is next.
 
 ---
 
@@ -1140,11 +1140,26 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 21.2 Loss pipeline
 
-- [ ] Logistic result mapping.
-- [ ] Explicit `K` calibration.
-- [ ] Mean-squared or documented objective.
-- [ ] Train/validation separation.
-- [ ] Empty/malformed dataset failure.
+- [x] Logistic result mapping.
+- [x] Explicit `K` calibration.
+- [x] Mean-squared or documented objective.
+- [x] Train/validation separation.
+- [x] Empty/malformed dataset failure.
+
+
+### Task 21.2 completion evidence
+
+- Reusable objective implementation: `crates/chess-tune/src/loss.rs`.
+- Strict Task 20 adapter: `crates/chess-tools/src/tuning.rs`.
+- Contract documentation: `docs/RUST_TEXEL_LOSS_PIPELINE.md`.
+- Side-to-move loss/draw/win targets map to `0.0`, `0.5`, and `1.0`; evaluations use the documented base-10 Texel logistic mapping.
+- The objective is occurrence-weighted mean-squared error, preserving Task 20 deterministic duplicate counts.
+- `K` calibration uses an explicit bounded inclusive grid and training rows only; validation remains held out and test rows remain excluded.
+- Empty partitions, zero occurrences, invalid calibration inputs, malformed Task 20 datasets, invalid retained FENs, and unfinished eligible records fail loudly.
+- Exact validated implementation head: `3d11b01a9de84913c6c1bfa43a37aea0197dc5be`.
+- Permanent Rust run/job: `30894313165` / `91943462745`.
+- Permanent Android run/jobs: `30894313169` / `91943477000`, `91943477036`, `91943477212`.
+- All permanent Rust quality/correctness gates, Android/Kotlin lint, host JNI tests, and API-35 instrumentation passed.
 
 ## 21.3 Optimizer
 

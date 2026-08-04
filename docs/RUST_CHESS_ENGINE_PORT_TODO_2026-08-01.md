@@ -1,7 +1,7 @@
 # Rust Chess Engine Port TODO — Live Status Tracker
 
 **Status:** In progress  
-**Updated:** 2026-08-03
+**Updated:** 2026-08-04
 **Branch:** `master`  
 **Specification:** `docs/RUST_CHESS_ENGINE_PORT_SPEC_2026-08-01.md`  
 **Full definitions:** `docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md`  
@@ -1025,11 +1025,11 @@ Evidence:
 - Android run/jobs: `30875333292` / `91885547947`, `91885547972`; host JVM, dual-ABI native verification, APK build, and API-35 instrumentation passed.
 - `chess-tools` now provides explicit `self-play`, `self-play-validate`, and `self-play-replay` commands over strict version-1 configuration, opening, game, and position schemas.
 - Seeded opening rotation, per-game seeds, independent side limits, complete engine/evaluator/search provenance, deterministic train/validation/test assignment, replay validation, duplicate occurrence accounting, and explicit opening/maximum-ply filtering are enforced.
-- Task 21.1 named weight-schema integration is complete; Task 21.2 loss-pipeline work is next.
+- Task 21.1 named weight-schema integration is complete; Task 21.2 loss-pipeline work is complete; Task 21.3 optimizer work is next.
 
 # Task 21: Named-schema tuning — IN PROGRESS
 - [x] 21.1 Weights.
-- [ ] 21.2 Loss.
+- [x] 21.2 Loss.
 - [ ] 21.3 Optimizer.
 - [ ] 21.4 Reports.
 - [ ] 21.5 Validation.
@@ -1043,6 +1043,17 @@ Evidence:
 - Rust run/job: `30889939723 / 91929495312`.
 - Android run/jobs: `30889939726 / 91929459955, 91929459977, 91929460081`.
 - Task 21.2 loss-pipeline work is next; candidate weights are not automatically activated.
+
+
+### Task 21.2 completion evidence
+
+- Added side-to-move logistic result targets, explicit bounded `K` calibration, occurrence-weighted MSE, and strict train/validation separation in `chess-tune`.
+- Added a fail-loud adapter from the validated Task 20 dataset that excludes ineligible and test rows while preserving duplicate occurrence counts.
+- Contract: `docs/RUST_TEXEL_LOSS_PIPELINE.md`.
+- Exact validated implementation head: `3d11b01a9de84913c6c1bfa43a37aea0197dc5be`.
+- Rust run/job: `30894313165` / `91943462745`.
+- Android run/jobs: `30894313169` / `91943477000`, `91943477036`, `91943477212`.
+- Task 21.3 optimizer work is next; no candidate weights are activated.
 
 # Task 22: Advanced classical terms — NOT STARTED
 - [ ] 22.1 Protocol.
