@@ -103,7 +103,9 @@ fn mirror_and_swap(position: &Position) -> Position {
     let en_passant = if fields[3] == "-" {
         "-".to_owned()
     } else {
-        let square: Square = fields[3].parse().expect("canonical en-passant square parses");
+        let square: Square = fields[3]
+            .parse()
+            .expect("canonical en-passant square parses");
         Square::from_row_file(7 - square.row(), square.file())
             .expect("mirrored en-passant square is valid")
             .to_string()
@@ -146,9 +148,9 @@ fn assert_legal_pv(root: &Position, moves: &[Move], context: &str) {
             "{context}: PV ply {ply} move {} leaves its king in check",
             current.to_uci()
         );
-        cursor.validate_invariants().unwrap_or_else(|error| {
-            panic!("{context}: PV ply {ply} invariant failure: {error}")
-        });
+        cursor
+            .validate_invariants()
+            .unwrap_or_else(|error| panic!("{context}: PV ply {ply} invariant failure: {error}"));
         assert_eq!(
             cursor.zobrist(),
             cursor.recomputed_zobrist(),
@@ -162,7 +164,10 @@ fn assert_legal_pv(root: &Position, moves: &[Move], context: &str) {
             .unmake_move(undo)
             .unwrap_or_else(|error| panic!("{context}: PV unmake failed: {error}"));
     }
-    assert_eq!(cursor, *root, "{context}: PV make/unmake did not restore root");
+    assert_eq!(
+        cursor, *root,
+        "{context}: PV make/unmake did not restore root"
+    );
 }
 
 #[test]
@@ -206,8 +211,14 @@ fn every_generated_search_principal_variation_is_a_legal_reversible_sequence() {
             pv.moves(),
             &format!("case={case} root={}", root.to_fen()),
         );
-        assert_eq!(position, position_snapshot, "case={case}: search mutated root");
-        assert_eq!(history, history_snapshot, "case={case}: search mutated history");
+        assert_eq!(
+            position, position_snapshot,
+            "case={case}: search mutated root"
+        );
+        assert_eq!(
+            history, history_snapshot,
+            "case={case}: search mutated history"
+        );
         assert_eq!(position.zobrist(), position.recomputed_zobrist());
     }
 }

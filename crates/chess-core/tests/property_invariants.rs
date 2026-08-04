@@ -61,7 +61,11 @@ fn every_square_and_packed_move_round_trips_exhaustively() {
         let parsed: Square = text.parse().expect("formatted square parses");
         assert_eq!(parsed, square, "square index {index}");
         assert_eq!(square.index(), index, "square index {index}");
-        assert_eq!(square.row() * 8 + square.file(), index, "square index {index}");
+        assert_eq!(
+            square.row() * 8 + square.file(),
+            index,
+            "square index {index}"
+        );
         assert_eq!(
             Square::from_row_file(square.row(), square.file()),
             Some(square),
@@ -72,8 +76,7 @@ fn every_square_and_packed_move_round_trips_exhaustively() {
     for source_index in 0..Square::COUNT {
         let source = Square::new(source_index).expect("source index is valid");
         for destination_index in 0..Square::COUNT {
-            let destination =
-                Square::new(destination_index).expect("destination index is valid");
+            let destination = Square::new(destination_index).expect("destination index is valid");
             for kind in MoveKind::ALL {
                 let current = Move::new(source, destination, kind);
                 assert_eq!(current.source(), source);
@@ -120,7 +123,9 @@ fn generated_legal_play_preserves_core_properties_and_restores_exactly() {
                 assert!(
                     position
                         .is_legal_move(current)
-                        .unwrap_or_else(|error| panic!("{context}: legality check failed: {error}")),
+                        .unwrap_or_else(|error| panic!(
+                            "{context}: legality check failed: {error}"
+                        )),
                     "{context}: generated move {} was rejected",
                     current.to_uci()
                 );
@@ -181,8 +186,14 @@ fn generated_legal_play_preserves_core_properties_and_restores_exactly() {
                 "root={root_index} seed={effective_seed:#018x}: full sequence did not restore"
             );
             assert_eq!(position.side_to_move(), root.side_to_move());
-            assert_eq!(position.is_in_check(Color::White), root.is_in_check(Color::White));
-            assert_eq!(position.is_in_check(Color::Black), root.is_in_check(Color::Black));
+            assert_eq!(
+                position.is_in_check(Color::White),
+                root.is_in_check(Color::White)
+            );
+            assert_eq!(
+                position.is_in_check(Color::Black),
+                root.is_in_check(Color::Black)
+            );
         }
     }
 }
