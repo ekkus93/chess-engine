@@ -54,7 +54,9 @@ fn seeded_small_run_is_stable_deduplicated_versioned_and_replayable() {
             && game.black().engine_version() == SELF_PLAY_ENGINE_VERSION
             && game.white().config() == config.white()
             && game.black().config() == config.black()
-            && game.replay_command().contains("self-play-replay task20.tsv")
+            && game
+                .replay_command()
+                .contains("self-play-replay task20.tsv")
     }));
 
     assert_eq!(first.positions().len(), 1);
@@ -103,7 +105,10 @@ fn maximum_ply_games_remain_unfinished_and_positions_are_filtered_explicitly() {
     assert_eq!(game.termination(), SelfPlayTermination::MaximumPly(1));
     assert_eq!(game.moves().len(), 1);
     assert_eq!(dataset.positions().len(), 2);
-    assert!(dataset.positions().iter().all(|position| !position.eligible()));
+    assert!(dataset
+        .positions()
+        .iter()
+        .all(|position| !position.eligible()));
     assert_eq!(
         dataset.positions()[0].filter_reason(),
         PositionFilterReason::Opening
