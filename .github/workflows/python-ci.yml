@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 concurrency:
   group: python-ci-${{ github.workflow }}-${{ github.ref }}
@@ -21,6 +22,9 @@ jobs:
     name: Python 3.11 quality
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VALIDATION_ISSUE: "261"
     steps:
       - uses: actions/checkout@v4
 
@@ -35,11 +39,82 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e '.[lint,test]'
 
-      - name: Run linters
+      - name: Ruff
+        shell: bash
         run: |
-          python -m ruff check chess_game tests
-          python -m mypy chess_game
-          python -m pylint chess_game
+          set +e
+          python -m ruff check chess_game tests >"${RUNNER_TEMP}/ruff.log" 2>&1
+          status=$?
+          set -e
+          cat "${RUNNER_TEMP}/ruff.log"
+          if [[ ${status} -ne 0 ]]; then
+            {
+              printf '### Python Ruff failure\n\n- Head SHA: `%s`\n- Run: %s/%s/actions/runs/%s\n\n```text\n' \
+                "${GITHUB_SHA}" "${GITHUB_SERVER_URL}" "${GITHUB_REPOSITORY}" "${GITHUB_RUN_ID}"
+              tail -n 180 "${RUNNER_TEMP}/ruff.log"
+              printf '\n```\n'
+            } >"${RUNNER_TEMP}/failure.md"
+            gh issue comment "${VALIDATION_ISSUE}" --repo "${GITHUB_REPOSITORY}" \
+              --body-file "${RUNNER_TEMP}/failure.md"
+            exit "${status}"
+          fi
+
+      - name: MyPy
+        shell: bash
+        run: |
+          set +e
+          python -m mypy chess_game >"${RUNNER_TEMP}/mypy.log" 2>&1
+          status=$?
+          set -e
+          cat "${RUNNER_TEMP}/mypy.log"
+          if [[ ${status} -ne 0 ]]; then
+            {
+              printf '### Python MyPy failure\n\n- Head SHA: `%s`\n- Run: %s/%s/actions/runs/%s\n\n```text\n' \
+                "${GITHUB_SHA}" "${GITHUB_SERVER_URL}" "${GITHUB_REPOSITORY}" "${GITHUB_RUN_ID}"
+              tail -n 180 "${RUNNER_TEMP}/mypy.log"
+              printf '\n```\n'
+            } >"${RUNNER_TEMP}/failure.md"
+            gh issue comment "${VALIDATION_ISSUE}" --repo "${GITHUB_REPOSITORY}" \
+              --body-file "${RUNNER_TEMP}/failure.md"
+            exit "${status}"
+          fi
+
+      - name: Pylint
+        shell: bash
+        run: |
+          set +e
+          python -m pylint chess_game >"${RUNNER_TEMP}/pylint.log" 2>&1
+          status=$?
+          set -e
+          cat "${RUNNER_TEMP}/pylint.log"
+          if [[ ${status} -ne 0 ]]; then
+            {
+              printf '### Python Pylint failure\n\n- Head SHA: `%s`\n- Run: %s/%s/actions/runs/%s\n\n```text\n' \
+                "${GITHUB_SHA}" "${GITHUB_SERVER_URL}" "${GITHUB_REPOSITORY}" "${GITHUB_RUN_ID}"
+              tail -n 180 "${RUNNER_TEMP}/pylint.log"
+              printf '\n```\n'
+            } >"${RUNNER_TEMP}/failure.md"
+            gh issue comment "${VALIDATION_ISSUE}" --repo "${GITHUB_REPOSITORY}" \
+              --body-file "${RUNNER_TEMP}/failure.md"
+            exit "${status}"
+          fi
 
       - name: Run all tests
-        run: python -m pytest tests -q
+        shell: bash
+        run: |
+          set +e
+          python -m pytest tests -q >"${RUNNER_TEMP}/pytest.log" 2>&1
+          status=$?
+          set -e
+          cat "${RUNNER_TEMP}/pytest.log"
+          if [[ ${status} -ne 0 ]]; then
+            {
+              printf '### Complete Python test failure\n\n- Head SHA: `%s`\n- Run: %s/%s/actions/runs/%s\n\n```text\n' \
+                "${GITHUB_SHA}" "${GITHUB_SERVER_URL}" "${GITHUB_REPOSITORY}" "${GITHUB_RUN_ID}"
+              tail -n 180 "${RUNNER_TEMP}/pytest.log"
+              printf '\n```\n'
+            } >"${RUNNER_TEMP}/failure.md"
+            gh issue comment "${VALIDATION_ISSUE}" --repo "${GITHUB_REPOSITORY}" \
+              --body-file "${RUNNER_TEMP}/failure.md"
+            exit "${status}"
+          fi
