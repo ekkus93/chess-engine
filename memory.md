@@ -2,6 +2,24 @@
 
 Older entries below are historical and may describe resolved bugs.
 
+## 2026-08-04T18:28:14Z - GPT-5.6 Thinking - Rust Task 22 advanced-term evidence gate complete
+
+Implemented `crates/chess-tools/src/advanced_evaluation.rs` as a fail-closed,
+version-1 evidence protocol for all eight retained advanced classical evaluation
+areas. Each area now has a stable definition, overlap inventory, two isolated
+fixtures plus color-swapped mirrors, exact symmetry checks, evaluation timing,
+fixed-node production-search comparison, controlled color-balanced match evidence,
+and an explicit decision. Reports are semantically checksummed, atomically
+persisted, and permanently `activated=false`.
+
+Controlled run `30938602274` / job `92090934559` used 32 pairs per area, fixed
+seed 570425378, depth 1, max 8 plies, 512 fixed nodes, and produced checksum
+`0ad7dcc3dda4cdfb`. All symmetry and strict Rust gates passed. Defender
+coordination and extra endgame phase-specific scaling were rejected as overlap;
+the remaining six areas were rejected for insufficient strength evidence. No
+production term or default weight changed. Task 22 is complete; Task 23 is next,
+while the separate Task 21 real-candidate activation gate remains open.
+
 ## 2026-06-26T09:02:03Z - claude-sonnet-4-6 - Fix CI/CD pylint exit-code-24 violations
 
 Five structural fixes to eliminate R0911, C0415, R0801 violations (no pragma disables):

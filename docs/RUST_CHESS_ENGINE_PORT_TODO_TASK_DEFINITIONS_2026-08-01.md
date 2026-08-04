@@ -1234,36 +1234,48 @@ This task covers only concepts from the retained good-items list that are not al
 
 For each proposed term:
 
-- [ ] write a concise chess definition;
-- [ ] identify overlap with existing terms;
-- [ ] add isolated fixtures;
-- [ ] verify mirror/color symmetry;
-- [ ] benchmark evaluation cost;
-- [ ] run fixed-node search comparison;
-- [ ] run controlled candidate-versus-baseline matches;
-- [ ] accept, revise, or reject with recorded evidence.
+- [x] write a concise chess definition;
+- [x] identify overlap with existing terms;
+- [x] add isolated fixtures;
+- [x] verify mirror/color symmetry;
+- [x] benchmark evaluation cost;
+- [x] run fixed-node search comparison;
+- [x] run controlled candidate-versus-baseline matches;
+- [x] accept, revise, or reject with recorded evidence.
 
 ## 22.2 Candidate areas
 
-- [ ] richer pawn-majority and candidate-passer modeling;
-- [ ] improved king-zone attack units;
-- [ ] defender coordination where not duplicated by king safety;
-- [ ] rook/queen battery activity;
-- [ ] minor-piece outposts and bad bishops;
-- [ ] endgame king/passer races;
-- [ ] simplification incentives encoded generally rather than scenario patches;
-- [ ] endgame phase-specific PSTs or material scaling.
+- [x] richer pawn-majority and candidate-passer modeling;
+- [x] improved king-zone attack units;
+- [x] defender coordination where not duplicated by king safety;
+- [x] rook/queen battery activity;
+- [x] minor-piece outposts and bad bishops;
+- [x] endgame king/passer races;
+- [x] simplification incentives encoded generally rather than scenario patches;
+- [x] endgame phase-specific PSTs or material scaling.
 
 ## 22.3 Explicit exclusions
 
-- [ ] Do not port `review_loop_guidance`.
-- [ ] Do not port `anti_drift_guidance`.
-- [ ] Do not port exact transcript move preferences.
-- [ ] Do not add hard-coded windows solely for one historical self-play position.
-- [ ] Do not add a term without measurable evidence.
+- [x] Do not port `review_loop_guidance`.
+- [x] Do not port `anti_drift_guidance`.
+- [x] Do not port exact transcript move preferences.
+- [x] Do not add hard-coded windows solely for one historical self-play position.
+- [x] Do not add a term without measurable evidence.
 
-**Task 22 gate:** Every advanced term has an evidence record; rejected Python concepts remain excluded rather than silently reappearing under new names.
+### Task 22 completion evidence
 
+- Protocol and version-1 report: `crates/chess-tools/src/advanced_evaluation.rs`.
+- Contract: `docs/RUST_ADVANCED_EVALUATION_PROTOCOL.md`.
+- Eight stable candidate-area identities each carry a concise definition, overlap inventory, two isolated fixtures, generated color-swapped mirrors, timing evidence, fixed-node evidence, controlled match evidence, and an explicit decision.
+- The controlled run used 32 independent pairs / 64 color-swapped games per area, seed `570425378`, depth 1, maximum 8 plies, 1 MiB evaluator-specific transposition tables, 2,000 timing iterations, and 512 fixed nodes over four mirrored fixture positions.
+- All symmetry checks passed. Every fixed-node comparison consumed exactly 2,048 baseline and 2,048 probe nodes, with no best-move changes.
+- Defender coordination and additional endgame phase-specific scaling were rejected as overlap. The other six areas were rejected for insufficient strength evidence.
+- All 512 games remained explicit maximum-ply `unfinished` games under the deliberately short control limit; no result was silently converted to a draw and no strength claim was made from the 32-pair sample.
+- Controlled validation run/job: `30938602274` / `92090934559`; report checksum `0ad7dcc3dda4cdfb`.
+- Formatting, locked workspace compilation, strict Clippy, all normal `chess-tools` tests, atomic report persistence, fixture/probe symmetry, and the ignored controlled evidence run passed.
+- Reports are checksummed and atomically persisted with immutable `activated=false`; no production evaluator term, default weight, or historical Python guidance was activated.
+
+**Task 22 gate:** Every advanced term has an evidence record; rejected Python concepts remain excluded rather than silently reappearing under new names. **COMPLETE.**
 ---
 
 # Task 23: Add property testing, fuzzing, sanitizers, and robustness gates

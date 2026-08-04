@@ -1,9 +1,9 @@
 # Rust Chess Engine Port Ralph Loop Status
 
 **Updated:** 2026-08-04
-**Branch:** `master`  
+**Branch:** `rust-engine`
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 21.5 validation protocol complete; real candidate validation and an explicit activation decision are next
+**Current phase:** Task 22 evidence protocol complete; Task 23 robustness gates are next while the independent Task 21 activation gate remains open
 
 ## Completed gates
 
@@ -69,6 +69,7 @@
 | 21.3 | `fc69d7d7554ab325fd72ccfc5ac94c4bb1077ae8` | Rust `30897085986` / `91952447573`; Android `30897085023` / `91952460052`, `91952460064`, `91952460121` | deterministic seeded SPSA over the 810-scalar schema, explicit bounds and L2 regularization, training/validation isolation, checksummed data/config-bound resumable checkpoints, and all permanent gates green |
 | 21.4 | `fd179e57462226392ab9c61bc9f26bc7cbb63cc1` | Rust `30929481202` / `92060204891`; Android `30929479894` / `92060200320`, `92060200325`, `92060200573` | versioned checksummed reports with initial/final train and validation MSE, all 810 named deltas, complete data/engine/source/checkpoint/weight identities, exact command/configuration, atomic persistence, inactive candidate artifacts, and all permanent gates green |
 | 21.5 | `664bf7cb51fae8bff8298925513b242fd9f33cee` | Rust `30935448972` / `92080314407`; Android `30935448944` / `92080314104`, `92080314087`, `92080314012`; control `30935079798` / `92079069382` | explicit weighted search, correctness-first validation, 200 distinct color-balanced opening pairs, fixed provenance, one-sided 95% strength gate, atomic inactive evidence, 400-game baseline control correctly rejected, and all permanent gates green |
+| 22 / gate | `3653f86148dca0bb7f4168706ffc47a28bc4a10e` | `30938602274` / `92090934559` | eight-area protocol, symmetry/cost/search/match evidence, explicit rejection decisions, checksum `0ad7dcc3dda4cdfb`, no activation |
 
 ## Task 17.1 completion
 
@@ -1182,3 +1183,32 @@ Evidence:
 
 Task 21.5 is complete. The overall Task 21 gate remains open until a real tuned candidate passes this protocol and is explicitly activated by a separate validated change.
 
+
+## Task 22 completion
+
+Implemented and validated:
+
+- a fail-closed version-1 advanced-evaluation evidence protocol in `crates/chess-tools/src/advanced_evaluation.rs`;
+- stable identities, concise definitions, and explicit existing-term overlap for all eight retained candidate areas;
+- two isolated legal fixtures per area plus generated color-swapped vertical mirrors;
+- exact baseline and probe evaluator symmetry checks;
+- fixed-iteration evaluation timing and fixed-node production-search comparisons with evaluator-specific transposition tables;
+- fixed-seed, color-balanced candidate-versus-baseline matches using the shared Task 20/21 game controller;
+- independent pair statistics and a hard minimum of 200 pairs before any strength acceptance;
+- versioned semantic checksums, fail-loud validation, same-directory temporary persistence, flush, synchronization, atomic rename, and parent synchronization;
+- immutable `activated=false` evidence and no production evaluator/default-weight mutation;
+- `docs/RUST_ADVANCED_EVALUATION_PROTOCOL.md`.
+
+Controlled evidence:
+
+- run/job: `30938602274` / `92090934559`;
+- 32 independent pairs and 64 games per area, seed `570425378`, depth 1, maximum 8 plies, 1 MiB TTs, 2,000 timing iterations, and 512 fixed nodes;
+- all 16 base fixtures and their mirrors passed exact baseline/probe symmetry;
+- all fixed-node searches consumed exactly 2,048 nodes per side and produced zero best-move changes;
+- all 512 games reached the deliberate maximum-ply boundary and remained explicit `unfinished` games, so the run made no strength claim;
+- defender coordination and extra endgame phase-specific scaling were rejected as overlap;
+- pawn-majority/candidate-passer, king-zone units, rook/queen battery, minor outpost/bad bishop, king/passer race, and simplification probes were rejected for insufficient strength evidence;
+- report checksum: `0ad7dcc3dda4cdfb`;
+- formatting, locked workspace compilation, strict Clippy, 21 normal library tests plus binary/integration/doc tests, and the ignored controlled evidence run passed.
+
+The prohibited Python guidance concepts remain excluded. Task 22 is complete with no advanced term accepted or activated. Task 23 robustness work is next; the separate overall Task 21 activation gate remains open.

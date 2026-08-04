@@ -1089,11 +1089,20 @@ Evidence:
 - Android run/jobs: `30894313169` / `91943477000`, `91943477036`, `91943477212`.
 - Task 21.3 optimizer work is next; no candidate weights are activated.
 
-# Task 22: Advanced classical terms — NOT STARTED
-- [ ] 22.1 Protocol.
-- [ ] 22.2 Candidates.
-- [ ] 22.3 Exclusions.
-- [ ] Task 22 gate.
+# Task 22: Advanced classical terms — COMPLETE
+- [x] 22.1 Protocol.
+- [x] 22.2 Candidates.
+- [x] 22.3 Exclusions.
+- [x] Task 22 gate.
+
+### Task 22 completion evidence
+
+- Implementation: `crates/chess-tools/src/advanced_evaluation.rs`.
+- Contract: `docs/RUST_ADVANCED_EVALUATION_PROTOCOL.md`.
+- Eight candidate areas received stable definitions, overlap inventories, isolated mirrored fixtures, exact symmetry checks, evaluation timing, fixed-node comparison, color-balanced controlled matches, and explicit decisions.
+- Controlled run/job: `30938602274` / `92090934559`; 32 pairs and 64 games per area, fixed seed `570425378`, 512 fixed nodes, checksum `0ad7dcc3dda4cdfb`.
+- Defender coordination and extra endgame phase-specific scaling were rejected as overlap. The remaining six areas were rejected for insufficient strength evidence. No term or weight was activated.
+- `review_loop_guidance`, `anti_drift_guidance`, transcript move preferences, historical-position windows, and unmeasured terms remain excluded.
 
 # Task 23: Robustness gates — NOT STARTED
 - [ ] 23.1 Properties.
@@ -1169,8 +1178,7 @@ Evidence:
 
 ## Immediate next operations
 
-1. Produce a real tuned candidate artifact from the completed Task 21.1–21.4 pipeline.
-2. Run the Task 21.5 production protocol over at least 200 semantically distinct opening pairs with fixed provenance.
-3. Reject an inconclusive, unfinished-rate, or correctness-failing candidate; retain the complete versioned report.
-4. If and only if a candidate is accepted, make a separate explicit activation change and rerun every permanent gate.
-5. Leave the overall Task 21 gate open until accepted weights are explicitly activated with exact-head evidence.
+1. Begin Task 23.1 property tests, starting with square/move/FEN round-trips, make/unmake restoration, hash equality, legal-move safety, evaluator symmetry, and legal PV sequences.
+2. Add Task 23.2 parser/state fuzz targets and preserve every minimized failure as a permanent regression input.
+3. Establish the Task 23.3 Miri/sanitizer/FFI lifecycle subset without weakening existing correctness gates.
+4. Independently, produce a real tuned Task 21 candidate and run the existing 200-pair activation protocol; keep the Task 21 gate open until a candidate passes and is explicitly activated.
