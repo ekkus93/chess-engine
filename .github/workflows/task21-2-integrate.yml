@@ -1,0 +1,114 @@
+name: Task 21.2 Loss Integration
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+concurrency:
+  group: task21-2-loss-integration
+  cancel-in-progress: false
+
+jobs:
+  integrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.75.0
+          components: rustfmt, clippy
+
+      - name: Wire loss modules and dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          tune_lib_path = Path('crates/chess-tune/src/lib.rs')
+          tune_lib = tune_lib_path.read_text()
+          marker = 'use core::{fmt, fmt::Write as _, iter::FusedIterator};\n'
+          exports = '''mod loss;
+
+pub use loss::{
+    logistic_result_probability, KCalibrationConfig, KCalibrationResult, LogisticK, LossDataset,
+    LossPartition, LossPipelineError, LossPosition, OutcomeTarget,
+    MAX_K_CALIBRATION_INTERVALS, TEXEL_EVALUATION_SCALE_CENTIPAWNS,
+};
+
+'''
+          if 'mod loss;' not in tune_lib:
+              if tune_lib.count(marker) != 1:
+                  raise SystemExit('chess-tune insertion marker was not found exactly once')
+              tune_lib = tune_lib.replace(marker, exports + marker, 1)
+          tune_lib_path.write_text(tune_lib)
+
+          loss_path = Path('crates/chess-tune/src/loss.rs')
+          loss = loss_path.read_text()
+          old = '        mean_squared_error_for_evaluated(&evaluated)\n'
+          new = '        mean_squared_error_for_evaluated(&evaluated, k)\n'
+          if loss.count(old) != 1:
+              raise SystemExit('loss MSE call marker was not found exactly once')
+          loss_path.write_text(loss.replace(old, new, 1))
+
+          tools_lib_path = Path('crates/chess-tools/src/lib.rs')
+          tools_lib = tools_lib_path.read_text()
+          if 'pub mod tuning;' not in tools_lib:
+              marker = 'pub mod self_play;\n'
+              if tools_lib.count(marker) != 1:
+                  raise SystemExit('chess-tools module marker was not found exactly once')
+              tools_lib = tools_lib.replace(marker, marker + 'pub mod tuning;\n', 1)
+          tools_lib_path.write_text(tools_lib)
+
+          cargo_path = Path('crates/chess-tools/Cargo.toml')
+          cargo = cargo_path.read_text()
+          dependency = 'chess-tune = { path = "../chess-tune" }\n'
+          if dependency not in cargo:
+              marker = 'chess-search = { path = "../chess-search" }\n'
+              if cargo.count(marker) != 1:
+                  raise SystemExit('chess-tools dependency marker was not found exactly once')
+              cargo = cargo.replace(marker, marker + dependency, 1)
+          cargo_path.write_text(cargo)
+          PY
+
+      - name: Update lockfile and format
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check --workspace --all-targets --all-features
+          cargo fmt --all
+
+      - name: Validate Task 21.2 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check --locked --workspace --all-targets --all-features
+          cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+          cargo test --locked -p chess-tune
+          cargo test --locked -p chess-tools
+
+      - name: Commit validated integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            Cargo.lock \
+            crates/chess-tune/src/lib.rs \
+            crates/chess-tune/src/loss.rs \
+            crates/chess-tools/Cargo.toml \
+            crates/chess-tools/src/lib.rs \
+            crates/chess-tools/src/tuning.rs
+          git commit -m 'task 21.2: integrate Texel loss pipeline'
+          git push origin HEAD:master
