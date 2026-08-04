@@ -17,6 +17,10 @@ htmlcov/
 # Build artifacts
 dist/
 *.egg-info/
+target/
+
+# Local agent worktrees
+.claude/worktrees/
 
 run_opencode.sh
 run_copilot.sh

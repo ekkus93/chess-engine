@@ -1,0 +1,20 @@
+[package]
+name = "chess-jni"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Android JNI adapter over the stable chess engine boundary."
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[lints]
+workspace = true
+
+[dependencies]
+chess-ffi = { path = "../chess-ffi" }
+jni = "=0.21.1"

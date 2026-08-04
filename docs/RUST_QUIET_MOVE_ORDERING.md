@@ -1,0 +1,18 @@
+# Rust Quiet Move Ordering
+
+Task 14.3 adds deterministic bounded quiet ordering without changing score,
+terminal, draw, make/unmake, legal-token, or fail-soft alpha-beta semantics.
+
+Production alpha-beta order is: future TT hook, explicit previous-PV hook,
+promotions, MVV-LVA captures, primary/secondary killer moves, descending history
+score keyed by side/source/destination, then ascending packed `Move` identity.
+Both future hooks remain explicit no-ops until Tasks 15 and 16 respectively.
+
+Each search owns two killer slots per supported ply and one fixed `2 x 64 x 64`
+history table. Only quiet beta cutoffs are recorded. Depth-squared history bonuses
+saturate at `1,000,000`. The state is bounded, search-local, and heap-free.
+
+The reference search retains exact generation order. Task 14.2 tactical ordering
+remains a control policy. Tests cover hook no-ops, stable packed ties, killer and
+history priority, capture exclusion, deterministic reruns, and exact restoration.
+Task 14.4 owns consolidated search correctness and benchmark closure.

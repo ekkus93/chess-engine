@@ -1,0 +1,28 @@
+[workspace]
+members = [
+    "crates/chess-book",
+    "crates/chess-core",
+    "crates/chess-search",
+    "crates/chess-uci",
+    "crates/chess-ffi",
+    "crates/chess-jni",
+    "crates/chess-tools",
+    "crates/chess-tune",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+authors = ["Phillip Chin"]
+repository = "https://github.com/ekkus93/chess-engine"
+license = "MIT"
+publish = false
+
+[workspace.lints.rust]
+warnings = "deny"
+unsafe_op_in_unsafe_fn = "deny"
+
+[workspace.lints.clippy]
+all = "deny"
