@@ -1201,13 +1201,26 @@ Implement the specification's exact D1-D4 counts for:
 
 ## 21.5 Candidate validation
 
-- [ ] Candidate-versus-baseline match.
-- [ ] Color-balanced openings.
-- [ ] Fixed seeds/opening set.
-- [ ] Sufficient sample size documented.
-- [ ] Tactical/perft/rules suites rerun.
-- [ ] Reject candidate on correctness regression.
-- [ ] Do not auto-activate candidate output.
+- [x] Candidate-versus-baseline match.
+- [x] Color-balanced openings.
+- [x] Fixed seeds/opening set.
+- [x] Sufficient sample size documented.
+- [x] Tactical/perft/rules suites rerun.
+- [x] Reject candidate on correctness regression.
+- [x] Do not auto-activate candidate output.
+
+### Task 21.5 completion evidence
+
+- Explicit weighted production search: `crates/chess-search/src/iterative_deepening.rs`, `alpha_beta.rs`, and `quiescence.rs`; existing APIs retain baseline weights by default.
+- Shared weighted game controller: `crates/chess-tools/src/self_play.rs`.
+- Fail-closed protocol and versioned report: `crates/chess-tools/src/candidate_validation.rs`.
+- Contract documentation: `docs/RUST_CANDIDATE_VALIDATION.md`.
+- Exact helper-free validated implementation head: `664bf7cb51fae8bff8298925513b242fd9f33cee`.
+- Production control run/job: `30935079798` / `92079069382`; 200 semantically distinct opening pairs and 400 color-swapped games produced mean `0.5`, standard error `0.0`, lower bound `0.5`, decision `rejected_strength`, `activated=false`, checksum `9af9ee9ab36b0ab2`.
+- Permanent Rust run/job: `30935448972` / `92080314407`.
+- Permanent Android run/jobs: `30935448944` / `92080314104`, `92080314087`, `92080314012`.
+- Production requires at least 200 semantically distinct opening pairs, fixed seed/suite/configuration, independent pair statistics, a one-sided 95% lower confidence bound above 50%, an unfinished-game ceiling, correctness-first perft/tactical gates, and atomic checksummed evidence.
+- No report or accepted result can activate weights; the overall Task 21 gate remains open until a real tuned candidate passes and is activated by a separate explicit change.
 
 **Task 21 gate:** Tuned weights are named, versioned, reproducible, validated out-of-sample, and explicitly activated.
 

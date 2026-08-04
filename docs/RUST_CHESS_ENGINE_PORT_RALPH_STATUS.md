@@ -3,7 +3,7 @@
 **Updated:** 2026-08-04
 **Branch:** `master`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 21.4 reproducible tuning reports complete; Task 21.5 candidate validation is next
+**Current phase:** Task 21.5 validation protocol complete; real candidate validation and an explicit activation decision are next
 
 ## Completed gates
 
@@ -68,6 +68,7 @@
 | 21.2 | `3d11b01a9de84913c6c1bfa43a37aea0197dc5be` | Rust `30894313165` / `91943462745`; Android `30894313169` / `91943477000`, `91943477036`, `91943477212` | side-to-move logistic targets, explicit training-only K calibration, occurrence-weighted MSE, held-out validation, strict Task 20 adapter, typed failure policy, and all permanent gates green |
 | 21.3 | `fc69d7d7554ab325fd72ccfc5ac94c4bb1077ae8` | Rust `30897085986` / `91952447573`; Android `30897085023` / `91952460052`, `91952460064`, `91952460121` | deterministic seeded SPSA over the 810-scalar schema, explicit bounds and L2 regularization, training/validation isolation, checksummed data/config-bound resumable checkpoints, and all permanent gates green |
 | 21.4 | `fd179e57462226392ab9c61bc9f26bc7cbb63cc1` | Rust `30929481202` / `92060204891`; Android `30929479894` / `92060200320`, `92060200325`, `92060200573` | versioned checksummed reports with initial/final train and validation MSE, all 810 named deltas, complete data/engine/source/checkpoint/weight identities, exact command/configuration, atomic persistence, inactive candidate artifacts, and all permanent gates green |
+| 21.5 | `664bf7cb51fae8bff8298925513b242fd9f33cee` | Rust `30935448972` / `92080314407`; Android `30935448944` / `92080314104`, `92080314087`, `92080314012`; control `30935079798` / `92079069382` | explicit weighted search, correctness-first validation, 200 distinct color-balanced opening pairs, fixed provenance, one-sided 95% strength gate, atomic inactive evidence, 400-game baseline control correctly rejected, and all permanent gates green |
 
 ## Task 17.1 completion
 
@@ -1149,5 +1150,35 @@ Evidence:
 - the temporary validation workflow was removed before the recorded implementation head;
 - candidate weights remain inactive and Task 21.5 owns controlled candidate validation and any later explicit activation decision.
 
-Task 21.4 is complete. Task 21.5 candidate validation is next.
+Task 21.4 is complete. Task 21.5 candidate validation protocol is complete; no optimized candidate has been activated.
+
+## Task 21.5 completion
+
+Implemented and validated:
+
+- explicit evaluation-weight injection through production iterative deepening, alpha-beta, and quiescence while existing APIs retain the built-in baseline;
+- typed evaluator policies and separate evaluator-dependent transposition tables;
+- reuse of the Task 20 game controller for legal play, history, draw claims, maximum-ply handling, search limits, and complete replay payloads;
+- strict version-1 checksummed candidate-validation reports with engine/source/command, weight/artifact, opening-suite, correctness, game, statistical, and decision provenance;
+- correctness-before-strength validation using all authoritative perft fixtures through depth four and weighted forced-mate fixtures;
+- fixed seeded scheduling over at least 200 semantically distinct opening pairs, with the candidate playing both colors for 400 games;
+- independent pair-score statistics, sample standard error, and a one-sided 95% lower confidence bound that must exceed 50% plus the configured margin;
+- a separately enforced maximum-ply unfinished-game ceiling;
+- fail-closed `rejected_correctness`, `rejected_unfinished_rate`, and `rejected_strength` outcomes;
+- same-directory temporary-file persistence with flush, synchronization, and atomic rename;
+- immutable `activated=false` output and no default-weight mutation;
+- `docs/RUST_CANDIDATE_VALIDATION.md`.
+
+Evidence:
+
+- exact helper-free validated implementation head: `664bf7cb51fae8bff8298925513b242fd9f33cee`;
+- production control run/job: `30935079798` / `92079069382`;
+- production control result: 200 pairs, 400 games, 400 explicit maximum-ply unfinished games, mean pair score `0.5`, standard error `0.0`, one-sided lower bound `0.5`, decision `rejected_strength`, `activated=false`, checksum `9af9ee9ab36b0ab2`;
+- permanent Rust run/job: `30935448972` / `92080314407`;
+- permanent Android run/jobs: `30935448944` / `92080314104`, `92080314087`, `92080314012`;
+- formatting, locked workspace check, strict Clippy, complete Rust tests, authoritative release perft, warning-free rustdoc, debug/release builds, differential oracle, Android/Kotlin lint, host JVM JNI, dual-ABI native verification, APK build, and API-35 instrumentation all passed;
+- all temporary integration, hardening, control, and tracker workflows were removed from the implementation head;
+- the control candidate was correctly rejected rather than accepted by equality, and no candidate weights were activated.
+
+Task 21.5 is complete. The overall Task 21 gate remains open until a real tuned candidate passes this protocol and is explicitly activated by a separate validated change.
 

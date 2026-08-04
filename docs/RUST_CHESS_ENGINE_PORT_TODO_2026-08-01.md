@@ -42,7 +42,7 @@
 | 18 | **Complete** — safe API, C ABI, JNI, host JVM, and Android emulator harness. |
 | 19 | **Complete** — optional explicit opening-book support, indexed format, legal reproducible policies, adapter integration, and permanent verification gate. |
 | 20 | **Complete** — deterministic offline self-play and validated versioned datasets. |
-| 21 | **In progress** — Tasks 21.1–21.4 complete; Task 21.5 remains. |
+| 21 | **In progress** — Tasks 21.1–21.5 implementation complete; no tuned candidate has passed validation and been explicitly activated, so the Task 21 gate remains open. |
 | 22–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
@@ -1032,7 +1032,7 @@ Evidence:
 - [x] 21.2 Loss.
 - [x] 21.3 Optimizer.
 - [x] 21.4 Reports.
-- [ ] 21.5 Validation.
+- [x] 21.5 Validation.
 
 ### Task 21.3 completion evidence
 
@@ -1053,7 +1053,20 @@ Evidence:
 - Android run/jobs: `30929479894` / `92060200320`, `92060200325`, `92060200573`.
 - Permanent formatting, workspace check, strict Clippy, complete Rust tests, release perft, rustdoc, debug/release builds, differential validation, Android/Kotlin lint, host JNI, dual-ABI native verification, APK build, and API-35 instrumentation passed.
 - Versioned checksummed reports include all required losses, 810 named deltas, complete identities, and exact invocation/configuration. Candidate artifacts are separate and inactive.
-- Task 21.5 candidate validation is next.
+- Task 21.5 candidate validation protocol is complete; candidate artifacts remain inactive.
+
+### Task 21.5 completion evidence
+
+- Explicit evaluator injection: `crates/chess-search/src/iterative_deepening.rs`, `alpha_beta.rs`, and `quiescence.rs`; all existing production APIs preserve baseline behavior.
+- Match controller and protocol: `crates/chess-tools/src/self_play.rs` and `crates/chess-tools/src/candidate_validation.rs`.
+- Contract: `docs/RUST_CANDIDATE_VALIDATION.md`.
+- Exact helper-free validated SHA: `664bf7cb51fae8bff8298925513b242fd9f33cee`.
+- Production control run/job: `30935079798` / `92079069382`; 200 pairs, 400 games, mean `0.5`, standard error `0.0`, lower bound `0.5`, `rejected_strength`, `activated=false`, checksum `9af9ee9ab36b0ab2`.
+- Rust run/job: `30935448972` / `92080314407`.
+- Android run/jobs: `30935448944` / `92080314104`, `92080314087`, `92080314012`.
+- Formatting, locked workspace check, strict Clippy, complete Rust tests, release perft, rustdoc, debug/release builds, differential validation, Android/Kotlin lint, host JNI, dual-ABI native verification, APK build, and API-35 instrumentation passed.
+- Color-swapped games use fixed seed/suite/configuration and separate evaluator-dependent transposition tables. Production requires 200 semantically distinct opening pairs and accepts only when correctness passes, unfinished games stay below the configured ceiling, and the one-sided 95% lower confidence bound exceeds 50% plus the configured margin.
+- Candidate validation is evidence-only and always records `activated=false`. A separate explicit activation change remains required.
 - [ ] Task 21 gate.
 
 
@@ -1156,8 +1169,8 @@ Evidence:
 
 ## Immediate next operations
 
-1. Implement Task 21.5 controlled candidate-versus-baseline validation.
-2. Use color-balanced openings, fixed seeds/opening sets, and a documented sufficient sample size.
-3. Rerun tactical, perft, and rules suites and reject any correctness regression.
-4. Keep candidate activation explicit; generated artifacts must not become defaults automatically.
-5. Leave the overall Task 21 gate open until Task 21.5 has exact-head evidence.
+1. Produce a real tuned candidate artifact from the completed Task 21.1–21.4 pipeline.
+2. Run the Task 21.5 production protocol over at least 200 semantically distinct opening pairs with fixed provenance.
+3. Reject an inconclusive, unfinished-rate, or correctness-failing candidate; retain the complete versioned report.
+4. If and only if a candidate is accepted, make a separate explicit activation change and rerun every permanent gate.
+5. Leave the overall Task 21 gate open until accepted weights are explicitly activated with exact-head evidence.
