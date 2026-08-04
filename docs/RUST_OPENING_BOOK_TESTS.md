@@ -42,4 +42,18 @@ cargo build --locked --workspace --all-features
 cargo build --locked --workspace --all-features --release
 ```
 
-The existing differential-oracle, host JVM JNI, dual-ABI Android build, APK build, and API-35 instrumentation gates must also remain green. Exact completion evidence is recorded only after those permanent workflows finish successfully.
+The existing differential-oracle, host JVM JNI, dual-ABI Android build, APK build, and API-35 instrumentation gates must also remain green.
+
+## Validated implementation evidence
+
+- Exact validated implementation head: `439c77e8a2ba2f98cbefd4f260823eb951fe1262`.
+- Permanent Rust validation: run `30866788532`, job `91860310659`.
+- Permanent Android validation: run `30866788525`, host JVM job `91860355455`, API-35 emulator job `91860355472`.
+- The workspace executed 332 non-documentation Rust tests with zero failures, including the four dedicated Task 19.5 public-API regressions.
+- The permanent no-auto-discovery audit passed and verified pure `chess-book`/core/search dependency direction plus explicit UCI path, safe byte, JNI byte, and Android asset injection.
+- Committed lockfile verification, workspace metadata, rustfmt, all-target/all-feature compilation, strict Clippy with warnings denied, authoritative release depth-four perft, rustdoc with warnings denied, debug/release builds, and the independent differential oracle passed.
+- Differential validation covered 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies with seed `0xC0FFEE`.
+- Host JVM JNI passed, ARM64/x86_64 native artifacts and exported symbols were verified, the Android AAR/test APK built, and the API-35 instrumentation lifecycle passed.
+- The first validation correction applied canonical rustfmt output; the second used canonical hexadecimal digit grouping required by strict Clippy. No production behavior, test requirement, audit rule, or gate was weakened.
+
+Task 19.5 behavior and architecture are validated. Tracker closure and the overall Task 19 completion record are performed only after this evidence-bearing documentation head passes the same permanent workflows.
