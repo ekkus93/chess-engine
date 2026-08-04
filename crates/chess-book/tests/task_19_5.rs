@@ -77,7 +77,7 @@ fn same_seed_reproduces_weighted_selection_sequence() {
         record(&position, "e2e4", 11),
         record(&position, "g1f3", 3),
     ]);
-    let seed = 0x19_05_c0ff_ee12_3456;
+    let seed = 0x1905_c0ff_ee12_3456;
     let mut first = BookSelector::weighted_random(seed);
     let mut second = BookSelector::weighted_random(seed);
 
