@@ -56,4 +56,4 @@ The existing differential-oracle, host JVM JNI, dual-ABI Android build, APK buil
 - Host JVM JNI passed, ARM64/x86_64 native artifacts and exported symbols were verified, the Android AAR/test APK built, and the API-35 instrumentation lifecycle passed.
 - The first validation correction applied canonical rustfmt output; the second used canonical hexadecimal digit grouping required by strict Clippy. No production behavior, test requirement, audit rule, or gate was weakened.
 
-Task 19.5 behavior and architecture are validated. Tracker closure and the overall Task 19 completion record are performed only after this evidence-bearing documentation head passes the same permanent workflows.
+Task 19.5 behavior and architecture are validated. The implementation merged at `d7d8455e6279fab53451bad6a5d778ce66c0a001`; the exact evidence-bearing head `5d70737bf12cbfa16441730b7a64629212b28683` passed the permanent Rust and Android workflows. Task 19 and its overall gate are complete; Task 20 offline self-play is next.

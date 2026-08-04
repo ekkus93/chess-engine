@@ -40,7 +40,7 @@
 | 16 | **Complete** — iterative deepening, aspiration recovery, legal PVs, limits, responsive cancellation, unified results, and bounded optional check extension. |
 | 17 | **Complete** — Linux UCI executable. |
 | 18 | **Complete** — safe API, C ABI, JNI, host JVM, and Android emulator harness. |
-| 19 | **In progress** — opening-book abstraction, versioned indexed format, selection policies, and adapter integration complete. |
+| 19 | **Complete** — optional explicit opening-book support, indexed format, legal reproducible policies, adapter integration, and permanent verification gate. |
 | 20–24 | **Not started**. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
@@ -991,12 +991,22 @@ Evidence:
 - Task 18 is complete: the safe Rust facade, stable C ABI, ABI lifecycle/panic tests, JNI adapter, host JVM contract, and Android emulator path can create an engine, set/reset positions, obtain legal moves, search, cancel, and destroy without crashes, leaked owned handles, or UI-thread search execution.
 - Task 19.4 opening-book adapter integration is complete. Task 19.5 opening-book tests are next.
 
-# Task 19: Opening book — IN PROGRESS
+# Task 19: Opening book — COMPLETE
 - [x] 19.1 Abstraction.
 - [x] 19.2 Format.
 - [x] 19.3 Policies.
 - [x] 19.4 Integration.
-- [ ] 19.5 Tests.
+- [x] 19.5 Tests.
+- [x] Task 19 gate.
+
+### Task 19 completion evidence
+
+- Merged Task 19.5 implementation SHA: `d7d8455e6279fab53451bad6a5d778ce66c0a001`.
+- Exact validated evidence head: `5d70737bf12cbfa16441730b7a64629212b28683`.
+- Rust run/job: `30867122750` / `91861324627`; 332 non-documentation tests, permanent opening-book audit, strict workspace gates, release depth-four perft, and differential oracle passed.
+- Android run/jobs: `30867122736` / `91861324588`, `91861324637`; host JVM, ARM64/x86_64 verification, APK build, and API-35 instrumentation passed.
+- Opening-book support is optional and disabled by default; all paths, bytes, assets, enablement decisions, and RNG seeds remain explicitly adapter supplied.
+- Task 20 offline self-play is next.
 - [ ] Task 19 gate.
 
 # Task 20: Self-play and datasets — NOT STARTED
