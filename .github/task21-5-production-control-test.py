@@ -20,8 +20,8 @@ marker = '''    #[test]
 '''
 insert = '''    fn production_openings() -> OpeningSuite {
         let starting = Game::starting();
-        let white_moves = starting
-            .position()
+        let mut starting_position = starting.position().clone();
+        let white_moves = starting_position
             .legal_moves()
             .expect("starting legal moves");
         let mut text = String::from("CHESS_SELF_PLAY_OPENINGS\\t1\\n");
@@ -31,8 +31,8 @@ insert = '''    fn production_openings() -> OpeningSuite {
             after_white
                 .make_move(white)
                 .expect("generated White move is legal");
-            let black_moves = after_white
-                .position()
+            let mut black_position = after_white.position().clone();
+            let black_moves = black_position
                 .legal_moves()
                 .expect("Black legal replies");
             for black in black_moves.iter() {
