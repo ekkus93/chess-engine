@@ -1,0 +1,125 @@
+name: Task 21.3 Optimizer Integration
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: task21-3-optimizer-integration
+  cancel-in-progress: false
+
+jobs:
+  integrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.75.0
+          components: rustfmt, clippy
+
+      - name: Integrate and validate Task 21.3
+        id: work
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          (
+            set -euo pipefail
+            python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('crates/chess-tune/src/lib.rs')
+          text = path.read_text()
+          if 'mod optimizer;' not in text:
+              marker = 'mod loss;\n'
+              if text.count(marker) != 1:
+                  raise SystemExit('optimizer module insertion marker was not found exactly once')
+              text = text.replace(marker, marker + 'mod optimizer;\n', 1)
+
+          if 'pub use optimizer::{' not in text:
+              marker = '''pub use loss::{
+              logistic_result_probability, KCalibrationConfig, KCalibrationResult, LogisticK, LossDataset,
+              LossPartition, LossPipelineError, LossPosition, OutcomeTarget, MAX_K_CALIBRATION_INTERVALS,
+              TEXEL_EVALUATION_SCALE_CENTIPAWNS,
+          };
+          '''
+              exports = '''
+          pub use optimizer::{
+              SpsaCheckpoint, SpsaConfig, SpsaOptimizer, SpsaOptimizerError, SpsaRunSummary,
+              SpsaSchedule, SpsaWeightBounds, MAX_SPSA_ITERATIONS, MAX_SPSA_WEIGHT_MAGNITUDE,
+              SPSA_CHECKPOINT_SCHEMA_VERSION, SPSA_OPTIMIZER_IDENTIFIER,
+          };
+          '''
+              if text.count(marker) != 1:
+                  raise SystemExit('optimizer export insertion marker was not found exactly once')
+              text = text.replace(marker, marker + exports, 1)
+          path.write_text(text)
+          PY
+            cargo fmt --all
+            cargo check --locked --workspace --all-targets --all-features
+            cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+            cargo test --locked -p chess-tune
+            cargo test --locked --workspace --all-features
+          ) > task21-3-integration.log 2>&1
+          status=$?
+          cat task21-3-integration.log
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Report validation failure
+        if: steps.work.outputs.status != '0'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          {
+            echo '### Task 21.3 integration failure'
+            echo
+            echo "- Run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo "- Head SHA: \`${GITHUB_SHA}\`"
+            echo
+            echo '```text'
+            tail -c 50000 task21-3-integration.log
+            echo '```'
+          } > task21-3-report.md
+          gh issue comment 261 --body-file task21-3-report.md
+          exit 1
+
+      - name: Commit validated integration
+        if: steps.work.outputs.status == '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            crates/chess-tune/src/lib.rs \
+            crates/chess-tune/src/optimizer.rs
+          git commit -m 'task 21.3: integrate deterministic SPSA optimizer'
+          git push origin HEAD:master
+
+      - name: Report validation success
+        if: steps.work.outputs.status == '0'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh issue comment 261 --body "### Task 21.3 integration preflight passed
+
+          - Run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          - Validated source parent: \`${GITHUB_SHA}\`
+          - Workspace check, strict Clippy, chess-tune tests, and complete workspace tests passed."
