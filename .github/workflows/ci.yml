@@ -38,12 +38,18 @@ jobs:
           test -f requirements/oracle.txt
           test -f scripts/differential_oracle.py
           test -f scripts/task_14_5_exclusion_audit.py
+          test -f scripts/task_19_5_opening_book_audit.py
+          test -f crates/chess-book/tests/task_19_5.rs
           python3 -m py_compile \
             scripts/differential_oracle.py \
-            scripts/task_14_5_exclusion_audit.py
+            scripts/task_14_5_exclusion_audit.py \
+            scripts/task_19_5_opening_book_audit.py
 
       - name: Run Task 14.5 exclusion audit
         run: python3 scripts/task_14_5_exclusion_audit.py
+
+      - name: Run Task 19.5 opening-book audit
+        run: python3 scripts/task_19_5_opening_book_audit.py
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
