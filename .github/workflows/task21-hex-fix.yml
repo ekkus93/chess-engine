@@ -26,6 +26,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # This exact replacement is the only source mutation performed here.
           python3 - <<'PY'
           from pathlib import Path
 
