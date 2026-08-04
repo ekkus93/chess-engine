@@ -43,7 +43,9 @@
 | 19 | **Complete** — optional explicit opening-book support, indexed format, legal reproducible policies, adapter integration, and permanent verification gate. |
 | 20 | **Complete** — deterministic offline self-play and validated versioned datasets. |
 | 21 | **In progress** — Tasks 21.1–21.5 implementation complete; no tuned candidate has passed validation and been explicitly activated, so the Task 21 gate remains open. |
-| 22–24 | **Not started**. |
+| 22 | **Complete** — advanced evaluation experiments and explicit activation decisions. |
+| 23 | **Complete** — fuzzing, Miri, sanitizers, leak checks, and permanent minimized regressions. |
+| 24 | **Complete** — dual-architecture benchmarks, profiling, Android metrics, and regression budgets. |
 | 25 | **Partial**. |
 | 26–27 | **Not started**. |
 
@@ -1124,13 +1126,24 @@ Evidence:
 - Android run/jobs: `30944117802 / 92109760102, 92109760118, 92109760076`.
 - Task 24 performance hardening is next. The independent Task 21 tuned-candidate activation gate remains open.
 
-# Task 24: Performance hardening — NOT STARTED
-- [ ] 24.1 Benchmarks.
-- [ ] 24.2 Profiling.
-- [ ] 24.3 Measured optimization.
-- [ ] 24.4 Regression policy.
-- [ ] 24.5 Android measurements.
-- [ ] Task 24 gate.
+# Task 24: Performance hardening — COMPLETE
+- [x] 24.1 Benchmarks.
+- [x] 24.2 Profiling.
+- [x] 24.3 Measured optimization.
+- [x] 24.4 Regression policy.
+- [x] 24.5 Android measurements.
+- [x] Task 24 gate.
+
+### Task 24 completion evidence
+
+- Release benchmark/allocation harness: `crates/chess-tools/src/bin/performance.rs`.
+- Structural audit and regression comparator: `scripts/task_24_performance_audit.py`, `scripts/compare_performance.py`, and `scripts/tests/test_compare_performance.py`.
+- Versioned x86-64 and ARM64 references: `benchmarks/task24/`; contract: `docs/RUST_PERFORMANCE_GATES.md`.
+- Exact validated implementation head: `45f2263238f93a5ec4f06f4d4cbdef18f9b7def3`.
+- Performance: `30952260264 / 92136936026, 92136935996`; Rust: `30952260291 / 92136935775`; Robustness: `30952260237 / 92136935690, 92136935729, 92136935792`; Android: `30952260236 / 92136936014, 92136936160, 92136936153`.
+- Android metric artifact `8909672738`; legal-move JNI average 1,832,214 ns; fixed-node search 89,106 total nodes in 896,094,777 ns (99,438 nodes/s); cancellation 4,388,550 ns; native heap deltas 1,053,504 bytes at 1 MiB and 16,781,168 bytes at 16 MiB.
+- Callgrind `30950461692 / 92130944944 / 8908923833` measured `Position::legal_moves` at 98.31% inclusive perft cost and quiescence at 95.46% inclusive fixed-node-search cost.
+- Direct legal generation and SEE/quiescence redesign remain measured follow-up candidates; no correctness-sensitive optimization was made speculatively.
 
 # Task 25: CI, documentation, and workflows — PARTIAL
 
@@ -1191,7 +1204,6 @@ Evidence:
 
 ## Immediate next operations
 
-1. Begin Task 24.1 with a reproducible baseline benchmark suite for attack generation, legal moves, make/unmake, hashing, evaluation, perft, fixed-node search, TT operations, cancellation latency, and FFI calls.
-2. Profile release perft and fixed-node search before making any optimization; record allocations and re-audit clone/string/trace exclusions.
-3. Define reference hardware, toolchain, variance, and non-flaky regression budgets before enabling any performance gate.
-4. Independently, produce a real tuned Task 21 candidate and run the existing 200-pair activation protocol; keep the Task 21 gate open until a candidate passes and is explicitly activated.
+1. Begin Task 25 by consolidating bootstrap, fast/full validation, UCI, Android, self-play, tuning, and generated-artifact workflows into a new-developer path.
+2. Audit remaining Task 25 documentation and CI checkboxes against repository reality before adding duplicate infrastructure.
+3. Independently produce a real tuned Task 21 candidate and run the existing 200-pair activation protocol; keep that gate open until a candidate passes and is explicitly activated.

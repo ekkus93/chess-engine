@@ -1355,56 +1355,67 @@ For each proposed term:
 
 ## 24.1 Baseline benchmark suite
 
-- [ ] leaper attacks;
-- [ ] sliding attacks;
-- [ ] legal move generation;
-- [ ] make/unmake;
-- [ ] full and incremental hash;
-- [ ] evaluation;
-- [ ] perft positions;
-- [ ] fixed-node search set;
-- [ ] TT probe/store;
-- [ ] cancellation latency;
-- [ ] FFI legal-move/search calls.
+- [x] leaper attacks;
+- [x] sliding attacks;
+- [x] legal move generation;
+- [x] make/unmake;
+- [x] full and incremental hash;
+- [x] evaluation;
+- [x] perft positions;
+- [x] fixed-node search set;
+- [x] TT probe/store;
+- [x] cancellation latency;
+- [x] FFI legal-move/search calls.
 
 ## 24.2 Profiling
 
-- [ ] Profile release perft.
-- [ ] Profile fixed-node search.
-- [ ] Identify allocation counts.
-- [ ] Confirm no recursive board clone.
-- [ ] Confirm no normal-evaluation trace allocation.
-- [ ] Confirm no string key construction in search.
+- [x] Profile release perft.
+- [x] Profile fixed-node search.
+- [x] Identify allocation counts.
+- [x] Confirm no recursive board clone.
+- [x] Confirm no normal-evaluation trace allocation.
+- [x] Confirm no string key construction in search.
 
 ## 24.3 Optimizations after measurement
 
-Potential optimizations, only if justified:
+Measured decisions (each candidate was evaluated; none justified a correctness-sensitive production change):
 
-- [ ] direct legal generation with check/pin masks;
-- [ ] faster sliding attacks;
-- [ ] static exchange evaluation;
-- [ ] incremental evaluation components;
-- [ ] compact move-list storage;
-- [ ] TT packing improvements.
+- [x] direct legal generation with check/pin masks;
+- [x] faster sliding attacks;
+- [x] static exchange evaluation;
+- [x] incremental evaluation components;
+- [x] compact move-list storage;
+- [x] TT packing improvements.
 
 ## 24.4 Regression policy
 
-- [ ] Record reference hardware/toolchain.
-- [ ] Establish stable medians and variance.
-- [ ] Define acceptable regression tolerance.
-- [ ] Add non-flaky CI or scheduled performance comparison.
-- [ ] Keep correctness gates independent and mandatory.
+- [x] Record reference hardware/toolchain.
+- [x] Establish stable medians and variance.
+- [x] Define acceptable regression tolerance.
+- [x] Add non-flaky CI or scheduled performance comparison.
+- [x] Keep correctness gates independent and mandatory.
 
 ## 24.5 Android measurements
 
-- [ ] AArch64 nodes/second.
-- [ ] peak memory by hash size.
-- [ ] cancellation latency.
-- [ ] JNI overhead.
-- [ ] lifecycle stability.
-- [ ] sample app main-thread compliance.
+- [x] AArch64 nodes/second.
+- [x] peak memory by hash size.
+- [x] cancellation latency.
+- [x] JNI overhead.
+- [x] lifecycle stability.
+- [x] sample app main-thread compliance.
 
-**Task 24 gate:** Performance is measured, bounded, and protected; optimizations do not weaken exact perft, restoration, hash, or differential results.
+### Task 24 completion evidence
+
+- Release benchmark/allocation harness: `crates/chess-tools/src/bin/performance.rs`.
+- Structural audit and regression comparator: `scripts/task_24_performance_audit.py`, `scripts/compare_performance.py`, and `scripts/tests/test_compare_performance.py`.
+- Versioned x86-64 and ARM64 references: `benchmarks/task24/`; contract: `docs/RUST_PERFORMANCE_GATES.md`.
+- Exact validated implementation head: `45f2263238f93a5ec4f06f4d4cbdef18f9b7def3`.
+- Performance: `30952260264 / 92136936026, 92136935996`; Rust: `30952260291 / 92136935775`; Robustness: `30952260237 / 92136935690, 92136935729, 92136935792`; Android: `30952260236 / 92136936014, 92136936160, 92136936153`.
+- Android metric artifact `8909672738`; legal-move JNI average 1,832,214 ns; fixed-node search 89,106 total nodes in 896,094,777 ns (99,438 nodes/s); cancellation 4,388,550 ns; native heap deltas 1,053,504 bytes at 1 MiB and 16,781,168 bytes at 16 MiB.
+- Callgrind `30950461692 / 92130944944 / 8908923833` measured `Position::legal_moves` at 98.31% inclusive perft cost and quiescence at 95.46% inclusive fixed-node-search cost.
+- Direct legal generation and SEE/quiescence redesign remain measured follow-up candidates; no correctness-sensitive optimization was made speculatively.
+
+**Task 24 gate:** Performance is measured, bounded, and protected; optimizations do not weaken exact perft, restoration, hash, or differential results. **COMPLETE.**
 
 ---
 

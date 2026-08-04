@@ -2281,3 +2281,10 @@ learning's default cache path.
 - The permanent workflow executes 1,792 bounded mutations, Miri strict-provenance analysis, ASan/LeakSanitizer C ABI lifecycle analysis, TSan cancellation analysis, and an explicit unsupported-UBSan boundary check.
 - Fuzzing found one minimized one-byte semantic C ABI defect. Input `fuzz/regressions/c_abi_buffers_handles/forged-buffer-wrong-token-type.bin` is permanently retained with a named replay; production now returns documented `InvalidBuffer` for fabricated wrong-tag buffer tokens.
 - Task 23 is complete. Task 24 performance hardening is next; the independent Task 21 activation gate remains open.
+
+## 2026-08-04T21:35:04Z - GPT-5.6 Thinking - Rust port Task 24 performance gate complete
+- Completed Task 24 on `master` at validated implementation head `45f2263238f93a5ec4f06f4d4cbdef18f9b7def3` with release benchmarks, zero-allocation/source audits, unit-tested x86-64/ARM64 regression budgets, Callgrind evidence, Android metrics, and `docs/RUST_PERFORMANCE_GATES.md`.
+- Validation: Performance `30952260264 / 92136936026, 92136935996`; Rust `30952260291 / 92136935775`; Robustness `30952260237 / 92136935690, 92136935729, 92136935792`; Android `30952260236 / 92136936014, 92136936160, 92136936153`; Android artifact `8909672738`; Callgrind `30950461692 / 92130944944 / 8908923833`.
+- Android metrics: legal-move JNI average 1,832,214 ns; fixed-node search 89,106 total nodes in 896,094,777 ns (99,438 nodes/s); cancellation 4,388,550 ns; native heap deltas 1,053,504 bytes at 1 MiB and 16,781,168 bytes at 16 MiB.
+- Legal generation and quiescence are measured redesign candidates; no correctness-sensitive optimization was accepted without dedicated evidence.
+- Task 25 is next. The independent Task 21 tuned-candidate activation gate remains open.

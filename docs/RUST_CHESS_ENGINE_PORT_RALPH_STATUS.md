@@ -3,7 +3,7 @@
 **Updated:** 2026-08-04
 **Branch:** `master`
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 23 robustness gate complete; Task 24 performance hardening is next while the independent Task 21 activation gate remains open
+**Current phase:** Task 24 performance gate complete; Task 25 developer workflows are next while the independent Task 21 activation gate remains open
 
 ## Completed gates
 
@@ -72,6 +72,7 @@
 | 22 / gate | `3653f86148dca0bb7f4168706ffc47a28bc4a10e` | `30938602274` / `92090934559` | eight-area protocol, symmetry/cost/search/match evidence, explicit rejection decisions, checksum `0ad7dcc3dda4cdfb`, no activation |
 | 23.1 | `4483c1661a975bc9f64c1f725618930e31968e74` | Rust `30940733222` / `92098127153`; Android `30940732968` / `92098189450`, `92098189412`, `92098189386` | deterministic legal-position properties cover square/move/FEN, make/unmake, hash, legal-move safety, internal invariants, evaluator symmetry, and legal reversible PVs; all permanent gates green |
 | 23 / gate | `469c9c67ab53c276509fc7bad0c4adc209c815b7` | Robustness `30944117733 / 92109744098, 92109744189, 92109744065`; Rust `30944118025 / 92109744577`; Android `30944117802 / 92109760102, 92109760118, 92109760076` | seven fuzz targets / 1,792 bounded runs, Miri, ASan/LSan, TSan, one minimized permanent C ABI regression found and fixed; complete gate green |
+| 24 / gate | `45f2263238f93a5ec4f06f4d4cbdef18f9b7def3` | CI `30952260291 / 92136935775`; Performance `30952260264 / 92136936026, 92136935996`; Robustness `30952260237 / 92136935690, 92136935729, 92136935792`; Android `30952260236 / 92136936014, 92136936160, 92136936153` | dual-architecture baselines, profile/allocation evidence, Android metrics, conservative budgets, and all independent gates green |
 
 ## Task 17.1 completion
 
@@ -1267,3 +1268,15 @@ Evidence:
 - named replay: `fuzz/tests/regression_c_abi.rs`.
 
 Task 23 is complete. Task 24 performance hardening is next. The independent Task 21 activation gate remains open until a real tuned candidate passes the 200-pair protocol and is explicitly activated.
+
+## Task 24 completion
+
+- Reproducible release benchmarks cover attacks, legal generation, make/unmake, hashing, evaluation, perft, fixed-node search, TT, cancellation, and C ABI calls.
+- Zero-allocation hot-path enforcement and structural clone/string/trace audits are fail-closed.
+- Versioned x86-64 and native ARM64 references use a unit-tested, variance-aware comparator.
+- Callgrind evidence `30950461692 / 92130944944 / 8908923833` identified legal generation and quiescence as the dominant redesign candidates; both were deferred pending dedicated correctness and strength evidence.
+- Android run `30952260236 / 92136936014, 92136936160, 92136936153` produced artifact `8909672738` with legal-move JNI average 1,832,214 ns; fixed-node search 89,106 total nodes in 896,094,777 ns (99,438 nodes/s); cancellation 4,388,550 ns; native heap deltas 1,053,504 bytes at 1 MiB and 16,781,168 bytes at 16 MiB.
+- Exact validated implementation SHA: `45f2263238f93a5ec4f06f4d4cbdef18f9b7def3`. Performance `30952260264 / 92136936026, 92136935996`; Rust `30952260291 / 92136935775`; Robustness `30952260237 / 92136935690, 92136935729, 92136935792`.
+- Contract: `docs/RUST_PERFORMANCE_GATES.md`.
+
+Task 24 is complete. Task 25 is next; the independent Task 21 activation gate remains open.
