@@ -19,7 +19,7 @@ jobs:
         with:
           ref: rust-engine
           fetch-depth: 0
-      - name: Apply compile fix and restore validation workflow
+      - name: Apply compile fix
         shell: bash
         run: |
           set -euo pipefail
@@ -32,12 +32,10 @@ jobs:
           if old not in text:
               raise SystemExit("expected Task 22 import not found")
           source.write_text(text.replace(old, new, 1))
-          workflow = Path(".github/workflows/task22-validation.yml")
-          workflow.write_text('''name: Task 22 validation\n\non:\n  pull_request:\n    branches:\n      - master\n    paths:\n      - .github/workflows/task22-validation.yml\n      - crates/chess-tools/src/advanced_evaluation.rs\n      - crates/chess-tools/src/lib.rs\n  workflow_dispatch:\n\npermissions:\n  contents: read\n\njobs:\n  validate:\n    runs-on: ubuntu-24.04\n    timeout-minutes: 60\n    env:\n      CARGO_TERM_COLOR: always\n      RUST_BACKTRACE: "1"\n    steps:\n      - uses: actions/checkout@v4\n      - uses: dtolnay/rust-toolchain@stable\n        with:\n          components: rustfmt, clippy\n      - uses: Swatinem/rust-cache@v2\n        with:\n          shared-key: rust-engine\n      - name: Check formatting\n        run: cargo fmt --all -- --check\n      - name: Check workspace\n        run: cargo check --locked --workspace --all-targets --all-features\n      - name: Run strict Clippy\n        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings\n      - name: Run chess-tools tests\n        run: cargo test --locked -p chess-tools\n      - name: Run controlled Task 22 evidence\n        run: cargo test --locked -p chess-tools task22_controlled_evidence_run -- --ignored --nocapture\n''')
           PYTHON
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add crates/chess-tools/src/advanced_evaluation.rs .github/workflows/task22-validation.yml
+          git add crates/chess-tools/src/advanced_evaluation.rs
           git diff --cached --check
           git commit -m "fix: remove unused Task 22 import"
           git push origin HEAD:rust-engine
