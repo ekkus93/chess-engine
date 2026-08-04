@@ -1304,7 +1304,7 @@ impl SelfPlayDataset {
         let opening_ply_count = usize::try_from(record.opening_ply_count)
             .map_err(|_| ToolError::new("opening ply count exceeds usize"))?;
         if record.moves.len() < opening_ply_count
-            || record.moves[..opening_ply_count] != opening.moves.as_slice()
+            || &record.moves[..opening_ply_count] != opening.moves.as_slice()
         {
             return Err(ToolError::new(format!(
                 "game {game_id} move list does not begin with its opening"
@@ -1568,7 +1568,11 @@ pub fn generate_self_play_dataset(
         let game_seed = game_seed(config.seed, game_id);
         let split = config.splits.assign(game_seed);
         let (game, raw_positions, result, termination) = run_game(config, opening, &white, &black)?;
-        let moves = game.moves().iter().map(Move::to_uci).collect::<Vec<_>>();
+        let moves = game
+            .moves()
+            .iter()
+            .map(|current| current.to_uci())
+            .collect::<Vec<_>>();
         let replay_command = format!(
             "chess-tools self-play-replay {} {game_id}",
             shell_quote(output_path)
