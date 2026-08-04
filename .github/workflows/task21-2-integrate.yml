@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 concurrency:
   group: task21-2-loss-integration
@@ -28,11 +29,15 @@ jobs:
           toolchain: 1.75.0
           components: rustfmt, clippy
 
-      - name: Wire loss modules and dependency
+      - name: Integrate and validate Task 21.2
+        id: work
+        continue-on-error: true
         shell: bash
         run: |
-          set -euo pipefail
-          python3 - <<'PY'
+          set +e
+          (
+            set -euo pipefail
+            python3 - <<'PY'
           from pathlib import Path
 
           tune_lib_path = Path('crates/chess-tune/src/lib.rs')
@@ -40,13 +45,13 @@ jobs:
           marker = 'use core::{fmt, fmt::Write as _, iter::FusedIterator};\n'
           exports = '''mod loss;
 
-pub use loss::{
-    logistic_result_probability, KCalibrationConfig, KCalibrationResult, LogisticK, LossDataset,
-    LossPartition, LossPipelineError, LossPosition, OutcomeTarget,
-    MAX_K_CALIBRATION_INTERVALS, TEXEL_EVALUATION_SCALE_CENTIPAWNS,
-};
+          pub use loss::{
+              logistic_result_probability, KCalibrationConfig, KCalibrationResult, LogisticK,
+              LossDataset, LossPartition, LossPipelineError, LossPosition, OutcomeTarget,
+              MAX_K_CALIBRATION_INTERVALS, TEXEL_EVALUATION_SCALE_CENTIPAWNS,
+          };
 
-'''
+          '''
           if 'mod loss;' not in tune_lib:
               if tune_lib.count(marker) != 1:
                   raise SystemExit('chess-tune insertion marker was not found exactly once')
@@ -57,9 +62,11 @@ pub use loss::{
           loss = loss_path.read_text()
           old = '        mean_squared_error_for_evaluated(&evaluated)\n'
           new = '        mean_squared_error_for_evaluated(&evaluated, k)\n'
-          if loss.count(old) != 1:
-              raise SystemExit('loss MSE call marker was not found exactly once')
-          loss_path.write_text(loss.replace(old, new, 1))
+          if old in loss:
+              loss = loss.replace(old, new, 1)
+          elif new not in loss:
+              raise SystemExit('loss MSE call marker was not found')
+          loss_path.write_text(loss)
 
           tools_lib_path = Path('crates/chess-tools/src/lib.rs')
           tools_lib = tools_lib_path.read_text()
@@ -80,24 +87,40 @@ pub use loss::{
               cargo = cargo.replace(marker, marker + dependency, 1)
           cargo_path.write_text(cargo)
           PY
+            cargo check --workspace --all-targets --all-features
+            cargo fmt --all
+            cargo check --locked --workspace --all-targets --all-features
+            cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+            cargo test --locked -p chess-tune
+            cargo test --locked -p chess-tools
+          ) > task21-2-integration.log 2>&1
+          status=$?
+          cat task21-2-integration.log
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
 
-      - name: Update lockfile and format
+      - name: Report validation failure
+        if: steps.work.outputs.status != '0'
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          cargo check --workspace --all-targets --all-features
-          cargo fmt --all
-
-      - name: Validate Task 21.2 source
-        shell: bash
-        run: |
-          set -euo pipefail
-          cargo check --locked --workspace --all-targets --all-features
-          cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
-          cargo test --locked -p chess-tune
-          cargo test --locked -p chess-tools
+          {
+            echo '### Task 21.2 integration failure'
+            echo
+            echo "- Run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo "- Head SHA: \`${GITHUB_SHA}\`"
+            echo
+            echo '```text'
+            tail -c 50000 task21-2-integration.log
+            echo '```'
+          } > task21-2-report.md
+          gh issue comment 261 --body-file task21-2-report.md
+          exit 1
 
       - name: Commit validated integration
+        if: steps.work.outputs.status == '0'
         shell: bash
         run: |
           set -euo pipefail
@@ -112,3 +135,16 @@ pub use loss::{
             crates/chess-tools/src/tuning.rs
           git commit -m 'task 21.2: integrate Texel loss pipeline'
           git push origin HEAD:master
+
+      - name: Report validation success
+        if: steps.work.outputs.status == '0'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh issue comment 261 --body "### Task 21.2 integration preflight passed
+
+          - Run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          - Validated source parent: \`${GITHUB_SHA}\`
+          - Cargo check, strict Clippy, chess-tune tests, and chess-tools tests passed."
