@@ -1,22 +1,35 @@
 name: Apply Task 24 Initial Implementation
 
 on:
-  issues:
-    types:
-      - opened
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/source-export.yml
 
 permissions:
   contents: write
 
 jobs:
   apply:
-    if: github.event.issue.title == '[internal] Apply Task 24 implementation'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
           ref: master
           fetch-depth: 0
+
+      - name: Record exact helper run
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s\n' "${GITHUB_RUN_ID}" > .github/source-export-run.txt
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .github/source-export-run.txt
+          git commit -m 'ci: record Task 24 apply run'
+          git push origin HEAD:master
+
       - name: Apply Task 24 implementation directly to master
         shell: bash
         run: |
@@ -28,7 +41,5 @@ jobs:
             .github/workflows/source-export.yml \
             .github/source-export-run.txt \
             .github/task24-initial.patch.gz.b64
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git commit -m 'perf: establish Task 24 measurement gates'
           git push origin HEAD:master
