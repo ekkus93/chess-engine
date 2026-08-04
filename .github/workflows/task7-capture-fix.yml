@@ -2,8 +2,7 @@ name: Consolidate rust-engine into master
 
 on:
   issues:
-    types:
-      - opened
+    types: [opened]
 
 permissions:
   contents: write
@@ -28,42 +27,41 @@ jobs:
       TRIGGER_ISSUE: ${{ github.event.issue.number }}
     steps:
       - name: Report start
-        shell: bash
-        run: |
-          gh api --method POST \
-            "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}/comments" \
-            -f body="Direct master consolidation started: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+        run: >-
+          gh api --method POST
+          "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}/comments"
+          -f body="Direct master consolidation started: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
-      - name: Check out master with complete history
+      - name: Check out master
         uses: actions/checkout@v4
         with:
           ref: master
           fetch-depth: 0
           token: ${{ github.token }}
 
-      - name: Install Python 3.11
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
 
-      - name: Install Rust toolchain
+      - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
 
-      - name: Install Java 17
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
-      - name: Install Gradle 8.9
+      - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
 
-      - name: Merge rust-engine and consolidate workflows
+      - name: Prepare exact merge commit
         shell: bash
         run: |
           set -euo pipefail
@@ -75,7 +73,6 @@ jobs:
           git merge --no-ff --no-commit origin/rust-engine
           merge_status=$?
           set -e
-
           if [[ ${merge_status} -ne 0 ]]; then
             mapfile -t unresolved < <(git diff --name-only --diff-filter=U)
             if [[ ${#unresolved[@]} -ne 1 || "${unresolved[0]}" != ".github/workflows/ci.yml" ]]; then
@@ -86,29 +83,18 @@ jobs:
             git checkout --theirs -- .github/workflows/ci.yml
             git add .github/workflows/ci.yml
           fi
-
-          if git diff --name-only --diff-filter=U | grep -q .; then
-            echo 'Unresolved merge conflicts remain.' >&2
-            git diff --name-only --diff-filter=U >&2
-            exit 1
-          fi
+          test -z "$(git diff --name-only --diff-filter=U)"
 
           python3 - <<'PY'
           from pathlib import Path
 
-          for relative in (
-              '.github/workflows/ci.yml',
-              '.github/workflows/android.yml',
-          ):
+          for relative in ('.github/workflows/ci.yml', '.github/workflows/android.yml'):
               path = Path(relative)
               source = path.read_text(encoding='utf-8')
               count = source.count('      - rust-engine\n')
               if count != 2:
                   raise SystemExit(f'{relative}: expected two rust-engine branch triggers, found {count}')
-              path.write_text(
-                  source.replace('      - rust-engine\n', '      - master\n'),
-                  encoding='utf-8',
-              )
+              path.write_text(source.replace('      - rust-engine\n', '      - master\n'), encoding='utf-8')
 
           for path in Path('docs').glob('*.md'):
               source = path.read_text(encoding='utf-8')
@@ -123,145 +109,86 @@ jobs:
             .github/workflows/dispatch-rust-engine-ci.yml \
             .github/workflows/publish-ci-status-rust-engine.yml \
             .github/workflows/task7-capture-fix.yml
-
           git add -A
-          git diff --cached --check
 
-          actual_workflows="$(find .github/workflows -maxdepth 1 -type f -printf '%f\n' | sort)"
-          expected_workflows="$(printf '%s\n' android.yml ci.yml python-ci.yml slow-perft.yml)"
-          if [[ "${actual_workflows}" != "${expected_workflows}" ]]; then
-            echo 'Unexpected final workflow set:' >&2
-            printf '%s\n' "${actual_workflows}" >&2
-            exit 1
-          fi
+          actual="$(find .github/workflows -maxdepth 1 -type f -printf '%f\n' | sort)"
+          expected="$(printf '%s\n' android.yml ci.yml python-ci.yml slow-perft.yml)"
+          [[ "${actual}" == "${expected}" ]]
 
           git commit -m 'Merge rust-engine into master and consolidate CI'
           test "$(git rev-list --parents -n 1 HEAD | wc -w)" -eq 3
           test -z "$(git status --porcelain)"
           echo "MERGE_SHA=$(git rev-parse HEAD)" >> "${GITHUB_ENV}"
 
-      - name: Report merge tree prepared
-        shell: bash
-        run: |
-          gh api --method POST \
-            "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}/comments" \
-            -f body="Prepared exact two-parent merge commit ${MERGE_SHA}; validation is running before master is updated."
+      - name: Report prepared merge
+        run: >-
+          gh api --method POST
+          "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}/comments"
+          -f body="Prepared exact two-parent merge commit ${MERGE_SHA}; validating it before master is updated."
 
-      - name: Install Python project and validation dependencies
+      - name: Lint and test Python
         shell: bash
         run: |
           set -euo pipefail
           python -m pip install --disable-pip-version-check --upgrade pip
           python -m pip install --disable-pip-version-check -e '.[lint,test]'
           python -m pip install --disable-pip-version-check --requirement requirements/oracle.txt
-
-      - name: Lint Python
-        shell: bash
-        run: |
-          set -euo pipefail
           python -m ruff check chess_game tests
           python -m mypy chess_game
           python -m pylint chess_game
+          python -m pytest tests -q
 
-      - name: Run all Python tests
-        run: python -m pytest tests -q
+      - name: Report Python success
+        run: >-
+          gh api --method POST
+          "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}/comments"
+          -f body="Python linting and all Python tests passed at ${MERGE_SHA}."
 
-      - name: Report Python validation
-        shell: bash
-        run: |
-          gh api --method POST \
-            "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}/comments" \
-            -f body="Python linting and the complete Python test suite passed at ${MERGE_SHA}."
-
-      - name: Verify Rust workspace and audit assets
+      - name: Audit, lint, and test Rust
         shell: bash
         run: |
           set -euo pipefail
-          test -f Cargo.toml
-          test -f Cargo.lock
-          test -f fixtures/perft.tsv
-          test -f fixtures/differential_corpus.tsv
-          test -f requirements/oracle.txt
-          test -f scripts/differential_oracle.py
-          test -f scripts/task_14_5_exclusion_audit.py
-          test -f scripts/task_19_5_opening_book_audit.py
-          test -f crates/chess-book/tests/task_19_5.rs
           python3 -m py_compile \
             scripts/differential_oracle.py \
             scripts/task_14_5_exclusion_audit.py \
             scripts/task_19_5_opening_book_audit.py
           python3 scripts/task_14_5_exclusion_audit.py
           python3 scripts/task_19_5_opening_book_audit.py
-          if grep \
-            --recursive \
-            --line-number \
-            --include='*.rs' \
-            --extended-regexp '#!\[(allow|expect)|#\[(allow|expect)' \
-            crates; then
+          if grep --recursive --line-number --include='*.rs' \
+            --extended-regexp '#!\[(allow|expect)|#\[(allow|expect)' crates; then
             echo 'First-party Rust lint suppression is forbidden.' >&2
             exit 1
           fi
-
-      - name: Verify Rust lockfile and metadata
-        shell: bash
-        run: |
-          set -euo pipefail
           cargo generate-lockfile
           git diff --exit-code -- Cargo.lock
           cargo metadata --locked --format-version 1 --no-deps
-
-      - name: Check Rust formatting
-        run: cargo fmt --all -- --check
-
-      - name: Check Rust workspace
-        run: cargo check --locked --workspace --all-targets --all-features
-
-      - name: Run Rust Clippy
-        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
-
-      - name: Run all Rust tests
-        run: cargo test --locked --workspace --all-features
-
-      - name: Run authoritative release perft
-        run: cargo test --locked -p chess-core --release authoritative_perft_depth_four -- --ignored --exact
-
-      - name: Build Rust documentation
-        env:
-          RUSTDOCFLAGS: -D warnings
-        run: cargo doc --locked --workspace --all-features --no-deps
-
-      - name: Build Rust debug and release workspaces
-        shell: bash
-        run: |
-          set -euo pipefail
+          cargo fmt --all -- --check
+          cargo check --locked --workspace --all-targets --all-features
+          cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+          cargo test --locked --workspace --all-features
+          cargo test --locked -p chess-core --release authoritative_perft_depth_four -- --ignored --exact
+          RUSTDOCFLAGS='-D warnings' cargo doc --locked --workspace --all-features --no-deps
           cargo build --locked --workspace --all-features
           cargo build --locked --workspace --all-features --release
+          python scripts/differential_oracle.py \
+            --binary target/release/chess-tools \
+            --corpus fixtures/differential_corpus.tsv \
+            --games 12 --plies 48 --seed 0xC0FFEE
 
-      - name: Run differential corpus and seeded playouts
+      - name: Report Rust success
         run: >-
-          python scripts/differential_oracle.py
-          --binary target/release/chess-tools
-          --corpus fixtures/differential_corpus.tsv
-          --games 12
-          --plies 48
-          --seed 0xC0FFEE
+          gh api --method POST
+          "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}/comments"
+          -f body="Rust audits, formatting, check, Clippy, all tests, release perft, rustdoc, builds, and differential validation passed at ${MERGE_SHA}."
 
-      - name: Report Rust validation
-        shell: bash
-        run: |
-          gh api --method POST \
-            "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}/comments" \
-            -f body="Rust audits, formatting, check, Clippy, all tests, release perft, rustdoc, debug/release builds, and differential validation passed at ${MERGE_SHA}."
-
-      - name: Run host JVM JNI contract
+      - name: Run host JVM JNI tests
         shell: bash
         run: |
           set -euo pipefail
           cargo build --locked -p chess-jni --release
-          gradle -p android-harness :host-jvm:test \
-            --no-daemon --stacktrace --console=plain
+          gradle -p android-harness :host-jvm:test --no-daemon --stacktrace --console=plain
 
-      - name: Resolve hosted Android NDK
+      - name: Resolve Android NDK
         id: ndk
         shell: bash
         run: |
@@ -272,9 +199,8 @@ jobs:
           fi
           test -d "${NDK_HOME}"
           echo "home=${NDK_HOME}" >> "${GITHUB_OUTPUT}"
-          "${NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/clang" --version
 
-      - name: Build and verify Android native artifacts
+      - name: Build and verify Android artifacts
         env:
           ANDROID_NDK_HOME: ${{ steps.ndk.outputs.home }}
           ANDROID_API_LEVEL: "24"
@@ -305,7 +231,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Run Android API 35 JNI lifecycle
+      - name: Run Android API 35 instrumentation
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -321,14 +247,13 @@ jobs:
             :android-smoke:connectedDebugAndroidTest
             --no-daemon --stacktrace --console=plain
 
-      - name: Report Android validation
-        shell: bash
-        run: |
-          gh api --method POST \
-            "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}/comments" \
-            -f body="Host JVM JNI, ARM64/x86_64 native verification, Android APK builds, and API-35 instrumentation passed at ${MERGE_SHA}."
+      - name: Report Android success
+        run: >-
+          gh api --method POST
+          "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}/comments"
+          -f body="Host JVM JNI, ARM64/x86_64 verification, Android builds, and API-35 instrumentation passed at ${MERGE_SHA}."
 
-      - name: Verify exact tested merge tree and push master
+      - name: Push tested merge to master
         shell: bash
         run: |
           set -euo pipefail
@@ -336,22 +261,19 @@ jobs:
           test "$(git rev-list --parents -n 1 HEAD | wc -w)" -eq 3
           git push origin HEAD:master
 
-      - name: Report success and close trigger issue
+      - name: Report success and close issue
         shell: bash
         run: |
-          set -euo pipefail
           gh api --method POST \
             "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}/comments" \
             -f body="Consolidation complete. master now points to tested merge commit ${MERGE_SHA}. No branch or pull request was created."
           gh api --method PATCH \
             "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}" \
-            -f state=closed \
-            -f state_reason=completed
+            -f state=closed -f state_reason=completed
 
       - name: Report failure
         if: failure()
-        shell: bash
-        run: |
-          gh api --method POST \
-            "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}/comments" \
-            -f body="Consolidation failed before master was updated. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+        run: >-
+          gh api --method POST
+          "repos/${REPOSITORY}/issues/${TRIGGER_ISSUE}/comments"
+          -f body="Consolidation failed before master was updated. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
