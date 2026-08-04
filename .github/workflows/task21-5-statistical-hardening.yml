@@ -1,0 +1,49 @@
+name: Task 21.5 Statistical Hardening
+
+on:
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+concurrency:
+  group: task21-5-statistical-hardening
+  cancel-in-progress: false
+
+jobs:
+  harden:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Apply statistical hardening
+        run: python3 .github/task21-5-statistical-hardening.py
+
+      - name: Validate candidate protocol
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all
+          cargo check --workspace --all-targets --locked
+          cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+          cargo test -p chess-tools --all-features --locked
+
+      - name: Commit statistical hardening
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add crates/chess-tools/src/candidate_validation.rs docs/RUST_CANDIDATE_VALIDATION.md
+          git commit -m 'task 21.5: require distinct validation openings'
+          git push origin HEAD:rust-engine
