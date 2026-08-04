@@ -1040,7 +1040,7 @@ mod tests {
             TrainingRunProvenance::new(
                 0x5452_4149_4e45_5231,
                 [0x11; 20],
-                0xC0FF_EE,
+                0x00C0_FFEE,
                 64,
                 1_785_820_000,
             ),
