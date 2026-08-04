@@ -3,7 +3,7 @@
 **Updated:** 2026-08-03
 **Branch:** `rust-engine`  
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 19.3 opening-book selection policies complete; Task 19.4 adapter integration is next
+**Current phase:** Task 19.4 opening-book adapter integration complete; Task 19.5 opening-book tests are next
 
 ## Completed gates
 
@@ -61,6 +61,7 @@
 | 19.1 | `6ce31141d0d4516696f1e9d17ee018606ef7bd4b` | Rust `30852253445` / `91814805656`; Android `30852253399` / `91814815286`, `91814815151` | adapter-neutral `chess-book` crate, typed `OpeningBook`/`BookProvider`, generic weighted `BookMove`, four focused tests, no core/search I/O dependencies; 310 Rust tests and Android regressions green |
 | 19.2 | `781e876563e8b21bb50e6fa83af6afe92b260910` | Rust `30855596855` / `91825754603`; Android `30855596897` / `91825818389`, `91825818440` | version-1 project-specific fixed-record indexed format, canonical four-field FEN keys, little-endian schema, header/payload CRC-32, strict structural corruption rejection, seven focused tests; 317 Rust tests and Android regressions green |
 | 19.3 | `82b5100f501fe4e4a845d5fb3bdbb1c8fe7d34ef` | Rust `30859905206` / `91839380997`; Android `30859905203` / `91839428990`, `91839429013` | exact indexed UCI-to-legal-move resolution, generic candidate revalidation, deterministic highest-weight policy with canonical tie ordering, explicit local-seed SplitMix64 weighted policy, six focused tests; 323 Rust tests and Android regressions green |
+| 19.4 | `5b8e2117c64922e97cbe356caa44a51075da7b52` | Rust `30863525297` / `91850371126`; Android `30863525289` / `91850370864`, `91850370917` | explicit UCI `OwnBook` and `--book` injection, safe-facade policy/configuration, additive C ABI/JNI byte injection, Android asset adapter, and disabled/absent/no-entry search fallback; 328 Rust tests and Android regressions green |
 
 ## Task 17.1 completion
 
