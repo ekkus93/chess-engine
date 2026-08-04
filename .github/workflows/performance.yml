@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   linux-baseline:
-    name: Linux performance baseline
+    name: Linux x86-64 performance baseline
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -31,7 +31,7 @@ jobs:
       - name: Cache Cargo data
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: rust-engine-performance
+          shared-key: rust-engine-performance-x86-64
 
       - name: Audit performance architecture
         run: python3 scripts/task_24_performance_audit.py
@@ -40,18 +40,57 @@ jobs:
         run: cargo build --locked --release -p chess-tools --bin performance
 
       - name: Enforce zero-allocation hot paths
-        run: target/release/performance allocation-audit | tee performance-allocation-audit.tsv
+        run: target/release/performance allocation-audit | tee performance-allocation-audit-x86-64.tsv
 
       - name: Measure reproducible Linux baseline
-        run: target/release/performance baseline 7 1 | tee performance-linux.tsv
+        run: target/release/performance baseline 7 1 | tee performance-linux-x86-64.tsv
 
       - name: Preserve benchmark evidence
         uses: actions/upload-artifact@v4
         with:
-          name: task24-linux-performance-${{ github.sha }}
+          name: task24-linux-x86-64-performance-${{ github.sha }}
           path: |
-            performance-linux.tsv
-            performance-allocation-audit.tsv
+            performance-linux-x86-64.tsv
+            performance-allocation-audit-x86-64.tsv
+          if-no-files-found: error
+          retention-days: 30
+
+  linux-arm64-baseline:
+    name: Linux ARM64 performance baseline
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache Cargo data
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-engine-performance-arm64
+
+      - name: Audit performance architecture
+        run: python3 scripts/task_24_performance_audit.py
+
+      - name: Build release performance harness
+        run: cargo build --locked --release -p chess-tools --bin performance
+
+      - name: Enforce zero-allocation hot paths
+        run: target/release/performance allocation-audit | tee performance-allocation-audit-arm64.tsv
+
+      - name: Measure reproducible ARM64 baseline
+        run: target/release/performance baseline 7 1 | tee performance-linux-arm64.tsv
+
+      - name: Preserve ARM64 benchmark evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: task24-linux-arm64-performance-${{ github.sha }}
+          path: |
+            performance-linux-arm64.tsv
+            performance-allocation-audit-arm64.tsv
           if-no-files-found: error
           retention-days: 30
 
