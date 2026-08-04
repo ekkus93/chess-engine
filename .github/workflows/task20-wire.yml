@@ -1,0 +1,151 @@
+name: Task 20 Wire Self-Play
+
+on:
+  push:
+    branches:
+      - task20-self-play-dataset
+
+permissions:
+  contents: write
+
+concurrency:
+  group: task20-wire-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  wire:
+    if: github.actor == 'ekkus93'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: task20-self-play-dataset
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Wire module and commands
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          lib = Path('crates/chess-tools/src/lib.rs')
+          text = lib.read_text()
+          marker = 'mod weights_io;'
+          if 'pub mod self_play;' not in text:
+              if text.count(marker) != 1:
+                  raise SystemExit('unexpected chess-tools lib module marker')
+              text = text.replace(marker, 'pub mod self_play;\n' + marker)
+              lib.write_text(text)
+
+          main = Path('crates/chess-tools/src/main.rs')
+          text = main.read_text()
+          import_marker = 'use chess_search::EvaluationWeightSet;\n'
+          import_block = '''use chess_tools::self_play::{
+              generate_self_play_dataset, OpeningSuite, SelfPlayDataset, SelfPlayFileConfig,
+              SELF_PLAY_DATASET_SCHEMA_VERSION,
+          };
+          '''
+          if import_block not in text:
+              if text.count(import_marker) != 1:
+                  raise SystemExit('unexpected chess-tools main import marker')
+              text = text.replace(import_marker, import_marker + import_block)
+
+          old_usage = '  chess-tools weights-validate PATH\\n  chess-tools oracle"'
+          new_usage = (
+              '  chess-tools weights-validate PATH\\n'
+              '  chess-tools self-play CONFIG_PATH OUTPUT_PATH\\n'
+              '  chess-tools self-play-validate DATASET_PATH\\n'
+              '  chess-tools self-play-replay DATASET_PATH GAME_ID\\n'
+              '  chess-tools oracle"'
+          )
+          if old_usage in text:
+              text = text.replace(old_usage, new_usage)
+          elif new_usage not in text:
+              raise SystemExit('unexpected chess-tools usage marker')
+
+          command_marker = '''        "oracle" => {
+          '''
+          command_block = '''        "self-play" => {
+              if arguments.len() != 3 {
+                  return Err(usage().to_owned());
+              }
+              let config_text = fs::read_to_string(&arguments[1])
+                  .map_err(|error| format!("failed to read {:?}: {error}", arguments[1]))?;
+              let file_config = SelfPlayFileConfig::from_text(&config_text)
+                  .map_err(|error| error.to_string())?;
+              let opening_text = fs::read_to_string(file_config.opening_path()).map_err(|error| {
+                  format!("failed to read {:?}: {error}", file_config.opening_path())
+              })?;
+              let openings = OpeningSuite::from_text(&opening_text)
+                  .map_err(|error| error.to_string())?;
+              let dataset = generate_self_play_dataset(
+                  file_config.config(),
+                  &openings,
+                  &arguments[2],
+              )
+              .map_err(|error| error.to_string())?;
+              let output = dataset.to_text();
+              fs::write(&arguments[2], output)
+                  .map_err(|error| format!("failed to write {:?}: {error}", arguments[2]))?;
+              println!("schema\\t{SELF_PLAY_DATASET_SCHEMA_VERSION}");
+              println!("games\\t{}", dataset.games().len());
+              println!("positions\\t{}", dataset.positions().len());
+          }
+          "self-play-validate" => {
+              if arguments.len() != 2 {
+                  return Err(usage().to_owned());
+              }
+              let text = fs::read_to_string(&arguments[1])
+                  .map_err(|error| format!("failed to read {:?}: {error}", arguments[1]))?;
+              let dataset = SelfPlayDataset::from_text(&text)
+                  .map_err(|error| error.to_string())?;
+              println!("schema\\t{SELF_PLAY_DATASET_SCHEMA_VERSION}");
+              println!("games\\t{}", dataset.games().len());
+              println!("positions\\t{}", dataset.positions().len());
+          }
+          "self-play-replay" => {
+              if arguments.len() != 3 {
+                  return Err(usage().to_owned());
+              }
+              let game_id = arguments[2]
+                  .parse::<u32>()
+                  .map_err(|error| format!("invalid game id {:?}: {error}", arguments[2]))?;
+              let text = fs::read_to_string(&arguments[1])
+                  .map_err(|error| format!("failed to read {:?}: {error}", arguments[1]))?;
+              let dataset = SelfPlayDataset::from_text(&text)
+                  .map_err(|error| error.to_string())?;
+              let replay = dataset
+                  .replay_game(game_id)
+                  .map_err(|error| error.to_string())?;
+              println!("game\\t{}", replay.game_id());
+              println!("plies\\t{}", replay.plies());
+              println!("result\\t{}", replay.result());
+              println!("termination\\t{}", replay.termination());
+              println!("final_fen\\t{}", replay.final_fen());
+          }
+          '''
+          if command_block not in text:
+              if text.count(command_marker) != 1:
+                  raise SystemExit('unexpected chess-tools oracle command marker')
+              text = text.replace(command_marker, command_block + command_marker)
+          main.write_text(text)
+          PY
+          cargo fmt --all
+
+      - name: Commit wiring and remove one-shot workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/task20-wire.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add crates/chess-tools/src/lib.rs crates/chess-tools/src/main.rs crates/chess-tools/src/self_play.rs crates/chess-tools/tests/task_20.rs
+          git commit -m 'Wire Task 20 self-play tooling'
+          git push origin HEAD:task20-self-play-dataset
