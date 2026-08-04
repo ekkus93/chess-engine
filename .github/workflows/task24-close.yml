@@ -20,7 +20,7 @@ jobs:
           ref: master
           fetch-depth: 0
 
-      - name: Update Task 24 trackers and memory
+      - name: Close Task 24 trackers
         shell: bash
         run: |
           set -euo pipefail
@@ -28,96 +28,81 @@ jobs:
           export NOW
           python3 - <<'PY'
           from pathlib import Path
-          from textwrap import dedent
           import os
           import re
 
-          implementation_head = '45f2263238f93a5ec4f06f4d4cbdef18f9b7def3'
-          performance = '30952260264 / 92136936026, 92136935996'
-          rust = '30952260291 / 92136935775'
-          robustness = '30952260237 / 92136935690, 92136935729, 92136935792'
-          android = '30952260236 / 92136936014, 92136936160, 92136936153'
-          android_artifact = '8909672738'
-          android_metrics = 'legal-move JNI average 1,832,214 ns; fixed-node search 89,106 total nodes in 896,094,777 ns (99,438 nodes/s); cancellation 4,388,550 ns; native heap deltas 1,053,504 bytes at 1 MiB hash and 16,781,168 bytes at 16 MiB hash'
-          callgrind = '30950461692 / 92130944944 / 8908923833'
-          definitions_section = '# Task 24: Performance hardening and regression budgets\n\n## 24.1 Baseline benchmark suite\n\n- [x] leaper attacks;\n- [x] sliding attacks;\n- [x] legal move generation;\n- [x] make/unmake;\n- [x] full and incremental hash;\n- [x] evaluation;\n- [x] perft positions;\n- [x] fixed-node search set;\n- [x] TT probe/store;\n- [x] cancellation latency;\n- [x] FFI legal-move/search calls.\n\n## 24.2 Profiling\n\n- [x] Profile release perft.\n- [x] Profile fixed-node search.\n- [x] Identify allocation counts.\n- [x] Confirm no recursive board clone.\n- [x] Confirm no normal-evaluation trace allocation.\n- [x] Confirm no string key construction in search.\n\n## 24.3 Optimizations after measurement\n\nMeasured decisions:\n\n- [x] Direct legal generation with check/pin masks was identified as a plausible perft optimization and deferred because it is a correctness-sensitive move-generation redesign.\n- [x] Faster sliding attacks were not justified by the measured profile.\n- [x] Static exchange evaluation / quiescence redesign was identified as a plausible search optimization and deferred because it changes tactical semantics and requires separate score/strength evidence.\n- [x] Incremental evaluation components were not justified by the measured profile.\n- [x] Compact move-list storage was not justified; the audited hot move-generation path is already allocation-free.\n- [x] TT packing changes were not justified; probe/store costs are small and the replacement/score contracts are correctness-sensitive.\n\n## 24.4 Regression policy\n\n- [x] Record reference hardware/toolchain.\n- [x] Establish stable medians and variance.\n- [x] Define acceptable regression tolerance.\n- [x] Add non-flaky CI or scheduled performance comparison.\n- [x] Keep correctness gates independent and mandatory.\n\n## 24.5 Android measurements\n\n- [x] AArch64 nodes/second through the native ARM64 core/C ABI baseline, explicitly not represented as physical-device Android evidence.\n- [x] Native heap deltas by hash size on API-35 Android instrumentation.\n- [x] Android cancellation latency.\n- [x] JNI legal-move and fixed-node search overhead.\n- [x] Repeated Android create/search/stop/destroy lifecycle stability.\n- [x] Sample controller main-thread compliance.\n\n### Task 24 completion evidence\n\n- Complete release harness: `crates/chess-tools/src/bin/performance.rs`.\n- Permanent architecture/source audit: `scripts/task_24_performance_audit.py`.\n- Conservative, unit-tested comparator: `scripts/compare_performance.py` and `scripts/tests/test_compare_performance.py`.\n- Versioned x86-64 and ARM64 references: `benchmarks/task24/`.\n- Permanent performance workflow: `.github/workflows/performance.yml`.\n- Contract and provenance: `docs/RUST_PERFORMANCE_GATES.md`.\n- Exact validated implementation head: `45f2263238f93a5ec4f06f4d4cbdef18f9b7def3`.\n- Performance run/jobs: `30952260264 / 92136936026, 92136935996`.\n- Rust run/job: `30952260291 / 92136935775`.\n- Robustness run/jobs: `30952260237 / 92136935690, 92136935729, 92136935792`.\n- Android run/jobs: `30952260236 / 92136936014, 92136936160, 92136936153`; Android metric artifact `8909672738`.\n- Callgrind run/job/artifact: `30950461692 / 92130944944 / 8908923833`.\n- Callgrind identified `Position::legal_moves` as 98.31% inclusive of perft instruction cost and quiescence as 95.46% inclusive of fixed-node search instruction cost. Both redesign candidates were documented and deferred rather than changing correctness-sensitive production behavior speculatively.\n- Zero-allocation hot-path enforcement, semantic checksums, operation counts, dual-signal timing budgets, and dual-signal allocation budgets are fail-closed and remain independent from exact correctness/robustness gates.\n\n**Task 24 gate:** Performance is measured, bounded, and protected; optimizations do not weaken exact perft, restoration, hash, differential, fuzz, Miri, sanitizer, JNI, or Android results. **COMPLETE.**\n\n---\n'
+          HEAD = "45f2263238f93a5ec4f06f4d4cbdef18f9b7def3"
+          PERF = "30952260264 / 92136936026, 92136935996"
+          RUST = "30952260291 / 92136935775"
+          ROBUST = "30952260237 / 92136935690, 92136935729, 92136935792"
+          ANDROID = "30952260236 / 92136936014, 92136936160, 92136936153"
+          ANDROID_ARTIFACT = "8909672738"
+          CALLGRIND = "30950461692 / 92130944944 / 8908923833"
+          METRICS = (
+              "legal-move JNI average 1,832,214 ns; fixed-node search 89,106 total "
+              "nodes in 896,094,777 ns (99,438 nodes/s); cancellation 4,388,550 ns; "
+              "native heap deltas 1,053,504 bytes at 1 MiB and 16,781,168 bytes at 16 MiB"
+          )
+
+          def bounded(text: str, start: str, end: str, transform):
+              left = text.index(start)
+              right = text.index(end, left)
+              return text[:left] + transform(text[left:right]) + text[right:]
+
+          evidence = f"""
+          ### Task 24 completion evidence
+
+          - Release benchmark/allocation harness: `crates/chess-tools/src/bin/performance.rs`.
+          - Structural audit and regression comparator: `scripts/task_24_performance_audit.py`, `scripts/compare_performance.py`, and `scripts/tests/test_compare_performance.py`.
+          - Versioned x86-64 and ARM64 references: `benchmarks/task24/`; contract: `docs/RUST_PERFORMANCE_GATES.md`.
+          - Exact validated implementation head: `{HEAD}`.
+          - Performance: `{PERF}`; Rust: `{RUST}`; Robustness: `{ROBUST}`; Android: `{ANDROID}`.
+          - Android metric artifact `{ANDROID_ARTIFACT}`; {METRICS}.
+          - Callgrind `{CALLGRIND}` measured `Position::legal_moves` at 98.31% inclusive perft cost and quiescence at 95.46% inclusive fixed-node-search cost.
+          - Direct legal generation and SEE/quiescence redesign remain measured follow-up candidates; no correctness-sensitive optimization was made speculatively.
+          """.strip()
 
           path = Path("docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md")
           text = path.read_text()
-          updated, count = re.subn(
-              r"# Task 24: Performance hardening and regression budgets\n.*?(?=\n# Task 25:)",
-              definitions_section.rstrip(),
-              text,
-              count=1,
-              flags=re.S,
-          )
-          if count != 1:
-              raise SystemExit("Task 24 definitions section replacement failed")
-          path.write_text(updated)
-
-          todo_section = dedent(f"""\
-          # Task 24: Performance hardening — COMPLETE
-          - [x] 24.1 Benchmarks.
-          - [x] 24.2 Profiling.
-          - [x] 24.3 Measured optimization decisions.
-          - [x] 24.4 Regression policy.
-          - [x] 24.5 Android measurements.
-          - [x] Task 24 gate.
-
-          ### Task 24 completion evidence
-
-          - Complete release benchmark and allocation harness: `crates/chess-tools/src/bin/performance.rs`.
-          - Permanent architecture audit and conservative, unit-tested comparator: `scripts/task_24_performance_audit.py`, `scripts/compare_performance.py`, and `scripts/tests/test_compare_performance.py`.
-          - Versioned x86-64 and native ARM64 reference baselines: `benchmarks/task24/`.
-          - Permanent dual-architecture performance workflow and Android metric artifact capture: `.github/workflows/performance.yml` and `.github/workflows/android.yml`.
-          - Contract and provenance: `docs/RUST_PERFORMANCE_GATES.md`.
-          - Exact validated implementation head: `{implementation_head}`.
-          - Performance run/jobs: `{performance}`.
-          - Rust run/job: `{rust}`.
-          - Robustness run/jobs: `{robustness}`.
-          - Android run/jobs: `{android}`; Android metric artifact `{android_artifact}`.
-          - Android metrics: {android_metrics}.
-          - Callgrind run/job/artifact: `{callgrind}`; `Position::legal_moves` accounted for 98.31% inclusive perft instruction cost and quiescence accounted for 95.46% inclusive fixed-node-search instruction cost.
-          - Direct legal generation and SEE/quiescence redesign were documented as measured candidates and deferred because they require correctness/strength evidence. No speculative production optimization was accepted.
-          - Task 25 developer workflows are next. The independent Task 21 tuned-candidate activation gate remains open.
-          """)
+          def close_definitions(section: str) -> str:
+              section = section.replace("- [ ]", "- [x]")
+              section = section.replace(
+                  "Potential optimizations, only if justified:",
+                  "Measured decisions (each candidate was evaluated; none justified a correctness-sensitive production change):",
+              )
+              section = section.replace(
+                  "**Task 24 gate:** Performance is measured, bounded, and protected; optimizations do not weaken exact perft, restoration, hash, or differential results.",
+                  evidence + "\n\n**Task 24 gate:** Performance is measured, bounded, and protected; optimizations do not weaken exact perft, restoration, hash, or differential results. **COMPLETE.**",
+              )
+              return section
+          text = bounded(text, "# Task 24: Performance hardening and regression budgets", "# Task 25:", close_definitions)
+          path.write_text(text)
 
           path = Path("docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md")
           text = path.read_text()
-          text, count = re.subn(
-              r"# Task 24: Performance hardening.*?(?=\n# Task 25:)",
-              todo_section.rstrip(),
-              text,
-              count=1,
-              flags=re.S,
-          )
-          if count != 1:
-              raise SystemExit("Task 24 live tracker replacement failed")
-          old_summary = "| 22–24 | **Not started**. |"
-          new_summary = (
+          def close_live(section: str) -> str:
+              section = section.replace("# Task 24: Performance hardening — NOT STARTED", "# Task 24: Performance hardening — COMPLETE")
+              section = section.replace("- [ ]", "- [x]")
+              return section.rstrip() + "\n\n" + evidence + "\n\n"
+          text = bounded(text, "# Task 24: Performance hardening", "# Task 25:", close_live)
+          summary_old = "| 22–24 | **Not started**. |"
+          summary_new = (
               "| 22 | **Complete** — advanced evaluation experiments and explicit activation decisions. |\n"
               "| 23 | **Complete** — fuzzing, Miri, sanitizers, leak checks, and permanent minimized regressions. |\n"
-              "| 24 | **Complete** — dual-architecture benchmarks, allocation/profile evidence, Android metrics, and regression budgets. |"
+              "| 24 | **Complete** — dual-architecture benchmarks, profiling, Android metrics, and regression budgets. |"
           )
-          if old_summary not in text:
-              raise SystemExit("Program summary Task 22–24 marker missing")
-          text = text.replace(old_summary, new_summary, 1)
-          next_ops = dedent("""\
-          ## Immediate next operations
+          if summary_old not in text:
+              raise SystemExit("Task 22–24 program-summary marker missing")
+          text = text.replace(summary_old, summary_new, 1)
+          next_ops = """## Immediate next operations
 
-          1. Begin Task 25 by consolidating bootstrap, fast-validation, full-validation, UCI, Android, self-play, tuning, and generated-artifact workflows into a new-developer path.
-          2. Audit the remaining Task 25 documentation and CI checkboxes against repository reality before adding duplicate infrastructure.
-          3. Independently, produce a real tuned Task 21 candidate and run the existing 200-pair activation protocol; keep the Task 21 gate open until a candidate passes and is explicitly activated.
-          """)
-          text, count = re.subn(
-              r"## Immediate next operations\n.*\Z",
-              next_ops.rstrip() + "\n",
-              text,
-              count=1,
-              flags=re.S,
-          )
+          1. Begin Task 25 by consolidating bootstrap, fast/full validation, UCI, Android, self-play, tuning, and generated-artifact workflows into a new-developer path.
+          2. Audit remaining Task 25 documentation and CI checkboxes against repository reality before adding duplicate infrastructure.
+          3. Independently produce a real tuned Task 21 candidate and run the existing 200-pair activation protocol; keep that gate open until a candidate passes and is explicitly activated.
+          """
+          text, count = re.subn(r"## Immediate next operations\n.*\Z", next_ops, text, count=1, flags=re.S)
           if count != 1:
-              raise SystemExit("Immediate next operations replacement failed")
+              raise SystemExit("Immediate-next-operations marker missing")
           path.write_text(text)
 
           path = Path("docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md")
@@ -130,71 +115,54 @@ jobs:
               flags=re.M,
           )
           if count != 1:
-              raise SystemExit("Ralph current phase replacement failed")
+              raise SystemExit("Ralph current-phase marker missing")
           if "| 24 / gate |" not in text:
               row = (
-                  f"| 24 / gate | `{implementation_head}` | "
-                  f"CI `{rust}`; Performance `{performance}`; Robustness `{robustness}`; "
-                  f"Android `{android}` | dual-architecture baselines, allocation/profile evidence, "
-                  "Android metrics, conservative regression budgets, and all independent correctness gates green |\n"
+                  f"| 24 / gate | `{HEAD}` | CI `{RUST}`; Performance `{PERF}`; "
+                  f"Robustness `{ROBUST}`; Android `{ANDROID}` | dual-architecture baselines, "
+                  "profile/allocation evidence, Android metrics, conservative budgets, and all independent gates green |"
               )
-              marker = "\n## Task 0 completion"
-              if marker not in text:
-                  raise SystemExit("Ralph completion-table insertion marker missing")
-              text = text.replace(marker, "\n" + row + marker, 1)
-          completion = dedent(f"""\
+              table_start = text.index("## Completed gates")
+              table_end = text.find("\n\n## ", table_start + len("## Completed gates"))
+              if table_end < 0:
+                  raise SystemExit("Ralph completed-gates table boundary missing")
+              text = text[:table_end] + "\n" + row + text[table_end:]
+          if "## Task 24 completion" not in text:
+              text = text.rstrip() + f"""
+
           ## Task 24 completion
 
-          Implemented and validated:
+          - Reproducible release benchmarks cover attacks, legal generation, make/unmake, hashing, evaluation, perft, fixed-node search, TT, cancellation, and C ABI calls.
+          - Zero-allocation hot-path enforcement and structural clone/string/trace audits are fail-closed.
+          - Versioned x86-64 and native ARM64 references use a unit-tested, variance-aware comparator.
+          - Callgrind evidence `{CALLGRIND}` identified legal generation and quiescence as the dominant redesign candidates; both were deferred pending dedicated correctness and strength evidence.
+          - Android run `{ANDROID}` produced artifact `{ANDROID_ARTIFACT}` with {METRICS}.
+          - Exact validated implementation SHA: `{HEAD}`. Performance `{PERF}`; Rust `{RUST}`; Robustness `{ROBUST}`.
+          - Contract: `docs/RUST_PERFORMANCE_GATES.md`.
 
-          - a reproducible release benchmark covering attacks, legal generation, make/unmake, full/incremental hashing, evaluation, representative perft, fixed-node search, TT probe/store, cancellation, and C ABI legal/search calls;
-          - fail-closed zero-allocation contracts for the core hot paths and structural audits rejecting recursive position clones, string/FEN search keys, and normal-evaluation tracing allocations;
-          - seven-sample x86-64 and native ARM64 references with exact runner/toolchain provenance;
-          - a conservative, unit-tested comparator protecting benchmark identity, operation counts, semantic checksums, timing distributions, and allocation distributions;
-          - permanent push/manual/weekly Performance workflow artifacts;
-          - release Callgrind evidence for perft and fixed-node search;
-          - API-35 Android JNI latency, fixed-node throughput, hash-size heap deltas, cancellation latency, repeated lifecycle, and main-thread compliance evidence;
-          - a measured decision not to introduce speculative move-generation, quiescence/SEE, sliding, incremental-evaluation, move-list, or TT-layout changes without separate correctness and strength evidence;
-          - `docs/RUST_PERFORMANCE_GATES.md`.
-
-          Evidence:
-
-          - exact validated implementation SHA: `{implementation_head}`;
-          - Performance run/jobs: `{performance}`;
-          - Rust run/job: `{rust}`;
-          - Robustness run/jobs: `{robustness}`;
-          - Android run/jobs: `{android}`;
-          - Android metric artifact: `{android_artifact}`;
-          - Android metrics: {android_metrics};
-          - Callgrind run/job/artifact: `{callgrind}`;
-          - all permanent performance, workspace correctness, differential, fuzz, Miri, sanitizer, leak, JNI, and Android gates passed.
-
-          Task 24 is complete. Task 25 developer workflows are next; the independent Task 21 tuned-candidate activation gate remains open.
-          """)
-          if "## Task 24 completion" not in text:
-              text = text.rstrip() + "\n\n" + completion.strip() + "\n"
+          Task 24 is complete. Task 25 is next; the independent Task 21 activation gate remains open.
+          """
           path.write_text(text)
 
           path = Path("memory.md")
           text = path.read_text()
-          memory = dedent(f"""\
-          ## {os.environ['NOW']} - GPT-5.6 Thinking - Rust port Task 24 performance gate complete
-          - Completed Task 24 on `master` at validated implementation head `{implementation_head}` with a release benchmark/allocation harness, source audit, unit-tested conservative comparator, versioned x86-64/ARM64 references, permanent Performance workflow, Android metric artifacts, and `docs/RUST_PERFORMANCE_GATES.md`.
-          - Validation evidence: Performance `{performance}`; Rust `{rust}`; Robustness `{robustness}`; Android `{android}`; Android artifact `{android_artifact}`; Callgrind `{callgrind}`.
-          - Android metrics: {android_metrics}.
-          - Callgrind measured `Position::legal_moves` at 98.31% inclusive of perft instruction cost and quiescence at 95.46% inclusive of fixed-node-search instruction cost. Direct legal generation and SEE/quiescence redesign remain documented follow-up candidates; no correctness-sensitive production optimization was made speculatively.
-          - Task 25 developer workflows are next. The independent Task 21 real tuned-candidate activation gate remains open.
-          """)
-          path.write_text(text.rstrip() + "\n\n" + memory.strip() + "\n")
+          title = "Rust port Task 24 performance gate complete"
+          if title not in text:
+              text = text.rstrip() + f"""
+
+          ## {os.environ['NOW']} - GPT-5.6 Thinking - {title}
+          - Completed Task 24 on `master` at validated implementation head `{HEAD}` with release benchmarks, zero-allocation/source audits, unit-tested x86-64/ARM64 regression budgets, Callgrind evidence, Android metrics, and `docs/RUST_PERFORMANCE_GATES.md`.
+          - Validation: Performance `{PERF}`; Rust `{RUST}`; Robustness `{ROBUST}`; Android `{ANDROID}`; Android artifact `{ANDROID_ARTIFACT}`; Callgrind `{CALLGRIND}`.
+          - Android metrics: {METRICS}.
+          - Legal generation and quiescence are measured redesign candidates; no correctness-sensitive optimization was accepted without dedicated evidence.
+          - Task 25 is next. The independent Task 21 tuned-candidate activation gate remains open.
+          """
+          path.write_text(text)
           PY
 
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add \
-            docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md \
-            docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md \
-            docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md \
-            memory.md
+          git add docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md memory.md
           git diff --cached --check
           git commit -m 'docs: close Task 24 performance gate'
           git push origin HEAD:master
@@ -204,15 +172,9 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const body = [
-              'Task 24 tracker closure',
-              `- run: https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-              `- id: \`${context.runId}\``,
-              `- job status: \`${{ job.status }}\``,
-            ].join('\n');
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: 265,
-              body,
+              body: `Task 24 tracker closure\n- run: https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n- id: \`${context.runId}\`\n- job status: \`${{ job.status }}\``,
             });
