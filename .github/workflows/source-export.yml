@@ -27,19 +27,21 @@ jobs:
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add .github/source-export-run.txt
-          git commit -m 'ci: record Task 24 apply run'
+          git commit -m 'ci: record Task 24 apply retry run'
           git push origin HEAD:master
 
-      - name: Apply Task 24 implementation directly to master
+      - name: Apply non-workflow Task 24 implementation directly to master
         shell: bash
         run: |
           set -euo pipefail
           base64 --decode .github/task24-initial.patch.gz.b64 | gzip --decompress > /tmp/task24.patch
           echo 'f83211e49c4aeb02aa76c931cd11b27b98cb0aca98229602a4e25961c842e11a  /tmp/task24.patch' | sha256sum --check
           git apply --index /tmp/task24.patch
+          git restore --staged .github/workflows/performance.yml
+          rm .github/workflows/performance.yml
           git rm --force \
             .github/workflows/source-export.yml \
             .github/source-export-run.txt \
             .github/task24-initial.patch.gz.b64
-          git commit -m 'perf: establish Task 24 measurement gates'
+          git commit -m 'perf: establish Task 24 measurement harness'
           git push origin HEAD:master
