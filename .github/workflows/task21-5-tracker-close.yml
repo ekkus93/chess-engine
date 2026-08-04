@@ -1,0 +1,195 @@
+name: Task 21.5 Tracker Close
+
+on:
+  push:
+    branches:
+      - rust-engine
+
+permissions:
+  contents: write
+
+concurrency:
+  group: task21-5-tracker-close
+  cancel-in-progress: false
+
+jobs:
+  close:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rust-engine
+
+      - name: Close authoritative Task 21.5 trackers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: Path, old: str, new: str) -> None:
+              text = path.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected one marker, found {count}: {old[:120]!r}')
+              path.write_text(text.replace(old, new, 1))
+
+          definitions = Path('docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md')
+          replace_once(
+              definitions,
+              '''## 21.5 Candidate validation
+
+          - [ ] Candidate-versus-baseline match.
+          - [ ] Color-balanced openings.
+          - [ ] Fixed seeds/opening set.
+          - [ ] Sufficient sample size documented.
+          - [ ] Tactical/perft/rules suites rerun.
+          - [ ] Reject candidate on correctness regression.
+          - [ ] Do not auto-activate candidate output.
+          ''',
+              '''## 21.5 Candidate validation
+
+          - [x] Candidate-versus-baseline match.
+          - [x] Color-balanced openings.
+          - [x] Fixed seeds/opening set.
+          - [x] Sufficient sample size documented.
+          - [x] Tactical/perft/rules suites rerun.
+          - [x] Reject candidate on correctness regression.
+          - [x] Do not auto-activate candidate output.
+
+          ### Task 21.5 completion evidence
+
+          - Explicit weighted production search: `crates/chess-search/src/iterative_deepening.rs`, `alpha_beta.rs`, and `quiescence.rs`; existing APIs retain baseline weights by default.
+          - Shared weighted game controller: `crates/chess-tools/src/self_play.rs`.
+          - Fail-closed protocol and versioned report: `crates/chess-tools/src/candidate_validation.rs`.
+          - Contract documentation: `docs/RUST_CANDIDATE_VALIDATION.md`.
+          - Exact helper-free validated implementation head: `664bf7cb51fae8bff8298925513b242fd9f33cee`.
+          - Production control run/job: `30935079798` / `92079069382`; 200 semantically distinct opening pairs and 400 color-swapped games produced mean `0.5`, standard error `0.0`, lower bound `0.5`, decision `rejected_strength`, `activated=false`, checksum `9af9ee9ab36b0ab2`.
+          - Permanent Rust run/job: `30935448972` / `92080314407`.
+          - Permanent Android run/jobs: `30935448944` / `92080314104`, `92080314087`, `92080314012`.
+          - Production requires at least 200 semantically distinct opening pairs, fixed seed/suite/configuration, independent pair statistics, a one-sided 95% lower confidence bound above 50%, an unfinished-game ceiling, correctness-first perft/tactical gates, and atomic checksummed evidence.
+          - No report or accepted result can activate weights; the overall Task 21 gate remains open until a real tuned candidate passes and is activated by a separate explicit change.
+          ''',
+          )
+
+          live = Path('docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md')
+          replace_once(
+              live,
+              '| 21 | **In progress** — Tasks 21.1–21.4 complete; Task 21.5 remains. |',
+              '| 21 | **In progress** — Tasks 21.1–21.5 implementation complete; no tuned candidate has passed validation and been explicitly activated, so the Task 21 gate remains open. |',
+          )
+          replace_once(
+              live,
+              '''# Task 21: Named-schema tuning — IN PROGRESS
+          - [x] 21.1 Weights.
+          - [x] 21.2 Loss.
+          - [x] 21.3 Optimizer.
+          - [x] 21.4 Reports.
+          - [ ] 21.5 Validation.
+          ''',
+              '''# Task 21: Named-schema tuning — IN PROGRESS
+          - [x] 21.1 Weights.
+          - [x] 21.2 Loss.
+          - [x] 21.3 Optimizer.
+          - [x] 21.4 Reports.
+          - [x] 21.5 Validation.
+          ''',
+          )
+          replace_once(
+              live,
+              '''- Task 21.5 candidate validation is next.
+          - [ ] Task 21 gate.
+          ''',
+              '''- Task 21.5 candidate validation protocol is complete; candidate artifacts remain inactive.
+
+          ### Task 21.5 completion evidence
+
+          - Explicit evaluator injection: `crates/chess-search/src/iterative_deepening.rs`, `alpha_beta.rs`, and `quiescence.rs`; all existing production APIs preserve baseline behavior.
+          - Match controller and protocol: `crates/chess-tools/src/self_play.rs` and `crates/chess-tools/src/candidate_validation.rs`.
+          - Contract: `docs/RUST_CANDIDATE_VALIDATION.md`.
+          - Exact helper-free validated SHA: `664bf7cb51fae8bff8298925513b242fd9f33cee`.
+          - Production control run/job: `30935079798` / `92079069382`; 200 pairs, 400 games, mean `0.5`, standard error `0.0`, lower bound `0.5`, `rejected_strength`, `activated=false`, checksum `9af9ee9ab36b0ab2`.
+          - Rust run/job: `30935448972` / `92080314407`.
+          - Android run/jobs: `30935448944` / `92080314104`, `92080314087`, `92080314012`.
+          - Formatting, locked workspace check, strict Clippy, complete Rust tests, release perft, rustdoc, debug/release builds, differential validation, Android/Kotlin lint, host JNI, dual-ABI native verification, APK build, and API-35 instrumentation passed.
+          - Color-swapped games use fixed seed/suite/configuration and separate evaluator-dependent transposition tables. Production requires 200 semantically distinct opening pairs and accepts only when correctness passes, unfinished games stay below the configured ceiling, and the one-sided 95% lower confidence bound exceeds 50% plus the configured margin.
+          - Candidate validation is evidence-only and always records `activated=false`. A separate explicit activation change remains required.
+          - [ ] Task 21 gate.
+          ''',
+          )
+          replace_once(
+              live,
+              '''1. Implement Task 21.5 controlled candidate-versus-baseline validation.
+          2. Use color-balanced openings, fixed seeds/opening sets, and a documented sufficient sample size.
+          3. Rerun tactical, perft, and rules suites and reject any correctness regression.
+          4. Keep candidate activation explicit; generated artifacts must not become defaults automatically.
+          5. Leave the overall Task 21 gate open until Task 21.5 has exact-head evidence.
+          ''',
+              '''1. Produce a real tuned candidate artifact from the completed Task 21.1–21.4 pipeline.
+          2. Run the Task 21.5 production protocol over at least 200 semantically distinct opening pairs with fixed provenance.
+          3. Reject an inconclusive, unfinished-rate, or correctness-failing candidate; retain the complete versioned report.
+          4. If and only if a candidate is accepted, make a separate explicit activation change and rerun every permanent gate.
+          5. Leave the overall Task 21 gate open until accepted weights are explicitly activated with exact-head evidence.
+          ''',
+          )
+
+          ralph = Path('docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md')
+          replace_once(
+              ralph,
+              '**Current phase:** Task 21.4 reproducible tuning reports complete; Task 21.5 candidate validation is next',
+              '**Current phase:** Task 21.5 validation protocol complete; real candidate validation and an explicit activation decision are next',
+          )
+          row = '| 21.4 | `fd179e57462226392ab9c61bc9f26bc7cbb63cc1` | Rust `30929481202` / `92060204891`; Android `30929479894` / `92060200320`, `92060200325`, `92060200573` | versioned checksummed reports with initial/final train and validation MSE, all 810 named deltas, complete data/engine/source/checkpoint/weight identities, exact command/configuration, atomic persistence, inactive candidate artifacts, and all permanent gates green |'
+          replace_once(
+              ralph,
+              row,
+              row + '\n| 21.5 | `664bf7cb51fae8bff8298925513b242fd9f33cee` | Rust `30935448972` / `92080314407`; Android `30935448944` / `92080314104`, `92080314087`, `92080314012`; control `30935079798` / `92079069382` | explicit weighted search, correctness-first validation, 200 distinct color-balanced opening pairs, fixed provenance, one-sided 95% strength gate, atomic inactive evidence, 400-game baseline control correctly rejected, and all permanent gates green |',
+          )
+          replace_once(
+              ralph,
+              'Task 21.4 is complete. Task 21.5 candidate validation is next.\n',
+              '''Task 21.4 is complete. Task 21.5 candidate validation protocol is complete; no optimized candidate has been activated.
+
+          ## Task 21.5 completion
+
+          Implemented and validated:
+
+          - explicit evaluation-weight injection through production iterative deepening, alpha-beta, and quiescence while existing APIs retain the built-in baseline;
+          - typed evaluator policies and separate evaluator-dependent transposition tables;
+          - reuse of the Task 20 game controller for legal play, history, draw claims, maximum-ply handling, search limits, and complete replay payloads;
+          - strict version-1 checksummed candidate-validation reports with engine/source/command, weight/artifact, opening-suite, correctness, game, statistical, and decision provenance;
+          - correctness-before-strength validation using all authoritative perft fixtures through depth four and weighted forced-mate fixtures;
+          - fixed seeded scheduling over at least 200 semantically distinct opening pairs, with the candidate playing both colors for 400 games;
+          - independent pair-score statistics, sample standard error, and a one-sided 95% lower confidence bound that must exceed 50% plus the configured margin;
+          - a separately enforced maximum-ply unfinished-game ceiling;
+          - fail-closed `rejected_correctness`, `rejected_unfinished_rate`, and `rejected_strength` outcomes;
+          - same-directory temporary-file persistence with flush, synchronization, and atomic rename;
+          - immutable `activated=false` output and no default-weight mutation;
+          - `docs/RUST_CANDIDATE_VALIDATION.md`.
+
+          Evidence:
+
+          - exact helper-free validated implementation head: `664bf7cb51fae8bff8298925513b242fd9f33cee`;
+          - production control run/job: `30935079798` / `92079069382`;
+          - production control result: 200 pairs, 400 games, 400 explicit maximum-ply unfinished games, mean pair score `0.5`, standard error `0.0`, one-sided lower bound `0.5`, decision `rejected_strength`, `activated=false`, checksum `9af9ee9ab36b0ab2`;
+          - permanent Rust run/job: `30935448972` / `92080314407`;
+          - permanent Android run/jobs: `30935448944` / `92080314104`, `92080314087`, `92080314012`;
+          - formatting, locked workspace check, strict Clippy, complete Rust tests, authoritative release perft, warning-free rustdoc, debug/release builds, differential oracle, Android/Kotlin lint, host JVM JNI, dual-ABI native verification, APK build, and API-35 instrumentation all passed;
+          - all temporary integration, hardening, control, and tracker workflows were removed from the implementation head;
+          - the control candidate was correctly rejected rather than accepted by equality, and no candidate weights were activated.
+
+          Task 21.5 is complete. The overall Task 21 gate remains open until a real tuned candidate passes this protocol and is explicitly activated by a separate validated change.
+          ''',
+          )
+          PY
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md \
+            docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md \
+            docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md
+          git commit -m 'docs: close Task 21.5 candidate validation'
+          git push origin HEAD:rust-engine
