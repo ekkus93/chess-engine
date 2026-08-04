@@ -1,0 +1,5 @@
+CHESS_SELF_PLAY_OPENINGS	1
+king-pawn	rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1	e2e4 e7e5
+queen-pawn	rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1	d2d4 d7d5
+english	rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1	c2c4 e7e5
+reti	rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1	g1f3 d7d5
