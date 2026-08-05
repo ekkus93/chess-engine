@@ -1,71 +1,108 @@
-name: S2-4 evidence staging
+name: S2-4 standalone SEE validation
 
 on:
   push:
     branches:
       - master
-    paths:
-      - .github/workflows/s2-4-stage.yml
+  pull_request:
+    branches:
+      - master
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: s2-4-evidence-staging
-  cancel-in-progress: false
+  group: s2-4-see-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  stage:
-    name: Validate and commit SEE evidence assets
+  linux-x86-64:
+    name: Linux x86-64 SEE correctness and performance
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: clippy, rustfmt
+          components: rustfmt, clippy
 
       - name: Cache Cargo data
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: rust-engine-s2-4-evidence
+          shared-key: rust-engine-s2-4-see-x86-64
 
-      - name: Prepare the temporary evidence helper
-        shell: bash
+      - name: Audit standalone SEE architecture
+        run: bash scripts/task_s2_4_see_audit.sh
+
+      - name: Check formatting
         run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
+          cargo fmt --all -- --check
+          cargo fmt --manifest-path fuzz/Cargo.toml -- --check
 
-          path = Path("scripts/s2_4_evidence_stage.py")
-          text = path.read_text(encoding="utf-8")
-          fmt_witness = 'run("cargo", "fmt", "--manifest-path", "fuzz/Cargo.toml", "--", "--check")'
-          fmt_replacement = '\n'.join([
-              'run("cargo", "fmt", "--manifest-path", "fuzz/Cargo.toml")',
-              fmt_witness,
-          ])
-          if text.count(fmt_witness) != 1:
-              raise SystemExit("fuzz formatting witness changed")
-          text = text.replace(fmt_witness, fmt_replacement)
+      - name: Run focused strict Clippy
+        run: |
+          cargo clippy --locked -p chess-core -p chess-tools --all-targets --all-features -- -D warnings
+          cargo clippy --manifest-path fuzz/Cargo.toml --locked --lib --tests -- -D warnings
 
-          commit_witness = 'Path(__file__).unlink()'
-          commit_replacement = '\n'.join([
-              'run("git", "checkout", "--", ".github/workflows/robustness.yml")',
-              commit_witness,
-          ])
-          if text.count(commit_witness) != 1:
-              raise SystemExit("evidence commit witness changed")
-          path.write_text(text.replace(commit_witness, commit_replacement), encoding="utf-8")
-          PY
+      - name: Run focused SEE and fuzz tests
+        run: |
+          cargo test --locked -p chess-core --lib --all-features see::tests
+          cargo test --locked -p chess-core --test miri_core miri_static_exchange_is_deterministic_non_mutating_and_bounded -- --exact
+          cargo test --manifest-path fuzz/Cargo.toml --locked --lib --tests
 
-      - name: Apply, validate, and commit SEE evidence
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python3 scripts/s2_4_evidence_stage.py
+      - name: Build release SEE benchmark
+        run: cargo build --locked --release -p chess-tools --bin s2_4_see_benchmark
 
-      # Temporary staging workflow; replaced by read-only validation after commit.
+      - name: Capture seven-sample x86-64 SEE distribution
+        run: target/release/s2_4_see_benchmark 7 | tee s2-4-see-linux-x86-64.tsv
+
+      - name: Preserve x86-64 SEE evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: s2-4-see-linux-x86-64-${{ github.sha }}
+          path: s2-4-see-linux-x86-64.tsv
+          if-no-files-found: error
+          retention-days: 30
+
+  linux-arm64:
+    name: Linux ARM64 SEE correctness and performance
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Cargo data
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-engine-s2-4-see-arm64
+
+      - name: Audit standalone SEE architecture
+        run: bash scripts/task_s2_4_see_audit.sh
+
+      - name: Check and test SEE on native ARM64
+        run: |
+          cargo check --locked -p chess-core -p chess-tools --all-targets --all-features
+          cargo clippy --locked -p chess-core -p chess-tools --all-targets --all-features -- -D warnings
+          cargo test --locked -p chess-core --lib --all-features see::tests
+
+      - name: Build release SEE benchmark
+        run: cargo build --locked --release -p chess-tools --bin s2_4_see_benchmark
+
+      - name: Capture seven-sample ARM64 SEE distribution
+        run: target/release/s2_4_see_benchmark 7 | tee s2-4-see-linux-arm64.tsv
+
+      - name: Preserve ARM64 SEE evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: s2-4-see-linux-arm64-${{ github.sha }}
+          path: s2-4-see-linux-arm64.tsv
+          if-no-files-found: error
+          retention-days: 30
