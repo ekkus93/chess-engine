@@ -6,7 +6,9 @@ cd "$repo_root"
 
 tracker="docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md"
 definitions="docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md"
-followup="docs/RUST_CHESS_ENGINE_POST_PORT_REVIEW_FIX_TODO_2026-08-04.md"
+postport_record="docs/RUST_CHESS_ENGINE_POST_PORT_REVIEW_FIX_TODO_2026-08-04.md"
+v0_2_spec="docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_SPEC_2026-08-05.md"
+v0_2_todo="docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md"
 legacy_index="docs/LEGACY_TODO_INDEX.md"
 fen_doc="docs/RUST_FEN_AND_UCI_NOTATION.md"
 fen_source="crates/chess-core/src/position/fen.rs"
@@ -14,7 +16,9 @@ fen_source="crates/chess-core/src/position/fen.rs"
 for required in \
     "$tracker" \
     "$definitions" \
-    "$followup" \
+    "$postport_record" \
+    "$v0_2_spec" \
+    "$v0_2_todo" \
     "$legacy_index" \
     "$fen_doc" \
     "$fen_source"; do
@@ -29,25 +33,29 @@ fi
 grep -Fq 'activated=false' "$tracker"
 grep -Fqi 'baseline weights remain authoritative' "$tracker"
 grep -Fqi 'separate strength change' "$tracker"
+grep -Fq '**Status:** Complete' "$postport_record"
 
-active_todos=(
+authority_todos=(
     "$tracker"
     "$definitions"
-    "$followup"
+    "$v0_2_todo"
 )
-for active in "${active_todos[@]}"; do
-    grep -Fq "\`$active\`" "$legacy_index"
+for authority in "${authority_todos[@]}"; do
+    grep -Fq "\`$authority\`" "$legacy_index"
 done
 grep -Fq "\`$legacy_index\`" "$legacy_index"
+grep -Fq "\`$postport_record\`" "$legacy_index"
 grep -Fq 'Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO`' "$legacy_index"
+grep -Fq "**Companion TODO:** \`$v0_2_todo\`" "$v0_2_spec"
+grep -Fq "**Specification:** \`$v0_2_spec\`" "$v0_2_todo"
 
 while IFS= read -r todo_path; do
     case "$todo_path" in
-        "$tracker"|"$definitions"|"$followup"|"$legacy_index")
+        "$tracker"|"$definitions"|"$v0_2_todo"|"$legacy_index")
             ;;
         *)
             grep -Fq "\`$todo_path\`" "$legacy_index" || {
-                echo "legacy TODO missing from index: $todo_path" >&2
+                echo "historical TODO missing from index: $todo_path" >&2
                 exit 1
             }
             ;;
@@ -74,4 +82,4 @@ done
 bash scripts/task_26_v0_1_audit.sh
 bash scripts/task_27_full_port_audit.sh
 
-echo "post-port review fix audit passed"
+echo "post-port review fix and TODO-authority audit passed"
