@@ -21,6 +21,7 @@ pub enum SearchDiagnosticCounter {
     SeeLosingCaptures,
     SeePrunes,
     QuiescenceSeePrunes,
+    QuiescenceDeltaAttempts,
     QuiescenceDeltaPrunes,
     LmrReductions,
     LmrResearches,
@@ -49,6 +50,7 @@ impl fmt::Display for SearchDiagnosticCounter {
             Self::SeeLosingCaptures => "see_losing_captures",
             Self::SeePrunes => "see_prunes",
             Self::QuiescenceSeePrunes => "quiescence_see_prunes",
+            Self::QuiescenceDeltaAttempts => "quiescence_delta_attempts",
             Self::QuiescenceDeltaPrunes => "quiescence_delta_prunes",
             Self::LmrReductions => "lmr_reductions",
             Self::LmrResearches => "lmr_researches",
@@ -107,6 +109,7 @@ pub enum SearchDiagnosticEvent {
     SeeLosingCapture,
     SeePrune,
     QuiescenceSeePrune,
+    QuiescenceDeltaAttempt,
     QuiescenceDeltaPrune,
     LmrReduction,
     LmrResearch,
@@ -140,6 +143,7 @@ pub struct SearchDiagnostics {
     see_losing_captures: u64,
     see_prunes: u64,
     quiescence_see_prunes: u64,
+    quiescence_delta_attempts: u64,
     quiescence_delta_prunes: u64,
     lmr_reductions: u64,
     lmr_researches: u64,
@@ -168,6 +172,7 @@ impl SearchDiagnostics {
         see_losing_captures: 0,
         see_prunes: 0,
         quiescence_see_prunes: 0,
+        quiescence_delta_attempts: 0,
         quiescence_delta_prunes: 0,
         lmr_reductions: 0,
         lmr_researches: 0,
@@ -267,6 +272,10 @@ impl SearchDiagnostics {
                 &mut self.quiescence_see_prunes,
                 SearchDiagnosticCounter::QuiescenceSeePrunes,
             ),
+            SearchDiagnosticEvent::QuiescenceDeltaAttempt => increment_checked(
+                &mut self.quiescence_delta_attempts,
+                SearchDiagnosticCounter::QuiescenceDeltaAttempts,
+            ),
             SearchDiagnosticEvent::QuiescenceDeltaPrune => increment_checked(
                 &mut self.quiescence_delta_prunes,
                 SearchDiagnosticCounter::QuiescenceDeltaPrunes,
@@ -340,6 +349,7 @@ impl SearchDiagnostics {
             see_losing_captures: sum!(see_losing_captures, SeeLosingCaptures),
             see_prunes: sum!(see_prunes, SeePrunes),
             quiescence_see_prunes: sum!(quiescence_see_prunes, QuiescenceSeePrunes),
+            quiescence_delta_attempts: sum!(quiescence_delta_attempts, QuiescenceDeltaAttempts),
             quiescence_delta_prunes: sum!(quiescence_delta_prunes, QuiescenceDeltaPrunes),
             lmr_reductions: sum!(lmr_reductions, LmrReductions),
             lmr_researches: sum!(lmr_researches, LmrResearches),
@@ -413,6 +423,10 @@ impl SearchDiagnostics {
         self.quiescence_see_prunes
     }
     #[must_use]
+    pub const fn quiescence_delta_attempts(self) -> u64 {
+        self.quiescence_delta_attempts
+    }
+    #[must_use]
     pub const fn quiescence_delta_prunes(self) -> u64 {
         self.quiescence_delta_prunes
     }
@@ -462,6 +476,7 @@ impl SearchDiagnostics {
             && self.see_losing_captures == 0
             && self.see_prunes == 0
             && self.quiescence_see_prunes == 0
+            && self.quiescence_delta_attempts == 0
             && self.quiescence_delta_prunes == 0
             && self.lmr_reductions == 0
             && self.lmr_researches == 0
@@ -499,6 +514,10 @@ impl SearchDiagnostics {
             self.late_move_prunes,
         ] {
             hash = hash_bytes(hash, &value.to_le_bytes());
+        }
+        if self.quiescence_delta_attempts != 0 {
+            hash = hash_bytes(hash, b"quiescence-delta-attempts-v1");
+            hash = hash_bytes(hash, &self.quiescence_delta_attempts.to_le_bytes());
         }
         if self.see_winning_captures != 0
             || self.see_equal_captures != 0

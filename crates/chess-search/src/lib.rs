@@ -61,7 +61,8 @@ pub use principal_variation::{
 };
 pub use quiescence::{
     quiescence_search, quiescence_search_with_cancellation, quiescence_search_with_limit,
-    QuiescenceSearchResult, MAX_QUIESCENCE_PLY,
+    QuiescenceSearchResult, DELTA_PRUNING_MARGIN_CENTIPAWNS, MAX_QUIESCENCE_PLY,
+    SEE_QUIESCENCE_PRUNE_THRESHOLD_CENTIPAWNS,
 };
 pub use reference::{
     reference_search, reference_search_with_cancellation, reference_search_with_quiescence,
@@ -73,7 +74,8 @@ pub use search_policy::{
     QuiescencePolicy, SearchPolicy, SearchPolicyParameters, SearchPolicySet,
     SearchPolicyValidationError, TranspositionPolicy, MAXIMUM_ASPIRATION_HALF_WIDTH_CENTIPAWNS,
     MAXIMUM_CHECK_EXTENSIONS_PER_LINE, SEARCH_POLICY_SCHEMA_VERSION,
-    SEE_CAPTURE_ORDERING_SEARCH_POLICY_ID, V0_1_SEARCH_POLICY_CHECKSUM, V0_1_SEARCH_POLICY_ID,
+    SEE_AND_DELTA_QUIESCENCE_PRUNING_SEARCH_POLICY_ID, SEE_CAPTURE_ORDERING_SEARCH_POLICY_ID,
+    SEE_QUIESCENCE_PRUNING_SEARCH_POLICY_ID, V0_1_SEARCH_POLICY_CHECKSUM, V0_1_SEARCH_POLICY_ID,
 };
 pub use transposition::{
     TranspositionBound, TranspositionEntry, TranspositionHashFull, TranspositionProbeError,

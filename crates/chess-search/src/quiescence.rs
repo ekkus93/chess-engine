@@ -1,4 +1,7 @@
-use chess_core::{Move, Position, SearchHistory};
+use chess_core::{
+    static_exchange_evaluation, Move, MoveKind, PieceKind, Position, SearchHistory,
+    StaticExchangeClass, StaticExchangeValue,
+};
 
 use crate::{
     alpha_beta::{AlphaBetaSearchError, AlphaBetaSearchResult},
@@ -16,6 +19,11 @@ pub const MAX_QUIESCENCE_PLY: u16 = 64;
 /// Quiescence uses the normal alpha-beta result shape.
 pub type QuiescenceSearchResult = AlphaBetaSearchResult;
 
+/// S2-6 SEE pruning removes only captures below this strict threshold.
+pub const SEE_QUIESCENCE_PRUNE_THRESHOLD_CENTIPAWNS: i32 = -100;
+/// S2-6 delta-pruning margin used by the separately identified candidate.
+pub const DELTA_PRUNING_MARGIN_CENTIPAWNS: i32 = 200;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct QuiescenceContext {
     pub(crate) ply: u16,
@@ -29,6 +37,8 @@ pub(crate) struct QuiescenceSearchPolicy<'a> {
     beta: Score,
     ordering: MoveOrdering,
     see_capture_ordering: bool,
+    see_quiescence_pruning: bool,
+    delta_pruning: bool,
     weights: &'a EvaluationWeights,
 }
 
@@ -38,6 +48,8 @@ impl<'a> QuiescenceSearchPolicy<'a> {
         beta: Score,
         ordering: MoveOrdering,
         see_capture_ordering: bool,
+        see_quiescence_pruning: bool,
+        delta_pruning: bool,
         weights: &'a EvaluationWeights,
     ) -> Self {
         Self {
@@ -45,6 +57,8 @@ impl<'a> QuiescenceSearchPolicy<'a> {
             beta,
             ordering,
             see_capture_ordering,
+            see_quiescence_pruning,
+            delta_pruning,
             weights,
         }
     }
@@ -145,7 +159,15 @@ where
         position,
         history,
         context,
-        QuiescenceSearchPolicy::new(alpha, beta, ordering, false, &EvaluationWeights::DEFAULT),
+        QuiescenceSearchPolicy::new(
+            alpha,
+            beta,
+            ordering,
+            false,
+            false,
+            false,
+            &EvaluationWeights::DEFAULT,
+        ),
         cancellation,
     )
 }
@@ -165,6 +187,8 @@ where
         beta,
         ordering,
         see_capture_ordering,
+        see_quiescence_pruning,
+        delta_pruning,
         weights,
     } = policy;
     if cancellation.on_quiescence_node(context.ply) {
@@ -193,6 +217,7 @@ where
     let in_check = position.is_in_check(position.side_to_move());
     let mut best_score = None;
     let mut best_move = None;
+    let mut stand_pat = None;
 
     if in_check {
         if context.quiescence_ply >= context.maximum_quiescence_ply {
@@ -202,15 +227,16 @@ where
             });
         }
     } else {
-        let stand_pat = evaluate_with_weights(position, weights);
-        best_score = Some(stand_pat);
-        if stand_pat >= beta {
+        let evaluated = evaluate_with_weights(position, weights);
+        stand_pat = Some(evaluated);
+        best_score = Some(evaluated);
+        if evaluated >= beta {
             let event = SearchDiagnosticEvent::QuiescenceStandPatCutoff;
             let mut diagnostics = SearchDiagnostics::quiescence_node();
             diagnostics.record_checked(event)?;
             cancellation.on_search_diagnostic(event);
             return Ok(AlphaBetaSearchResult {
-                score: stand_pat,
+                score: evaluated,
                 best_move: None,
                 nodes: 1,
                 qnodes: 1,
@@ -218,12 +244,12 @@ where
                 diagnostics,
             });
         }
-        if stand_pat > alpha {
-            alpha = stand_pat;
+        if evaluated > alpha {
+            alpha = evaluated;
         }
         if context.quiescence_ply >= context.maximum_quiescence_ply {
             return Ok(AlphaBetaSearchResult {
-                score: stand_pat,
+                score: evaluated,
                 best_move: None,
                 nodes: 1,
                 qnodes: 1,
@@ -242,6 +268,15 @@ where
     ordered_tokens
         .diagnostics()
         .record_into(&mut diagnostics, cancellation)?;
+    let tactical_move_count = if in_check {
+        0
+    } else {
+        tokens
+            .iter()
+            .filter(|token| is_tactical(token.move_made()))
+            .count()
+    };
+    let mate_sensitive = mate_sensitive_window(alpha, beta);
     let mut searched_moves = 0_usize;
     for token in ordered_tokens.iter() {
         let current = token.move_made();
@@ -251,6 +286,29 @@ where
         if cancellation.should_cancel() {
             return Err(AlphaBetaSearchError::Cancelled);
         }
+
+        let see_value = if see_pruning_preconditions(
+            current,
+            in_check,
+            tactical_move_count,
+            mate_sensitive,
+            see_quiescence_pruning,
+        ) {
+            let value = static_exchange_evaluation(position, current)?;
+            record_see_value(value, &mut diagnostics, cancellation)?;
+            Some(value)
+        } else {
+            None
+        };
+        let delta_gain = delta_pruning_preconditions(
+            current,
+            in_check,
+            tactical_move_count,
+            mate_sensitive,
+            delta_pruning,
+        )
+        .then(|| maximum_material_gain(position, current))
+        .transpose()?;
 
         let child_ply = context
             .ply
@@ -266,12 +324,49 @@ where
             maximum_quiescence_ply: context.maximum_quiescence_ply,
         };
         let position_undo = position.make_legal_token(token)?;
+        let gives_check = position.is_in_check(position.side_to_move());
+        if !gives_check
+            && see_value
+                .is_some_and(|value| value.centipawns() < SEE_QUIESCENCE_PRUNE_THRESHOLD_CENTIPAWNS)
+        {
+            position.unmake_move(position_undo)?;
+            record_prune(
+                SearchDiagnosticEvent::QuiescenceSeePrune,
+                &mut diagnostics,
+                cancellation,
+            )?;
+            continue;
+        }
+        if !gives_check {
+            if let (Some(evaluated), Some(gain)) = (stand_pat, delta_gain) {
+                let attempt = SearchDiagnosticEvent::QuiescenceDeltaAttempt;
+                diagnostics.record_checked(attempt)?;
+                cancellation.on_search_diagnostic(attempt);
+                if delta_bound_cannot_raise_alpha(evaluated, gain, alpha) {
+                    position.unmake_move(position_undo)?;
+                    record_prune(
+                        SearchDiagnosticEvent::QuiescenceDeltaPrune,
+                        &mut diagnostics,
+                        cancellation,
+                    )?;
+                    continue;
+                }
+            }
+        }
         let history_undo = history.push_position(position);
         let child = search_quiescence_node_with_weights(
             position,
             history,
             child_context,
-            QuiescenceSearchPolicy::new(-beta, -alpha, ordering, see_capture_ordering, weights),
+            QuiescenceSearchPolicy::new(
+                -beta,
+                -alpha,
+                ordering,
+                see_capture_ordering,
+                see_quiescence_pruning,
+                delta_pruning,
+                weights,
+            ),
             cancellation,
         );
         let history_restore = history.pop_position(history_undo);
@@ -329,8 +424,237 @@ where
     }
 }
 
+fn record_see_value<Probe>(
+    value: StaticExchangeValue,
+    diagnostics: &mut SearchDiagnostics,
+    cancellation: &mut Probe,
+) -> Result<(), AlphaBetaSearchError>
+where
+    Probe: SearchCancellationProbe + ?Sized,
+{
+    for event in [
+        SearchDiagnosticEvent::SeeCall,
+        match value.class() {
+            StaticExchangeClass::Winning => SearchDiagnosticEvent::SeeWinningCapture,
+            StaticExchangeClass::Equal => SearchDiagnosticEvent::SeeEqualCapture,
+            StaticExchangeClass::Losing => SearchDiagnosticEvent::SeeLosingCapture,
+        },
+    ] {
+        diagnostics.record_checked(event)?;
+        cancellation.on_search_diagnostic(event);
+    }
+    Ok(())
+}
+
+fn record_prune<Probe>(
+    event: SearchDiagnosticEvent,
+    diagnostics: &mut SearchDiagnostics,
+    cancellation: &mut Probe,
+) -> Result<(), AlphaBetaSearchError>
+where
+    Probe: SearchCancellationProbe + ?Sized,
+{
+    diagnostics.record_checked(event)?;
+    cancellation.on_search_diagnostic(event);
+    Ok(())
+}
+
+fn see_pruning_preconditions(
+    current: Move,
+    in_check: bool,
+    tactical_move_count: usize,
+    mate_sensitive: bool,
+    enabled: bool,
+) -> bool {
+    enabled
+        && !in_check
+        && tactical_move_count > 1
+        && !mate_sensitive
+        && current.kind().is_capture()
+        && current.kind() != MoveKind::EnPassant
+        && current.promotion().is_none()
+}
+
+fn delta_pruning_preconditions(
+    current: Move,
+    in_check: bool,
+    tactical_move_count: usize,
+    mate_sensitive: bool,
+    enabled: bool,
+) -> bool {
+    enabled
+        && !in_check
+        && tactical_move_count > 1
+        && !mate_sensitive
+        && current.kind().is_capture()
+        && current.kind() != MoveKind::EnPassant
+        && current.promotion().is_none()
+}
+
+fn mate_sensitive_window(alpha: Score, beta: Score) -> bool {
+    let full_alpha = Score::mated_in(0).expect("zero-ply mate score exists");
+    let full_beta = Score::mate_in(0).expect("zero-ply mate score exists");
+    (alpha.is_mate() && alpha != full_alpha) || (beta.is_mate() && beta != full_beta)
+}
+
+fn maximum_material_gain(position: &Position, current: Move) -> Result<i32, AlphaBetaSearchError> {
+    let captured = position.piece_at(current.destination()).ok_or_else(|| {
+        chess_core::StaticExchangeError::MoveStateContradiction(
+            chess_core::StaticExchangeMoveStateError::InvalidTargetState {
+                destination: current.destination(),
+            },
+        )
+    })?;
+    Ok(delta_piece_value(captured.kind))
+}
+
+const fn delta_piece_value(kind: PieceKind) -> i32 {
+    match kind {
+        PieceKind::Pawn => 100,
+        PieceKind::Knight => 320,
+        PieceKind::Bishop => 330,
+        PieceKind::Rook => 500,
+        PieceKind::Queen => 900,
+        PieceKind::King => 20_000,
+    }
+}
+
+fn delta_bound_cannot_raise_alpha(stand_pat: Score, gain: i32, alpha: Score) -> bool {
+    i64::from(stand_pat.centipawns()) + i64::from(gain) + i64::from(DELTA_PRUNING_MARGIN_CENTIPAWNS)
+        <= i64::from(alpha.centipawns())
+}
+
 const fn is_tactical(current: Move) -> bool {
     current.kind().is_capture() || current.promotion().is_some()
+}
+
+#[cfg(test)]
+mod s2_6_tests {
+    use chess_core::{Position, SearchHistory};
+
+    use super::{
+        search_quiescence_node_with_weights, QuiescenceContext, QuiescenceSearchPolicy,
+        MAX_QUIESCENCE_PLY,
+    };
+    use crate::{
+        cancellation::NeverCancelled, move_ordering::MoveOrdering, AlphaBetaSearchError,
+        EvaluationWeights, Score,
+    };
+
+    fn run(
+        root: &Position,
+        see_pruning: bool,
+        delta_pruning: bool,
+    ) -> super::QuiescenceSearchResult {
+        let mut position = root.clone();
+        let snapshot = position.clone();
+        let mut history = SearchHistory::from_position(&position);
+        let history_snapshot = history.clone();
+        let mut cancellation = NeverCancelled;
+        let result = search_quiescence_node_with_weights(
+            &mut position,
+            &mut history,
+            QuiescenceContext {
+                ply: 0,
+                quiescence_ply: 0,
+                maximum_quiescence_ply: MAX_QUIESCENCE_PLY,
+            },
+            QuiescenceSearchPolicy::new(
+                Score::mated_in(0).expect("full alpha"),
+                Score::mate_in(0).expect("full beta"),
+                MoveOrdering::Tactical,
+                false,
+                see_pruning,
+                delta_pruning,
+                &EvaluationWeights::DEFAULT,
+            ),
+            &mut cancellation,
+        )
+        .expect("controlled quiescence search succeeds");
+        assert_eq!(position, snapshot);
+        assert_eq!(history, history_snapshot);
+        assert_eq!(position.zobrist(), position.recomputed_zobrist());
+        result
+    }
+
+    #[test]
+    fn see_pruning_removes_a_losing_nonchecking_capture_without_changing_score() {
+        let root: Position = "3r3k/8/8/3p3p/8/8/8/K2Q4 w - - 0 1"
+            .parse()
+            .expect("SEE-pruning fixture parses");
+        let baseline = run(&root, false, false);
+        let candidate = run(&root, true, false);
+        assert_eq!(candidate.score(), baseline.score());
+        assert!(candidate.qnodes() < baseline.qnodes());
+        assert!(candidate.diagnostics().quiescence_see_prunes() > 0);
+        assert_eq!(candidate.diagnostics().quiescence_delta_attempts(), 0);
+        assert_eq!(candidate.diagnostics().quiescence_delta_prunes(), 0);
+    }
+
+    #[test]
+    fn see_pruning_exclusions_preserve_sensitive_tactical_moves() {
+        for (label, fen) in [
+            ("in-check-evasion", "4r2k/8/8/8/8/8/8/4K3 w - - 0 1"),
+            ("promotion", "7k/P7/8/8/8/8/8/K7 w - - 0 1"),
+            ("en-passant", "4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1"),
+            (
+                "single-tactical-response",
+                "3r3k/8/8/3p4/8/8/8/K2Q4 w - - 0 1",
+            ),
+            ("checking-capture", "3r3k/8/8/8/8/8/8/K2Q4 w - - 0 1"),
+        ] {
+            let root: Position = fen
+                .parse()
+                .unwrap_or_else(|error| panic!("{label}: {error}"));
+            let baseline = run(&root, false, false);
+            let candidate = run(&root, true, false);
+            assert_eq!(candidate.score(), baseline.score(), "{label}");
+            assert_eq!(
+                candidate.diagnostics().quiescence_see_prunes(),
+                0,
+                "{label}"
+            );
+        }
+    }
+
+    #[test]
+    fn guard_exhaustion_in_check_remains_fail_loud_with_pruning_enabled() {
+        let mut position: Position = "4r2k/8/8/8/8/8/8/4K3 w - - 0 1"
+            .parse()
+            .expect("checked fixture parses");
+        let snapshot = position.clone();
+        let mut history = SearchHistory::from_position(&position);
+        let history_snapshot = history.clone();
+        let mut cancellation = NeverCancelled;
+        let result = search_quiescence_node_with_weights(
+            &mut position,
+            &mut history,
+            QuiescenceContext {
+                ply: 0,
+                quiescence_ply: 0,
+                maximum_quiescence_ply: 0,
+            },
+            QuiescenceSearchPolicy::new(
+                Score::mated_in(0).expect("full alpha"),
+                Score::mate_in(0).expect("full beta"),
+                MoveOrdering::Tactical,
+                false,
+                true,
+                false,
+                &EvaluationWeights::DEFAULT,
+            ),
+            &mut cancellation,
+        );
+        assert_eq!(
+            result,
+            Err(AlphaBetaSearchError::QuiescenceDepthLimitReachedInCheck {
+                quiescence_ply: 0,
+                maximum: 0,
+            })
+        );
+        assert_eq!(position, snapshot);
+        assert_eq!(history, history_snapshot);
+    }
 }
 
 #[cfg(test)]

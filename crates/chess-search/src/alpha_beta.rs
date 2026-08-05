@@ -496,6 +496,8 @@ where
         maximum_check_extensions_per_line: policy.search_policy.maximum_check_extensions_per_line(),
         maximum_quiescence_ply: policy.search_policy.maximum_quiescence_ply(),
         see_capture_ordering: policy.search_policy.see_capture_ordering_enabled(),
+        see_quiescence_pruning: policy.search_policy.see_quiescence_pruning_enabled(),
+        delta_pruning: policy.search_policy.delta_pruning_enabled(),
         weights: policy.weights,
         cancellation,
     };
@@ -521,6 +523,8 @@ where
     maximum_check_extensions_per_line: u16,
     maximum_quiescence_ply: u16,
     see_capture_ordering: bool,
+    see_quiescence_pruning: bool,
+    delta_pruning: bool,
     weights: &'a EvaluationWeights,
     cancellation: &'a mut Probe,
 }
@@ -583,6 +587,8 @@ where
                 beta,
                 context.ordering,
                 context.see_capture_ordering,
+                context.see_quiescence_pruning,
+                context.delta_pruning,
                 context.weights,
             ),
             &mut *context.cancellation,
@@ -845,6 +851,8 @@ mod ordering_tests {
             maximum_check_extensions_per_line: crate::MAX_CHECK_EXTENSIONS_PER_LINE,
             maximum_quiescence_ply: crate::MAX_QUIESCENCE_PLY,
             see_capture_ordering: false,
+            see_quiescence_pruning: false,
+            delta_pruning: false,
             weights: &crate::EvaluationWeights::DEFAULT,
             cancellation: &mut cancellation,
         };
@@ -876,6 +884,8 @@ mod ordering_tests {
             maximum_check_extensions_per_line: crate::MAX_CHECK_EXTENSIONS_PER_LINE,
             maximum_quiescence_ply: crate::MAX_QUIESCENCE_PLY,
             see_capture_ordering: false,
+            see_quiescence_pruning: false,
+            delta_pruning: false,
             weights: &crate::EvaluationWeights::DEFAULT,
             cancellation: &mut cancellation,
         };
@@ -987,6 +997,8 @@ mod ordering_tests {
                 maximum_check_extensions_per_line: crate::MAX_CHECK_EXTENSIONS_PER_LINE,
                 maximum_quiescence_ply: crate::MAX_QUIESCENCE_PLY,
                 see_capture_ordering: false,
+                see_quiescence_pruning: false,
+                delta_pruning: false,
                 weights: &crate::EvaluationWeights::DEFAULT,
                 cancellation: &mut cancellation,
             };

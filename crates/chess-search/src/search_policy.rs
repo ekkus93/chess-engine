@@ -13,6 +13,10 @@ pub const V0_1_SEARCH_POLICY_ID: u64 = 0x5630_315f_504f_4c31;
 pub const V0_1_SEARCH_POLICY_CHECKSUM: u64 = 0x0c07_69ef_9d03_4770;
 /// Stable identifier for the inactive S2-5 SEE capture-ordering candidate.
 pub const SEE_CAPTURE_ORDERING_SEARCH_POLICY_ID: u64 = 0x5332_3553_4545_4f31;
+/// Stable identifier for the inactive S2-6 SEE quiescence-pruning candidate.
+pub const SEE_QUIESCENCE_PRUNING_SEARCH_POLICY_ID: u64 = 0x5332_3653_4545_5031;
+/// Stable identifier for the inactive S2-6 SEE-plus-delta candidate.
+pub const SEE_AND_DELTA_QUIESCENCE_PRUNING_SEARCH_POLICY_ID: u64 = 0x5332_3644_454c_5031;
 /// Largest accepted aspiration half-width.
 pub const MAXIMUM_ASPIRATION_HALF_WIDTH_CENTIPAWNS: u16 = 10_000;
 /// Largest accepted bounded check-extension budget.
@@ -177,6 +181,15 @@ impl ExperimentalSearchFeatures {
     pub const SEE_CAPTURE_ORDERING: Self = Self {
         bits: ExperimentalSearchFeature::SeeCaptureOrdering.bit(),
     };
+    /// Inactive S2-6 SEE quiescence-pruning candidate.
+    pub const SEE_QUIESCENCE_PRUNING: Self = Self {
+        bits: ExperimentalSearchFeature::SeeQuiescencePruning.bit(),
+    };
+    /// Inactive S2-6 SEE pruning followed by delta pruning.
+    pub const SEE_AND_DELTA_QUIESCENCE_PRUNING: Self = Self {
+        bits: ExperimentalSearchFeature::SeeQuiescencePruning.bit()
+            | ExperimentalSearchFeature::DeltaPruning.bit(),
+    };
     /// All currently assigned feature bits.
     pub const KNOWN_BITS: u64 = (1_u64 << 9) - 1;
 
@@ -222,8 +235,13 @@ impl ExperimentalSearchFeatures {
             (1 << 8, ExperimentalSearchFeature::LateMovePruning),
         ];
         FEATURES.into_iter().find_map(|(bit, feature)| {
-            (self.bits & bit != 0 && feature != ExperimentalSearchFeature::SeeCaptureOrdering)
-                .then_some(feature)
+            let implemented = matches!(
+                feature,
+                ExperimentalSearchFeature::SeeCaptureOrdering
+                    | ExperimentalSearchFeature::SeeQuiescencePruning
+                    | ExperimentalSearchFeature::DeltaPruning
+            );
+            (self.bits & bit != 0 && !implemented).then_some(feature)
         })
     }
 }
@@ -284,6 +302,32 @@ impl SearchPolicy {
         experimental_features: ExperimentalSearchFeatures::SEE_CAPTURE_ORDERING,
     });
 
+    /// Inactive S2-6 candidate: baseline ordering plus conservative SEE pruning.
+    pub const SEE_QUIESCENCE_PRUNING: Self = Self::new(SearchPolicyParameters {
+        alpha_beta: AlphaBetaMode::FullWindowFailSoft,
+        transposition: TranspositionPolicy::ClusteredFullKey,
+        move_ordering: MoveOrderingPolicy::V0_1MvvLvaKillersHistory,
+        quiescence: QuiescencePolicy::CapturesPromotionsAndEvasions,
+        aspiration_windows: true,
+        aspiration_half_width_centipawns: DEFAULT_ASPIRATION_HALF_WIDTH_CENTIPAWNS as u16,
+        maximum_quiescence_ply: MAX_QUIESCENCE_PLY,
+        maximum_check_extensions_per_line: MAX_CHECK_EXTENSIONS_PER_LINE,
+        experimental_features: ExperimentalSearchFeatures::SEE_QUIESCENCE_PRUNING,
+    });
+
+    /// Inactive S2-6 candidate: SEE pruning followed by bounded delta pruning.
+    pub const SEE_AND_DELTA_QUIESCENCE_PRUNING: Self = Self::new(SearchPolicyParameters {
+        alpha_beta: AlphaBetaMode::FullWindowFailSoft,
+        transposition: TranspositionPolicy::ClusteredFullKey,
+        move_ordering: MoveOrderingPolicy::V0_1MvvLvaKillersHistory,
+        quiescence: QuiescencePolicy::CapturesPromotionsAndEvasions,
+        aspiration_windows: true,
+        aspiration_half_width_centipawns: DEFAULT_ASPIRATION_HALF_WIDTH_CENTIPAWNS as u16,
+        maximum_quiescence_ply: MAX_QUIESCENCE_PLY,
+        maximum_check_extensions_per_line: MAX_CHECK_EXTENSIONS_PER_LINE,
+        experimental_features: ExperimentalSearchFeatures::SEE_AND_DELTA_QUIESCENCE_PRUNING,
+    });
+
     /// Constructs explicit typed parameters for subsequent validation.
     #[must_use]
     pub const fn new(parameters: SearchPolicyParameters) -> Self {
@@ -328,6 +372,22 @@ impl SearchPolicy {
             .contains(ExperimentalSearchFeature::SeeCaptureOrdering)
     }
 
+    /// Returns whether conservative SEE pruning is selected in quiescence.
+    #[must_use]
+    pub const fn see_quiescence_pruning_enabled(self) -> bool {
+        self.parameters
+            .experimental_features
+            .contains(ExperimentalSearchFeature::SeeQuiescencePruning)
+    }
+
+    /// Returns whether bounded delta pruning is selected in quiescence.
+    #[must_use]
+    pub const fn delta_pruning_enabled(self) -> bool {
+        self.parameters
+            .experimental_features
+            .contains(ExperimentalSearchFeature::DeltaPruning)
+    }
+
     /// Validates supported ranges and rejects not-yet-implemented features.
     pub fn validate(self) -> Result<(), SearchPolicyValidationError> {
         let aspiration_width = self.parameters.aspiration_half_width_centipawns;
@@ -366,6 +426,9 @@ impl SearchPolicy {
             );
         }
 
+        if self.delta_pruning_enabled() && !self.see_quiescence_pruning_enabled() {
+            return Err(SearchPolicyValidationError::DeltaPruningRequiresSeePruning);
+        }
         if let Some(feature) = self
             .parameters
             .experimental_features
@@ -437,6 +500,24 @@ impl SearchPolicySet {
         )
     }
 
+    /// Returns the inactive S2-6 SEE quiescence-pruning candidate.
+    #[must_use]
+    pub fn see_quiescence_pruning_candidate() -> Self {
+        Self::new(
+            SEE_QUIESCENCE_PRUNING_SEARCH_POLICY_ID,
+            SearchPolicy::SEE_QUIESCENCE_PRUNING,
+        )
+    }
+
+    /// Returns the inactive S2-6 SEE-plus-delta quiescence candidate.
+    #[must_use]
+    pub fn see_and_delta_quiescence_pruning_candidate() -> Self {
+        Self::new(
+            SEE_AND_DELTA_QUIESCENCE_PRUNING_SEARCH_POLICY_ID,
+            SearchPolicy::SEE_AND_DELTA_QUIESCENCE_PRUNING,
+        )
+    }
+
     /// Computes the canonical checksum.
     #[must_use]
     pub fn computed_checksum(&self) -> u64 {
@@ -503,6 +584,8 @@ pub enum SearchPolicyValidationError {
     CheckExtensionMaximumOutOfRange { value: u16, maximum: u16 },
     /// Serialized feature bits contain an unknown assignment.
     UnknownExperimentalFeatureBits { bits: u64 },
+    /// Delta pruning was enabled without its required SEE-pruning predecessor.
+    DeltaPruningRequiresSeePruning,
     /// A known future feature was enabled before its implementation task.
     UnsupportedExperimentalFeature { feature: ExperimentalSearchFeature },
     /// Serialized checksum does not match the canonical parameters.
@@ -535,6 +618,9 @@ impl fmt::Display for SearchPolicyValidationError {
             Self::UnknownExperimentalFeatureBits { bits } => {
                 write!(formatter, "unknown experimental search-policy bits {bits:#018x}")
             }
+            Self::DeltaPruningRequiresSeePruning => formatter.write_str(
+                "delta pruning requires SEE quiescence pruning in the same policy",
+            ),
             Self::UnsupportedExperimentalFeature { feature } => write!(
                 formatter,
                 "experimental search feature {} is not implemented and cannot be enabled",
@@ -562,7 +648,8 @@ fn hash_bytes(mut hash: u64, bytes: &[u8]) -> u64 {
 mod tests {
     use super::{
         ExperimentalSearchFeatures, SearchPolicy, SearchPolicyParameters, SearchPolicySet,
-        SearchPolicyValidationError, SEE_CAPTURE_ORDERING_SEARCH_POLICY_ID,
+        SearchPolicyValidationError, SEE_AND_DELTA_QUIESCENCE_PRUNING_SEARCH_POLICY_ID,
+        SEE_CAPTURE_ORDERING_SEARCH_POLICY_ID, SEE_QUIESCENCE_PRUNING_SEARCH_POLICY_ID,
         V0_1_SEARCH_POLICY_CHECKSUM,
     };
 
@@ -584,6 +671,39 @@ mod tests {
         assert!(!baseline.policy.see_capture_ordering_enabled());
         assert_ne!(candidate.identifier, baseline.identifier);
         assert_ne!(candidate.checksum, baseline.checksum);
+    }
+
+    #[test]
+    fn s2_6_quiescence_candidates_are_distinct_valid_and_inactive_by_default() {
+        let baseline = SearchPolicySet::baseline();
+        let see = SearchPolicySet::see_quiescence_pruning_candidate();
+        let delta = SearchPolicySet::see_and_delta_quiescence_pruning_candidate();
+        assert_eq!(see.identifier, SEE_QUIESCENCE_PRUNING_SEARCH_POLICY_ID);
+        assert_eq!(
+            delta.identifier,
+            SEE_AND_DELTA_QUIESCENCE_PRUNING_SEARCH_POLICY_ID
+        );
+        assert_eq!(see.validate(), Ok(()));
+        assert_eq!(delta.validate(), Ok(()));
+        assert!(!baseline.policy.see_quiescence_pruning_enabled());
+        assert!(see.policy.see_quiescence_pruning_enabled());
+        assert!(!see.policy.delta_pruning_enabled());
+        assert!(delta.policy.see_quiescence_pruning_enabled());
+        assert!(delta.policy.delta_pruning_enabled());
+        assert_ne!(baseline.checksum, see.checksum);
+        assert_ne!(see.checksum, delta.checksum);
+    }
+
+    #[test]
+    fn delta_pruning_without_see_pruning_fails_loudly() {
+        let mut parameters = SearchPolicy::V0_1.parameters();
+        parameters.experimental_features =
+            ExperimentalSearchFeatures::from_bits(1 << 2).expect("delta feature bit is assigned");
+        let invalid = SearchPolicySet::new(0x5332_3644_454c_5441, SearchPolicy::new(parameters));
+        assert_eq!(
+            invalid.validate(),
+            Err(SearchPolicyValidationError::DeltaPruningRequiresSeePruning)
+        );
     }
 
     #[test]
@@ -611,7 +731,7 @@ mod tests {
         ));
 
         let mut parameters: SearchPolicyParameters = SearchPolicy::V0_1.parameters();
-        parameters.experimental_features = ExperimentalSearchFeatures::from_bits(1 << 1)
+        parameters.experimental_features = ExperimentalSearchFeatures::from_bits(1 << 3)
             .expect("assigned feature bit is recognized");
         let unsupported = SearchPolicySet::new(1, SearchPolicy::new(parameters));
         assert!(matches!(
