@@ -618,6 +618,43 @@ mod s2_6_tests {
     }
 
     #[test]
+    fn delta_pruning_is_exercised_only_after_see_under_a_narrow_window() {
+        let mut position: Position = "4k3/8/8/3p4/3Q3p/8/8/4K3 w - - 0 1"
+            .parse()
+            .expect("delta-pruning fixture parses");
+        let snapshot = position.clone();
+        let mut history = SearchHistory::from_position(&position);
+        let history_snapshot = history.clone();
+        let mut cancellation = NeverCancelled;
+        let result = search_quiescence_node_with_weights(
+            &mut position,
+            &mut history,
+            QuiescenceContext {
+                ply: 0,
+                quiescence_ply: 0,
+                maximum_quiescence_ply: MAX_QUIESCENCE_PLY,
+            },
+            QuiescenceSearchPolicy::new(
+                Score::from_evaluation(2_000),
+                Score::from_evaluation(2_100),
+                MoveOrdering::Tactical,
+                false,
+                true,
+                true,
+                &EvaluationWeights::DEFAULT,
+            ),
+            &mut cancellation,
+        )
+        .expect("narrow-window delta search succeeds");
+        assert!(result.score() <= Score::from_evaluation(2_000));
+        assert!(result.diagnostics().quiescence_delta_attempts() > 0);
+        assert!(result.diagnostics().quiescence_delta_prunes() > 0);
+        assert_eq!(position, snapshot);
+        assert_eq!(history, history_snapshot);
+        assert_eq!(position.zobrist(), position.recomputed_zobrist());
+    }
+
+    #[test]
     fn guard_exhaustion_in_check_remains_fail_loud_with_pruning_enabled() {
         let mut position: Position = "4r2k/8/8/8/8/8/8/4K3 w - - 0 1"
             .parse()

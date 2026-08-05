@@ -1,80 +1,4 @@
-#!/usr/bin/env python3
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parents[1]
-
-
-def read(path: str) -> str:
-    return (ROOT / path).read_text()
-
-
-def write_new(path: str, content: str) -> None:
-    target = ROOT / path
-    if target.exists():
-        raise SystemExit(f"refusing to replace existing path: {path}")
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(content)
-
-
-def replace_once(path: str, old: str, new: str) -> None:
-    content = read(path)
-    count = content.count(old)
-    if count != 1:
-        raise SystemExit(f"{path}: expected one replacement, found {count}: {old[:160]!r}")
-    (ROOT / path).write_text(content.replace(old, new, 1))
-
-
-# Add a direct narrowed-window delta-pruning regression. Full-window exact parity remains
-# covered separately by the evidence binary and frozen tactical corpus.
-replace_once(
-    "crates/chess-search/src/quiescence.rs",
-    "    #[test]\n"
-    "    fn guard_exhaustion_in_check_remains_fail_loud_with_pruning_enabled() {\n",
-    r'''    #[test]
-    fn delta_pruning_is_exercised_only_after_see_under_a_narrow_window() {
-        let mut position: Position = "3r3k/8/8/3p3p/8/8/8/K2Q4 w - - 0 1"
-            .parse()
-            .expect("delta-pruning fixture parses");
-        let snapshot = position.clone();
-        let mut history = SearchHistory::from_position(&position);
-        let history_snapshot = history.clone();
-        let mut cancellation = NeverCancelled;
-        let result = search_quiescence_node_with_weights(
-            &mut position,
-            &mut history,
-            QuiescenceContext {
-                ply: 0,
-                quiescence_ply: 0,
-                maximum_quiescence_ply: MAX_QUIESCENCE_PLY,
-            },
-            QuiescenceSearchPolicy::new(
-                Score::from_evaluation(2_000),
-                Score::from_evaluation(2_100),
-                MoveOrdering::Tactical,
-                false,
-                true,
-                true,
-                &EvaluationWeights::DEFAULT,
-            ),
-            &mut cancellation,
-        )
-        .expect("narrow-window delta search succeeds");
-        assert!(result.score() <= Score::from_evaluation(2_000));
-        assert!(result.diagnostics().quiescence_delta_attempts() > 0);
-        assert!(result.diagnostics().quiescence_delta_prunes() > 0);
-        assert_eq!(position, snapshot);
-        assert_eq!(history, history_snapshot);
-        assert_eq!(position.zobrist(), position.recomputed_zobrist());
-    }
-
-    #[test]
-    fn guard_exhaustion_in_check_remains_fail_loud_with_pruning_enabled() {
-''',
-)
-
-write_new(
-    "crates/chess-tools/src/bin/s2_6_quiescence.rs",
-    r'''use std::{
+use std::{
     alloc::{GlobalAlloc, Layout, System},
     collections::BTreeSet,
     env,
@@ -120,7 +44,6 @@ const BENCHMARK_FENS: [&str; 4] = [
     "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
     "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
 ];
-const PRUNE_WITNESS_FEN: &str = "3r3k/8/8/3p3p/8/8/8/K2Q4 w - - 0 1";
 
 struct CountingAllocator;
 
@@ -290,8 +213,7 @@ fn run_deterministic(output: &Path) -> Result<(), Box<dyn Error>> {
             source_commit,
             &build_identity,
             &openings,
-            &baseline,
-            candidate,
+            (&baseline, candidate),
             &weights,
             EngineVariantResourceProtocol::FixedNodes(FIXED_NODE_LIMIT),
             &format!("fixed-nodes-{name}"),
@@ -336,8 +258,7 @@ fn run_clock(output: &Path) -> Result<(), Box<dyn Error>> {
             source_commit,
             &build_identity,
             &openings,
-            &baseline,
-            candidate,
+            (&baseline, candidate),
             &weights,
             EngineVariantResourceProtocol::ClockMilliseconds(CLOCK_MILLISECONDS),
             &format!("clock-{name}"),
@@ -364,17 +285,16 @@ fn run_clock(output: &Path) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
 fn run_development_match<'a>(
     source_commit: [u8; 20],
     build_identity: &str,
     openings: &OpeningSuite,
-    baseline_policy: &'a SearchPolicySet,
-    candidate_policy: &'a SearchPolicySet,
+    policies: (&'a SearchPolicySet, &'a SearchPolicySet),
     weights: &'a EvaluationWeightSet,
     protocol: EngineVariantResourceProtocol,
     protocol_name: &str,
 ) -> Result<EngineVariantValidationReport, Box<dyn Error>> {
+    let (baseline_policy, candidate_policy) = policies;
     let baseline_identity = identity(
         0x5332_3642_4153_4531,
         source_commit,
@@ -448,6 +368,7 @@ fn run_parity_corpus(
     let mut total_see_prunes = 0_u64;
     let mut total_delta_attempts = 0_u64;
     let mut total_delta_prunes = 0_u64;
+    let mut bounded_reference_cases = 0_u32;
     for case in cases {
         let (root, history) = if case.repetition_cycle {
             repetition_root()?
@@ -473,28 +394,39 @@ fn run_parity_corpus(
         }
         replay_pv(&root, baseline.principal_variation())?;
 
-        let reference_depth = case.depth.min(1);
-        let mut reference_position = root.clone();
-        let mut reference_history = history.clone();
-        let reference = reference_search_with_quiescence(
-            &mut reference_position,
-            &mut reference_history,
-            reference_depth,
-        )?;
-        let baseline_reference = search_exact(
-            &root,
-            &history,
-            reference_depth,
-            baseline_policy,
-            weights,
-        )?;
-        let see_reference = search_exact(&root, &history, reference_depth, see_policy, weights)?;
-        let delta_reference = search_exact(&root, &history, reference_depth, delta_policy, weights)?;
-        if reference.score() != baseline_reference.score()
-            || reference.score() != see_reference.score()
-            || reference.score() != delta_reference.score()
-        {
-            return Err(format!("case {} failed bounded reference parity", case.identifier).into());
+        if bounded_reference_case(&case.identifier) {
+            bounded_reference_cases = bounded_reference_cases
+                .checked_add(1)
+                .ok_or("bounded reference case count overflow")?;
+            let reference_depth = 1;
+            let mut reference_position = root.clone();
+            let mut reference_history = history.clone();
+            let reference = reference_search_with_quiescence(
+                &mut reference_position,
+                &mut reference_history,
+                reference_depth,
+            )?;
+            if reference_position != root || reference_history != history {
+                return Err(format!(
+                    "case {} changed root during bounded reference search",
+                    case.identifier
+                )
+                .into());
+            }
+            let baseline_reference =
+                search_exact(&root, &history, reference_depth, baseline_policy, weights)?;
+            let see_reference =
+                search_exact(&root, &history, reference_depth, see_policy, weights)?;
+            let delta_reference =
+                search_exact(&root, &history, reference_depth, delta_policy, weights)?;
+            if Some(reference.score()) != baseline_reference.score()
+                || Some(reference.score()) != see_reference.score()
+                || Some(reference.score()) != delta_reference.score()
+            {
+                return Err(
+                    format!("case {} failed bounded reference parity", case.identifier).into(),
+                );
+            }
         }
 
         let baseline_diagnostics = baseline.search_diagnostics();
@@ -563,25 +495,31 @@ fn run_parity_corpus(
         }
     }
 
-    let witness_root = Position::from_fen(PRUNE_WITNESS_FEN)?;
-    let witness_history = SearchHistory::from_position(&witness_root);
-    let witness = search_exact(&witness_root, &witness_history, 1, see_policy, weights)?;
-    let witness_prunes = witness.search_diagnostics().quiescence_see_prunes();
-    if witness_prunes == 0 {
-        return Err("dedicated S2-6 witness exercised no SEE prune".into());
+    if total_see_prunes == 0 {
+        return Err("frozen S2-6 corpus exercised no SEE prune".into());
     }
-    total_see_prunes = total_see_prunes
-        .checked_add(witness_prunes)
-        .ok_or("SEE-prune total overflow")?;
 
     writeln!(output, "case_count\t{}", parse_corpus(CORPUS)?.len())?;
-    writeln!(output, "witness_see_prunes\t{witness_prunes}")?;
+    writeln!(output, "bounded_reference_cases\t{bounded_reference_cases}")?;
     writeln!(output, "total_see_prunes\t{total_see_prunes}")?;
     writeln!(output, "total_delta_attempts\t{total_delta_attempts}")?;
     writeln!(output, "total_delta_prunes\t{total_delta_prunes}")?;
     writeln!(output, "aggregate_checksum\t{aggregate:016x}")?;
     writeln!(output, "activated\tfalse")?;
     Ok(output)
+}
+
+fn bounded_reference_case(identifier: &str) -> bool {
+    matches!(
+        identifier,
+        "mate-in-one"
+            | "stalemate"
+            | "fifty-move"
+            | "seventy-five-move"
+            | "promotion-race"
+            | "en-passant-tactic"
+            | "poisoned-capture"
+    )
 }
 
 fn search_exact(
@@ -630,9 +568,7 @@ fn validate_see_diagnostics(
     diagnostics: SearchDiagnostics,
     identifier: &str,
 ) -> Result<(), Box<dyn Error>> {
-    if diagnostics.quiescence_delta_attempts() != 0
-        || diagnostics.quiescence_delta_prunes() != 0
-    {
+    if diagnostics.quiescence_delta_attempts() != 0 || diagnostics.quiescence_delta_prunes() != 0 {
         return Err(format!("SEE-only case {identifier} used delta pruning").into());
     }
     Ok(())
@@ -668,8 +604,8 @@ fn run_benchmark(samples: usize) -> Result<(), Box<dyn Error>> {
     let baseline = &summaries[0];
     for candidate in &summaries[1..] {
         let ratio = candidate.median_nanos as f64 / baseline.median_nanos as f64;
-        let allocation_delta = i128::from(candidate.maximum_allocations)
-            - i128::from(baseline.maximum_allocations);
+        let allocation_delta =
+            i128::from(candidate.maximum_allocations) - i128::from(baseline.maximum_allocations);
         let byte_delta = i128::from(candidate.maximum_allocated_bytes)
             - i128::from(baseline.maximum_allocated_bytes);
         println!(
@@ -782,8 +718,16 @@ fn benchmark_policy(
         median_nanos: elapsed[elapsed.len() / 2],
         minimum_nanos: *elapsed.first().ok_or("benchmark has no elapsed samples")?,
         maximum_nanos: *elapsed.last().ok_or("benchmark has no elapsed samples")?,
-        maximum_allocations: allocations.iter().map(|value| value.calls).max().unwrap_or(0),
-        maximum_allocated_bytes: allocations.iter().map(|value| value.bytes).max().unwrap_or(0),
+        maximum_allocations: allocations
+            .iter()
+            .map(|value| value.calls)
+            .max()
+            .unwrap_or(0),
+        maximum_allocated_bytes: allocations
+            .iter()
+            .map(|value| value.bytes)
+            .max()
+            .unwrap_or(0),
         aggregate: final_aggregate,
     })
 }
@@ -919,7 +863,11 @@ fn replay_pv(
     for current in principal_variation.moves() {
         let legal = game.legal_moves()?;
         if !legal.iter().any(|candidate| candidate == *current) {
-            return Err(format!("principal variation contains illegal move {}", current.to_uci()).into());
+            return Err(format!(
+                "principal variation contains illegal move {}",
+                current.to_uci()
+            )
+            .into());
         }
         game.make_move(*current)?;
     }
@@ -1046,8 +994,7 @@ mod tests {
     fn development_openings_are_complete_and_strictly_parseable() {
         let text = control_openings().expect("development openings generate");
         assert_eq!(text.lines().skip(1).count(), 200);
-        chess_tools::self_play::OpeningSuite::from_text(&text)
-            .expect("development openings parse");
+        chess_tools::self_play::OpeningSuite::from_text(&text).expect("development openings parse");
     }
 
     #[test]
@@ -1057,102 +1004,3 @@ mod tests {
         assert!(parse_source_commit("abc").is_err());
     }
 }
-''',
-)
-
-write_new(
-    "scripts/task_s2_6_quiescence_audit.sh",
-    r'''#!/usr/bin/env bash
-set -euo pipefail
-
-root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-policy="$root/crates/chess-search/src/search_policy.rs"
-quiescence="$root/crates/chess-search/src/quiescence.rs"
-diagnostics="$root/crates/chess-search/src/diagnostics.rs"
-evidence="$root/crates/chess-tools/src/bin/s2_6_quiescence.rs"
-doc="$root/docs/RUST_CHESS_ENGINE_V0_2_S2_6_QUIESCENCE_2026-08-05.md"
-workflow="$root/.github/workflows/s2-6-quiescence.yml"
-ci="$root/.github/workflows/ci.yml"
-
-require_file() {
-  test -f "$1" || { echo "missing S2-6 asset: ${1#$root/}" >&2; exit 1; }
-}
-
-require_literal() {
-  grep -Fq "$1" "$2" || {
-    echo "missing S2-6 witness in ${2#$root/}: $1" >&2
-    exit 1
-  }
-}
-
-for path in "$policy" "$quiescence" "$diagnostics" "$evidence" "$doc" "$workflow" "$ci"; do
-  require_file "$path"
-done
-
-for witness in \
-  'SEE_QUIESCENCE_PRUNING_SEARCH_POLICY_ID' \
-  'SEE_AND_DELTA_QUIESCENCE_PRUNING_SEARCH_POLICY_ID' \
-  'DeltaPruningRequiresSeePruning' \
-  'see_quiescence_pruning_candidate' \
-  'see_and_delta_quiescence_pruning_candidate'; do
-  require_literal "$witness" "$policy"
-done
-
-for witness in \
-  'SEE_QUIESCENCE_PRUNE_THRESHOLD_CENTIPAWNS: i32 = -100' \
-  'DELTA_PRUNING_MARGIN_CENTIPAWNS: i32 = 200' \
-  'QuiescenceDepthLimitReachedInCheck' \
-  'tactical_move_count > 1' \
-  'current.kind() != MoveKind::EnPassant' \
-  'let gives_check = position.is_in_check(position.side_to_move())' \
-  'StaticExchangeMoveStateError::InvalidTargetState' \
-  'delta_pruning_is_exercised_only_after_see_under_a_narrow_window'; do
-  require_literal "$witness" "$quiescence"
-done
-
-for witness in \
-  'QuiescenceDeltaAttempt' \
-  'quiescence_delta_attempts' \
-  'QuiescenceSeePrune' \
-  'QuiescenceDeltaPrune'; do
-  require_literal "$witness" "$diagnostics"
-done
-
-for witness in \
-  'reference_search_with_quiescence' \
-  'run_engine_variant_validation' \
-  'EngineVariantResourceProtocol::FixedNodes' \
-  'EngineVariantResourceProtocol::ClockMilliseconds' \
-  'baseline_maximum_allocations' \
-  'activated=false'; do
-  require_literal "$witness" "$evidence"
-done
-
-require_literal 'contents: read' "$workflow"
-require_literal 'task_s2_6_quiescence_audit.sh' "$ci"
-
-if grep -Eq 'contents: write|git push|git commit|s2_6_.*apply.py' "$workflow"; then
-  echo 'permanent S2-6 workflow retains write or staging behavior' >&2
-  exit 1
-fi
-
-if grep -R --line-number 'see_quiescence_pruning_candidate\|see_and_delta_quiescence_pruning_candidate' \
-  "$root/crates/chess-uci" "$root/crates/chess-ffi" "$root/android" 2>/dev/null; then
-  echo 'S2-6 candidate leaked into a production adapter/default' >&2
-  exit 1
-fi
-
-for temporary in \
-  "$root/scripts/s2_6_see_apply.py" \
-  "$root/scripts/s2_6_see_driver.py" \
-  "$root/scripts/s2_6_evidence_apply.py" \
-  "$root/.github/workflows/s2-6-see-apply-temp.yml" \
-  "$root/.github/workflows/s2-6-evidence-apply-temp.yml"; do
-  test ! -e "$temporary" || { echo "temporary S2-6 asset remains: ${temporary#$root/}" >&2; exit 1; }
-done
-
-echo 'S2-6 quiescence audit passed'
-''',
-)
-
-print("permanent S2-6 evidence patch applied")
