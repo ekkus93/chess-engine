@@ -108,8 +108,8 @@ grep -Fq 'docs/RUST_CHESS_ENGINE_PORT_IMPLEMENTATION_REPORT.md' README.md \
 
 grep -Fq 'version = "0.1.0"' Cargo.toml \
   || fail 'workspace version is not recorded as 0.1.0'
-grep -Fq 'rust-version = "1.91"' Cargo.toml \
-  || fail 'workspace minimum Rust version is not recorded as 1.91'
+grep -Fq 'rust-version = "1.75"' Cargo.toml \
+  || fail 'workspace minimum Rust version is not recorded as 1.75'
 
 grep -Fq 'pub const SELF_PLAY_CONFIG_SCHEMA_VERSION: u16 = 1;' crates/chess-tools/src/self_play.rs \
   || fail 'self-play configuration schema changed'

@@ -60,7 +60,7 @@ book semantics, default evaluator weights, or tuning acceptance criteria.
 | Component | Version / identity | Primary implementation |
 |---|---|---|
 | Workspace packages | `0.1.0` | root `Cargo.toml` and crate manifests |
-| Minimum supported Rust | `1.91` | root `Cargo.toml` |
+| Minimum supported Rust | `1.75` | root `Cargo.toml` |
 | CI validation toolchain | `1.97.1` | permanent workflows and evidence reports |
 | Core/search Rust API | package `0.1.0` | `crates/chess-core`, `crates/chess-search` |
 | UCI engine | `chess-engine-rust 0.1.0` | `crates/chess-uci` |
