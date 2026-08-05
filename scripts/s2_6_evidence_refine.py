@@ -66,6 +66,12 @@ if text.count(fixture_old) != 1:
     raise SystemExit("expected one S2-6 narrow-window delta fixture")
 text = text.replace(fixture_old, fixture_new, 1)
 
+prune_constant = '''const PRUNE_WITNESS_FEN: &str = "3r3k/8/8/3p3p/8/8/8/K2Q4 w - - 0 1";
+'''
+if text.count(prune_constant) != 1:
+    raise SystemExit("expected one obsolete iterative prune witness constant")
+text = text.replace(prune_constant, "", 1)
+
 text = text.replace(
     '''    let mut total_delta_prunes = 0_u64;
     for case in cases {
@@ -147,12 +153,35 @@ if text.count(reference_block_old) != 1:
     raise SystemExit("expected one complete S2-6 reference block")
 text = text.replace(reference_block_old, reference_block_new, 1)
 
+witness_block_old = '''    let witness_root = Position::from_fen(PRUNE_WITNESS_FEN)?;
+    let witness_history = SearchHistory::from_position(&witness_root);
+    let witness = search_exact(&witness_root, &witness_history, 1, see_policy, weights)?;
+    let witness_prunes = witness.search_diagnostics().quiescence_see_prunes();
+    if witness_prunes == 0 {
+        return Err("dedicated S2-6 witness exercised no SEE prune".into());
+    }
+    total_see_prunes = total_see_prunes
+        .checked_add(witness_prunes)
+        .ok_or("SEE-prune total overflow")?;
+
+'''
+if text.count(witness_block_old) != 1:
+    raise SystemExit("expected one obsolete iterative S2-6 prune witness block")
+text = text.replace(
+    witness_block_old,
+    '''    if total_see_prunes == 0 {
+        return Err("frozen S2-6 corpus exercised no SEE prune".into());
+    }
+
+''',
+    1,
+)
+
 summary_old = '''    writeln!(output, "case_count\\t{}", parse_corpus(CORPUS)?.len())?;
     writeln!(output, "witness_see_prunes\\t{witness_prunes}")?;
 '''
 summary_new = '''    writeln!(output, "case_count\\t{}", parse_corpus(CORPUS)?.len())?;
     writeln!(output, "bounded_reference_cases\\t{bounded_reference_cases}")?;
-    writeln!(output, "witness_see_prunes\\t{witness_prunes}")?;
 '''
 if text.count(summary_old) != 1:
     raise SystemExit("expected one S2-6 parity summary block")
@@ -184,4 +213,4 @@ text = text.replace(helper_anchor, helper, 1)
 if text.count("#[allow(") or text.count("#[expect("):
     raise SystemExit("S2-6 evidence payload retains lint suppression")
 path.write_text(text)
-print("S2-6 evidence helper, bounded reference subset, and delta fixture refined")
+print("S2-6 evidence helper, bounded reference subset, corpus prune witness, and delta fixture refined")
