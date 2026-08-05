@@ -1,11 +1,11 @@
 # Rust Chess Engine Port Implementation Report
 
-**Status:** Task 27 full port-program signoff evidence candidate  
-**Report date:** 2026-08-04  
-**Authoritative specification:** `docs/RUST_CHESS_ENGINE_PORT_SPEC_2026-08-01.md`  
-**Authoritative live TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Functional v0.1 evidence:** `docs/RUST_CHESS_ENGINE_V0_1_IMPLEMENTATION_REPORT.md`  
-**Exact Task 27 validation implementation:** `PENDING_EXACT_SHA`
+**Status:** Task 27 full port-program signoff complete
+**Report date:** 2026-08-04
+**Authoritative specification:** `docs/RUST_CHESS_ENGINE_PORT_SPEC_2026-08-01.md`
+**Authoritative live TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`
+**Functional v0.1 evidence:** `docs/RUST_CHESS_ENGINE_V0_1_IMPLEMENTATION_REPORT.md`
+**Exact Task 27 validation implementation:** `ca3c0cf93c8e5bc626d2dca9ef204d95bb096a94`
 
 ## Executive conclusion
 
@@ -156,7 +156,7 @@ Task 27 consolidates rather than duplicates those gates.
 | 22 | advanced evaluation candidates | complete; every proposed area has an explicit evidence-backed decision |
 | 23–25 | robustness, performance, CI, documentation, developer workflows | complete |
 | 26 | playable portable v0.1 signoff | complete |
-| 27 | migration, traceability, final report and release evidence | evidence candidate pending exact final SHA |
+| 27 | migration, traceability, final report and release evidence | complete on the exact validated implementation SHA |
 
 ## Optional-capability audit
 
@@ -366,6 +366,17 @@ These do not invalidate the completed port contract:
   P0/P1 correctness designation do not alter the engine guarantees; they may be
   administratively closed separately.
 
+## Exact Task 27 release evidence
+
+| Gate | Run | Jobs | Result |
+|---|---:|---|---|
+| Rust CI | `30966030100` | `92180059805`, `92180059780` | final audit, x86-64 quality/correctness, differential validation, and native AArch64 passed |
+| Android JNI | `30966030065` | `92180100524`, `92180100553`, `92180100578` | API-35, lint, host JVM, dual ABI, APKs, and artifact `8914802962` passed |
+| Robustness | `30966030080` | `92180097421`, `92180097424`, `92180097438` | fuzzing, Miri, ASan/LSan, and TSan passed |
+| Performance | `30966030058` | `92180059807`, `92180059860` | native AArch64 and x86-64 regression budgets passed |
+
+The exact validated implementation is `ca3c0cf93c8e5bc626d2dca9ef204d95bb096a94`. The subsequent tracker closure is documentation-only and explicitly maps to this unchanged implementation and its exact runs; it does not claim new engine evidence from the closure commit.
+
 ## Final release gate
 
 Task 27 may be marked complete only when all of the following are true:
@@ -380,5 +391,4 @@ Task 27 may be marked complete only when all of the following are true:
 - README identifies Rust as authoritative and Python as reference-only;
 - the report does not claim that rejected weights were accepted or activated.
 
-Until those conditions are recorded, this document remains an evidence
-candidate rather than a completion assertion.
+All final release conditions are recorded above. Task 27 and the Rust port program are complete on the exact validated implementation SHA, with the documentation-only tracker closure explicitly mapped to that evidence.

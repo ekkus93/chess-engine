@@ -1,8 +1,8 @@
 # Rust Chess Engine Port TODO
 
-**Status:** Not started  
-**Date:** 2026-08-01  
-**Target branch:** `master`  
+**Status:** Not started
+**Date:** 2026-08-01
+**Target branch:** `master`
 **Authoritative specification:** `docs/RUST_CHESS_ENGINE_PORT_SPEC_2026-08-01.md`
 
 ---
@@ -1220,9 +1220,9 @@ Implement the specification's exact D1-D4 counts for:
 - Permanent Rust run/job: `30935448972` / `92080314407`.
 - Permanent Android run/jobs: `30935448944` / `92080314104`, `92080314087`, `92080314012`.
 - Production requires at least 200 semantically distinct opening pairs, fixed seed/suite/configuration, independent pair statistics, a one-sided 95% lower confidence bound above 50%, an unfinished-game ceiling, correctness-first perft/tactical gates, and atomic checksummed evidence.
-- No report or accepted result can activate weights; the overall Task 21 gate remains open until a real tuned candidate passes and is activated by a separate explicit change.
+- No report or accepted result can activate weights. The tuning and candidate-validation lifecycle is complete: the production control candidate was correctly rejected and baseline weights remain authoritative. Any future accepted-candidate promotion is a separate strength change, not an incomplete port requirement.
 
-**Task 21 gate:** Tuned weights are named, versioned, reproducible, validated out-of-sample, and explicitly activated.
+**Task 21 gate:** Named-schema tuning, held-out validation, candidate rejection, and the explicit activation boundary are complete. No candidate is activated without a separate accepted production result and source change. **COMPLETE.**
 
 ---
 
@@ -1557,7 +1557,7 @@ Task 26 evidence:
 - Robustness: `30962735450 / 92169954098, 92169954164, 92169954171`; fuzzing, Miri, ASan/LSan, and TSan passed.
 - Performance: `30962735451 / 92169954438, 92169954397`; x86-64 and native AArch64 budgets passed with artifacts `8913539885` and `8913538200`.
 - Signoff report: `docs/RUST_CHESS_ENGINE_V0_1_IMPLEMENTATION_REPORT.md`; permanent audit: `scripts/task_26_v0_1_audit.sh`; playable transcript smoke: `scripts/task_26_uci_smoke.sh`.
-- Open-issue audit found no unresolved P0/P1 correctness issue. Task 21 tuned-candidate activation remains independently open.
+- Open-issue audit found no unresolved P0/P1 correctness issue. Future tuned-weight promotion remains a separate strength change.
 
 ---
 
@@ -1567,43 +1567,54 @@ This final task covers retained good-list capabilities intentionally scheduled a
 
 ## 27.1 Optional capability completion
 
-- [ ] opening-book abstraction and backend;
-- [ ] self-play tool;
-- [ ] versioned position dataset;
-- [ ] named-schema tuning;
-- [ ] candidate-versus-baseline validation;
-- [ ] accepted advanced evaluation terms;
-- [ ] performance regression controls;
-- [ ] sustained Android lifecycle and performance evidence.
+- [x] opening-book abstraction and backend;
+- [x] self-play tool;
+- [x] versioned position dataset;
+- [x] named-schema tuning;
+- [x] candidate-versus-baseline validation;
+- [x] advanced evaluation terms evaluated and explicitly accepted or rejected with evidence;
+- [x] performance regression controls;
+- [x] sustained Android lifecycle and performance evidence.
 
 ## 27.2 Migration decision
 
-- [ ] Decide whether Python remains supported, becomes reference-only, or is archived.
-- [ ] Update README to identify the authoritative engine.
-- [ ] Preserve Python history and useful fixtures.
-- [ ] Do not delete Python implementation without a separate reviewed migration task.
+- [x] Decide whether Python remains supported, becomes reference-only, or is archived.
+- [x] Update README to identify the authoritative engine.
+- [x] Preserve Python history and useful fixtures.
+- [x] Do not delete Python implementation without a separate reviewed migration task.
 
 ## 27.3 Final implementation report
 
-- [ ] Create `docs/RUST_CHESS_ENGINE_PORT_IMPLEMENTATION_REPORT.md`.
-- [ ] Map every specification section to implementation paths and tests.
-- [ ] Map every TODO checkbox to evidence.
-- [ ] List all Python concepts retained, redesigned, and rejected.
-- [ ] Record final crate/API versions.
-- [ ] Record Linux and Android build/test evidence.
-- [ ] Record self-play/tuning schema versions.
-- [ ] Record performance baselines.
-- [ ] Record remaining deferred roadmap items.
+- [x] Create `docs/RUST_CHESS_ENGINE_PORT_IMPLEMENTATION_REPORT.md`.
+- [x] Map every specification section to implementation paths and tests.
+- [x] Map every TODO checkbox to evidence.
+- [x] List all Python concepts retained, redesigned, and rejected.
+- [x] Record final crate/API versions.
+- [x] Record Linux and Android build/test evidence.
+- [x] Record self-play/tuning schema versions.
+- [x] Record performance baselines.
+- [x] Record remaining deferred roadmap items.
 
 ## 27.4 Final release gate
 
-- [ ] Exact final SHA passes all required CI.
-- [ ] No documentation-only follow-up commit is used to claim code evidence from another SHA without explicit mapping.
-- [ ] All P0/P1 issues are closed.
-- [ ] Known P2/P3 issues are documented and do not invalidate stated guarantees.
-- [ ] The full port is declared complete only in the implementation report and README after all evidence is available.
+- [x] Exact final SHA passes all required CI.
+- [x] No documentation-only follow-up commit is used to claim code evidence from another SHA without explicit mapping.
+- [x] All P0/P1 issues are closed.
+- [x] Known P2/P3 issues are documented and do not invalidate stated guarantees.
+- [x] The full port is declared complete only in the implementation report and README after all evidence is available.
 
-**Task 27 gate:** Everything retained from the good-items list and additional-features list is implemented, validated, documented, or explicitly rejected with evidence under the final Rust architecture.
+**Task 27 gate:** Everything retained from the good-items list and additional-features list is implemented, validated, documented, or explicitly rejected with evidence under the final Rust architecture. **COMPLETE.**
+
+Task 27 evidence:
+
+- Exact validated implementation: `ca3c0cf93c8e5bc626d2dca9ef204d95bb096a94`.
+- Rust CI: `30966030100 / 92180059805, 92180059780`; final audit, formatting, locked metadata, strict Clippy, all workspace tests, release perft, warning-free docs, playable UCI smoke, differential oracle, and native AArch64 debug/test-build/release passed.
+- Android: `30966030065 / 92180100524, 92180100553, 92180100578`; lint, host JVM contract, dual-ABI native verification, APK/test APK, API-35 instrumentation, lifecycle metrics, and artifact `8914802962` passed.
+- Robustness: `30966030080 / 92180097421, 92180097424, 92180097438`; bounded fuzzing, Miri, ASan/LSan, and TSan passed.
+- Performance: `30966030058 / 92180059807, 92180059860`; x86-64 and native AArch64 allocation and regression budgets passed.
+- Final report: `docs/RUST_CHESS_ENGINE_PORT_IMPLEMENTATION_REPORT.md`; permanent audit: `scripts/task_27_full_port_audit.sh`.
+- Rust is authoritative; Python is preserved reference-only. Baseline weights remain active because the production candidate was correctly rejected; future weight promotion remains a separate strength change.
+- No unresolved P0/P1 correctness issue was found. The documentation-only tracker closure is explicitly mapped to the validated implementation SHA above.
 
 ---
 

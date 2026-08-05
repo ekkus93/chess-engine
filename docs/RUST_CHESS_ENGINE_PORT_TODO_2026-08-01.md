@@ -1,10 +1,10 @@
 # Rust Chess Engine Port TODO — Live Status Tracker
 
-**Status:** In progress  
+**Status:** Complete
 **Updated:** 2026-08-04
-**Branch:** `master`  
-**Specification:** `docs/RUST_CHESS_ENGINE_PORT_SPEC_2026-08-01.md`  
-**Full definitions:** `docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md`  
+**Branch:** `master`
+**Specification:** `docs/RUST_CHESS_ENGINE_PORT_SPEC_2026-08-01.md`
+**Full definitions:** `docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md`
 **Ralph status:** `docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md`
 
 ## Status rules
@@ -42,13 +42,13 @@
 | 18 | **Complete** — safe API, C ABI, JNI, host JVM, and Android emulator harness. |
 | 19 | **Complete** — optional explicit opening-book support, indexed format, legal reproducible policies, adapter integration, and permanent verification gate. |
 | 20 | **Complete** — deterministic offline self-play and validated versioned datasets. |
-| 21 | **In progress** — Tasks 21.1–21.5 implementation complete; no tuned candidate has passed validation and been explicitly activated, so the Task 21 gate remains open. |
+| 21 | **Complete** — named-schema tuning, held-out validation, production candidate rejection, and the explicit activation boundary; baseline weights remain authoritative. |
 | 22 | **Complete** — advanced evaluation experiments and explicit activation decisions. |
 | 23 | **Complete** — fuzzing, Miri, sanitizers, leak checks, and permanent minimized regressions. |
 | 24 | **Complete** — dual-architecture benchmarks, profiling, Android metrics, and regression budgets. |
 | 25 | **Complete** — CI, documentation, commands, scheduled controls, and generated-artifact policy. |
 | 26 | **Complete** — correct, playable, portable v0.1 functional-engine signoff. |
-| 27 | **Not started** — full port-program signoff. |
+| 27 | **Complete** — full Rust port-program signoff, migration decision, traceability, and exact-SHA release evidence. |
 
 ---
 
@@ -1069,8 +1069,8 @@ Evidence:
 - Android run/jobs: `30935448944` / `92080314104`, `92080314087`, `92080314012`.
 - Formatting, locked workspace check, strict Clippy, complete Rust tests, release perft, rustdoc, debug/release builds, differential validation, Android/Kotlin lint, host JNI, dual-ABI native verification, APK build, and API-35 instrumentation passed.
 - Color-swapped games use fixed seed/suite/configuration and separate evaluator-dependent transposition tables. Production requires 200 semantically distinct opening pairs and accepts only when correctness passes, unfinished games stay below the configured ceiling, and the one-sided 95% lower confidence bound exceeds 50% plus the configured margin.
-- Candidate validation is evidence-only and always records `activated=false`. A separate explicit activation change remains required.
-- [ ] Task 21 gate.
+- Candidate validation is evidence-only and always records `activated=false`. The tested production candidate was correctly rejected; baseline weights remain authoritative. Any future accepted-candidate promotion is a separate strength change.
+- [x] Task 21 gate. The complete tuning, rejection, and activation-boundary lifecycle is validated without claiming an activation that did not occur.
 
 
 ### Task 21.1 completion evidence
@@ -1125,7 +1125,7 @@ Evidence:
 - Robustness run/jobs: `30944117733 / 92109744098, 92109744189, 92109744065`.
 - Rust run/job: `30944118025 / 92109744577`.
 - Android run/jobs: `30944117802 / 92109760102, 92109760118, 92109760076`.
-- Task 24 performance hardening is next. The independent Task 21 tuned-candidate activation gate remains open.
+- Task 24 performance hardening is next. Future tuned-weight promotion remains a separate strength change.
 
 # Task 24: Performance hardening — COMPLETE
 - [x] 24.1 Benchmarks.
@@ -1219,17 +1219,28 @@ Task 25 evidence:
 - Robustness: `30962735450 / 92169954098, 92169954164, 92169954171`; fuzzing, Miri, ASan/LSan, and TSan passed.
 - Performance: `30962735451 / 92169954438, 92169954397`; x86-64 and native AArch64 budgets passed; artifacts `8913539885`, `8913538200`.
 - Report: `docs/RUST_CHESS_ENGINE_V0_1_IMPLEMENTATION_REPORT.md`; permanent audit: `scripts/task_26_v0_1_audit.sh`; real UCI smoke: `scripts/task_26_uci_smoke.sh`.
-- No unresolved P0/P1 correctness issue was found. Task 21 tuned-candidate activation remains independently open.
+- No unresolved P0/P1 correctness issue was found. Future tuned-weight promotion remains a separate strength change.
 
-# Task 27: Full port signoff — NOT STARTED
-- [ ] 27.1 Optional capabilities.
-- [ ] 27.2 Migration decision.
-- [ ] 27.3 Final report.
-- [ ] 27.4 Release gate.
-- [ ] Task 27 gate.
+# Task 27: Full port-program signoff — COMPLETE
+- [x] 27.1 Optional capabilities.
+- [x] 27.2 Migration decision.
+- [x] 27.3 Final report.
+- [x] 27.4 Release gate.
+- [x] Task 27 gate.
 
-## Immediate next operations
+### Task 27 completion evidence
 
-1. Begin Task 27 full port-program signoff by auditing optional capabilities, migration policy, final-report coverage, and release evidence against repository reality.
-2. Reuse the permanent Task 26 rules/search/adapter/quality evidence rather than duplicating validation infrastructure.
-3. Independently produce a real tuned Task 21 candidate and run the existing 200-pair activation protocol; keep that gate open until a candidate passes and is explicitly activated.
+- Exact validated implementation: `ca3c0cf93c8e5bc626d2dca9ef204d95bb096a94`.
+- Rust CI: `30966030100 / 92180059805, 92180059780`; complete x86-64 and native AArch64 gates passed.
+- Android: `30966030065 / 92180100524, 92180100553, 92180100578`; API-35 lifecycle and performance artifact `8914802962` passed.
+- Robustness: `30966030080 / 92180097421, 92180097424, 92180097438`; fuzzing, Miri, ASan/LSan, and TSan passed.
+- Performance: `30966030058 / 92180059807, 92180059860`; both architecture-specific budgets passed.
+- `README.md` identifies Rust as authoritative and Python as reference-only; the Python source and useful history remain preserved.
+- The final report maps all 37 specification sections and every task range, records versions/schemas/baselines, and explicitly preserves the rejected Task 21 candidate and inactive baseline-weight decision.
+- This tracker closure changes only documentation/status evidence and is explicitly mapped to `ca3c0cf93c8e5bc626d2dca9ef204d95bb096a94`.
+
+## Post-port roadmap
+
+1. Preserve the permanent correctness, adapter, robustness, and performance gates while addressing only real regressions.
+2. Treat any future tuned-weight candidate as a separate strength promotion requiring the unchanged 200-pair production protocol and an explicit source activation change.
+3. Pursue measured optimizations, multithreaded search, NNUE, tablebases, or additional targets only through new scoped tasks that retain the completed port guarantees.

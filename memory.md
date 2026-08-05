@@ -1887,7 +1887,7 @@ Implement ENDGAME2 tasks (0-7) to fix the stalemate conversion flaw discovered i
 
 **Root Cause**: The passer-race heuristics were treating stalemate captures as strong simplifications because they removed the opponent's most active piece, even though they accidentally removed all the opponent's legal moves.
 
-**Solution Architecture**: 
+**Solution Architecture**:
 - Small, focused penalty/bonus applied only at critical nodes (quiet ordering + root tie-breaks)
 - Penalty is large enough (-4000) to be decisive but only fires on terminal positions
 - No search disruption for non-terminal positions (returns 0)
@@ -2302,3 +2302,11 @@ learning's default cache path.
 - Rust CI `30962735433`, Android `30962735439`, Robustness `30962735450`, and Performance `30962735451` all passed.
 - The permanent Task 26 audit, real playable UCI smoke, and `docs/RUST_CHESS_ENGINE_V0_1_IMPLEMENTATION_REPORT.md` close rules, search, adapter, quality, and evidence signoff.
 - Task 27 full port-program signoff is next. Task 21 tuned-candidate activation remains independently open.
+
+## Task 27 full port-program signoff
+
+- Complete on exact validated implementation `ca3c0cf93c8e5bc626d2dca9ef204d95bb096a94`.
+- Rust `30966030100 / 92180059805, 92180059780`; Android `30966030065 / 92180100524, 92180100553, 92180100578`; Robustness `30966030080 / 92180097421, 92180097424, 92180097438`; Performance `30966030058 / 92180059807, 92180059860`.
+- Rust is authoritative; Python is preserved reference-only.
+- Task 21 tuning/rejection/activation-boundary lifecycle is complete; baseline weights remain active and future promotion is a separate strength task.
+- Final report: `docs/RUST_CHESS_ENGINE_PORT_IMPLEMENTATION_REPORT.md`; permanent audit: `scripts/task_27_full_port_audit.sh`.

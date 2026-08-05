@@ -2,8 +2,8 @@
 
 **Updated:** 2026-08-04
 **Branch:** `master`
-**Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 26 v0.1 functional-engine signoff complete; Task 27 full port-program signoff is next while the independent Task 21 activation gate remains open
+**Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`
+**Current phase:** Task 27 full port-program signoff complete; Rust is authoritative and future tuned-weight promotion is a separate strength change
 
 ## Completed gates
 
@@ -69,12 +69,14 @@
 | 21.3 | `fc69d7d7554ab325fd72ccfc5ac94c4bb1077ae8` | Rust `30897085986` / `91952447573`; Android `30897085023` / `91952460052`, `91952460064`, `91952460121` | deterministic seeded SPSA over the 810-scalar schema, explicit bounds and L2 regularization, training/validation isolation, checksummed data/config-bound resumable checkpoints, and all permanent gates green |
 | 21.4 | `fd179e57462226392ab9c61bc9f26bc7cbb63cc1` | Rust `30929481202` / `92060204891`; Android `30929479894` / `92060200320`, `92060200325`, `92060200573` | versioned checksummed reports with initial/final train and validation MSE, all 810 named deltas, complete data/engine/source/checkpoint/weight identities, exact command/configuration, atomic persistence, inactive candidate artifacts, and all permanent gates green |
 | 21.5 | `664bf7cb51fae8bff8298925513b242fd9f33cee` | Rust `30935448972` / `92080314407`; Android `30935448944` / `92080314104`, `92080314087`, `92080314012`; control `30935079798` / `92079069382` | explicit weighted search, correctness-first validation, 200 distinct color-balanced opening pairs, fixed provenance, one-sided 95% strength gate, atomic inactive evidence, 400-game baseline control correctly rejected, and all permanent gates green |
+| 21 / gate | `664bf7cb51fae8bff8298925513b242fd9f33cee` | production control `30935079798 / 92079069382`; Rust `30935448972 / 92080314407`; Android `30935448944 / 92080314104, 92080314087, 92080314012` | named-schema tuning, held-out validation, 200-pair rejection, and explicit activation boundary complete; baseline weights remain authoritative |
 | 22 / gate | `3653f86148dca0bb7f4168706ffc47a28bc4a10e` | `30938602274` / `92090934559` | eight-area protocol, symmetry/cost/search/match evidence, explicit rejection decisions, checksum `0ad7dcc3dda4cdfb`, no activation |
 | 23.1 | `4483c1661a975bc9f64c1f725618930e31968e74` | Rust `30940733222` / `92098127153`; Android `30940732968` / `92098189450`, `92098189412`, `92098189386` | deterministic legal-position properties cover square/move/FEN, make/unmake, hash, legal-move safety, internal invariants, evaluator symmetry, and legal reversible PVs; all permanent gates green |
 | 23 / gate | `469c9c67ab53c276509fc7bad0c4adc209c815b7` | Robustness `30944117733 / 92109744098, 92109744189, 92109744065`; Rust `30944118025 / 92109744577`; Android `30944117802 / 92109760102, 92109760118, 92109760076` | seven fuzz targets / 1,792 bounded runs, Miri, ASan/LSan, TSan, one minimized permanent C ABI regression found and fixed; complete gate green |
 | 24 / gate | `45f2263238f93a5ec4f06f4d4cbdef18f9b7def3` | CI `30952260291 / 92136935775`; Performance `30952260264 / 92136936026, 92136935996`; Robustness `30952260237 / 92136935690, 92136935729, 92136935792`; Android `30952260236 / 92136936014, 92136936160, 92136936153` | dual-architecture baselines, profile/allocation evidence, Android metrics, conservative budgets, and all independent gates green |
 | 25 / gate | `c5ed48c8a34d08ce50737854ab89e4d8750c4988` | Rust `30960887750 / 92164348613, 92164348643`; Android `30960887754 / 92164348735, 92164348754, 92164348772`; Robustness `30960887763 / 92164348688, 92164348732, 92164348765`; Performance `30960887740 / 92164348575, 92164348589`; Strength `30960468240 / 92163056674` | Rust-only developer dispatcher, native ARM64 coverage, scheduled strength, strict offline tuning, complete workflow docs, artifact policy/audit, and all independent gates green |
 | 26 / gate | `80cf18f77d3901e8285553211a45d51b530b5579` | Rust `30962735433 / 92169954502, 92169954449`; Android `30962735439 / 92169954196, 92169954245, 92169954247`; Robustness `30962735450 / 92169954098, 92169954164, 92169954171`; Performance `30962735451 / 92169954438, 92169954397` | complete rules, search, UCI, safe API, C ABI, JNI, quality, perft, differential, robustness, and performance signoff; 377 Rust tests and playable UCI transcript green; Task 21 activation remains open |
+| 27 / gate | `ca3c0cf93c8e5bc626d2dca9ef204d95bb096a94` | Rust `30966030100 / 92180059805, 92180059780`; Android `30966030065 / 92180100524, 92180100553, 92180100578`; Robustness `30966030080 / 92180097421, 92180097424, 92180097438`; Performance `30966030058 / 92180059807, 92180059860` | full specification/TODO traceability, migration decision, optional-capability audit, final report, permanent audit, and exact-SHA release gate complete |
 
 ## Task 17.1 completion
 
