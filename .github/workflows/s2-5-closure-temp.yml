@@ -1,0 +1,63 @@
+name: S2-5 closure temporary
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/s2-5-closure-temp.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: s2-5-closure-temporary
+  cancel-in-progress: false
+
+jobs:
+  close:
+    name: Reconcile S2-5 documentation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Confirm validated candidate ancestry
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor f5e4b1e1e630e5708444f9192a1436faac84090c HEAD
+          test -f scripts/s2_5_close_docs.py
+          python3 -m py_compile scripts/s2_5_close_docs.py
+
+      - name: Reconcile tracker and final report
+        run: |
+          set -euo pipefail
+          python3 scripts/s2_5_close_docs.py
+          rm scripts/s2_5_close_docs.py
+          git diff --check
+
+      - name: Validate documentation authority and permanent audits
+        run: |
+          set -euo pipefail
+          python3 scripts/task_14_5_exclusion_audit.py
+          bash scripts/task_s2_5_see_ordering_audit.sh
+          bash scripts/task_post_port_review_fix_audit.sh
+          grep -Fq '| S2-5 | SEE capture-ordering candidate | **Complete — standalone rejected; inactive for combinations** |' docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md
+          grep -Fq '# Task S2-5: SEE capture-ordering candidate — COMPLETE' docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md
+          grep -Fq '**Status:** Complete; standalone candidate rejected for activation' docs/RUST_CHESS_ENGINE_V0_2_S2_5_SEE_ORDERING_2026-08-05.md
+          ! grep -Fq '# Task S2-5: SEE capture-ordering candidate — NOT STARTED' docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md
+
+      - name: Commit documentation-only closure
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "Phillip Chin"
+          git config user.email "ekkus93@gmail.com"
+          git add docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md \
+            docs/RUST_CHESS_ENGINE_V0_2_S2_5_SEE_ORDERING_2026-08-05.md \
+            scripts/s2_5_close_docs.py
+          git commit -m "docs: complete S2-5 SEE ordering disposition"
+          git push origin HEAD:master
