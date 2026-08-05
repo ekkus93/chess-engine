@@ -1,0 +1,53 @@
+name: Post-port review implementation helper
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/ppr-implementation.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ppr-implementation-master
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    name: Apply post-port review fixes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust formatting toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Apply deterministic patch
+        run: python3 .github/ppr_implementation.py
+
+      - name: Format and inspect patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all
+          rm .github/ppr_implementation.py .github/workflows/ppr-implementation.yml
+          git diff --check
+          git status --short
+
+      - name: Commit implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git diff --cached --check
+          git commit -m "fix: harden post-port review findings"
+          git push origin HEAD:master
