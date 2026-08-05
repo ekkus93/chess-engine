@@ -11,6 +11,8 @@ pub const SEARCH_POLICY_SCHEMA_VERSION: u16 = 1;
 pub const V0_1_SEARCH_POLICY_ID: u64 = 0x5630_315f_504f_4c31;
 /// Canonical checksum of the authoritative v0.1 search policy.
 pub const V0_1_SEARCH_POLICY_CHECKSUM: u64 = 0x0c07_69ef_9d03_4770;
+/// Stable identifier for the inactive S2-5 SEE capture-ordering candidate.
+pub const SEE_CAPTURE_ORDERING_SEARCH_POLICY_ID: u64 = 0x5332_3553_4545_4f31;
 /// Largest accepted aspiration half-width.
 pub const MAXIMUM_ASPIRATION_HALF_WIDTH_CENTIPAWNS: u16 = 10_000;
 /// Largest accepted bounded check-extension budget.
@@ -131,6 +133,20 @@ pub enum ExperimentalSearchFeature {
 }
 
 impl ExperimentalSearchFeature {
+    const fn bit(self) -> u64 {
+        match self {
+            Self::SeeCaptureOrdering => 1 << 0,
+            Self::SeeQuiescencePruning => 1 << 1,
+            Self::DeltaPruning => 1 << 2,
+            Self::PrincipalVariationSearch => 1 << 3,
+            Self::LateMoveReductions => 1 << 4,
+            Self::NullMovePruning => 1 << 5,
+            Self::FutilityPruning => 1 << 6,
+            Self::Razoring => 1 << 7,
+            Self::LateMovePruning => 1 << 8,
+        }
+    }
+
     /// Stable machine-readable feature name.
     #[must_use]
     pub const fn name(self) -> &'static str {
@@ -157,6 +173,10 @@ pub struct ExperimentalSearchFeatures {
 impl ExperimentalSearchFeatures {
     /// No experimental behavior enabled.
     pub const NONE: Self = Self { bits: 0 };
+    /// Inactive S2-5 SEE capture-ordering candidate.
+    pub const SEE_CAPTURE_ORDERING: Self = Self {
+        bits: ExperimentalSearchFeature::SeeCaptureOrdering.bit(),
+    };
     /// All currently assigned feature bits.
     pub const KNOWN_BITS: u64 = (1_u64 << 9) - 1;
 
@@ -183,7 +203,13 @@ impl ExperimentalSearchFeatures {
         self.bits == 0
     }
 
-    fn first_enabled(self) -> Option<ExperimentalSearchFeature> {
+    /// Returns whether one assigned feature is enabled.
+    #[must_use]
+    pub const fn contains(self, feature: ExperimentalSearchFeature) -> bool {
+        self.bits & feature.bit() != 0
+    }
+
+    fn first_unsupported_enabled(self) -> Option<ExperimentalSearchFeature> {
         const FEATURES: [(u64, ExperimentalSearchFeature); 9] = [
             (1 << 0, ExperimentalSearchFeature::SeeCaptureOrdering),
             (1 << 1, ExperimentalSearchFeature::SeeQuiescencePruning),
@@ -195,9 +221,10 @@ impl ExperimentalSearchFeatures {
             (1 << 7, ExperimentalSearchFeature::Razoring),
             (1 << 8, ExperimentalSearchFeature::LateMovePruning),
         ];
-        FEATURES
-            .into_iter()
-            .find_map(|(bit, feature)| (self.bits & bit != 0).then_some(feature))
+        FEATURES.into_iter().find_map(|(bit, feature)| {
+            (self.bits & bit != 0 && feature != ExperimentalSearchFeature::SeeCaptureOrdering)
+                .then_some(feature)
+        })
     }
 }
 
@@ -244,6 +271,19 @@ impl SearchPolicy {
         experimental_features: ExperimentalSearchFeatures::NONE,
     });
 
+    /// Inactive S2-5 candidate: v0.1 semantics plus SEE capture ordering.
+    pub const SEE_CAPTURE_ORDERING: Self = Self::new(SearchPolicyParameters {
+        alpha_beta: AlphaBetaMode::FullWindowFailSoft,
+        transposition: TranspositionPolicy::ClusteredFullKey,
+        move_ordering: MoveOrderingPolicy::V0_1MvvLvaKillersHistory,
+        quiescence: QuiescencePolicy::CapturesPromotionsAndEvasions,
+        aspiration_windows: true,
+        aspiration_half_width_centipawns: DEFAULT_ASPIRATION_HALF_WIDTH_CENTIPAWNS as u16,
+        maximum_quiescence_ply: MAX_QUIESCENCE_PLY,
+        maximum_check_extensions_per_line: MAX_CHECK_EXTENSIONS_PER_LINE,
+        experimental_features: ExperimentalSearchFeatures::SEE_CAPTURE_ORDERING,
+    });
+
     /// Constructs explicit typed parameters for subsequent validation.
     #[must_use]
     pub const fn new(parameters: SearchPolicyParameters) -> Self {
@@ -278,6 +318,14 @@ impl SearchPolicy {
     #[must_use]
     pub const fn maximum_check_extensions_per_line(self) -> u16 {
         self.parameters.maximum_check_extensions_per_line
+    }
+
+    /// Returns whether the inactive S2-5 SEE ordering candidate is selected.
+    #[must_use]
+    pub const fn see_capture_ordering_enabled(self) -> bool {
+        self.parameters
+            .experimental_features
+            .contains(ExperimentalSearchFeature::SeeCaptureOrdering)
     }
 
     /// Validates supported ranges and rejects not-yet-implemented features.
@@ -318,7 +366,11 @@ impl SearchPolicy {
             );
         }
 
-        if let Some(feature) = self.parameters.experimental_features.first_enabled() {
+        if let Some(feature) = self
+            .parameters
+            .experimental_features
+            .first_unsupported_enabled()
+        {
             return Err(SearchPolicyValidationError::UnsupportedExperimentalFeature { feature });
         }
         Ok(())
@@ -374,6 +426,15 @@ impl SearchPolicySet {
         let set = Self::new(V0_1_SEARCH_POLICY_ID, SearchPolicy::V0_1);
         debug_assert_eq!(set.checksum, V0_1_SEARCH_POLICY_CHECKSUM);
         set
+    }
+
+    /// Returns the inactive S2-5 SEE capture-ordering candidate.
+    #[must_use]
+    pub fn see_capture_ordering_candidate() -> Self {
+        Self::new(
+            SEE_CAPTURE_ORDERING_SEARCH_POLICY_ID,
+            SearchPolicy::SEE_CAPTURE_ORDERING,
+        )
     }
 
     /// Computes the canonical checksum.
@@ -501,7 +562,8 @@ fn hash_bytes(mut hash: u64, bytes: &[u8]) -> u64 {
 mod tests {
     use super::{
         ExperimentalSearchFeatures, SearchPolicy, SearchPolicyParameters, SearchPolicySet,
-        SearchPolicyValidationError, V0_1_SEARCH_POLICY_CHECKSUM,
+        SearchPolicyValidationError, SEE_CAPTURE_ORDERING_SEARCH_POLICY_ID,
+        V0_1_SEARCH_POLICY_CHECKSUM,
     };
 
     #[test]
@@ -510,6 +572,18 @@ mod tests {
         assert_eq!(set.checksum, V0_1_SEARCH_POLICY_CHECKSUM);
         assert_eq!(set.computed_checksum(), set.checksum);
         assert_eq!(set.validate(), Ok(()));
+    }
+
+    #[test]
+    fn see_capture_ordering_candidate_is_valid_distinct_and_inactive_by_default() {
+        let baseline = SearchPolicySet::baseline();
+        let candidate = SearchPolicySet::see_capture_ordering_candidate();
+        assert_eq!(candidate.identifier, SEE_CAPTURE_ORDERING_SEARCH_POLICY_ID);
+        assert_eq!(candidate.validate(), Ok(()));
+        assert!(candidate.policy.see_capture_ordering_enabled());
+        assert!(!baseline.policy.see_capture_ordering_enabled());
+        assert_ne!(candidate.identifier, baseline.identifier);
+        assert_ne!(candidate.checksum, baseline.checksum);
     }
 
     #[test]
@@ -537,8 +611,8 @@ mod tests {
         ));
 
         let mut parameters: SearchPolicyParameters = SearchPolicy::V0_1.parameters();
-        parameters.experimental_features =
-            ExperimentalSearchFeatures::from_bits(1).expect("assigned feature bit is recognized");
+        parameters.experimental_features = ExperimentalSearchFeatures::from_bits(1 << 1)
+            .expect("assigned feature bit is recognized");
         let unsupported = SearchPolicySet::new(1, SearchPolicy::new(parameters));
         assert!(matches!(
             unsupported.validate(),

@@ -1,17 +1,110 @@
 use core::cmp::Reverse;
 
 use chess_core::{
-    Color, LegalMoveToken, LegalMoveTokenList, Move, MoveKind, PieceKind, Position,
+    static_exchange_evaluation, Color, LegalMoveToken, LegalMoveTokenList, Move, MoveKind,
+    PieceKind, Position, StaticExchangeClass, StaticExchangeError, StaticExchangeValue,
     MAX_PSEUDO_LEGAL_MOVES,
 };
 
-use crate::MAX_MATE_PLY;
+use crate::{
+    SearchCancellationProbe, SearchDiagnosticEvent, SearchDiagnosticOverflow, SearchDiagnostics,
+    MAX_MATE_PLY,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum MoveOrdering {
     Generation,
     Tactical,
     Quiet,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(crate) struct MoveOrderingDiagnostics {
+    see_calls: u16,
+    winning: u16,
+    equal: u16,
+    losing: u16,
+}
+
+impl MoveOrderingDiagnostics {
+    fn record_class(&mut self, class: StaticExchangeClass) {
+        self.see_calls += 1;
+        match class {
+            StaticExchangeClass::Winning => self.winning += 1,
+            StaticExchangeClass::Equal => self.equal += 1,
+            StaticExchangeClass::Losing => self.losing += 1,
+        }
+    }
+
+    pub(crate) fn record_into<Probe>(
+        self,
+        diagnostics: &mut SearchDiagnostics,
+        cancellation: &mut Probe,
+    ) -> Result<(), SearchDiagnosticOverflow>
+    where
+        Probe: SearchCancellationProbe + ?Sized,
+    {
+        record_repeated(
+            self.see_calls,
+            SearchDiagnosticEvent::SeeCall,
+            diagnostics,
+            cancellation,
+        )?;
+        record_repeated(
+            self.winning,
+            SearchDiagnosticEvent::SeeWinningCapture,
+            diagnostics,
+            cancellation,
+        )?;
+        record_repeated(
+            self.equal,
+            SearchDiagnosticEvent::SeeEqualCapture,
+            diagnostics,
+            cancellation,
+        )?;
+        record_repeated(
+            self.losing,
+            SearchDiagnosticEvent::SeeLosingCapture,
+            diagnostics,
+            cancellation,
+        )
+    }
+
+    #[cfg(test)]
+    const fn see_calls(self) -> u16 {
+        self.see_calls
+    }
+
+    #[cfg(test)]
+    const fn winning(self) -> u16 {
+        self.winning
+    }
+
+    #[cfg(test)]
+    const fn equal(self) -> u16 {
+        self.equal
+    }
+
+    #[cfg(test)]
+    const fn losing(self) -> u16 {
+        self.losing
+    }
+}
+
+fn record_repeated<Probe>(
+    count: u16,
+    event: SearchDiagnosticEvent,
+    diagnostics: &mut SearchDiagnostics,
+    cancellation: &mut Probe,
+) -> Result<(), SearchDiagnosticOverflow>
+where
+    Probe: SearchCancellationProbe + ?Sized,
+{
+    for _ in 0..count {
+        diagnostics.record_checked(event)?;
+        cancellation.on_search_diagnostic(event);
+    }
+    Ok(())
 }
 
 const ORDERING_PLY_COUNT: usize = MAX_MATE_PLY as usize + 1;
@@ -87,6 +180,8 @@ struct MoveOrderKey {
     previous_principal_variation: u8,
     category: u8,
     promotion: u16,
+    see_class: u8,
+    see_value: i32,
     victim: u16,
     attacker_preference: u16,
     killer: u8,
@@ -100,6 +195,8 @@ impl MoveOrderKey {
         previous_principal_variation: 0,
         category: 0,
         promotion: 0,
+        see_class: 0,
+        see_value: 0,
         victim: 0,
         attacker_preference: 0,
         killer: 0,
@@ -115,24 +212,29 @@ struct OrderedEntry {
 }
 
 pub(crate) struct OrderedLegalMoves {
-    entries: [Option<OrderedEntry>; MAX_PSEUDO_LEGAL_MOVES],
+    tokens: [Option<LegalMoveToken>; MAX_PSEUDO_LEGAL_MOVES],
     len: usize,
+    diagnostics: MoveOrderingDiagnostics,
 }
 
 impl OrderedLegalMoves {
     fn new() -> Self {
         Self {
-            entries: [None; MAX_PSEUDO_LEGAL_MOVES],
+            tokens: [None; MAX_PSEUDO_LEGAL_MOVES],
             len: 0,
+            diagnostics: MoveOrderingDiagnostics::default(),
         }
     }
 
     pub(crate) fn iter(&self) -> impl ExactSizeIterator<Item = LegalMoveToken> + '_ {
-        self.entries[..self.len].iter().copied().map(|entry| {
-            entry
-                .expect("occupied ordered-move prefix contains entries")
-                .token
-        })
+        self.tokens[..self.len]
+            .iter()
+            .copied()
+            .map(|token| token.expect("occupied ordered-move prefix contains legal tokens"))
+    }
+
+    pub(crate) const fn diagnostics(&self) -> MoveOrderingDiagnostics {
+        self.diagnostics
     }
 }
 
@@ -141,6 +243,16 @@ pub(crate) fn ordered_legal_moves(
     tokens: &LegalMoveTokenList,
     ordering: MoveOrdering,
 ) -> OrderedLegalMoves {
+    ordered_legal_moves_with_see(position, tokens, ordering, false)
+        .expect("baseline ordering does not invoke static exchange evaluation")
+}
+
+pub(crate) fn ordered_legal_moves_with_see(
+    position: &Position,
+    tokens: &LegalMoveTokenList,
+    ordering: MoveOrdering,
+    see_capture_ordering: bool,
+) -> Result<OrderedLegalMoves, StaticExchangeError> {
     let transposition_table_move = match ordering {
         MoveOrdering::Generation => None,
         MoveOrdering::Tactical | MoveOrdering::Quiet => transposition_table_move_hook(position),
@@ -149,17 +261,18 @@ pub(crate) fn ordered_legal_moves(
         MoveOrdering::Quiet => previous_pv_move_hook(0),
         MoveOrdering::Generation | MoveOrdering::Tactical => None,
     };
-    order_legal_moves_with_hints(
+    try_order_legal_moves_with_hints(
         position,
         tokens,
         ordering,
         0,
         None,
-        transposition_table_move,
-        previous_pv_move,
+        (transposition_table_move, previous_pv_move),
+        see_capture_ordering,
     )
 }
 
+#[cfg(test)]
 pub(crate) fn ordered_legal_moves_with_state(
     position: &Position,
     tokens: &LegalMoveTokenList,
@@ -167,21 +280,19 @@ pub(crate) fn ordered_legal_moves_with_state(
     ply: u16,
     quiet_state: &QuietOrderingState,
 ) -> OrderedLegalMoves {
-    let previous_pv_move = match ordering {
-        MoveOrdering::Quiet => previous_pv_move_hook(ply),
-        MoveOrdering::Generation | MoveOrdering::Tactical => None,
-    };
-    order_legal_moves_with_hints(
+    try_order_legal_moves_with_state(
         position,
         tokens,
         ordering,
         ply,
-        Some(quiet_state),
+        quiet_state,
         transposition_table_move_hook(position),
-        previous_pv_move,
+        false,
     )
+    .expect("baseline ordering does not invoke static exchange evaluation")
 }
 
+#[cfg(test)]
 pub(crate) fn ordered_legal_moves_with_state_and_tt_move(
     position: &Position,
     tokens: &LegalMoveTokenList,
@@ -190,22 +301,59 @@ pub(crate) fn ordered_legal_moves_with_state_and_tt_move(
     quiet_state: &QuietOrderingState,
     transposition_table_move: Option<Move>,
 ) -> OrderedLegalMoves {
-    if transposition_table_move == transposition_table_move_hook(position) {
-        return ordered_legal_moves_with_state(position, tokens, ordering, ply, quiet_state);
-    }
+    ordered_legal_moves_with_state_and_tt_move_and_see(
+        position,
+        tokens,
+        ordering,
+        ply,
+        quiet_state,
+        transposition_table_move,
+        false,
+    )
+    .expect("baseline ordering does not invoke static exchange evaluation")
+}
 
+pub(crate) fn ordered_legal_moves_with_state_and_tt_move_and_see(
+    position: &Position,
+    tokens: &LegalMoveTokenList,
+    ordering: MoveOrdering,
+    ply: u16,
+    quiet_state: &QuietOrderingState,
+    transposition_table_move: Option<Move>,
+    see_capture_ordering: bool,
+) -> Result<OrderedLegalMoves, StaticExchangeError> {
+    try_order_legal_moves_with_state(
+        position,
+        tokens,
+        ordering,
+        ply,
+        quiet_state,
+        transposition_table_move,
+        see_capture_ordering,
+    )
+}
+
+fn try_order_legal_moves_with_state(
+    position: &Position,
+    tokens: &LegalMoveTokenList,
+    ordering: MoveOrdering,
+    ply: u16,
+    quiet_state: &QuietOrderingState,
+    transposition_table_move: Option<Move>,
+    see_capture_ordering: bool,
+) -> Result<OrderedLegalMoves, StaticExchangeError> {
     let previous_pv_move = match ordering {
         MoveOrdering::Quiet => previous_pv_move_hook(ply),
         MoveOrdering::Generation | MoveOrdering::Tactical => None,
     };
-    order_legal_moves_with_hints(
+    try_order_legal_moves_with_hints(
         position,
         tokens,
         ordering,
         ply,
         Some(quiet_state),
-        transposition_table_move,
-        previous_pv_move,
+        (transposition_table_move, previous_pv_move),
+        see_capture_ordering,
     )
 }
 
@@ -217,6 +365,7 @@ const fn previous_pv_move_hook(_ply: u16) -> Option<Move> {
     None
 }
 
+#[cfg(test)]
 fn order_legal_moves_with_hints(
     position: &Position,
     tokens: &LegalMoveTokenList,
@@ -226,19 +375,54 @@ fn order_legal_moves_with_hints(
     transposition_table_move: Option<Move>,
     previous_pv_move: Option<Move>,
 ) -> OrderedLegalMoves {
-    let mut ordered = OrderedLegalMoves::new();
+    try_order_legal_moves_with_hints(
+        position,
+        tokens,
+        ordering,
+        ply,
+        quiet_state,
+        (transposition_table_move, previous_pv_move),
+        false,
+    )
+    .expect("baseline ordering does not invoke static exchange evaluation")
+}
+
+fn try_order_legal_moves_with_hints(
+    position: &Position,
+    tokens: &LegalMoveTokenList,
+    ordering: MoveOrdering,
+    ply: u16,
+    quiet_state: Option<&QuietOrderingState>,
+    priority_moves: (Option<Move>, Option<Move>),
+    see_capture_ordering: bool,
+) -> Result<OrderedLegalMoves, StaticExchangeError> {
+    let (transposition_table_move, previous_pv_move) = priority_moves;
+    let mut entries: [Option<OrderedEntry>; MAX_PSEUDO_LEGAL_MOVES] =
+        [None; MAX_PSEUDO_LEGAL_MOVES];
+    let mut len = 0_usize;
+    let mut diagnostics = MoveOrderingDiagnostics::default();
     for token in tokens.iter() {
         let current = token.move_made();
+        let see_value = if ordering != MoveOrdering::Generation
+            && see_capture_ordering
+            && current.kind().is_capture()
+        {
+            let value = static_exchange_evaluation(position, current)?;
+            diagnostics.record_class(value.class());
+            Some(value)
+        } else {
+            None
+        };
         let key = match ordering {
             MoveOrdering::Generation => MoveOrderKey::GENERATION,
             MoveOrdering::Tactical => tactical_key(
                 position,
                 current,
-                transposition_table_move,
-                None,
+                (transposition_table_move, None),
                 KillerMoves::default(),
                 0,
-                None,
+                see_value,
+                see_value.map(|_| Reverse(current)),
             ),
             MoveOrdering::Quiet => {
                 let killers =
@@ -249,40 +433,52 @@ fn order_legal_moves_with_hints(
                 tactical_key(
                     position,
                     current,
-                    transposition_table_move,
-                    previous_pv_move,
+                    (transposition_table_move, previous_pv_move),
                     killers,
                     history,
+                    see_value,
                     Some(Reverse(current)),
                 )
             }
         };
         let entry = OrderedEntry { token, key };
-        let mut insertion = ordered.len;
+        let mut insertion = len;
         while insertion > 0 {
-            let previous = ordered.entries[insertion - 1]
-                .expect("occupied ordered-move prefix contains entries");
+            let previous =
+                entries[insertion - 1].expect("occupied ordered-move prefix contains entries");
             if previous.key >= entry.key {
                 break;
             }
-            ordered.entries[insertion] = Some(previous);
+            entries[insertion] = Some(previous);
             insertion -= 1;
         }
-        ordered.entries[insertion] = Some(entry);
-        ordered.len += 1;
+        entries[insertion] = Some(entry);
+        len += 1;
     }
-    ordered
+
+    let mut ordered = OrderedLegalMoves::new();
+    ordered.len = len;
+    ordered.diagnostics = diagnostics;
+    for (destination, entry) in ordered.tokens[..len].iter_mut().zip(entries[..len].iter()) {
+        *destination = Some(
+            entry
+                .expect("occupied sorted-move prefix contains entries")
+                .token,
+        );
+    }
+    Ok(ordered)
 }
 
 fn tactical_key(
     position: &Position,
     current: Move,
-    transposition_table_move: Option<Move>,
-    previous_pv_move: Option<Move>,
+    priority_moves: (Option<Move>, Option<Move>),
     killers: KillerMoves,
     history: u32,
+    see_value: Option<StaticExchangeValue>,
     encoded_tie_break: Option<Reverse<Move>>,
 ) -> MoveOrderKey {
+    let (transposition_table_move, previous_pv_move) = priority_moves;
     let promotion = current.promotion();
     let capture = current.kind().is_capture();
     let quiet = is_quiet(current);
@@ -314,16 +510,27 @@ fn tactical_key(
     } else {
         0
     };
+    let see_class = see_value.map_or(0, |value| match value.class() {
+        StaticExchangeClass::Losing => 1,
+        StaticExchangeClass::Equal => 2,
+        StaticExchangeClass::Winning => 3,
+    });
     MoveOrderKey {
         transposition_table: u8::from(transposition_table_move == Some(current)),
         previous_principal_variation: u8::from(previous_pv_move == Some(current)),
         category,
         promotion: promotion.map_or(0, piece_value),
+        see_class,
+        see_value: see_value.map_or(0, StaticExchangeValue::centipawns),
         victim,
         attacker_preference,
         killer,
         history: if quiet { history } else { 0 },
-        encoded_tie_break: if quiet { encoded_tie_break } else { None },
+        encoded_tie_break: if quiet || see_value.is_some() {
+            encoded_tie_break
+        } else {
+            None
+        },
     }
 }
 
@@ -354,11 +561,16 @@ const fn piece_value(kind: PieceKind) -> u16 {
 
 #[cfg(test)]
 mod tests {
-    use chess_core::{Move, Position};
+    use core::mem::size_of;
+
+    use chess_core::{
+        Move, Position, StaticExchangeError, StaticExchangeMoveStateError, MAX_PSEUDO_LEGAL_MOVES,
+    };
 
     use super::{
-        order_legal_moves_with_hints, ordered_legal_moves, transposition_table_move_hook,
-        MoveOrdering,
+        order_legal_moves_with_hints, ordered_legal_moves, ordered_legal_moves_with_see,
+        tactical_key, transposition_table_move_hook, try_order_legal_moves_with_hints, KillerMoves,
+        MoveOrdering, OrderedEntry, OrderedLegalMoves,
     };
 
     fn position(fen: &str) -> Position {
@@ -373,6 +585,14 @@ mod tests {
             .iter()
             .map(|token| token.move_made())
             .collect()
+    }
+
+    #[test]
+    fn recursively_retained_ordering_excludes_temporary_sort_keys() {
+        assert!(
+            size_of::<OrderedLegalMoves>()
+                < size_of::<[Option<OrderedEntry>; MAX_PSEUDO_LEGAL_MOVES]>()
+        );
     }
 
     #[test]
@@ -435,6 +655,123 @@ mod tests {
             .position(|current| current.to_uci() == "d1d8")
             .expect("fixture capture exists");
         assert!(last_promotion < capture);
+    }
+
+    #[test]
+    fn see_candidate_preserves_tt_and_promotion_precedence() {
+        let mut root = position("3r3k/P7/8/8/8/8/8/K2Q4 w - - 0 1");
+        let tokens = root
+            .legal_move_tokens()
+            .expect("legal move tokens generate");
+        let tt_move = tokens
+            .iter()
+            .map(|token| token.move_made())
+            .find(|current| current.to_uci() == "a1b1")
+            .expect("fixture quiet TT move exists");
+        let ordered: Vec<_> = try_order_legal_moves_with_hints(
+            &root,
+            &tokens,
+            MoveOrdering::Tactical,
+            0,
+            None,
+            (Some(tt_move), None),
+            true,
+        )
+        .expect("legal captures are valid SEE inputs")
+        .iter()
+        .map(|token| token.move_made())
+        .collect();
+        assert_eq!(ordered[0], tt_move);
+        let last_promotion = ordered
+            .iter()
+            .rposition(|current| current.promotion().is_some())
+            .expect("fixture promotions exist");
+        let first_non_promotion_capture = ordered
+            .iter()
+            .position(|current| current.kind().is_capture() && current.promotion().is_none())
+            .expect("fixture capture exists");
+        assert!(last_promotion < first_non_promotion_capture);
+    }
+
+    #[test]
+    fn see_classes_and_signed_values_order_exactly() {
+        let mut root = position("4k3/8/2p5/3p4/4P3/8/8/4K3 w - - 0 1");
+        let current = root
+            .legal_moves()
+            .expect("legal moves generate")
+            .iter()
+            .find(|candidate| candidate.to_uci() == "e4d5")
+            .expect("capture exists");
+        let key = |value| {
+            tactical_key(
+                &root,
+                current,
+                (None, None),
+                KillerMoves::default(),
+                0,
+                Some(value),
+                Some(core::cmp::Reverse(current)),
+            )
+        };
+        assert!(
+            key(chess_core::StaticExchangeValue::from_centipawns(100))
+                > key(chess_core::StaticExchangeValue::from_centipawns(0))
+        );
+        assert!(
+            key(chess_core::StaticExchangeValue::from_centipawns(0))
+                > key(chess_core::StaticExchangeValue::from_centipawns(-1))
+        );
+        assert!(
+            key(chess_core::StaticExchangeValue::from_centipawns(200))
+                > key(chess_core::StaticExchangeValue::from_centipawns(100))
+        );
+    }
+
+    #[test]
+    fn see_is_computed_once_per_capture_and_classified() {
+        let mut root = position("7k/8/8/1p2q3/2P1Q3/8/K7/8 w - - 0 1");
+        let tokens = root
+            .legal_move_tokens()
+            .expect("legal move tokens generate");
+        let capture_count = tokens
+            .iter()
+            .filter(|token| token.move_made().kind().is_capture())
+            .count() as u16;
+        let ordered = ordered_legal_moves_with_see(&root, &tokens, MoveOrdering::Tactical, true)
+            .expect("legal captures are valid SEE inputs");
+        let diagnostics = ordered.diagnostics();
+        assert_eq!(diagnostics.see_calls(), capture_count);
+        assert_eq!(
+            diagnostics.see_calls(),
+            diagnostics.winning() + diagnostics.equal() + diagnostics.losing()
+        );
+    }
+
+    #[test]
+    fn contradictory_internal_see_input_fails_loudly() {
+        let mut root = position("7k/8/8/1p2q3/2P1Q3/8/K7/8 w - - 0 1");
+        let tokens = root
+            .legal_move_tokens()
+            .expect("legal move tokens generate");
+        let contradictory = position("7k/8/8/8/8/8/8/K7 w - - 0 1");
+        let error = match try_order_legal_moves_with_hints(
+            &contradictory,
+            &tokens,
+            MoveOrdering::Tactical,
+            0,
+            None,
+            (None, None),
+            true,
+        ) {
+            Ok(_) => panic!("contradictory capture source must fail"),
+            Err(error) => error,
+        };
+        assert!(matches!(
+            error,
+            StaticExchangeError::MoveStateContradiction(
+                StaticExchangeMoveStateError::MissingSourcePiece { .. }
+            )
+        ));
     }
 
     #[test]

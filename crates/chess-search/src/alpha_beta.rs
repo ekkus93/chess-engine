@@ -1,12 +1,16 @@
 use core::fmt;
 
-use chess_core::{LegalMoveError, Move, Position, SearchHistory, SearchHistoryError};
+use chess_core::{
+    LegalMoveError, Move, Position, SearchHistory, SearchHistoryError, StaticExchangeError,
+};
 
 use crate::{
     aspiration::AspirationWindowOutcome,
     cancellation::NeverCancelled,
     check_extension::decide_check_extension,
-    move_ordering::{ordered_legal_moves_with_state_and_tt_move, MoveOrdering, QuietOrderingState},
+    move_ordering::{
+        ordered_legal_moves_with_state_and_tt_move_and_see, MoveOrdering, QuietOrderingState,
+    },
     quiescence::{search_quiescence_node_with_weights, QuiescenceContext, QuiescenceSearchPolicy},
     search_common::resolved_node_score,
     EvaluationWeights, Score, SearchCancellationProbe, SearchDiagnosticEvent,
@@ -134,6 +138,8 @@ pub enum AlphaBetaSearchError {
     Rules(LegalMoveError),
     /// Reversible search-line history processing failed.
     History(SearchHistoryError),
+    /// SEE capture ordering found contradictory internal move state.
+    StaticExchange(StaticExchangeError),
     /// Fixed-capacity transposition-table allocation failed.
     TranspositionTableAllocation(TranspositionTableAllocationError),
     /// A transposition probe could not be evaluated safely.
@@ -176,6 +182,7 @@ impl fmt::Display for AlphaBetaSearchError {
         match self {
             Self::Rules(error) => error.fmt(formatter),
             Self::History(error) => error.fmt(formatter),
+            Self::StaticExchange(error) => error.fmt(formatter),
             Self::TranspositionTableAllocation(error) => error.fmt(formatter),
             Self::TranspositionProbe(error) => error.fmt(formatter),
             Self::TranspositionScoreConversion(error) => error.fmt(formatter),
@@ -218,6 +225,12 @@ impl From<LegalMoveError> for AlphaBetaSearchError {
 impl From<SearchHistoryError> for AlphaBetaSearchError {
     fn from(value: SearchHistoryError) -> Self {
         Self::History(value)
+    }
+}
+
+impl From<StaticExchangeError> for AlphaBetaSearchError {
+    fn from(value: StaticExchangeError) -> Self {
+        Self::StaticExchange(value)
     }
 }
 
@@ -482,6 +495,7 @@ where
         check_extension_enabled: policy.check_extension_enabled,
         maximum_check_extensions_per_line: policy.search_policy.maximum_check_extensions_per_line(),
         maximum_quiescence_ply: policy.search_policy.maximum_quiescence_ply(),
+        see_capture_ordering: policy.search_policy.see_capture_ordering_enabled(),
         weights: policy.weights,
         cancellation,
     };
@@ -506,6 +520,7 @@ where
     check_extension_enabled: bool,
     maximum_check_extensions_per_line: u16,
     maximum_quiescence_ply: u16,
+    see_capture_ordering: bool,
     weights: &'a EvaluationWeights,
     cancellation: &'a mut Probe,
 }
@@ -563,7 +578,13 @@ where
             position,
             history,
             quiescence_context,
-            QuiescenceSearchPolicy::new(alpha, beta, context.ordering, context.weights),
+            QuiescenceSearchPolicy::new(
+                alpha,
+                beta,
+                context.ordering,
+                context.see_capture_ordering,
+                context.weights,
+            ),
             &mut *context.cancellation,
         );
     }
@@ -632,18 +653,22 @@ where
     if ply == 0 {
         transposition_table_move = None;
     }
-    let ordered_tokens = ordered_legal_moves_with_state_and_tt_move(
+    let ordered_tokens = ordered_legal_moves_with_state_and_tt_move_and_see(
         position,
         &tokens,
         context.ordering,
         ply,
         context.quiet_ordering,
         transposition_table_move,
-    );
+        context.see_capture_ordering,
+    )?;
     let mut nodes = 1_u64;
     let mut qnodes = 0_u64;
     let mut selective_depth = ply;
     let mut diagnostics = SearchDiagnostics::main_node();
+    ordered_tokens
+        .diagnostics()
+        .record_into(&mut diagnostics, &mut *context.cancellation)?;
     let mut best_score = None;
     let mut best_move = None;
 
@@ -819,6 +844,7 @@ mod ordering_tests {
             check_extension_enabled: false,
             maximum_check_extensions_per_line: crate::MAX_CHECK_EXTENSIONS_PER_LINE,
             maximum_quiescence_ply: crate::MAX_QUIESCENCE_PLY,
+            see_capture_ordering: false,
             weights: &crate::EvaluationWeights::DEFAULT,
             cancellation: &mut cancellation,
         };
@@ -849,6 +875,7 @@ mod ordering_tests {
             check_extension_enabled: false,
             maximum_check_extensions_per_line: crate::MAX_CHECK_EXTENSIONS_PER_LINE,
             maximum_quiescence_ply: crate::MAX_QUIESCENCE_PLY,
+            see_capture_ordering: false,
             weights: &crate::EvaluationWeights::DEFAULT,
             cancellation: &mut cancellation,
         };
@@ -959,6 +986,7 @@ mod ordering_tests {
                 check_extension_enabled: false,
                 maximum_check_extensions_per_line: crate::MAX_CHECK_EXTENSIONS_PER_LINE,
                 maximum_quiescence_ply: crate::MAX_QUIESCENCE_PLY,
+                see_capture_ordering: false,
                 weights: &crate::EvaluationWeights::DEFAULT,
                 cancellation: &mut cancellation,
             };

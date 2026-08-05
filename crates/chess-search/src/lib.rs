@@ -72,8 +72,8 @@ pub use search_policy::{
     AlphaBetaMode, ExperimentalSearchFeature, ExperimentalSearchFeatures, MoveOrderingPolicy,
     QuiescencePolicy, SearchPolicy, SearchPolicyParameters, SearchPolicySet,
     SearchPolicyValidationError, TranspositionPolicy, MAXIMUM_ASPIRATION_HALF_WIDTH_CENTIPAWNS,
-    MAXIMUM_CHECK_EXTENSIONS_PER_LINE, SEARCH_POLICY_SCHEMA_VERSION, V0_1_SEARCH_POLICY_CHECKSUM,
-    V0_1_SEARCH_POLICY_ID,
+    MAXIMUM_CHECK_EXTENSIONS_PER_LINE, SEARCH_POLICY_SCHEMA_VERSION,
+    SEE_CAPTURE_ORDERING_SEARCH_POLICY_ID, V0_1_SEARCH_POLICY_CHECKSUM, V0_1_SEARCH_POLICY_ID,
 };
 pub use transposition::{
     TranspositionBound, TranspositionEntry, TranspositionHashFull, TranspositionProbeError,

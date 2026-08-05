@@ -4,7 +4,7 @@ use crate::{
     alpha_beta::{AlphaBetaSearchError, AlphaBetaSearchResult},
     cancellation::NeverCancelled,
     evaluate_with_weights,
-    move_ordering::{ordered_legal_moves, MoveOrdering},
+    move_ordering::{ordered_legal_moves_with_see, MoveOrdering},
     search_common::resolved_terminal_or_draw_score,
     EvaluationWeights, Score, SearchCancellationProbe, SearchDiagnosticEvent, SearchDiagnostics,
     MAX_MATE_PLY,
@@ -28,6 +28,7 @@ pub(crate) struct QuiescenceSearchPolicy<'a> {
     alpha: Score,
     beta: Score,
     ordering: MoveOrdering,
+    see_capture_ordering: bool,
     weights: &'a EvaluationWeights,
 }
 
@@ -36,12 +37,14 @@ impl<'a> QuiescenceSearchPolicy<'a> {
         alpha: Score,
         beta: Score,
         ordering: MoveOrdering,
+        see_capture_ordering: bool,
         weights: &'a EvaluationWeights,
     ) -> Self {
         Self {
             alpha,
             beta,
             ordering,
+            see_capture_ordering,
             weights,
         }
     }
@@ -142,7 +145,7 @@ where
         position,
         history,
         context,
-        QuiescenceSearchPolicy::new(alpha, beta, ordering, &EvaluationWeights::DEFAULT),
+        QuiescenceSearchPolicy::new(alpha, beta, ordering, false, &EvaluationWeights::DEFAULT),
         cancellation,
     )
 }
@@ -161,6 +164,7 @@ where
         mut alpha,
         beta,
         ordering,
+        see_capture_ordering,
         weights,
     } = policy;
     if cancellation.on_quiescence_node(context.ply) {
@@ -229,11 +233,15 @@ where
         }
     }
 
-    let ordered_tokens = ordered_legal_moves(position, &tokens, ordering);
+    let ordered_tokens =
+        ordered_legal_moves_with_see(position, &tokens, ordering, see_capture_ordering)?;
     let mut nodes = 1_u64;
     let mut qnodes = 1_u64;
     let mut selective_depth = context.ply;
     let mut diagnostics = SearchDiagnostics::quiescence_node();
+    ordered_tokens
+        .diagnostics()
+        .record_into(&mut diagnostics, cancellation)?;
     let mut searched_moves = 0_usize;
     for token in ordered_tokens.iter() {
         let current = token.move_made();
@@ -263,7 +271,7 @@ where
             position,
             history,
             child_context,
-            QuiescenceSearchPolicy::new(-beta, -alpha, ordering, weights),
+            QuiescenceSearchPolicy::new(-beta, -alpha, ordering, see_capture_ordering, weights),
             cancellation,
         );
         let history_restore = history.pop_position(history_undo);

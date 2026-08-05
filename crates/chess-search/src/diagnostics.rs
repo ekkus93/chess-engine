@@ -16,6 +16,9 @@ pub enum SearchDiagnosticCounter {
     PvsZeroWindowSearches,
     PvsResearches,
     SeeCalls,
+    SeeWinningCaptures,
+    SeeEqualCaptures,
+    SeeLosingCaptures,
     SeePrunes,
     QuiescenceSeePrunes,
     QuiescenceDeltaPrunes,
@@ -41,6 +44,9 @@ impl fmt::Display for SearchDiagnosticCounter {
             Self::PvsZeroWindowSearches => "pvs_zero_window_searches",
             Self::PvsResearches => "pvs_researches",
             Self::SeeCalls => "see_calls",
+            Self::SeeWinningCaptures => "see_winning_captures",
+            Self::SeeEqualCaptures => "see_equal_captures",
+            Self::SeeLosingCaptures => "see_losing_captures",
             Self::SeePrunes => "see_prunes",
             Self::QuiescenceSeePrunes => "quiescence_see_prunes",
             Self::QuiescenceDeltaPrunes => "quiescence_delta_prunes",
@@ -96,6 +102,9 @@ pub enum SearchDiagnosticEvent {
     PvsZeroWindowSearch,
     PvsResearch,
     SeeCall,
+    SeeWinningCapture,
+    SeeEqualCapture,
+    SeeLosingCapture,
     SeePrune,
     QuiescenceSeePrune,
     QuiescenceDeltaPrune,
@@ -126,6 +135,9 @@ pub struct SearchDiagnostics {
     pvs_zero_window_searches: u64,
     pvs_researches: u64,
     see_calls: u64,
+    see_winning_captures: u64,
+    see_equal_captures: u64,
+    see_losing_captures: u64,
     see_prunes: u64,
     quiescence_see_prunes: u64,
     quiescence_delta_prunes: u64,
@@ -151,6 +163,9 @@ impl SearchDiagnostics {
         pvs_zero_window_searches: 0,
         pvs_researches: 0,
         see_calls: 0,
+        see_winning_captures: 0,
+        see_equal_captures: 0,
+        see_losing_captures: 0,
         see_prunes: 0,
         quiescence_see_prunes: 0,
         quiescence_delta_prunes: 0,
@@ -233,6 +248,18 @@ impl SearchDiagnostics {
             SearchDiagnosticEvent::SeeCall => {
                 increment_checked(&mut self.see_calls, SearchDiagnosticCounter::SeeCalls)
             }
+            SearchDiagnosticEvent::SeeWinningCapture => increment_checked(
+                &mut self.see_winning_captures,
+                SearchDiagnosticCounter::SeeWinningCaptures,
+            ),
+            SearchDiagnosticEvent::SeeEqualCapture => increment_checked(
+                &mut self.see_equal_captures,
+                SearchDiagnosticCounter::SeeEqualCaptures,
+            ),
+            SearchDiagnosticEvent::SeeLosingCapture => increment_checked(
+                &mut self.see_losing_captures,
+                SearchDiagnosticCounter::SeeLosingCaptures,
+            ),
             SearchDiagnosticEvent::SeePrune => {
                 increment_checked(&mut self.see_prunes, SearchDiagnosticCounter::SeePrunes)
             }
@@ -308,6 +335,9 @@ impl SearchDiagnostics {
             pvs_zero_window_searches: sum!(pvs_zero_window_searches, PvsZeroWindowSearches),
             pvs_researches: sum!(pvs_researches, PvsResearches),
             see_calls: sum!(see_calls, SeeCalls),
+            see_winning_captures: sum!(see_winning_captures, SeeWinningCaptures),
+            see_equal_captures: sum!(see_equal_captures, SeeEqualCaptures),
+            see_losing_captures: sum!(see_losing_captures, SeeLosingCaptures),
             see_prunes: sum!(see_prunes, SeePrunes),
             quiescence_see_prunes: sum!(quiescence_see_prunes, QuiescenceSeePrunes),
             quiescence_delta_prunes: sum!(quiescence_delta_prunes, QuiescenceDeltaPrunes),
@@ -363,6 +393,18 @@ impl SearchDiagnostics {
         self.see_calls
     }
     #[must_use]
+    pub const fn see_winning_captures(self) -> u64 {
+        self.see_winning_captures
+    }
+    #[must_use]
+    pub const fn see_equal_captures(self) -> u64 {
+        self.see_equal_captures
+    }
+    #[must_use]
+    pub const fn see_losing_captures(self) -> u64 {
+        self.see_losing_captures
+    }
+    #[must_use]
     pub const fn see_prunes(self) -> u64 {
         self.see_prunes
     }
@@ -415,6 +457,9 @@ impl SearchDiagnostics {
         self.pvs_zero_window_searches == 0
             && self.pvs_researches == 0
             && self.see_calls == 0
+            && self.see_winning_captures == 0
+            && self.see_equal_captures == 0
+            && self.see_losing_captures == 0
             && self.see_prunes == 0
             && self.quiescence_see_prunes == 0
             && self.quiescence_delta_prunes == 0
@@ -454,6 +499,19 @@ impl SearchDiagnostics {
             self.late_move_prunes,
         ] {
             hash = hash_bytes(hash, &value.to_le_bytes());
+        }
+        if self.see_winning_captures != 0
+            || self.see_equal_captures != 0
+            || self.see_losing_captures != 0
+        {
+            hash = hash_bytes(hash, b"see-capture-classification-v1");
+            for value in [
+                self.see_winning_captures,
+                self.see_equal_captures,
+                self.see_losing_captures,
+            ] {
+                hash = hash_bytes(hash, &value.to_le_bytes());
+            }
         }
         hash_bytes(hash, &[self.overflowed as u8])
     }
@@ -511,6 +569,25 @@ mod tests {
         diagnostics.saturating_record(SearchDiagnosticEvent::MainNode);
         assert_eq!(diagnostics.main_nodes(), u64::MAX);
         assert!(diagnostics.overflowed());
+    }
+
+    #[test]
+    fn see_classification_events_are_exact_and_checksum_visible() {
+        let baseline_checksum = SearchDiagnostics::default().semantic_checksum();
+        let mut diagnostics = SearchDiagnostics::default();
+        for event in [
+            SearchDiagnosticEvent::SeeCall,
+            SearchDiagnosticEvent::SeeWinningCapture,
+        ] {
+            diagnostics
+                .record_checked(event)
+                .expect("small diagnostic counts fit");
+        }
+        assert_eq!(diagnostics.see_calls(), 1);
+        assert_eq!(diagnostics.see_winning_captures(), 1);
+        assert_eq!(diagnostics.see_equal_captures(), 0);
+        assert_eq!(diagnostics.see_losing_captures(), 0);
+        assert_ne!(diagnostics.semantic_checksum(), baseline_checksum);
     }
 
     #[test]
