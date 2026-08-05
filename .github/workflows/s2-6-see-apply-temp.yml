@@ -1,4 +1,5 @@
 name: S2-6 SEE apply temporary
+# witness-revision: 2
 
 on:
   push:
@@ -30,7 +31,8 @@ jobs:
           set -euo pipefail
           git merge-base --is-ancestor 4174c2bf69f4e30b49b669960c33ec506197d425 HEAD
           test -f scripts/s2_6_see_apply.py
-          python3 -m py_compile scripts/s2_6_see_apply.py
+          test -f scripts/s2_6_see_driver.py
+          python3 -m py_compile scripts/s2_6_see_apply.py scripts/s2_6_see_driver.py
 
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
@@ -40,6 +42,7 @@ jobs:
       - name: Apply S2-6 candidate
         run: |
           set -euo pipefail
+          python3 scripts/s2_6_see_driver.py
           python3 scripts/s2_6_see_apply.py
           cargo fmt --all
           git diff --check
@@ -54,7 +57,7 @@ jobs:
       - name: Commit validated candidate
         run: |
           set -euo pipefail
-          rm scripts/s2_6_see_apply.py
+          rm scripts/s2_6_see_apply.py scripts/s2_6_see_driver.py
           git diff --check
           git config user.name "Phillip Chin"
           git config user.email "ekkus93@gmail.com"
