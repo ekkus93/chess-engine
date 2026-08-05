@@ -50,6 +50,29 @@
 - No strength match was required or used because S2-1 changes identity/control infrastructure and preserves exact v0.1 production search behavior.
 - Discovered integration defects were fixed at source or workflow level; no lint suppression, ignored failure, downgraded gate, silent fallback, implicit discovery, or temporary helper remains in the validated implementation tree.
 
+## S2-2 implementation record
+
+- Disposition: complete; generalized complete-engine-variant validation infrastructure accepted for later candidate work; activation remains false.
+- Implementation SHA: `7077c0b2b97b17f1d0dd6ef42fc59e830dcc8069`.
+- Exact validation SHA: `ead3be20f7ba027d3c6ab9629ca0e094e6e9eb0f`.
+- Complete-variant report schema: `1`; protocol identifier: `5641524956414c31`.
+- The historical weight-only report remains schema `1`, identifier `43414e4456414c31`, format `chess-candidate-validation-v1`, and production minimum 200 pairs.
+- Added complete identity binding for source SHA, engine version, policy, weights, book/tablebase state, TT size, build identity, and exact invocation.
+- Added bounded smoke, paired development, and production tiers; production requires at least 200 independent opening pairs / 400 color-swapped games.
+- Added equal-resource `fixed_nodes` and `clock_ms` protocols with recorded purpose, shared limits/configuration, and independent variant transposition tables.
+- Added correctness pre-gates for authoritative perft, forced mate, longest survival, tactical/legal-PV behavior, and repeated-search equivalence; failed correctness or infrastructure prevents all match games.
+- Added semantic opening deduplication, deterministic seeded scheduling, color-swapped pairs, pair-average statistics, sample standard error, and a one-sided 95% lower confidence bound using the existing z-value.
+- Acceptance is fail-closed: the lower bound must strictly exceed `0.5 + minimum_score_margin`, unfinished games have a separate ceiling, ties/inconclusive evidence reject, and only production may emit `accepted_for_activation`.
+- Wins, draws, losses, unfinished games, illegal moves, crashes, time forfeits, and infrastructure failures are separate; typed failures are never silently converted into chess results.
+- Reports are canonical, checksummed, strictly parsed, atomically persisted through caller-selected same-directory paths, and always serialize `activated=false`.
+- Permanent focused run `31002053527`, job `92293045464`: source audit, formatting, strict Clippy, complete-variant tests, and legacy weight-only compatibility passed.
+- Exact Rust CI run `31002053507`: x86-64 job `92293040865` and native ARM64 job `92293040807`; all audits, locked checks, strict Clippy, all-target tests, release perft, rustdoc, builds, UCI smoke, and differential oracle passed.
+- Exact performance run `31002053545`: x86-64 job `92293062822`, artifact `8928690363`; ARM64 job `92293062784`, artifact `8928694029`; zero-allocation and reference-budget gates passed.
+- Exact robustness run `31002053571`: Miri job `92293065411`, sanitizer job `92293065540`, fuzz job `92293065551`; all passed.
+- Exact Android/JNI run `31002053564`: API-35 instrumented JNI job `92293579404`, host JVM job `92293579417`, Android lint job `92293579446`; all substantive gates passed.
+- No production strength match was required or used because S2-2 adds inactive validation infrastructure and does not change production search, evaluation, adapters, package version, or defaults.
+- Integration failures were fixed at source or audit-workflow level. No lint suppression, ignored failure, downgraded gate, silent fallback, implicit configuration discovery, write-capable staging workflow, or temporary payload remains.
+
 ## Status rules
 
 - `[x]` means complete with implementation, documentation, and exact evidence.
@@ -82,7 +105,7 @@
 |---:|---|---|
 | S2-0 | Authority cleanup and exact baseline inspection | **Complete** |
 | S2-1 | Versioned search-policy and engine-variant identity | **Complete** |
-| S2-2 | Generalized strength-validation infrastructure | **Not started** |
+| S2-2 | Generalized strength-validation infrastructure | **Complete** |
 | S2-3 | Baseline strength, diagnostics, and performance capture | **Not started** |
 | S2-4 | Correct allocation-free Static Exchange Evaluation | **Not started** |
 | S2-5 | SEE capture-ordering candidate | **Not started** |
@@ -179,59 +202,59 @@
 
 ---
 
-# Task S2-2: Generalized strength-validation infrastructure — NOT STARTED
+# Task S2-2: Generalized strength-validation infrastructure — COMPLETE
 
 ## S2-2.1 Generalize candidate scope
 
-- [ ] Extend or complement the existing weight-candidate validator to compare complete engine variants.
-- [ ] Preserve the existing weight-only protocol and reports.
-- [ ] Define a versioned engine-variant validation report.
-- [ ] Record exact baseline and candidate identities and checksums.
-- [ ] Record source SHA, toolchain/build identity, command, TT size, limits, opening suite, seeds, draw policy, and maximum ply.
+- [x] Extend or complement the existing weight-candidate validator to compare complete engine variants.
+- [x] Preserve the existing weight-only protocol and reports.
+- [x] Define a versioned engine-variant validation report.
+- [x] Record exact baseline and candidate identities and checksums.
+- [x] Record source SHA, toolchain/build identity, command, TT size, limits, opening suite, seeds, draw policy, and maximum ply.
 
 ## S2-2.2 Validation tiers
 
-- [ ] Define bounded smoke protocol.
-- [ ] Define development paired protocol.
-- [ ] Define production protocol with at least 200 independent opening pairs and 400 games.
-- [ ] Only production reports may emit `accepted_for_activation`.
-- [ ] Every report retains `activated=false`.
+- [x] Define bounded smoke protocol.
+- [x] Define development paired protocol.
+- [x] Define production protocol with at least 200 independent opening pairs and 400 games.
+- [x] Only production reports may emit `accepted_for_activation`.
+- [x] Every report retains `activated=false`.
 
 ## S2-2.3 Correctness pre-gate
 
-- [ ] Run authoritative perft before games.
-- [ ] Run forced-mate and longest-survival fixtures.
-- [ ] Run candidate-specific tactical/equivalence fixtures.
-- [ ] Reject correctness failures before any games.
-- [ ] Record `rejected_correctness` distinctly from infrastructure failure.
-- [ ] Never let favorable games compensate for a correctness failure.
+- [x] Run authoritative perft before games.
+- [x] Run forced-mate and longest-survival fixtures.
+- [x] Run candidate-specific tactical/equivalence fixtures.
+- [x] Reject correctness failures before any games.
+- [x] Record `rejected_correctness` distinctly from infrastructure failure.
+- [x] Never let favorable games compensate for a correctness failure.
 
 ## S2-2.4 Pairing and statistics
 
-- [ ] Require semantically distinct openings.
-- [ ] Reject duplicate canonical opening lines under different names.
-- [ ] Play both colors from each opening.
-- [ ] Treat pair averages as independent statistical units.
-- [ ] Compute mean, sample standard error, and one-sided 95% lower confidence bound with the existing z-value.
-- [ ] Require the lower bound to exceed `0.5 + minimum_score_margin` strictly.
-- [ ] Track unfinished games separately and enforce the ceiling.
-- [ ] Treat tied/inconclusive evidence as rejection.
+- [x] Require semantically distinct openings.
+- [x] Reject duplicate canonical opening lines under different names.
+- [x] Play both colors from each opening.
+- [x] Treat pair averages as independent statistical units.
+- [x] Compute mean, sample standard error, and one-sided 95% lower confidence bound with the existing z-value.
+- [x] Require the lower bound to exceed `0.5 + minimum_score_margin` strictly.
+- [x] Track unfinished games separately and enforce the ceiling.
+- [x] Treat tied/inconclusive evidence as rejection.
 
 ## S2-2.5 Failure classification
 
-- [ ] Record wins, draws, losses, unfinished games, illegal moves, crashes, time forfeits, and infrastructure failures separately.
-- [ ] Do not score an infrastructure failure as a chess result unless a symmetric predeclared protocol explicitly requires it.
-- [ ] Atomic report persistence uses caller-selected paths and checksums.
-- [ ] Partial/corrupt reports are rejected.
+- [x] Record wins, draws, losses, unfinished games, illegal moves, crashes, time forfeits, and infrastructure failures separately.
+- [x] Do not score an infrastructure failure as a chess result unless a symmetric predeclared protocol explicitly requires it.
+- [x] Atomic report persistence uses caller-selected paths and checksums.
+- [x] Partial/corrupt reports are rejected.
 
 ## S2-2.6 Fixed-node and clock protocols
 
-- [ ] Add at least one fixed-node engine-variant protocol.
-- [ ] Add at least one clock-based engine-variant protocol.
-- [ ] Record why each is used.
-- [ ] Ensure both engines receive identical resources/configuration within a protocol.
+- [x] Add at least one fixed-node engine-variant protocol.
+- [x] Add at least one clock-based engine-variant protocol.
+- [x] Record why each is used.
+- [x] Ensure both engines receive identical resources/configuration within a protocol.
 
-**S2-2 gate:** Engine variants can be compared reproducibly without weakening the existing fail-closed candidate protocol.
+**S2-2 gate:** Complete. Complete engine variants can be compared reproducibly under fixed-node or clock protocols, fail closed before or during match play, preserve the existing weight-only protocol, and remain inactive.
 
 ---
 
@@ -885,4 +908,4 @@ Remaining risks:
 
 ## Initial next action
 
-Begin with **S2-2 only**: generalized strength-validation infrastructure. Do not implement SEE, PVS, LMR, pruning, or tablebases until S2-2 and S2-3 establish generalized variant validation and baseline diagnostics.
+Begin with **S2-3 only**: baseline strength, diagnostics, and performance capture. Do not implement SEE, PVS, LMR, pruning, or tablebases until S2-3 establishes exact baseline diagnostics and evidence.
