@@ -57,7 +57,11 @@ jobs:
                   b\"assert_eq!(white, black);\",
               )
               data = data.replace(b\"0xc0ff_ee\", b\"0x00c0_ffee\")
-              data = data.replace(b\"1rm000k/P7\", b\"1r5k/P7\")
+              data = __import__(\"re\").sub(
+                  rb\"1r[^/\\n]*m[^/\\n]*/P7\",
+                  b\"1r5k/P7\",
+                  data,
+              )
               target.write_bytes(data)"""
           if text.count(old) != 1:
               raise SystemExit("temporary payload writer witness changed")
