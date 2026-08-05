@@ -27,9 +27,10 @@ jobs:
         run: |
           python3 scripts/s2_1_integrate.py
           python3 scripts/s2_1_finalize.py
+          python3 scripts/s2_1_parity_fix.py
 
       - name: Remove temporary integration helpers
-        run: git rm .github/workflows/s2-1-integrate.yml scripts/s2_1_integrate.py scripts/s2_1_finalize.py
+        run: git rm .github/workflows/s2-1-integrate.yml scripts/s2_1_integrate.py scripts/s2_1_finalize.py scripts/s2_1_parity_fix.py
 
       - name: Validate implementation
         shell: bash
