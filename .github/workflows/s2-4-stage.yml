@@ -48,6 +48,10 @@ jobs:
           new = """    data = base64.b64decode(payload)
               data = data.replace(b\"#[]_must_use]\", b\"#[must_use]\")
               data = data.replace(b\".filter(#piece| {\", b\".filter(|piece| {\")
+              data = data.replace(
+                  b'evaluate_fixture(\"7k/P7/8/8/8/8/8/7K w - - 0 1\", \"a7a8q\".centipawns(),',
+                  b'evaluate_fixture(\"7k/P7/8/8/8/8/8/7K w - - 0 1\", \"a7a8q\").centipawns(),',
+              )
               target.write_bytes(data)"""
           if text.count(old) != 1:
               raise SystemExit("temporary payload writer witness changed")
