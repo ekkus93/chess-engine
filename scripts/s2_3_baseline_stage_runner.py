@@ -16,6 +16,10 @@ replacements = [
         "    let root = Position::starting();\n    let mut white_moves = root.legal_moves()?.iter().collect::<Vec<_>>();",
         "    let mut root = Position::starting();\n    let mut white_moves = root.legal_moves()?.iter().collect::<Vec<_>>();",
     ),
+    (
+        "zugzwang-sensitive\\tzugzwang_sensitive\\t8/8/8/8/8/2k5/2p5/2K5 w - - 0 1\\t5\\tlegal_pv\\t-",
+        "zugzwang-sensitive\\tzugzwang_sensitive\\t8/8/8/8/8/2k5/4p3/2K5 w - - 0 1\\t5\\tlegal_pv\\t-",
+    ),
 ]
 for old, new in replacements:
     if text.count(old) != 1:
