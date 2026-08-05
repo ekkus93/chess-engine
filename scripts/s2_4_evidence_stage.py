@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import base64
 import subprocess
 from pathlib import Path
 
@@ -12,12 +11,6 @@ def run(*args: str) -> None:
     subprocess.run(args, cwd=ROOT, check=True)
 
 
-def write_b64(path: str, payload: str) -> None:
-    target = ROOT / path
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_bytes(base64.b64decode(payload))
-
-
 def replace_once(path: str, old: str, new: str) -> None:
     target = ROOT / path
     text = target.read_text(encoding="utf-8")
@@ -26,7 +19,100 @@ def replace_once(path: str, old: str, new: str) -> None:
     target.write_text(text.replace(old, new), encoding="utf-8")
 
 
-write_b64("crates/chess-tools/src/bin/s2_4_see_benchmark.rs", "dXNlIHN0ZDo6ewogICAgYWxsb2M6OntHbG9iYWxBbGxvYywgTGF5b3V0LCBTeXN0ZW19LAogICAgZW52LAogICAgaGludDo6YmxhY2tfYm94LAogICAgcHJvY2Vzczo6RXhpdENvZGUsCiAgICBzeW5jOjphdG9taWM6OntBdG9taWNCb29sLCBBdG9taWNVNjQsIE9yZGVyaW5nfSwKICAgIHRpbWU6Okluc3RhbnQsCn07Cgp1c2UgY2hlc3NfY29yZTo6ewogICAgc3RhdGljX2V4Y2hhbmdlX2V2YWx1YXRpb24sIHN0YXRpY19leGNoYW5nZV9zZW1hbnRpY19jaGVja3N1bSwgTW92ZSwgUG9zaXRpb24sIFVjaU1vdmUsCn07Cgpjb25zdCBERUZBVUxUX1NBTVBMRVM6IHVzaXplID0gNzsKY29uc3QgT1BFUkFUSU9OU19QRVJfU0FNUExFOiB1NjQgPSA1MF8wMDA7CmNvbnN0IEZJWFRVUkVTOiBbKCZzdHIsICZzdHIpOyA0XSA9IFsKICAgICgiNGszLzgvOC8zcDQvNFAzLzgvOC80SzMgdyAtIC0gMCAxIiwgImU0ZDUiKSwKICAgICgiNGszLzRuMy84LzNwNC8yUDUvOC84LzRSMUsxIHcgLSAtIDAgMSIsICJjNGQ1IiksCiAgICAoIjNyMmsxLzgvOC8zcFAzLzgvOC84LzZLMSB3IC0gZDYgMCAxIiwgImU1ZDYiKSwKICAgICgiMXI1ay9QNy84LzgvOC84LzgvN0sgdyAtIC0gMCAxIiwgImE3YjhxIiksCl07CgpzdHJ1Y3QgQ291bnRpbmdBbGxvY2F0b3I7CgpzdGF0aWMgVFJBQ0tfQUxMT0NBVElPTlM6IEF0b21pY0Jvb2wgPSBBdG9taWNCb29sOjpuZXcoZmFsc2UpOwpzdGF0aWMgQUxMT0NBVElPTl9DQUxMUzogQXRvbWljVTY0ID0gQXRvbWljVTY0OjpuZXcoMCk7Cgp1bnNhZmUgaW1wbCBHbG9iYWxBbGxvYyBmb3IgQ291bnRpbmdBbGxvY2F0b3IgewogICAgdW5zYWZlIGZuIGFsbG9jKCZzZWxmLCBsYXlvdXQ6IExheW91dCkgLT4gKm11dCB1OCB7CiAgICAgICAgbGV0IHBvaW50ZXIgPSB1bnNhZmUgeyBTeXN0ZW0uYWxsb2MobGF5b3V0KSB9OwogICAgICAgIGlmIFRSQUNLX0FMTE9DQVRJT05TLmxvYWQoT3JkZXJpbmc6OlJlbGF4ZWQpICYmICFwb2ludGVyLmlzX251bGwoKSB7CiAgICAgICAgICAgIEFMTE9DQVRJT05fQ0FMTFMuZmV0Y2hfYWRkKDEsIE9yZGVyaW5nOjpSZWxheGVkKTsKICAgICAgICB9CiAgICAgICAgcG9pbnRlcgogICAgfQoKICAgIHVuc2FmZSBmbiBhbGxvY196ZXJvZWQoJnNlbGYsIGxheW91dDogTGF5b3V0KSAtPiAqbXV0IHU4IHsKICAgICAgICBsZXQgcG9pbnRlciA9IHVuc2FmZSB7IFN5c3RlbS5hbGxvY196ZXJvZWQobGF5b3V0KSB9OwogICAgICAgIGlmIFRSQUNLX0FMTE9DQVRJT05TLmxvYWQoT3JkZXJpbmc6OlJlbGF4ZWQpICYmICFwb2ludGVyLmlzX251bGwoKSB7CiAgICAgICAgICAgIEFMTE9DQVRJT05fQ0FMTFMuZmV0Y2hfYWRkKDEsIE9yZGVyaW5nOjpSZWxheGVkKTsKICAgICAgICB9CiAgICAgICAgcG9pbnRlcgogICAgfQoKICAgIHVuc2FmZSBmbiBkZWFsbG9jKCZzZWxmLCBwb2ludGVyOiAqbXV0IHU4LCBsYXlvdXQ6IExheW91dCkgewogICAgICAgIHVuc2FmZSB7IFN5c3RlbS5kZWFsbG9jKHBvaW50ZXIsIGxheW91dCkgfTsKICAgIH0KCiAgICB1bnNhZmUgZm4gcmVhbGxvYygmc2VsZiwgcG9pbnRlcjogKm11dCB1OCwgbGF5b3V0OiBMYXlvdXQsIG5ld19zaXplOiB1c2l6ZSkgLT4gKm11dCB1OCB7CiAgICAgICAgbGV0IHJlcGxhY2VtZW50ID0gdW5zYWZlIHsgU3lzdGVtLnJlYWxsb2MocG9pbnRlciwgbGF5b3V0LCBuZXdfc2l6ZSkgfTsKICAgICAgICBpZiBUUkFDS19BTExPQ0FUSU9OUy5sb2FkKE9yZGVyaW5nOjpSZWxheGVkKSAmJiAhcmVwbGFjZW1lbnQuaXNfbnVsbCgpIHsKICAgICAgICAgICAgQUxMT0NBVElPTl9DQUxMUy5mZXRjaF9hZGQoMSwgT3JkZXJpbmc6OlJlbGF4ZWQpOwogICAgICAgIH0KICAgICAgICByZXBsYWNlbWVudAogICAgfQp9CgojW2dsb2JhbF9hbGxvY2F0b3JdCnN0YXRpYyBHTE9CQUxfQUxMT0NBVE9SOiBDb3VudGluZ0FsbG9jYXRvciA9IENvdW50aW5nQWxsb2NhdG9yOwoKc3RydWN0IEZpeHR1cmUgewogICAgcG9zaXRpb246IFBvc2l0aW9uLAogICAgY3VycmVudDogTW92ZSwKfQoKZm4gcGFyc2Vfc2FtcGxlcygpIC0+IFJlc3VsdDx1c2l6ZSwgU3RyaW5nPiB7CiAgICBsZXQgU29tZSh2YWx1ZSkgPSBlbnY6OmFyZ3MoKS5udGgoMSkgZWxzZSB7CiAgICAgICAgcmV0dXJuIE9rKERFRkFVTFRfU0FNUExFUyk7CiAgICB9OwogICAgbGV0IHBhcnNlZCA9IHZhbHVlCiAgICAgICAgLnBhcnNlOjo8dXNpemU+KCkKICAgICAgICAubWFwX2Vycih8ZXJyb3J8IGZvcm1hdCEoImludmFsaWQgc2FtcGxlIGNvdW50IHt2YWx1ZTo/fToge2Vycm9yfSIpKTsKICAgIGlmIHBhcnNlZCA9PSAwIHsKICAgICAgICByZXR1cm4gRXJyKCJzYW1wbGUgY291bnQgbXVzdCBiZSBncmVhdGVyIHRoYW4gemVybyIudG9fb3duZWQoKSk7CiAgICB9CiAgICBPayhwYXJzZWQpCn0KCmZuIGZpeHR1cmVzKCkgLT4gUmVzdWx0PFZlYzxGaXh0dXJlPiwgU3RyaW5nPiB7CiAgICBGSVhUVVJFUwogICAgICAgIC5pdGVyKCkKICAgICAgICAubWFwKHwoZmVuLCB1Y2kpfCB7CiAgICAgICAgICAgIGxldCBtdXQgcG9zaXRpb24gPSBQb3NpdGlvbjo6ZnJvbV9mZW4oZmVuKS5tYXBfZXJyKHxlcnJvcnwgZXJyb3IudG9fc3RyaW5nKCkpPzsKICAgICAgICAgICAgbGV0IHJlcXVlc3RlZCA9IHVjaS5wYXJzZTo6PFVjaU1vdmU+KCkubWFwX2Vycih8ZXJyb3J8IGVycm9yLnRvX3N0cmluZygpKT87CiAgICAgICAgICAgIGxldCBjdXJyZW50ID0gcG9zaXRpb24KICAgICAgICAgICAgICAgIC5sZWdhbF9tb3ZlcygpCiAgICAgICAgICAgICAgICAubWFwX2Vycih8ZXJyb3J8IGVycm9yLnRvX3N0cmluZygpPwogICAgICAgICAgICAgICAgLml0ZXIoKQogICAgICAgICAgICAgICAgLmZpbmQoY3VycmVudHwgcmVxdWVzdGVkLm1hdGNoZXMoKmN1cnJlbnQpKQogICAgICAgICAgICAgICAgLm9rX29yX2Vsc2UofHwgZm9ybWF0ISgiZml4dHVyZSBtb3ZlIHt1Y2l9IGlzIG5vdCBsZWdhbCBpbiB7ZmVufSIpKT87CiAgICAgICAgICAgIE9rKEZpeHR1cmUgeyBwb3NpdGlvbiwgY3VycmVudCB9KQogICAgICAgIH0pCiAgICAgICAgLmNvbGxlY3QoKQp9CgpmbiBtZWRpYW4odmFsdWVzOiAmbXV0IFt1MTI4XSkgLT4gdTEyOCB7CiAgICB2YWx1ZXMuc29ydF91bnN0YWJsZSgpOwogICAgdmFsdWVzW3ZhbHVlcy5sZW4oKSAvIDJdCn0KCmZuIHJ1bigpIC0+IFJlc3VsdDwoKSwgU3RyaW5nPiB7CiAgICBsZXQgc2FtcGxlcyA9IHBhcnNlX3NhbXBsZXMoKT87CiAgICBsZXQgZml4dHVyZXMgPSBmaXh0dXJlcygpPzsKICAgIGxldCBtdXQgZWxhcHNlZCA9IFZlYzo6d2l0aF9jYXBhY2l0eShzYW1wbGVzKTsKICAgIGxldCBtdXQgbWF4aW11bV9hbGxvY2F0aW9ucyA9IDBfdTY0OwogICAgbGV0IG11dCBjaGVja3N1bSA9IDBfdTY0OwoKICAgIGZvciBzYW1wbGUgaW4gMC4uc2FtcGxlcyB7CiAgICAgICAgQUxMT0NBVElPTl9DQUxMUy5zdG9yZSgwLCBPcmRlcmluZzo6UmVsYXhlZCk7CiAgICAgICAgVFJBQ0tfQUxMT0NBVElPTlMuc3RvcmUodHJ1ZSwgT3JkZXJpbmc6OlNlcUNzdCk7CiAgICAgICAgbGV0IHN0YXJ0ZWQgPSBJbnN0YW50Ojpub3coKTsKICAgICAgICBsZXQgbXV0IHNhbXBsZV9jaGVja3N1bSA9IDBfdTY0OwogICAgICAgIGZvciBpdGVyYXRpb24gaW4gMC4uT1BFUkFUSU9OU19QRVJfU0FNUExFIHsKICAgICAgICAgICAgbGV0IGZpeHR1cmUgPSAmZml4dHVyZXNbKGl0ZXJhdGlvbiBhcyB1c2l6ZSkgJSBmaXh0dXJlcy5sZW4oKV07CiAgICAgICAgICAgIGxldCB2YWx1ZSA9IHN0YXRpY19leGNoYW5nZV9ldmFsdWF0aW9uKCZmaXh0dXJlLnBvc2l0aW9uLCBmaXh0dXJlLmN1cnJlbnQpCiAgICAgICAgICAgICAgICAubWFwX2Vycih8ZXJyb3J8IGVycm9yLnRvX3N0cmluZygpKTsKICAgICAgICAgICAgc2FtcGxlX2NoZWNrc3VtID0gc2FtcGxlX2NoZWNrc3VtCiAgICAgICAgICAgICAgICAucm90YXRlX2xlZnQoNykKICAgICAgICAgICAgICAgIC53cmFwcGluZ19hZGQodmFsdWUuY2VudGlwYXducygpIGFzIHUzMiBhcyB1NjQpCiAgICAgICAgICAgICAgICAud3JhcHBpbmdfYWRkKGl0ZXJhdGlvbik7CiAgICAgICAgICAgIGJsYWNrX2JveCh2YWx1ZSk7CiAgICAgICAgfQogICAgICAgIGxldCBlbGFwc2VkX25hbm9zID0gc3RhcnRlZC5lbGFwc2VkKCkuYXNfbmFub3MoKTsKICAgICAgICBUUkFDS19BTExPQ0FUSU9OUy5zdG9yZShmYWxzZSwgT3JkZXJpbmc6OlNlcUNzdCk7CiAgICAgICAgbGV0IGFsbG9jYXRpb25zID0gQUxMT0NBVElPTl9DQUxMUy5sb2FkKE9yZGVyaW5nOjpSZWxheGVkKTsKICAgICAgICBtYXhpbXVtX2FsbG9jYXRpb25zID0gbWF4aW11bV9hbGxvY2F0aW9ucy5tYXgoYWxsb2NhdGlvbnMpOwogICAgICAgIGNoZWNrc3VtID0gY2hlY2tzdW0KICAgICAgICAgICAgLnJvdGF0ZV9sZWZ0KDExKQogICAgICAgICAgICAud3JhcHBpbmdfYWRkKHNhbXBsZV9jaGVja3N1bSkKICAgICAgICAgICAgLndyYXBwaW5nX2FkZChzYW1wbGUgYXMgdTY0KTsKICAgICAgICBlbGFwc2VkLnB1c2goZWxhcHNlZF9uYW5vcyAvIHUxMjg6OmZyb20oT1BFUkFUSU9OU19QRVJfU0FNUExFKSk7CiAgICB9CgogICAgaWYgbWF4aW11bV9hbGxvY2F0aW9ucyAhPSAwIHsKICAgICAgICByZXR1cm4gRXJyKGZvcm1hdCEoCiAgICAgICAgICAgICJzZWUuZXhjaGFuZ2UgYWxsb2NhdGVkIHttYXhpbXVtX2FsbG9jYXRpb25zfSB0aW1lcyBpbiBhIHplcm8tYWxsb2NhdGlvbiBob3QgcGF0aCIKICAgICAgICApKTsKICAgIH0KCiAgICBsZXQgbWluaW11bSA9ICplbGFwc2VkLml0ZXIoKS5taW4oKS5leHBlY3QoImF0IGxlYXN0IG9uZSBzYW1wbGUiKTsKICAgIGxldCBtYXhpbXVtID0gKmVsYXBzZWQuaXRlcigpLm1heCgpLmV4cGVjdCgiYXQgbGVhc3Qgb25lIHNhbXBsZSIpOwogICAgbGV0IG1lZGlhbiA9IG1lZGlhbigmbXV0IGVsYXBzZWQpOwogICAgcHJpbnRsbiEoCiAgICAgICAgImJlbmNobWFya1x0c2FtcGxlc1x0b3BlcmF0aW9uc19wZXJfc2FtcGxlXHRtZWRpYW5fbnNfcGVyX29wZXJhdGlvblx0bWluaW11bV9uc19wZXJfb3BlcmF0aW9uXHRtYXhpbXVtX25zX3Blcl9vcGVyYXRpb25cdG1heGltdW1fYWxsb2NhdGlvbnNfcGVyX3NhbXBsZVx0Y2hlY2tzdW1cdHNlbWFudGljX2NoZWNrc3VtIgogICAgKTsKICAgIHByaW50bG4hKAogICAgICAgICJzZWUuZXhjaGFuZ2VcdHtzYW1wbGVzfVx0e09QRVJBVElPTlNfUEVSX1NBTVBMRX1cdHttZWRpYW59XHR7bWluaW11bX1x0e21heGltdW19XHR7bWF4aW11bV9hbGxvY2F0aW9uc31cdHtjaGVja3N1bX1cdHs6MDE2eH0iLAogICAgICAgIHN0YXRpY19leGNoYW5nZV9zZW1hbnRpY19jaGVja3N1bSgpCiAgICApOwogICAgT2soKCkpCn0KCmZuIG1haW4oKSAtPiBFeGl0Q29kZSB7CiAgICBtYXRjaCBydW4oKSB7CiAgICAgICAgT2soKCkpID0+IEV4aXRDb2RlOjpTVUNDRVNTLAogICAgICAgIEVycihlcnJvcikgPT4gewogICAgICAgICAgICBlcHJpbnRsbiEoImVycm9yOiB7ZXJyb3J9Iik7CiAgICAgICAgICAgIEV4aXRDb2RlOjpGQUlMVVJFCiAgICAgICAgfQogICAgfQp9Cg==")
-write_b64("fuzz/fuzz_targets/static_exchange.rs", "IyFbbm9fbWFpbl0KCnVzZSBsaWJmdXp6ZXJfc3lzOjpmdXp6X3RhcmdldDsKCmZ1enpfdGFyZ2V0ISh8ZGF0YTogJlt1OF18IGNoZXNzX2VuZ2luZV9mdXp6OjpmdXp6X3N0YXRpY19leGNoYW5nZShkYXRhKSk7Cg==")
-write_b64("fuzz/corpus/static_exchange/seed", "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0+Pw==")
-write_b64("docs/RUST_CHESS_ENGINE_V0_2_S2_4_SEE_2026-08-05.md", "IyBSdXN0IENoZXNzIEVuZ2luZSB2MC4yIFMyLTQgU3RhdGljIEV4Y2hhbmdlIEV2YWx1YXRpb24KCi**TRUNCATED**
+replace_once(
+    "fuzz/src/lib.rs",
+    "use chess_core::{Game, Position, UciMove};",
+    "use chess_core::{static_exchange_evaluation, Game, Position, UciMove};",
+)
+replace_once(
+    "fuzz/src/lib.rs",
+    "/// Exercises game-owned move, repetition, draw, and reverse-history state.\npub fn fuzz_game_history",
+    "/// Exercises deterministic standalone SEE over legal exchange events and exact roots.\npub fn fuzz_static_exchange(data: &[u8]) {\n    let mut position = Position::starting();\n\n    for (ply, selector) in data.iter().copied().take(64).enumerate() {\n        let root = position.clone();\n        let moves = position\n            .legal_moves()\n            .unwrap_or_else(|error| panic!(\"SEE ply {ply}: legal generation failed: {error}\"));\n        if moves.is_empty() {\n            break;\n        }\n\n        for current in moves.iter() {\n            if !current.kind().is_capture() && current.promotion().is_none() {\n                continue;\n            }\n            let first = static_exchange_evaluation(&position, current)\n                .unwrap_or_else(|error| panic!(\"SEE ply {ply} {} failed: {error}\", current.to_uci()));\n            let second = static_exchange_evaluation(&position, current).unwrap_or_else(|error| {\n                panic!(\"SEE ply {ply} repeated {} failed: {error}\", current.to_uci())\n            });\n            assert_eq!(first, second, \"SEE was nondeterministic at ply {ply}\");\n            assert!(\n                first.centipawns().unsigned_abs() <= 60_000,\n                \"SEE escaped its documented material domain at ply {ply}\"\n            );\n            assert_eq!(position, root, \"SEE mutated the position at ply {ply}\");\n            assert_position(&position, \"SEE root\");\n        }\n\n        let current = moves\n            .get(usize::from(selector) % moves.len())\n            .expect(\"bounded SEE sequence index exists\");\n        position.make_move(current).unwrap_or_else(|error| {\n            panic!(\n                \"SEE ply {ply}: generated move {} failed: {error}\",\n                current.to_uci()\n            )\n        });\n        assert_position(&position, &format!(\"SEE sequence ply {ply}\"));\n    }\n}\n\n/// Exercises game-owned move, repetition, draw, and reverse-history state.\npub fn fuzz_game_history",
+)
+replace_once(
+    "fuzz/src/lib.rs",
+    """        fuzz_c_abi_buffers_and_handles, fuzz_fen_parser, fuzz_game_history, fuzz_legal_sequence,
+        fuzz_opening_book_parser, fuzz_uci_move_parser, fuzz_weight_parser,""",
+    """        fuzz_c_abi_buffers_and_handles, fuzz_fen_parser, fuzz_game_history, fuzz_legal_sequence,
+        fuzz_opening_book_parser, fuzz_static_exchange, fuzz_uci_move_parser, fuzz_weight_parser,""",
+)
+replace_once(
+    "fuzz/src/lib.rs",
+    """        fuzz_legal_sequence(&[0, 1, 2, 3, 5, 8, 13, 21, 34, 55]);
+        fuzz_game_history""",
+    """        fuzz_legal_sequence(&[0, 1, 2, 3, 5, 8, 13, 21, 34, 55]);
+        fuzz_static_exchange(&[12, 7, 19, 3, 41, 5, 23, 9, 31, 2, 47, 11]);
+        fuzz_game_history""",
+)
+
+cargo = ROOT / "fuzz/Cargo.toml"
+cargo_text = cargo.read_text(encoding="utf-8")
+if 'name = "static_exchange"' in cargo_text:
+    raise RuntimeError("fuzz static_exchange bin already present")
+cargo.write_text(
+    cargo_text
+    + """
+[[bin]]
+name = "static_exchange"
+path = "fuzz_targets/static_exchange.rs"
+test = false
+doc = false
+bench = false
+required-features = ["fuzzing"]
+""",
+    encoding="utf-8",
+)
+
+replace_once(
+    "crates/chess-core/tests/miri_core.rs",
+    "use chess_core::{Position, UciMove};",
+    "use chess_core::{static_exchange_evaluation, Position, UciMove};",
+)
+miri = ROOT / "crates/chess-core/tests/miri_core.rs"
+miri.write_text(miri.read_text(encoding="utf-8") + "\n#[test]\nfn miri_static_exchange_is_deterministic_non_mutating_and_bounded() {\n    let mut position =\n        Position::from_fen(\"3r2k1/8/8/3pP3/8/8/8/6K1 w - d6 0 1\")\n            .expect(\"SEE fixture FEN is valid\");\n    let requested = \"e5d6\".parse::<UciMove>().expect(\"SEE UCI parses\");\n    let current = position\n        .legal_moves()\n        .expect(\"SEE fixture legal generation succeeds\")\n        .iter()\n        .find(|current| requested.matches(*current))\n        .expect(\"SEE fixture move is legal\");\n    let root = position.clone();\n    let first = static_exchange_evaluation(&position, current).expect(\"SEE succeeds\");\n    let second = static_exchange_evaluation(&position, current).expect(\"repeated SEE succeeds\");\n    assert_eq!(first, second);\n    assert_eq!(first.centipawns(), 0);\n    assert_eq!(position, root);\n    assert_eq!(position.zobrist(), position.recomputed_zobrist());\n}\n", encoding="utf-8")
+
+replace_once(
+    ".github/workflows/robustness.yml",
+    """            legal_sequence
+            game_history""",
+    """            legal_sequence
+            static_exchange
+            game_history""",
+)
+replace_once(
+    ".github/workflows/robustness.yml",
+    "      - name: Run AddressSanitizer and LeakSanitizer lifecycle tests\n",
+    """      - name: Run AddressSanitizer and LeakSanitizer SEE tests
+        env:
+          RUSTFLAGS: -Zsanitizer=address -Adeprecated
+          RUSTDOCFLAGS: -Zsanitizer=address -Adeprecated
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1:abort_on_error=1
+        run: >-
+          cargo +nightly-2026-08-01 test -Zbuild-std --locked
+          --target x86_64-unknown-linux-gnu
+          -p chess-core --lib --all-features see::tests
+
+      - name: Run AddressSanitizer and LeakSanitizer lifecycle tests
+""",
+)
+
+run("chmod", "+x", "scripts/task_s2_4_see_audit.sh")
+run("cargo", "fmt", "--all")
+run("cargo", "fmt", "--all", "--", "--check")
+run("cargo", "check", "--locked", "--workspace", "--all-targets", "--all-features")
+run("cargo", "clippy", "--locked", "--workspace", "--all-targets", "--all-features", "--", "-D", "warnings")
+run("cargo", "test", "--locked", "--workspace", "--all-targets", "--all-features")
+run("cargo", "generate-lockfile", "--manifest-path", "fuzz/Cargo.toml")
+run("git", "diff", "--exit-code", "--", "fuzz/Cargo.lock")
+run("cargo", "fmt", "--manifest-path", "fuzz/Cargo.toml", "--", "--check")
+run("cargo", "clippy", "--manifest-path", "fuzz/Cargo.toml", "--locked", "--lib", "--tests", "--", "-D", "warnings")
+run("cargo", "test", "--manifest-path", "fuzz/Cargo.toml", "--locked", "--lib", "--tests")
+run("cargo", "build", "--locked", "--release", "-p", "chess-tools", "--bin", "s2_4_see_benchmark")
+run("target/release/s2_4_see_benchmark", "3")
+
+Path(__file__).unlink()
+run("git", "config", "user.name", "Phillip Chin")
+run("git", "config", "user.email", "ekkus93@gmail.com")
+run("git", "add", "-A")
+run("git", "commit", "-m", "test: add S2-4 SEE robustness and performance evidence")
+run("git", "push", "origin", "HEAD:master")
