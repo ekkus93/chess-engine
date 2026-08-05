@@ -2295,3 +2295,10 @@ learning's default cache path.
 - Retired Python engine development and Python CI after migration signoff; Python remains only as the pinned `python-chess` runtime for the Rust differential oracle.
 - Validation: Rust `30960887750 / 92164348613, 92164348643`; Android `30960887754 / 92164348735, 92164348754, 92164348772`, artifact `8912951788`; Robustness `30960887763 / 92164348688, 92164348732, 92164348765`; Performance `30960887740 / 92164348575, 92164348589`; Strength `30960468240 / 92163056674`, artifact `8912726774`.
 - Task 26 v0.1 functional-engine signoff is next. The independent Task 21 tuned-candidate activation gate remains open.
+
+2026-08-05T00:20:00Z - GPT-5.6 Thinking - Rust port Task 26 v0.1 functional-engine signoff complete
+
+- Exact validated signoff implementation: `80cf18f77d3901e8285553211a45d51b530b5579`.
+- Rust CI `30962735433`, Android `30962735439`, Robustness `30962735450`, and Performance `30962735451` all passed.
+- The permanent Task 26 audit, real playable UCI smoke, and `docs/RUST_CHESS_ENGINE_V0_1_IMPLEMENTATION_REPORT.md` close rules, search, adapter, quality, and evidence signoff.
+- Task 27 full port-program signoff is next. Task 21 tuned-candidate activation remains independently open.

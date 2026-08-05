@@ -1493,61 +1493,71 @@ Complete every v0.1 item from the specification.
 
 ## 26.1 Rules signoff
 
-- [ ] strict FEN;
-- [ ] legal move generation;
-- [ ] special moves;
-- [ ] exact make/unmake;
-- [ ] correct hash;
-- [ ] mate/stalemate;
-- [ ] claimable/automatic draws;
-- [ ] exact perft suite;
-- [ ] differential corpus clean.
+- [x] strict FEN;
+- [x] legal move generation;
+- [x] special moves;
+- [x] exact make/unmake;
+- [x] correct hash;
+- [x] mate/stalemate;
+- [x] claimable/automatic draws;
+- [x] exact perft suite;
+- [x] differential corpus clean.
 
 ## 26.2 Search signoff
 
-- [ ] baseline evaluator;
-- [ ] reference search;
-- [ ] negamax alpha-beta;
-- [ ] quiescence;
-- [ ] ordering;
-- [ ] TT;
-- [ ] iterative deepening;
-- [ ] aspiration recovery;
-- [ ] legal PV;
-- [ ] responsive cancellation;
-- [ ] deterministic fixed-limit result.
+- [x] baseline evaluator;
+- [x] reference search;
+- [x] negamax alpha-beta;
+- [x] quiescence;
+- [x] ordering;
+- [x] TT;
+- [x] iterative deepening;
+- [x] aspiration recovery;
+- [x] legal PV;
+- [x] responsive cancellation;
+- [x] deterministic fixed-limit result.
 
 ## 26.3 Adapter signoff
 
-- [ ] UCI integration suite;
-- [ ] safe Rust API documentation/tests;
-- [ ] C ABI lifecycle suite;
-- [ ] Android JNI smoke.
+- [x] UCI integration suite;
+- [x] safe Rust API documentation/tests;
+- [x] C ABI lifecycle suite;
+- [x] Android JNI smoke.
 
 ## 26.4 Quality signoff
 
-- [ ] format;
-- [ ] Clippy;
-- [ ] all workspace tests;
-- [ ] release perft;
-- [ ] docs;
-- [ ] cross-builds;
-- [ ] no prohibited port pattern;
-- [ ] no unresolved P0/P1 correctness defect.
+- [x] format;
+- [x] Clippy;
+- [x] all workspace tests;
+- [x] release perft;
+- [x] docs;
+- [x] cross-builds;
+- [x] no prohibited port pattern;
+- [x] no unresolved P0/P1 correctness defect.
 
 ## 26.5 Evidence report
 
-- [ ] Create `docs/RUST_CHESS_ENGINE_V0_1_IMPLEMENTATION_REPORT.md`.
-- [ ] Include exact commit SHA.
-- [ ] Include exact command outputs.
-- [ ] Include perft table.
-- [ ] Include differential corpus statistics.
-- [ ] Include benchmark environment/results.
-- [ ] Include UCI transcript.
-- [ ] Include C ABI/JNI evidence.
-- [ ] Include known limitations and deferred features.
+- [x] Create `docs/RUST_CHESS_ENGINE_V0_1_IMPLEMENTATION_REPORT.md`.
+- [x] Include exact commit SHA.
+- [x] Include exact command outputs.
+- [x] Include perft table.
+- [x] Include differential corpus statistics.
+- [x] Include benchmark environment/results.
+- [x] Include UCI transcript.
+- [x] Include C ABI/JNI evidence.
+- [x] Include known limitations and deferred features.
 
-**Task 26 gate:** The Rust engine is a correct, playable, portable v0.1 chess engine and can become the preferred implementation for new integrations.
+**Task 26 gate:** The Rust engine is a correct, playable, portable v0.1 chess engine and can become the preferred implementation for new integrations. **COMPLETE.**
+
+Task 26 evidence:
+
+- Exact validated signoff implementation: `80cf18f77d3901e8285553211a45d51b530b5579`.
+- Rust CI: `30962735433 / 92169954502, 92169954449`; 377 passed, 4 ignored, release perft, warning-free docs, native AArch64, playable UCI smoke, and differential oracle passed.
+- Android: `30962735439 / 92169954196, 92169954245, 92169954247`; dual-ABI JNI, host JVM, lint, APKs, five API-35 tests, and artifact `8913595215` passed.
+- Robustness: `30962735450 / 92169954098, 92169954164, 92169954171`; fuzzing, Miri, ASan/LSan, and TSan passed.
+- Performance: `30962735451 / 92169954438, 92169954397`; x86-64 and native AArch64 budgets passed with artifacts `8913539885` and `8913538200`.
+- Signoff report: `docs/RUST_CHESS_ENGINE_V0_1_IMPLEMENTATION_REPORT.md`; permanent audit: `scripts/task_26_v0_1_audit.sh`; playable transcript smoke: `scripts/task_26_uci_smoke.sh`.
+- Open-issue audit found no unresolved P0/P1 correctness issue. Task 21 tuned-candidate activation remains independently open.
 
 ---
 

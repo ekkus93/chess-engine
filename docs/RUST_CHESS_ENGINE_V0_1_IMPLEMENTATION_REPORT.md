@@ -1,9 +1,10 @@
 # Rust Chess Engine v0.1 Implementation Report
 
-**Status:** Task 26 signoff evidence candidate
+**Status:** Task 26 functional-engine signoff complete
 **Report date:** 2026-08-04
 **Specification:** `docs/RUST_CHESS_ENGINE_PORT_SPEC_2026-08-01.md`
-**Authoritative validated implementation:** `332967613098f30348489a73249e822c9eb70bc3`
+**Functional implementation baseline:** `332967613098f30348489a73249e822c9eb70bc3`
+**Exact validated Task 26 signoff implementation:** `80cf18f77d3901e8285553211a45d51b530b5579`
 
 ## Evidence identity
 
@@ -12,11 +13,11 @@ This report signs off the functional Rust engine at commit
 permanent GitHub Actions on Linux x86-64, native Linux AArch64, Android, Miri,
 sanitizers, fuzzing, and the two architecture-specific performance gates.
 
-The Task 26 report and permanent signoff audit are documentation/validation
-changes layered after that implementation commit. They do not change chess
-rules, evaluation, search, ABI, JNI, UCI, or default weights. Task 21 remains an
-independent tuned-candidate activation gate and is not silently satisfied by
-this functional v0.1 signoff.
+The exact Task 26 signoff implementation adds only this evidence report, a
+permanent fail-closed signoff audit, a real playable UCI transcript smoke, and
+CI wiring. It does not change chess rules, evaluation, search, ABI, JNI, UCI,
+or default weights. Task 21 remains an independent tuned-candidate activation
+gate and is not silently satisfied by this functional v0.1 signoff.
 
 Python engine development and Python engine CI are retired. Python remains only
 as the pinned `python-chess` differential oracle and as repository validation
@@ -59,10 +60,10 @@ Primary exact-SHA runs and jobs:
 
 | Gate | Run | Job(s) | Result |
 |---|---:|---:|---|
-| Rust CI | `30961532055` | `92166350205`, `92166350197` | x86-64 and native AArch64 passed |
-| Android | `30961532041` | `92166348287`, `92166348320`, `92166348342` | lint, host JVM, API-35 passed |
-| Robustness | `30961532058` | `92166349950`, `92166349982`, `92166350010` | sanitizers, fuzzing, Miri passed |
-| Performance | `30961532076` | `92166304634`, `92166304602` | x86-64 and AArch64 budgets passed |
+| Rust CI | `30962735433` | `92169954502`, `92169954449` | x86-64 and native AArch64 passed |
+| Android | `30962735439` | `92169954247`, `92169954245`, `92169954196` | lint, host JVM, API-35 passed |
+| Robustness | `30962735450` | `92169954171`, `92169954098`, `92169954164` | sanitizers, fuzzing, Miri passed |
+| Performance | `30962735451` | `92169954438`, `92169954397` | x86-64 and AArch64 budgets passed |
 
 ## Rules signoff
 
@@ -180,39 +181,39 @@ LLVM 22.1.6
 release profile, seven baseline samples
 ```
 
-Selected x86-64 medians from run `30961532076`, job `92166304634`:
+Selected x86-64 medians from run `30962735451`, job `92169954438`:
 
 | Benchmark | Median | Allocation result |
 |---|---:|---|
 | Leaper attack lookup | 1 ns/op | zero |
-| Sliding attack sweep | 9,530 ns/op | zero |
-| Legal move generation | 2,351 ns/op | zero |
+| Sliding attack sweep | 10,072 ns/op | zero |
+| Legal move generation | 2,158 ns/op | zero |
 | Make/unmake | 39 ns/op | zero |
-| Full hash recomputation | 46 ns/op | zero |
-| Incremental hash update | 74 ns/op | zero |
-| Full evaluation | 706 ns/op | zero |
-| Starting-position perft d4 | 15,931,778 ns | zero |
-| Kiwipete perft d3 | 7,731,993 ns | zero |
-| Starting search, 20,000 nodes | 79,624,224 ns | bounded |
-| Tactical search, 20,000 nodes | 110,339,499 ns | bounded |
-| FFI fixed-node search | 20,171,680 ns | bounded |
+| Full hash recomputation | 52 ns/op | zero |
+| Incremental hash update | 77 ns/op | zero |
+| Full evaluation | 717 ns/op | zero |
+| Starting-position perft d4 | 14,712,461 ns | zero |
+| Kiwipete perft d3 | 7,064,686 ns | zero |
+| Starting search, 20,000 nodes | 76,994,469 ns | bounded |
+| Tactical search, 20,000 nodes | 108,317,654 ns | bounded |
+| FFI fixed-node search | 19,793,134 ns | bounded |
 
 Every x86-64 and AArch64 comparator row passed. Evidence artifacts:
 
-- x86-64: `8913113760`
-- native AArch64: `8913112922`
+- x86-64: `8913539885`
+- native AArch64: `8913538200`
 
-Android API-35 measurements from artifact `8913187479`:
+Android API-35 measurements from artifact `8913595215`:
 
 | Metric | Result |
 |---|---:|
-| Legal-move JNI average | 568,462 ns |
+| Legal-move JNI average | 70,524 ns |
 | Fixed-node total nodes | 89,106 |
-| Fixed-node wall time | 962,665,763 ns |
-| Fixed-node throughput | 92,561 nodes/s |
-| Cancellation response | 242,673 ns |
+| Fixed-node wall time | 1,252,134,961 ns |
+| Fixed-node throughput | 71,163 nodes/s |
+| Cancellation response | 1,715,438 ns |
 | Native heap delta, 1 MiB TT | 1,053,504 bytes |
-| Native heap delta, 16 MiB TT | 16,781,552 bytes |
+| Native heap delta, 16 MiB TT | 16,782,144 bytes |
 
 ## UCI transcript
 
@@ -230,16 +231,18 @@ The exact handshake contract validated by the real subprocess suite is:
 < readyok
 ```
 
-Task 26 also installs a permanent runtime smoke that sends:
+The permanent Task 26 runtime smoke produced this exact playable transcript:
 
 ```text
-position startpos
-go depth 1
+> position startpos
+> go depth 1
+< info depth 1 seldepth 1 score cp 44 nodes 21 nps 21000 time 0 hashfull 0 pv b1c3
+< bestmove b1c3
 ```
 
-and requires one completed-depth `info` line with a legal PV followed by one
-legal, non-null `bestmove`. The full subprocess integration suite remains the
-authoritative protocol test.
+The smoke requires one completed-depth `info` line with a legal PV followed by
+one legal, non-null `bestmove`. The full subprocess integration suite remains
+the authoritative protocol test.
 
 ## C ABI and Android JNI evidence
 
@@ -264,7 +267,7 @@ nativeSearch export in both ABIs: passed
 host JVM JNI contract: passed
 API-35 instrumented tests: 5 passed
 Android lint: passed
-metric artifact: 8913187479
+metric artifact: 8913595215
 ```
 
 ## Known limitations and deferred features

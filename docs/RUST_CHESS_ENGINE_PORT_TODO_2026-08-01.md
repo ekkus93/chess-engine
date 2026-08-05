@@ -46,8 +46,9 @@
 | 22 | **Complete** — advanced evaluation experiments and explicit activation decisions. |
 | 23 | **Complete** — fuzzing, Miri, sanitizers, leak checks, and permanent minimized regressions. |
 | 24 | **Complete** — dual-architecture benchmarks, profiling, Android metrics, and regression budgets. |
-| 25 | **Partial**. |
-| 26–27 | **Not started**. |
+| 25 | **Complete** — CI, documentation, commands, scheduled controls, and generated-artifact policy. |
+| 26 | **Complete** — correct, playable, portable v0.1 functional-engine signoff. |
+| 27 | **Not started** — full port-program signoff. |
 
 ---
 
@@ -1201,13 +1202,24 @@ Task 25 evidence:
 - Strength workflow introduction/control: implementation parent `8622917fbd5c544363a2b07d9b450cc13d08f564`, run/job `30960468240 / 92163056674`, artifact `8912726774`; the formatting-only child did not match the intentionally narrow strength path filter.
 - Developer entry point: `scripts/dev.sh`; contracts: `docs/RUST_DEVELOPER_WORKFLOWS.md`, `docs/RUST_FUZZING.md`, `docs/RUST_TUNING_WORKFLOW.md`, and `docs/RUST_GENERATED_ARTIFACT_POLICY.md`.
 
-# Task 26: v0.1 signoff — NOT STARTED
-- [ ] 26.1 Rules.
-- [ ] 26.2 Search.
-- [ ] 26.3 Adapters.
-- [ ] 26.4 Quality.
-- [ ] 26.5 Evidence.
-- [ ] Task 26 gate.
+# Task 26: v0.1 functional-engine signoff — COMPLETE
+- [x] 26.1 Rules.
+- [x] 26.2 Search.
+- [x] 26.3 Adapters.
+- [x] 26.4 Quality.
+- [x] 26.5 Evidence.
+- [x] Task 26 gate.
+
+### Task 26 completion evidence
+
+- Exact validated signoff implementation: `80cf18f77d3901e8285553211a45d51b530b5579`.
+- Rust CI: `30962735433 / 92169954502, 92169954449`; 377 passed, 4 ignored, release depth-four perft, warning-free docs, debug/release builds, native AArch64, exact playable UCI smoke, and differential validation passed.
+- Differential validation covered 15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, and 576 seeded plies.
+- Android: `30962735439 / 92169954196, 92169954245, 92169954247`; ARM64/x86-64 JNI verification, host JVM, lint, APK/test APK, five API-35 tests, and metric artifact `8913595215` passed.
+- Robustness: `30962735450 / 92169954098, 92169954164, 92169954171`; fuzzing, Miri, ASan/LSan, and TSan passed.
+- Performance: `30962735451 / 92169954438, 92169954397`; x86-64 and native AArch64 budgets passed; artifacts `8913539885`, `8913538200`.
+- Report: `docs/RUST_CHESS_ENGINE_V0_1_IMPLEMENTATION_REPORT.md`; permanent audit: `scripts/task_26_v0_1_audit.sh`; real UCI smoke: `scripts/task_26_uci_smoke.sh`.
+- No unresolved P0/P1 correctness issue was found. Task 21 tuned-candidate activation remains independently open.
 
 # Task 27: Full port signoff — NOT STARTED
 - [ ] 27.1 Optional capabilities.
@@ -1218,6 +1230,6 @@ Task 25 evidence:
 
 ## Immediate next operations
 
-1. Begin Task 26 v0.1 functional-engine signoff against the specification, with exact evidence for rules, search, adapters, quality, and release behavior.
-2. Audit the Task 26 checklist against the already completed gates before adding duplicate validation or release infrastructure.
+1. Begin Task 27 full port-program signoff by auditing optional capabilities, migration policy, final-report coverage, and release evidence against repository reality.
+2. Reuse the permanent Task 26 rules/search/adapter/quality evidence rather than duplicating validation infrastructure.
 3. Independently produce a real tuned Task 21 candidate and run the existing 200-pair activation protocol; keep that gate open until a candidate passes and is explicitly activated.

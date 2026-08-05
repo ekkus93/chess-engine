@@ -3,7 +3,7 @@
 **Updated:** 2026-08-04
 **Branch:** `master`
 **Authoritative TODO:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Current phase:** Task 25 developer-workflow gate complete; Task 26 v0.1 functional-engine signoff is next while the independent Task 21 activation gate remains open
+**Current phase:** Task 26 v0.1 functional-engine signoff complete; Task 27 full port-program signoff is next while the independent Task 21 activation gate remains open
 
 ## Completed gates
 
@@ -74,6 +74,7 @@
 | 23 / gate | `469c9c67ab53c276509fc7bad0c4adc209c815b7` | Robustness `30944117733 / 92109744098, 92109744189, 92109744065`; Rust `30944118025 / 92109744577`; Android `30944117802 / 92109760102, 92109760118, 92109760076` | seven fuzz targets / 1,792 bounded runs, Miri, ASan/LSan, TSan, one minimized permanent C ABI regression found and fixed; complete gate green |
 | 24 / gate | `45f2263238f93a5ec4f06f4d4cbdef18f9b7def3` | CI `30952260291 / 92136935775`; Performance `30952260264 / 92136936026, 92136935996`; Robustness `30952260237 / 92136935690, 92136935729, 92136935792`; Android `30952260236 / 92136936014, 92136936160, 92136936153` | dual-architecture baselines, profile/allocation evidence, Android metrics, conservative budgets, and all independent gates green |
 | 25 / gate | `c5ed48c8a34d08ce50737854ab89e4d8750c4988` | Rust `30960887750 / 92164348613, 92164348643`; Android `30960887754 / 92164348735, 92164348754, 92164348772`; Robustness `30960887763 / 92164348688, 92164348732, 92164348765`; Performance `30960887740 / 92164348575, 92164348589`; Strength `30960468240 / 92163056674` | Rust-only developer dispatcher, native ARM64 coverage, scheduled strength, strict offline tuning, complete workflow docs, artifact policy/audit, and all independent gates green |
+| 26 / gate | `80cf18f77d3901e8285553211a45d51b530b5579` | Rust `30962735433 / 92169954502, 92169954449`; Android `30962735439 / 92169954196, 92169954245, 92169954247`; Robustness `30962735450 / 92169954098, 92169954164, 92169954171`; Performance `30962735451 / 92169954438, 92169954397` | complete rules, search, UCI, safe API, C ABI, JNI, quality, perft, differential, robustness, and performance signoff; 377 Rust tests and playable UCI transcript green; Task 21 activation remains open |
 
 ## Task 17.1 completion
 
