@@ -4,6 +4,15 @@ from pathlib import Path
 path = Path(__file__).resolve().with_name("s2_6_see_apply.py")
 text = path.read_text()
 
+
+def replace_once(old: str, new: str, label: str) -> None:
+    global text
+    count = text.count(old)
+    if count != 1:
+        raise SystemExit(f"expected one {label} block, found {count}")
+    text = text.replace(old, new, 1)
+
+
 context_old = '''replace_once(
     ALPHA_BETA,
     "            see_capture_ordering: false,\\n"
@@ -35,9 +44,7 @@ replace_once(
     "                weights:",
 )
 '''
-if text.count(context_old) != 1:
-    raise SystemExit("expected one S2-6 context witness block")
-text = text.replace(context_old, context_new, 1)
+replace_once(context_old, context_new, "S2-6 context witness")
 
 recursive_old = '''replace_once(
     QUIESCENCE,
@@ -73,9 +80,26 @@ recursive_new = '''replace_once(
     "            ),\\n",
 )
 '''
-if text.count(recursive_old) != 1:
-    raise SystemExit("expected one S2-6 recursive policy witness block")
-text = text.replace(recursive_old, recursive_new, 1)
+replace_once(recursive_old, recursive_new, "S2-6 recursive policy witness")
+
+invalid_error = '''    "        .ok_or_else(|| chess_core::StaticExchangeError::MoveStateContradiction(\\n"
+    "            chess_core::StaticExchangeMoveStateError::MissingCapturedPiece {\\n"
+    "                destination: current.destination(),\\n"
+    "            },\\n"
+    "        ))?;\\n"
+'''
+valid_error = '''    "        .ok_or_else(|| chess_core::StaticExchangeError::MoveStateContradiction(\\n"
+    "            chess_core::StaticExchangeMoveStateError::InvalidTargetState {\\n"
+    "                destination: current.destination(),\\n"
+    "            },\\n"
+    "        ))?;\\n"
+'''
+replace_once(invalid_error, valid_error, "typed delta target error")
+
+count = text.count("search_diagnostics()")
+if count != 4:
+    raise SystemExit(f"expected four lower-level diagnostics accessor uses, found {count}")
+text = text.replace("search_diagnostics()", "diagnostics()")
 
 path.write_text(text)
-print("S2-6 patch witnesses refined")
+print("S2-6 patch witnesses and typed APIs refined")
