@@ -128,6 +128,30 @@
 - Documentation-only closure commits must identify the unchanged validated implementation SHA.
 - GitHub Actions is the authoritative execution environment when local and CI evidence differ.
 
+## S2-5 implementation record
+
+- Disposition: complete; the standalone SEE capture-ordering candidate is **rejected for activation** because both development comparisons returned `rejected_strength` and the measured fixed-node search path was slower on x86-64 and ARM64. The implementation remains inactive and may be reused only as an explicitly identified component in later combination experiments.
+- Starting `master` SHA: `5ccf5704ec1e1c94e03918b079be4abc4f37b038`.
+- Core implementation SHA: `95d1917d986bc3f9ec808ba0f5f5a1a63619e5aa`.
+- Permanent evidence implementation SHA: `c17791c4a8e4ddfdd150cd0b77720fa48dc53cb4`.
+- Exact validated candidate SHA: `f5e4b1e1e630e5708444f9192a1436faac84090c`.
+- Candidate policy identifier/checksum: `5332355345454f31` / `96fd6e0c744e326a`; authoritative v0.1 policy remains `5630315f504f4c31` / `0c0769ef9d034770`.
+- Ordering contract: TT move first; previous-PV and promotion precedence preserved; captures ordered `winning > equal > losing`, then signed SEE, existing MVV-LVA, and packed move identity; quiet killer/history ordering unchanged; no legal move is removed.
+- SEE is computed once per capture in a fixed-capacity construction pass. Temporary sort keys are discarded before recursive search retains the ordered legal-token list, permanently fixing the stack-overflow defect discovered by the first parity run.
+- Contradictory internal SEE state propagates as typed `StaticExchangeError` / `AlphaBetaSearchError::StaticExchange`; there is no neutral score, MVV-LVA substitution, ignored error, or silent fallback.
+- Exact diagnostics count SEE calls and winning/equal/losing classifications. Calls equal the sum of classes; `see_prunes` and `quiescence_see_prunes` remain zero.
+- Frozen 13-case tactical parity: every exact score, mate distance, completed depth, best move, legal PV replay, root position, history, and Zobrist invariant matched; `differing_best_moves=0`, total SEE calls `48186`, aggregate checksum `950f8cb49057540f`, `activated=false`.
+- Fixed-node development comparison: 8 pairs / 16 games at 2,000 nodes; candidate wins `2`, losses `2`, unfinished `12`; mean/lower bound `0.5`; zero illegal moves, crashes, time forfeits, or infrastructure failures; `rejected_strength`; checksum `1750c9ee353388aa`; `activated=false`.
+- Clock development comparison: 8 pairs / 16 games at 10 ms; candidate wins `1`, losses `1`, unfinished `14`; mean `0.5`; zero illegal moves, crashes, time forfeits, or infrastructure failures; `rejected_strength`; checksum `6a5bdb753e670799`; `activated=false`.
+- Seven-sample x86-64 distribution: baseline median `213586975 ns`, candidate `225341022 ns`, ratio `1.055032`; nodes `40000/40000`, qnodes `35620/35496`, beta cutoffs `3265/3386`, first-move cutoffs `2715/2894`.
+- Seven-sample ARM64 distribution: baseline median `173970839 ns`, candidate `183633660 ns`, ratio `1.055543`; the same deterministic node, qnode, cutoff, and SEE-class counts were reproduced.
+- End-to-end iterative-deepening allocation evidence is reported honestly: baseline/candidate maxima `42/44` calls and `27888/27906` bytes, a delta of `+2` calls / `+18` bytes. The separate permanent designated-hot-path audit remained zero-allocation on both architectures.
+- Exact focused run `31038429453`: x86-64 job `92416527069`, artifact `8943661186`, digest `cea5bc9b09e24251ba2ff1d06028e853d1ddc9060d9f0b2f38f801c036050d64`; ARM64 job `92416526991`, artifact `8943638318`, digest `2e6392e08481b014c246070f6911cc8b64e9f4e6e29edda9b9a2f30b135dfbb7`; all focused correctness, deterministic evidence, strength, performance, allocation, and audit gates passed.
+- Exact Rust CI run `31038429514`: x86-64 workspace-quality job `92416444304` and native ARM64 job `92416444199`; all audits, lockfile/metadata checks, formatting, strict Clippy, all-target/all-feature tests, release perft, rustdoc, debug/release builds, UCI smoke, and differential oracle passed.
+- Exact robustness run `31038429455`, performance run `31038429707`, and Android/JNI run `31038429765` all passed on the same validation SHA.
+- The Task 14.5 exclusion audit was repaired at source so it recognizes interleaved test-only helpers and the explicit SEE ordering fields while ignoring comments/string literals during lexical strategic-evaluator checks. No exclusion was weakened.
+- Production UCI, safe Rust, C ABI, JNI, Android, package version, weights, v0.1 policy, and defaults remain unchanged. No first-party lint suppression, ignored failure, downgraded gate, implicit discovery, temporary helper, or write-capable permanent workflow remains in the validated candidate tree.
+
 ## Program guardrails
 
 - Work directly on `master` unless the user explicitly requests a branch.
@@ -154,7 +178,7 @@
 | S2-2 | Generalized strength-validation infrastructure | **Complete** |
 | S2-3 | Baseline strength, diagnostics, and performance capture | **Complete** |
 | S2-4 | Correct allocation-free Static Exchange Evaluation | **Complete** |
-| S2-5 | SEE capture-ordering candidate | **Not started** |
+| S2-5 | SEE capture-ordering candidate | **Complete — standalone rejected; inactive for combinations** |
 | S2-6 | Quiescence redesign candidates | **Not started** |
 | S2-7 | Principal Variation Search candidate | **Not started** |
 | S2-8 | Late Move Reductions candidate | **Not started** |
@@ -402,42 +426,58 @@
 
 ---
 
-# Task S2-5: SEE capture-ordering candidate — NOT STARTED
+# Task S2-5: SEE capture-ordering candidate — COMPLETE
 
-## S2-5.1 Candidate policy
+## S2-5.1 Define the candidate
 
-- [ ] Add an inactive `see_capture_ordering` policy flag/identity.
-- [ ] Define ordering classes for winning, equal, and losing captures.
-- [ ] Preserve TT move and promotion precedence according to an explicit policy.
-- [ ] Preserve deterministic packed-move tie breaks.
-- [ ] Do not prune any move.
+- [x] Add an explicit inactive policy flag and parameter set.
+- [x] Keep TT-move priority first.
+- [x] Preserve promotion ordering.
+- [x] Define exact capture classes, such as winning/equal/losing, using SEE.
+- [x] Define deterministic tie-breaks inside each class.
+- [x] Keep the candidate ordering-only; do not prune moves here.
 
-## S2-5.2 Search integration
+## S2-5.2 Integrate safely
 
-- [ ] Integrate SEE into main-search capture ordering.
-- [ ] Integrate SEE into quiescence capture ordering without pruning.
-- [ ] Ensure invalid internal SEE input propagates as a typed search error.
-- [ ] Add SEE call/classification diagnostics.
-- [ ] Avoid repeated SEE computation where a bounded local ordering pass can reuse results safely.
+- [x] Compute SEE once per capture per ordering pass where practical.
+- [x] Avoid heap allocation and repeated board reconstruction.
+- [x] Integrate in both main-search tactical ordering and quiescence ordering where specified.
+- [x] Preserve legal move sets exactly.
+- [x] Propagate SEE failure explicitly; do not silently substitute MVV-LVA.
 
-## S2-5.3 Correctness parity
+## S2-5.3 Add diagnostics
 
-- [ ] Exact root score parity against v0.1 on the deterministic corpus.
-- [ ] Best-move parity except documented equal-score tie-order changes.
-- [ ] Legal PV replay parity.
-- [ ] Mate-distance parity.
-- [ ] Position/history/TT restoration on success, cancellation, and error.
-- [ ] Reference-search and alpha-beta equivalence gates remain green.
+- [x] Count SEE calls.
+- [x] Count winning/equal/losing classifications.
+- [x] Count ordering cutoffs and first-move cutoffs.
+- [x] Record deterministic diagnostics checksum.
+- [x] Keep pruning counters zero.
 
-## S2-5.4 Evidence
+## S2-5.4 Correctness validation
 
-- [ ] Record nodes, qnodes, cutoffs, first-move cutoffs, SEE calls, elapsed time, and allocations.
-- [ ] Run fixed-node development strength comparison.
-- [ ] Run clock-based development comparison if performance changes materially.
-- [ ] Record disposition: accept for later combination, revise, reject, or defer.
-- [ ] Keep production default inactive.
+- [x] Exact root-score parity versus baseline on the frozen corpus.
+- [x] Mate-distance parity.
+- [x] Legal-PV replay.
+- [x] Position/history/Zobrist restoration.
+- [x] Deterministic repeated-run parity.
+- [x] Baseline behavior remains unchanged when the flag is off.
 
-**S2-5 gate:** SEE ordering has exact correctness evidence and an explicit performance/strength disposition without pruning or activation.
+## S2-5.5 Performance and allocation validation
+
+- [x] Compare nodes and qnodes at fixed depth/nodes.
+- [x] Compare first-move cutoffs and cutoff distribution.
+- [x] Measure x86-64 and ARM64 timing distributions.
+- [x] Audit allocation behavior in the measured search path.
+- [x] Reject the candidate if SEE cost dominates ordering gain without strength benefit.
+
+## S2-5.6 Strength validation
+
+- [x] Run deterministic fixed-node development comparison.
+- [x] Run clock-based development comparison where release relevance warrants it.
+- [x] Record unfinished games and all failure categories separately.
+- [x] Record one disposition: accept independently, reject, or retain only for later combination experiments.
+
+**S2-5 gate:** Complete. The ordering implementation is exact, typed, deterministic, no-prune, and inactive. Standalone activation is rejected; the controlled candidate is retained only for later combination experiments.
 
 ---
 
