@@ -35,6 +35,24 @@ jobs:
         with:
           shared-key: rust-engine-s2-4-core
 
+      - name: Repair temporary payload transport
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("scripts/s2_4_core_stage.py")
+          text = path.read_text(encoding="utf-8")
+          old = "    target.write_bytes(base64.b64decode(payload))"
+          new = """    data = base64.b64decode(payload)
+              data = data.replace(b\"#[]_must_use]\", b\"#[must_use]\")
+              target.write_bytes(data)"""
+          if text.count(old) != 1:
+              raise SystemExit("temporary payload writer witness changed")
+          path.write_text(text.replace(old, new), encoding="utf-8")
+          PY
+
       - name: Apply, validate, and commit SEE core
         env:
           GH_TOKEN: ${{ github.token }}
