@@ -1,0 +1,63 @@
+name: S2-6 SEE apply temporary
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/s2-6-see-apply-temp.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: s2-6-see-apply-temporary
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    name: Apply and validate S2-6 SEE pruning
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Confirm starting point and patch syntax
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 4174c2bf69f4e30b49b669960c33ec506197d425 HEAD
+          test -f scripts/s2_6_see_apply.py
+          python3 -m py_compile scripts/s2_6_see_apply.py
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Apply S2-6 candidate
+        run: |
+          set -euo pipefail
+          python3 scripts/s2_6_see_apply.py
+          cargo fmt --all
+          git diff --check
+
+      - name: Validate focused candidate
+        run: |
+          set -euo pipefail
+          cargo check --locked -p chess-search --all-targets --all-features
+          cargo clippy --locked -p chess-search --all-targets --all-features -- -D warnings
+          cargo test --locked -p chess-search --all-targets --all-features
+
+      - name: Commit validated candidate
+        run: |
+          set -euo pipefail
+          rm scripts/s2_6_see_apply.py
+          git diff --check
+          git config user.name "Phillip Chin"
+          git config user.email "ekkus93@gmail.com"
+          git add -A
+          git commit -m "feat(search): add inactive S2-6 quiescence candidates"
+          git push origin HEAD:master
