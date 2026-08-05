@@ -61,7 +61,8 @@ replace_once(
     "    let mut ordered = OrderedLegalMoves::new();\n"
     "    for token in tokens.iter() {\n",
     "    let (transposition_table_move, previous_pv_move) = priority_moves;\n"
-    "    let mut entries = [None; MAX_PSEUDO_LEGAL_MOVES];\n"
+    "    let mut entries: [Option<OrderedEntry>; MAX_PSEUDO_LEGAL_MOVES] =\n"
+    "        [None; MAX_PSEUDO_LEGAL_MOVES];\n"
     "    let mut len = 0_usize;\n"
     "    let mut diagnostics = MoveOrderingDiagnostics::default();\n"
     "    for token in tokens.iter() {\n",
