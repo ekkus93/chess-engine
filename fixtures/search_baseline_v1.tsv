@@ -1,0 +1,14 @@
+CHESS_SEARCH_BASELINE	1
+mate-in-one	mate_in_1	7k/5Q2/6K1/8/8/8/8/8 w - - 0 1	3	best_set	f7e8,f7f8,f7g7,f7h7
+mate-in-two-plus	mate_in_2_plus	7k/5Q2/6K1/8/8/8/8/8 w - - 0 1	3	legal_pv	-
+longest-survival	longest_survival	4Q2k/8/4K3/8/8/8/8/8 b - - 0 1	6	best_set	h8g7
+stalemate	stalemate	7k/5Q2/6K1/8/8/8/8/8 b - - 0 1	2	terminal_zero	-
+repetition	repetition	rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1	2	repetition_cycle	-
+fifty-move	fifty_move	8/8/8/8/8/8/R3K3/7k w - - 100 1	2	terminal_zero	-
+seventy-five-move	seventy_five_move	8/8/8/8/8/8/R3K3/7k w - - 150 1	2	terminal_zero	-
+promotion-race	promotion_race	7k/P7/6K1/8/8/8/8/8 w - - 0 1	3	legal_pv	-
+en-passant-tactic	en_passant_tactic	4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1	3	legal_pv	-
+quiet-defense	quiet_defense	6k1/5ppp/8/8/8/8/5PPP/6K1 w - - 0 1	4	legal_pv	-
+zugzwang-sensitive	zugzwang_sensitive	8/8/8/8/8/2k5/4p3/2K5 w - - 0 1	5	legal_pv	-
+poisoned-capture	poisoned_capture	3rk3/8/8/8/8/8/8/K2Q4 w - - 0 1	3	legal_pv	-
+legal-pv-replay	legal_pv_replay	r1bq1rk1/ppp2ppp/2np1n2/4p3/2B1P3/2N2N2/PPPP1PPP/R1BQ1RK1 w - - 4 7	4	legal_pv	-

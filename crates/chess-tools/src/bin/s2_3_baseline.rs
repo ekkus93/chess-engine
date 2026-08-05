@@ -1,23 +1,4 @@
-#!/usr/bin/env python3
-from pathlib import Path
-
-Path("fixtures/search_baseline_v1.tsv").write_text("""CHESS_SEARCH_BASELINE\t1
-mate-in-one\tmate_in_1\t7k/5Q2/6K1/8/8/8/8/8 w - - 0 1\t3\tbest_set\tf7e8,f7f8,f7g7,f7h7
-mate-in-two-plus\tmate_in_2_plus\t7k/5Q2/6K1/8/8/8/8/8 w - - 0 1\t3\tlegal_pv\t-
-longest-survival\tlongest_survival\t4Q2k/8/4K3/8/8/8/8/8 b - - 0 1\t6\tbest_set\th8g7
-stalemate\tstalemate\t7k/5Q2/6K1/8/8/8/8/8 b - - 0 1\t2\tterminal_zero\t-
-repetition\trepetition\trnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1\t2\trepetition_cycle\t-
-fifty-move\tfifty_move\t8/8/8/8/8/8/R3K3/7k w - - 100 1\t2\tterminal_zero\t-
-seventy-five-move\tseventy_five_move\t8/8/8/8/8/8/R3K3/7k w - - 150 1\t2\tterminal_zero\t-
-promotion-race\tpromotion_race\t7k/P7/6K1/8/8/8/8/8 w - - 0 1\t3\tlegal_pv\t-
-en-passant-tactic\ten_passant_tactic\t4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1\t3\tlegal_pv\t-
-quiet-defense\tquiet_defense\t6k1/5ppp/8/8/8/8/5PPP/6K1 w - - 0 1\t4\tlegal_pv\t-
-zugzwang-sensitive\tzugzwang_sensitive\t8/8/8/8/8/2k5/2p5/2K5 w - - 0 1\t5\tlegal_pv\t-
-poisoned-capture\tpoisoned_capture\t3rk3/8/8/8/8/8/8/K2Q4 w - - 0 1\t3\tlegal_pv\t-
-legal-pv-replay\tlegal_pv_replay\tr1bq1rk1/ppp2ppp/2np1n2/4p3/2B1P3/2N2N2/PPPP1PPP/R1BQ1RK1 w - - 4 7\t4\tlegal_pv\t-
-""")
-
-Path("crates/chess-tools/src/bin/s2_3_baseline.rs").write_text(r'''use std::{
+use std::{
     collections::{BTreeMap, BTreeSet},
     env,
     error::Error,
@@ -29,13 +10,10 @@ Path("crates/chess-tools/src/bin/s2_3_baseline.rs").write_text(r'''use std::{
 use chess_core::{Game, Move, Position, SearchHistory, UciMove};
 use chess_search::{
     iterative_deepening_search_with_limits_and_transposition_table_and_policy_and_weights,
-    EvaluationWeightSet, Score, SearchDiagnostics, SearchLimits, SearchPolicySet,
-    TranspositionTable,
+    EvaluationWeightSet, Score, SearchLimits, SearchPolicySet, TranspositionTable,
 };
 use chess_tools::{
-    engine_variant::{
-        EngineVariantDescriptor, EngineVariantIdentity, OptionalCapabilityIdentity,
-    },
+    engine_variant::{EngineVariantDescriptor, EngineVariantIdentity, OptionalCapabilityIdentity},
     engine_variant_validation::{
         run_engine_variant_validation, write_engine_variant_validation_report_atomic,
         EngineVariantResourceProtocol, EngineVariantRuntime, EngineVariantValidationConfig,
@@ -293,14 +271,15 @@ fn run_tactical_corpus(
         let position_snapshot = position.clone();
         let history_snapshot = history.clone();
         let mut table = TranspositionTable::new(TT_MEBIBYTES)?;
-        let result = iterative_deepening_search_with_limits_and_transposition_table_and_policy_and_weights(
-            &mut position,
-            &mut history,
-            SearchLimits::new().with_depth(case.depth),
-            &mut table,
-            policy,
-            &weights.weights,
-        )?;
+        let result =
+            iterative_deepening_search_with_limits_and_transposition_table_and_policy_and_weights(
+                &mut position,
+                &mut history,
+                SearchLimits::new().with_depth(case.depth),
+                &mut table,
+                policy,
+                &weights.weights,
+            )?;
         if position != position_snapshot || history != history_snapshot {
             return Err(format!("tactical case {} changed root state", case.identifier).into());
         }
@@ -321,7 +300,7 @@ fn run_tactical_corpus(
             .map_or_else(|| "-".to_owned(), |current| current.to_uci());
         let score = result
             .score()
-            .map_or_else(|| "-".to_owned(), |value| value.raw().to_string());
+            .map_or_else(|| "-".to_owned(), |value| value.to_string());
         let diagnostics = result.search_diagnostics();
         writeln!(
             report,
@@ -437,7 +416,9 @@ fn validate_expectation(
         }
         "legal_pv" => {
             if best_move.is_none() || score.is_none() {
-                return Err(format!("case {} produced no exact search result", case.identifier).into());
+                return Err(
+                    format!("case {} produced no exact search result", case.identifier).into(),
+                );
             }
         }
         _ => return Err("unreachable tactical expectation".into()),
@@ -456,7 +437,11 @@ fn replay_pv(
     for current in principal_variation.moves() {
         let legal = game.legal_moves()?;
         if !legal.iter().any(|candidate| candidate == *current) {
-            return Err(format!("principal variation contains illegal move {}", current.to_uci()).into());
+            return Err(format!(
+                "principal variation contains illegal move {}",
+                current.to_uci()
+            )
+            .into());
         }
         game.make_move(*current)?;
     }
@@ -487,7 +472,7 @@ fn make_uci(game: &mut Game, value: &str) -> Result<(), Box<dyn Error>> {
 }
 
 fn control_openings() -> Result<String, Box<dyn Error>> {
-    let root = Position::starting();
+    let mut root = Position::starting();
     let mut white_moves = root.legal_moves()?.iter().collect::<Vec<_>>();
     white_moves.sort_by_key(|current| current.to_uci());
     let mut output = String::from("CHESS_SELF_PLAY_OPENINGS\t1\n");
@@ -528,8 +513,7 @@ fn validate_symmetric_control(text: &str, pair_count: u32) -> Result<(), Box<dyn
         || required(&fields, "crashes")? != "0"
         || required(&fields, "time_forfeits")? != "0"
         || required(&fields, "infrastructure_failures")? != "0"
-        || required(&fields, "mean_pair_score_bits")?
-            != format!("{:016x}", 0.5_f64.to_bits())
+        || required(&fields, "mean_pair_score_bits")? != format!("{:016x}", 0.5_f64.to_bits())
         || required(&fields, "pair_score_standard_error_bits")?
             != format!("{:016x}", 0.0_f64.to_bits())
         || required(&fields, "lower_confidence_bound_bits")?
@@ -543,10 +527,10 @@ fn validate_symmetric_control(text: &str, pair_count: u32) -> Result<(), Box<dyn
 fn report_fields(text: &str) -> Result<BTreeMap<String, String>, Box<dyn Error>> {
     let mut fields = BTreeMap::new();
     for line in text.lines().skip(1) {
-        let Some((key, value)) = line.split_once('\t') else {
-            return Err(format!("report line is not tab separated: {line:?}").into());
+        let Some((key, value)) = line.split_once('=') else {
+            return Err(format!("report line is not key=value: {line:?}").into());
         };
-        if key == "game" {
+        if key.starts_with("game.") {
             continue;
         }
         if fields.insert(key.to_owned(), value.to_owned()).is_some() {
@@ -615,6 +599,3 @@ mod tests {
         assert!(parse_source_commit("abc").is_err());
     }
 }
-''')
-
-print("S2-3 tactical and control baseline source staged")
