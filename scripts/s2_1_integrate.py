@@ -1,0 +1,526 @@
+from pathlib import Path
+
+
+def replace_once(path: str, old: str, new: str) -> None:
+    file = Path(path)
+    text = file.read_text()
+    count = text.count(old)
+    if count != 1:
+        raise SystemExit(
+            f"{path}: expected one replacement, found {count}: {old[:80]!r}"
+        )
+    file.write_text(text.replace(old, new, 1))
+
+
+replace_once(
+    "crates/chess-search/src/lib.rs",
+    "mod score;\nmod search_common;\n",
+    "mod score;\nmod search_policy;\nmod search_common;\n",
+)
+replace_once(
+    "crates/chess-search/src/lib.rs",
+    "    iterative_deepening_search_with_limits_and_transposition_table_and_observer,\n"
+    "    iterative_deepening_search_with_limits_and_transposition_table_and_weights,\n",
+    "    iterative_deepening_search_with_limits_and_transposition_table_and_observer,\n"
+    "    iterative_deepening_search_with_limits_and_transposition_table_and_policy_and_weights,\n"
+    "    iterative_deepening_search_with_limits_and_transposition_table_and_weights,\n",
+)
+replace_once(
+    "crates/chess-search/src/lib.rs",
+    "pub use score::{Score, MATE_SCORE, MAX_EVALUATION, MAX_MATE_PLY};\n",
+    """pub use score::{Score, MATE_SCORE, MAX_EVALUATION, MAX_MATE_PLY};
+pub use search_policy::{
+    AlphaBetaMode, ExperimentalSearchFeature, ExperimentalSearchFeatures, MoveOrderingPolicy,
+    QuiescencePolicy, SearchPolicy, SearchPolicyParameters, SearchPolicySet,
+    SearchPolicyValidationError, TranspositionPolicy, MAXIMUM_ASPIRATION_HALF_WIDTH_CENTIPAWNS,
+    MAXIMUM_CHECK_EXTENSIONS_PER_LINE, SEARCH_POLICY_SCHEMA_VERSION,
+    V0_1_SEARCH_POLICY_CHECKSUM, V0_1_SEARCH_POLICY_ID,
+};
+""",
+)
+
+replace_once(
+    "crates/chess-search/src/alpha_beta.rs",
+    "    check_extension::{decide_check_extension, MAX_CHECK_EXTENSIONS_PER_LINE},\n",
+    "    check_extension::decide_check_extension,\n",
+)
+replace_once(
+    "crates/chess-search/src/alpha_beta.rs",
+    "    EvaluationWeights, Score, SearchCancellationProbe, TranspositionBound, TranspositionEntry,\n",
+    "    EvaluationWeights, Score, SearchCancellationProbe, SearchPolicy, TranspositionBound,\n"
+    "    TranspositionEntry,\n",
+)
+replace_once(
+    "crates/chess-search/src/alpha_beta.rs",
+    "    TranspositionTable, TranspositionTableAllocationError, MAX_MATE_PLY, MAX_QUIESCENCE_PLY,\n",
+    "    TranspositionTable, TranspositionTableAllocationError, MAX_MATE_PLY,\n",
+)
+replace_once(
+    "crates/chess-search/src/alpha_beta.rs",
+    """pub(crate) struct AlphaBetaSearchPolicy<'a> {
+    window: AlphaBetaWindow,
+    check_extension_enabled: bool,
+    weights: &'a EvaluationWeights,
+}
+""",
+    """pub(crate) struct AlphaBetaSearchPolicy<'a> {
+    window: AlphaBetaWindow,
+    check_extension_enabled: bool,
+    search_policy: &'a SearchPolicy,
+    weights: &'a EvaluationWeights,
+}
+""",
+)
+replace_once(
+    "crates/chess-search/src/alpha_beta.rs",
+    """    pub(crate) const fn new(
+        window: AlphaBetaWindow,
+        check_extension_enabled: bool,
+        weights: &'a EvaluationWeights,
+    ) -> Self {
+        Self {
+            window,
+            check_extension_enabled,
+            weights,
+        }
+    }
+""",
+    """    pub(crate) const fn new(
+        window: AlphaBetaWindow,
+        check_extension_enabled: bool,
+        search_policy: &'a SearchPolicy,
+        weights: &'a EvaluationWeights,
+    ) -> Self {
+        Self {
+            window,
+            check_extension_enabled,
+            search_policy,
+            weights,
+        }
+    }
+""",
+)
+replace_once(
+    "crates/chess-search/src/alpha_beta.rs",
+    "        AlphaBetaSearchPolicy::new(window, check_extension_enabled, &EvaluationWeights::DEFAULT),\n",
+    """        AlphaBetaSearchPolicy::new(
+            window,
+            check_extension_enabled,
+            &SearchPolicy::V0_1,
+            &EvaluationWeights::DEFAULT,
+        ),
+""",
+)
+replace_once(
+    "crates/chess-search/src/alpha_beta.rs",
+    """        transposition_table: Some(transposition_table),
+        check_extension_enabled: policy.check_extension_enabled,
+        weights: policy.weights,
+        cancellation,
+""",
+    """        transposition_table: Some(transposition_table),
+        check_extension_enabled: policy.check_extension_enabled,
+        maximum_check_extensions_per_line: policy
+            .search_policy
+            .maximum_check_extensions_per_line(),
+        maximum_quiescence_ply: policy.search_policy.maximum_quiescence_ply(),
+        weights: policy.weights,
+        cancellation,
+""",
+)
+replace_once(
+    "crates/chess-search/src/alpha_beta.rs",
+    """    transposition_table: Option<&'a mut TranspositionTable>,
+    check_extension_enabled: bool,
+    weights: &'a EvaluationWeights,
+""",
+    """    transposition_table: Option<&'a mut TranspositionTable>,
+    check_extension_enabled: bool,
+    maximum_check_extensions_per_line: u16,
+    maximum_quiescence_ply: u16,
+    weights: &'a EvaluationWeights,
+""",
+)
+replace_once(
+    "crates/chess-search/src/alpha_beta.rs",
+    """    let extension_budget = if context.check_extension_enabled {
+        MAX_CHECK_EXTENSIONS_PER_LINE
+    } else {
+        0
+    };
+""",
+    """    let extension_budget = if context.check_extension_enabled {
+        context.maximum_check_extensions_per_line
+    } else {
+        0
+    };
+""",
+)
+replace_once(
+    "crates/chess-search/src/alpha_beta.rs",
+    "            maximum_quiescence_ply: MAX_QUIESCENCE_PLY,\n",
+    "            maximum_quiescence_ply: context.maximum_quiescence_ply,\n",
+)
+
+replace_once(
+    "crates/chess-search/src/iterative_deepening.rs",
+    """    EvaluationWeights, PrincipalVariation, Score, SearchCancellationProbe, TranspositionHashFull,
+    TranspositionTable, TranspositionTableAllocationError, TranspositionTableDiagnostics,
+    MAX_MATE_PLY,
+""",
+    """    EvaluationWeights, PrincipalVariation, Score, SearchCancellationProbe, SearchPolicy,
+    SearchPolicySet, SearchPolicyValidationError, TranspositionHashFull, TranspositionTable,
+    TranspositionTableAllocationError, TranspositionTableDiagnostics, MAX_MATE_PLY,
+""",
+)
+replace_once(
+    "crates/chess-search/src/iterative_deepening.rs",
+    """pub enum IterativeDeepeningSearchError {
+    /// A typed limit request was invalid.
+    InvalidLimits(SearchLimitError),
+""",
+    """pub enum IterativeDeepeningSearchError {
+    /// A typed limit request was invalid.
+    InvalidLimits(SearchLimitError),
+    /// An explicit search policy failed before search mutation.
+    InvalidSearchPolicy(SearchPolicyValidationError),
+""",
+)
+replace_once(
+    "crates/chess-search/src/iterative_deepening.rs",
+    "            Self::InvalidLimits(error) => error.fmt(formatter),\n",
+    "            Self::InvalidLimits(error) => error.fmt(formatter),\n"
+    "            Self::InvalidSearchPolicy(error) => error.fmt(formatter),\n",
+)
+replace_once(
+    "crates/chess-search/src/iterative_deepening.rs",
+    """pub fn iterative_deepening_search_with_limits_and_transposition_table_and_weights(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    limits: SearchLimits,
+    transposition_table: &mut TranspositionTable,
+    weights: &EvaluationWeights,
+) -> Result<SearchResult, IterativeDeepeningSearchError> {
+    iterative_deepening_search_with_limits_and_clock_and_observer_and_weights(
+        position,
+        history,
+        limits,
+        transposition_table,
+        WallClock::start(),
+        weights,
+        |_| {},
+    )
+}
+""",
+    """pub fn iterative_deepening_search_with_limits_and_transposition_table_and_weights(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    limits: SearchLimits,
+    transposition_table: &mut TranspositionTable,
+    weights: &EvaluationWeights,
+) -> Result<SearchResult, IterativeDeepeningSearchError> {
+    let search_policy = SearchPolicySet::baseline();
+    iterative_deepening_search_with_limits_and_transposition_table_and_policy_and_weights(
+        position,
+        history,
+        limits,
+        transposition_table,
+        &search_policy,
+        weights,
+    )
+}
+
+/// Searches with explicit policy and evaluation identities in controlled Rust tooling/tests.
+///
+/// Validation happens before position, history, controller, or table mutation. A caller must
+/// use a separate transposition table whenever policy or evaluator identity differs.
+pub fn iterative_deepening_search_with_limits_and_transposition_table_and_policy_and_weights(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    limits: SearchLimits,
+    transposition_table: &mut TranspositionTable,
+    search_policy: &SearchPolicySet,
+    weights: &EvaluationWeights,
+) -> Result<SearchResult, IterativeDeepeningSearchError> {
+    search_policy
+        .validate()
+        .map_err(IterativeDeepeningSearchError::InvalidSearchPolicy)?;
+    iterative_deepening_search_with_limits_and_clock_and_observer_and_weights(
+        position,
+        history,
+        limits,
+        transposition_table,
+        WallClock::start(),
+        &search_policy.policy,
+        weights,
+        |_| {},
+    )
+}
+""",
+)
+replace_once(
+    "crates/chess-search/src/iterative_deepening.rs",
+    """        transposition_table,
+        clock,
+        &EvaluationWeights::DEFAULT,
+        observer,
+""",
+    """        transposition_table,
+        clock,
+        &SearchPolicy::V0_1,
+        &EvaluationWeights::DEFAULT,
+        observer,
+""",
+)
+replace_once(
+    "crates/chess-search/src/iterative_deepening.rs",
+    """    transposition_table: &mut TranspositionTable,
+    clock: Clock,
+    weights: &EvaluationWeights,
+    mut observer: Observer,
+""",
+    """    transposition_table: &mut TranspositionTable,
+    clock: Clock,
+    search_policy: &SearchPolicy,
+    weights: &EvaluationWeights,
+    mut observer: Observer,
+""",
+)
+replace_once(
+    "crates/chess-search/src/iterative_deepening.rs",
+    "    let check_extension_enabled = limits.check_extension_enabled();\n",
+    "    let check_extension_enabled = limits.check_extension_enabled()\n"
+    "        && search_policy.maximum_check_extensions_per_line() > 0;\n",
+)
+replace_once(
+    "crates/chess-search/src/iterative_deepening.rs",
+    """            IterationSearchPolicy {
+                half_width_centipawns: DEFAULT_ASPIRATION_HALF_WIDTH_CENTIPAWNS,
+                check_extension_enabled,
+                weights,
+            },
+""",
+    """            IterationSearchPolicy {
+                half_width_centipawns: i32::from(
+                    search_policy.aspiration_half_width_centipawns(),
+                ),
+                check_extension_enabled,
+                search_policy,
+                weights,
+            },
+""",
+)
+replace_once(
+    "crates/chess-search/src/iterative_deepening.rs",
+    """struct IterationSearchPolicy<'a> {
+    half_width_centipawns: i32,
+    check_extension_enabled: bool,
+    weights: &'a EvaluationWeights,
+}
+""",
+    """struct IterationSearchPolicy<'a> {
+    half_width_centipawns: i32,
+    check_extension_enabled: bool,
+    search_policy: &'a SearchPolicy,
+    weights: &'a EvaluationWeights,
+}
+""",
+)
+replace_once(
+    "crates/chess-search/src/iterative_deepening.rs",
+    """        IterationSearchPolicy {
+            half_width_centipawns,
+            check_extension_enabled: false,
+            weights: &EvaluationWeights::DEFAULT,
+        },
+""",
+    """        IterationSearchPolicy {
+            half_width_centipawns,
+            check_extension_enabled: false,
+            search_policy: &SearchPolicy::V0_1,
+            weights: &EvaluationWeights::DEFAULT,
+        },
+""",
+)
+replace_once(
+    "crates/chess-search/src/iterative_deepening.rs",
+    """    let initial_window = center.map_or_else(AlphaBetaWindow::full, |score| {
+        aspiration_window(score, policy.half_width_centipawns)
+    });
+""",
+    """    let initial_window = if policy.search_policy.aspiration_windows_enabled() {
+        center.map_or_else(AlphaBetaWindow::full, |score| {
+            aspiration_window(score, policy.half_width_centipawns)
+        })
+    } else {
+        AlphaBetaWindow::full()
+    };
+""",
+)
+replace_once(
+    "crates/chess-search/src/iterative_deepening.rs",
+    """        AlphaBetaSearchPolicy::new(
+            initial_window,
+            policy.check_extension_enabled,
+            policy.weights,
+        ),
+""",
+    """        AlphaBetaSearchPolicy::new(
+            initial_window,
+            policy.check_extension_enabled,
+            policy.search_policy,
+            policy.weights,
+        ),
+""",
+)
+replace_once(
+    "crates/chess-search/src/iterative_deepening.rs",
+    """                AlphaBetaSearchPolicy::new(
+                    AlphaBetaWindow::full(),
+                    policy.check_extension_enabled,
+                    policy.weights,
+                ),
+""",
+    """                AlphaBetaSearchPolicy::new(
+                    AlphaBetaWindow::full(),
+                    policy.check_extension_enabled,
+                    policy.search_policy,
+                    policy.weights,
+                ),
+""",
+)
+
+replace_once(
+    "crates/chess-tools/src/lib.rs",
+    "pub mod candidate_validation;\npub mod self_play;\n",
+    "pub mod candidate_validation;\npub mod engine_variant;\npub mod self_play;\n",
+)
+replace_once(
+    "crates/chess-tools/src/lib.rs",
+    "mod weights_io;\n",
+    "mod policy_io;\nmod weights_io;\n",
+)
+replace_once(
+    "crates/chess-tools/src/lib.rs",
+    "pub use weights_io::{deserialize_weight_set, serialize_weight_set};\n",
+    "pub use policy_io::{deserialize_search_policy, serialize_search_policy};\n"
+    "pub use weights_io::{deserialize_weight_set, serialize_weight_set};\n",
+)
+
+replace_once(
+    "crates/chess-tools/src/main.rs",
+    "use chess_search::EvaluationWeightSet;\n",
+    "use chess_search::{EvaluationWeightSet, SearchPolicySet};\n",
+)
+replace_once(
+    "crates/chess-tools/src/main.rs",
+    """    benchmark_cancellation, benchmark_evaluation, benchmark_transposition, deserialize_weight_set,
+    divide, evaluation_trace, legal_uci, perft, play_uci, run_oracle, serialize_weight_set, suite,
+    STARTING_FEN,
+""",
+    """    benchmark_cancellation, benchmark_evaluation, benchmark_transposition,
+    deserialize_search_policy, deserialize_weight_set, divide, evaluation_trace, legal_uci, perft,
+    play_uci, run_oracle, serialize_search_policy, serialize_weight_set, suite, STARTING_FEN,
+""",
+)
+replace_once(
+    "crates/chess-tools/src/main.rs",
+    "  chess-tools weights-export\\n  chess-tools weights-validate PATH\\n",
+    "  chess-tools weights-export\\n  chess-tools weights-validate PATH\\n"
+    "  chess-tools policy-export\\n  chess-tools policy-validate PATH\\n",
+)
+replace_once(
+    "crates/chess-tools/src/main.rs",
+    """        "weights-validate" => {
+            if arguments.len() != 2 {
+                return Err(usage().to_owned());
+            }
+            let text = fs::read_to_string(&arguments[1])
+                .map_err(|error| format!("failed to read {:?}: {error}", arguments[1]))?;
+            let set = deserialize_weight_set(&text).map_err(|error| error.to_string())?;
+            println!("identifier\\t{:016x}", set.identifier);
+            println!("checksum\\t{:016x}", set.checksum);
+        }
+""",
+    """        "weights-validate" => {
+            if arguments.len() != 2 {
+                return Err(usage().to_owned());
+            }
+            let text = fs::read_to_string(&arguments[1])
+                .map_err(|error| format!("failed to read {:?}: {error}", arguments[1]))?;
+            let set = deserialize_weight_set(&text).map_err(|error| error.to_string())?;
+            println!("identifier\\t{:016x}", set.identifier);
+            println!("checksum\\t{:016x}", set.checksum);
+        }
+        "policy-export" => {
+            if arguments.len() != 1 {
+                return Err(usage().to_owned());
+            }
+            print!(
+                "{}",
+                serialize_search_policy(&SearchPolicySet::baseline())
+                    .map_err(|error| error.to_string())?
+            );
+        }
+        "policy-validate" => {
+            if arguments.len() != 2 {
+                return Err(usage().to_owned());
+            }
+            let text = fs::read_to_string(&arguments[1])
+                .map_err(|error| format!("failed to read {:?}: {error}", arguments[1]))?;
+            let set = deserialize_search_policy(&text).map_err(|error| error.to_string())?;
+            println!("identifier\\t{:016x}", set.identifier);
+            println!("checksum\\t{:016x}", set.checksum);
+        }
+""",
+)
+
+replace_once(
+    "crates/chess-search/tests/search_policy_identity.rs",
+    """    EvaluationWeights, IterativeDeepeningSearchError, SearchLimits, SearchPolicySet,
+    TranspositionTable,
+""",
+    """    EvaluationWeights, IterativeDeepeningSearchError, SearchLimits, SearchPolicy,
+    SearchPolicySet, TranspositionTable,
+""",
+)
+replace_once(
+    "crates/chess-search/tests/search_policy_identity.rs",
+    "    let candidate = SearchPolicySet::new(0x4341_4e44_504f_4c31, parameters.into());\n",
+    """    let candidate = SearchPolicySet::new(
+        0x4341_4e44_504f_4c31,
+        SearchPolicy::new(parameters),
+    );
+""",
+)
+
+replace_once(
+    ".github/workflows/ci.yml",
+    "          test -f scripts/task_post_port_review_fix_audit.sh\n",
+    "          test -f scripts/task_post_port_review_fix_audit.sh\n"
+    "          test -f scripts/task_s2_1_policy_identity_audit.sh\n",
+)
+replace_once(
+    ".github/workflows/ci.yml",
+    """            scripts/task_27_full_port_audit.sh \\
+            scripts/task_post_port_review_fix_audit.sh
+""",
+    """            scripts/task_27_full_port_audit.sh \\
+            scripts/task_post_port_review_fix_audit.sh \\
+            scripts/task_s2_1_policy_identity_audit.sh
+""",
+)
+replace_once(
+    ".github/workflows/ci.yml",
+    """      - name: Run post-port review fix audit
+        run: bash scripts/task_post_port_review_fix_audit.sh
+
+""",
+    """      - name: Run post-port review fix audit
+        run: bash scripts/task_post_port_review_fix_audit.sh
+
+      - name: Run S2-1 policy identity audit
+        run: bash scripts/task_s2_1_policy_identity_audit.sh
+
+""",
+)
