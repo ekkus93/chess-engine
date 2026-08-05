@@ -84,7 +84,9 @@ required_report_markers=(
   '30962735439'
   '30962735450'
   '30962735451'
-  '377 passed, 4 ignored, 0 failed'
+  '377 passed'
+  '4 ignored'
+  '0 failed'
   '272,991 oracle perft nodes'
 )
 
