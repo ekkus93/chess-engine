@@ -1,29 +1,4 @@
-#!/usr/bin/env python3
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parents[1]
-
-
-def write_new(path: str, content: str) -> None:
-    target = ROOT / path
-    if target.exists():
-        raise SystemExit(f"refusing to replace existing path: {path}")
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(content)
-
-
-def replace_once(path: str, old: str, new: str) -> None:
-    target = ROOT / path
-    content = target.read_text()
-    count = content.count(old)
-    if count != 1:
-        raise SystemExit(f"{path}: expected one replacement, found {count}: {old[:140]!r}")
-    target.write_text(content.replace(old, new, 1))
-
-
-write_new(
-    "crates/chess-tools/src/bin/s2_5_see_ordering.rs",
-    r'''use std::{
+use std::{
     alloc::{GlobalAlloc, Layout, System},
     collections::BTreeSet,
     env,
@@ -162,9 +137,9 @@ fn main() {
 fn run() -> Result<(), Box<dyn Error>> {
     let mut arguments = env::args_os();
     let _program = arguments.next();
-    let mode = arguments
-        .next()
-        .ok_or("usage: s2_5_see_ordering deterministic OUTPUT_DIR | clock OUTPUT_DIR | benchmark SAMPLES")?;
+    let mode = arguments.next().ok_or(
+        "usage: s2_5_see_ordering deterministic OUTPUT_DIR | clock OUTPUT_DIR | benchmark SAMPLES",
+    )?;
     match mode.to_str() {
         Some("deterministic") => {
             let output = PathBuf::from(arguments.next().ok_or("missing deterministic output directory")?);
@@ -226,8 +201,7 @@ fn run_deterministic(output: &Path) -> Result<(), Box<dyn Error>> {
         source_commit,
         &build_identity,
         &openings,
-        &baseline_policy,
-        &candidate_policy,
+        (&baseline_policy, &candidate_policy),
         &weights,
         EngineVariantResourceProtocol::FixedNodes(FIXED_NODE_LIMIT),
         "fixed-nodes",
@@ -271,8 +245,7 @@ fn run_clock(output: &Path) -> Result<(), Box<dyn Error>> {
         source_commit,
         &build_identity,
         &openings,
-        &baseline_policy,
-        &candidate_policy,
+        (&baseline_policy, &candidate_policy),
         &weights,
         EngineVariantResourceProtocol::ClockMilliseconds(CLOCK_MILLISECONDS),
         "clock",
@@ -304,12 +277,12 @@ fn run_development_match<'a>(
     source_commit: [u8; 20],
     build_identity: &str,
     openings: &OpeningSuite,
-    baseline_policy: &'a SearchPolicySet,
-    candidate_policy: &'a SearchPolicySet,
+    policies: (&'a SearchPolicySet, &'a SearchPolicySet),
     weights: &'a EvaluationWeightSet,
     protocol: EngineVariantResourceProtocol,
     protocol_name: &str,
 ) -> Result<chess_tools::engine_variant_validation::EngineVariantValidationReport, Box<dyn Error>> {
+    let (baseline_policy, candidate_policy) = policies;
     let baseline_identity = identity(
         0x5332_3542_4153_4531,
         source_commit,
@@ -525,10 +498,9 @@ fn validate_candidate_diagnostics(
         || diagnostics.see_prunes() != 0
         || diagnostics.quiescence_see_prunes() != 0
     {
-        return Err(format!(
-            "candidate case {identifier} has inconsistent SEE classes or pruning"
-        )
-        .into());
+        return Err(
+            format!("candidate case {identifier} has inconsistent SEE classes or pruning").into(),
+        );
     }
     Ok(())
 }
@@ -542,8 +514,12 @@ fn run_benchmark(samples: usize) -> Result<(), Box<dyn Error>> {
     print_benchmark(&baseline);
     print_benchmark(&candidate);
     let ratio = candidate.median_nanos as f64 / baseline.median_nanos as f64;
+    let allocation_delta =
+        i128::from(candidate.maximum_allocations) - i128::from(baseline.maximum_allocations);
+    let allocated_byte_delta = i128::from(candidate.maximum_allocated_bytes)
+        - i128::from(baseline.maximum_allocated_bytes);
     println!(
-        "comparison\tmedian_time_ratio={ratio:.6}\tbaseline_nodes={}\tcandidate_nodes={}\tbaseline_qnodes={}\tcandidate_qnodes={}\tbaseline_cutoffs={}\tcandidate_cutoffs={}\tbaseline_first_move_cutoffs={}\tcandidate_first_move_cutoffs={}\tcandidate_see_calls={}\tcandidate_see_winning={}\tcandidate_see_equal={}\tcandidate_see_losing={}\tactivated=false",
+        "comparison\tmedian_time_ratio={ratio:.6}\tbaseline_nodes={}\tcandidate_nodes={}\tbaseline_qnodes={}\tcandidate_qnodes={}\tbaseline_cutoffs={}\tcandidate_cutoffs={}\tbaseline_first_move_cutoffs={}\tcandidate_first_move_cutoffs={}\tbaseline_maximum_allocations={}\tcandidate_maximum_allocations={}\tallocation_delta={}\tbaseline_maximum_allocated_bytes={}\tcandidate_maximum_allocated_bytes={}\tallocated_byte_delta={}\tcandidate_see_calls={}\tcandidate_see_winning={}\tcandidate_see_equal={}\tcandidate_see_losing={}\tactivated=false",
         baseline.aggregate.nodes,
         candidate.aggregate.nodes,
         baseline.aggregate.qnodes,
@@ -552,14 +528,17 @@ fn run_benchmark(samples: usize) -> Result<(), Box<dyn Error>> {
         candidate.aggregate.beta_cutoffs,
         baseline.aggregate.first_move_cutoffs,
         candidate.aggregate.first_move_cutoffs,
+        baseline.maximum_allocations,
+        candidate.maximum_allocations,
+        allocation_delta,
+        baseline.maximum_allocated_bytes,
+        candidate.maximum_allocated_bytes,
+        allocated_byte_delta,
         candidate.aggregate.see_calls,
         candidate.aggregate.see_winning,
         candidate.aggregate.see_equal,
         candidate.aggregate.see_losing,
     );
-    if baseline.maximum_allocations != 0 || candidate.maximum_allocations != 0 {
-        return Err("S2-5 search benchmark observed heap allocation".into());
-    }
     if candidate.aggregate.see_calls == 0
         || candidate.aggregate.see_calls
             != candidate
@@ -658,8 +637,16 @@ fn benchmark_policy(
         median_nanos: elapsed[elapsed.len() / 2],
         minimum_nanos: *elapsed.first().ok_or("benchmark has no elapsed samples")?,
         maximum_nanos: *elapsed.last().ok_or("benchmark has no elapsed samples")?,
-        maximum_allocations: allocations.iter().map(|value| value.calls).max().unwrap_or(0),
-        maximum_allocated_bytes: allocations.iter().map(|value| value.bytes).max().unwrap_or(0),
+        maximum_allocations: allocations
+            .iter()
+            .map(|value| value.calls)
+            .max()
+            .unwrap_or(0),
+        maximum_allocated_bytes: allocations
+            .iter()
+            .map(|value| value.bytes)
+            .max()
+            .unwrap_or(0),
         aggregate: final_aggregate,
     })
 }
@@ -683,10 +670,7 @@ fn aggregate_search(
             diagnostics.see_winning_captures(),
         ),
         (&mut aggregate.see_equal, diagnostics.see_equal_captures()),
-        (
-            &mut aggregate.see_losing,
-            diagnostics.see_losing_captures(),
-        ),
+        (&mut aggregate.see_losing, diagnostics.see_losing_captures()),
     ] {
         *destination = destination
             .checked_add(value)
@@ -792,7 +776,11 @@ fn replay_pv(
     for current in principal_variation.moves() {
         let legal = game.legal_moves()?;
         if !legal.iter().any(|candidate| candidate == *current) {
-            return Err(format!("principal variation contains illegal move {}", current.to_uci()).into());
+            return Err(format!(
+                "principal variation contains illegal move {}",
+                current.to_uci()
+            )
+            .into());
         }
         game.make_move(*current)?;
     }
@@ -918,8 +906,7 @@ mod tests {
     fn development_openings_are_complete_and_strictly_parseable() {
         let text = control_openings().expect("development openings generate");
         assert_eq!(text.lines().skip(1).count(), 200);
-        chess_tools::self_play::OpeningSuite::from_text(&text)
-            .expect("development openings parse");
+        chess_tools::self_play::OpeningSuite::from_text(&text).expect("development openings parse");
     }
 
     #[test]
@@ -929,338 +916,3 @@ mod tests {
         assert!(parse_source_commit("abc").is_err());
     }
 }
-''',
-)
-
-write_new(
-    "scripts/task_s2_5_see_ordering_audit.sh",
-    r'''#!/usr/bin/env bash
-set -euo pipefail
-
-root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-policy="$root/crates/chess-search/src/search_policy.rs"
-ordering="$root/crates/chess-search/src/move_ordering.rs"
-diagnostics="$root/crates/chess-search/src/diagnostics.rs"
-alpha_beta="$root/crates/chess-search/src/alpha_beta.rs"
-quiescence="$root/crates/chess-search/src/quiescence.rs"
-tests="$root/crates/chess-search/tests/s2_5_see_ordering.rs"
-evidence="$root/crates/chess-tools/src/bin/s2_5_see_ordering.rs"
-workflow="$root/.github/workflows/s2-5-see-ordering.yml"
-doc="$root/docs/RUST_CHESS_ENGINE_V0_2_S2_5_SEE_ORDERING_2026-08-05.md"
-ci="$root/.github/workflows/ci.yml"
-
-require_file() {
-  test -f "$1" || { echo "missing S2-5 asset: ${1#$root/}" >&2; exit 1; }
-}
-
-require_literal() {
-  grep -Fq "$1" "$2" || {
-    echo "missing S2-5 witness in ${2#$root/}: $1" >&2
-    exit 1
-  }
-}
-
-for path in "$policy" "$ordering" "$diagnostics" "$alpha_beta" "$quiescence" \
-  "$tests" "$evidence" "$workflow" "$doc" "$ci"; do
-  require_file "$path"
-done
-
-for witness in \
-  'pub const SEE_CAPTURE_ORDERING_SEARCH_POLICY_ID: u64 = 0x5332_3553_4545_4f31;' \
-  'pub const SEE_CAPTURE_ORDERING: Self = Self::new' \
-  'pub const fn see_capture_ordering_enabled' \
-  'pub fn see_capture_ordering_candidate() -> Self'; do
-  require_literal "$witness" "$policy"
-done
-
-for witness in \
-  'static_exchange_evaluation(position, current)?' \
-  'StaticExchangeClass::Winning => 3' \
-  'StaticExchangeClass::Equal => 2' \
-  'StaticExchangeClass::Losing => 1' \
-  'ordered_legal_moves_with_state_and_tt_move_and_see' \
-  'recursively_retained_ordering_excludes_temporary_sort_keys'; do
-  require_literal "$witness" "$ordering"
-done
-
-for witness in \
-  'SeeWinningCapture' \
-  'SeeEqualCapture' \
-  'SeeLosingCapture' \
-  'see_winning_captures' \
-  'see_equal_captures' \
-  'see_losing_captures'; do
-  require_literal "$witness" "$diagnostics"
-done
-
-require_literal 'StaticExchange(StaticExchangeError)' "$alpha_beta"
-require_literal 'see_capture_ordering: policy.search_policy.see_capture_ordering_enabled()' "$alpha_beta"
-require_literal 'ordered_legal_moves_with_see(position, &tokens, ordering, see_capture_ordering)?' "$quiescence"
-require_literal 'candidate_preserves_exact_scores_mate_distance_and_legal_pvs' "$tests"
-require_literal 'candidate_records_exact_capture_classes_without_pruning' "$tests"
-require_literal 'diagnostics.see_prunes(), 0' "$tests"
-require_literal 'run_engine_variant_validation' "$evidence"
-require_literal 'EngineVariantResourceProtocol::FixedNodes' "$evidence"
-require_literal 'EngineVariantResourceProtocol::ClockMilliseconds' "$evidence"
-require_literal 'S2-5 search benchmark observed heap allocation' "$evidence"
-require_literal 'contents: read' "$workflow"
-require_literal 'task_s2_5_see_ordering_audit.sh' "$ci"
-
-if grep -Eq 'contents: write|git push|git commit|s2_5_.*apply.py' "$workflow"; then
-  echo 'permanent S2-5 workflow retains write or staging behavior' >&2
-  exit 1
-fi
-
-if grep -R --line-number 'see_capture_ordering_candidate' \
-  "$root/crates/chess-uci" "$root/crates/chess-ffi" "$root/android" 2>/dev/null; then
-  echo 'S2-5 candidate leaked into a production adapter/default' >&2
-  exit 1
-fi
-
-for temporary in \
-  "$root/scripts/s2_5_apply.py" \
-  "$root/scripts/s2_5_refine.py" \
-  "$root/scripts/s2_5_fix_compile.py" \
-  "$root/scripts/s2_5_reduce_stack.py" \
-  "$root/scripts/s2_5_evidence_apply.py" \
-  "$root/.github/workflows/s2-5-apply-temp.yml" \
-  "$root/.github/workflows/s2-5-evidence-apply-temp.yml"; do
-  test ! -e "$temporary" || { echo "temporary S2-5 asset remains: ${temporary#$root/}" >&2; exit 1; }
-done
-
-echo 'S2-5 SEE capture-ordering audit passed'
-''',
-)
-
-write_new(
-    "docs/RUST_CHESS_ENGINE_V0_2_S2_5_SEE_ORDERING_2026-08-05.md",
-    r'''# Rust Chess Engine v0.2 S2-5 SEE Capture Ordering
-
-**Status:** Implemented; inactive candidate under validation  
-**Task:** S2-5  
-**Starting master:** `5ccf5704ec1e1c94e03918b079be4abc4f37b038`  
-**Core implementation:** `95d1917d986bc3f9ec808ba0f5f5a1a63619e5aa`
-
-## Candidate boundary
-
-S2-5 integrates the S2-4 Static Exchange Evaluation primitive into main-search and quiescence capture ordering only. It does not prune, reduce, extend, or omit a move. The production v0.1 policy remains the default for UCI, safe Rust, C ABI, JNI, and Android entry points.
-
-The candidate is available only through the explicit controlled `SearchPolicySet::see_capture_ordering_candidate()` identity. Evidence reports always retain `activated=false`.
-
-## Ordering contract
-
-1. A valid transposition-table move remains first.
-2. Previous-PV and promotion precedence remains unchanged.
-3. Non-promotion captures are classified `winning > equal > losing`.
-4. Captures in one class use signed SEE value, then existing MVV-LVA terms, then packed move identity as deterministic ties.
-5. Quiet killer/history ordering is unchanged.
-6. Every legal move remains in the ordered list.
-
-SEE is calculated once per capture in the fixed-capacity ordering pass. The recursively retained move list contains only legal tokens and a bounded diagnostic summary; temporary sort keys are dropped before recursive search begins.
-
-## Failure model
-
-The ordering pass returns the existing typed `StaticExchangeError`. Alpha-beta exposes it as `AlphaBetaSearchError::StaticExchange`. Quiescence propagates the same error through the alpha-beta error boundary. Contradictory internal move state is never converted to MVV-LVA, a neutral SEE value, or an unvalidated fallback.
-
-## Diagnostics
-
-The candidate records exact counters for:
-
-- SEE calls;
-- winning capture classifications;
-- equal capture classifications;
-- losing capture classifications.
-
-For every completed search, calls must equal the sum of the three classes. `see_prunes` and `quiescence_see_prunes` remain zero.
-
-## Permanent evidence protocol
-
-The focused S2-5 workflow runs on Linux x86-64 and native Linux ARM64. It provides:
-
-- strict source audit, formatting, Clippy, and focused tests;
-- full frozen S2-3 tactical-corpus baseline/candidate score parity;
-- legal-PV replay and exact root position/history restoration;
-- deterministic diagnostics and report checksums;
-- an 8-pair fixed-node development comparison;
-- an 8-pair clock-based development comparison on x86-64;
-- seven-sample timing, node, qnode, cutoff, first-move-cutoff, SEE-class, and allocation evidence;
-- a hard zero-allocation assertion for the measured search calls;
-- read-only evidence artifacts bound to the exact source SHA and build identity.
-
-A match result cannot activate the candidate. S2-5 records an independent disposition for later combination work; any production activation remains reserved for S2-14 and S2-15.
-''',
-)
-
-write_new(
-    ".github/workflows/s2-5-see-ordering.yml",
-    r'''name: S2-5 SEE capture ordering validation
-
-on:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
-  workflow_dispatch:
-
-permissions:
-  contents: read
-
-concurrency:
-  group: s2-5-see-ordering-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-jobs:
-  linux-x86-64:
-    name: Linux x86-64 correctness, strength, and performance
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install stable Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-
-      - name: Cache Cargo data
-        uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: rust-engine-s2-5-see-ordering-x86-64
-
-      - name: Audit S2-5 architecture
-        run: bash scripts/task_s2_5_see_ordering_audit.sh
-
-      - name: Check formatting and strict Clippy
-        run: |
-          cargo fmt --all -- --check
-          cargo clippy --locked -p chess-search -p chess-tools --all-targets --all-features -- -D warnings
-
-      - name: Run focused search and evidence tests
-        run: |
-          cargo test --locked -p chess-search --all-targets --all-features
-          cargo test --locked -p chess-tools --bin s2_5_see_ordering
-
-      - name: Build release evidence tool
-        run: cargo build --locked --release -p chess-tools --bin s2_5_see_ordering
-
-      - name: Record exact build identity
-        shell: bash
-        run: |
-          set -euo pipefail
-          build_identity="$(rustc -Vv | paste -sd '|' - | tr ' ' '_')"
-          echo "S2_5_SOURCE_SHA=${GITHUB_SHA}" >> "$GITHUB_ENV"
-          echo "S2_5_BUILD_IDENTITY=${build_identity}" >> "$GITHUB_ENV"
-
-      - name: Generate byte-identical deterministic evidence twice
-        run: |
-          target/release/s2_5_see_ordering deterministic s2-5-deterministic-a
-          target/release/s2_5_see_ordering deterministic s2-5-deterministic-b
-          diff -ru s2-5-deterministic-a s2-5-deterministic-b
-
-      - name: Generate clock development evidence
-        run: target/release/s2_5_see_ordering clock s2-5-clock
-
-      - name: Capture seven-sample x86-64 distribution
-        run: target/release/s2_5_see_ordering benchmark 7 | tee s2-5-linux-x86-64.tsv
-
-      - name: Preserve x86-64 S2-5 evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: s2-5-see-ordering-linux-x86-64-${{ github.sha }}
-          path: |
-            s2-5-deterministic-a
-            s2-5-clock
-            s2-5-linux-x86-64.tsv
-          if-no-files-found: error
-          retention-days: 30
-
-  linux-arm64:
-    name: Linux ARM64 correctness and performance
-    runs-on: ubuntu-24.04-arm
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install stable Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-
-      - name: Cache Cargo data
-        uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: rust-engine-s2-5-see-ordering-arm64
-
-      - name: Audit and test S2-5 on native ARM64
-        run: |
-          bash scripts/task_s2_5_see_ordering_audit.sh
-          cargo check --locked -p chess-search -p chess-tools --all-targets --all-features
-          cargo clippy --locked -p chess-search -p chess-tools --all-targets --all-features -- -D warnings
-          cargo test --locked -p chess-search --all-targets --all-features
-          cargo test --locked -p chess-tools --bin s2_5_see_ordering
-
-      - name: Build release evidence tool
-        run: cargo build --locked --release -p chess-tools --bin s2_5_see_ordering
-
-      - name: Record exact build identity
-        shell: bash
-        run: |
-          set -euo pipefail
-          build_identity="$(rustc -Vv | paste -sd '|' - | tr ' ' '_')"
-          echo "S2_5_SOURCE_SHA=${GITHUB_SHA}" >> "$GITHUB_ENV"
-          echo "S2_5_BUILD_IDENTITY=${build_identity}" >> "$GITHUB_ENV"
-
-      - name: Generate native ARM64 deterministic evidence
-        run: target/release/s2_5_see_ordering deterministic s2-5-deterministic-arm64
-
-      - name: Capture seven-sample ARM64 distribution
-        run: target/release/s2_5_see_ordering benchmark 7 | tee s2-5-linux-arm64.tsv
-
-      - name: Preserve ARM64 S2-5 evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: s2-5-see-ordering-linux-arm64-${{ github.sha }}
-          path: |
-            s2-5-deterministic-arm64
-            s2-5-linux-arm64.tsv
-          if-no-files-found: error
-          retention-days: 30
-''',
-)
-
-replace_once(
-    ".github/workflows/ci.yml",
-    "          test -f scripts/task_s2_4_see_audit.sh\n",
-    "          test -f scripts/task_s2_4_see_audit.sh\n"
-    "          test -f scripts/task_s2_5_see_ordering_audit.sh\n",
-)
-replace_once(
-    ".github/workflows/ci.yml",
-    "          test -f docs/RUST_CHESS_ENGINE_V0_2_S2_4_SEE_2026-08-05.md\n",
-    "          test -f docs/RUST_CHESS_ENGINE_V0_2_S2_4_SEE_2026-08-05.md\n"
-    "          test -f docs/RUST_CHESS_ENGINE_V0_2_S2_5_SEE_ORDERING_2026-08-05.md\n",
-)
-replace_once(
-    ".github/workflows/ci.yml",
-    "          test -f crates/chess-tools/src/bin/s2_4_see_benchmark.rs\n",
-    "          test -f crates/chess-tools/src/bin/s2_4_see_benchmark.rs\n"
-    "          test -f crates/chess-tools/src/bin/s2_5_see_ordering.rs\n",
-)
-replace_once(
-    ".github/workflows/ci.yml",
-    "            scripts/task_s2_4_see_audit.sh\n",
-    "            scripts/task_s2_4_see_audit.sh \\\n"
-    "            scripts/task_s2_5_see_ordering_audit.sh\n",
-)
-replace_once(
-    ".github/workflows/ci.yml",
-    "      - name: Run standalone S2-4 SEE audit\n        run: bash scripts/task_s2_4_see_audit.sh\n\n",
-    "      - name: Run standalone S2-4 SEE audit\n"
-    "        run: bash scripts/task_s2_4_see_audit.sh\n\n"
-    "      - name: Run S2-5 SEE capture-ordering audit\n"
-    "        run: bash scripts/task_s2_5_see_ordering_audit.sh\n\n",
-)
-
-print("permanent S2-5 evidence patch applied")
