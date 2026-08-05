@@ -28,6 +28,28 @@
 - Exact robustness: run `30988357637`; jobs `92248377273`, `92248377334`, and `92248377522`; success.
 - S2-0 tracker closure is documentation-only and maps to the unchanged validated engine/search tree above.
 
+## S2-1 implementation record
+
+- Disposition: complete; identity infrastructure accepted for subsequent controlled validation work; activation remains false.
+- Implementation SHA: `7e4e1aacb0160b96683646a29058ddd783043a6e`.
+- Exact validation SHA: `d645aa625800238fba8d0be0cb7066ee56884120`.
+- Search-policy schema: `1`.
+- Authoritative v0.1 policy identifier: `5630315f504f4c31`.
+- Authoritative v0.1 policy checksum: `0c0769ef9d034770`.
+- Evaluation-weight identity remains baseline schema `1`, identifier `424153454c494e45`, checksum `d2cca7ae10ec6e34`.
+- Added typed fail-closed search policy, canonical policy text I/O, controlled explicit-policy iterative search, complete engine-variant identity, permanent tests, documentation, audit, and focused CI workflow.
+- Existing convenience search entry points continue to use the exact v0.1 policy and `EvaluationWeights::DEFAULT`.
+- UCI, safe Rust facade, C ABI, JNI, Android, package version, and production defaults expose no experimental policy input and remain unchanged.
+- Assigned future feature bits are identity-visible but validation rejects enabling SEE, PVS, LMR, null move, futility, razoring, delta pruning, and late-move pruning before their implementation tasks.
+- Different policy or evaluator identities require separate caller-owned transposition tables.
+- Permanent focused identity run `30995963744`, job `92272978556`: audit, formatting, strict Clippy, explicit v0.1 parity, policy schema, canonical text, variant identity, and CLI round-trip passed.
+- Exact Rust CI run `30995963711`: x86-64 job `92273019216` and native ARM64 job `92273019344`; all audits, locked checks, strict Clippy, all-target tests, release perft, rustdoc, builds, UCI smoke, and differential oracle passed.
+- Exact performance run `30995963716`: x86-64 job `92272978703`, artifact `8926152440`; ARM64 job `92272978813`, artifact `8926154375`; zero-allocation and reference-budget gates passed.
+- Exact robustness run `30995963722`: fuzz job `92272978711`, sanitizer job `92272978801`, Miri job `92272978866`; all passed.
+- Exact Android/JNI run `30995963800`: host JVM job `92272988350`, Android lint job `92272988457`, API-35 instrumented JNI job `92272988476`; all passed.
+- No strength match was required or used because S2-1 changes identity/control infrastructure and preserves exact v0.1 production search behavior.
+- Discovered integration defects were fixed at source or workflow level; no lint suppression, ignored failure, downgraded gate, silent fallback, implicit discovery, or temporary helper remains in the validated implementation tree.
+
 ## Status rules
 
 - `[x]` means complete with implementation, documentation, and exact evidence.
@@ -59,7 +81,7 @@
 | Task | Scope | Status |
 |---:|---|---|
 | S2-0 | Authority cleanup and exact baseline inspection | **Complete** |
-| S2-1 | Versioned search-policy and engine-variant identity | **Not started** |
+| S2-1 | Versioned search-policy and engine-variant identity | **Complete** |
 | S2-2 | Generalized strength-validation infrastructure | **Not started** |
 | S2-3 | Baseline strength, diagnostics, and performance capture | **Not started** |
 | S2-4 | Correct allocation-free Static Exchange Evaluation | **Not started** |
@@ -118,42 +140,42 @@
 
 ---
 
-# Task S2-1: Versioned search-policy and engine-variant identity — NOT STARTED
+# Task S2-1: Versioned search-policy and engine-variant identity — COMPLETE
 
 ## S2-1.1 Define policy schema
 
-- [ ] Add a typed search-policy structure in the appropriate search/tooling layer.
-- [ ] Assign a versioned schema and semantic identifier.
-- [ ] Represent the authoritative v0.1 policy exactly.
-- [ ] Represent experimental switches and parameters without ambient globals.
-- [ ] Reject unknown, duplicate, missing, out-of-range, or incompatible fields.
-- [ ] Produce a deterministic checksum covering schema, identifiers, flags, thresholds, and tables.
-- [ ] Ensure malformed policy input fails before search mutation or TT allocation where practical.
+- [x] Add a typed search-policy structure in the appropriate search/tooling layer.
+- [x] Assign a versioned schema and semantic identifier.
+- [x] Represent the authoritative v0.1 policy exactly.
+- [x] Represent experimental switches and parameters without ambient globals.
+- [x] Reject unknown, duplicate, missing, out-of-range, or incompatible fields.
+- [x] Produce a deterministic checksum covering schema, identifiers, flags, thresholds, and tables.
+- [x] Ensure malformed policy input fails before search mutation or TT allocation where practical.
 
 ## S2-1.2 Preserve defaults
 
-- [ ] Existing production entry points continue to use the v0.1 policy.
-- [ ] Existing UCI defaults remain unchanged.
-- [ ] Existing safe Rust facade, C ABI, JNI, and Android behavior remain unchanged.
-- [ ] No environment variable or implicit file changes policy.
-- [ ] Experimental policy injection is initially restricted to controlled Rust tools/tests.
+- [x] Existing production entry points continue to use the v0.1 policy.
+- [x] Existing UCI defaults remain unchanged.
+- [x] Existing safe Rust facade, C ABI, JNI, and Android behavior remain unchanged.
+- [x] No environment variable or implicit file changes policy.
+- [x] Experimental policy injection is initially restricted to controlled Rust tools/tests.
 
 ## S2-1.3 Engine-variant identity
 
-- [ ] Define an engine-variant identity binding source SHA, engine version, search policy, evaluation weights, book state, tablebase state, TT configuration, build identity, and exact invocation.
-- [ ] Candidate and baseline identities must differ whenever behavior differs.
-- [ ] Candidate reports must distinguish search-policy changes from weight changes.
-- [ ] Separate TT instances must be used when policy/evaluator identity can affect stored scores or moves.
+- [x] Define an engine-variant identity binding source SHA, engine version, search policy, evaluation weights, book state, tablebase state, TT configuration, build identity, and exact invocation.
+- [x] Candidate and baseline identities must differ whenever behavior differs.
+- [x] Candidate reports must distinguish search-policy changes from weight changes.
+- [x] Separate TT instances must be used when policy/evaluator identity can affect stored scores or moves.
 
 ## S2-1.4 Tests
 
-- [ ] v0.1 policy checksum is stable.
-- [ ] Equivalent policy text/order produces one canonical identity.
-- [ ] Every semantic change changes the checksum.
-- [ ] Corruption, unsupported versions, and unsafe combinations fail loudly.
-- [ ] Existing default search results remain unchanged with the explicit v0.1 policy.
+- [x] v0.1 policy checksum is stable.
+- [x] Equivalent policy text/order produces one canonical identity.
+- [x] Every semantic change changes the checksum.
+- [x] Corruption, unsupported versions, and unsafe combinations fail loudly.
+- [x] Existing default search results remain unchanged with the explicit v0.1 policy.
 
-**S2-1 gate:** A stable explicit engine/search identity exists without changing production behavior.
+**S2-1 gate:** Complete. A stable explicit engine/search identity exists, malformed and unsupported policy input fails closed, explicit v0.1 search is deterministic-equivalent to the existing default, and production adapters/defaults remain unchanged.
 
 ---
 
@@ -863,4 +885,4 @@ Remaining risks:
 
 ## Initial next action
 
-Begin with **S2-1 only**: versioned search-policy and engine-variant identity. Do not implement SEE, PVS, LMR, pruning, or tablebases until S2-1, S2-2, and S2-3 establish explicit identity, generalized validation, and baseline diagnostics.
+Begin with **S2-2 only**: generalized strength-validation infrastructure. Do not implement SEE, PVS, LMR, pruning, or tablebases until S2-2 and S2-3 establish generalized variant validation and baseline diagnostics.
