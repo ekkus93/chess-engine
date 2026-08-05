@@ -22,7 +22,11 @@
 - Search inventory: full-window fail-soft alpha-beta, tactical quiescence, aspiration recovery, bounded TT, MVV-LVA/killer/history ordering, request-local limits/cancellation, and one optional bounded check extension. SEE, PVS, LMR, null move, futility, razoring, late-move pruning, tablebases, NNUE, and parallel search are absent from production code.
 - No labelled open P0 or P1 issue was found.
 - No engine semantics, defaults, weights, adapters, ABI/JNI contracts, or performance references changed in S2-0.
-- Exact validation of the permanent S2-0 documentation head is pending before S2-1 may start.
+- Exact S2-0 validation SHA: `c38b44d392f4c0de346f4e770cdfcc61f67479f2`.
+- Exact Rust CI: run `30988357600`; jobs `92248343009` and `92248343120`; success.
+- Exact performance: run `30988357606`; jobs `92248327612` and `92248327574`; artifacts `8923032392` and `8923029162`; success.
+- Exact robustness: run `30988357637`; jobs `92248377273`, `92248377334`, and `92248377522`; success.
+- S2-0 tracker closure is documentation-only and maps to the unchanged validated engine/search tree above.
 
 ## Status rules
 
@@ -54,7 +58,7 @@
 
 | Task | Scope | Status |
 |---:|---|---|
-| S2-0 | Authority cleanup and exact baseline inspection | **Implementation complete — validation pending** |
+| S2-0 | Authority cleanup and exact baseline inspection | **Complete** |
 | S2-1 | Versioned search-policy and engine-variant identity | **Not started** |
 | S2-2 | Generalized strength-validation infrastructure | **Not started** |
 | S2-3 | Baseline strength, diagnostics, and performance capture | **Not started** |
@@ -74,7 +78,7 @@
 
 ---
 
-# Task S2-0: Authority cleanup and exact baseline inspection — VALIDATION PENDING
+# Task S2-0: Authority cleanup and exact baseline inspection — COMPLETE
 
 ## S2-0.1 Confirm repository state
 
@@ -110,7 +114,7 @@
 - [x] Record current performance and strength workflow status.
 - [x] Do not mark later implementation tasks complete using historical evidence alone.
 
-**S2-0 gate:** Implementation and inventory complete; exact permanent-head validation pending.
+**S2-0 gate:** Complete. Authority is unambiguous, the exact baseline is recorded, current search behavior is inventoried, and permanent exact-head validation passed before semantic changes.
 
 ---
 
@@ -859,4 +863,4 @@ Remaining risks:
 
 ## Initial next action
 
-Complete exact-head validation for **S2-0**. Do not begin S2-1 or implement SEE, PVS, LMR, pruning, or tablebases until the permanent S2-0 documentation head is green and the tracker records that evidence.
+Begin with **S2-1 only**: versioned search-policy and engine-variant identity. Do not implement SEE, PVS, LMR, pruning, or tablebases until S2-1, S2-2, and S2-3 establish explicit identity, generalized validation, and baseline diagnostics.
