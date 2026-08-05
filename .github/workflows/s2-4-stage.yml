@@ -47,6 +47,7 @@ jobs:
           old = "    target.write_bytes(base64.b64decode(payload))"
           new = """    data = base64.b64decode(payload)
               data = data.replace(b\"#[]_must_use]\", b\"#[must_use]\")
+              data = data.replace(b\".filter(#piece| {\", b\".filter(|piece| {\")
               target.write_bytes(data)"""
           if text.count(old) != 1:
               raise SystemExit("temporary payload writer witness changed")
