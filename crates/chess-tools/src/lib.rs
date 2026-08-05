@@ -4,6 +4,7 @@
 pub mod advanced_evaluation;
 pub mod candidate_validation;
 pub mod engine_variant;
+pub mod engine_variant_validation;
 mod policy_io;
 pub mod self_play;
 pub mod tuning;
