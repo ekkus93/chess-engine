@@ -2,19 +2,20 @@
 
 This file prevents historical planning documents from being mistaken for current implementation instructions.
 
-## Active TODO documents
+## Active and authority documents
 
 | Classification | Path | Authority |
 |---|---|---|
 | Active Rust-port tracker | `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md` | Authoritative record for the completed Rust-port program. |
 | Active Rust-port task definitions | `docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md` | Detailed definitions and evidence for the completed Rust-port program. |
 | Active post-port review follow-up | `docs/RUST_CHESS_ENGINE_POST_PORT_REVIEW_FIX_TODO_2026-08-04.md` | Current cleanup loop until its final gate is closed. |
+| Authority index, not an implementation TODO | `docs/LEGACY_TODO_INDEX.md` | Classifies active and historical TODO-named documents. |
 
 ## Exhaustive classification rule
 
-Every other Markdown file directly under `docs/` whose filename contains `TODO` is a historical or legacy reference. Those files preserve implementation history, but they are not active instructions and must not override the three documents above.
+Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO` and is not one of the three active documents is a historical or legacy reference. Those files preserve implementation history, but they are not active instructions and must not override the three active documents above.
 
-Inventory captured on 2026-08-04: **70 TODO-named files total; 3 active; 67 historical.**
+Inventory captured on 2026-08-04: **71 TODO-named files total; 3 active; 1 authority index; 67 historical.**
 
 ## Historical TODO inventory
 
