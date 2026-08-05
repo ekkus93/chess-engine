@@ -1,4 +1,4 @@
-name: Task 21 candidate discovery
+name: Remove Task 21 discovery workflow
 
 on:
   push:
@@ -6,42 +6,23 @@ on:
       - master
     paths:
       - .github/workflows/task21-candidate-discovery.yml
-      - .github/task21-candidate-discovery-harness.rs
-  workflow_dispatch:
 
 permissions:
-  contents: read
-
-concurrency:
-  group: task21-candidate-discovery
-  cancel-in-progress: true
+  contents: write
 
 jobs:
-  discover:
+  remove:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-24.04
-    timeout-minutes: 180
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: 1.97.1
-      - uses: Swatinem/rust-cache@v2
-      - name: Add bounded candidate discovery harness
+      - name: Remove temporary discovery workflow
         shell: bash
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path('crates/chess-tools/src/candidate_validation.rs')
-          text = path.read_text(encoding='utf-8')
-          marker = '\n}\n'
-          index = text.rfind(marker)
-          if index < 0:
-              raise SystemExit('candidate-validation test module terminator not found')
-          harness = Path('.github/task21-candidate-discovery-harness.rs').read_text(encoding='utf-8')
-          path.write_text(text[:index] + harness + text[index:], encoding='utf-8')
-          PY
-          cargo fmt --all
-          git diff --check
-      - name: Run candidate discovery
-        run: cargo test --locked -p chess-tools task21_candidate_discovery -- --ignored --nocapture
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/task21-candidate-discovery.yml
+          git commit -m 'chore: remove Task 21 discovery workflow'
+          git push origin HEAD:master
