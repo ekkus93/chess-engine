@@ -22,9 +22,7 @@ required_files=(
   docs/RUST_WORKSPACE_ARCHITECTURE.md
   docs/RUST_UCI_PROCESS_INTEGRATION.md
   docs/RUST_SAFE_ENGINE_FACADE.md
-  docs/RUST_C_ABI.md
   docs/RUST_ANDROID_JNI.md
-  docs/RUST_OPENING_BOOK.md
   docs/RUST_SELF_PLAY_DATASET.md
   docs/RUST_TUNING_WORKFLOW.md
   docs/RUST_CANDIDATE_VALIDATION.md
@@ -36,9 +34,12 @@ required_files=(
   crates/chess-core/src/lib.rs
   crates/chess-search/src/lib.rs
   crates/chess-book/src/lib.rs
+  crates/chess-book/tests/task_19_5.rs
   crates/chess-uci/src/main.rs
   crates/chess-ffi/src/lib.rs
+  crates/chess-ffi/tests/c_abi_lifecycle.rs
   crates/chess-jni/src/lib.rs
+  crates/chess-jni/tests/jni_contract.rs
   crates/chess-tools/src/main.rs
   crates/chess-tune/src/lib.rs
   scripts/task_26_v0_1_audit.sh
@@ -138,9 +139,12 @@ python3 scripts/task_25_artifact_audit.py
 python3 scripts/task_24_performance_audit.py
 python3 scripts/task_14_5_exclusion_audit.py
 
-if grep -Fq '**Task 27 gate:**' docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md \
-  && grep -Fq '**Task 27 gate:** Everything retained' docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md \
-  && grep -Fq '**COMPLETE.**' docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md; then
+if awk '
+  /^# Task 27: Full port-program signoff$/ { in_task = 1; next }
+  in_task && /^\*\*Task 27 gate:.*\*\*COMPLETE\.\*\*$/ { found = 1 }
+  in_task && /^---$/ { exit }
+  END { exit(found ? 0 : 1) }
+' docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md; then
   grep -Fq '**Status:** Task 27 full port-program signoff complete' "${report}" \
     || fail 'Task 27 tracker is complete but the final report is not'
   ! grep -Fq 'PENDING_EXACT_SHA' "${report}" \
