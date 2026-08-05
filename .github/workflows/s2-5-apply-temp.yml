@@ -1,0 +1,64 @@
+name: S2-5 apply temporary
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/s2-5-apply-temp.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: s2-5-apply-temporary
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    name: Apply and validate S2-5 core
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Confirm witnessed starting point
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 5ccf5704ec1e1c94e03918b079be4abc4f37b038 HEAD
+          test -f scripts/s2_5_apply.py
+          test -f scripts/s2_5_refine.py
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Apply candidate implementation
+        run: |
+          set -euo pipefail
+          python3 scripts/s2_5_apply.py
+          python3 scripts/s2_5_refine.py
+          cargo fmt --all
+          git diff --check
+
+      - name: Validate focused candidate
+        run: |
+          set -euo pipefail
+          cargo check --locked -p chess-search --all-targets --all-features
+          cargo clippy --locked -p chess-search --all-targets --all-features -- -D warnings
+          cargo test --locked -p chess-search --all-targets --all-features
+
+      - name: Commit validated implementation
+        run: |
+          set -euo pipefail
+          rm scripts/s2_5_apply.py scripts/s2_5_refine.py
+          git diff --check
+          git config user.name "Phillip Chin"
+          git config user.email "ekkus93@gmail.com"
+          git add -A
+          git commit -m "feat(search): add inactive SEE capture ordering candidate"
+          git push origin HEAD:master
