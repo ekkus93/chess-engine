@@ -30,7 +30,9 @@ jobs:
           components: rustfmt, clippy
 
       - name: Apply fail-closed S2-7 patch
-        run: python3 .github/s2_7_bootstrap.py
+        run: |
+          python3 .github/s2_7_bootstrap.py
+          python3 .github/s2_7_repair.py
 
       - name: Format and audit
         run: |
