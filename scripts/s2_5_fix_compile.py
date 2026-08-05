@@ -93,8 +93,9 @@ replace_exact(
 # Every test-only search context explicitly keeps the candidate inactive.
 replace_exact(
     ALPHA_BETA,
-    "            maximum_quiescence_ply: MAX_QUIESCENCE_PLY,\n            weights:",
-    "            maximum_quiescence_ply: MAX_QUIESCENCE_PLY,\n"
+    "            maximum_quiescence_ply: crate::MAX_QUIESCENCE_PLY,\n"
+    "            weights:",
+    "            maximum_quiescence_ply: crate::MAX_QUIESCENCE_PLY,\n"
     "            see_capture_ordering: false,\n"
     "            weights:",
     expected=3,
