@@ -23,99 +23,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Repair staged S2-1 files
-        shell: bash
+      - name: Apply S2-1 integration
         run: |
-          python3 -c "from pathlib import Path; p=Path('crates/chess-tools/src/policy_io.rs'); t=p.read_text(); a='            \"{FORMAT_MARKER}\\\\n\",'; b='            \"{}\\\\n\",'; assert t.count(a)==1; t=t.replace(a,b,1); a='        ),\\n        set.schema_version,'; b='        ),\\n        FORMAT_MARKER,\\n        set.schema_version,'; assert t.count(a)==1; p.write_text(t.replace(a,b,1))"
-          python3 -c "from pathlib import Path; p=Path('crates/chess-tools/src/policy_io.rs'); t=p.read_text(); a='const FIELD_COUNT: usize = 11;'; b='const FIELD_COUNT: usize = 12;'; assert t.count(a)==1; p.write_text(t.replace(a,b,1))"
-          python3 -c "from pathlib import Path; p=Path('crates/chess-search/tests/search_policy_identity.rs'); t=p.read_text(); a='SearchLimits::depth(4).expect(\"depth limit validates\")'; b='SearchLimits::new().with_depth(4)'; assert t.count(a)==1; t=t.replace(a,b,1); a='SearchLimits::depth(2).expect(\"depth limit validates\")'; b='SearchLimits::new().with_depth(2)'; assert t.count(a)==1; t=t.replace(a,b,1); a='        limits,\\n        &mut default_table,'; b='        limits.clone(),\\n        &mut default_table,'; assert t.count(a)==1; p.write_text(t.replace(a,b,1))"
-          python3 -c "import re; from pathlib import Path; p=Path('crates/chess-search/src/alpha_beta.rs'); t=p.read_text(); pattern=r'(?P<i>^[ ]+)check_extension_enabled: false,\\n(?P=i)weights:'; replacement=r'\g<i>check_extension_enabled: false,\\n\g<i>maximum_check_extensions_per_line: crate::MAX_CHECK_EXTENSIONS_PER_LINE,\\n\g<i>maximum_quiescence_ply: crate::MAX_QUIESCENCE_PLY,\\n\g<i>weights:'; t,n=re.subn(pattern,replacement,t,flags=re.MULTILINE); assert n==3, n; p.write_text(t)"
-          python3 -c "from pathlib import Path; p=Path('crates/chess-search/src/search_policy.rs'); t=p.read_text(); a='0xcbf_29ce4_8422_2325'; b='0xcbf2_9ce4_8422_2325'; assert t.count(a)==1; p.write_text(t.replace(a,b,1))"
-
-      - name: Apply integration patch
-        run: python3 scripts/s2_1_integrate.py
-
-      - name: Group private execution-policy arguments
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          path = Path('crates/chess-search/src/iterative_deepening.rs')
-          text = path.read_text()
-
-          marker = 'fn iterative_deepening_search_with_limits_and_clock_and_observer_and_weights<Clock, Observer>(\n'
-          struct = '''#[derive(Clone, Copy)]
-struct IterativeDeepeningExecutionPolicy<'a> {
-    search_policy: &'a SearchPolicy,
-    weights: &'a EvaluationWeights,
-}
-
-'''
-          assert text.count(marker) == 1
-          text = text.replace(marker, struct + marker, 1)
-
-          old = '''        WallClock::start(),
-        &search_policy.policy,
-        weights,
-        |_| {},
-'''
-          new = '''        WallClock::start(),
-        IterativeDeepeningExecutionPolicy {
-            search_policy: &search_policy.policy,
-            weights,
-        },
-        |_| {},
-'''
-          assert text.count(old) == 1
-          text = text.replace(old, new, 1)
-
-          old = '''        clock,
-        &SearchPolicy::V0_1,
-        &EvaluationWeights::DEFAULT,
-        observer,
-'''
-          new = '''        clock,
-        IterativeDeepeningExecutionPolicy {
-            search_policy: &SearchPolicy::V0_1,
-            weights: &EvaluationWeights::DEFAULT,
-        },
-        observer,
-'''
-          assert text.count(old) == 1
-          text = text.replace(old, new, 1)
-
-          old = '''    transposition_table: &mut TranspositionTable,
-    clock: Clock,
-    search_policy: &SearchPolicy,
-    weights: &EvaluationWeights,
-    mut observer: Observer,
-'''
-          new = '''    transposition_table: &mut TranspositionTable,
-    clock: Clock,
-    execution_policy: IterativeDeepeningExecutionPolicy<'_>,
-    mut observer: Observer,
-'''
-          assert text.count(old) == 1
-          text = text.replace(old, new, 1)
-
-          old = '''{
-    let check_extension_enabled = limits.check_extension_enabled()
-        && search_policy.maximum_check_extensions_per_line() > 0;
-'''
-          new = '''{
-    let IterativeDeepeningExecutionPolicy {
-        search_policy,
-        weights,
-    } = execution_policy;
-    let check_extension_enabled = limits.check_extension_enabled()
-        && search_policy.maximum_check_extensions_per_line() > 0;
-'''
-          assert text.count(old) == 1
-          path.write_text(text.replace(old, new, 1))
-          PY
+          python3 scripts/s2_1_integrate.py
+          python3 scripts/s2_1_finalize.py
 
       - name: Remove temporary integration helpers
-        run: git rm .github/workflows/s2-1-integrate.yml scripts/s2_1_integrate.py
+        run: git rm .github/workflows/s2-1-integrate.yml scripts/s2_1_integrate.py scripts/s2_1_finalize.py
 
       - name: Validate implementation
         shell: bash
