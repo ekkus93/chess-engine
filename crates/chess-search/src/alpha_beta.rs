@@ -9,7 +9,8 @@ use crate::{
     move_ordering::{ordered_legal_moves_with_state_and_tt_move, MoveOrdering, QuietOrderingState},
     quiescence::{search_quiescence_node_with_weights, QuiescenceContext, QuiescenceSearchPolicy},
     search_common::resolved_node_score,
-    EvaluationWeights, Score, SearchCancellationProbe, SearchPolicy, TranspositionBound,
+    EvaluationWeights, Score, SearchCancellationProbe, SearchDiagnosticEvent,
+    SearchDiagnosticOverflow, SearchDiagnostics, SearchPolicy, TranspositionBound,
     TranspositionEntry, TranspositionProbeError, TranspositionProbeRequest,
     TranspositionProbeScore, TranspositionScore, TranspositionScoreConversionError,
     TranspositionScoreReuse, TranspositionTable, TranspositionTableAllocationError, MAX_MATE_PLY,
@@ -26,6 +27,7 @@ pub struct AlphaBetaSearchResult {
     pub(crate) nodes: u64,
     pub(crate) qnodes: u64,
     pub(crate) selective_depth: u16,
+    pub(crate) diagnostics: SearchDiagnostics,
 }
 
 impl AlphaBetaSearchResult {
@@ -57,6 +59,12 @@ impl AlphaBetaSearchResult {
     #[must_use]
     pub const fn selective_depth(self) -> u16 {
         self.selective_depth
+    }
+
+    /// Returns deterministic allocation-free search diagnostics.
+    #[must_use]
+    pub const fn diagnostics(self) -> SearchDiagnostics {
+        self.diagnostics
     }
 }
 
@@ -157,6 +165,8 @@ pub enum AlphaBetaSearchError {
     },
     /// Recursive node accumulation exceeded `u64`.
     NodeCountOverflow,
+    /// Deterministic search diagnostic accumulation exceeded `u64`.
+    DiagnosticCountOverflow(SearchDiagnosticOverflow),
     /// A non-terminal searched node unexpectedly produced no best move.
     MissingBestMove,
 }
@@ -189,6 +199,7 @@ impl fmt::Display for AlphaBetaSearchError {
                 "quiescence depth limit {maximum} reached in check at tactical ply {quiescence_ply}"
             ),
             Self::NodeCountOverflow => formatter.write_str("alpha-beta node count overflow"),
+            Self::DiagnosticCountOverflow(error) => error.fmt(formatter),
             Self::MissingBestMove => {
                 formatter.write_str("non-terminal alpha-beta node has no best move")
             }
@@ -225,6 +236,12 @@ impl From<TranspositionProbeError> for AlphaBetaSearchError {
 impl From<TranspositionScoreConversionError> for AlphaBetaSearchError {
     fn from(value: TranspositionScoreConversionError) -> Self {
         Self::TranspositionScoreConversion(value)
+    }
+}
+
+impl From<SearchDiagnosticOverflow> for AlphaBetaSearchError {
+    fn from(value: SearchDiagnosticOverflow) -> Self {
+        Self::DiagnosticCountOverflow(value)
     }
 }
 
@@ -568,6 +585,7 @@ where
             nodes: 1,
             qnodes: 0,
             selective_depth: ply,
+            diagnostics: SearchDiagnostics::main_node(),
         });
     }
 
@@ -604,6 +622,7 @@ where
                         nodes: 1,
                         qnodes: 0,
                         selective_depth: ply,
+                        diagnostics: SearchDiagnostics::main_node(),
                     });
                 }
             }
@@ -624,10 +643,11 @@ where
     let mut nodes = 1_u64;
     let mut qnodes = 0_u64;
     let mut selective_depth = ply;
+    let mut diagnostics = SearchDiagnostics::main_node();
     let mut best_score = None;
     let mut best_move = None;
 
-    for token in ordered_tokens.iter() {
+    for (move_index, token) in ordered_tokens.iter().enumerate() {
         if context.cancellation.should_cancel() {
             return Err(AlphaBetaSearchError::Cancelled);
         }
@@ -677,6 +697,7 @@ where
             .checked_add(child.qnodes)
             .ok_or(AlphaBetaSearchError::NodeCountOverflow)?;
         selective_depth = selective_depth.max(child.selective_depth);
+        diagnostics = diagnostics.checked_add(child.diagnostics)?;
         let score = -child.score;
         let replace_best = match best_score {
             Some(previous) => score > previous,
@@ -690,6 +711,11 @@ where
             alpha = score;
         }
         if alpha >= beta {
+            let event = SearchDiagnosticEvent::BetaCutoff {
+                first_move: move_index == 0,
+            };
+            diagnostics.record_checked(event)?;
+            context.cancellation.on_search_diagnostic(event);
             if context.ordering == MoveOrdering::Quiet {
                 context.quiet_ordering.record_quiet_cutoff(
                     position.side_to_move(),
@@ -709,6 +735,7 @@ where
             nodes,
             qnodes,
             selective_depth,
+            diagnostics,
         },
         _ => return Err(AlphaBetaSearchError::MissingBestMove),
     };
@@ -1077,6 +1104,33 @@ mod tests {
         assert_eq!(position, snapshot);
         assert_eq!(history, history_snapshot);
         assert_eq!(position.zobrist(), position.recomputed_zobrist());
+    }
+
+    #[test]
+    fn diagnostics_are_consistent_and_observationally_inert() {
+        let mut first_position = Position::starting();
+        let mut first_history = SearchHistory::from_position(&first_position);
+        let first = alpha_beta_search(&mut first_position, &mut first_history, 3)
+            .expect("diagnostic search succeeds");
+
+        let mut second_position = Position::starting();
+        let mut second_history = SearchHistory::from_position(&second_position);
+        let second = alpha_beta_search(&mut second_position, &mut second_history, 3)
+            .expect("repeated diagnostic search succeeds");
+
+        let diagnostics = first.diagnostics();
+        assert_eq!(first.score(), second.score());
+        assert_eq!(first.best_move(), second.best_move());
+        assert_eq!(
+            first.nodes(),
+            diagnostics.main_nodes() + diagnostics.quiescence_nodes()
+        );
+        assert_eq!(first.qnodes(), diagnostics.quiescence_nodes());
+        assert!(diagnostics.beta_cutoffs() > 0);
+        assert!(diagnostics.first_move_beta_cutoffs() <= diagnostics.beta_cutoffs());
+        assert!(diagnostics.reserved_counters_are_zero());
+        assert!(!diagnostics.overflowed());
+        assert_eq!(diagnostics, second.diagnostics());
     }
 
     #[test]

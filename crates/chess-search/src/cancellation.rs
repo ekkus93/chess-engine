@@ -1,4 +1,4 @@
-use crate::CheckExtensionEvent;
+use crate::{CheckExtensionEvent, SearchDiagnosticEvent};
 
 /// Maximum production-node interval between cooperative cancellation checks.
 ///
@@ -49,6 +49,12 @@ pub trait SearchCancellationProbe {
     /// The default is observationally inert. Limit-aware controllers override
     /// this hook so diagnostics include completed and interrupted work.
     fn on_check_extension(&mut self, _event: CheckExtensionEvent) {}
+
+    /// Records one allocation-free deterministic search diagnostic event.
+    ///
+    /// The default is observationally inert. Limit-aware controllers override
+    /// this hook so interrupted work remains visible without affecting search.
+    fn on_search_diagnostic(&mut self, _event: SearchDiagnosticEvent) {}
 }
 
 impl<Callback> SearchCancellationProbe for Callback

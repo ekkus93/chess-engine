@@ -23,8 +23,9 @@ use crate::{
     principal_variation::{
         reconstruct_principal_variation_with_table_policy, PrincipalVariationError,
     },
-    EvaluationWeights, PrincipalVariation, Score, SearchCancellationProbe, SearchPolicy,
-    SearchPolicySet, SearchPolicyValidationError, TranspositionHashFull, TranspositionTable,
+    EvaluationWeights, PrincipalVariation, Score, SearchCancellationProbe,
+    SearchDiagnosticOverflow, SearchDiagnostics, SearchPolicy, SearchPolicySet,
+    SearchPolicyValidationError, TranspositionHashFull, TranspositionTable,
     TranspositionTableAllocationError, TranspositionTableDiagnostics, MAX_MATE_PLY,
 };
 
@@ -36,6 +37,7 @@ pub struct IterativeDeepeningIteration {
     nodes: u64,
     qnodes: u64,
     selective_depth: u16,
+    search_diagnostics: SearchDiagnostics,
     principal_variation: PrincipalVariation,
     aspiration_diagnostics: AspirationWindowDiagnostics,
     transposition_diagnostics: TranspositionTableDiagnostics,
@@ -102,6 +104,12 @@ impl IterativeDeepeningIteration {
         self.selective_depth
     }
 
+    /// Returns deterministic diagnostics aggregated across all attempts.
+    #[must_use]
+    pub const fn search_diagnostics(&self) -> SearchDiagnostics {
+        self.search_diagnostics
+    }
+
     /// Returns aspiration-window and retry diagnostics for this depth.
     #[must_use]
     pub const fn aspiration_diagnostics(&self) -> AspirationWindowDiagnostics {
@@ -134,6 +142,7 @@ pub struct SearchProgress<'a> {
     nodes: u64,
     qnodes: u64,
     selective_depth: u16,
+    search_diagnostics: SearchDiagnostics,
 }
 
 impl<'a> SearchProgress<'a> {
@@ -160,6 +169,12 @@ impl<'a> SearchProgress<'a> {
     pub const fn selective_depth(self) -> u16 {
         self.selective_depth
     }
+
+    /// Returns request-wide diagnostics through this exact completed depth.
+    #[must_use]
+    pub const fn search_diagnostics(self) -> SearchDiagnostics {
+        self.search_diagnostics
+    }
 }
 
 /// Completed depth-by-depth results from one iterative-deepening search.
@@ -169,6 +184,7 @@ pub struct IterativeDeepeningSearchResult {
     total_nodes: u64,
     total_qnodes: u64,
     selective_depth: u16,
+    search_diagnostics: SearchDiagnostics,
 }
 
 impl IterativeDeepeningSearchResult {
@@ -236,6 +252,12 @@ impl IterativeDeepeningSearchResult {
     pub const fn selective_depth(&self) -> u16 {
         self.selective_depth
     }
+
+    /// Returns checked diagnostics from every completed attempt and depth.
+    #[must_use]
+    pub const fn search_diagnostics(&self) -> SearchDiagnostics {
+        self.search_diagnostics
+    }
 }
 
 /// Deterministic emergency result when cancellation precedes depth one.
@@ -268,6 +290,7 @@ pub struct SearchResult {
     selective_depth: u16,
     elapsed: Duration,
     check_extension_diagnostics: CheckExtensionDiagnostics,
+    search_diagnostics: SearchDiagnostics,
     fallback: Option<SearchCancellationFallback>,
 }
 
@@ -344,6 +367,12 @@ impl SearchResult {
     #[must_use]
     pub const fn check_extension_diagnostics(&self) -> CheckExtensionDiagnostics {
         self.check_extension_diagnostics
+    }
+
+    /// Returns request-wide deterministic diagnostics, including partial work.
+    #[must_use]
+    pub const fn search_diagnostics(&self) -> SearchDiagnostics {
+        self.search_diagnostics
     }
 
     /// Returns the deepest completed legal principal variation.
@@ -435,6 +464,8 @@ pub enum IterativeDeepeningSearchError {
         /// Last depth completed before overflow was detected.
         completed_depth: u16,
     },
+    /// Checked deterministic diagnostic aggregation overflowed.
+    DiagnosticCountOverflow(SearchDiagnosticOverflow),
 }
 
 impl fmt::Display for IterativeDeepeningSearchError {
@@ -472,11 +503,18 @@ impl fmt::Display for IterativeDeepeningSearchError {
                 formatter,
                 "iterative-deepening node total overflowed after completing depth {completed_depth}"
             ),
+            Self::DiagnosticCountOverflow(error) => error.fmt(formatter),
         }
     }
 }
 
 impl std::error::Error for IterativeDeepeningSearchError {}
+
+impl From<SearchDiagnosticOverflow> for IterativeDeepeningSearchError {
+    fn from(value: SearchDiagnosticOverflow) -> Self {
+        Self::DiagnosticCountOverflow(value)
+    }
+}
 
 /// Searches every depth from one through `maximum_depth`.
 ///
@@ -520,6 +558,7 @@ pub fn iterative_deepening_search_with_transposition_table(
     let mut total_nodes = 0_u64;
     let mut total_qnodes = 0_u64;
     let mut selective_depth = 0_u16;
+    let mut search_diagnostics = SearchDiagnostics::default();
 
     for depth in 1..=maximum_depth {
         let center = iterations.last().map(IterativeDeepeningIteration::score);
@@ -543,6 +582,7 @@ pub fn iterative_deepening_search_with_transposition_table(
             },
         )?;
         selective_depth = selective_depth.max(iteration.selective_depth());
+        search_diagnostics = search_diagnostics.checked_add(iteration.search_diagnostics())?;
         iterations.push(iteration);
     }
 
@@ -551,6 +591,7 @@ pub fn iterative_deepening_search_with_transposition_table(
         total_nodes,
         total_qnodes,
         selective_depth,
+        search_diagnostics,
     ))
 }
 
@@ -744,6 +785,7 @@ where
     let mut total_nodes = 0_u64;
     let mut total_qnodes = 0_u64;
     let mut selective_depth = 0_u16;
+    let mut search_diagnostics = SearchDiagnostics::default();
 
     loop {
         let completed_depth = iterations
@@ -751,7 +793,13 @@ where
             .map_or(0, IterativeDeepeningIteration::depth);
         if let Some(termination) = controller.boundary_termination(completed_depth) {
             return Ok(limited_result(
-                completed_result(iterations, total_nodes, total_qnodes, selective_depth),
+                completed_result(
+                    iterations,
+                    total_nodes,
+                    total_qnodes,
+                    selective_depth,
+                    search_diagnostics,
+                ),
                 termination,
                 &controller,
                 fallback,
@@ -795,6 +843,7 @@ where
                                 total_nodes,
                                 total_qnodes,
                                 selective_depth,
+                                search_diagnostics,
                             ),
                             termination,
                             &controller,
@@ -817,11 +866,13 @@ where
             },
         )?;
         selective_depth = selective_depth.max(iteration.selective_depth());
+        search_diagnostics = search_diagnostics.checked_add(iteration.search_diagnostics())?;
         observer(SearchProgress {
             iteration: &iteration,
             nodes: controller.visited_nodes(),
             qnodes: controller.visited_qnodes(),
             selective_depth: controller.selective_depth(),
+            search_diagnostics: controller.search_diagnostics(),
         });
         iterations.push(iteration);
     }
@@ -853,12 +904,14 @@ fn completed_result(
     total_nodes: u64,
     total_qnodes: u64,
     selective_depth: u16,
+    search_diagnostics: SearchDiagnostics,
 ) -> IterativeDeepeningSearchResult {
     IterativeDeepeningSearchResult {
         iterations,
         total_nodes,
         total_qnodes,
         selective_depth,
+        search_diagnostics,
     }
 }
 
@@ -880,6 +933,7 @@ where
         selective_depth: controller.selective_depth(),
         elapsed: controller.elapsed(),
         check_extension_diagnostics: controller.check_extension_diagnostics(),
+        search_diagnostics: controller.search_diagnostics(),
         fallback,
     }
 }
@@ -957,6 +1011,7 @@ where
     let mut qnodes = initial_attempt.qnodes();
     let mut selective_depth = initial_attempt.selective_depth();
     let mut transposition_diagnostics = initial_attempt.transposition_diagnostics();
+    let mut search_diagnostics = initial_result.result().diagnostics();
 
     let (result, full_window_retry) = match initial_result.outcome() {
         AspirationWindowOutcome::Exact => (initial_result.result(), None),
@@ -987,6 +1042,8 @@ where
             selective_depth = selective_depth.max(retry_attempt.selective_depth());
             transposition_diagnostics =
                 transposition_diagnostics.saturating_add(retry_attempt.transposition_diagnostics());
+            search_diagnostics =
+                search_diagnostics.checked_add(retry_result.result().diagnostics())?;
             if retry_result.outcome() != AspirationWindowOutcome::Exact {
                 return Err(
                     IterativeDeepeningSearchError::FullWindowDidNotResolveExactly {
@@ -1017,6 +1074,7 @@ where
         nodes,
         qnodes,
         selective_depth,
+        search_diagnostics,
         principal_variation,
         aspiration_diagnostics,
         transposition_diagnostics,
@@ -1317,6 +1375,16 @@ mod limit_tests {
         .expect("observed depth search succeeds");
 
         assert_eq!(result.completed_depth(), 3);
+        assert_eq!(
+            result.nodes(),
+            result.search_diagnostics().main_nodes()
+                + result.search_diagnostics().quiescence_nodes()
+        );
+        assert_eq!(
+            result.qnodes(),
+            result.search_diagnostics().quiescence_nodes()
+        );
+        assert!(result.search_diagnostics().reserved_counters_are_zero());
         assert_eq!(
             observed.iter().map(|entry| entry.0).collect::<Vec<_>>(),
             vec![1, 2, 3]

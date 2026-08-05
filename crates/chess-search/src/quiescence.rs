@@ -6,7 +6,8 @@ use crate::{
     evaluate_with_weights,
     move_ordering::{ordered_legal_moves, MoveOrdering},
     search_common::resolved_terminal_or_draw_score,
-    EvaluationWeights, Score, SearchCancellationProbe, MAX_MATE_PLY,
+    EvaluationWeights, Score, SearchCancellationProbe, SearchDiagnosticEvent, SearchDiagnostics,
+    MAX_MATE_PLY,
 };
 
 /// Default maximum number of tactical plies searched beyond an alpha-beta leaf.
@@ -181,6 +182,7 @@ where
             nodes: 1,
             qnodes: 1,
             selective_depth: context.ply,
+            diagnostics: SearchDiagnostics::quiescence_node(),
         });
     }
 
@@ -199,12 +201,17 @@ where
         let stand_pat = evaluate_with_weights(position, weights);
         best_score = Some(stand_pat);
         if stand_pat >= beta {
+            let event = SearchDiagnosticEvent::QuiescenceStandPatCutoff;
+            let mut diagnostics = SearchDiagnostics::quiescence_node();
+            diagnostics.record_checked(event)?;
+            cancellation.on_search_diagnostic(event);
             return Ok(AlphaBetaSearchResult {
                 score: stand_pat,
                 best_move: None,
                 nodes: 1,
                 qnodes: 1,
                 selective_depth: context.ply,
+                diagnostics,
             });
         }
         if stand_pat > alpha {
@@ -217,6 +224,7 @@ where
                 nodes: 1,
                 qnodes: 1,
                 selective_depth: context.ply,
+                diagnostics: SearchDiagnostics::quiescence_node(),
             });
         }
     }
@@ -225,6 +233,8 @@ where
     let mut nodes = 1_u64;
     let mut qnodes = 1_u64;
     let mut selective_depth = context.ply;
+    let mut diagnostics = SearchDiagnostics::quiescence_node();
+    let mut searched_moves = 0_usize;
     for token in ordered_tokens.iter() {
         let current = token.move_made();
         if !in_check && !is_tactical(current) {
@@ -274,6 +284,7 @@ where
             .checked_add(child.qnodes)
             .ok_or(AlphaBetaSearchError::NodeCountOverflow)?;
         selective_depth = selective_depth.max(child.selective_depth);
+        diagnostics = diagnostics.checked_add(child.diagnostics)?;
         let score = -child.score;
         let replace_best = match best_score {
             Some(previous) => score > previous,
@@ -287,8 +298,14 @@ where
             alpha = score;
         }
         if alpha >= beta {
+            let event = SearchDiagnosticEvent::QuiescenceBetaCutoff {
+                first_move: searched_moves == 0,
+            };
+            diagnostics.record_checked(event)?;
+            cancellation.on_search_diagnostic(event);
             break;
         }
+        searched_moves = searched_moves.saturating_add(1);
     }
 
     match best_score {
@@ -298,6 +315,7 @@ where
             nodes,
             qnodes,
             selective_depth,
+            diagnostics,
         }),
         None => Err(AlphaBetaSearchError::MissingBestMove),
     }

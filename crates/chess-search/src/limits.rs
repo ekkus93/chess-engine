@@ -8,7 +8,8 @@ use std::{
 };
 
 use crate::{
-    CheckExtensionDiagnostics, CheckExtensionEvent, SearchCancellationProbe, MAX_MATE_PLY,
+    CheckExtensionDiagnostics, CheckExtensionEvent, SearchCancellationProbe, SearchDiagnosticEvent,
+    SearchDiagnostics, MAX_MATE_PLY,
 };
 
 /// Thread-safe explicit stop signal shared with a running search.
@@ -333,6 +334,7 @@ pub(crate) struct SearchLimitController<Clock> {
     visited_qnodes: u64,
     selective_depth: u16,
     check_extension_diagnostics: CheckExtensionDiagnostics,
+    search_diagnostics: SearchDiagnostics,
     termination: Option<SearchLimitTermination>,
 }
 
@@ -349,6 +351,7 @@ where
             visited_qnodes: 0,
             selective_depth: 0,
             check_extension_diagnostics: CheckExtensionDiagnostics::default(),
+            search_diagnostics: SearchDiagnostics::default(),
             termination: None,
         })
     }
@@ -367,6 +370,10 @@ where
 
     pub(crate) const fn check_extension_diagnostics(&self) -> CheckExtensionDiagnostics {
         self.check_extension_diagnostics
+    }
+
+    pub(crate) const fn search_diagnostics(&self) -> SearchDiagnostics {
+        self.search_diagnostics
     }
 
     pub(crate) fn elapsed(&self) -> Duration {
@@ -451,6 +458,11 @@ where
         self.visited_nodes = self.visited_nodes.saturating_add(1);
         if quiescence {
             self.visited_qnodes = self.visited_qnodes.saturating_add(1);
+            self.search_diagnostics
+                .saturating_record(SearchDiagnosticEvent::QuiescenceNode);
+        } else {
+            self.search_diagnostics
+                .saturating_record(SearchDiagnosticEvent::MainNode);
         }
         self.selective_depth = self.selective_depth.max(ply);
         false
@@ -479,6 +491,10 @@ where
 
     fn on_check_extension(&mut self, event: CheckExtensionEvent) {
         self.check_extension_diagnostics.record(event);
+    }
+
+    fn on_search_diagnostic(&mut self, event: SearchDiagnosticEvent) {
+        self.search_diagnostics.saturating_record(event);
     }
 }
 

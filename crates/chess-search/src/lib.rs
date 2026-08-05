@@ -8,6 +8,7 @@ mod alpha_beta;
 mod aspiration;
 mod cancellation;
 mod check_extension;
+mod diagnostics;
 mod evaluation;
 mod iterative_deepening;
 mod limits;
@@ -35,6 +36,9 @@ pub use aspiration::{
 pub use cancellation::{SearchCancellationProbe, CANCELLATION_CHECK_INTERVAL_NODES};
 pub use check_extension::{
     CheckExtensionDiagnostics, CheckExtensionEvent, MAX_CHECK_EXTENSIONS_PER_LINE,
+};
+pub use diagnostics::{
+    SearchDiagnosticCounter, SearchDiagnosticEvent, SearchDiagnosticOverflow, SearchDiagnostics,
 };
 pub use evaluation::{
     evaluate, evaluate_term, evaluate_trace, evaluate_trace_with_weights, evaluate_with_weights,
