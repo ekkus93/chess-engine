@@ -1,6 +1,6 @@
 # Rust Chess Engine v0.2 Strength Program TODO
 
-**Status:** Not started
+**Status:** In progress
 **Date:** 2026-08-05
 **Branch:** `master`
 **Specification:** `docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_SPEC_2026-08-05.md`
@@ -8,6 +8,21 @@
 **Completed v0.1 report:** `docs/RUST_CHESS_ENGINE_PORT_IMPLEMENTATION_REPORT.md`
 **Completed post-port review:** `docs/RUST_CHESS_ENGINE_POST_PORT_REVIEW_FIX_TODO_2026-08-04.md`
 **Planning baseline:** `51cb4fa1b281bd1a6a7d7af20ff3f4a8d99a4e51`
+**S2-0 engine baseline:** `1e28defb8835119881f2b03ea60dc5589bec01be`
+**S2-0 baseline record:** `docs/RUST_CHESS_ENGINE_V0_2_BASELINE_2026-08-05.md`
+
+## S2-0 implementation record
+
+- Exact engine/search baseline SHA: `1e28defb8835119881f2b03ea60dc5589bec01be`.
+- Baseline documentation commit: `ff83eb506d28c039292189dbf5bc69a1cdddfd78`.
+- Rust CI baseline: run `30986317659`; jobs `92241821565` and `92241821561`; success.
+- Performance baseline: run `30986317662`; jobs `92241817180` and `92241817103`; artifacts `8922221747` and `8922217103`; success.
+- Strength status: no exact-head run was expected because the workflow is scheduled/manual and push-path-limited; latest 200-pair/400-game control run `30960468240` succeeded with `rejected_strength` and `activated=false`.
+- Authority state: v0.2 TODO active; v0.1 tracker/definitions completed authority; post-port TODO historical; every top-level TODO-named document classified and unclassified additions fail the permanent authority audit.
+- Search inventory: full-window fail-soft alpha-beta, tactical quiescence, aspiration recovery, bounded TT, MVV-LVA/killer/history ordering, request-local limits/cancellation, and one optional bounded check extension. SEE, PVS, LMR, null move, futility, razoring, late-move pruning, tablebases, NNUE, and parallel search are absent from production code.
+- No labelled open P0 or P1 issue was found.
+- No engine semantics, defaults, weights, adapters, ABI/JNI contracts, or performance references changed in S2-0.
+- Exact validation of the permanent S2-0 documentation head is pending before S2-1 may start.
 
 ## Status rules
 
@@ -39,7 +54,7 @@
 
 | Task | Scope | Status |
 |---:|---|---|
-| S2-0 | Authority cleanup and exact baseline inspection | **Not started** |
+| S2-0 | Authority cleanup and exact baseline inspection | **Implementation complete — validation pending** |
 | S2-1 | Versioned search-policy and engine-variant identity | **Not started** |
 | S2-2 | Generalized strength-validation infrastructure | **Not started** |
 | S2-3 | Baseline strength, diagnostics, and performance capture | **Not started** |
@@ -59,43 +74,43 @@
 
 ---
 
-# Task S2-0: Authority cleanup and exact baseline inspection — NOT STARTED
+# Task S2-0: Authority cleanup and exact baseline inspection — VALIDATION PENDING
 
 ## S2-0.1 Confirm repository state
 
-- [ ] Record the exact current `master` SHA before implementation.
-- [ ] Confirm the specification and this TODO exist at their required paths.
-- [ ] Confirm the completed v0.1 tracker remains complete.
-- [ ] Confirm the completed post-port review TODO remains complete.
-- [ ] Confirm no unresolved P0/P1 correctness issue exists.
-- [ ] Record current Rust toolchain, LLVM version, runner images, package versions, ABI/JNI versions, weight identity, and search defaults.
+- [x] Record the exact current `master` SHA before implementation.
+- [x] Confirm the specification and this TODO exist at their required paths.
+- [x] Confirm the completed v0.1 tracker remains complete.
+- [x] Confirm the completed post-port review TODO remains complete.
+- [x] Confirm no unresolved P0/P1 correctness issue exists.
+- [x] Record current Rust toolchain, LLVM version, runner images, package versions, ABI/JNI versions, weight identity, and search defaults.
 
 ## S2-0.2 Correct TODO authority
 
-- [ ] Update `docs/LEGACY_TODO_INDEX.md` so this v0.2 TODO is active.
-- [ ] Reclassify the completed post-port review TODO as a completed historical record.
-- [ ] Preserve the v0.1 tracker and definitions as completed authority documents.
-- [ ] Update `scripts/task_post_port_review_fix_audit.sh` or replace its authority portion with a permanent generalized TODO-authority audit.
-- [ ] Ensure every top-level `docs/*TODO*.md` file is classified.
-- [ ] Ensure an unclassified future TODO-named file fails CI.
+- [x] Update `docs/LEGACY_TODO_INDEX.md` so this v0.2 TODO is active.
+- [x] Reclassify the completed post-port review TODO as a completed historical record.
+- [x] Preserve the v0.1 tracker and definitions as completed authority documents.
+- [x] Update `scripts/task_post_port_review_fix_audit.sh` or replace its authority portion with a permanent generalized TODO-authority audit.
+- [x] Ensure every top-level `docs/*TODO*.md` file is classified.
+- [x] Ensure an unclassified future TODO-named file fails CI.
 
 ## S2-0.3 Inventory current search behavior
 
-- [ ] Record current alpha-beta, quiescence, move-ordering, TT, iterative-deepening, aspiration, extension, limit, and cancellation behavior.
-- [ ] Confirm whether PVS, SEE, LMR, null move, futility, razoring, and late-move pruning are absent or partially present.
-- [ ] Record current search diagnostics and missing counters.
-- [ ] Record all public/internal entry points that assume the built-in search policy.
-- [ ] Record all tests that compare reference search, alpha-beta, iterative deepening, and legal PVs.
+- [x] Record current alpha-beta, quiescence, move-ordering, TT, iterative-deepening, aspiration, extension, limit, and cancellation behavior.
+- [x] Confirm whether PVS, SEE, LMR, null move, futility, razoring, and late-move pruning are absent or partially present.
+- [x] Record current search diagnostics and missing counters.
+- [x] Record all public/internal entry points that assume the built-in search policy.
+- [x] Record all tests that compare reference search, alpha-beta, iterative deepening, and legal PVs.
 
 ## S2-0.4 Baseline smoke validation
 
-- [ ] Run the permanent v0.1/post-port audits.
-- [ ] Run formatting, locked check, strict Clippy, and all-target/all-feature tests.
-- [ ] Run release perft depth four and the differential oracle.
-- [ ] Record current performance and strength workflow status.
-- [ ] Do not mark later implementation tasks complete using historical evidence alone.
+- [x] Run the permanent v0.1/post-port audits.
+- [x] Run formatting, locked check, strict Clippy, and all-target/all-feature tests.
+- [x] Run release perft depth four and the differential oracle.
+- [x] Record current performance and strength workflow status.
+- [x] Do not mark later implementation tasks complete using historical evidence alone.
 
-**S2-0 gate:** Authority is unambiguous, the exact baseline is recorded, and current search behavior is inventoried before semantic changes.
+**S2-0 gate:** Implementation and inventory complete; exact permanent-head validation pending.
 
 ---
 
@@ -844,4 +859,4 @@ Remaining risks:
 
 ## Initial next action
 
-Begin with **S2-0 only**. Do not implement SEE, PVS, LMR, pruning, or tablebases until authority cleanup, current search inventory, and exact baseline validation are recorded.
+Complete exact-head validation for **S2-0**. Do not begin S2-1 or implement SEE, PVS, LMR, pruning, or tablebases until the permanent S2-0 documentation head is green and the tracker records that evidence.
