@@ -12,6 +12,7 @@ on:
       - crates/chess-search/src/**
       - scripts/task_s2_2_variant_validation_audit.sh
       - docs/RUST_CHESS_ENGINE_VARIANT_VALIDATION.md
+      - docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md
       - .github/workflows/s2-2-stage.yml
   pull_request:
     branches:
@@ -24,6 +25,7 @@ on:
       - crates/chess-search/src/**
       - scripts/task_s2_2_variant_validation_audit.sh
       - docs/RUST_CHESS_ENGINE_VARIANT_VALIDATION.md
+      - docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md
       - .github/workflows/s2-2-stage.yml
   workflow_dispatch:
 
