@@ -31,6 +31,7 @@ jobs:
           git merge-base --is-ancestor 5ccf5704ec1e1c94e03918b079be4abc4f37b038 HEAD
           test -f scripts/s2_5_apply.py
           test -f scripts/s2_5_refine.py
+          test -f scripts/s2_5_fix_compile.py
 
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
@@ -42,6 +43,7 @@ jobs:
           set -euo pipefail
           python3 scripts/s2_5_apply.py
           python3 scripts/s2_5_refine.py
+          python3 scripts/s2_5_fix_compile.py
           cargo fmt --all
           git diff --check
 
@@ -55,7 +57,7 @@ jobs:
       - name: Commit validated implementation
         run: |
           set -euo pipefail
-          rm scripts/s2_5_apply.py scripts/s2_5_refine.py
+          rm scripts/s2_5_apply.py scripts/s2_5_refine.py scripts/s2_5_fix_compile.py
           git diff --check
           git config user.name "Phillip Chin"
           git config user.email "ekkus93@gmail.com"
