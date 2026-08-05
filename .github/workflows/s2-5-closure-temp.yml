@@ -1,4 +1,5 @@
 name: S2-5 closure temporary
+# witness-revision: 2
 
 on:
   push:
@@ -30,13 +31,15 @@ jobs:
           set -euo pipefail
           git merge-base --is-ancestor f5e4b1e1e630e5708444f9192a1436faac84090c HEAD
           test -f scripts/s2_5_close_docs.py
-          python3 -m py_compile scripts/s2_5_close_docs.py
+          test -f scripts/s2_5_close_docs_refine.py
+          python3 -m py_compile scripts/s2_5_close_docs.py scripts/s2_5_close_docs_refine.py
 
       - name: Reconcile tracker and final report
         run: |
           set -euo pipefail
           python3 scripts/s2_5_close_docs.py
-          rm scripts/s2_5_close_docs.py
+          python3 scripts/s2_5_close_docs_refine.py
+          rm scripts/s2_5_close_docs.py scripts/s2_5_close_docs_refine.py
           git diff --check
 
       - name: Validate documentation authority and permanent audits
@@ -58,6 +61,7 @@ jobs:
           git config user.email "ekkus93@gmail.com"
           git add docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md \
             docs/RUST_CHESS_ENGINE_V0_2_S2_5_SEE_ORDERING_2026-08-05.md \
-            scripts/s2_5_close_docs.py
+            scripts/s2_5_close_docs.py \
+            scripts/s2_5_close_docs_refine.py
           git commit -m "docs: complete S2-5 SEE ordering disposition"
           git push origin HEAD:master
