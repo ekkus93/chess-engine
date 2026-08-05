@@ -58,10 +58,11 @@ jobs:
       - name: Test policy schema and validation
         run: cargo test --locked -p chess-search search_policy::tests
 
-      - name: Test canonical policy text and variant identity
-        run: >-
-          cargo test --locked -p chess-tools
-          policy_io::tests engine_variant::tests
+      - name: Test canonical policy text
+        run: cargo test --locked -p chess-tools policy_io::tests
+
+      - name: Test engine variant identity
+        run: cargo test --locked -p chess-tools engine_variant::tests
 
       - name: Round-trip authoritative policy CLI
         shell: bash
