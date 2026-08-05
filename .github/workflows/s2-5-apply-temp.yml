@@ -1,4 +1,5 @@
 name: S2-5 apply temporary
+# witness-revision: 4
 
 on:
   push:
