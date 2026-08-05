@@ -37,7 +37,8 @@ jobs:
         run: |
           set -euo pipefail
           cargo fmt --all
-          rm .github/ppr_implementation.py .github/workflows/ppr-implementation.yml
+          git checkout -- .github/workflows/ci.yml .github/workflows/ppr-implementation.yml
+          rm .github/ppr_implementation.py
           git diff --check
           git status --short
 
