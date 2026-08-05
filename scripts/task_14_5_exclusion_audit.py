@@ -41,6 +41,14 @@ def production_prefix(path: Path) -> str:
     return source[: test_module.start()] if test_module is not None else source
 
 
+def rust_code_without_comments_or_literals(source: str) -> str:
+    """Remove comments and ordinary literals before lexical identifier checks."""
+    without_block_comments = re.sub(r"/\*.*?\*/", " ", source, flags=re.DOTALL)
+    without_line_comments = re.sub(r"//[^\n]*", " ", without_block_comments)
+    without_strings = re.sub(r'"(?:\\.|[^"\\])*"', '""', without_line_comments)
+    return re.sub(r"'(?:\\.|[^'\\])'", "''", without_strings)
+
+
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise AuditFailure(message)
@@ -66,7 +74,7 @@ def audit_forbidden_scenario_identifiers() -> int:
     require(files, "no chess-search production Rust files were found")
 
     for path in files:
-        source = production_prefix(path)
+        source = rust_code_without_comments_or_literals(production_prefix(path))
         for exclusion, exclusion_patterns in patterns.items():
             for pattern in exclusion_patterns:
                 match = re.search(pattern, source, flags=re.IGNORECASE)
@@ -137,7 +145,11 @@ def audit_move_ordering_boundary() -> tuple[list[str], list[str]]:
         "space_bonus",
         "tempo_bonus",
     }
-    identifiers = {identifier.lower() for identifier in re.findall(r"\b[A-Za-z_][A-Za-z0-9_]*\b", source)}
+    lexical_source = rust_code_without_comments_or_literals(source)
+    identifiers = {
+        identifier.lower()
+        for identifier in re.findall(r"\b[A-Za-z_][A-Za-z0-9_]*\b", lexical_source)
+    }
     duplicated = sorted(forbidden_evaluator_identifiers & identifiers)
     require(
         not duplicated,
