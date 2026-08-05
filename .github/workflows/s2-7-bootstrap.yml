@@ -34,16 +34,16 @@ jobs:
           python3 .github/s2_7_bootstrap.py
           python3 .github/s2_7_repair.py
           python3 .github/s2_7_policy_test_repair.py
+          python3 .github/s2_7_publication_repair.py
 
       - name: Format and audit
         run: |
           cargo fmt --all
           bash scripts/task_s2_7_pvs_audit.sh
 
-      - name: Strict lint and focused tests
+      - name: Strict lint and complete search tests
         run: |
           cargo clippy --locked -p chess-search --all-targets --all-features -- -D warnings
-          cargo test --locked -p chess-search --test s2_7_pvs
           cargo test --locked -p chess-search --all-targets --all-features
 
       - name: Commit implementation and remove bootstrap
