@@ -1,0 +1,140 @@
+name: S2-5 SEE capture ordering validation
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: s2-5-see-ordering-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux-x86-64:
+    name: Linux x86-64 correctness, strength, and performance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Cargo data
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-engine-s2-5-see-ordering-x86-64
+
+      - name: Audit S2-5 architecture
+        run: bash scripts/task_s2_5_see_ordering_audit.sh
+
+      - name: Check formatting and strict Clippy
+        run: |
+          cargo fmt --all -- --check
+          cargo clippy --locked -p chess-search -p chess-tools --all-targets --all-features -- -D warnings
+
+      - name: Run focused search and evidence tests
+        run: |
+          cargo test --locked -p chess-search --all-targets --all-features
+          cargo test --locked -p chess-tools --bin s2_5_see_ordering
+
+      - name: Build release evidence tool
+        run: cargo build --locked --release -p chess-tools --bin s2_5_see_ordering
+
+      - name: Record exact build identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          build_identity="$(rustc -Vv | paste -sd '|' - | tr ' ' '_')"
+          echo "S2_5_SOURCE_SHA=${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "S2_5_BUILD_IDENTITY=${build_identity}" >> "$GITHUB_ENV"
+
+      - name: Generate byte-identical deterministic evidence twice
+        run: |
+          target/release/s2_5_see_ordering deterministic s2-5-deterministic-a
+          target/release/s2_5_see_ordering deterministic s2-5-deterministic-b
+          diff -ru s2-5-deterministic-a s2-5-deterministic-b
+
+      - name: Generate clock development evidence
+        run: target/release/s2_5_see_ordering clock s2-5-clock
+
+      - name: Preserve the existing zero-allocation hot-path gate
+        run: cargo run --locked --release -p chess-tools --bin performance -- allocation-audit
+
+      - name: Capture seven-sample x86-64 end-to-end distribution
+        run: target/release/s2_5_see_ordering benchmark 7 | tee s2-5-linux-x86-64.tsv
+
+      - name: Preserve x86-64 S2-5 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: s2-5-see-ordering-linux-x86-64-${{ github.sha }}
+          path: |
+            s2-5-deterministic-a
+            s2-5-clock
+            s2-5-linux-x86-64.tsv
+          if-no-files-found: error
+          retention-days: 30
+
+  linux-arm64:
+    name: Linux ARM64 correctness and performance
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Cargo data
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-engine-s2-5-see-ordering-arm64
+
+      - name: Audit and test S2-5 on native ARM64
+        run: |
+          bash scripts/task_s2_5_see_ordering_audit.sh
+          cargo check --locked -p chess-search -p chess-tools --all-targets --all-features
+          cargo clippy --locked -p chess-search -p chess-tools --all-targets --all-features -- -D warnings
+          cargo test --locked -p chess-search --all-targets --all-features
+          cargo test --locked -p chess-tools --bin s2_5_see_ordering
+
+      - name: Build release evidence tool
+        run: cargo build --locked --release -p chess-tools --bin s2_5_see_ordering
+
+      - name: Record exact build identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          build_identity="$(rustc -Vv | paste -sd '|' - | tr ' ' '_')"
+          echo "S2_5_SOURCE_SHA=${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "S2_5_BUILD_IDENTITY=${build_identity}" >> "$GITHUB_ENV"
+
+      - name: Generate native ARM64 deterministic evidence
+        run: target/release/s2_5_see_ordering deterministic s2-5-deterministic-arm64
+
+      - name: Preserve the existing ARM64 zero-allocation hot-path gate
+        run: cargo run --locked --release -p chess-tools --bin performance -- allocation-audit
+
+      - name: Capture seven-sample ARM64 end-to-end distribution
+        run: target/release/s2_5_see_ordering benchmark 7 | tee s2-5-linux-arm64.tsv
+
+      - name: Preserve ARM64 S2-5 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: s2-5-see-ordering-linux-arm64-${{ github.sha }}
+          path: |
+            s2-5-deterministic-arm64
+            s2-5-linux-arm64.tsv
+          if-no-files-found: error
+          retention-days: 30
