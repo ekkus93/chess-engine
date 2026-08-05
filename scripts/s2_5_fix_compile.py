@@ -98,7 +98,15 @@ replace_exact(
     "            maximum_quiescence_ply: crate::MAX_QUIESCENCE_PLY,\n"
     "            see_capture_ordering: false,\n"
     "            weights:",
-    expected=3,
+    expected=2,
+)
+replace_exact(
+    ALPHA_BETA,
+    "                maximum_quiescence_ply: crate::MAX_QUIESCENCE_PLY,\n"
+    "                weights:",
+    "                maximum_quiescence_ply: crate::MAX_QUIESCENCE_PLY,\n"
+    "                see_capture_ordering: false,\n"
+    "                weights:",
 )
 
 # First-party lint suppressions are forbidden for this task.
