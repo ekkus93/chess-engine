@@ -35,6 +35,25 @@ jobs:
         with:
           shared-key: rust-engine-s2-4-evidence
 
+      - name: Format the separate fuzz workspace before checking it
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("scripts/s2_4_evidence_stage.py")
+          text = path.read_text(encoding="utf-8")
+          witness = 'run("cargo", "fmt", "--manifest-path", "fuzz/Cargo.toml", "--", "--check")'
+          replacement = '\n'.join([
+              'run("cargo", "fmt", "--manifest-path", "fuzz/Cargo.toml")',
+              witness,
+          ])
+          if text.count(witness) != 1:
+              raise SystemExit("fuzz formatting witness changed")
+          path.write_text(text.replace(witness, replacement), encoding="utf-8")
+          PY
+
       - name: Apply, validate, and commit SEE evidence
         env:
           GH_TOKEN: ${{ github.token }}
