@@ -44,13 +44,16 @@ jobs:
           test -f scripts/task_26_uci_smoke.sh
           test -f scripts/task_27_full_port_audit.sh
           test -f scripts/task_post_port_review_fix_audit.sh
+          test -f scripts/task_s2_2_variant_validation_audit.sh
           test -f scripts/dev.sh
           test -f fixtures/tuning_config.example
           test -f docs/RUST_DEVELOPER_WORKFLOWS.md
           test -f docs/RUST_GENERATED_ARTIFACT_POLICY.md
           test -f docs/RUST_CHESS_ENGINE_V0_1_IMPLEMENTATION_REPORT.md
           test -f docs/RUST_CHESS_ENGINE_PORT_IMPLEMENTATION_REPORT.md
+          test -f docs/RUST_CHESS_ENGINE_VARIANT_VALIDATION.md
           test -f crates/chess-book/tests/task_19_5.rs
+          test -f crates/chess-tools/src/engine_variant_validation.rs
           python3 -m py_compile \
             scripts/differential_oracle.py \
             scripts/task_14_5_exclusion_audit.py \
@@ -63,7 +66,8 @@ jobs:
             scripts/task_26_v0_1_audit.sh \
             scripts/task_26_uci_smoke.sh \
             scripts/task_27_full_port_audit.sh \
-            scripts/task_post_port_review_fix_audit.sh
+            scripts/task_post_port_review_fix_audit.sh \
+            scripts/task_s2_2_variant_validation_audit.sh
 
       - name: Run Task 25 developer-workflow audits
         run: |
@@ -78,6 +82,9 @@ jobs:
 
       - name: Run post-port review fix audit
         run: bash scripts/task_post_port_review_fix_audit.sh
+
+      - name: Run S2-2 complete variant validation audit
+        run: bash scripts/task_s2_2_variant_validation_audit.sh
 
       - name: Run Task 14.5 exclusion audit
         run: python3 scripts/task_14_5_exclusion_audit.py
