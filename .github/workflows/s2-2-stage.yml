@@ -38,7 +38,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/s2_2_stage.py
-          echo '1e5dad99fa4dab06aff3ab9de857bdb1e8329d035d46c9e58ce692554560b1f3  crates/chess-tools/src/engine_variant_validation.rs' | sha256sum --check --strict
+          echo 'a6fa7c299fe88d987010eff0262870bc0b67b8a896e8d3d4d0300fe9043eaa4c  crates/chess-tools/src/engine_variant_validation.rs' | sha256sum --check --strict
           git rm scripts/s2_2_stage.py scripts/.s2_2_payload_0 scripts/.s2_2_payload_1 scripts/.s2_2_payload_2 scripts/.s2_2_payload_3
 
       - name: Format candidate tree
