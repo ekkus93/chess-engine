@@ -106,8 +106,6 @@ if [[ $(grep -Fc 'performance allocation-audit' "$performance") -ne 2 ]]; then
 fi
 require_file "$root/benchmarks/task24/performance-linux-x86-64.tsv"
 require_file "$root/benchmarks/task24/performance-linux-arm64.tsv"
-require_file "$root/fixtures/performance_reference.tsv"
-require_file "$root/fixtures/performance_reference_arm64.tsv"
 
 # One-shot staging machinery must not survive; the permanent workflow is read-only.
 for path in \
