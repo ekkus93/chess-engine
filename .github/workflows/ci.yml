@@ -47,6 +47,7 @@ jobs:
           test -f scripts/task_s2_2_variant_validation_audit.sh
           test -f scripts/task_s2_4_see_audit.sh
           test -f scripts/task_s2_5_see_ordering_audit.sh
+          test -f scripts/task_s2_6_quiescence_audit.sh
           test -f scripts/dev.sh
           test -f fixtures/tuning_config.example
           test -f docs/RUST_DEVELOPER_WORKFLOWS.md
@@ -56,10 +57,13 @@ jobs:
           test -f docs/RUST_CHESS_ENGINE_VARIANT_VALIDATION.md
           test -f docs/RUST_CHESS_ENGINE_V0_2_S2_4_SEE_2026-08-05.md
           test -f docs/RUST_CHESS_ENGINE_V0_2_S2_5_SEE_ORDERING_2026-08-05.md
+          test -f docs/RUST_CHESS_ENGINE_V0_2_S2_6_QUIESCENCE_2026-08-05.md
           test -f crates/chess-book/tests/task_19_5.rs
           test -f crates/chess-tools/src/engine_variant_validation.rs
           test -f crates/chess-tools/src/bin/s2_4_see_benchmark.rs
           test -f crates/chess-tools/src/bin/s2_5_see_ordering.rs
+          test -f crates/chess-tools/src/bin/s2_6_quiescence.rs
+          test -f .github/workflows/s2-6-quiescence.yml
           python3 -m py_compile \
             scripts/differential_oracle.py \
             scripts/task_14_5_exclusion_audit.py \
@@ -75,7 +79,8 @@ jobs:
             scripts/task_post_port_review_fix_audit.sh \
             scripts/task_s2_2_variant_validation_audit.sh \
             scripts/task_s2_4_see_audit.sh \
-            scripts/task_s2_5_see_ordering_audit.sh
+            scripts/task_s2_5_see_ordering_audit.sh \
+            scripts/task_s2_6_quiescence_audit.sh
 
       - name: Run Task 25 developer-workflow audits
         run: |
@@ -99,6 +104,9 @@ jobs:
 
       - name: Run S2-5 SEE capture-ordering audit
         run: bash scripts/task_s2_5_see_ordering_audit.sh
+
+      - name: Run S2-6 quiescence redesign audit
+        run: bash scripts/task_s2_6_quiescence_audit.sh
 
       - name: Run Task 14.5 exclusion audit
         run: python3 scripts/task_14_5_exclusion_audit.py
