@@ -6,6 +6,7 @@ on:
       - master
     paths:
       - scripts/s2_3_baseline_stage.py
+      - scripts/s2_3_baseline_stage_runner.py
       - .github/workflows/s2-3-stage.yml
 
 permissions:
@@ -30,7 +31,7 @@ jobs:
           components: clippy, rustfmt
 
       - name: Apply exact baseline evidence patch
-        run: python3 scripts/s2_3_baseline_stage.py
+        run: python3 scripts/s2_3_baseline_stage_runner.py
 
       - name: Format
         run: cargo fmt --all
@@ -58,8 +59,8 @@ jobs:
           target/release/s2_3_baseline s2-3-evidence-b
           diff -ru s2-3-evidence-a s2-3-evidence-b
 
-      - name: Remove one-shot baseline patch
-        run: git rm scripts/s2_3_baseline_stage.py
+      - name: Remove one-shot baseline patches
+        run: git rm scripts/s2_3_baseline_stage.py scripts/s2_3_baseline_stage_runner.py
 
       - name: Commit validated S2-3 baseline source
         shell: bash
