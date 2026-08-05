@@ -97,6 +97,28 @@
 - Existing Task 24 performance rows, semantic checksums, x86-64/ARM64 reference files, UCI behavior, safe Rust facade, C ABI, JNI, Android, package version, search policy, evaluation weights, and production defaults remain unchanged.
 - Integration defects were fixed at their source: exact staging witnesses, Clippy-clean tests, a mistakenly terminal proposed zugzwang fixture, canonical `key=value` report parsing, and one audit path overreach. No lint suppression, ignored failure, downgraded gate, silent fallback, implicit discovery, temporary payload, or write-capable permanent workflow remains.
 
+## S2-4 implementation record
+
+- Disposition: complete; the standalone allocation-free SEE primitive is accepted for later controlled ordering or pruning candidates, while production search remains unchanged and activation remains false.
+- Starting `master` SHA: `f5a4217ca55a8b8d469b3e23e727f85706ba9aff`.
+- Core implementation SHA: `cbffe1287f7a0c54eae63de71c18211fd75d9503`.
+- Robustness/performance evidence implementation SHA: `995529687ce5fb3ab28ef37d30cecccfcbfcbaa8`.
+- Exact validation SHA: `ffae5bf54555ae3f1224135010ef4ea71633056e`.
+- SEE schema: `1`; policy identifier: `53454556414c3031`; semantic checksum: `0367223104886e8e`; maximum alternating recapture plies: `64`.
+- Stable exchange-accounting values are pawn `100`, knight `320`, bishop `330`, rook `500`, queen `900`, and king `20000`; they are deliberately independent of tuned evaluation weights.
+- Added a typed fail-loud `chess-core` SEE API for ordinary captures, en passant, quiet promotions, and capture promotions. Ordinary quiet moves, double pawn pushes, castling, contradictory occupancy/geometry/promotion state, illegal king exposure, capacity exhaustion, and arithmetic overflow cannot silently become neutral scores.
+- The production algorithm uses fixed local bitboards and bounded recursion, removes the actual en-passant pawn before attack recomputation, reveals rook/queen and bishop/queen x-rays, excludes pinned attackers and illegal king recaptures, chooses least valuable legal attackers deterministically, evaluates all promotion identities, and never mutates the caller's position or allocates heap memory.
+- The independent oracle is structurally different: it uses authoritative legal move generation plus make/unmake after every exchange, filters legal recaptures to the contested square, applies the same deterministic least-value/source ordering contract, permits a side to decline a losing continuation, and compares curated plus deterministic generated positions.
+- Permanent regressions cover winning/equal/poisoned exchanges, multiple attackers and defenders, rook and bishop x-rays, pins, illegal king recaptures, en-passant occupancy, quiet promotions, all four capture-promotion identities, color symmetry, exact root restoration, malformed input, capacity bounds, and deterministic semantic identity.
+- Focused SEE run `31017544295`: x86-64 job `92345450893`, artifact `8935144456`, digest `85eaaa82b3e0c71064d79c922ddc3beb7f1155f024b7781737965c2465dfd2fc`; ARM64 job `92345450837`, artifact `8935145060`, digest `ff3818f13144a60cf18beb07c2fd66e9f2891430f46ca5030b1eb0467c64ba7d`; audit, formatting, strict Clippy, focused core/oracle/fuzz/Miri tests, release builds, seven-sample distributions, zero allocations, and stable result/semantic checksums passed. Median `see.exchange` time was `115 ns` on x86-64 and `86 ns` on ARM64 for this run.
+- Exact Rust CI run `31017544604`: x86-64 workspace-quality job `92345452117` and native ARM64 job `92345451984`; all inherited and S2-4 audits, locked checks, strict Clippy, all-target tests, release perft, rustdoc, debug/release builds, UCI smoke, and differential oracle passed.
+- Exact performance run `31017544299`: x86-64 job `92345451159`, artifact `8935143722`; ARM64 job `92345451033`, artifact `8935142184`; existing seven-sample distributions, zero-allocation audits, semantic checksums, and reference budgets remained green and unchanged.
+- Exact robustness run `31017545028`: fuzz job `92345454104`, Miri job `92345454070`, sanitizer/TSan job `92345454065`; the dedicated SEE corpus/campaign, strict fuzz checks, Miri SEE regression, ASan/LSan SEE suite, lifecycle sanitizers, and TSan cancellation gate passed.
+- Exact Android/JNI run `31017544444`: API-35 instrumented JNI job `92346311916`, host JVM job `92346311727`, Android lint job `92346311811`, artifact `8935371724`; all passed.
+- Exact tracker authority run `31017544324`, job `92345450787`; all inherited audits, S2-3 baseline audit, standalone S2-4 audit, and pre-closure progression checks passed.
+- No strength match was required or used because S2-4 adds an inactive standalone primitive and does not change search decisions, evaluation weights, policy identity, UCI, safe Rust facade, C ABI, JNI, Android, package version, performance references, or production defaults.
+- Integration defects were repaired at their source or validation boundary: temporary payload transcription, fuzz-workspace formatting order, workflow-token scope separation, and an audit witness for a stronger `const` API. No lint suppression, ignored failure, downgraded gate, silent fallback, implicit discovery, temporary payload, or write-capable permanent workflow remains in the validated tree.
+
 ## Status rules
 
 - `[x]` means complete with implementation, documentation, and exact evidence.
@@ -131,7 +153,7 @@
 | S2-1 | Versioned search-policy and engine-variant identity | **Complete** |
 | S2-2 | Generalized strength-validation infrastructure | **Complete** |
 | S2-3 | Baseline strength, diagnostics, and performance capture | **Complete** |
-| S2-4 | Correct allocation-free Static Exchange Evaluation | **Not started** |
+| S2-4 | Correct allocation-free Static Exchange Evaluation | **Complete** |
 | S2-5 | SEE capture-ordering candidate | **Not started** |
 | S2-6 | Quiescence redesign candidates | **Not started** |
 | S2-7 | Principal Variation Search candidate | **Not started** |
@@ -322,61 +344,61 @@
 
 ---
 
-# Task S2-4: Correct allocation-free Static Exchange Evaluation — NOT STARTED
+# Task S2-4: Correct allocation-free Static Exchange Evaluation — COMPLETE
 
 ## S2-4.1 Design contract
 
-- [ ] Define stable piece values used only for exchange accounting.
-- [ ] Define SEE sign and side-to-move/capturing-side convention.
-- [ ] Define valid move categories.
-- [ ] Define typed errors for non-capture misuse and move/position contradiction.
-- [ ] Define bounded local storage and arithmetic domain.
-- [ ] Document that SEE is an estimate/order primitive, not a legal search replacement.
+- [x] Define stable piece values used only for exchange accounting.
+- [x] Define SEE sign and side-to-move/capturing-side convention.
+- [x] Define valid move categories.
+- [x] Define typed errors for non-capture misuse and move/position contradiction.
+- [x] Define bounded local storage and arithmetic domain.
+- [x] Document that SEE is an estimate/order primitive, not a legal search replacement.
 
 ## S2-4.2 Core implementation
 
-- [ ] Model ordinary captures.
-- [ ] Model en-passant occupancy removal correctly.
-- [ ] Model promotion value changes for quiet/capture promotions as applicable.
-- [ ] Reveal rook/queen x-rays after occupancy removal.
-- [ ] Reveal bishop/queen x-rays after occupancy removal.
-- [ ] Handle pawn attack direction exactly.
-- [ ] Handle king recapture legality conservatively and correctly.
-- [ ] Choose least valuable attackers deterministically.
-- [ ] Do not mutate the caller's `Position`.
-- [ ] Allocate no heap memory.
+- [x] Model ordinary captures.
+- [x] Model en-passant occupancy removal correctly.
+- [x] Model promotion value changes for quiet/capture promotions as applicable.
+- [x] Reveal rook/queen x-rays after occupancy removal.
+- [x] Reveal bishop/queen x-rays after occupancy removal.
+- [x] Handle pawn attack direction exactly.
+- [x] Handle king recapture legality conservatively and correctly.
+- [x] Choose least valuable attackers deterministically.
+- [x] Do not mutate the caller's `Position`.
+- [x] Allocate no heap memory.
 
 ## S2-4.3 Independent oracle
 
-- [ ] Implement an independent brute-force legal capture-sequence oracle in tests/tools.
-- [ ] Keep the oracle structurally different from the production swap algorithm.
-- [ ] Compare curated fixtures.
-- [ ] Compare deterministic generated legal positions and captures.
-- [ ] Preserve any mismatch as a minimized permanent regression.
+- [x] Implement an independent brute-force legal capture-sequence oracle in tests/tools.
+- [x] Keep the oracle structurally different from the production swap algorithm.
+- [x] Compare curated fixtures.
+- [x] Compare deterministic generated legal positions and captures.
+- [x] Preserve any mismatch as a minimized permanent regression.
 
 ## S2-4.4 Focused fixtures
 
-- [ ] Undefended winning capture.
-- [ ] Equal exchange.
-- [ ] Poisoned capture.
-- [ ] Multiple attackers/defenders.
-- [ ] X-ray rook/queen sequence.
-- [ ] X-ray bishop/queen sequence.
-- [ ] Pinned or illegal king recapture.
-- [ ] En-passant occupancy case.
-- [ ] Quiet promotion accounting if supported by the API.
-- [ ] Capture-promotion accounting for all four promotion identities.
-- [ ] Symmetry and no-mutation properties.
+- [x] Undefended winning capture.
+- [x] Equal exchange.
+- [x] Poisoned capture.
+- [x] Multiple attackers/defenders.
+- [x] X-ray rook/queen sequence.
+- [x] X-ray bishop/queen sequence.
+- [x] Pinned or illegal king recapture.
+- [x] En-passant occupancy case.
+- [x] Quiet promotion accounting if supported by the API.
+- [x] Capture-promotion accounting for all four promotion identities.
+- [x] Symmetry and no-mutation properties.
 
 ## S2-4.5 Robustness and performance
 
-- [ ] Add SEE fuzz target or corpus replay.
-- [ ] Add Miri coverage.
-- [ ] Add zero-allocation benchmark row.
-- [ ] Add deterministic semantic checksum.
-- [ ] Run sanitizers as applicable.
+- [x] Add SEE fuzz target or corpus replay.
+- [x] Add Miri coverage.
+- [x] Add zero-allocation benchmark row.
+- [x] Add deterministic semantic checksum.
+- [x] Run sanitizers as applicable.
 
-**S2-4 gate:** SEE matches an independent legal capture oracle, is deterministic, fail-loud, non-mutating, and allocation-free.
+**S2-4 gate:** Complete. SEE matches an independent legal capture oracle, is deterministic, fail-loud, non-mutating, allocation-free, and remains inactive outside controlled tooling.
 
 ---
 
@@ -932,4 +954,4 @@ Remaining risks:
 
 ## Initial next action
 
-Begin with **S2-4 only**: correct allocation-free Static Exchange Evaluation. Do not integrate SEE into move ordering or pruning, and do not implement PVS, LMR, null move, frontier pruning, or tablebases until the standalone S2-4 SEE contract, independent oracle, robustness, and allocation gates are complete.
+Begin with **S2-5 only**: the inactive SEE capture-ordering candidate. Do not add SEE pruning, quiescence redesign, PVS, LMR, null move, frontier pruning, or tablebases until S2-5 has isolated policy identity, exact correctness parity, diagnostics, performance evidence, and an explicit disposition.
