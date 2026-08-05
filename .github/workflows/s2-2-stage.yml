@@ -1,27 +1,49 @@
-name: S2-2 staged integration
+name: Engine variant validation
 
 on:
   push:
     branches:
       - master
     paths:
+      - crates/chess-tools/src/candidate_validation.rs
+      - crates/chess-tools/src/engine_variant.rs
+      - crates/chess-tools/src/engine_variant_validation.rs
+      - crates/chess-tools/src/lib.rs
+      - crates/chess-search/src/**
+      - scripts/task_s2_2_variant_validation_audit.sh
+      - docs/RUST_CHESS_ENGINE_VARIANT_VALIDATION.md
       - .github/workflows/s2-2-stage.yml
+  pull_request:
+    branches:
+      - master
+    paths:
+      - crates/chess-tools/src/candidate_validation.rs
+      - crates/chess-tools/src/engine_variant.rs
+      - crates/chess-tools/src/engine_variant_validation.rs
+      - crates/chess-tools/src/lib.rs
+      - crates/chess-search/src/**
+      - scripts/task_s2_2_variant_validation_audit.sh
+      - docs/RUST_CHESS_ENGINE_VARIANT_VALIDATION.md
+      - .github/workflows/s2-2-stage.yml
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: s2-2-staged-integration
-  cancel-in-progress: false
+  group: engine-variant-validation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  integrate:
+  validate:
+    name: Complete variant protocol
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: "1"
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -31,40 +53,24 @@ jobs:
       - name: Cache Cargo data
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: rust-engine-s2-2-stage
+          shared-key: rust-engine-variant-validation
 
-      - name: Assemble engine-variant validator
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 scripts/s2_2_stage.py
-          echo '5481d70d6429bbecc5b993f98b08335633be79eb32f11f0cef0b44416636b02b  crates/chess-tools/src/engine_variant_validation.rs' | sha256sum --check --strict
-          git rm scripts/s2_2_stage.py scripts/.s2_2_payload_0 scripts/.s2_2_payload_1 scripts/.s2_2_payload_2 scripts/.s2_2_payload_3
+      - name: Run permanent S2-2 audit
+        run: bash scripts/task_s2_2_variant_validation_audit.sh
 
-      - name: Format candidate tree
-        run: cargo fmt --all
+      - name: Check formatting
+        run: cargo fmt --all -- --check
 
-      - name: Validate candidate tree
-        shell: bash
-        run: |
-          set -euo pipefail
-          git diff --check
-          cargo fmt --all -- --check
-          cargo metadata --locked --format-version 1 >/dev/null
-          cargo check --workspace --all-targets --locked
-          cargo clippy --locked -p chess-tools --all-targets --all-features -- -D warnings
-          cargo test --locked -p chess-tools engine_variant_validation::tests
-          cargo test --locked -p chess-tools candidate_validation::tests
-          cargo test --workspace --all-targets --all-features --locked
-          bash scripts/task_s2_1_policy_identity_audit.sh
-          bash scripts/task_post_port_review_fix_audit.sh
+      - name: Run focused strict Clippy
+        run: >-
+          cargo clippy --locked
+          -p chess-tools
+          --all-targets
+          --all-features
+          -- -D warnings
 
-      - name: Commit validated implementation
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'Phillip Chin'
-          git config user.email 'ekkus93@gmail.com'
-          git add -A -- crates/chess-tools/src/engine_variant_validation.rs crates/chess-tools/src/lib.rs scripts
-          git commit -m 'feat: add engine variant validation infrastructure'
-          git push origin HEAD:master
+      - name: Test complete variant protocol
+        run: cargo test --locked -p chess-tools engine_variant_validation::tests
+
+      - name: Preserve weight-only protocol compatibility
+        run: cargo test --locked -p chess-tools candidate_validation::tests
