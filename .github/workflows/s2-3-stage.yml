@@ -1,25 +1,24 @@
-name: S2-3 diagnostics staging
+name: S2-3 baseline staging
 
 on:
   push:
     branches:
       - master
     paths:
-      - scripts/s2_3_stage.py
-      - scripts/s2_3_stage_runner.py
+      - scripts/s2_3_baseline_stage.py
       - .github/workflows/s2-3-stage.yml
 
 permissions:
   contents: write
 
 concurrency:
-  group: s2-3-diagnostics-staging
+  group: s2-3-baseline-staging
   cancel-in-progress: false
 
 jobs:
   stage:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,8 +29,8 @@ jobs:
         with:
           components: clippy, rustfmt
 
-      - name: Apply exact diagnostics patch
-        run: python3 scripts/s2_3_stage_runner.py
+      - name: Apply exact baseline evidence patch
+        run: python3 scripts/s2_3_baseline_stage.py
 
       - name: Format
         run: cargo fmt --all
@@ -42,19 +41,33 @@ jobs:
       - name: Strict Clippy
         run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
 
-      - name: Test diagnostics and workspace
+      - name: Test workspace
         run: cargo test --locked --workspace --all-targets --all-features
 
-      - name: Remove one-shot source patches
-        run: git rm scripts/s2_3_stage.py scripts/s2_3_stage_runner.py
+      - name: Build release baseline harness
+        run: cargo build --locked --release -p chess-tools --bin s2_3_baseline
 
-      - name: Commit validated diagnostics
+      - name: Generate deterministic tactical and control evidence twice
+        shell: bash
+        env:
+          S2_3_SOURCE_SHA: ${{ github.sha }}
+          S2_3_BUILD_IDENTITY: rustc-stable|x86_64-unknown-linux-gnu|release|locked
+        run: |
+          set -euo pipefail
+          target/release/s2_3_baseline s2-3-evidence-a
+          target/release/s2_3_baseline s2-3-evidence-b
+          diff -ru s2-3-evidence-a s2-3-evidence-b
+
+      - name: Remove one-shot baseline patch
+        run: git rm scripts/s2_3_baseline_stage.py
+
+      - name: Commit validated S2-3 baseline source
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'Phillip Chin'
           git config user.email 'ekkus93@gmail.com'
-          git add -A -- crates/chess-search scripts
+          git add -A -- crates/chess-tools fixtures scripts
           git diff --cached --check
-          git commit -m 'feat: add deterministic search diagnostics'
+          git commit -m 'feat: add S2-3 tactical and strength baselines'
           git push origin HEAD:master
