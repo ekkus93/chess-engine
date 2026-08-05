@@ -52,6 +52,10 @@ jobs:
                   b'evaluate_fixture(\"7k/P7/8/8/8/8/8/7K w - - 0 1\", \"a7a8q\".centipawns(),',
                   b'evaluate_fixture(\"7k/P7/8/8/8/8/8/7K w - - 0 1\", \"a7a8q\").centipawns(),',
               )
+              data = data.replace(
+                  b\"assert_eq(awhite, black);\",
+                  b\"assert_eq!(white, black);\",
+              )
               target.write_bytes(data)"""
           if text.count(old) != 1:
               raise SystemExit("temporary payload writer witness changed")
