@@ -1,53 +1,49 @@
-name: Tracker evidence closure
+name: Strength tracker audit
 
 on:
   push:
     branches:
       - master
-    paths:
-      - .github/workflows/tracker-close.yml
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: tracker-evidence-closure
-  cancel-in-progress: false
+  group: strength-tracker-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  close:
+  tracker-audit:
+    name: Strength tracker authority and evidence
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Close S2-2 tracker gate
-        run: python3 scripts/tracker_close.py
+      - name: Audit TODO authority and inherited closure
+        run: bash scripts/task_post_port_review_fix_audit.sh
 
-      - name: Remove temporary closure script
-        run: git rm scripts/tracker_close.py
+      - name: Audit search policy and variant identity
+        run: bash scripts/task_s2_1_policy_identity_audit.sh
 
-      - name: Validate tracker and permanent audits
+      - name: Audit complete engine-variant validation
+        run: bash scripts/task_s2_2_variant_validation_audit.sh
+
+      - name: Verify active program progression
         shell: bash
         run: |
           set -euo pipefail
-          git diff --check
-          bash scripts/task_post_port_review_fix_audit.sh
-          bash scripts/task_s2_1_policy_identity_audit.sh
-          bash scripts/task_s2_2_variant_validation_audit.sh
           tracker=docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md
+          grep -Fq '| S2-0 | Authority cleanup and exact baseline inspection | **Complete** |' "$tracker"
+          grep -Fq '| S2-1 | Versioned search-policy and engine-variant identity | **Complete** |' "$tracker"
           grep -Fq '| S2-2 | Generalized strength-validation infrastructure | **Complete** |' "$tracker"
           grep -Fq '# Task S2-2: Generalized strength-validation infrastructure — COMPLETE' "$tracker"
           grep -Fq 'Begin with **S2-3 only**' "$tracker"
-
-      - name: Commit documentation closure
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'Phillip Chin'
-          git config user.email 'ekkus93@gmail.com'
-          git add -A -- docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md scripts
-          git commit -m 'docs: close S2-2 variant validation gate'
-          git push origin HEAD:master
+          if find scripts -maxdepth 1 -type f -name 'tracker_close.py' -print | grep -q .; then
+            echo 'temporary tracker closure script remains' >&2
+            exit 1
+          fi
