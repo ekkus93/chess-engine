@@ -1,4 +1,5 @@
 name: S2-6 closure temporary
+# witness-revision: 2
 
 on:
   push:
