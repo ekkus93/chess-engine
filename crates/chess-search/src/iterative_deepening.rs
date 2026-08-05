@@ -23,9 +23,9 @@ use crate::{
     principal_variation::{
         reconstruct_principal_variation_with_table_policy, PrincipalVariationError,
     },
-    EvaluationWeights, PrincipalVariation, Score, SearchCancellationProbe, TranspositionHashFull,
-    TranspositionTable, TranspositionTableAllocationError, TranspositionTableDiagnostics,
-    MAX_MATE_PLY,
+    EvaluationWeights, PrincipalVariation, Score, SearchCancellationProbe, SearchPolicy,
+    SearchPolicySet, SearchPolicyValidationError, TranspositionHashFull, TranspositionTable,
+    TranspositionTableAllocationError, TranspositionTableDiagnostics, MAX_MATE_PLY,
 };
 
 /// One fully completed fixed-depth iteration.
@@ -391,6 +391,8 @@ pub type LimitedIterativeDeepeningSearchResult = SearchResult;
 pub enum IterativeDeepeningSearchError {
     /// A typed limit request was invalid.
     InvalidLimits(SearchLimitError),
+    /// An explicit search policy failed before search mutation.
+    InvalidSearchPolicy(SearchPolicyValidationError),
     /// Iterative deepening requires at least one completed depth.
     ZeroMaximumDepth,
     /// The requested maximum exceeds the supported mate-distance domain.
@@ -439,6 +441,7 @@ impl fmt::Display for IterativeDeepeningSearchError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidLimits(error) => error.fmt(formatter),
+            Self::InvalidSearchPolicy(error) => error.fmt(formatter),
             Self::ZeroMaximumDepth => {
                 formatter.write_str("iterative-deepening maximum depth must be at least one")
             }
@@ -597,13 +600,42 @@ pub fn iterative_deepening_search_with_limits_and_transposition_table_and_weight
     transposition_table: &mut TranspositionTable,
     weights: &EvaluationWeights,
 ) -> Result<SearchResult, IterativeDeepeningSearchError> {
+    let search_policy = SearchPolicySet::baseline();
+    iterative_deepening_search_with_limits_and_transposition_table_and_policy_and_weights(
+        position,
+        history,
+        limits,
+        transposition_table,
+        &search_policy,
+        weights,
+    )
+}
+
+/// Searches with explicit policy and evaluation identities in controlled Rust tooling/tests.
+///
+/// Validation happens before position, history, controller, or table mutation. A caller must
+/// use a separate transposition table whenever policy or evaluator identity differs.
+pub fn iterative_deepening_search_with_limits_and_transposition_table_and_policy_and_weights(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    limits: SearchLimits,
+    transposition_table: &mut TranspositionTable,
+    search_policy: &SearchPolicySet,
+    weights: &EvaluationWeights,
+) -> Result<SearchResult, IterativeDeepeningSearchError> {
+    search_policy
+        .validate()
+        .map_err(IterativeDeepeningSearchError::InvalidSearchPolicy)?;
     iterative_deepening_search_with_limits_and_clock_and_observer_and_weights(
         position,
         history,
         limits,
         transposition_table,
         WallClock::start(),
-        weights,
+        IterativeDeepeningExecutionPolicy {
+            search_policy: &search_policy.policy,
+            weights,
+        },
         |_| {},
     )
 }
@@ -672,9 +704,18 @@ where
         limits,
         transposition_table,
         clock,
-        &EvaluationWeights::DEFAULT,
+        IterativeDeepeningExecutionPolicy {
+            search_policy: &SearchPolicy::V0_1,
+            weights: &EvaluationWeights::DEFAULT,
+        },
         observer,
     )
+}
+
+#[derive(Clone, Copy)]
+struct IterativeDeepeningExecutionPolicy<'a> {
+    search_policy: &'a SearchPolicy,
+    weights: &'a EvaluationWeights,
 }
 
 fn iterative_deepening_search_with_limits_and_clock_and_observer_and_weights<Clock, Observer>(
@@ -683,14 +724,19 @@ fn iterative_deepening_search_with_limits_and_clock_and_observer_and_weights<Clo
     limits: SearchLimits,
     transposition_table: &mut TranspositionTable,
     clock: Clock,
-    weights: &EvaluationWeights,
+    execution_policy: IterativeDeepeningExecutionPolicy<'_>,
     mut observer: Observer,
 ) -> Result<SearchResult, IterativeDeepeningSearchError>
 where
     Clock: SearchClock,
     Observer: for<'a> FnMut(SearchProgress<'a>),
 {
-    let check_extension_enabled = limits.check_extension_enabled();
+    let IterativeDeepeningExecutionPolicy {
+        search_policy,
+        weights,
+    } = execution_policy;
+    let check_extension_enabled =
+        limits.check_extension_enabled() && search_policy.maximum_check_extensions_per_line() > 0;
     let mut controller = SearchLimitController::new(limits, clock)
         .map_err(IterativeDeepeningSearchError::InvalidLimits)?;
     let fallback = cancellation_fallback(position, history)?;
@@ -725,8 +771,9 @@ where
             depth,
             center,
             IterationSearchPolicy {
-                half_width_centipawns: DEFAULT_ASPIRATION_HALF_WIDTH_CENTIPAWNS,
+                half_width_centipawns: i32::from(search_policy.aspiration_half_width_centipawns()),
                 check_extension_enabled,
+                search_policy,
                 weights,
             },
             transposition_table,
@@ -841,6 +888,7 @@ where
 struct IterationSearchPolicy<'a> {
     half_width_centipawns: i32,
     check_extension_enabled: bool,
+    search_policy: &'a SearchPolicy,
     weights: &'a EvaluationWeights,
 }
 
@@ -861,6 +909,7 @@ fn search_completed_iteration(
         IterationSearchPolicy {
             half_width_centipawns,
             check_extension_enabled: false,
+            search_policy: &SearchPolicy::V0_1,
             weights: &EvaluationWeights::DEFAULT,
         },
         transposition_table,
@@ -883,9 +932,13 @@ where
     prepare_alpha_beta_iteration(position, history, depth, transposition_table)
         .map_err(|error| IterativeDeepeningSearchError::IterationFailed { depth, error })?;
 
-    let initial_window = center.map_or_else(AlphaBetaWindow::full, |score| {
-        aspiration_window(score, policy.half_width_centipawns)
-    });
+    let initial_window = if policy.search_policy.aspiration_windows_enabled() {
+        center.map_or_else(AlphaBetaWindow::full, |score| {
+            aspiration_window(score, policy.half_width_centipawns)
+        })
+    } else {
+        AlphaBetaWindow::full()
+    };
     let (initial_result, initial_attempt) = run_attempt(
         position,
         history,
@@ -893,6 +946,7 @@ where
         AlphaBetaSearchPolicy::new(
             initial_window,
             policy.check_extension_enabled,
+            policy.search_policy,
             policy.weights,
         ),
         transposition_table,
@@ -914,6 +968,7 @@ where
                 AlphaBetaSearchPolicy::new(
                     AlphaBetaWindow::full(),
                     policy.check_extension_enabled,
+                    policy.search_policy,
                     policy.weights,
                 ),
                 transposition_table,

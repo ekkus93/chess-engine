@@ -1,15 +1,14 @@
 use std::collections::BTreeMap;
 
 use chess_search::{
-    AlphaBetaMode, ExperimentalSearchFeatures, MoveOrderingPolicy, QuiescencePolicy,
-    SearchPolicy, SearchPolicyParameters, SearchPolicySet, TranspositionPolicy,
-    SEARCH_POLICY_SCHEMA_VERSION,
+    AlphaBetaMode, ExperimentalSearchFeatures, MoveOrderingPolicy, QuiescencePolicy, SearchPolicy,
+    SearchPolicyParameters, SearchPolicySet, TranspositionPolicy, SEARCH_POLICY_SCHEMA_VERSION,
 };
 
 use super::ToolError;
 
 const FORMAT_MARKER: &str = "chess-search-policy-v1";
-const FIELD_COUNT: usize = 11;
+const FIELD_COUNT: usize = 12;
 
 /// Serializes a validated search policy into canonical explicit text.
 pub fn serialize_search_policy(set: &SearchPolicySet) -> Result<String, ToolError> {
@@ -18,7 +17,7 @@ pub fn serialize_search_policy(set: &SearchPolicySet) -> Result<String, ToolErro
     let parameters = set.policy.parameters();
     Ok(format!(
         concat!(
-            "{FORMAT_MARKER}\n",
+            "{}\n",
             "schema={}\n",
             "identifier={:016x}\n",
             "checksum={:016x}\n",
@@ -32,6 +31,7 @@ pub fn serialize_search_policy(set: &SearchPolicySet) -> Result<String, ToolErro
             "maximum_check_extensions_per_line={}\n",
             "experimental_features={:016x}\n"
         ),
+        FORMAT_MARKER,
         set.schema_version,
         set.identifier,
         set.checksum,
@@ -59,7 +59,9 @@ pub fn deserialize_search_policy(input: &str) -> Result<SearchPolicySet, ToolErr
     let mut fields = BTreeMap::new();
     for line in lines {
         let (name, value) = line.split_once('=').ok_or_else(|| {
-            ToolError::new(format!("search-policy field must use name=value syntax: {line:?}"))
+            ToolError::new(format!(
+                "search-policy field must use name=value syntax: {line:?}"
+            ))
         })?;
         if name.is_empty() || value.is_empty() {
             return Err(ToolError::new(format!(
@@ -260,7 +262,11 @@ mod tests {
         assert!(deserialize_search_policy(&corrupt).is_err());
 
         let unsupported = canonical
-            .replacen("experimental_features=0000000000000000", "experimental_features=0000000000000001", 1)
+            .replacen(
+                "experimental_features=0000000000000000",
+                "experimental_features=0000000000000001",
+                1,
+            )
             .replacen(
                 &format!("checksum={:016x}", baseline.checksum),
                 "checksum=0000000000000000",

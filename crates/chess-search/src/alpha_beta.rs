@@ -5,14 +5,14 @@ use chess_core::{LegalMoveError, Move, Position, SearchHistory, SearchHistoryErr
 use crate::{
     aspiration::AspirationWindowOutcome,
     cancellation::NeverCancelled,
-    check_extension::{decide_check_extension, MAX_CHECK_EXTENSIONS_PER_LINE},
+    check_extension::decide_check_extension,
     move_ordering::{ordered_legal_moves_with_state_and_tt_move, MoveOrdering, QuietOrderingState},
     quiescence::{search_quiescence_node_with_weights, QuiescenceContext, QuiescenceSearchPolicy},
     search_common::resolved_node_score,
-    EvaluationWeights, Score, SearchCancellationProbe, TranspositionBound, TranspositionEntry,
-    TranspositionProbeError, TranspositionProbeRequest, TranspositionProbeScore,
-    TranspositionScore, TranspositionScoreConversionError, TranspositionScoreReuse,
-    TranspositionTable, TranspositionTableAllocationError, MAX_MATE_PLY, MAX_QUIESCENCE_PLY,
+    EvaluationWeights, Score, SearchCancellationProbe, SearchPolicy, TranspositionBound,
+    TranspositionEntry, TranspositionProbeError, TranspositionProbeRequest,
+    TranspositionProbeScore, TranspositionScore, TranspositionScoreConversionError,
+    TranspositionScoreReuse, TranspositionTable, TranspositionTableAllocationError, MAX_MATE_PLY,
 };
 
 /// Fixed table size used by the convenience alpha-beta entry points.
@@ -358,6 +358,7 @@ pub(crate) fn prepare_alpha_beta_iteration(
 pub(crate) struct AlphaBetaSearchPolicy<'a> {
     window: AlphaBetaWindow,
     check_extension_enabled: bool,
+    search_policy: &'a SearchPolicy,
     weights: &'a EvaluationWeights,
 }
 
@@ -365,11 +366,13 @@ impl<'a> AlphaBetaSearchPolicy<'a> {
     pub(crate) const fn new(
         window: AlphaBetaWindow,
         check_extension_enabled: bool,
+        search_policy: &'a SearchPolicy,
         weights: &'a EvaluationWeights,
     ) -> Self {
         Self {
             window,
             check_extension_enabled,
+            search_policy,
             weights,
         }
     }
@@ -427,7 +430,12 @@ where
         position,
         history,
         depth,
-        AlphaBetaSearchPolicy::new(window, check_extension_enabled, &EvaluationWeights::DEFAULT),
+        AlphaBetaSearchPolicy::new(
+            window,
+            check_extension_enabled,
+            &SearchPolicy::V0_1,
+            &EvaluationWeights::DEFAULT,
+        ),
         transposition_table,
         cancellation,
     )
@@ -455,6 +463,8 @@ where
         quiet_ordering: &mut quiet_ordering,
         transposition_table: Some(transposition_table),
         check_extension_enabled: policy.check_extension_enabled,
+        maximum_check_extensions_per_line: policy.search_policy.maximum_check_extensions_per_line(),
+        maximum_quiescence_ply: policy.search_policy.maximum_quiescence_ply(),
         weights: policy.weights,
         cancellation,
     };
@@ -477,6 +487,8 @@ where
     quiet_ordering: &'a mut QuietOrderingState,
     transposition_table: Option<&'a mut TranspositionTable>,
     check_extension_enabled: bool,
+    maximum_check_extensions_per_line: u16,
+    maximum_quiescence_ply: u16,
     weights: &'a EvaluationWeights,
     cancellation: &'a mut Probe,
 }
@@ -493,7 +505,7 @@ where
     Probe: SearchCancellationProbe + ?Sized,
 {
     let extension_budget = if context.check_extension_enabled {
-        MAX_CHECK_EXTENSIONS_PER_LINE
+        context.maximum_check_extensions_per_line
     } else {
         0
     };
@@ -528,7 +540,7 @@ where
         let quiescence_context = QuiescenceContext {
             ply,
             quiescence_ply: 0,
-            maximum_quiescence_ply: MAX_QUIESCENCE_PLY,
+            maximum_quiescence_ply: context.maximum_quiescence_ply,
         };
         return search_quiescence_node_with_weights(
             position,
@@ -778,6 +790,8 @@ mod ordering_tests {
             quiet_ordering: &mut quiet_ordering,
             transposition_table: None,
             check_extension_enabled: false,
+            maximum_check_extensions_per_line: crate::MAX_CHECK_EXTENSIONS_PER_LINE,
+            maximum_quiescence_ply: crate::MAX_QUIESCENCE_PLY,
             weights: &crate::EvaluationWeights::DEFAULT,
             cancellation: &mut cancellation,
         };
@@ -806,6 +820,8 @@ mod ordering_tests {
             quiet_ordering: &mut quiet_ordering,
             transposition_table: None,
             check_extension_enabled: false,
+            maximum_check_extensions_per_line: crate::MAX_CHECK_EXTENSIONS_PER_LINE,
+            maximum_quiescence_ply: crate::MAX_QUIESCENCE_PLY,
             weights: &crate::EvaluationWeights::DEFAULT,
             cancellation: &mut cancellation,
         };
@@ -914,6 +930,8 @@ mod ordering_tests {
                 quiet_ordering: &mut quiet_ordering,
                 transposition_table: Some(&mut table),
                 check_extension_enabled: false,
+                maximum_check_extensions_per_line: crate::MAX_CHECK_EXTENSIONS_PER_LINE,
+                maximum_quiescence_ply: crate::MAX_QUIESCENCE_PLY,
                 weights: &crate::EvaluationWeights::DEFAULT,
                 cancellation: &mut cancellation,
             };

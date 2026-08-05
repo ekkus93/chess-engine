@@ -9,20 +9,20 @@ use std::{env, fs, io, process::ExitCode, time::Instant};
 
 mod tuning_cli;
 
-use chess_search::EvaluationWeightSet;
+use chess_search::{EvaluationWeightSet, SearchPolicySet};
 
 use chess_tools::self_play::{
     generate_self_play_dataset, OpeningSuite, SelfPlayDataset, SelfPlayFileConfig,
     SELF_PLAY_DATASET_SCHEMA_VERSION,
 };
 use chess_tools::{
-    benchmark_cancellation, benchmark_evaluation, benchmark_transposition, deserialize_weight_set,
-    divide, evaluation_trace, legal_uci, perft, play_uci, run_oracle, serialize_weight_set, suite,
-    STARTING_FEN,
+    benchmark_cancellation, benchmark_evaluation, benchmark_transposition,
+    deserialize_search_policy, deserialize_weight_set, divide, evaluation_trace, legal_uci, perft,
+    play_uci, run_oracle, serialize_search_policy, serialize_weight_set, suite, STARTING_FEN,
 };
 
 fn usage() -> &'static str {
-    "usage:\n  chess-tools legal [FEN]\n  chess-tools play UCI [FEN]\n  chess-tools perft DEPTH [FEN]\n  chess-tools divide DEPTH [FEN]\n  chess-tools suite MAX_DEPTH\n  chess-tools eval [FEN]\n  chess-tools eval-bench ITERATIONS [FEN]\n  chess-tools tt-bench ITERATIONS\n  chess-tools cancel-bench ITERATIONS\n  chess-tools weights-export\n  chess-tools weights-validate PATH\n  chess-tools self-play CONFIG_PATH OUTPUT_PATH\n  chess-tools self-play-validate DATASET_PATH\n  chess-tools self-play-replay DATASET_PATH GAME_ID\n  chess-tools tune CONFIG_PATH DATASET_PATH OUTPUT_DIR [PREVIOUS_OUTPUT_DIR]\n  chess-tools oracle"
+    "usage:\n  chess-tools legal [FEN]\n  chess-tools play UCI [FEN]\n  chess-tools perft DEPTH [FEN]\n  chess-tools divide DEPTH [FEN]\n  chess-tools suite MAX_DEPTH\n  chess-tools eval [FEN]\n  chess-tools eval-bench ITERATIONS [FEN]\n  chess-tools tt-bench ITERATIONS\n  chess-tools cancel-bench ITERATIONS\n  chess-tools weights-export\n  chess-tools weights-validate PATH\n  chess-tools policy-export\n  chess-tools policy-validate PATH\n  chess-tools self-play CONFIG_PATH OUTPUT_PATH\n  chess-tools self-play-validate DATASET_PATH\n  chess-tools self-play-replay DATASET_PATH GAME_ID\n  chess-tools tune CONFIG_PATH DATASET_PATH OUTPUT_DIR [PREVIOUS_OUTPUT_DIR]\n  chess-tools oracle"
 }
 
 fn parse_depth(value: &str) -> Result<u8, String> {
@@ -181,6 +181,26 @@ fn run(arguments: &[String]) -> Result<(), String> {
             let text = fs::read_to_string(&arguments[1])
                 .map_err(|error| format!("failed to read {:?}: {error}", arguments[1]))?;
             let set = deserialize_weight_set(&text).map_err(|error| error.to_string())?;
+            println!("identifier\t{:016x}", set.identifier);
+            println!("checksum\t{:016x}", set.checksum);
+        }
+        "policy-export" => {
+            if arguments.len() != 1 {
+                return Err(usage().to_owned());
+            }
+            print!(
+                "{}",
+                serialize_search_policy(&SearchPolicySet::baseline())
+                    .map_err(|error| error.to_string())?
+            );
+        }
+        "policy-validate" => {
+            if arguments.len() != 2 {
+                return Err(usage().to_owned());
+            }
+            let text = fs::read_to_string(&arguments[1])
+                .map_err(|error| format!("failed to read {:?}: {error}", arguments[1]))?;
+            let set = deserialize_search_policy(&text).map_err(|error| error.to_string())?;
             println!("identifier\t{:016x}", set.identifier);
             println!("checksum\t{:016x}", set.checksum);
         }

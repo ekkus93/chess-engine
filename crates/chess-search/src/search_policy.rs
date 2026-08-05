@@ -2,8 +2,7 @@ use core::fmt;
 
 use crate::{
     aspiration::DEFAULT_ASPIRATION_HALF_WIDTH_CENTIPAWNS,
-    check_extension::MAX_CHECK_EXTENSIONS_PER_LINE, quiescence::MAX_QUIESCENCE_PLY,
-    MAX_MATE_PLY,
+    check_extension::MAX_CHECK_EXTENSIONS_PER_LINE, quiescence::MAX_QUIESCENCE_PLY, MAX_MATE_PLY,
 };
 
 /// Current serialized search-policy schema.
@@ -17,7 +16,7 @@ pub const MAXIMUM_ASPIRATION_HALF_WIDTH_CENTIPAWNS: u16 = 10_000;
 /// Largest accepted bounded check-extension budget.
 pub const MAXIMUM_CHECK_EXTENSIONS_PER_LINE: u16 = 4;
 
-const FNV_OFFSET: u64 = 0xcbf_29ce4_8422_2325;
+const FNV_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
 const FNV_PRIME: u64 = 0x0000_0100_0000_01b3;
 
 /// Authoritative alpha-beta semantic family.
@@ -165,9 +164,9 @@ impl ExperimentalSearchFeatures {
     pub const fn from_bits(bits: u64) -> Result<Self, SearchPolicyValidationError> {
         let unknown = bits & !Self::KNOWN_BITS;
         if unknown != 0 {
-            return Err(SearchPolicyValidationError::UnknownExperimentalFeatureBits {
-                bits: unknown,
-            });
+            return Err(
+                SearchPolicyValidationError::UnknownExperimentalFeatureBits { bits: unknown },
+            );
         }
         Ok(Self { bits })
     }
@@ -285,8 +284,7 @@ impl SearchPolicy {
     pub fn validate(self) -> Result<(), SearchPolicyValidationError> {
         let aspiration_width = self.parameters.aspiration_half_width_centipawns;
         if self.parameters.aspiration_windows {
-            if aspiration_width == 0
-                || aspiration_width > MAXIMUM_ASPIRATION_HALF_WIDTH_CENTIPAWNS
+            if aspiration_width == 0 || aspiration_width > MAXIMUM_ASPIRATION_HALF_WIDTH_CENTIPAWNS
             {
                 return Err(SearchPolicyValidationError::AspirationHalfWidthOutOfRange {
                     enabled: true,
@@ -312,10 +310,12 @@ impl SearchPolicy {
 
         let maximum_check_extensions = self.parameters.maximum_check_extensions_per_line;
         if maximum_check_extensions > MAXIMUM_CHECK_EXTENSIONS_PER_LINE {
-            return Err(SearchPolicyValidationError::CheckExtensionMaximumOutOfRange {
-                value: maximum_check_extensions,
-                maximum: MAXIMUM_CHECK_EXTENSIONS_PER_LINE,
-            });
+            return Err(
+                SearchPolicyValidationError::CheckExtensionMaximumOutOfRange {
+                    value: maximum_check_extensions,
+                    maximum: MAXIMUM_CHECK_EXTENSIONS_PER_LINE,
+                },
+            );
         }
 
         if let Some(feature) = self.parameters.experimental_features.first_enabled() {
@@ -537,8 +537,8 @@ mod tests {
         ));
 
         let mut parameters: SearchPolicyParameters = SearchPolicy::V0_1.parameters();
-        parameters.experimental_features = ExperimentalSearchFeatures::from_bits(1)
-            .expect("assigned feature bit is recognized");
+        parameters.experimental_features =
+            ExperimentalSearchFeatures::from_bits(1).expect("assigned feature bit is recognized");
         let unsupported = SearchPolicySet::new(1, SearchPolicy::new(parameters));
         assert!(matches!(
             unsupported.validate(),

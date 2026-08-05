@@ -3,6 +3,8 @@
 
 pub mod advanced_evaluation;
 pub mod candidate_validation;
+pub mod engine_variant;
+mod policy_io;
 pub mod self_play;
 pub mod tuning;
 mod weights_io;
@@ -23,6 +25,7 @@ use chess_search::{
     TranspositionTable, CANCELLATION_CHECK_INTERVAL_NODES,
 };
 
+pub use policy_io::{deserialize_search_policy, serialize_search_policy};
 pub use weights_io::{deserialize_weight_set, serialize_weight_set};
 
 /// Canonical standard starting-position FEN.

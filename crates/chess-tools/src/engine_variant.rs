@@ -120,8 +120,7 @@ impl EngineVariantDescriptor {
             ));
         }
         if self.transposition_table_mebibytes == 0
-            || self.transposition_table_mebibytes
-                > MAXIMUM_VARIANT_TRANSPOSITION_TABLE_MEBIBYTES
+            || self.transposition_table_mebibytes > MAXIMUM_VARIANT_TRANSPOSITION_TABLE_MEBIBYTES
         {
             return Err(ToolError::new(format!(
                 "transposition-table size must be between 1 and {MAXIMUM_VARIANT_TRANSPOSITION_TABLE_MEBIBYTES} MiB"
@@ -335,13 +334,9 @@ fn hash_bytes(mut hash: u64, bytes: &[u8]) -> u64 {
 #[cfg(test)]
 mod tests {
     use chess_core::PieceKind;
-    use chess_search::{
-        EvaluationWeightSet, EvaluationWeights, SearchPolicy, SearchPolicySet,
-    };
+    use chess_search::{EvaluationWeightSet, EvaluationWeights, SearchPolicy, SearchPolicySet};
 
-    use super::{
-        EngineVariantDescriptor, EngineVariantIdentity, OptionalCapabilityIdentity,
-    };
+    use super::{EngineVariantDescriptor, EngineVariantIdentity, OptionalCapabilityIdentity};
 
     fn descriptor() -> EngineVariantDescriptor {
         EngineVariantDescriptor {
@@ -351,8 +346,7 @@ mod tests {
             opening_book: OptionalCapabilityIdentity::Disabled,
             tablebase: OptionalCapabilityIdentity::Disabled,
             transposition_table_mebibytes: 1,
-            build_identity: "rustc-1.97.1|x86_64-unknown-linux-gnu|release|default"
-                .to_owned(),
+            build_identity: "rustc-1.97.1|x86_64-unknown-linux-gnu|release|default".to_owned(),
             exact_invocation: "chess-tools variant-smoke".to_owned(),
         }
     }
@@ -371,7 +365,10 @@ mod tests {
         let policy = SearchPolicySet::baseline();
         let weights = EvaluationWeightSet::baseline();
         let variant = identity(descriptor(), &policy, &weights);
-        assert_eq!(variant.search_policy_identity().identifier, policy.identifier);
+        assert_eq!(
+            variant.search_policy_identity().identifier,
+            policy.identifier
+        );
         assert_eq!(variant.search_policy_identity().checksum, policy.checksum);
         assert_eq!(
             variant.evaluation_weight_identity().identifier,
@@ -408,7 +405,9 @@ mod tests {
         let mut changed_weights: EvaluationWeights = weights.weights;
         changed_weights.material[PieceKind::Pawn.index()].middlegame += 1;
         let changed_weights = EvaluationWeightSet::new(weights.identifier, changed_weights);
-        changed_weights.validate().expect("small material change remains valid");
+        changed_weights
+            .validate()
+            .expect("small material change remains valid");
         checksums.push(identity(descriptor(), &policy, &changed_weights).checksum());
 
         let mut changed_descriptor = descriptor();

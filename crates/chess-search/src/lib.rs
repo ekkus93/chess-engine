@@ -17,6 +17,7 @@ mod quiescence;
 mod reference;
 mod score;
 mod search_common;
+mod search_policy;
 mod transposition;
 mod transposition_score;
 mod weights;
@@ -43,6 +44,7 @@ pub use iterative_deepening::{
     iterative_deepening_search, iterative_deepening_search_with_limits,
     iterative_deepening_search_with_limits_and_transposition_table,
     iterative_deepening_search_with_limits_and_transposition_table_and_observer,
+    iterative_deepening_search_with_limits_and_transposition_table_and_policy_and_weights,
     iterative_deepening_search_with_limits_and_transposition_table_and_weights,
     iterative_deepening_search_with_transposition_table, IterativeDeepeningIteration,
     IterativeDeepeningSearchError, IterativeDeepeningSearchResult,
@@ -62,6 +64,13 @@ pub use reference::{
     reference_search_with_quiescence_and_cancellation, ReferenceSearchError, ReferenceSearchResult,
 };
 pub use score::{Score, MATE_SCORE, MAX_EVALUATION, MAX_MATE_PLY};
+pub use search_policy::{
+    AlphaBetaMode, ExperimentalSearchFeature, ExperimentalSearchFeatures, MoveOrderingPolicy,
+    QuiescencePolicy, SearchPolicy, SearchPolicyParameters, SearchPolicySet,
+    SearchPolicyValidationError, TranspositionPolicy, MAXIMUM_ASPIRATION_HALF_WIDTH_CENTIPAWNS,
+    MAXIMUM_CHECK_EXTENSIONS_PER_LINE, SEARCH_POLICY_SCHEMA_VERSION, V0_1_SEARCH_POLICY_CHECKSUM,
+    V0_1_SEARCH_POLICY_ID,
+};
 pub use transposition::{
     TranspositionBound, TranspositionEntry, TranspositionHashFull, TranspositionProbeError,
     TranspositionProbeRequest, TranspositionProbeResult, TranspositionProbeScore,
