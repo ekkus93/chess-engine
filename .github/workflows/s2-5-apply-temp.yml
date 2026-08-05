@@ -32,6 +32,7 @@ jobs:
           test -f scripts/s2_5_apply.py
           test -f scripts/s2_5_refine.py
           test -f scripts/s2_5_fix_compile.py
+          python3 -m py_compile scripts/s2_5_apply.py scripts/s2_5_refine.py scripts/s2_5_fix_compile.py
 
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
