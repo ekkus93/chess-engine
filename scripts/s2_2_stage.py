@@ -14,7 +14,7 @@ module = module.replace(
 )
 module = module.replace(
     'let protocol = reader.parse_field("protocol")?;',
-    'let protocol: EngineVariantValidationProtocol = reader.parse_field("protocol")?;',
+    'let protocol: EngineVariantResourceProtocol = reader.parse_field("protocol")?;',
     1,
 )
 module = module.replace(
