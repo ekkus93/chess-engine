@@ -1,5 +1,5 @@
 name: S2-5 apply temporary
-# witness-revision: 4
+# witness-revision: 5
 
 on:
   push:
@@ -33,7 +33,8 @@ jobs:
           test -f scripts/s2_5_apply.py
           test -f scripts/s2_5_refine.py
           test -f scripts/s2_5_fix_compile.py
-          python3 -m py_compile scripts/s2_5_apply.py scripts/s2_5_refine.py scripts/s2_5_fix_compile.py
+          test -f scripts/s2_5_reduce_stack.py
+          python3 -m py_compile scripts/s2_5_apply.py scripts/s2_5_refine.py scripts/s2_5_fix_compile.py scripts/s2_5_reduce_stack.py
 
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
@@ -46,6 +47,7 @@ jobs:
           python3 scripts/s2_5_apply.py
           python3 scripts/s2_5_refine.py
           python3 scripts/s2_5_fix_compile.py
+          python3 scripts/s2_5_reduce_stack.py
           cargo fmt --all
           git diff --check
 
@@ -59,7 +61,7 @@ jobs:
       - name: Commit validated implementation
         run: |
           set -euo pipefail
-          rm scripts/s2_5_apply.py scripts/s2_5_refine.py scripts/s2_5_fix_compile.py
+          rm scripts/s2_5_apply.py scripts/s2_5_refine.py scripts/s2_5_fix_compile.py scripts/s2_5_reduce_stack.py
           git diff --check
           git config user.name "Phillip Chin"
           git config user.email "ekkus93@gmail.com"
