@@ -38,7 +38,7 @@ for witness in \
   'pub struct StaticExchangeValue' \
   'pub enum StaticExchangeMoveStateError' \
   'pub enum StaticExchangeError' \
-  'pub fn static_exchange_piece_value' \
+  'pub const fn static_exchange_piece_value' \
   'pub fn static_exchange_semantic_checksum' \
   'pub fn static_exchange_evaluation' \
   'least_valuable_legal_attacker' \
