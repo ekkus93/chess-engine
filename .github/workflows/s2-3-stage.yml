@@ -54,7 +54,7 @@ jobs:
           set -euo pipefail
           git config user.name 'Phillip Chin'
           git config user.email 'ekkus93@gmail.com'
-          git add -A -- crates/chess-search scripts/s2_3_stage.py scripts/s2_3_stage_runner.py
+          git add -A -- crates/chess-search scripts
           git diff --cached --check
           git commit -m 'feat: add deterministic search diagnostics'
           git push origin HEAD:master
