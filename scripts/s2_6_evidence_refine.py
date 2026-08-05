@@ -40,7 +40,18 @@ text = text.replace(
             &weights,
 ''',
 )
+reference_old = '''        if reference.score() != baseline_reference.score()
+            || reference.score() != see_reference.score()
+            || reference.score() != delta_reference.score()
+'''
+reference_new = '''        if Some(reference.score()) != baseline_reference.score()
+            || Some(reference.score()) != see_reference.score()
+            || Some(reference.score()) != delta_reference.score()
+'''
+if text.count(reference_old) != 1:
+    raise SystemExit("expected one S2-6 bounded-reference comparison")
+text = text.replace(reference_old, reference_new, 1)
 if text.count("#[allow(") or text.count("#[expect("):
     raise SystemExit("S2-6 evidence payload retains lint suppression")
 path.write_text(text)
-print("S2-6 evidence helper refined")
+print("S2-6 evidence helper and reference comparison refined")
