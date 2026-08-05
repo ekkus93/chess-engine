@@ -1,0 +1,41 @@
+name: S2-4 core staging
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/s2-4-stage.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: s2-4-core-staging
+  cancel-in-progress: false
+
+jobs:
+  stage:
+    name: Validate and commit standalone SEE core
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache Cargo data
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-engine-s2-4-core
+
+      - name: Apply, validate, and commit SEE core
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/s2_4_core_stage.py
