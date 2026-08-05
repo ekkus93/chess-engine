@@ -46,6 +46,6 @@ jobs:
           set -euo pipefail
           git config user.name 'Phillip Chin'
           git config user.email 'ekkus93@gmail.com'
-          git add docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md scripts/tracker_close.py
+          git add -A -- docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md scripts
           git commit -m 'docs: close S2-1 policy identity gate'
           git push origin HEAD:master
