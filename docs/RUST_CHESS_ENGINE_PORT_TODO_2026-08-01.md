@@ -1030,7 +1030,7 @@ Evidence:
 - Seeded opening rotation, per-game seeds, independent side limits, complete engine/evaluator/search provenance, deterministic train/validation/test assignment, replay validation, duplicate occurrence accounting, and explicit opening/maximum-ply filtering are enforced.
 - Task 21.1 named weight-schema integration is complete; Task 21.2 loss-pipeline work is complete; Task 21.3 optimizer work is next.
 
-# Task 21: Named-schema tuning — IN PROGRESS
+# Task 21: Named-schema tuning — COMPLETE
 - [x] 21.1 Weights.
 - [x] 21.2 Loss.
 - [x] 21.3 Optimizer.

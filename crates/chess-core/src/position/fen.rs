@@ -17,7 +17,7 @@ pub enum FenError {
     RankWidth { rank: u8, files: u8 },
     /// A placement character was neither a piece nor a digit from one through eight.
     InvalidPlacementCharacter { rank: u8, file: u8, value: char },
-    /// Strict playable FEN does not permit pawns on rank one or rank eight.
+    /// Strict structural analysis FEN does not permit pawns on rank one or rank eight.
     PawnOnPromotionRank { square: Square, color: Color },
     /// Active color must be exactly `w` or `b`.
     InvalidActiveColor { value: String },
@@ -33,7 +33,7 @@ pub enum FenError {
     InvalidHalfmoveClock { value: String },
     /// Fullmove number must be an unsigned nonzero 16-bit integer.
     InvalidFullmoveNumber { value: String },
-    /// Materialized position failed playable-position validation.
+    /// Materialized analysis position failed structural invariant validation.
     Position(PositionBuildError),
 }
 
@@ -104,7 +104,10 @@ impl From<PositionBuildError> for FenError {
 }
 
 impl Position {
-    /// Parses a strict, playable six-field FEN.
+    /// Parses strict structural six-field FEN for safe analysis positions.
+    ///
+    /// Acceptance verifies syntax and internal invariants; it is not proof that
+    /// the position is reachable from the standard initial position.
     pub fn from_fen(value: &str) -> Result<Self, FenError> {
         value.parse()
     }

@@ -1,11 +1,20 @@
 # Rust Chess Engine Post-Port Review Fix TODO
 
-**Status:** Not started
+**Status:** In progress
 **Date:** 2026-08-04
 **Branch:** `master`
 **Spec:** `docs/RUST_CHESS_ENGINE_POST_PORT_REVIEW_FIX_SPEC_2026-08-04.md`
 **Authoritative Rust-port tracker:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`
 **Final Rust-port report:** `docs/RUST_CHESS_ENGINE_PORT_IMPLEMENTATION_REPORT.md`
+
+## Ralph-loop implementation record
+
+- Baseline `master` SHA: `62a80700e4bec8e297bc8899e49496d3ae71ce47`.
+- Reproduced findings: legal generation silently skipped three classes of contradictory pseudo-legal candidates; the Task 21 detailed heading was stale; legacy TODO authority was ambiguous; and FEN behavior was correct but two source-level labels overclaimed playable legality.
+- Policy decisions: use typed internal failures, preserve ordinary legal filtering, create a non-disruptive legacy index, and make terminology-only FEN changes.
+- Validation state: implementation committed; exact-SHA permanent CI evidence pending.
+- Non-issues: the existing FEN parser already intentionally accepts structurally safe analysis positions without claiming game reachability, and existing king-safety/castling/en-passant tests already cover normal filtering.
+- Deviations: none.
 
 ## Status rules
 

@@ -181,6 +181,22 @@ impl LegalMoveOrigin {
 }
 
 impl Position {
+    fn validate_generated_candidate(
+        &self,
+        current: Move,
+        moving_side: Color,
+    ) -> Result<(), LegalMoveError> {
+        let moving_piece = self
+            .piece_at(current.source())
+            .ok_or(LegalMoveError::InvalidGeneratedMove { current })?;
+        if moving_piece.color != moving_side
+            || !self.generated_move_matches_state(current, moving_piece)
+        {
+            return Err(LegalMoveError::InvalidGeneratedMove { current });
+        }
+        Ok(())
+    }
+
     /// Generates every legal move for the current side to move.
     ///
     /// The position is restored exactly before this method returns, including
@@ -191,14 +207,7 @@ impl Position {
         let mut legal = MoveList::new();
 
         for current in pseudo_legal.iter() {
-            let Some(moving_piece) = self.piece_at(current.source()) else {
-                continue;
-            };
-            if moving_piece.color != moving_side
-                || !self.generated_move_matches_state(current, moving_piece)
-            {
-                continue;
-            }
+            self.validate_generated_candidate(current, moving_side)?;
             if matches!(current.kind(), MoveKind::KingCastle | MoveKind::QueenCastle)
                 && !self.castling_transit_is_safe(current, moving_side)?
             {

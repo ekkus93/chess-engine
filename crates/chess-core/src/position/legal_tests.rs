@@ -1,4 +1,4 @@
-use crate::{Move, MoveKind, PieceKind, Position, Square};
+use crate::{Color, Move, MoveKind, PieceKind, Position, Square};
 
 use super::LegalMoveError;
 
@@ -8,6 +8,36 @@ fn square(value: &str) -> Square {
 
 fn legal_uci(position: &mut Position) -> Result<Vec<String>, LegalMoveError> {
     Ok(position.legal_moves()?.iter().map(Move::to_uci).collect())
+}
+
+#[test]
+fn empty_source_generated_candidate_fails_loudly() {
+    let position = Position::starting();
+    let current = Move::new(square("a3"), square("a4"), MoveKind::Quiet);
+    assert_eq!(
+        position.validate_generated_candidate(current, Color::White),
+        Err(LegalMoveError::InvalidGeneratedMove { current })
+    );
+}
+
+#[test]
+fn wrong_side_generated_candidate_fails_loudly() {
+    let position = Position::starting();
+    let current = Move::new(square("a7"), square("a6"), MoveKind::Quiet);
+    assert_eq!(
+        position.validate_generated_candidate(current, Color::White),
+        Err(LegalMoveError::InvalidGeneratedMove { current })
+    );
+}
+
+#[test]
+fn encoded_state_contradiction_fails_loudly() {
+    let position = Position::starting();
+    let current = Move::new(square("e2"), square("e3"), MoveKind::Capture);
+    assert_eq!(
+        position.validate_generated_candidate(current, Color::White),
+        Err(LegalMoveError::InvalidGeneratedMove { current })
+    );
 }
 
 #[test]
