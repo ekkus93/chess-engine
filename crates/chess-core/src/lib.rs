@@ -15,6 +15,7 @@ mod move_encoding;
 mod movegen;
 mod piece;
 mod position;
+mod see;
 mod square;
 mod uci_move;
 
@@ -38,5 +39,10 @@ pub use position::{
 };
 #[doc(hidden)]
 pub use position::{PositionEditor, PositionMutationError};
+pub use see::{
+    static_exchange_evaluation, static_exchange_piece_value, static_exchange_semantic_checksum,
+    StaticExchangeClass, StaticExchangeError, StaticExchangeMoveStateError, StaticExchangeValue,
+    MAX_STATIC_EXCHANGE_PLIES, STATIC_EXCHANGE_POLICY_ID, STATIC_EXCHANGE_SCHEMA_VERSION,
+};
 pub use square::{ParseSquareError, Square};
 pub use uci_move::{MoveParseError, UciMove};
