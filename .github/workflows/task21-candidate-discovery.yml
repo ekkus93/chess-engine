@@ -6,6 +6,7 @@ on:
       - master
     paths:
       - .github/workflows/task21-candidate-discovery.yml
+      - .github/task21-candidate-discovery-harness.rs
   workflow_dispatch:
 
 permissions:
