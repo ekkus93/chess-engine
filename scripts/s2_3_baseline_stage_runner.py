@@ -20,6 +20,10 @@ replacements = [
         "zugzwang-sensitive\\tzugzwang_sensitive\\t8/8/8/8/8/2k5/2p5/2K5 w - - 0 1\\t5\\tlegal_pv\\t-",
         "zugzwang-sensitive\\tzugzwang_sensitive\\t8/8/8/8/8/2k5/4p3/2K5 w - - 0 1\\t5\\tlegal_pv\\t-",
     ),
+    (
+        "        let Some((key, value)) = line.split_once('\\t') else {\n            return Err(format!(\"report line is not tab separated: {line:?}\").into());\n        };\n        if key == \"game\" {",
+        "        let Some((key, value)) = line.split_once('=') else {\n            return Err(format!(\"report line is not key=value: {line:?}\").into());\n        };\n        if key.starts_with(\"game.\") {",
+    ),
 ]
 for old, new in replacements:
     if text.count(old) != 1:
