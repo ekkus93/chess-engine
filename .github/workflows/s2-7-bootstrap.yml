@@ -33,6 +33,7 @@ jobs:
         run: |
           python3 .github/s2_7_bootstrap.py
           python3 .github/s2_7_repair.py
+          python3 .github/s2_7_policy_test_repair.py
 
       - name: Format and audit
         run: |
