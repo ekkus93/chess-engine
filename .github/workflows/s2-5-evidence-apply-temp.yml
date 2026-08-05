@@ -1,5 +1,5 @@
 name: S2-5 evidence apply temporary
-# witness-revision: 3
+# witness-revision: 4
 
 on:
   push:
@@ -82,9 +82,11 @@ jobs:
           target/release/s2_5_see_ordering benchmark 3
           cargo run --locked --release -p chess-tools --bin performance -- allocation-audit
 
-      - name: Commit validated permanent evidence
+      - name: Commit validated non-workflow evidence
         run: |
           set -euo pipefail
+          git restore --source=HEAD -- .github/workflows/ci.yml
+          rm .github/workflows/s2-5-see-ordering.yml
           git diff --check
           git config user.name "Phillip Chin"
           git config user.email "ekkus93@gmail.com"
