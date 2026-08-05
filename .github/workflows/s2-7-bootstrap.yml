@@ -1,5 +1,6 @@
 name: Temporary S2-7 implementation bootstrap
 
+# Publication-only rerun: workflow files are handled separately by the connector.
 on:
   push:
     branches:
@@ -46,7 +47,7 @@ jobs:
           cargo clippy --locked -p chess-search --all-targets --all-features -- -D warnings
           cargo test --locked -p chess-search --all-targets --all-features
 
-      - name: Commit implementation and remove bootstrap
+      - name: Commit validated implementation
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
