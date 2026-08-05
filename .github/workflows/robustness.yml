@@ -69,6 +69,7 @@ jobs:
             fen_parser
             uci_move_parser
             legal_sequence
+            static_exchange
             game_history
             weight_parser
             opening_book_parser
@@ -114,6 +115,16 @@ jobs:
         with:
           toolchain: nightly-2026-08-01
           components: rust-src
+
+      - name: Run AddressSanitizer and LeakSanitizer SEE tests
+        env:
+          RUSTFLAGS: -Zsanitizer=address -Adeprecated
+          RUSTDOCFLAGS: -Zsanitizer=address -Adeprecated
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1:abort_on_error=1
+        run: >-
+          cargo +nightly-2026-08-01 test -Zbuild-std --locked
+          --target x86_64-unknown-linux-gnu
+          -p chess-core --lib --all-features see::tests
 
       - name: Run AddressSanitizer and LeakSanitizer lifecycle tests
         env:
