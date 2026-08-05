@@ -39,6 +39,12 @@ jobs:
       - name: Audit standalone S2-4 SEE
         run: bash scripts/task_s2_4_see_audit.sh
 
+      - name: Audit S2-5 SEE capture ordering
+        run: bash scripts/task_s2_5_see_ordering_audit.sh
+
+      - name: Audit S2-6 quiescence redesign
+        run: bash scripts/task_s2_6_quiescence_audit.sh
+
       - name: Verify active program progression
         shell: bash
         run: |
@@ -48,10 +54,17 @@ jobs:
           grep -Fq '| S2-1 | Versioned search-policy and engine-variant identity | **Complete** |' "$tracker"
           grep -Fq '| S2-2 | Generalized strength-validation infrastructure | **Complete** |' "$tracker"
           grep -Fq '| S2-3 | Baseline strength, diagnostics, and performance capture | **Complete** |' "$tracker"
-          grep -Fq '# Task S2-3: Baseline strength, diagnostics, and performance capture — COMPLETE' "$tracker"
-          grep -Fq 'Begin with **S2-4 only**' "$tracker"
-          test "$(sed -n '/# Task S2-3:/,/# Task S2-4:/p' "$tracker" | grep -Fc -- '- [ ]')" -eq 0
-          if find scripts -maxdepth 1 -type f -name 'tracker_close.py' -print | grep -q .; then
+          grep -Fq '| S2-4 | Correct allocation-free Static Exchange Evaluation | **Complete** |' "$tracker"
+          grep -Fq '| S2-5 | SEE capture-ordering candidate | **Complete — standalone rejected; inactive for combinations** |' "$tracker"
+          grep -Fq '| S2-6 | Quiescence redesign candidates | **Complete — SEE and delta rejected; inactive** |' "$tracker"
+          grep -Fq '| S2-7 | Principal Variation Search candidate | **Not started** |' "$tracker"
+          grep -Fq '## S2-6 implementation record' "$tracker"
+          grep -Fq '# Task S2-6: Quiescence redesign candidates — COMPLETE' "$tracker"
+          grep -Fq '# Task S2-7: Principal Variation Search candidate — NOT STARTED' "$tracker"
+          grep -Fq 'Begin with **S2-7 only**' "$tracker"
+          test "$(sed -n '/# Task S2-6:/,/# Task S2-7:/p' "$tracker" | grep -Fc -- '- [ ]')" -eq 0
+          test "$(sed -n '/# Task S2-7:/,/# Task S2-8:/p' "$tracker" | grep -Fc -- '- [ ]')" -gt 0
+          if find scripts -maxdepth 1 -type f \( -name 'tracker_close.py' -o -name 's2_6_closure.py' \) -print | grep -q .; then
             echo 'temporary tracker closure script remains' >&2
             exit 1
           fi
