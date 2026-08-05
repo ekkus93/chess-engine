@@ -1,0 +1,74 @@
+name: Search policy identity
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: policy-identity-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  policy-identity:
+    name: Search policy and variant identity
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Cargo data
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-engine-policy-identity
+
+      - name: Run permanent S2-1 audit
+        run: bash scripts/task_s2_1_policy_identity_audit.sh
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run focused strict Clippy
+        run: >-
+          cargo clippy --locked
+          -p chess-search
+          -p chess-tools
+          --all-targets
+          --all-features
+          -- -D warnings
+
+      - name: Prove explicit v0.1 policy parity
+        run: cargo test --locked -p chess-search --test search_policy_identity
+
+      - name: Test policy schema and validation
+        run: cargo test --locked -p chess-search search_policy::tests
+
+      - name: Test canonical policy text and variant identity
+        run: >-
+          cargo test --locked -p chess-tools
+          policy_io::tests engine_variant::tests
+
+      - name: Round-trip authoritative policy CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --locked --release -p chess-tools --bin chess-tools -- policy-export > policy.txt
+          output="$(cargo run --locked --release -p chess-tools --bin chess-tools -- policy-validate policy.txt)"
+          grep -Fxq $'identifier\t5630315f504f4c31' <<<"$output"
+          grep -Fxq $'checksum\t0c0769ef9d034770' <<<"$output"
+          rm policy.txt
