@@ -23,6 +23,36 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Repair staged policy serializer
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('crates/chess-tools/src/policy_io.rs')
+          text = path.read_text()
+          old = '''        concat!(
+            "{FORMAT_MARKER}\\n",
+            "schema={}\\n",
+'''
+          new = '''        concat!(
+            "{}\\n",
+            "schema={}\\n",
+'''
+          if text.count(old) != 1:
+              raise SystemExit('expected one policy serializer marker format')
+          text = text.replace(old, new, 1)
+          old = '''        ),
+        set.schema_version,
+'''
+          new = '''        ),
+        FORMAT_MARKER,
+        set.schema_version,
+'''
+          if text.count(old) != 1:
+              raise SystemExit('expected one policy serializer argument list')
+          path.write_text(text.replace(old, new, 1))
+          PY
+
       - name: Apply integration patch
         run: python3 scripts/s2_1_integrate.py
 
