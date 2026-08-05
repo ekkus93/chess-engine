@@ -1,0 +1,51 @@
+name: Tracker evidence closure
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/tracker-close.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tracker-evidence-closure
+  cancel-in-progress: false
+
+jobs:
+  close:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Close S2-1 tracker gate
+        run: python3 scripts/tracker_close.py
+
+      - name: Remove temporary closure script
+        run: git rm scripts/tracker_close.py
+
+      - name: Validate tracker and permanent identity audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          bash scripts/task_post_port_review_fix_audit.sh
+          bash scripts/task_s2_1_policy_identity_audit.sh
+          grep -Fq '| S2-1 | Versioned search-policy and engine-variant identity | **Complete** |' docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md
+          grep -Fq '# Task S2-1: Versioned search-policy and engine-variant identity — COMPLETE' docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md
+          grep -Fq 'Begin with **S2-2 only**' docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md
+
+      - name: Commit documentation closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'Phillip Chin'
+          git config user.email 'ekkus93@gmail.com'
+          git add docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md scripts/tracker_close.py
+          git commit -m 'docs: close S2-1 policy identity gate'
+          git push origin HEAD:master
