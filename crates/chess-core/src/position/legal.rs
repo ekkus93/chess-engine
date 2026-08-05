@@ -2,7 +2,7 @@ use core::fmt;
 
 use crate::{
     CastlingRights, Color, FullmoveNumber, HalfmoveClock, Move, MoveKind, MoveList,
-    MoveListOverflow, PositionMutationError, Square, MAX_PSEUDO_LEGAL_MOVES,
+    MoveListOverflow, PieceKind, PositionMutationError, Square, MAX_PSEUDO_LEGAL_MOVES,
 };
 
 use super::{Position, PositionUndo};
@@ -185,16 +185,39 @@ impl Position {
         &self,
         current: Move,
         moving_side: Color,
-    ) -> Result<(), LegalMoveError> {
+    ) -> Result<bool, LegalMoveError> {
         let moving_piece = self
             .piece_at(current.source())
             .ok_or(LegalMoveError::InvalidGeneratedMove { current })?;
-        if moving_piece.color != moving_side
-            || !self.generated_move_matches_state(current, moving_piece)
-        {
+        if moving_piece.color != moving_side {
             return Err(LegalMoveError::InvalidGeneratedMove { current });
         }
-        Ok(())
+        if self.generated_move_matches_state(current, moving_piece) {
+            return Ok(true);
+        }
+
+        // Pseudo-legal en-passant generation intentionally follows target
+        // geometry before checking whether a capturable pawn exists. A
+        // structurally safe analysis FEN may therefore produce a candidate
+        // that ordinary legal filtering must reject rather than classify as a
+        // generator contradiction.
+        let source = current.source();
+        let destination = current.destination();
+        let advances_one_row = match moving_side {
+            Color::White => source.row().checked_sub(1) == Some(destination.row()),
+            Color::Black => source.row().checked_add(1) == Some(destination.row()),
+        };
+        let rejectable_en_passant = current.kind() == MoveKind::EnPassant
+            && moving_piece.kind == PieceKind::Pawn
+            && advances_one_row
+            && source.file().abs_diff(destination.file()) == 1
+            && self.en_passant() == Some(destination)
+            && self.piece_at(destination).is_none();
+        if rejectable_en_passant {
+            return Ok(false);
+        }
+
+        Err(LegalMoveError::InvalidGeneratedMove { current })
     }
 
     /// Generates every legal move for the current side to move.
@@ -207,7 +230,9 @@ impl Position {
         let mut legal = MoveList::new();
 
         for current in pseudo_legal.iter() {
-            self.validate_generated_candidate(current, moving_side)?;
+            if !self.validate_generated_candidate(current, moving_side)? {
+                continue;
+            }
             if matches!(current.kind(), MoveKind::KingCastle | MoveKind::QueenCastle)
                 && !self.castling_transit_is_safe(current, moving_side)?
             {
