@@ -38,11 +38,12 @@ active_todos=(
 for active in "${active_todos[@]}"; do
     grep -Fq "\`$active\`" "$legacy_index"
 done
-grep -Fq 'Every other Markdown file directly under `docs/` whose filename contains `TODO` is a historical or legacy reference.' "$legacy_index"
+grep -Fq "\`$legacy_index\`" "$legacy_index"
+grep -Fq 'Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO`' "$legacy_index"
 
 while IFS= read -r todo_path; do
     case "$todo_path" in
-        "$tracker"|"$definitions"|"$followup")
+        "$tracker"|"$definitions"|"$followup"|"$legacy_index")
             ;;
         *)
             grep -Fq "\`$todo_path\`" "$legacy_index" || {
