@@ -42,11 +42,13 @@ jobs:
           test -f scripts/task_25_artifact_audit.py
           test -f scripts/task_26_v0_1_audit.sh
           test -f scripts/task_26_uci_smoke.sh
+          test -f scripts/task_27_full_port_audit.sh
           test -f scripts/dev.sh
           test -f fixtures/tuning_config.example
           test -f docs/RUST_DEVELOPER_WORKFLOWS.md
           test -f docs/RUST_GENERATED_ARTIFACT_POLICY.md
           test -f docs/RUST_CHESS_ENGINE_V0_1_IMPLEMENTATION_REPORT.md
+          test -f docs/RUST_CHESS_ENGINE_PORT_IMPLEMENTATION_REPORT.md
           test -f crates/chess-book/tests/task_19_5.rs
           python3 -m py_compile \
             scripts/differential_oracle.py \
@@ -58,7 +60,8 @@ jobs:
             scripts/build_android_jni.sh \
             scripts/prepare_android_harness_jni.sh \
             scripts/task_26_v0_1_audit.sh \
-            scripts/task_26_uci_smoke.sh
+            scripts/task_26_uci_smoke.sh \
+            scripts/task_27_full_port_audit.sh
 
       - name: Run Task 25 developer-workflow audits
         run: |
@@ -67,6 +70,9 @@ jobs:
 
       - name: Run Task 26 v0.1 signoff audit
         run: bash scripts/task_26_v0_1_audit.sh
+
+      - name: Run Task 27 full-port audit
+        run: bash scripts/task_27_full_port_audit.sh
 
       - name: Run Task 14.5 exclusion audit
         run: python3 scripts/task_14_5_exclusion_audit.py
