@@ -6,6 +6,7 @@ on:
       - master
     paths:
       - scripts/s2_3_stage.py
+      - scripts/s2_3_stage_runner.py
       - .github/workflows/s2-3-stage.yml
 
 permissions:
@@ -30,7 +31,7 @@ jobs:
           components: clippy, rustfmt
 
       - name: Apply exact diagnostics patch
-        run: python3 scripts/s2_3_stage.py
+        run: python3 scripts/s2_3_stage_runner.py
 
       - name: Format
         run: cargo fmt --all
@@ -44,8 +45,8 @@ jobs:
       - name: Test diagnostics and workspace
         run: cargo test --locked --workspace --all-targets --all-features
 
-      - name: Remove one-shot source patch
-        run: git rm scripts/s2_3_stage.py
+      - name: Remove one-shot source patches
+        run: git rm scripts/s2_3_stage.py scripts/s2_3_stage_runner.py
 
       - name: Commit validated diagnostics
         shell: bash
@@ -53,7 +54,7 @@ jobs:
           set -euo pipefail
           git config user.name 'Phillip Chin'
           git config user.email 'ekkus93@gmail.com'
-          git add -A -- crates/chess-search scripts/s2_3_stage.py
+          git add -A -- crates/chess-search scripts/s2_3_stage.py scripts/s2_3_stage_runner.py
           git diff --cached --check
           git commit -m 'feat: add deterministic search diagnostics'
           git push origin HEAD:master
