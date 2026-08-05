@@ -1,17 +1,5 @@
 
 
-    fn discovery_artifact(identifier: u64, weights: EvaluationWeights) -> NamedWeightArtifact {
-        NamedWeightArtifact::new(
-            identifier,
-            TrainingMetadata::new(
-                TrainingRunProvenance::new(20260804, [0x27; 20], 8, 4, 1),
-                TrainingDatasetProvenance::new(1, 64, 8, 8),
-            ),
-            weights,
-        )
-        .expect("discovery candidate artifact")
-    }
-
     fn discovery_openings(count: usize) -> OpeningSuite {
         let starting = Game::starting();
         let mut starting_position = starting.position().clone();
@@ -41,7 +29,7 @@
     }
 
     #[test]
-    #[ignore = "bounded Task 21 candidate discovery"]
+    #[ignore = "fast Task 21 outcome-only candidate screen"]
     fn task21_candidate_discovery() {
         use chess_search::PhasedWeight;
 
@@ -79,49 +67,61 @@
         combined.king_activity = activity.king_activity;
 
         let candidates = [
-            ("mobility", 0x4431_1000_0000_0001, mobility),
-            ("pawns", 0x4431_1000_0000_0002, pawns),
-            ("activity", 0x4431_1000_0000_0003, activity),
-            ("combined", 0x4431_1000_0000_0004, combined),
+            ("mobility", mobility),
+            ("pawns", pawns),
+            ("activity", activity),
+            ("combined", combined),
         ];
         let openings = discovery_openings(8);
         let side = SelfPlaySideConfig::new(1, SelfPlayLimit::Depth(1));
-        for (name, identifier, weights) in candidates {
-            let config = CandidateValidationConfig {
-                pair_count: 8,
-                seed: 0x2721_0000,
-                side,
-                maximum_plies: 80,
-                claimable_draw_policy: ClaimableDrawPolicy::Accept,
-                minimum_score_margin: 0.0,
-                maximum_unfinished_per_mille: 1_000,
-            };
-            let provenance = CandidateValidationProvenance::new(
-                identifier,
-                format!("task-21-quick-{name}"),
-                [0x27; 20],
-                format!("task21 quick candidate screen {name}"),
-            )
-            .expect("discovery provenance");
-            let report = run_candidate_validation_internal(
-                provenance,
-                config,
-                &openings,
-                &discovery_artifact(identifier, weights),
-                1,
-                1,
-            )
-            .expect("discovery match");
+        let game_config = WeightedValidationGameConfig::new(
+            side,
+            side,
+            80,
+            ClaimableDrawPolicy::Accept,
+        )
+        .expect("screen game config");
+
+        for (name, weights) in candidates {
+            let mut wins = 0_u32;
+            let mut draws = 0_u32;
+            let mut losses = 0_u32;
+            let mut unfinished = 0_u32;
+            let mut pair_scores = Vec::new();
+            for opening in openings.lines() {
+                let candidate_white = run_weighted_validation_game(
+                    opening,
+                    game_config,
+                    &weights,
+                    &EvaluationWeights::DEFAULT,
+                )
+                .expect("candidate-white game");
+                let candidate_black = run_weighted_validation_game(
+                    opening,
+                    game_config,
+                    &EvaluationWeights::DEFAULT,
+                    &weights,
+                )
+                .expect("candidate-black game");
+                let white_score = candidate_score(candidate_white.result(), CandidateColor::White);
+                let black_score = candidate_score(candidate_black.result(), CandidateColor::Black);
+                pair_scores.push((white_score + black_score) * 0.5);
+                for (result, color) in [
+                    (candidate_white.result(), CandidateColor::White),
+                    (candidate_black.result(), CandidateColor::Black),
+                ] {
+                    match result {
+                        SelfPlayResult::Draw => draws += 1,
+                        SelfPlayResult::Unfinished => unfinished += 1,
+                        SelfPlayResult::WhiteWin if color == CandidateColor::White => wins += 1,
+                        SelfPlayResult::BlackWin if color == CandidateColor::Black => wins += 1,
+                        SelfPlayResult::WhiteWin | SelfPlayResult::BlackWin => losses += 1,
+                    }
+                }
+            }
+            let (mean, stderr, lower) = summarize_pair_scores(&pair_scores).expect("screen stats");
             println!(
-                "task21_quick\tname={name}\twins={}\tdraws={}\tlosses={}\tunfinished={}\tmean={:.9}\tstderr={:.9}\tlower={:.9}\tdecision={}",
-                report.candidate_wins,
-                report.draws,
-                report.candidate_losses,
-                report.unfinished,
-                report.mean_pair_score,
-                report.pair_score_standard_error,
-                report.lower_confidence_bound,
-                report.decision,
+                "task21_fast\tname={name}\twins={wins}\tdraws={draws}\tlosses={losses}\tunfinished={unfinished}\tmean={mean:.9}\tstderr={stderr:.9}\tlower={lower:.9}",
             );
         }
     }
