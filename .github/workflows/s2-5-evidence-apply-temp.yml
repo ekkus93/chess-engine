@@ -1,5 +1,5 @@
 name: S2-5 evidence apply temporary
-# witness-revision: 2
+# witness-revision: 3
 
 on:
   push:
@@ -32,7 +32,11 @@ jobs:
           git merge-base --is-ancestor 95d1917d986bc3f9ec808ba0f5f5a1a63619e5aa HEAD
           test -f scripts/s2_5_evidence_apply.py
           test -f scripts/s2_5_evidence_refine.py
-          python3 -m py_compile scripts/s2_5_evidence_apply.py scripts/s2_5_evidence_refine.py
+          test -f scripts/s2_5_evidence_allocation_refine.py
+          python3 -m py_compile \
+            scripts/s2_5_evidence_apply.py \
+            scripts/s2_5_evidence_refine.py \
+            scripts/s2_5_evidence_allocation_refine.py
 
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
@@ -44,7 +48,11 @@ jobs:
           set -euo pipefail
           python3 scripts/s2_5_evidence_apply.py
           python3 scripts/s2_5_evidence_refine.py
-          rm scripts/s2_5_evidence_apply.py scripts/s2_5_evidence_refine.py
+          python3 scripts/s2_5_evidence_allocation_refine.py
+          rm \
+            scripts/s2_5_evidence_apply.py \
+            scripts/s2_5_evidence_refine.py \
+            scripts/s2_5_evidence_allocation_refine.py
           cargo fmt --all
           git diff --check
 
@@ -72,6 +80,7 @@ jobs:
           diff -ru /tmp/s2-5-deterministic-a /tmp/s2-5-deterministic-b
           target/release/s2_5_see_ordering clock /tmp/s2-5-clock
           target/release/s2_5_see_ordering benchmark 3
+          cargo run --locked --release -p chess-tools --bin performance -- allocation-audit
 
       - name: Commit validated permanent evidence
         run: |
