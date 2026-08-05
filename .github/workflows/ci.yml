@@ -43,6 +43,7 @@ jobs:
           test -f scripts/task_26_v0_1_audit.sh
           test -f scripts/task_26_uci_smoke.sh
           test -f scripts/task_27_full_port_audit.sh
+          test -f scripts/task_post_port_review_fix_audit.sh
           test -f scripts/dev.sh
           test -f fixtures/tuning_config.example
           test -f docs/RUST_DEVELOPER_WORKFLOWS.md
@@ -61,7 +62,8 @@ jobs:
             scripts/prepare_android_harness_jni.sh \
             scripts/task_26_v0_1_audit.sh \
             scripts/task_26_uci_smoke.sh \
-            scripts/task_27_full_port_audit.sh
+            scripts/task_27_full_port_audit.sh \
+            scripts/task_post_port_review_fix_audit.sh
 
       - name: Run Task 25 developer-workflow audits
         run: |
@@ -73,6 +75,9 @@ jobs:
 
       - name: Run Task 27 full-port audit
         run: bash scripts/task_27_full_port_audit.sh
+
+      - name: Run post-port review fix audit
+        run: bash scripts/task_post_port_review_fix_audit.sh
 
       - name: Run Task 14.5 exclusion audit
         run: python3 scripts/task_14_5_exclusion_audit.py
