@@ -7,7 +7,11 @@
 
 A correctness-first Rust chess engine with a Linux UCI executable, portable engine/search crates, C and JNI adapters, Android integration, explicit opening-book support, offline self-play and tuning infrastructure, and permanent perft, differential, robustness, performance, and strength gates.
 
-The former Python implementation remains in the repository as historical reference material. Python development and Python CI are intentionally retired after migration signoff.
+**Authoritative implementation:** the Rust workspace on `master`. New integrations should use the safe Rust facade, UCI executable, C ABI, or JNI boundary. The full migration, traceability, versions, evidence, and roadmap are recorded in [`docs/RUST_CHESS_ENGINE_PORT_IMPLEMENTATION_REPORT.md`](docs/RUST_CHESS_ENGINE_PORT_IMPLEMENTATION_REPORT.md).
+
+The former Python implementation remains in the repository as historical reference material. Python development and Python engine CI are intentionally retired after migration signoff. Python remains permitted for the pinned independent `python-chess` differential oracle and repository validation tooling; production Rust crates do not embed or launch Python.
+
+The built-in baseline evaluation weights remain authoritative. The production candidate-validation control completed 200 color-balanced opening pairs and 400 games but was rejected for insufficient strength, so it was never activated. Any future weight promotion must pass the unchanged fail-closed protocol and be applied by a separate explicit source change.
 
 ## Start here
 
@@ -114,6 +118,8 @@ Generated-output rules and deliberate evidence promotion are defined in [`docs/R
 
 ## Additional documentation
 
+- [`docs/RUST_CHESS_ENGINE_PORT_IMPLEMENTATION_REPORT.md`](docs/RUST_CHESS_ENGINE_PORT_IMPLEMENTATION_REPORT.md)
+- [`docs/RUST_CHESS_ENGINE_V0_1_IMPLEMENTATION_REPORT.md`](docs/RUST_CHESS_ENGINE_V0_1_IMPLEMENTATION_REPORT.md)
 - [`docs/RUST_DEVELOPER_WORKFLOWS.md`](docs/RUST_DEVELOPER_WORKFLOWS.md)
 - [`docs/RUST_UCI_PROCESS_INTEGRATION.md`](docs/RUST_UCI_PROCESS_INTEGRATION.md)
 - [`docs/RUST_ANDROID_JNI.md`](docs/RUST_ANDROID_JNI.md)
