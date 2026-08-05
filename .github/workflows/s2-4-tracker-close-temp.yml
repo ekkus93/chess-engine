@@ -1,0 +1,39 @@
+name: S2-4 tracker closure temporary
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/s2-4-tracker-close-temp.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: s2-4-tracker-closure-temporary
+  cancel-in-progress: false
+
+jobs:
+  close:
+    name: Apply witnessed S2-4 tracker closure
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Confirm validated closure inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f scripts/s2_4_tracker_close.py
+          test -f docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md
+          bash scripts/task_s2_4_see_audit.sh
+
+      - name: Apply closure and push
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/s2_4_tracker_close.py
