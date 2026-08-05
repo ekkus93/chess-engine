@@ -56,6 +56,7 @@ jobs:
                   b\"assert_eq(awhite, black);\",
                   b\"assert_eq!(white, black);\",
               )
+              data = data.replace(b\"0xc0ff_ee\", b\"0x00c0_ffee\")
               target.write_bytes(data)"""
           if text.count(old) != 1:
               raise SystemExit("temporary payload writer witness changed")
