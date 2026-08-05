@@ -42,8 +42,8 @@ jobs:
           cargo check --locked --workspace --all-targets --all-features
           cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
           cargo test --locked --workspace --all-targets --all-features
-          cargo run --locked --release -p chess-tools -- policy-export > /tmp/search-policy.txt
-          cargo run --locked --release -p chess-tools -- policy-validate /tmp/search-policy.txt
+          cargo run --locked --release -p chess-tools --bin chess-tools -- policy-export > /tmp/search-policy.txt
+          cargo run --locked --release -p chess-tools --bin chess-tools -- policy-validate /tmp/search-policy.txt
 
       - name: Commit integrated implementation
         shell: bash
