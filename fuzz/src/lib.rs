@@ -3,7 +3,7 @@
 use std::{ptr, str};
 
 use chess_book::IndexedBook;
-use chess_core::{Game, Position, UciMove};
+use chess_core::{static_exchange_evaluation, Game, Position, UciMove};
 use chess_ffi::c_abi::{
     chess_engine_buffer_free, chess_engine_create, chess_engine_destroy, chess_engine_get_fen,
     chess_engine_play_move, chess_engine_set_position, ChessEngineBuffer, ChessEngineConfig,
@@ -108,6 +108,54 @@ pub fn fuzz_legal_sequence(data: &[u8]) {
         assert_position(&position, "reverse unmake");
     }
     assert_eq!(position, root, "legal sequence did not restore its root");
+}
+
+/// Exercises deterministic standalone SEE over legal exchange events and exact roots.
+pub fn fuzz_static_exchange(data: &[u8]) {
+    let mut position = Position::starting();
+
+    for (ply, selector) in data.iter().copied().take(64).enumerate() {
+        let root = position.clone();
+        let moves = position
+            .legal_moves()
+            .unwrap_or_else(|error| panic!("SEE ply {ply}: legal generation failed: {error}"));
+        if moves.is_empty() {
+            break;
+        }
+
+        for current in moves.iter() {
+            if !current.kind().is_capture() && current.promotion().is_none() {
+                continue;
+            }
+            let first = static_exchange_evaluation(&position, current).unwrap_or_else(|error| {
+                panic!("SEE ply {ply} {} failed: {error}", current.to_uci())
+            });
+            let second = static_exchange_evaluation(&position, current).unwrap_or_else(|error| {
+                panic!(
+                    "SEE ply {ply} repeated {} failed: {error}",
+                    current.to_uci()
+                )
+            });
+            assert_eq!(first, second, "SEE was nondeterministic at ply {ply}");
+            assert!(
+                first.centipawns().unsigned_abs() <= 60_000,
+                "SEE escaped its documented material domain at ply {ply}"
+            );
+            assert_eq!(position, root, "SEE mutated the position at ply {ply}");
+            assert_position(&position, "SEE root");
+        }
+
+        let current = moves
+            .get(usize::from(selector) % moves.len())
+            .expect("bounded SEE sequence index exists");
+        position.make_move(current).unwrap_or_else(|error| {
+            panic!(
+                "SEE ply {ply}: generated move {} failed: {error}",
+                current.to_uci()
+            )
+        });
+        assert_position(&position, &format!("SEE sequence ply {ply}"));
+    }
 }
 
 /// Exercises game-owned move, repetition, draw, and reverse-history state.
@@ -275,7 +323,7 @@ mod tests {
 
     use super::{
         fuzz_c_abi_buffers_and_handles, fuzz_fen_parser, fuzz_game_history, fuzz_legal_sequence,
-        fuzz_opening_book_parser, fuzz_uci_move_parser, fuzz_weight_parser,
+        fuzz_opening_book_parser, fuzz_static_exchange, fuzz_uci_move_parser, fuzz_weight_parser,
     };
 
     const STARTING_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -285,6 +333,7 @@ mod tests {
         fuzz_fen_parser(STARTING_FEN.as_bytes());
         fuzz_uci_move_parser(b"e2e4");
         fuzz_legal_sequence(&[0, 1, 2, 3, 5, 8, 13, 21, 34, 55]);
+        fuzz_static_exchange(&[12, 7, 19, 3, 41, 5, 23, 9, 31, 2, 47, 11]);
         fuzz_game_history(&[3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5]);
 
         let book = IndexedBook::from_records(Vec::new()).expect("empty book is valid");

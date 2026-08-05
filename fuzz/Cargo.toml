@@ -85,3 +85,11 @@ required-features = ["fuzzing"]
 
 [workspace]
 members = ["."]
+
+[[bin]]
+name = "static_exchange"
+path = "fuzz_targets/static_exchange.rs"
+test = false
+doc = false
+bench = false
+required-features = ["fuzzing"]
