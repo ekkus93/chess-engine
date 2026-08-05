@@ -1,49 +1,57 @@
-name: S2-3 baseline staging
+name: S2-3 baseline validation
 
 on:
   push:
     branches:
       - master
     paths:
-      - scripts/s2_3_baseline_stage.py
-      - scripts/s2_3_baseline_stage_runner.py
+      - crates/chess-search/**
+      - crates/chess-tools/src/bin/s2_3_baseline.rs
+      - fixtures/search_baseline_v1.tsv
+      - scripts/task_s2_3_baseline_audit.sh
+      - docs/RUST_CHESS_ENGINE_V0_2_S2_3_BASELINE_2026-08-05.md
       - .github/workflows/s2-3-stage.yml
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: s2-3-baseline-staging
-  cancel-in-progress: false
+  group: s2-3-baseline-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  stage:
+  baseline:
+    name: Diagnostics, tactical corpus, and symmetric controls
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
 
-      - name: Apply exact baseline evidence patch
-        run: python3 scripts/s2_3_baseline_stage_runner.py
+      - name: Cache Cargo data
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-engine-s2-3-baseline
 
-      - name: Format
-        run: cargo fmt --all
+      - name: Run permanent S2-3 audit
+        run: bash scripts/task_s2_3_baseline_audit.sh
 
-      - name: Check workspace
-        run: cargo check --locked --workspace --all-targets --all-features
+      - name: Check formatting
+        run: cargo fmt --all -- --check
 
-      - name: Strict Clippy
-        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+      - name: Run focused strict Clippy
+        run: cargo clippy --locked -p chess-search -p chess-tools --all-targets --all-features -- -D warnings
 
-      - name: Test workspace
-        run: cargo test --locked --workspace --all-targets --all-features
+      - name: Test diagnostics and baseline harness
+        run: cargo test --locked -p chess-search -p chess-tools --all-targets --all-features
 
       - name: Build release baseline harness
         run: cargo build --locked --release -p chess-tools --bin s2_3_baseline
@@ -52,23 +60,17 @@ jobs:
         shell: bash
         env:
           S2_3_SOURCE_SHA: ${{ github.sha }}
-          S2_3_BUILD_IDENTITY: rustc-stable|x86_64-unknown-linux-gnu|release|locked
+          S2_3_BUILD_IDENTITY: rustc-1.97.1|x86_64-unknown-linux-gnu|release|locked
         run: |
           set -euo pipefail
           target/release/s2_3_baseline s2-3-evidence-a
           target/release/s2_3_baseline s2-3-evidence-b
           diff -ru s2-3-evidence-a s2-3-evidence-b
 
-      - name: Remove one-shot baseline patches
-        run: git rm scripts/s2_3_baseline_stage.py scripts/s2_3_baseline_stage_runner.py
-
-      - name: Commit validated S2-3 baseline source
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'Phillip Chin'
-          git config user.email 'ekkus93@gmail.com'
-          git add -A -- crates/chess-tools fixtures scripts
-          git diff --cached --check
-          git commit -m 'feat: add S2-3 tactical and strength baselines'
-          git push origin HEAD:master
+      - name: Preserve exact S2-3 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: s2-3-baseline-${{ github.sha }}
+          path: s2-3-evidence-a
+          if-no-files-found: error
+          retention-days: 30
