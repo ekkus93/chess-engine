@@ -1,0 +1,70 @@
+name: S2-2 staged integration
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/s2-2-stage.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: s2-2-staged-integration
+  cancel-in-progress: false
+
+jobs:
+  integrate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Cargo data
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-engine-s2-2-stage
+
+      - name: Assemble engine-variant validator
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/s2_2_stage.py
+          echo '1e5dad99fa4dab06aff3ab9de857bdb1e8329d035d46c9e58ce692554560b1f3  crates/chess-tools/src/engine_variant_validation.rs' | sha256sum --check --strict
+          git rm scripts/s2_2_stage.py scripts/.s2_2_payload_0 scripts/.s2_2_payload_1 scripts/.s2_2_payload_2 scripts/.s2_2_payload_3
+
+      - name: Format candidate tree
+        run: cargo fmt --all
+
+      - name: Validate candidate tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          cargo fmt --all -- --check
+          cargo metadata --locked --format-version 1 >/dev/null
+          cargo check --workspace --all-targets --locked
+          cargo clippy --locked -p chess-tools --all-targets --all-features -- -D warnings
+          cargo test --locked -p chess-tools engine_variant_validation::tests
+          cargo test --locked -p chess-tools candidate_validation::tests
+          cargo test --workspace --all-targets --all-features --locked
+          bash scripts/task_s2_1_policy_identity_audit.sh
+          bash scripts/task_post_port_review_fix_audit.sh
+
+      - name: Commit validated implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'Phillip Chin'
+          git config user.email 'ekkus93@gmail.com'
+          git add -A -- crates/chess-tools/src/engine_variant_validation.rs crates/chess-tools/src/lib.rs scripts
+          git commit -m 'feat: add engine variant validation infrastructure'
+          git push origin HEAD:master
