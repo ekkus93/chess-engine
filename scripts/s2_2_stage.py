@@ -8,6 +8,20 @@ parts = [
     for index in range(4)
 ]
 module = gzip.decompress(base64.b64decode("".join(parts))).decode("utf-8")
+module = module.replace(
+    "use chess_core::{Color, DrawReason, Game, GameStatus, Position, SearchHistory, UciMove};",
+    "use chess_core::{Color, Game, GameStatus, Position, SearchHistory, UciMove};",
+)
+module = module.replace(
+    'let protocol = reader.parse_field("protocol")?;',
+    'let protocol: EngineVariantValidationProtocol = reader.parse_field("protocol")?;',
+    1,
+)
+module = module.replace(
+    'parse_hex(score_token, "candidate score bits")?',
+    'parse_hex(&score_token, "candidate score bits")?',
+    1,
+)
 module_path = root / "crates/chess-tools/src/engine_variant_validation.rs"
 module_path.write_text(module)
 
