@@ -35,7 +35,7 @@ jobs:
         with:
           shared-key: rust-engine-s2-4-evidence
 
-      - name: Format the separate fuzz workspace before checking it
+      - name: Prepare the temporary evidence helper
         shell: bash
         run: |
           set -euo pipefail
@@ -44,14 +44,23 @@ jobs:
 
           path = Path("scripts/s2_4_evidence_stage.py")
           text = path.read_text(encoding="utf-8")
-          witness = 'run("cargo", "fmt", "--manifest-path", "fuzz/Cargo.toml", "--", "--check")'
-          replacement = '\n'.join([
+          fmt_witness = 'run("cargo", "fmt", "--manifest-path", "fuzz/Cargo.toml", "--", "--check")'
+          fmt_replacement = '\n'.join([
               'run("cargo", "fmt", "--manifest-path", "fuzz/Cargo.toml")',
-              witness,
+              fmt_witness,
           ])
-          if text.count(witness) != 1:
+          if text.count(fmt_witness) != 1:
               raise SystemExit("fuzz formatting witness changed")
-          path.write_text(text.replace(witness, replacement), encoding="utf-8")
+          text = text.replace(fmt_witness, fmt_replacement)
+
+          commit_witness = 'Path(__file__).unlink()'
+          commit_replacement = '\n'.join([
+              'run("git", "checkout", "--", ".github/workflows/robustness.yml")',
+              commit_witness,
+          ])
+          if text.count(commit_witness) != 1:
+              raise SystemExit("evidence commit witness changed")
+          path.write_text(text.replace(commit_witness, commit_replacement), encoding="utf-8")
           PY
 
       - name: Apply, validate, and commit SEE evidence
