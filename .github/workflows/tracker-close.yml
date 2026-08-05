@@ -36,6 +36,9 @@ jobs:
       - name: Audit S2-3 diagnostics and baselines
         run: bash scripts/task_s2_3_baseline_audit.sh
 
+      - name: Audit standalone S2-4 SEE
+        run: bash scripts/task_s2_4_see_audit.sh
+
       - name: Verify active program progression
         shell: bash
         run: |
