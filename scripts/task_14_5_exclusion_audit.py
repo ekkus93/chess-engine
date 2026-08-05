@@ -26,8 +26,19 @@ def read(path: Path) -> str:
 
 
 def production_prefix(path: Path) -> str:
-    """Return production Rust before the first cfg(test) module."""
-    return read(path).split("#[cfg(test)]", 1)[0]
+    """Return Rust source before the first cfg(test) module.
+
+    Test-only helper functions may be interleaved with production items. Stopping at
+    the first cfg(test) attribute would therefore hide later production code. The
+    module boundary is the stable point after which the file contains only tests.
+    """
+    source = read(path)
+    test_module = re.search(
+        r"^#\[cfg\(test\)\]\s*\n\s*mod\s+[A-Za-z_][A-Za-z0-9_]*\s*\{",
+        source,
+        flags=re.MULTILINE,
+    )
+    return source[: test_module.start()] if test_module is not None else source
 
 
 def require(condition: bool, message: str) -> None:
@@ -82,6 +93,8 @@ def audit_move_ordering_boundary() -> tuple[list[str], list[str]]:
         "previous_principal_variation",
         "category",
         "promotion",
+        "see_class",
+        "see_value",
         "victim",
         "attacker_preference",
         "killer",
