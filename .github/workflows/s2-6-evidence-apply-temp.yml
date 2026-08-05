@@ -1,5 +1,5 @@
 name: S2-6 evidence apply temporary
-# witness-revision: 3
+# witness-revision: 4
 
 on:
   push:
@@ -14,7 +14,7 @@ permissions:
 
 concurrency:
   group: s2-6-evidence-apply-temporary
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   apply:
@@ -56,19 +56,33 @@ jobs:
           cargo test --locked -p chess-search --all-targets --all-features
           cargo test --locked -p chess-tools --bin s2_6_quiescence
 
-      - name: Exercise all S2-6 evidence modes
+      - name: Build release evidence binary
+        run: cargo build --locked --release -p chess-tools --bin s2_6_quiescence
+
+      - name: Record exact source and build identity
         shell: bash
         run: |
           set -euo pipefail
-          cargo build --locked --release -p chess-tools --bin s2_6_quiescence
-          export S2_6_SOURCE_SHA="$(git rev-parse HEAD)"
-          export S2_6_BUILD_IDENTITY="$(rustc -Vv | paste -sd '|' - | tr ' ' '_')"
-          target/release/s2_6_quiescence deterministic /tmp/s2-6-deterministic-a
-          target/release/s2_6_quiescence deterministic /tmp/s2-6-deterministic-b
-          diff -ru /tmp/s2-6-deterministic-a /tmp/s2-6-deterministic-b
-          target/release/s2_6_quiescence clock /tmp/s2-6-clock
-          target/release/s2_6_quiescence benchmark 3
-          cargo run --locked --release -p chess-tools --bin performance -- allocation-audit
+          echo "S2_6_SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "S2_6_BUILD_IDENTITY=$(rustc -Vv | paste -sd '|' - | tr ' ' '_')" >> "$GITHUB_ENV"
+
+      - name: Generate first deterministic evidence set
+        run: target/release/s2_6_quiescence deterministic /tmp/s2-6-deterministic-a
+
+      - name: Generate second deterministic evidence set
+        run: target/release/s2_6_quiescence deterministic /tmp/s2-6-deterministic-b
+
+      - name: Verify byte-identical deterministic evidence
+        run: diff -ru /tmp/s2-6-deterministic-a /tmp/s2-6-deterministic-b
+
+      - name: Generate clock development evidence
+        run: target/release/s2_6_quiescence clock /tmp/s2-6-clock
+
+      - name: Capture preliminary performance and allocation evidence
+        run: target/release/s2_6_quiescence benchmark 3
+
+      - name: Preserve designated zero-allocation hot-path gate
+        run: cargo run --locked --release -p chess-tools --bin performance -- allocation-audit
 
       - name: Commit validated non-workflow evidence
         run: |
