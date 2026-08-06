@@ -57,6 +57,9 @@ grep -Fq '**Status:** Complete — standalone activation rejected; candidate ina
 grep -Fq '| S2-9 | Optional null-move pruning decision/candidate | **Complete — standalone rejected; inactive** |' "$tracker" || fail "summary is not complete"
 grep -Fq '# Task S2-9: Optional null-move pruning decision/candidate — COMPLETE' "$tracker" || fail "task heading is not complete"
 grep -Fq '## S2-9.4 validation record' "$tracker" || fail "validation record is missing"
+if grep -Fq -- '- S2-9.4 correctness, development strength, and final disposition are not claimed.' "$tracker"; then
+  fail "stale pre-validation disclaimer remains"
+fi
 grep -Fq 'Begin with **S2-10.1 only**:' "$tracker" || fail "next action is not S2-10.1"
 s2_9="$(sed -n '/# Task S2-9:/,/# Task S2-10:/p' "$tracker")"
 [[ "$(grep -Fc -- '- [x]' <<<"$s2_9")" -eq 23 ]] || fail "S2-9 does not have exactly 23 completed requirements"

@@ -257,7 +257,7 @@
 - Synthetic subtrees suppress TT score reuse and storage through the explicit `SuppressedForNullMove` reason while retaining legal-checked TT move ordering hints. Verification searches return to ordinary TT score policy but keep null disabled for the complete verification subtree.
 - Diagnostics now count eligibility attempts, disabled nodes with stable reason events, speculative fail-highs, verification searches, and confirmed cutoffs using checked exact-result accumulation.
 - The authoritative v0.1 policy, production adapters, UCI, C ABI, JNI, Android, package version, and defaults remain unchanged.
-- S2-9.4 correctness, development strength, and final disposition are not claimed.
+- S2-9.3 itself did not claim S2-9.4 correctness, development strength, or final disposition; those are recorded independently below.
 
 ## S2-9.4 validation record
 
