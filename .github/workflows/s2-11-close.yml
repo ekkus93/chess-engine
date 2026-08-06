@@ -1,0 +1,129 @@
+name: S2-11 permanent closure
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/s2_11_close_tracker.py
+      - .github/s2_11_close_evidence.py
+      - .github/s2_11_close_audit.py
+      - .github/workflows/s2-11-close.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: s2-11-permanent-closure-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  close:
+    name: Close S2-11 and remove temporary machinery
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify staging ancestry and scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "6f5472de19e2b784d1f965815bb5ee19d09efa43"
+          changed="$(git diff --name-only HEAD^ HEAD | sort)"
+          expected="$(printf '%s\n' \
+            .github/s2_11_close_audit.py \
+            .github/s2_11_close_evidence.py \
+            .github/s2_11_close_tracker.py \
+            .github/workflows/s2-11-close.yml | sort)"
+          test "$changed" = "$expected"
+          test "$(git rev-parse HEAD^^)" = "392342c3122c54c47cf485d8bb36c8f5a8c5a762"
+
+      - name: Apply reviewed closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/s2_11_close_tracker.py
+          python3 .github/s2_11_close_evidence.py
+          python3 .github/s2_11_close_audit.py
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Audit closure content
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          tracker=docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md
+          report=docs/RUST_CHESS_ENGINE_V0_2_S2_11_PROFILING_2026-08-06.md
+          comparison=benchmarks/s2-11/final-dispatch-comparison.tsv
+          manifest=benchmarks/s2-11/artifact-manifest.tsv
+          grep -Fq '# Task S2-11: Fresh profiling and measured hot-path decisions — COMPLETE' "$tracker"
+          s2_11="$(sed -n '/^# Task S2-11:/,/^# Task S2-12:/p' "$tracker")"
+          test "$(grep -Fc -- '- [x]' <<<"$s2_11")" -eq 24
+          test "$(grep -Fc -- '- [ ]' <<<"$s2_11")" -eq 0
+          grep -Fq '**Accepted implementation SHA:** `392342c3122c54c47cf485d8bb36c8f5a8c5a762`' "$report"
+          grep -Fq $'x86-64\tattacks.sliding_sweep\t0.550814' "$comparison"
+          grep -Fq $'final-dispatch\tarm64\t31105092637\t92628044139\t8969177826' "$manifest"
+          grep -Fq 'Strength tracker authority through S2-11' .github/workflows/tracker-close.yml
+          grep -q '^  contents: read$' .github/workflows/tracker-close.yml
+          if grep -q '^  contents: write$' .github/workflows/tracker-close.yml; then
+            echo 'permanent tracker audit can write repository contents' >&2
+            exit 1
+          fi
+
+      - name: Validate accepted source
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all -- --check
+          cargo check --locked -p chess-core --all-targets --all-features
+          cargo clippy --locked -p chess-core --all-targets --all-features -- -D warnings
+          cargo test --locked -p chess-core attacks_tests -- --nocapture
+          cargo run --locked --release -p chess-tools --bin performance -- profile-perft \
+            | tee /tmp/profile-perft.txt
+          grep -Fxq $'profile_perft_nodes\t4085603' /tmp/profile-perft.txt
+          cargo run --locked --release -p chess-tools --bin performance -- profile-search \
+            | tee /tmp/profile-search.txt
+          grep -Fxq $'profile_search_nodes\t250000' /tmp/profile-search.txt
+          grep -Fxq $'profile_search_qnodes\t242711' /tmp/profile-search.txt
+          grep -Fxq $'profile_search_depth\t4' /tmp/profile-search.txt
+
+      - name: Commit permanent closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm \
+            .github/s2_11_close_audit.py \
+            .github/s2_11_close_evidence.py \
+            .github/s2_11_close_tracker.py \
+            .github/workflows/s2-11-close.yml \
+            .github/workflows/s2-11-final-dispatch-validation.yml
+          git add \
+            .github/workflows/tracker-close.yml \
+            benchmarks/s2-11 \
+            docs/RUST_CHESS_ENGINE_V0_2_S2_11_PROFILING_2026-08-06.md \
+            docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md
+          staged="$(git diff --cached --name-only | sort)"
+          expected="$(printf '%s\n' \
+            .github/s2_11_close_audit.py \
+            .github/s2_11_close_evidence.py \
+            .github/s2_11_close_tracker.py \
+            .github/workflows/s2-11-close.yml \
+            .github/workflows/s2-11-final-dispatch-validation.yml \
+            .github/workflows/tracker-close.yml \
+            benchmarks/s2-11/artifact-manifest.tsv \
+            benchmarks/s2-11/final-dispatch-comparison.tsv \
+            benchmarks/s2-11/profile-summary.tsv \
+            docs/RUST_CHESS_ENGINE_V0_2_S2_11_PROFILING_2026-08-06.md \
+            docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md | sort)"
+          test "$staged" = "$expected"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "perf: close S2-11 profiling decisions"
+          git push origin HEAD:master
