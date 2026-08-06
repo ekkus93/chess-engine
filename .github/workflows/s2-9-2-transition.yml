@@ -6,6 +6,7 @@ on:
       - master
     paths:
       - .github/s2_9_2_transition.py
+      - .github/s2_9_2_audit_fix.py
       - .github/workflows/s2-9-2-transition.yml
   workflow_dispatch:
 
@@ -28,7 +29,9 @@ jobs:
           fetch-depth: 0
 
       - name: Generate S2-9.2 implementation
-        run: python3 .github/s2_9_2_transition.py
+        run: |
+          python3 .github/s2_9_2_transition.py
+          python3 .github/s2_9_2_audit_fix.py
 
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
@@ -51,6 +54,7 @@ jobs:
           test -f scripts/task_s2_9_search_null_transition_audit.sh
           test -f docs/RUST_CHESS_ENGINE_V0_2_S2_9_SEARCH_NULL_TRANSITION_2026-08-05.md
           test ! -e .github/s2_9_2_transition.py
+          test ! -e .github/s2_9_2_audit_fix.py
 
           bash -n scripts/task_s2_9_null_move_feasibility_audit.sh
           bash -n scripts/task_s2_9_search_null_transition_audit.sh
