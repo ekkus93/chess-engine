@@ -1,0 +1,70 @@
+name: S2-9.3 null-move policy validation
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: s2-9-null-policy-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux-x86-64:
+    name: Linux x86-64 conservative policy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Cache Cargo data
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-engine-s2-9-null-policy-x86-64
+      - name: Audit S2-9 boundaries
+        run: |
+          bash scripts/task_s2_9_null_move_feasibility_audit.sh
+          bash scripts/task_s2_9_search_null_transition_audit.sh
+          bash scripts/task_s2_9_null_move_policy_audit.sh
+      - name: Check formatting and strict Clippy
+        run: |
+          cargo fmt --all -- --check
+          cargo clippy --locked -p chess-core -p chess-search --all-targets --all-features -- -D warnings
+      - name: Run complete core and search tests
+        run: |
+          cargo test --locked -p chess-core --all-targets --all-features
+          cargo test --locked -p chess-search --all-targets --all-features
+
+  linux-arm64:
+    name: Linux ARM64 conservative policy
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Cache Cargo data
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-engine-s2-9-null-policy-arm64
+      - name: Audit, lint, and test on native ARM64
+        run: |
+          bash scripts/task_s2_9_null_move_feasibility_audit.sh
+          bash scripts/task_s2_9_search_null_transition_audit.sh
+          bash scripts/task_s2_9_null_move_policy_audit.sh
+          cargo fmt --all -- --check
+          cargo clippy --locked -p chess-core -p chess-search --all-targets --all-features -- -D warnings
+          cargo test --locked -p chess-core --all-targets --all-features
+          cargo test --locked -p chess-search --all-targets --all-features
