@@ -45,7 +45,7 @@ jobs:
       - name: Verify progression through S2-10.3
         shell: bash
         run: |
-          set -euxo pipefail
+          set -euo pipefail
           tracker=docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md
           lmr=docs/RUST_CHESS_ENGINE_V0_2_S2_8_LMR_2026-08-05.md
           null_move=docs/RUST_CHESS_ENGINE_V0_2_S2_9_NULL_MOVE_2026-08-06.md
@@ -89,20 +89,20 @@ jobs:
           grep -Fq 'Nodes: `40,000 / 40,000`' "$lmr"
           grep -Fq 'returned a material score of `-1030` instead of the required mate score `-29994`' "$lmr"
 
-          s2_9="$(sed -n '/# Task S2-9:/,/# Task S2-10:/p' "$tracker")"
+          s2_9="$(sed -n '/^# Task S2-9:/,/^# Task S2-10:/p' "$tracker")"
           test "$(grep -Fc -- '- [x]' <<<"$s2_9")" -eq 23
           test "$(grep -Fc -- '- [ ]' <<<"$s2_9")" -eq 0
 
-          s2_10="$(sed -n '/# Task S2-10:/,/# Task S2-11:/p' "$tracker")"
+          s2_10="$(sed -n '/^# Task S2-10:/,/^# Task S2-11:/p' "$tracker")"
           test "$(grep -Fc -- '- [x]' <<<"$s2_10")" -eq 17
           test "$(grep -Fc -- '- [ ]' <<<"$s2_10")" -eq 0
-          s2_10_1="$(sed -n '/## S2-10.1 /,/## S2-10.2 /p' "$tracker")"
+          s2_10_1="$(sed -n '/^## S2-10\.1 Futility pruning/,/^## S2-10\.2 Razoring/p' <<<"$s2_10")"
           test "$(grep -Fc -- '- [x]' <<<"$s2_10_1")" -eq 7
           test "$(grep -Fc -- '- [ ]' <<<"$s2_10_1")" -eq 0
-          s2_10_2="$(sed -n '/## S2-10.2 /,/## S2-10.3 /p' "$tracker")"
+          s2_10_2="$(sed -n '/^## S2-10\.2 Razoring/,/^## S2-10\.3 Late quiet-move pruning/p' <<<"$s2_10")"
           test "$(grep -Fc -- '- [x]' <<<"$s2_10_2")" -eq 5
           test "$(grep -Fc -- '- [ ]' <<<"$s2_10_2")" -eq 0
-          s2_10_3="$(sed -n '/## S2-10.3 /,/# Task S2-11:/p' "$tracker")"
+          s2_10_3="$(sed -n '/^## S2-10\.3 Late quiet-move pruning/,/^# Task S2-11:/p' <<<"$s2_10")"
           test "$(grep -Fc -- '- [x]' <<<"$s2_10_3")" -eq 5
           test "$(grep -Fc -- '- [ ]' <<<"$s2_10_3")" -eq 0
 
