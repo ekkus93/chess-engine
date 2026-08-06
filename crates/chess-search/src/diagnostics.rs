@@ -66,7 +66,6 @@ pub enum SearchDiagnosticCounter {
     NullMoveSpeculativeFailHighs,
     NullMoveVerificationSearches,
     NullMoveCutoffs,
-    FrontierFutilityAttempts,
     FrontierFutilityPrunes,
     FrontierRazorAttempts,
     LateMovePrunes,
@@ -100,7 +99,6 @@ impl fmt::Display for SearchDiagnosticCounter {
             Self::NullMoveSpeculativeFailHighs => "null_move_speculative_fail_highs",
             Self::NullMoveVerificationSearches => "null_move_verification_searches",
             Self::NullMoveCutoffs => "null_move_cutoffs",
-            Self::FrontierFutilityAttempts => "frontier_futility_attempts",
             Self::FrontierFutilityPrunes => "frontier_futility_prunes",
             Self::FrontierRazorAttempts => "frontier_razor_attempts",
             Self::LateMovePrunes => "late_move_prunes",
@@ -164,7 +162,6 @@ pub enum SearchDiagnosticEvent {
     NullMoveSpeculativeFailHigh,
     NullMoveVerificationSearch,
     NullMoveCutoff,
-    FrontierFutilityAttempt,
     FrontierFutilityPrune,
     FrontierRazorAttempt,
     LateMovePrune,
@@ -203,7 +200,6 @@ pub struct SearchDiagnostics {
     null_move_speculative_fail_highs: u64,
     null_move_verification_searches: u64,
     null_move_cutoffs: u64,
-    frontier_futility_attempts: u64,
     frontier_futility_prunes: u64,
     frontier_razor_attempts: u64,
     late_move_prunes: u64,
@@ -237,7 +233,6 @@ impl SearchDiagnostics {
         null_move_speculative_fail_highs: 0,
         null_move_verification_searches: 0,
         null_move_cutoffs: 0,
-        frontier_futility_attempts: 0,
         frontier_futility_prunes: 0,
         frontier_razor_attempts: 0,
         late_move_prunes: 0,
@@ -372,10 +367,6 @@ impl SearchDiagnostics {
                 &mut self.null_move_cutoffs,
                 SearchDiagnosticCounter::NullMoveCutoffs,
             ),
-            SearchDiagnosticEvent::FrontierFutilityAttempt => increment_checked(
-                &mut self.frontier_futility_attempts,
-                SearchDiagnosticCounter::FrontierFutilityAttempts,
-            ),
             SearchDiagnosticEvent::FrontierFutilityPrune => increment_checked(
                 &mut self.frontier_futility_prunes,
                 SearchDiagnosticCounter::FrontierFutilityPrunes,
@@ -445,7 +436,6 @@ impl SearchDiagnostics {
                 NullMoveVerificationSearches
             ),
             null_move_cutoffs: sum!(null_move_cutoffs, NullMoveCutoffs),
-            frontier_futility_attempts: sum!(frontier_futility_attempts, FrontierFutilityAttempts),
             frontier_futility_prunes: sum!(frontier_futility_prunes, FrontierFutilityPrunes),
             frontier_razor_attempts: sum!(frontier_razor_attempts, FrontierRazorAttempts),
             late_move_prunes: sum!(late_move_prunes, LateMovePrunes),
@@ -559,10 +549,6 @@ impl SearchDiagnostics {
         self.null_move_cutoffs
     }
     #[must_use]
-    pub const fn frontier_futility_attempts(self) -> u64 {
-        self.frontier_futility_attempts
-    }
-    #[must_use]
     pub const fn frontier_futility_prunes(self) -> u64 {
         self.frontier_futility_prunes
     }
@@ -602,7 +588,6 @@ impl SearchDiagnostics {
             && self.null_move_speculative_fail_highs == 0
             && self.null_move_verification_searches == 0
             && self.null_move_cutoffs == 0
-            && self.frontier_futility_attempts == 0
             && self.frontier_futility_prunes == 0
             && self.frontier_razor_attempts == 0
             && self.late_move_prunes == 0
@@ -638,10 +623,6 @@ impl SearchDiagnostics {
             self.late_move_prunes,
         ] {
             hash = hash_bytes(hash, &value.to_le_bytes());
-        }
-        if self.frontier_futility_attempts != 0 {
-            hash = hash_bytes(hash, b"frontier-futility-attempts-v1");
-            hash = hash_bytes(hash, &self.frontier_futility_attempts.to_le_bytes());
         }
         if self.quiescence_delta_attempts != 0 {
             hash = hash_bytes(hash, b"quiescence-delta-attempts-v1");
@@ -754,20 +735,6 @@ mod tests {
         assert_eq!(diagnostics.lmr_reductions(), 1);
         assert_eq!(diagnostics.lmr_reduced_fail_highs(), 1);
         assert_eq!(diagnostics.lmr_verification_searches(), 1);
-    }
-
-    #[test]
-    fn futility_events_distinguish_attempts_from_prunes() {
-        let mut diagnostics = SearchDiagnostics::default();
-        diagnostics
-            .record_checked(SearchDiagnosticEvent::FrontierFutilityAttempt)
-            .expect("small count fits");
-        diagnostics
-            .record_checked(SearchDiagnosticEvent::FrontierFutilityPrune)
-            .expect("small count fits");
-        assert_eq!(diagnostics.frontier_futility_attempts(), 1);
-        assert_eq!(diagnostics.frontier_futility_prunes(), 1);
-        assert!(!diagnostics.reserved_counters_are_zero());
     }
 
     #[test]
