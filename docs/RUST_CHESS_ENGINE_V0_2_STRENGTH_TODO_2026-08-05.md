@@ -216,6 +216,21 @@
 - Exact permanent run `31065063892`: x86-64 job `92501001970`, artifact `8953737384`, digest `22844449c56536ae94957726ff5a378511bec99fffbdf2f839a9164e6b0818c0`; ARM64 job `92501001923`, artifact `8953681761`, digest `01c0563109c18ec0cb7a3204452f454cac66e897ee05646c592edfd1dee5be85`; all gates passed.
 - Production UCI, safe Rust facade, C ABI, JNI, Android, package version, evaluation weights, authoritative v0.1 policy, and defaults remain unchanged. No silent fallback, implicit discovery, committed generated evidence, or write-capable permanent workflow remains.
 
+## S2-9 feasibility record
+
+- Disposition: `implement`; the architecture supports a dedicated reversible search-only null transition, but null pruning itself remains unimplemented and inactive.
+- Feasibility baseline SHA: `76862f5730a518957bf0fbd3daf15af99f37ce6c`.
+- Decision document: `docs/RUST_CHESS_ENGINE_V0_2_S2_9_NULL_MOVE_FEASIBILITY_2026-08-05.md`.
+- Position contract: board state and castling remain unchanged; side toggles; en-passant clears; halfmove and fullmove counters remain unchanged; incremental Zobrist removes the prior canonical en-passant contribution and toggles the side key.
+- API boundary: the transition receives a separate opaque undo token and is never represented as `Move`, accepted by legal move generation, written to `Game`, or exposed through UCI, C ABI, JNI, or Android.
+- History contract: the synthetic null position is not pushed into `SearchHistory`; legal child positions continue to use ordinary push/pop restoration.
+- TT contract: score probe reuse and score storage are suppressed throughout the speculative null subtree; a verified legal TT move may remain an ordering hint.
+- Recursion contract: explicit state disables every nested/consecutive null attempt in the speculative subtree and disables null at any verification node.
+- Risk contract: policy integration must initially exclude in-check, shallow, pawn-only, low-non-pawn-material, mate-sensitive, and zugzwang-prone contexts and must freeze verification behavior before pruning can land.
+- Fifty/seventy-five-move contract: existing draws resolve before null; null does not advance clocks or history, and only the subsequent legal move changes the halfmove clock.
+- Existing reserved null attempt/cutoff diagnostics are insufficient for the final candidate; S2-9.3 must add explicit disabled-node, speculative-fail-high, verification, and confirmed-cutoff accounting.
+- S2-9.2 is limited to the transition primitive plus exact restoration/hash/failure tests. Production policy, defaults, adapters, package/UCI version, and activation remain unchanged.
+
 ## Program guardrails
 
 - Work directly on `master` unless the user explicitly requests a branch.
@@ -246,7 +261,7 @@
 | S2-6 | Quiescence redesign candidates | **Complete — SEE and delta rejected; inactive** |
 | S2-7 | Principal Variation Search candidate | **Complete — standalone rejected; inactive** |
 | S2-8 | Late Move Reductions candidate | **Complete — standalone rejected; inactive for combinations** |
-| S2-9 | Optional null-move pruning decision/candidate | **Not started** |
+| S2-9 | Optional null-move pruning decision/candidate | **In progress — feasibility complete; implementation approved** |
 | S2-10 | Optional frontier and quiet-move pruning candidates | **Not started** |
 | S2-11 | Fresh profiling and measured hot-path decisions | **Not started** |
 | S2-12 | Optional Syzygy tablebase decision/integration | **Not started** |
@@ -660,14 +675,14 @@
 
 ---
 
-# Task S2-9: Optional null-move pruning decision/candidate — NOT STARTED
+# Task S2-9: Optional null-move pruning decision/candidate — IN PROGRESS
 
 ## S2-9.1 Feasibility decision
 
-- [ ] Decide whether null move fits the core/search architecture without corrupting legal-move APIs or history semantics.
-- [ ] Specify side, en-passant, clocks, hash, undo, TT, repetition/history, and consecutive-null behavior before coding.
-- [ ] Review zugzwang and fifty-move risks.
-- [ ] Record `implement`, `reject`, or `defer` with rationale.
+- [x] Decide whether null move fits the core/search architecture without corrupting legal-move APIs or history semantics.
+- [x] Specify side, en-passant, clocks, hash, undo, TT, repetition/history, and consecutive-null behavior before coding.
+- [x] Review zugzwang and fifty-move risks.
+- [x] Record `implement`, `reject`, or `defer` with rationale.
 
 ## S2-9.2 Search-only transition if implemented
 
@@ -1059,4 +1074,4 @@ Remaining risks:
 
 ## Initial next action
 
-Begin with **S2-9 only**: make the optional null-move pruning feasibility decision before coding. Do not add futility pruning, razoring, late quiet-move pruning, tablebases, or combine rejected candidates until S2-9 has an explicit implement/reject/defer architectural disposition.
+Begin with **S2-9.2 only**: implement the dedicated reversible search-only null transition and focused core correctness tests described in `docs/RUST_CHESS_ENGINE_V0_2_S2_9_NULL_MOVE_FEASIBILITY_2026-08-05.md`. Do not integrate null pruning into alpha-beta, enable the policy bit, add strength evidence, begin S2-10, or combine rejected candidates until the transition's exact restoration, hash parity, failure atomicity, and permanent audit pass.
