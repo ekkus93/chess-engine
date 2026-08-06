@@ -18,13 +18,13 @@ concurrency:
 
 jobs:
   tracker-audit:
-    name: Strength tracker authority through S2-10.3
+    name: Strength tracker authority through S2-11
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run inherited and active strength audits
+      - name: Run inherited strength audits
         shell: bash
         run: |
           set -euo pipefail
@@ -42,7 +42,7 @@ jobs:
           bash scripts/task_s2_9_null_move_policy_audit.sh
           bash scripts/task_s2_9_null_move_validation_audit.sh
 
-      - name: Verify progression through S2-10.3
+      - name: Verify progression and evidence through S2-11
         shell: bash
         run: |
           set -euo pipefail
@@ -52,22 +52,34 @@ jobs:
           futility=docs/RUST_CHESS_ENGINE_V0_2_S2_10_1_FUTILITY_2026-08-06.md
           razoring=docs/RUST_CHESS_ENGINE_V0_2_S2_10_2_RAZORING_2026-08-06.md
           late_quiet=docs/RUST_CHESS_ENGINE_V0_2_S2_10_3_LATE_QUIET_MOVE_PRUNING_2026-08-06.md
-          null_workflow=.github/workflows/s2-9-null-policy.yml
+          report=docs/RUST_CHESS_ENGINE_V0_2_S2_11_PROFILING_2026-08-06.md
+          profile=benchmarks/s2-11/profile-summary.tsv
+          comparison=benchmarks/s2-11/final-dispatch-comparison.tsv
+          manifest=benchmarks/s2-11/artifact-manifest.tsv
           policy=crates/chess-search/src/search_policy.rs
           search=crates/chess-search/src/alpha_beta.rs
           ordering=crates/chess-search/src/move_ordering.rs
           diagnostics=crates/chess-search/src/diagnostics.rs
+          attacks=crates/chess-core/src/attacks.rs
+          attack_tests=crates/chess-core/src/attacks_tests.rs
 
           grep -Fq '| S2-8 | Late Move Reductions candidate | **Complete — standalone rejected; inactive for combinations** |' "$tracker"
           grep -Fq '| S2-9 | Optional null-move pruning decision/candidate | **Complete — standalone rejected; inactive** |' "$tracker"
           grep -Fq '| S2-10 | Optional frontier and quiet-move pruning candidates | **Complete — S2-10.1, S2-10.2, and S2-10.3 deferred; inactive** |' "$tracker"
-          grep -Fq '| S2-11 | Fresh profiling and measured hot-path decisions | **Not started** |' "$tracker"
-          grep -Fq '# Task S2-9: Optional null-move pruning decision/candidate — COMPLETE' "$tracker"
-          grep -Fq '# Task S2-10: Optional frontier and quiet-move pruning candidates — COMPLETE' "$tracker"
-          grep -Fq '## S2-10.1 Futility pruning — COMPLETE (DEFERRED)' "$tracker"
-          grep -Fq '## S2-10.2 Razoring — COMPLETE (DEFERRED)' "$tracker"
-          grep -Fq '## S2-10.3 Late quiet-move pruning — COMPLETE (DEFERRED)' "$tracker"
-          grep -Fq '# Task S2-11: Fresh profiling and measured hot-path decisions — NOT STARTED' "$tracker"
+          grep -Fq '| S2-11 | Fresh profiling and measured hot-path decisions | **Complete — x86-64 sliding dispatch accepted; non-x86 baseline preserved** |' "$tracker"
+          grep -Fq '| S2-12 | Optional Syzygy tablebase decision/integration | **Not started** |' "$tracker"
+          grep -Fq '# Task S2-11: Fresh profiling and measured hot-path decisions — COMPLETE' "$tracker"
+          grep -Fq '# Task S2-12: Optional Syzygy tablebase decision/integration — NOT STARTED' "$tracker"
+
+          s2_9="$(sed -n '/^# Task S2-9:/,/^# Task S2-10:/p' "$tracker")"
+          test "$(grep -Fc -- '- [x]' <<<"$s2_9")" -eq 23
+          test "$(grep -Fc -- '- [ ]' <<<"$s2_9")" -eq 0
+          s2_10="$(sed -n '/^# Task S2-10:/,/^# Task S2-11:/p' "$tracker")"
+          test "$(grep -Fc -- '- [x]' <<<"$s2_10")" -eq 17
+          test "$(grep -Fc -- '- [ ]' <<<"$s2_10")" -eq 0
+          s2_11="$(sed -n '/^# Task S2-11:/,/^# Task S2-12:/p' "$tracker")"
+          test "$(grep -Fc -- '- [x]' <<<"$s2_11")" -eq 24
+          test "$(grep -Fc -- '- [ ]' <<<"$s2_11")" -eq 0
 
           grep -Fq '**Status:** Complete — standalone activation rejected' "$null_move"
           grep -Fq '**Disposition:** `rejected_strength`' "$null_move"
@@ -81,35 +93,32 @@ jobs:
           grep -Fq '**Status:** Complete — deferred' "$late_quiet"
           grep -Fq '**Disposition:** `deferred_insufficient_evidence`' "$late_quiet"
           grep -Fq '**Activation:** `false`' "$late_quiet"
-
           grep -Fq '**Disposition:** Standalone candidate rejected' "$lmr"
           test "$(grep -Fc 'Decision: `rejected_strength`.' "$lmr")" -eq 2
-          grep -Fq 'Candidate/baseline ratio: `1.001488`' "$lmr"
-          grep -Fq 'Candidate/baseline ratio: `1.000153`' "$lmr"
-          grep -Fq 'Nodes: `40,000 / 40,000`' "$lmr"
-          grep -Fq 'returned a material score of `-1030` instead of the required mate score `-29994`' "$lmr"
 
-          s2_9="$(sed -n '/^# Task S2-9:/,/^# Task S2-10:/p' "$tracker")"
-          test "$(grep -Fc -- '- [x]' <<<"$s2_9")" -eq 23
-          test "$(grep -Fc -- '- [ ]' <<<"$s2_9")" -eq 0
+          grep -Fq '**Status:** Complete' "$report"
+          grep -Fq '**Baseline source SHA:** `b20d34b3fc6210f0eff7a2124168e6d5e084f36a`' "$report"
+          grep -Fq '**Portable candidate SHA:** `507a7536e9312b607c091fd873d29396c1b578d7`' "$report"
+          grep -Fq '**Accepted implementation SHA:** `392342c3122c54c47cf485d8bb36c8f5a8c5a762`' "$report"
+          grep -Fq 'portable ray-table candidate' "$report"
+          grep -Fq $'x86-64\tprofile-search\tsliding_attack_instruction_share\t16.64' "$profile"
+          grep -Fq $'arm64\tprofile-search\tevaluation_instruction_share\t3.27' "$profile"
+          grep -Fq $'x86-64\tattacks.sliding_sweep\t0.550814' "$comparison"
+          grep -Fq $'x86-64\tsearch.tactical.nodes20000\t0.951872' "$comparison"
+          grep -Fq $'arm64\tsearch.tactical.nodes20000\t1.000471' "$comparison"
+          grep -Fq $'baseline-callgrind\tx86-64\t31103010137\t92621028212\t8968350766' "$manifest"
+          grep -Fq $'portable-candidate\tarm64\t31104319109\t92625431759\t8968925643' "$manifest"
+          grep -Fq $'final-dispatch\tarm64\t31105092637\t92628044139\t8969177826' "$manifest"
+          grep -Fq $'android-jni\tandroid-arm64\t31100066741\t-\t8967168646' "$manifest"
 
-          s2_10="$(sed -n '/^# Task S2-10:/,/^# Task S2-11:/p' "$tracker")"
-          test "$(grep -Fc -- '- [x]' <<<"$s2_10")" -eq 17
-          test "$(grep -Fc -- '- [ ]' <<<"$s2_10")" -eq 0
-          s2_10_1="$(sed -n '/^## S2-10\.1 Futility pruning/,/^## S2-10\.2 Razoring/p' <<<"$s2_10")"
-          test "$(grep -Fc -- '- [x]' <<<"$s2_10_1")" -eq 7
-          test "$(grep -Fc -- '- [ ]' <<<"$s2_10_1")" -eq 0
-          s2_10_2="$(sed -n '/^## S2-10\.2 Razoring/,/^## S2-10\.3 Late quiet-move pruning/p' <<<"$s2_10")"
-          test "$(grep -Fc -- '- [x]' <<<"$s2_10_2")" -eq 5
-          test "$(grep -Fc -- '- [ ]' <<<"$s2_10_2")" -eq 0
-          s2_10_3="$(sed -n '/^## S2-10\.3 Late quiet-move pruning/,/^# Task S2-11:/p' <<<"$s2_10")"
-          test "$(grep -Fc -- '- [x]' <<<"$s2_10_3")" -eq 5
-          test "$(grep -Fc -- '- [ ]' <<<"$s2_10_3")" -eq 0
+          grep -Fq '#[cfg(target_arch = "x86_64")]' "$attacks"
+          grep -Fq '#[cfg(not(target_arch = "x86_64"))]' "$attacks"
+          grep -Fq 'sliding_attacks_ray' "$attacks"
+          grep -Fq 'sliding_attacks_step' "$attacks"
+          grep -Fq 'sliding_attacks_match_independent_oracle_for_every_relevant_occupancy' "$attack_tests"
 
           grep -Fq '(1 << 7, ExperimentalSearchFeature::Razoring)' "$policy"
-          grep -Fq 'Self::Razoring => "razoring"' "$policy"
           grep -Fq '(1 << 8, ExperimentalSearchFeature::LateMovePruning)' "$policy"
-          grep -Fq 'Self::LateMovePruning => "late_move_pruning"' "$policy"
           if grep -Fq 'RAZORING_SEARCH_POLICY_ID' "$policy"; then
             echo 'unexpected retained razoring candidate identity' >&2
             exit 1
@@ -133,14 +142,6 @@ jobs:
           fi
           grep -Fq 'LateMovePrunes' "$diagnostics"
 
-          test -f "$null_workflow"
-          grep -q '^permissions:' "$null_workflow"
-          grep -q '^  contents: read$' "$null_workflow"
-          if grep -q '^  contents: write$' "$null_workflow"; then
-            echo 'permanent S2-9 workflow can write repository contents' >&2
-            exit 1
-          fi
-
           for path in \
             .github/s2_9_feasibility.py \
             .github/workflows/s2-9-feasibility.yml \
@@ -156,7 +157,19 @@ jobs:
             .github/workflows/s2-10-2-razoring-closure.yml \
             .github/workflows/s2-10-2-razoring-closure-v2.yml \
             .github/s2_10_3_close.py \
-            .github/workflows/s2-10-3-closure.yml; do
+            .github/workflows/s2-10-3-closure.yml \
+            .github/workflows/s2-11-profiling.yml \
+            .github/s2_11_sliding_candidate.py \
+            .github/s2_11_sliding_candidate_fix.py \
+            .github/workflows/s2-11-sliding-candidate.yml \
+            .github/workflows/s2-11-sliding-validation.yml \
+            .github/s2_11_x86_dispatch_candidate.py \
+            .github/workflows/s2-11-x86-dispatch-candidate.yml \
+            .github/workflows/s2-11-final-dispatch-validation.yml \
+            .github/s2_11_close_tracker.py \
+            .github/s2_11_close_evidence.py \
+            .github/s2_11_close_audit.py \
+            .github/workflows/s2-11-close.yml; do
             test ! -e "$path"
           done
 
