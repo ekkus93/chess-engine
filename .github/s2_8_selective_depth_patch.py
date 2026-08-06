@@ -19,8 +19,8 @@ replace_once(
 )
 replace_once(
     source,
-    "comparison\\tmedian_time_ratio={ratio:.6}\\tbaseline_nodes={}\\tcandidate_nodes={}\\tbaseline_qnodes={}\\tcandidate_qnodes={}\\tbaseline_cutoffs={}",
-    "comparison\\tmedian_time_ratio={ratio:.6}\\tbaseline_nodes={}\\tcandidate_nodes={}\\tbaseline_qnodes={}\\tcandidate_qnodes={}\\tbaseline_selective_depth={}\\tcandidate_selective_depth={}\\tbaseline_cutoffs={}",
+    "\\tbaseline_qnodes={}\\tcandidate_qnodes={}\\tbaseline_cutoffs={}",
+    "\\tbaseline_qnodes={}\\tcandidate_qnodes={}\\tbaseline_selective_depth={}\\tcandidate_selective_depth={}\\tbaseline_cutoffs={}",
     "comparison selective-depth headings",
 )
 replace_once(
@@ -31,8 +31,8 @@ replace_once(
 )
 replace_once(
     source,
-    "sample\\tpolicy={policy_name}\\tindex={sample}\\telapsed_nanos={elapsed_nanos}\\tallocations={}\\tallocated_bytes={}\\tnodes={}\\tqnodes={}\\tcutoffs={}",
-    "sample\\tpolicy={policy_name}\\tindex={sample}\\telapsed_nanos={elapsed_nanos}\\tallocations={}\\tallocated_bytes={}\\tnodes={}\\tqnodes={}\\tselective_depth={}\\tcutoffs={}",
+    "\\tnodes={}\\tqnodes={}\\tcutoffs={}",
+    "\\tnodes={}\\tqnodes={}\\tselective_depth={}\\tcutoffs={}",
     "sample selective-depth heading",
 )
 replace_once(
@@ -49,8 +49,8 @@ replace_once(
 )
 replace_once(
     source,
-    "summary\\tpolicy={}\\tsamples={}\\tmedian_nanos={}\\tminimum_nanos={}\\tmaximum_nanos={}\\tmaximum_allocations={}\\tmaximum_allocated_bytes={}\\tchecksum={:016x}",
-    "summary\\tpolicy={}\\tsamples={}\\tmedian_nanos={}\\tminimum_nanos={}\\tmaximum_nanos={}\\tselective_depth={}\\tmaximum_allocations={}\\tmaximum_allocated_bytes={}\\tchecksum={:016x}",
+    "\\tmaximum_nanos={}\\tmaximum_allocations={}",
+    "\\tmaximum_nanos={}\\tselective_depth={}\\tmaximum_allocations={}",
     "summary selective-depth heading",
 )
 replace_once(
