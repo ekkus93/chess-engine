@@ -28,7 +28,11 @@ jobs:
           fetch-depth: 0
 
       - name: Generate decision, audit, and tracker update
-        run: python3 .github/s2_9_feasibility.py
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/s2_9_feasibility.py
+          sed -i 's/[[:space:]]\+$//' docs/RUST_CHESS_ENGINE_V0_2_S2_9_NULL_MOVE_FEASIBILITY_2026-08-05.md
 
       - name: Validate feasibility tree
         shell: bash
