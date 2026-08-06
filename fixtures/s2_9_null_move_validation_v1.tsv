@@ -1,0 +1,16 @@
+S2_9_NULL_MOVE_VALIDATION	1
+# identifier	category	fen	depth	mode
+zugzwang-opposition-white	zugzwang	8/8/8/8/4k3/8/4P3/4K3 w - - 0 1	6	normal
+zugzwang-opposition-black	zugzwang	8/8/8/8/4k3/8/4P3/4K3 b - - 0 1	6	normal
+zugzwang-rook-pawn	zugzwang	8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1	6	normal
+stalemate-root	stalemate	7k/5Q2/6K1/8/8/8/8/8 b - - 0 1	4	normal
+stalemate-after-pass	stalemate	7k/5K2/6Q1/8/8/8/8/8 w - - 0 1	5	normal
+threefold-root	repetition	rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 8 5	4	repetition-2
+fivefold-root	repetition	rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 16 9	4	repetition-4
+fifty-before	fifty-move	8/8/8/8/8/8/R3K3/7k w - - 99 1	4	normal
+fifty-boundary	fifty-move	8/8/8/8/8/8/R3K3/7k w - - 100 1	4	normal
+seventy-five-before	seventy-five-move	8/8/8/8/8/8/R3K3/7k w - - 149 1	4	normal
+seventy-five-boundary	seventy-five-move	8/8/8/8/8/8/R3K3/7k w - - 150 1	4	normal
+shorter-mate	mate-distance	7k/5Q2/6K1/8/8/8/8/8 w - - 0 1	3	normal
+longest-survival	longest-survival	4Q2k/8/4K3/8/8/8/8/8 b - - 0 1	6	normal
+midgame-null-exercise	midgame	r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1	5	normal
