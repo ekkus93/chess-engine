@@ -322,7 +322,7 @@
 | S2-7 | Principal Variation Search candidate | **Complete — standalone rejected; inactive** |
 | S2-8 | Late Move Reductions candidate | **Complete — standalone rejected; inactive for combinations** |
 | S2-9 | Optional null-move pruning decision/candidate | **Complete — standalone rejected; inactive** |
-| S2-10 | Optional frontier and quiet-move pruning candidates | **In progress — S2-10.1 and S2-10.2 deferred; S2-10.3 not started** |
+| S2-10 | Optional frontier and quiet-move pruning candidates | **Complete — S2-10.1, S2-10.2, and S2-10.3 deferred; inactive** |
 | S2-11 | Fresh profiling and measured hot-path decisions | **Not started** |
 | S2-12 | Optional Syzygy tablebase decision/integration | **Not started** |
 | S2-13 | API, UCI, ABI/JNI, Android, CI, and documentation integration | **Not started** |
@@ -776,7 +776,7 @@
 
 ---
 
-# Task S2-10: Optional frontier and quiet-move pruning candidates — IN PROGRESS
+# Task S2-10: Optional frontier and quiet-move pruning candidates — COMPLETE
 
 ## S2-10.1 Futility pruning — COMPLETE (DEFERRED)
 
@@ -800,15 +800,15 @@
 
 **S2-10.2 gate:** Complete with `defer`. The required futility evidence does not exist. Implementing razoring now would bypass the ordered evidence gate or couple it to rejected/inactive search candidates. Production code, policy identity, diagnostics, evaluation, adapters, and defaults remain unchanged.
 
-## S2-10.3 Late quiet-move pruning
+## S2-10.3 Late quiet-move pruning — COMPLETE (DEFERRED)
 
-- [ ] Evaluate only after LMR evidence.
-- [ ] Protect TT moves, killers, strong-history moves, checks, promotions, and low-mobility nodes.
-- [ ] Define move-count/depth thresholds explicitly.
-- [ ] Add quiet strategic/defensive regressions.
-- [ ] Record independent disposition.
+- [x] Evaluate only after LMR evidence. The corrected LMR candidate passed its correctness matrix but returned `rejected_strength` in both development protocols, was fractionally slower on x86-64 and ARM64, and did not reduce the bounded workload's main-node count. Its discovered sparse forced-mate regression also proves that a late quiet move cannot be omitted safely from move index alone.
+- [x] Protect TT moves, killers, strong-history moves, checks, promotions, and low-mobility nodes. No pruning candidate was implemented. TT, killer, check, promotion, and mobility guards exist in the LMR infrastructure, but the search-local history table has no calibrated/versioned strong-history threshold suitable for a pruning proof.
+- [x] Define move-count/depth thresholds explicitly. No thresholds were adopted: inventing depth, move-count, or history cutoffs without supporting node/resource evidence would create an unsafe policy. Any future candidate must version and bound every threshold before implementation.
+- [x] Add quiet strategic/defensive regressions. No behaviorally distinct candidate reached implementation. The LMR quiet-resource, quiet-defense, mate-distance, low-mobility, low-material, promotion, en-passant, cancellation, and restoration corpus was reviewed as prerequisite evidence and remains mandatory for reconsideration.
+- [x] Record independent disposition. `deferred_insufficient_evidence`, activation `false`; no candidate correctness matrix or strength match was run because no defensible pruning policy passed the design gate.
 
-**S2-10 gate:** Every frontier/selectivity candidate is isolated, bounded, and accepted/rejected/deferred independently.
+**S2-10 gate:** Complete. Futility, razoring, and late quiet-move pruning are independently deferred and inactive. No frontier/selectivity candidate changed production policy, search semantics, diagnostics, evaluation, adapters, package identity, or defaults.
 
 ---
 
