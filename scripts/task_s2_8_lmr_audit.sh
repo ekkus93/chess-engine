@@ -58,6 +58,7 @@ echo "S2-8 LMR audit passed"
 
 grep -q 'late_move_reductions_candidate' "$evidence" || fail "evidence harness does not select LMR"
 grep -q 'lmr_reduced_fail_highs' "$evidence" || fail "evidence omits reduced fail-highs"
+grep -q 'selective_depth' "$evidence" || fail "evidence omits selective depth"
 grep -q 'activated=false' "$evidence" || fail "evidence omits inactive disposition"
 grep -q '^permissions:' "$workflow" || fail "workflow permissions are missing"
 grep -q '^  contents: read$' "$workflow" || fail "permanent workflow is not read-only"

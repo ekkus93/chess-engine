@@ -106,6 +106,7 @@ struct AllocationSnapshot {
 struct SearchAggregate {
     nodes: u64,
     qnodes: u64,
+    selective_depth: u16,
     beta_cutoffs: u64,
     first_move_cutoffs: u64,
     lmr_reductions: u64,
@@ -543,11 +544,13 @@ fn run_benchmark(samples: usize) -> Result<(), Box<dyn Error>> {
     let allocated_byte_delta = i128::from(candidate.maximum_allocated_bytes)
         - i128::from(baseline.maximum_allocated_bytes);
     println!(
-        "comparison	median_time_ratio={ratio:.6}	baseline_nodes={}	candidate_nodes={}	baseline_qnodes={}	candidate_qnodes={}	baseline_cutoffs={}	candidate_cutoffs={}	baseline_first_move_cutoffs={}	candidate_first_move_cutoffs={}	baseline_maximum_allocations={}	candidate_maximum_allocations={}	allocation_delta={}	baseline_maximum_allocated_bytes={}	candidate_maximum_allocated_bytes={}	allocated_byte_delta={}	candidate_lmr_reductions={}	candidate_lmr_reduced_fail_highs={}	candidate_lmr_verification_searches={}	activated=false",
+        "comparison	median_time_ratio={ratio:.6}	baseline_nodes={}	candidate_nodes={}	baseline_qnodes={}	candidate_qnodes={}\tbaseline_selective_depth={}\tcandidate_selective_depth={}	baseline_cutoffs={}	candidate_cutoffs={}	baseline_first_move_cutoffs={}	candidate_first_move_cutoffs={}	baseline_maximum_allocations={}	candidate_maximum_allocations={}	allocation_delta={}	baseline_maximum_allocated_bytes={}	candidate_maximum_allocated_bytes={}	allocated_byte_delta={}	candidate_lmr_reductions={}	candidate_lmr_reduced_fail_highs={}	candidate_lmr_verification_searches={}	activated=false",
         baseline.aggregate.nodes,
         candidate.aggregate.nodes,
         baseline.aggregate.qnodes,
         candidate.aggregate.qnodes,
+        baseline.aggregate.selective_depth,
+        candidate.aggregate.selective_depth,
         baseline.aggregate.beta_cutoffs,
         candidate.aggregate.beta_cutoffs,
         baseline.aggregate.first_move_cutoffs,
@@ -639,11 +642,12 @@ fn benchmark_policy(
         let elapsed_nanos = started.elapsed().as_nanos();
         let snapshot = stop_allocation_tracking();
         println!(
-            "sample	policy={policy_name}	index={sample}	elapsed_nanos={elapsed_nanos}	allocations={}	allocated_bytes={}	nodes={}	qnodes={}	cutoffs={}	first_move_cutoffs={}	lmr_reductions={}	lmr_reduced_fail_highs={}	lmr_verification_searches={}	checksum={:016x}",
+            "sample	policy={policy_name}	index={sample}	elapsed_nanos={elapsed_nanos}	allocations={}	allocated_bytes={}	nodes={}	qnodes={}\tselective_depth={}	cutoffs={}	first_move_cutoffs={}	lmr_reductions={}	lmr_reduced_fail_highs={}	lmr_verification_searches={}	checksum={:016x}",
             snapshot.calls,
             snapshot.bytes,
             aggregate.nodes,
             aggregate.qnodes,
+            aggregate.selective_depth,
             aggregate.beta_cutoffs,
             aggregate.first_move_cutoffs,
             aggregate.lmr_reductions,
@@ -703,6 +707,7 @@ fn aggregate_search(
             .checked_add(value)
             .ok_or("benchmark aggregate counter overflow")?;
     }
+    aggregate.selective_depth = aggregate.selective_depth.max(result.selective_depth());
     aggregate.checksum = aggregate
         .checksum
         .rotate_left(7)
@@ -714,12 +719,13 @@ fn aggregate_search(
 
 fn print_benchmark(summary: &BenchmarkSummary) {
     println!(
-        "summary\tpolicy={}\tsamples={}\tmedian_nanos={}\tminimum_nanos={}\tmaximum_nanos={}\tmaximum_allocations={}\tmaximum_allocated_bytes={}\tchecksum={:016x}",
+        "summary\tpolicy={}\tsamples={}\tmedian_nanos={}\tminimum_nanos={}\tmaximum_nanos={}\tselective_depth={}\tmaximum_allocations={}\tmaximum_allocated_bytes={}\tchecksum={:016x}",
         summary.policy,
         summary.samples,
         summary.median_nanos,
         summary.minimum_nanos,
         summary.maximum_nanos,
+        summary.aggregate.selective_depth,
         summary.maximum_allocations,
         summary.maximum_allocated_bytes,
         summary.aggregate.checksum,
