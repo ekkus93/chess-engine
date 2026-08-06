@@ -31,6 +31,7 @@ jobs:
 
       - name: Apply S2-8 evidence harness
         run: |
+          # Repair helpers update the generator, delete themselves, and tolerate already-absent cleanup files.
           python3 .github/s2_8_evidence_bootstrap_repair.py
           python3 .github/s2_8_evidence_bootstrap_repair2.py
           python3 .github/s2_8_evidence_bootstrap_repair3.py
