@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   tracker-audit:
-    name: Strength tracker authority through S2-10.2
+    name: Strength tracker authority through S2-10.3
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -42,26 +42,32 @@ jobs:
           bash scripts/task_s2_9_null_move_policy_audit.sh
           bash scripts/task_s2_9_null_move_validation_audit.sh
 
-      - name: Verify progression through S2-10.2
+      - name: Verify progression through S2-10.3
         shell: bash
         run: |
           set -euo pipefail
           tracker=docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md
+          lmr=docs/RUST_CHESS_ENGINE_V0_2_S2_8_LMR_2026-08-05.md
           null_move=docs/RUST_CHESS_ENGINE_V0_2_S2_9_NULL_MOVE_2026-08-06.md
           futility=docs/RUST_CHESS_ENGINE_V0_2_S2_10_1_FUTILITY_2026-08-06.md
           razoring=docs/RUST_CHESS_ENGINE_V0_2_S2_10_2_RAZORING_2026-08-06.md
+          late_quiet=docs/RUST_CHESS_ENGINE_V0_2_S2_10_3_LATE_QUIET_MOVE_PRUNING_2026-08-06.md
           null_workflow=.github/workflows/s2-9-null-policy.yml
           policy=crates/chess-search/src/search_policy.rs
           search=crates/chess-search/src/alpha_beta.rs
+          ordering=crates/chess-search/src/move_ordering.rs
+          diagnostics=crates/chess-search/src/diagnostics.rs
 
           grep -Fq '| S2-8 | Late Move Reductions candidate | **Complete — standalone rejected; inactive for combinations** |' "$tracker"
           grep -Fq '| S2-9 | Optional null-move pruning decision/candidate | **Complete — standalone rejected; inactive** |' "$tracker"
-          grep -Fq '| S2-10 | Optional frontier and quiet-move pruning candidates | **In progress — S2-10.1 and S2-10.2 deferred; S2-10.3 not started** |' "$tracker"
+          grep -Fq '| S2-10 | Optional frontier and quiet-move pruning candidates | **Complete — S2-10.1, S2-10.2, and S2-10.3 deferred; inactive** |' "$tracker"
+          grep -Fq '| S2-11 | Fresh profiling and measured hot-path decisions | **Not started** |' "$tracker"
           grep -Fq '# Task S2-9: Optional null-move pruning decision/candidate — COMPLETE' "$tracker"
-          grep -Fq '# Task S2-10: Optional frontier and quiet-move pruning candidates — IN PROGRESS' "$tracker"
+          grep -Fq '# Task S2-10: Optional frontier and quiet-move pruning candidates — COMPLETE' "$tracker"
           grep -Fq '## S2-10.1 Futility pruning — COMPLETE (DEFERRED)' "$tracker"
           grep -Fq '## S2-10.2 Razoring — COMPLETE (DEFERRED)' "$tracker"
-          grep -Fq '## S2-10.3 Late quiet-move pruning' "$tracker"
+          grep -Fq '## S2-10.3 Late quiet-move pruning — COMPLETE (DEFERRED)' "$tracker"
+          grep -Fq '# Task S2-11: Fresh profiling and measured hot-path decisions — NOT STARTED' "$tracker"
 
           grep -Fq '**Status:** Complete — standalone activation rejected' "$null_move"
           grep -Fq '**Disposition:** `rejected_strength`' "$null_move"
@@ -72,31 +78,60 @@ jobs:
           grep -Fq '**Status:** Complete — deferred' "$razoring"
           grep -Fq '**Disposition:** `defer`' "$razoring"
           grep -Fq '**Activation:** `false`' "$razoring"
+          grep -Fq '**Status:** Complete — deferred' "$late_quiet"
+          grep -Fq '**Disposition:** `deferred_insufficient_evidence`' "$late_quiet"
+          grep -Fq '**Activation:** `false`' "$late_quiet"
+
+          grep -Fq '**Disposition:** Standalone candidate rejected' "$lmr"
+          test "$(grep -Fc 'Decision: `rejected_strength`.' "$lmr")" -eq 2
+          grep -Fq 'Candidate/baseline ratio: `1.001488`' "$lmr"
+          grep -Fq 'Candidate/baseline ratio: `1.000153`' "$lmr"
+          grep -Fq 'Nodes: `40,000 / 40,000`' "$lmr"
+          grep -Fq 'returned a material score of `-1030` instead of the required mate score `-29994`' "$lmr"
 
           s2_9="$(sed -n '/# Task S2-9:/,/# Task S2-10:/p' "$tracker")"
           test "$(grep -Fc -- '- [x]' <<<"$s2_9")" -eq 23
           test "$(grep -Fc -- '- [ ]' <<<"$s2_9")" -eq 0
 
+          s2_10="$(sed -n '/# Task S2-10:/,/# Task S2-11:/p' "$tracker")"
+          test "$(grep -Fc -- '- [x]' <<<"$s2_10")" -eq 17
+          test "$(grep -Fc -- '- [ ]' <<<"$s2_10")" -eq 0
           s2_10_1="$(sed -n '/## S2-10.1 /,/## S2-10.2 /p' "$tracker")"
+          test "$(grep -Fc -- '- [x]' <<<"$s2_10_1")" -eq 7
           test "$(grep -Fc -- '- [ ]' <<<"$s2_10_1")" -eq 0
-          test "$(grep -Fc -- '- [x]' <<<"$s2_10_1")" -gt 0
           s2_10_2="$(sed -n '/## S2-10.2 /,/## S2-10.3 /p' "$tracker")"
-          test "$(grep -Fc -- '- [ ]' <<<"$s2_10_2")" -eq 0
           test "$(grep -Fc -- '- [x]' <<<"$s2_10_2")" -eq 5
+          test "$(grep -Fc -- '- [ ]' <<<"$s2_10_2")" -eq 0
           s2_10_3="$(sed -n '/## S2-10.3 /,/# Task S2-11:/p' "$tracker")"
-          test "$(grep -Fc -- '- [x]' <<<"$s2_10_3")" -eq 0
-          test "$(grep -Fc -- '- [ ]' <<<"$s2_10_3")" -gt 0
+          test "$(grep -Fc -- '- [x]' <<<"$s2_10_3")" -eq 5
+          test "$(grep -Fc -- '- [ ]' <<<"$s2_10_3")" -eq 0
 
           grep -Fq '(1 << 7, ExperimentalSearchFeature::Razoring)' "$policy"
           grep -Fq 'Self::Razoring => "razoring"' "$policy"
+          grep -Fq '(1 << 8, ExperimentalSearchFeature::LateMovePruning)' "$policy"
+          grep -Fq 'Self::LateMovePruning => "late_move_pruning"' "$policy"
           if grep -Fq 'RAZORING_SEARCH_POLICY_ID' "$policy"; then
             echo 'unexpected retained razoring candidate identity' >&2
+            exit 1
+          fi
+          if grep -Fq 'LATE_MOVE_PRUNING_SEARCH_POLICY_ID' "$policy"; then
+            echo 'unexpected retained late-move-pruning candidate identity' >&2
             exit 1
           fi
           if grep -Eiq '\brazor(ing)?\b' "$search"; then
             echo 'production alpha-beta unexpectedly contains razoring logic' >&2
             exit 1
           fi
+          if grep -Fq 'late_move_pruning' "$search"; then
+            echo 'production alpha-beta unexpectedly contains late-move-pruning logic' >&2
+            exit 1
+          fi
+          grep -Fq 'const HISTORY_SCORE_MAXIMUM: u32 = 1_000_000;' "$ordering"
+          if grep -Fq 'STRONG_HISTORY' "$ordering"; then
+            echo 'unreviewed strong-history pruning threshold is present' >&2
+            exit 1
+          fi
+          grep -Fq 'LateMovePrunes' "$diagnostics"
 
           test -f "$null_workflow"
           grep -q '^permissions:' "$null_workflow"
@@ -119,7 +154,9 @@ jobs:
             .github/workflows/s2-9-4-stage.yml \
             .github/workflows/s2-9-4-finalize.yml \
             .github/workflows/s2-10-2-razoring-closure.yml \
-            .github/workflows/s2-10-2-razoring-closure-v2.yml; do
+            .github/workflows/s2-10-2-razoring-closure-v2.yml \
+            .github/s2_10_3_close.py \
+            .github/workflows/s2-10-3-closure.yml; do
             test ! -e "$path"
           done
 
