@@ -28,7 +28,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "3c46939b96ecd05f3c2c2c23036cdbb9c188b87b"
+          test "$(git rev-parse HEAD^)" = "01ea36342d52a4b315d1d51692e62447392a5a57"
           changed="$(git diff --name-only HEAD^ HEAD | sort)"
           test "$changed" = ".github/workflows/strength-integration-apply.yml"
           test ! -e .github/workflows/s2-13-apply.yml
