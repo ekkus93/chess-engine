@@ -42,15 +42,101 @@ jobs:
           python3 .github/s2_9_3_policy.py phase1
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           path = Path('crates/chess-search/src/alpha_beta.rs')
           text = path.read_text(encoding='utf-8')
+
+          # Propagate the recursive state through the final exact PVS re-search.
           old = "        full_window,\n        context,\n    )?;"
           new = "        full_window,\n        null_move_state,\n        context,\n    )?;"
           index = text.rfind(old)
           if index < 0:
               raise SystemExit('exact PVS re-search call without null state was not found')
           text = text[:index] + new + text[index + len(old):]
+
+          # Keep the recursive API within strict Clippy's argument bound by
+          # carrying both path-dependent fields in one typed stack value.
+          state_enum = """enum NullMoveState {
+              Allowed,
+              SpeculativeSubtree,
+              VerificationSubtree,
+          }
+          """
+          path_state = state_enum + """
+          #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+          struct SearchPathState {
+              extension_budget: u16,
+              null_move_state: NullMoveState,
+          }
+
+          impl SearchPathState {
+              const fn new(extension_budget: u16, null_move_state: NullMoveState) -> Self {
+                  Self {
+                      extension_budget,
+                      null_move_state,
+                  }
+              }
+          }
+          """
+          if text.count(state_enum) != 1:
+              raise SystemExit('null-move state enum shape changed unexpectedly')
+          text = text.replace(state_enum, path_state, 1)
+
+          old_signature = """    extension_budget: u16,
+              window: AlphaBetaWindow,
+              null_move_state: NullMoveState,
+              context: &mut AlphaBetaContext<'_, Probe>,
+          """
+          new_signature = """    path_state: SearchPathState,
+              window: AlphaBetaWindow,
+              context: &mut AlphaBetaContext<'_, Probe>,
+          """
+          if text.count(old_signature) != 1:
+              raise SystemExit('recursive search signature shape changed unexpectedly')
+          text = text.replace(old_signature, new_signature, 1)
+
+          function_start = text.index('fn search_node_with_extensions<Probe>(')
+          where_start = text.index('\nwhere\n', function_start)
+          body_start = text.index('{', where_start) + 1
+          locals_text = """
+              let extension_budget = path_state.extension_budget;
+              let null_move_state = path_state.null_move_state;
+          """
+          text = text[:body_start] + locals_text + text[body_start:]
+
+          call_pattern = re.compile(
+              r'(?P<indent>^[ \t]+)extension_budget,\n'
+              r'(?P=indent)(?P<window>[A-Za-z_][A-Za-z0-9_.]*),\n'
+              r'(?P=indent)(?P<state>NullMoveState::[A-Za-z_]+|null_move_state),\n'
+              r'(?P=indent)context,',
+              re.MULTILINE,
+          )
+
+          def rewrite_call(match: re.Match[str]) -> str:
+              indent = match.group('indent')
+              return (
+                  f"{indent}SearchPathState::new(extension_budget, {match.group('state')}),\n"
+                  f"{indent}{match.group('window')},\n"
+                  f"{indent}context,"
+              )
+
+          text, call_count = call_pattern.subn(rewrite_call, text)
+          if call_count < 5:
+              raise SystemExit(f'expected at least five recursive path-state calls, found {call_count}')
+
+          # The policy constant is identity evidence; a runtime assertion on a
+          # compile-time true constant adds no safety and violates strict Clippy.
+          assertion = '                    debug_assert!(NULL_MOVE_VERIFY_ALL_CUTOFFS);\n'
+          if text.count(assertion) != 1:
+              raise SystemExit('verification constant assertion shape changed unexpectedly')
+          text = text.replace(assertion, '', 1)
+          text = text.replace(
+              'NULL_MOVE_REDUCTION, NULL_MOVE_VERIFICATION_REDUCTION, NULL_MOVE_VERIFY_ALL_CUTOFFS,',
+              'NULL_MOVE_REDUCTION, NULL_MOVE_VERIFICATION_REDUCTION,',
+              1,
+          )
+
           path.write_text(text, encoding='utf-8')
           PY
 
