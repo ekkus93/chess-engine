@@ -100,6 +100,15 @@ fn sliding_attacks_match_independent_oracle_for_representative_occupancies() {
 }
 
 #[test]
+fn sliding_attacks_match_independent_oracle_for_every_relevant_occupancy() {
+    for index in 0..Square::COUNT {
+        let source = Square::new(index).expect("index is valid");
+        assert_slider_subsets(source, &ORTHOGONAL, rook_attacks);
+        assert_slider_subsets(source, &DIAGONAL, bishop_attacks);
+    }
+}
+
+#[test]
 fn sliding_attacks_include_first_blocker_and_stop_after_it() {
     let occupancy = board(&["d6", "d2", "b4", "f4", "b6", "f6", "b2", "f2"]);
     assert_eq!(
@@ -204,6 +213,27 @@ fn oracle_offsets(source: Square, offsets: &[(i8, i8)]) -> Bitboard {
         }
     }
     attacks
+}
+
+fn assert_slider_subsets(
+    source: Square,
+    directions: &[(i8, i8)],
+    actual: fn(Square, Bitboard) -> Bitboard,
+) {
+    let relevant = oracle_slider(source, Bitboard::EMPTY, directions).bits();
+    let mut subset = relevant;
+    loop {
+        let occupancy = Bitboard::from_bits(subset);
+        assert_eq!(
+            actual(source, occupancy),
+            oracle_slider(source, occupancy, directions),
+            "slider {source}, occupancy {subset:#018x}"
+        );
+        if subset == 0 {
+            break;
+        }
+        subset = subset.wrapping_sub(1) & relevant;
+    }
 }
 
 fn oracle_slider(source: Square, occupancy: Bitboard, directions: &[(i8, i8)]) -> Bitboard {
