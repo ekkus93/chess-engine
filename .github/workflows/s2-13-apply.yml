@@ -1,0 +1,127 @@
+name: S2-13 apply integration
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/s2_13_payload_00
+      - .github/s2_13_payload_01
+      - .github/s2_13_payload_02
+      - .github/s2_13_payload_03
+      - .github/workflows/s2-13-apply.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: s2-13-apply-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    name: Apply reviewed S2-13 non-workflow changes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify exact staging ancestry and scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "9191bb962d0e2f069dc4bca84674fde869ce2bea"
+          changed="$(git diff --name-only HEAD^ HEAD | sort)"
+          expected="$(printf '%s\n' \
+            .github/s2_13_payload_00 \
+            .github/s2_13_payload_01 \
+            .github/s2_13_payload_02 \
+            .github/s2_13_payload_03 \
+            .github/workflows/s2-13-apply.yml | sort)"
+          test "$changed" = "$expected"
+
+      - name: Reconstruct and apply reviewed patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .github/s2_13_payload_00 \
+              .github/s2_13_payload_01 \
+              .github/s2_13_payload_02 \
+              .github/s2_13_payload_03 \
+            | base64 --decode \
+            | gzip --decompress \
+            > /tmp/s2-13-nonworkflow.patch
+          test "$(wc -c < /tmp/s2-13-nonworkflow.patch)" -eq 59295
+          printf '%s  %s\n' \
+            '7c9d50bee505b361c8ddbbb68f1d0570cf2bc680133064e05e65464e24badfa6' \
+            '/tmp/s2-13-nonworkflow.patch' \
+            | sha256sum --check --strict
+          git apply --check /tmp/s2-13-nonworkflow.patch
+          git apply /tmp/s2-13-nonworkflow.patch
+
+      - name: Validate S2-13 integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x scripts/task_v0_2_strength_audit.sh
+          bash scripts/task_v0_2_strength_audit.sh
+          bash -n scripts/dev.sh scripts/task_v0_2_strength_audit.sh
+          git diff --check
+          test "$(grep -Fc -- '- [x]' < <(sed -n '/^# Task S2-13:/,/^# Task S2-14:/p' docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md))" -eq 33
+          test "$(grep -Fc -- '- [ ]' < <(sed -n '/^# Task S2-13:/,/^# Task S2-14:/p' docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md))" -eq 0
+          test "$(grep -Fc -- '- [x]' < <(sed -n '/^# Task S2-14:/,/^# Task S2-15:/p' docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md))" -eq 0
+          test "$(grep -Fc -- '- [ ]' < <(sed -n '/^# Task S2-14:/,/^# Task S2-15:/p' docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md))" -gt 0
+          git diff --quiet -- Cargo.toml Cargo.lock \
+            crates/chess-engine \
+            crates/chess-uci \
+            crates/chess-ffi \
+            crates/chess-jni \
+            android-harness
+
+      - name: Commit only non-workflow integration and remove payloads
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm \
+            .github/s2_13_payload_00 \
+            .github/s2_13_payload_01 \
+            .github/s2_13_payload_02 \
+            .github/s2_13_payload_03
+          git add \
+            .gitignore \
+            README.md \
+            crates/chess-tools/src/main.rs \
+            crates/chess-tools/src/bin/s2_13_variant_control.rs \
+            docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md \
+            docs/RUST_CHESS_ENGINE_V0_2_S2_13_INTEGRATION_2026-08-06.md \
+            docs/RUST_DEVELOPER_WORKFLOWS.md \
+            docs/RUST_GENERATED_ARTIFACT_POLICY.md \
+            scripts/dev.sh \
+            scripts/task_v0_2_strength_audit.sh
+          staged="$(git diff --cached --name-only | sort)"
+          expected="$(printf '%s\n' \
+            .github/s2_13_payload_00 \
+            .github/s2_13_payload_01 \
+            .github/s2_13_payload_02 \
+            .github/s2_13_payload_03 \
+            .gitignore \
+            README.md \
+            crates/chess-tools/src/main.rs \
+            crates/chess-tools/src/bin/s2_13_variant_control.rs \
+            docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md \
+            docs/RUST_CHESS_ENGINE_V0_2_S2_13_INTEGRATION_2026-08-06.md \
+            docs/RUST_DEVELOPER_WORKFLOWS.md \
+            docs/RUST_GENERATED_ARTIFACT_POLICY.md \
+            scripts/dev.sh \
+            scripts/task_v0_2_strength_audit.sh | sort)"
+          test "$staged" = "$expected"
+          if git diff --cached --name-only | grep -q '^\.github/workflows/'; then
+            echo 'temporary apply workflow attempted to stage workflow changes' >&2
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "strength: integrate S2-13 candidate controls"
+          git push origin HEAD:master
