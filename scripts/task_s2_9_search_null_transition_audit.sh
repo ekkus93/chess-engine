@@ -12,8 +12,9 @@ core_lib="crates/chess-core/src/lib.rs"
 tracker="docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md"
 record="docs/RUST_CHESS_ENGINE_V0_2_S2_9_SEARCH_NULL_TRANSITION_2026-08-05.md"
 feasibility="docs/RUST_CHESS_ENGINE_V0_2_S2_9_NULL_MOVE_FEASIBILITY_2026-08-05.md"
+validation_test="crates/chess-search/tests/s2_9_null_move_validation.rs"
 
-for path in "$source_file" "$position_mod" "$core_lib" "$tracker" "$record" "$feasibility"; do
+for path in "$source_file" "$position_mod" "$core_lib" "$tracker" "$record" "$feasibility" "$validation_test"; do
   [[ -f "$path" ]] || fail "missing $path"
 done
 
@@ -46,12 +47,17 @@ fi
 
 unexpected="$(grep -R --line-number -E 'make_search_null|unmake_search_null' crates \
   | grep -v '^crates/chess-core/src/position/search_null.rs:' \
-  | grep -v '^crates/chess-search/src/alpha_beta.rs:' || true)"
-[[ -z "$unexpected" ]] || fail "search-null transition escaped approved core/search modules: $unexpected"
+  | grep -v '^crates/chess-search/src/alpha_beta.rs:' \
+  | grep -v '^crates/chess-search/tests/s2_9_null_move_validation.rs:' || true)"
+[[ -z "$unexpected" ]] || fail "search-null transition escaped approved core/search/test modules: $unexpected"
 grep -Fq 'position.make_search_null()' crates/chess-search/src/alpha_beta.rs \
   || fail "S2-9.3 search integration is missing make_search_null"
 grep -Fq 'position.unmake_search_null(undo)' crates/chess-search/src/alpha_beta.rs \
   || fail "S2-9.3 search integration is missing unmake_search_null"
+grep -Fq '.make_search_null()' "$validation_test" \
+  || fail "S2-9.4 synthetic-pass validation is missing make_search_null"
+grep -Fq '.unmake_search_null(undo)' "$validation_test" \
+  || fail "S2-9.4 synthetic-pass validation is missing unmake_search_null"
 if grep -R --line-number -E 'make_search_null|unmake_search_null|null_move_pruning_enabled' \
   crates/chess-uci crates/chess-ffi crates/chess-jni 2>/dev/null; then
   fail "search-null transition leaked into a production adapter"
