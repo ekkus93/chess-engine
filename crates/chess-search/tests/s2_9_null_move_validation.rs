@@ -7,8 +7,7 @@ use chess_search::{
 const TT_MEBIBYTES: usize = 1;
 const SHORTER_MATE_FEN: &str = "7k/5Q2/6K1/8/8/8/8/8 w - - 0 1";
 const LONGEST_SURVIVAL_FEN: &str = "4Q2k/8/4K3/8/8/8/8/8 b - - 0 1";
-const MIDGAME_FEN: &str =
-    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+const MIDGAME_FEN: &str = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
 
 fn search(
     root: &Position,
@@ -144,8 +143,7 @@ fn stalemate_and_repetition_roots_are_resolved_before_null_search() {
     assert_eq!(stalemate.nodes(), 1);
     assert_eq!(stalemate.search_diagnostics().null_move_attempts(), 0);
 
-    let (baseline, after_pass) =
-        compare_exact("7k/5K2/6Q1/8/8/8/8/8 w - - 0 1", 5);
+    let (baseline, after_pass) = compare_exact("7k/5K2/6Q1/8/8/8/8/8 w - - 0 1", 5);
     assert_eq!(after_pass.best_move(), baseline.best_move());
     assert_eq!(after_pass.search_diagnostics().null_move_cutoffs(), 0);
 
@@ -205,19 +203,9 @@ fn repeated_success_and_bounded_cancellation_restore_exactly() {
     let history = SearchHistory::from_position(&root);
     let policy = SearchPolicySet::null_move_pruning_candidate();
 
-    let first = search(
-        &root,
-        &history,
-        SearchLimits::new().with_depth(5),
-        &policy,
-    );
+    let first = search(&root, &history, SearchLimits::new().with_depth(5), &policy);
     for _ in 0..3 {
-        let repeated = search(
-            &root,
-            &history,
-            SearchLimits::new().with_depth(5),
-            &policy,
-        );
+        let repeated = search(&root, &history, SearchLimits::new().with_depth(5), &policy);
         assert_eq!(repeated.score(), first.score());
         assert_eq!(repeated.best_move(), first.best_move());
         assert_eq!(repeated.nodes(), first.nodes());
