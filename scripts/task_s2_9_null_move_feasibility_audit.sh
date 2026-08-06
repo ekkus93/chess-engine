@@ -38,10 +38,10 @@ grep -Fq 'No second null transition may occur anywhere inside that speculative s
 grep -Fq 'S2-9.2 may now add only the dedicated reversible search-null transition' "$decision" || fail "next implementation boundary is missing"
 grep -Fq 'Production behavior, package/UCI version, adapters, authoritative policy, and defaults remain unchanged.' "$decision" || fail "production non-change is missing"
 
-grep -Fq '| S2-9 | Optional null-move pruning decision/candidate | **In progress — feasibility complete; implementation approved** |' "$tracker" || fail "summary status is not advanced"
+grep -Fq '| S2-9 | Optional null-move pruning decision/candidate | **In progress — search-null transition complete; pruning policy not started** |' "$tracker" || fail "summary status is not advanced"
 grep -Fq '## S2-9 feasibility record' "$tracker" || fail "tracker feasibility record is missing"
 grep -Fq '# Task S2-9: Optional null-move pruning decision/candidate — IN PROGRESS' "$tracker" || fail "S2-9 heading is not in progress"
-grep -Fq 'Begin with **S2-9.2 only**:' "$tracker" || fail "next action does not point to S2-9.2"
+grep -Fq 'Begin with **S2-9.3 only**:' "$tracker" || fail "next action does not point to S2-9.2"
 
 s2_9_1="$(sed -n '/## S2-9.1 Feasibility decision/,/## S2-9.2 Search-only transition if implemented/p' "$tracker")"
 [[ "$(grep -Fc -- '- [x]' <<<"$s2_9_1")" -eq 4 ]] || fail "S2-9.1 does not have exactly four completed requirements"
@@ -66,9 +66,9 @@ grep -Fq 'ExperimentalSearchFeature::NullMovePruning' "$policy" || fail "reserve
 grep -Fq 'NullMoveAttempts' "$diagnostics" || fail "reserved null-move attempt counter is missing"
 grep -Fq 'NullMoveCutoffs' "$diagnostics" || fail "reserved null-move cutoff counter is missing"
 
-if grep -R --line-number -E 'make_(search_)?null|unmake_(search_)?null|null_move_pruning_enabled' \
-  crates/chess-core/src crates/chess-search/src; then
-  fail "null transition or pruning landed before S2-9.2"
+if grep -R --line-number -E 'make_search_null|unmake_search_null|null_move_pruning_enabled' \
+  crates/chess-search/src; then
+  fail "null pruning integration landed before S2-9.3"
 fi
 
 echo "S2-9.1 null-move feasibility audit passed"

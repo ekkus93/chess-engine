@@ -231,6 +231,21 @@
 - Existing reserved null attempt/cutoff diagnostics are insufficient for the final candidate; S2-9.3 must add explicit disabled-node, speculative-fail-high, verification, and confirmed-cutoff accounting.
 - S2-9.2 is limited to the transition primitive plus exact restoration/hash/failure tests. Production policy, defaults, adapters, package/UCI version, and activation remain unchanged.
 
+## S2-9.2 transition record
+
+- Disposition: complete; the reversible search-only position transition is accepted as infrastructure for S2-9.3, while null pruning remains unimplemented and inactive.
+- Starting master SHA: `152b8a52b90989b113411a9dffc33cb520e45e6b`.
+- Core implementation SHA: `CORE_IMPLEMENTATION_SHA`.
+- Focused validation run: `31074949590`.
+- Added `SearchNullUndo`, `SearchNullError`, `Position::make_search_null`, and `Position::unmake_search_null` in a dedicated `chess-core` position module.
+- State contract: board representations and castling remain unchanged; side toggles; en-passant clears; legal clocks remain unchanged; incremental hash removes the prior canonical en-passant key and toggles the side key.
+- Failure contract: checked positions and mismatched undo tokens fail before mutation; maximum counter values are preserved because the transition performs no clock arithmetic.
+- History contract: the API accepts only a mutable position and cannot append to `Game` or `SearchHistory`; focused tests retain the legal parent hash while the synthetic state is active.
+- Legal/API boundary: no `Move`, `MoveKind`, legal token, UCI history, PV, C ABI, JNI, or Android representation was added.
+- Permanent tests cover en-passant identity, both sides, maximum counters, checked-position atomicity, mismatched-token atomicity, detached history, repeated restoration, and incremental/full-hash parity.
+- S2-9.3 remains blocked from silently reusing/storing TT scores, nesting null attempts, or cutting off without its separately frozen conservative policy and diagnostics.
+- Production search policy, defaults, package/UCI version, adapters, and activation remain unchanged.
+
 ## Program guardrails
 
 - Work directly on `master` unless the user explicitly requests a branch.
@@ -261,7 +276,7 @@
 | S2-6 | Quiescence redesign candidates | **Complete — SEE and delta rejected; inactive** |
 | S2-7 | Principal Variation Search candidate | **Complete — standalone rejected; inactive** |
 | S2-8 | Late Move Reductions candidate | **Complete — standalone rejected; inactive for combinations** |
-| S2-9 | Optional null-move pruning decision/candidate | **In progress — feasibility complete; implementation approved** |
+| S2-9 | Optional null-move pruning decision/candidate | **In progress — search-null transition complete; pruning policy not started** |
 | S2-10 | Optional frontier and quiet-move pruning candidates | **Not started** |
 | S2-11 | Fresh profiling and measured hot-path decisions | **Not started** |
 | S2-12 | Optional Syzygy tablebase decision/integration | **Not started** |
@@ -686,11 +701,11 @@
 
 ## S2-9.2 Search-only transition if implemented
 
-- [ ] Add dedicated reversible search-only null transition.
-- [ ] It cannot be encoded or accepted as a legal `Move`.
-- [ ] It cannot enter UCI/game move history.
-- [ ] Exact make/unmake and incremental/full-hash parity.
-- [ ] Counter overflow and invalid state fail before mutation.
+- [x] Add dedicated reversible search-only null transition.
+- [x] It cannot be encoded or accepted as a legal `Move`.
+- [x] It cannot enter UCI/game move history.
+- [x] Exact make/unmake and incremental/full-hash parity.
+- [x] Counter overflow and invalid state fail before mutation.
 
 ## S2-9.3 Conservative policy if implemented
 
@@ -1074,4 +1089,4 @@ Remaining risks:
 
 ## Initial next action
 
-Begin with **S2-9.2 only**: implement the dedicated reversible search-only null transition and focused core correctness tests described in `docs/RUST_CHESS_ENGINE_V0_2_S2_9_NULL_MOVE_FEASIBILITY_2026-08-05.md`. Do not integrate null pruning into alpha-beta, enable the policy bit, add strength evidence, begin S2-10, or combine rejected candidates until the transition's exact restoration, hash parity, failure atomicity, and permanent audit pass.
+Begin with **S2-9.3 only**: implement the dedicated reversible search-only null transition and focused core correctness tests described in `docs/RUST_CHESS_ENGINE_V0_2_S2_9_NULL_MOVE_FEASIBILITY_2026-08-05.md`. Do not integrate null pruning into alpha-beta, enable the policy bit, add strength evidence, begin S2-10, or combine rejected candidates until the transition's exact restoration, hash parity, failure atomicity, and permanent audit pass.

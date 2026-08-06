@@ -4,6 +4,7 @@ mod error;
 mod fen;
 mod legal;
 mod make_unmake;
+mod search_null;
 #[cfg(test)]
 mod tests;
 mod zobrist;
@@ -14,6 +15,7 @@ pub use error::{PositionBuildError, PositionInvariantError, PositionMutationErro
 pub use fen::FenError;
 pub use legal::{LegalMoveError, LegalMoveToken, LegalMoveTokenList};
 pub use make_unmake::PositionUndo;
+pub use search_null::{SearchNullError, SearchNullUndo};
 
 use crate::{
     Bitboard, CastlingRights, Color, FullmoveNumber, HalfmoveClock, Piece, PieceKind, Square,

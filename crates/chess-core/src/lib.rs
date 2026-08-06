@@ -35,7 +35,7 @@ pub use movegen::{MoveList, MoveListOverflow, MAX_PSEUDO_LEGAL_MOVES};
 pub use piece::{Color, Piece, PieceKind};
 pub use position::{
     FenError, LegalMoveError, LegalMoveToken, LegalMoveTokenList, Position, PositionBuildError,
-    PositionInvariantError, PositionUndo,
+    PositionInvariantError, PositionUndo, SearchNullError, SearchNullUndo,
 };
 #[doc(hidden)]
 pub use position::{PositionEditor, PositionMutationError};
