@@ -10,6 +10,19 @@ def replace_once(path: str, old: str, new: str, label: str) -> None:
     target.write_text(text.replace(old, new, 1), encoding="utf-8")
 
 
+def replace_in_unique_line(path: str, witness: str, old: str, new: str, label: str) -> None:
+    target = Path(path)
+    lines = target.read_text(encoding="utf-8").splitlines(keepends=True)
+    matches = [index for index, line in enumerate(lines) if witness in line]
+    if len(matches) != 1:
+        raise SystemExit(f"{label}: expected one witness line, found {len(matches)}")
+    index = matches[0]
+    if lines[index].count(old) != 1:
+        raise SystemExit(f"{label}: field is not unique on witness line")
+    lines[index] = lines[index].replace(old, new, 1)
+    target.write_text("".join(lines), encoding="utf-8")
+
+
 source = "crates/chess-tools/src/bin/s2_8_lmr.rs"
 replace_once(
     source,
@@ -17,10 +30,11 @@ replace_once(
     "    qnodes: u64,\n    selective_depth: u16,\n    beta_cutoffs: u64,\n",
     "aggregate selective-depth field",
 )
-replace_once(
+replace_in_unique_line(
     source,
-    "\\tbaseline_qnodes={}\\tcandidate_qnodes={}\\tbaseline_cutoffs={}",
-    "\\tbaseline_qnodes={}\\tcandidate_qnodes={}\\tbaseline_selective_depth={}\\tcandidate_selective_depth={}\\tbaseline_cutoffs={}",
+    "median_time_ratio=",
+    "candidate_qnodes={}",
+    "candidate_qnodes={}\\tbaseline_selective_depth={}\\tcandidate_selective_depth={}",
     "comparison selective-depth headings",
 )
 replace_once(
@@ -29,10 +43,11 @@ replace_once(
     "        baseline.aggregate.qnodes,\n        candidate.aggregate.qnodes,\n        baseline.aggregate.selective_depth,\n        candidate.aggregate.selective_depth,\n        baseline.aggregate.beta_cutoffs,\n",
     "comparison selective-depth values",
 )
-replace_once(
+replace_in_unique_line(
     source,
-    "\\tnodes={}\\tqnodes={}\\tcutoffs={}",
-    "\\tnodes={}\\tqnodes={}\\tselective_depth={}\\tcutoffs={}",
+    "sample\\tpolicy=",
+    "qnodes={}",
+    "qnodes={}\\tselective_depth={}",
     "sample selective-depth heading",
 )
 replace_once(
@@ -47,10 +62,11 @@ replace_once(
     "    aggregate.selective_depth = aggregate.selective_depth.max(diagnostics.selective_depth());\n    aggregate.checksum = aggregate\n",
     "selective-depth aggregation",
 )
-replace_once(
+replace_in_unique_line(
     source,
-    "\\tmaximum_nanos={}\\tmaximum_allocations={}",
-    "\\tmaximum_nanos={}\\tselective_depth={}\\tmaximum_allocations={}",
+    "summary\\tpolicy=",
+    "maximum_nanos={}",
+    "maximum_nanos={}\\tselective_depth={}",
     "summary selective-depth heading",
 )
 replace_once(
