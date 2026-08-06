@@ -28,7 +28,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "2a7b3d29ae5cf624a0eb5bb6f8c8815fcdb79594"
+          test "$(git rev-parse HEAD^)" = "3c46939b96ecd05f3c2c2c23036cdbb9c188b87b"
           changed="$(git diff --name-only HEAD^ HEAD | sort)"
           test "$changed" = ".github/workflows/strength-integration-apply.yml"
           test ! -e .github/workflows/s2-13-apply.yml
@@ -65,8 +65,25 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x scripts/task_v0_2_strength_audit.sh
-          bash scripts/task_v0_2_strength_audit.sh
+          bash scripts/task_post_port_review_fix_audit.sh
+          bash scripts/task_s2_1_policy_identity_audit.sh
+          bash scripts/task_s2_2_variant_validation_audit.sh
+          bash scripts/task_s2_3_baseline_audit.sh
+          bash scripts/task_s2_4_see_audit.sh
+          bash scripts/task_s2_5_see_ordering_audit.sh
+          bash scripts/task_s2_6_quiescence_audit.sh
+          bash scripts/task_s2_7_pvs_audit.sh
+          bash scripts/task_s2_8_lmr_audit.sh
+          bash scripts/task_s2_9_null_move_feasibility_audit.sh
+          bash scripts/task_s2_9_search_null_transition_audit.sh
+          bash scripts/task_s2_9_null_move_policy_audit.sh
+          bash scripts/task_s2_9_null_move_validation_audit.sh
+          python3 scripts/task_25_artifact_audit.py
           bash -n scripts/dev.sh scripts/task_v0_2_strength_audit.sh
+          grep -Fq 'variant-report-validate' crates/chess-tools/src/main.rs
+          grep -Fq 'S2_13_SOURCE_SHA' crates/chess-tools/src/bin/s2_13_variant_control.rs
+          grep -Fq '**Activation:** `false`' docs/RUST_CHESS_ENGINE_V0_2_S2_13_INTEGRATION_2026-08-06.md
+          grep -Fq '**Public adapter change:** none' docs/RUST_CHESS_ENGINE_V0_2_S2_13_INTEGRATION_2026-08-06.md
           git diff --check
           test "$(grep -Fc -- '- [x]' < <(sed -n '/^# Task S2-13:/,/^# Task S2-14:/p' docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md))" -eq 33
           test "$(grep -Fc -- '- [ ]' < <(sed -n '/^# Task S2-13:/,/^# Task S2-14:/p' docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md))" -eq 0
