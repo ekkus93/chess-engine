@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   tracker-audit:
-    name: Strength tracker authority and S2-9 closure
+    name: Strength tracker authority through S2-10.2
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -42,41 +42,67 @@ jobs:
           bash scripts/task_s2_9_null_move_policy_audit.sh
           bash scripts/task_s2_9_null_move_validation_audit.sh
 
-      - name: Verify completed S2-9 progression
+      - name: Verify progression through S2-10.2
         shell: bash
         run: |
           set -euo pipefail
           tracker=docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md
-          final=docs/RUST_CHESS_ENGINE_V0_2_S2_9_NULL_MOVE_2026-08-06.md
-          workflow=.github/workflows/s2-9-null-policy.yml
+          null_move=docs/RUST_CHESS_ENGINE_V0_2_S2_9_NULL_MOVE_2026-08-06.md
+          futility=docs/RUST_CHESS_ENGINE_V0_2_S2_10_1_FUTILITY_2026-08-06.md
+          razoring=docs/RUST_CHESS_ENGINE_V0_2_S2_10_2_RAZORING_2026-08-06.md
+          null_workflow=.github/workflows/s2-9-null-policy.yml
+          policy=crates/chess-search/src/search_policy.rs
+          search=crates/chess-search/src/alpha_beta.rs
 
           grep -Fq '| S2-8 | Late Move Reductions candidate | **Complete — standalone rejected; inactive for combinations** |' "$tracker"
           grep -Fq '| S2-9 | Optional null-move pruning decision/candidate | **Complete — standalone rejected; inactive** |' "$tracker"
-          grep -Fq '| S2-10 | Optional frontier and quiet-move pruning candidates | **Not started** |' "$tracker"
-          grep -Fq '## S2-9 feasibility record' "$tracker"
-          grep -Fq '## S2-9.2 transition record' "$tracker"
-          grep -Fq '## S2-9.3 conservative policy record' "$tracker"
-          grep -Fq '## S2-9.4 validation record' "$tracker"
+          grep -Fq '| S2-10 | Optional frontier and quiet-move pruning candidates | **In progress — S2-10.1 and S2-10.2 deferred; S2-10.3 not started** |' "$tracker"
           grep -Fq '# Task S2-9: Optional null-move pruning decision/candidate — COMPLETE' "$tracker"
-          grep -Fq '# Task S2-10: Optional frontier and quiet-move pruning candidates — NOT STARTED' "$tracker"
-          grep -Fq 'Begin with **S2-10.1 only**:' "$tracker"
+          grep -Fq '# Task S2-10: Optional frontier and quiet-move pruning candidates — IN PROGRESS' "$tracker"
+          grep -Fq '## S2-10.1 Futility pruning — COMPLETE (DEFERRED)' "$tracker"
+          grep -Fq '## S2-10.2 Razoring — COMPLETE (DEFERRED)' "$tracker"
+          grep -Fq '## S2-10.3 Late quiet-move pruning' "$tracker"
 
-          grep -Fq '**Status:** Complete — standalone activation rejected' "$final"
-          grep -Fq '**Disposition:** `rejected_strength`' "$final"
-          grep -Fq '**Activation:** `false`' "$final"
+          grep -Fq '**Status:** Complete — standalone activation rejected' "$null_move"
+          grep -Fq '**Disposition:** `rejected_strength`' "$null_move"
+          grep -Fq '**Activation:** `false`' "$null_move"
+          grep -Fq '**Status:** Complete — deferred' "$futility"
+          grep -Fq '**Disposition:** `defer`' "$futility"
+          grep -Fq '**Activation:** `false`' "$futility"
+          grep -Fq '**Status:** Complete — deferred' "$razoring"
+          grep -Fq '**Disposition:** `defer`' "$razoring"
+          grep -Fq '**Activation:** `false`' "$razoring"
 
           s2_9="$(sed -n '/# Task S2-9:/,/# Task S2-10:/p' "$tracker")"
           test "$(grep -Fc -- '- [x]' <<<"$s2_9")" -eq 23
           test "$(grep -Fc -- '- [ ]' <<<"$s2_9")" -eq 0
-          s2_10="$(sed -n '/# Task S2-10:/,/# Task S2-11:/p' "$tracker")"
-          test "$(grep -Fc -- '- [x]' <<<"$s2_10")" -eq 0
-          test "$(grep -Fc -- '- [ ]' <<<"$s2_10")" -gt 0
 
-          test -f "$workflow"
-          grep -q '^permissions:' "$workflow"
-          grep -q '^  contents: read$' "$workflow"
-          if grep -q 'contents: write' "$workflow"; then
-            echo "permanent S2-9 workflow can write repository contents" >&2
+          s2_10_1="$(sed -n '/## S2-10.1 /,/## S2-10.2 /p' "$tracker")"
+          test "$(grep -Fc -- '- [ ]' <<<"$s2_10_1")" -eq 0
+          test "$(grep -Fc -- '- [x]' <<<"$s2_10_1")" -gt 0
+          s2_10_2="$(sed -n '/## S2-10.2 /,/## S2-10.3 /p' "$tracker")"
+          test "$(grep -Fc -- '- [ ]' <<<"$s2_10_2")" -eq 0
+          test "$(grep -Fc -- '- [x]' <<<"$s2_10_2")" -eq 5
+          s2_10_3="$(sed -n '/## S2-10.3 /,/# Task S2-11:/p' "$tracker")"
+          test "$(grep -Fc -- '- [x]' <<<"$s2_10_3")" -eq 0
+          test "$(grep -Fc -- '- [ ]' <<<"$s2_10_3")" -gt 0
+
+          grep -Fq '(1 << 7, ExperimentalSearchFeature::Razoring)' "$policy"
+          grep -Fq 'Self::Razoring => "razoring"' "$policy"
+          if grep -Fq 'RAZORING_SEARCH_POLICY_ID' "$policy"; then
+            echo 'unexpected retained razoring candidate identity' >&2
+            exit 1
+          fi
+          if grep -Eiq '\brazor(ing)?\b' "$search"; then
+            echo 'production alpha-beta unexpectedly contains razoring logic' >&2
+            exit 1
+          fi
+
+          test -f "$null_workflow"
+          grep -q '^permissions:' "$null_workflow"
+          grep -q '^  contents: read$' "$null_workflow"
+          if grep -q 'contents: write' "$null_workflow"; then
+            echo 'permanent S2-9 workflow can write repository contents' >&2
             exit 1
           fi
 
@@ -91,6 +117,15 @@ jobs:
             .github/workflows/s2-9-3-stage.yml \
             .github/s2_9_4_finalize.py \
             .github/workflows/s2-9-4-stage.yml \
-            .github/workflows/s2-9-4-finalize.yml; do
+            .github/workflows/s2-9-4-finalize.yml \
+            .github/workflows/s2-10-2-razoring-closure.yml \
+            .github/workflows/s2-10-2-razoring-closure-v2.yml; do
             test ! -e "$path"
           done
+
+          grep -q '^permissions:' .github/workflows/tracker-close.yml
+          grep -q '^  contents: read$' .github/workflows/tracker-close.yml
+          if grep -q 'contents: write' .github/workflows/tracker-close.yml; then
+            echo 'permanent tracker workflow can write repository contents' >&2
+            exit 1
+          fi
