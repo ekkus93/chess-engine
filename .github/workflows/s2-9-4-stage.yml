@@ -1,0 +1,81 @@
+name: S2-9.4 null-move validation staging
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: s2-9-4-stage-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Correctness and development evidence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Cargo data
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-engine-s2-9-4-stage
+
+      - name: Check formatting and strict Clippy
+        run: |
+          cargo fmt --all -- --check
+          cargo clippy --locked -p chess-search -p chess-tools --all-targets --all-features -- -D warnings
+
+      - name: Run focused S2-9.4 tests
+        run: |
+          cargo test --locked -p chess-search --test s2_9_null_move_validation
+          cargo test --locked -p chess-tools --bin s2_9_null_move
+
+      - name: Build release evidence tool
+        run: cargo build --locked --release -p chess-tools --bin s2_9_null_move
+
+      - name: Record exact build identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          build_identity="$(rustc -Vv | paste -sd '|' - | tr ' ' '_')"
+          echo "S2_9_SOURCE_SHA=${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "S2_9_BUILD_IDENTITY=${build_identity}" >> "$GITHUB_ENV"
+
+      - name: Generate byte-identical deterministic evidence twice
+        run: |
+          target/release/s2_9_null_move deterministic s2-9-deterministic-a
+          target/release/s2_9_null_move deterministic s2-9-deterministic-b
+          diff -ru s2-9-deterministic-a s2-9-deterministic-b
+
+      - name: Generate clock development evidence
+        run: target/release/s2_9_null_move clock s2-9-clock
+
+      - name: Print evidence summaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat s2-9-deterministic-a/s2-9-deterministic-manifest.tsv
+          tail -n 9 s2-9-deterministic-a/s2-9-parity.tsv
+          cat s2-9-deterministic-a/s2-9-fixed-node-development.report
+          cat s2-9-clock/s2-9-clock-summary.tsv
+
+      - name: Preserve staging evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: s2-9-4-staging-${{ github.sha }}
+          path: |
+            s2-9-deterministic-a
+            s2-9-clock
+          if-no-files-found: error
+          retention-days: 30
