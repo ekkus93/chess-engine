@@ -101,7 +101,7 @@ jobs:
           test -f "$null_workflow"
           grep -q '^permissions:' "$null_workflow"
           grep -q '^  contents: read$' "$null_workflow"
-          if grep -q 'contents: write' "$null_workflow"; then
+          if grep -q '^  contents: write$' "$null_workflow"; then
             echo 'permanent S2-9 workflow can write repository contents' >&2
             exit 1
           fi
@@ -125,7 +125,7 @@ jobs:
 
           grep -q '^permissions:' .github/workflows/tracker-close.yml
           grep -q '^  contents: read$' .github/workflows/tracker-close.yml
-          if grep -q 'contents: write' .github/workflows/tracker-close.yml; then
+          if grep -q '^  contents: write$' .github/workflows/tracker-close.yml; then
             echo 'permanent tracker workflow can write repository contents' >&2
             exit 1
           fi
