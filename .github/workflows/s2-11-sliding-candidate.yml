@@ -1,0 +1,108 @@
+name: S2-11 sliding attacks candidate
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/s2_11_sliding_candidate.py
+      - .github/workflows/s2-11-sliding-candidate.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: s2-11-sliding-candidate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  implement:
+    name: Build portable ray-table candidate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify staging ancestry and scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "c75a003886d43fcf25e14b9d6fd3752c17849569"
+          changed="$(git diff --name-only HEAD^ HEAD | sort)"
+          expected="$(printf '%s\n' \
+            .github/s2_11_sliding_candidate.py \
+            .github/workflows/s2-11-profiling.yml \
+            .github/workflows/s2-11-sliding-candidate.yml | sort)"
+          test "$changed" = "$expected"
+          test ! -e .github/workflows/s2-11-profiling.yml
+
+      - name: Generate reviewed candidate
+        run: python3 .github/s2_11_sliding_candidate.py
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Format and audit candidate scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all
+          cargo fmt --all -- --check
+          git diff --check
+          changed="$(git diff --name-only | sort)"
+          expected="$(printf '%s\n' \
+            crates/chess-core/src/attacks.rs \
+            crates/chess-core/src/attacks_tests.rs | sort)"
+          test "$changed" = "$expected"
+          if grep -RIn --exclude-dir=target -E '#\[allow\(|#\[expect\(' crates/chess-core/src/attacks.rs crates/chess-core/src/attacks_tests.rs; then
+            echo 'candidate introduced lint suppression' >&2
+            exit 1
+          fi
+
+      - name: Run exhaustive attack and core validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo check --locked -p chess-core --all-targets --all-features
+          cargo clippy --locked -p chess-core --all-targets --all-features -- -D warnings
+          cargo test --locked -p chess-core attacks_tests -- --nocapture
+          cargo test --locked -p chess-core --all-features
+
+      - name: Verify deterministic release workloads
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --locked --release -p chess-tools --bin performance -- profile-perft \
+            | tee /tmp/profile-perft.txt
+          grep -Fxq $'profile_perft_nodes\t4085603' /tmp/profile-perft.txt
+          cargo run --locked --release -p chess-tools --bin performance -- profile-search \
+            | tee /tmp/profile-search.txt
+          grep -Fxq $'profile_search_nodes\t250000' /tmp/profile-search.txt
+          grep -Fxq $'profile_search_qnodes\t242711' /tmp/profile-search.txt
+          grep -Fxq $'profile_search_depth\t4' /tmp/profile-search.txt
+
+      - name: Commit isolated candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm \
+            .github/s2_11_sliding_candidate.py \
+            .github/workflows/s2-11-sliding-candidate.yml
+          git add \
+            crates/chess-core/src/attacks.rs \
+            crates/chess-core/src/attacks_tests.rs
+          staged="$(git diff --cached --name-only | sort)"
+          expected="$(printf '%s\n' \
+            .github/s2_11_sliding_candidate.py \
+            .github/workflows/s2-11-sliding-candidate.yml \
+            crates/chess-core/src/attacks.rs \
+            crates/chess-core/src/attacks_tests.rs | sort)"
+          test "$staged" = "$expected"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "perf: add portable ray-table sliding attacks"
+          git push origin HEAD:master
