@@ -1,13 +1,15 @@
 use core::fmt;
 
 use chess_core::{
-    LegalMoveError, Move, Position, SearchHistory, SearchHistoryError, StaticExchangeError,
+    LegalMoveError, Move, PieceKind, Position, SearchHistory, SearchHistoryError, SearchNullError,
+    StaticExchangeError,
 };
 
 use crate::{
     aspiration::AspirationWindowOutcome,
     cancellation::NeverCancelled,
     check_extension::decide_check_extension,
+    evaluate_with_weights,
     move_ordering::{
         ordered_legal_moves_with_state_and_tt_move_and_see, MoveOrdering, QuietOrderingState,
     },
@@ -15,11 +17,13 @@ use crate::{
     search_common::resolved_node_score,
     search_policy::{
         LMR_MINIMUM_DEPTH, LMR_MINIMUM_LEGAL_MOVES, LMR_MINIMUM_MOVE_INDEX,
-        LMR_MINIMUM_TOTAL_PIECES, LMR_REDUCTION_TABLE,
+        LMR_MINIMUM_TOTAL_PIECES, LMR_REDUCTION_TABLE, NULL_MOVE_MINIMUM_DEPTH,
+        NULL_MOVE_MINIMUM_SIDE_NON_PAWN_PIECES, NULL_MOVE_MINIMUM_TOTAL_NON_PAWN_PIECES,
+        NULL_MOVE_REDUCTION, NULL_MOVE_VERIFICATION_REDUCTION,
     },
-    EvaluationWeights, Score, SearchCancellationProbe, SearchDiagnosticEvent,
-    SearchDiagnosticOverflow, SearchDiagnostics, SearchPolicy, TranspositionBound,
-    TranspositionEntry, TranspositionProbeError, TranspositionProbeRequest,
+    EvaluationWeights, NullMoveDisabledReason, Score, SearchCancellationProbe,
+    SearchDiagnosticEvent, SearchDiagnosticOverflow, SearchDiagnostics, SearchPolicy,
+    TranspositionBound, TranspositionEntry, TranspositionProbeError, TranspositionProbeRequest,
     TranspositionProbeScore, TranspositionScore, TranspositionScoreConversionError,
     TranspositionScoreReuse, TranspositionTable, TranspositionTableAllocationError, MAX_MATE_PLY,
 };
@@ -134,6 +138,38 @@ impl AlphaBetaWindow {
         self == Self::full()
     }
 
+    fn null_child(parent_beta: Score) -> Result<Self, AlphaBetaSearchError> {
+        let child_alpha = -parent_beta;
+        let child_beta_raw = child_alpha.centipawns().checked_add(1).ok_or(
+            AlphaBetaSearchError::NullMoveWindowOutOfRange {
+                parent_beta: parent_beta.centipawns(),
+            },
+        )?;
+        let child_beta = Score::from_raw(child_beta_raw).ok_or(
+            AlphaBetaSearchError::NullMoveWindowOutOfRange {
+                parent_beta: parent_beta.centipawns(),
+            },
+        )?;
+        Self::new(child_alpha, child_beta).ok_or(AlphaBetaSearchError::NullMoveWindowOutOfRange {
+            parent_beta: parent_beta.centipawns(),
+        })
+    }
+
+    fn null_verification(parent_beta: Score) -> Result<Self, AlphaBetaSearchError> {
+        let alpha_raw = parent_beta.centipawns().checked_sub(1).ok_or(
+            AlphaBetaSearchError::NullMoveWindowOutOfRange {
+                parent_beta: parent_beta.centipawns(),
+            },
+        )?;
+        let alpha =
+            Score::from_raw(alpha_raw).ok_or(AlphaBetaSearchError::NullMoveWindowOutOfRange {
+                parent_beta: parent_beta.centipawns(),
+            })?;
+        Self::new(alpha, parent_beta).ok_or(AlphaBetaSearchError::NullMoveWindowOutOfRange {
+            parent_beta: parent_beta.centipawns(),
+        })
+    }
+
     fn pvs_child(parent_alpha: Score) -> Result<Self, AlphaBetaSearchError> {
         let child_beta = -parent_alpha;
         let child_alpha_raw = child_beta.centipawns() - 1;
@@ -152,10 +188,24 @@ impl AlphaBetaWindow {
 pub enum AlphaBetaSearchError {
     /// Position rule processing failed.
     Rules(LegalMoveError),
+    /// Search-only null transition processing failed.
+    SearchNull(SearchNullError),
     /// Reversible search-line history processing failed.
     History(SearchHistoryError),
     /// SEE capture ordering found contradictory internal move state.
     StaticExchange(StaticExchangeError),
+    /// Null-move depth arithmetic could not be represented.
+    NullMoveDepthOutOfRange {
+        /// Current legal-node depth.
+        depth: u16,
+        /// Requested reduction.
+        reduction: u16,
+    },
+    /// A one-centipawn null or verification window could not be represented.
+    NullMoveWindowOutOfRange {
+        /// Parent beta used to derive the narrow window.
+        parent_beta: i32,
+    },
     /// A one-centipawn PVS child window could not be represented.
     PvsWindowOutOfRange {
         /// Parent alpha whose negated successor was outside the score domain.
@@ -202,8 +252,17 @@ impl fmt::Display for AlphaBetaSearchError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Rules(error) => error.fmt(formatter),
+            Self::SearchNull(error) => error.fmt(formatter),
             Self::History(error) => error.fmt(formatter),
             Self::StaticExchange(error) => error.fmt(formatter),
+            Self::NullMoveDepthOutOfRange { depth, reduction } => write!(
+                formatter,
+                "cannot reduce null-move depth {depth} by {reduction}"
+            ),
+            Self::NullMoveWindowOutOfRange { parent_beta } => write!(
+                formatter,
+                "cannot construct null-move window from parent beta {parent_beta}"
+            ),
             Self::PvsWindowOutOfRange { parent_alpha } => write!(
                 formatter,
                 "cannot construct PVS null window from parent alpha {parent_alpha}"
@@ -244,6 +303,12 @@ impl std::error::Error for AlphaBetaSearchError {}
 impl From<LegalMoveError> for AlphaBetaSearchError {
     fn from(value: LegalMoveError) -> Self {
         Self::Rules(value)
+    }
+}
+
+impl From<SearchNullError> for AlphaBetaSearchError {
+    fn from(value: SearchNullError) -> Self {
+        Self::SearchNull(value)
     }
 }
 
@@ -525,6 +590,7 @@ where
         delta_pruning: policy.search_policy.delta_pruning_enabled(),
         principal_variation_search: policy.search_policy.principal_variation_search_enabled(),
         late_move_reductions: policy.search_policy.late_move_reductions_enabled(),
+        null_move_pruning: policy.search_policy.null_move_pruning_enabled(),
         weights: policy.weights,
         cancellation,
     };
@@ -554,6 +620,7 @@ where
     delta_pruning: bool,
     principal_variation_search: bool,
     late_move_reductions: bool,
+    null_move_pruning: bool,
     weights: &'a EvaluationWeights,
     cancellation: &'a mut Probe,
 }
@@ -579,10 +646,46 @@ where
         history,
         depth,
         ply,
-        extension_budget,
+        SearchPathState::new(extension_budget, NullMoveState::Allowed),
         window,
         context,
     )
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum NullMoveState {
+    Allowed,
+    SpeculativeSubtree,
+    VerificationSubtree,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct SearchPathState {
+    extension_budget: u16,
+    null_move_state: NullMoveState,
+}
+
+impl SearchPathState {
+    const fn new(extension_budget: u16, null_move_state: NullMoveState) -> Self {
+        Self {
+            extension_budget,
+            null_move_state,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct NullMoveSearch {
+    speculative_depth: u16,
+    speculative_window: AlphaBetaWindow,
+    verification_depth: u16,
+    verification_window: AlphaBetaWindow,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum NullMoveDecision {
+    Disabled(NullMoveDisabledReason),
+    Search(NullMoveSearch),
 }
 
 fn search_node_with_extensions<Probe>(
@@ -590,13 +693,16 @@ fn search_node_with_extensions<Probe>(
     history: &mut SearchHistory,
     depth: u16,
     ply: u16,
-    extension_budget: u16,
+    path_state: SearchPathState,
     window: AlphaBetaWindow,
     context: &mut AlphaBetaContext<'_, Probe>,
 ) -> Result<AlphaBetaSearchResult, AlphaBetaSearchError>
 where
     Probe: SearchCancellationProbe + ?Sized,
 {
+    let extension_budget = path_state.extension_budget;
+    let null_move_state = path_state.null_move_state;
+
     let mut alpha = window.alpha;
     let original_alpha = window.alpha;
     let beta = window.beta;
@@ -645,7 +751,8 @@ where
         });
     }
 
-    let score_reuse = transposition_score_reuse(position, context.check_extension_enabled);
+    let score_reuse =
+        transposition_score_reuse(position, context.check_extension_enabled, null_move_state);
     let mut transposition_table_move = None;
     if let Some(table) = context.transposition_table.as_deref_mut() {
         let request = TranspositionProbeRequest::new(
@@ -688,6 +795,98 @@ where
     if ply == 0 {
         transposition_table_move = None;
     }
+
+    let mut nodes = 1_u64;
+    let mut qnodes = 0_u64;
+    let mut selective_depth = ply;
+    let mut diagnostics = SearchDiagnostics::main_node();
+
+    if context.null_move_pruning {
+        let attempt_event = SearchDiagnosticEvent::NullMoveAttempt;
+        diagnostics.record_checked(attempt_event)?;
+        context.cancellation.on_search_diagnostic(attempt_event);
+        match decide_null_move(
+            position,
+            depth,
+            ply,
+            window,
+            null_move_state,
+            context.weights,
+        )? {
+            NullMoveDecision::Disabled(reason) => {
+                let disabled_event = SearchDiagnosticEvent::NullMoveDisabled { reason };
+                diagnostics.record_checked(disabled_event)?;
+                context.cancellation.on_search_diagnostic(disabled_event);
+            }
+            NullMoveDecision::Search(request) => {
+                let undo = position.make_search_null()?;
+                let speculative = search_node_with_extensions(
+                    position,
+                    history,
+                    request.speculative_depth,
+                    ply + 1,
+                    SearchPathState::new(extension_budget, NullMoveState::SpeculativeSubtree),
+                    request.speculative_window,
+                    context,
+                );
+                let restore = position.unmake_search_null(undo);
+                if let Err(error) = restore {
+                    return Err(error.into());
+                }
+                let speculative = speculative?;
+                nodes = nodes
+                    .checked_add(speculative.nodes)
+                    .ok_or(AlphaBetaSearchError::NodeCountOverflow)?;
+                qnodes = qnodes
+                    .checked_add(speculative.qnodes)
+                    .ok_or(AlphaBetaSearchError::NodeCountOverflow)?;
+                selective_depth = selective_depth.max(speculative.selective_depth);
+                diagnostics = diagnostics.checked_add(speculative.diagnostics)?;
+                let speculative_parent_score = -speculative.score;
+                if speculative_parent_score >= beta {
+                    let fail_high_event = SearchDiagnosticEvent::NullMoveSpeculativeFailHigh;
+                    diagnostics.record_checked(fail_high_event)?;
+                    context.cancellation.on_search_diagnostic(fail_high_event);
+                    let verification_event = SearchDiagnosticEvent::NullMoveVerificationSearch;
+                    diagnostics.record_checked(verification_event)?;
+                    context
+                        .cancellation
+                        .on_search_diagnostic(verification_event);
+                    let verification = search_node_with_extensions(
+                        position,
+                        history,
+                        request.verification_depth,
+                        ply,
+                        SearchPathState::new(extension_budget, NullMoveState::VerificationSubtree),
+                        request.verification_window,
+                        context,
+                    )?;
+                    nodes = nodes
+                        .checked_add(verification.nodes)
+                        .ok_or(AlphaBetaSearchError::NodeCountOverflow)?;
+                    qnodes = qnodes
+                        .checked_add(verification.qnodes)
+                        .ok_or(AlphaBetaSearchError::NodeCountOverflow)?;
+                    selective_depth = selective_depth.max(verification.selective_depth);
+                    diagnostics = diagnostics.checked_add(verification.diagnostics)?;
+                    if verification.score >= beta {
+                        let cutoff_event = SearchDiagnosticEvent::NullMoveCutoff;
+                        diagnostics.record_checked(cutoff_event)?;
+                        context.cancellation.on_search_diagnostic(cutoff_event);
+                        return Ok(AlphaBetaSearchResult {
+                            score: verification.score,
+                            best_move: verification.best_move,
+                            nodes,
+                            qnodes,
+                            selective_depth,
+                            diagnostics,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
     let ordered_tokens = ordered_legal_moves_with_state_and_tt_move_and_see(
         position,
         &tokens,
@@ -697,10 +896,6 @@ where
         transposition_table_move,
         context.see_capture_ordering,
     )?;
-    let mut nodes = 1_u64;
-    let mut qnodes = 0_u64;
-    let mut selective_depth = ply;
-    let mut diagnostics = SearchDiagnostics::main_node();
     ordered_tokens
         .diagnostics()
         .record_into(&mut diagnostics, &mut *context.cancellation)?;
@@ -750,6 +945,7 @@ where
                 protected_quiet_candidate,
                 alpha,
                 beta,
+                null_move_state,
             },
             context,
             &mut diagnostics,
@@ -839,6 +1035,94 @@ where
     Ok(result)
 }
 
+fn decide_null_move(
+    position: &Position,
+    depth: u16,
+    ply: u16,
+    window: AlphaBetaWindow,
+    state: NullMoveState,
+    weights: &EvaluationWeights,
+) -> Result<NullMoveDecision, AlphaBetaSearchError> {
+    if state != NullMoveState::Allowed {
+        return Ok(NullMoveDecision::Disabled(
+            NullMoveDisabledReason::NestedOrVerification,
+        ));
+    }
+    if ply == 0 {
+        return Ok(NullMoveDecision::Disabled(NullMoveDisabledReason::Root));
+    }
+    if position.is_in_check(position.side_to_move()) {
+        return Ok(NullMoveDecision::Disabled(NullMoveDisabledReason::InCheck));
+    }
+    if depth < NULL_MOVE_MINIMUM_DEPTH {
+        return Ok(NullMoveDecision::Disabled(
+            NullMoveDisabledReason::ShallowDepth,
+        ));
+    }
+    if window.alpha().is_mate()
+        || window.beta().is_mate()
+        || ply >= MAX_MATE_PLY.saturating_sub(depth)
+    {
+        return Ok(NullMoveDecision::Disabled(
+            NullMoveDisabledReason::MateSensitive,
+        ));
+    }
+
+    let side = position.side_to_move();
+    let side_non_pawn = non_pawn_non_king_count(position, side);
+    let total_non_pawn = side_non_pawn + non_pawn_non_king_count(position, side.opposite());
+    if side_non_pawn < u32::from(NULL_MOVE_MINIMUM_SIDE_NON_PAWN_PIECES)
+        || total_non_pawn < u32::from(NULL_MOVE_MINIMUM_TOTAL_NON_PAWN_PIECES)
+    {
+        return Ok(NullMoveDecision::Disabled(
+            NullMoveDisabledReason::LowNonPawnMaterial,
+        ));
+    }
+
+    if evaluate_with_weights(position, weights) < window.beta() {
+        return Ok(NullMoveDecision::Disabled(
+            NullMoveDisabledReason::StaticEvaluationBelowBeta,
+        ));
+    }
+
+    let speculative_reduction = NULL_MOVE_REDUCTION.checked_add(1).ok_or(
+        AlphaBetaSearchError::NullMoveDepthOutOfRange {
+            depth,
+            reduction: NULL_MOVE_REDUCTION,
+        },
+    )?;
+    let speculative_depth = depth.checked_sub(speculative_reduction).ok_or(
+        AlphaBetaSearchError::NullMoveDepthOutOfRange {
+            depth,
+            reduction: speculative_reduction,
+        },
+    )?;
+    let verification_depth = depth.checked_sub(NULL_MOVE_VERIFICATION_REDUCTION).ok_or(
+        AlphaBetaSearchError::NullMoveDepthOutOfRange {
+            depth,
+            reduction: NULL_MOVE_VERIFICATION_REDUCTION,
+        },
+    )?;
+    Ok(NullMoveDecision::Search(NullMoveSearch {
+        speculative_depth,
+        speculative_window: AlphaBetaWindow::null_child(window.beta())?,
+        verification_depth,
+        verification_window: AlphaBetaWindow::null_verification(window.beta())?,
+    }))
+}
+
+fn non_pawn_non_king_count(position: &Position, color: chess_core::Color) -> u32 {
+    [
+        PieceKind::Knight,
+        PieceKind::Bishop,
+        PieceKind::Rook,
+        PieceKind::Queen,
+    ]
+    .into_iter()
+    .map(|kind| position.piece_bitboard(color, kind).count())
+    .sum()
+}
+
 #[derive(Clone, Copy)]
 struct ChildSearch {
     parent_depth: u16,
@@ -855,6 +1139,7 @@ struct ChildSearch {
     protected_quiet_candidate: bool,
     alpha: Score,
     beta: Score,
+    null_move_state: NullMoveState,
 }
 
 fn search_child_with_optional_lmr<Probe>(
@@ -950,6 +1235,7 @@ where
         move_index,
         alpha,
         beta,
+        null_move_state,
         ..
     } = request;
     let full_window = AlphaBetaWindow {
@@ -962,7 +1248,7 @@ where
             history,
             depth,
             ply,
-            extension_budget,
+            SearchPathState::new(extension_budget, null_move_state),
             full_window,
             context,
         );
@@ -977,7 +1263,7 @@ where
         history,
         depth,
         ply,
-        extension_budget,
+        SearchPathState::new(extension_budget, null_move_state),
         zero_window,
         context,
     )?;
@@ -994,7 +1280,7 @@ where
         history,
         depth,
         ply,
-        extension_budget,
+        SearchPathState::new(extension_budget, null_move_state),
         full_window,
         context,
     )?;
@@ -1038,8 +1324,11 @@ fn combine_search_attempts(
 fn transposition_score_reuse(
     position: &Position,
     check_extension_enabled: bool,
+    null_move_state: NullMoveState,
 ) -> TranspositionScoreReuse {
-    if check_extension_enabled {
+    if null_move_state == NullMoveState::SpeculativeSubtree {
+        TranspositionScoreReuse::SuppressedForNullMove
+    } else if check_extension_enabled {
         TranspositionScoreReuse::SuppressedForSelectiveExtension
     } else if position.halfmove_clock().get() == 0 {
         TranspositionScoreReuse::Allowed
@@ -1049,10 +1338,143 @@ fn transposition_score_reuse(
 }
 
 #[cfg(test)]
+mod null_move_policy_tests {
+    use chess_core::Position;
+
+    use super::{
+        decide_null_move, transposition_score_reuse, AlphaBetaWindow, NullMoveDecision,
+        NullMoveState,
+    };
+    use crate::{
+        EvaluationWeights, NullMoveDisabledReason, Score, TranspositionScoreReuse,
+        NULL_MOVE_MINIMUM_DEPTH, NULL_MOVE_REDUCTION, NULL_MOVE_VERIFICATION_REDUCTION,
+    };
+
+    fn position(fen: &str) -> Position {
+        Position::from_fen(fen).expect("fixture parses")
+    }
+
+    fn window(alpha: i32, beta: i32) -> AlphaBetaWindow {
+        AlphaBetaWindow::new(
+            Score::from_raw(alpha).expect("alpha fits"),
+            Score::from_raw(beta).expect("beta fits"),
+        )
+        .expect("window is valid")
+    }
+
+    #[test]
+    fn eligible_policy_uses_checked_frozen_depths_and_windows() {
+        let current = Position::starting();
+        let decision = decide_null_move(
+            &current,
+            6,
+            1,
+            window(-200, -100),
+            NullMoveState::Allowed,
+            &EvaluationWeights::DEFAULT,
+        )
+        .expect("decision succeeds");
+        let NullMoveDecision::Search(request) = decision else {
+            panic!("midgame fixture should be eligible: {decision:?}");
+        };
+        assert_eq!(NULL_MOVE_MINIMUM_DEPTH, 4);
+        assert_eq!(NULL_MOVE_REDUCTION, 2);
+        assert_eq!(NULL_MOVE_VERIFICATION_REDUCTION, 1);
+        assert_eq!(request.speculative_depth, 3);
+        assert_eq!(request.verification_depth, 5);
+        assert_eq!(request.speculative_window.alpha().centipawns(), 100);
+        assert_eq!(request.speculative_window.beta().centipawns(), 101);
+        assert_eq!(request.verification_window.alpha().centipawns(), -101);
+        assert_eq!(request.verification_window.beta().centipawns(), -100);
+    }
+
+    #[test]
+    fn conservative_guards_disable_unsafe_contexts() {
+        let starting = Position::starting();
+        assert_eq!(
+            decide_null_move(
+                &starting,
+                6,
+                0,
+                window(-200, -100),
+                NullMoveState::Allowed,
+                &EvaluationWeights::DEFAULT,
+            ),
+            Ok(NullMoveDecision::Disabled(NullMoveDisabledReason::Root))
+        );
+        assert_eq!(
+            decide_null_move(
+                &starting,
+                3,
+                1,
+                window(-200, -100),
+                NullMoveState::Allowed,
+                &EvaluationWeights::DEFAULT,
+            ),
+            Ok(NullMoveDecision::Disabled(
+                NullMoveDisabledReason::ShallowDepth
+            ))
+        );
+        assert_eq!(
+            decide_null_move(
+                &starting,
+                6,
+                1,
+                window(-200, -100),
+                NullMoveState::SpeculativeSubtree,
+                &EvaluationWeights::DEFAULT,
+            ),
+            Ok(NullMoveDecision::Disabled(
+                NullMoveDisabledReason::NestedOrVerification
+            ))
+        );
+        let checked = position("4k3/8/8/8/8/8/4R3/4K3 b - - 0 1");
+        assert_eq!(
+            decide_null_move(
+                &checked,
+                6,
+                1,
+                window(-200, -100),
+                NullMoveState::Allowed,
+                &EvaluationWeights::DEFAULT,
+            ),
+            Ok(NullMoveDecision::Disabled(NullMoveDisabledReason::InCheck))
+        );
+        let pawn_only = position("7k/6pp/8/8/8/8/PP6/K7 w - - 0 1");
+        assert_eq!(
+            decide_null_move(
+                &pawn_only,
+                6,
+                1,
+                window(-200, -100),
+                NullMoveState::Allowed,
+                &EvaluationWeights::DEFAULT,
+            ),
+            Ok(NullMoveDecision::Disabled(
+                NullMoveDisabledReason::LowNonPawnMaterial
+            ))
+        );
+    }
+
+    #[test]
+    fn synthetic_subtree_has_distinct_tt_suppression_and_verification_does_not() {
+        let current = Position::starting();
+        assert_eq!(
+            transposition_score_reuse(&current, false, NullMoveState::SpeculativeSubtree),
+            TranspositionScoreReuse::SuppressedForNullMove
+        );
+        assert_eq!(
+            transposition_score_reuse(&current, false, NullMoveState::VerificationSubtree),
+            TranspositionScoreReuse::Allowed
+        );
+    }
+}
+
+#[cfg(test)]
 mod lmr_policy_tests {
     use chess_core::Position;
 
-    use super::{late_move_reduction, ChildSearch};
+    use super::{late_move_reduction, ChildSearch, NullMoveState};
     use crate::Score;
 
     fn quiet_move(fen: &str, uci: &str) -> chess_core::Move {
@@ -1081,6 +1503,7 @@ mod lmr_policy_tests {
             protected_quiet_candidate: false,
             alpha: Score::from_raw(-20).expect("score fits"),
             beta: Score::from_raw(20).expect("score fits"),
+            null_move_state: NullMoveState::Allowed,
         }
     }
 
@@ -1186,6 +1609,7 @@ mod ordering_tests {
             delta_pruning: false,
             principal_variation_search: false,
             late_move_reductions: false,
+            null_move_pruning: false,
             weights: &crate::EvaluationWeights::DEFAULT,
             cancellation: &mut cancellation,
         };
@@ -1221,6 +1645,7 @@ mod ordering_tests {
             delta_pruning: false,
             principal_variation_search: false,
             late_move_reductions: false,
+            null_move_pruning: false,
             weights: &crate::EvaluationWeights::DEFAULT,
             cancellation: &mut cancellation,
         };
@@ -1336,6 +1761,7 @@ mod ordering_tests {
                 delta_pruning: false,
                 principal_variation_search: false,
                 late_move_reductions: false,
+                null_move_pruning: false,
                 weights: &crate::EvaluationWeights::DEFAULT,
                 cancellation: &mut cancellation,
             };

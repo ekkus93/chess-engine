@@ -3,6 +3,41 @@ use core::fmt;
 const FNV_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
 const FNV_PRIME: u64 = 0x0000_0100_0000_01b3;
 
+/// Stable reason why an S2-9 null-move attempt was disabled.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum NullMoveDisabledReason {
+    /// Root nodes never prune by a synthetic pass.
+    Root,
+    /// The side to move is checked.
+    InCheck,
+    /// Remaining depth is below the frozen minimum.
+    ShallowDepth,
+    /// The position has too little non-pawn material for the pass assumption.
+    LowNonPawnMaterial,
+    /// The node is already inside a speculative or verification subtree.
+    NestedOrVerification,
+    /// Mate-score bounds or mate-domain proximity make pruning unsafe.
+    MateSensitive,
+    /// Static evaluation does not already meet beta.
+    StaticEvaluationBelowBeta,
+}
+
+impl NullMoveDisabledReason {
+    /// Stable machine-readable reason name.
+    #[must_use]
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Root => "root",
+            Self::InCheck => "in_check",
+            Self::ShallowDepth => "shallow_depth",
+            Self::LowNonPawnMaterial => "low_non_pawn_material",
+            Self::NestedOrVerification => "nested_or_verification",
+            Self::MateSensitive => "mate_sensitive",
+            Self::StaticEvaluationBelowBeta => "static_evaluation_below_beta",
+        }
+    }
+}
+
 /// One bounded deterministic search counter.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SearchDiagnosticCounter {
@@ -27,6 +62,9 @@ pub enum SearchDiagnosticCounter {
     LmrReducedFailHighs,
     LmrResearches,
     NullMoveAttempts,
+    NullMoveDisabledNodes,
+    NullMoveSpeculativeFailHighs,
+    NullMoveVerificationSearches,
     NullMoveCutoffs,
     FrontierFutilityPrunes,
     FrontierRazorAttempts,
@@ -57,6 +95,9 @@ impl fmt::Display for SearchDiagnosticCounter {
             Self::LmrReducedFailHighs => "lmr_reduced_fail_highs",
             Self::LmrResearches => "lmr_researches",
             Self::NullMoveAttempts => "null_move_attempts",
+            Self::NullMoveDisabledNodes => "null_move_disabled_nodes",
+            Self::NullMoveSpeculativeFailHighs => "null_move_speculative_fail_highs",
+            Self::NullMoveVerificationSearches => "null_move_verification_searches",
             Self::NullMoveCutoffs => "null_move_cutoffs",
             Self::FrontierFutilityPrunes => "frontier_futility_prunes",
             Self::FrontierRazorAttempts => "frontier_razor_attempts",
@@ -117,6 +158,9 @@ pub enum SearchDiagnosticEvent {
     LmrReducedFailHigh,
     LmrResearch,
     NullMoveAttempt,
+    NullMoveDisabled { reason: NullMoveDisabledReason },
+    NullMoveSpeculativeFailHigh,
+    NullMoveVerificationSearch,
     NullMoveCutoff,
     FrontierFutilityPrune,
     FrontierRazorAttempt,
@@ -152,6 +196,9 @@ pub struct SearchDiagnostics {
     lmr_reduced_fail_highs: u64,
     lmr_researches: u64,
     null_move_attempts: u64,
+    null_move_disabled_nodes: u64,
+    null_move_speculative_fail_highs: u64,
+    null_move_verification_searches: u64,
     null_move_cutoffs: u64,
     frontier_futility_prunes: u64,
     frontier_razor_attempts: u64,
@@ -182,6 +229,9 @@ impl SearchDiagnostics {
         lmr_reduced_fail_highs: 0,
         lmr_researches: 0,
         null_move_attempts: 0,
+        null_move_disabled_nodes: 0,
+        null_move_speculative_fail_highs: 0,
+        null_move_verification_searches: 0,
         null_move_cutoffs: 0,
         frontier_futility_prunes: 0,
         frontier_razor_attempts: 0,
@@ -301,6 +351,18 @@ impl SearchDiagnostics {
                 &mut self.null_move_attempts,
                 SearchDiagnosticCounter::NullMoveAttempts,
             ),
+            SearchDiagnosticEvent::NullMoveDisabled { reason: _ } => increment_checked(
+                &mut self.null_move_disabled_nodes,
+                SearchDiagnosticCounter::NullMoveDisabledNodes,
+            ),
+            SearchDiagnosticEvent::NullMoveSpeculativeFailHigh => increment_checked(
+                &mut self.null_move_speculative_fail_highs,
+                SearchDiagnosticCounter::NullMoveSpeculativeFailHighs,
+            ),
+            SearchDiagnosticEvent::NullMoveVerificationSearch => increment_checked(
+                &mut self.null_move_verification_searches,
+                SearchDiagnosticCounter::NullMoveVerificationSearches,
+            ),
             SearchDiagnosticEvent::NullMoveCutoff => increment_checked(
                 &mut self.null_move_cutoffs,
                 SearchDiagnosticCounter::NullMoveCutoffs,
@@ -364,6 +426,15 @@ impl SearchDiagnostics {
             lmr_reduced_fail_highs: sum!(lmr_reduced_fail_highs, LmrReducedFailHighs),
             lmr_researches: sum!(lmr_researches, LmrResearches),
             null_move_attempts: sum!(null_move_attempts, NullMoveAttempts),
+            null_move_disabled_nodes: sum!(null_move_disabled_nodes, NullMoveDisabledNodes),
+            null_move_speculative_fail_highs: sum!(
+                null_move_speculative_fail_highs,
+                NullMoveSpeculativeFailHighs
+            ),
+            null_move_verification_searches: sum!(
+                null_move_verification_searches,
+                NullMoveVerificationSearches
+            ),
             null_move_cutoffs: sum!(null_move_cutoffs, NullMoveCutoffs),
             frontier_futility_prunes: sum!(frontier_futility_prunes, FrontierFutilityPrunes),
             frontier_razor_attempts: sum!(frontier_razor_attempts, FrontierRazorAttempts),
@@ -462,6 +533,18 @@ impl SearchDiagnostics {
         self.null_move_attempts
     }
     #[must_use]
+    pub const fn null_move_disabled_nodes(self) -> u64 {
+        self.null_move_disabled_nodes
+    }
+    #[must_use]
+    pub const fn null_move_speculative_fail_highs(self) -> u64 {
+        self.null_move_speculative_fail_highs
+    }
+    #[must_use]
+    pub const fn null_move_verification_searches(self) -> u64 {
+        self.null_move_verification_searches
+    }
+    #[must_use]
     pub const fn null_move_cutoffs(self) -> u64 {
         self.null_move_cutoffs
     }
@@ -501,6 +584,9 @@ impl SearchDiagnostics {
             && self.lmr_reduced_fail_highs == 0
             && self.lmr_researches == 0
             && self.null_move_attempts == 0
+            && self.null_move_disabled_nodes == 0
+            && self.null_move_speculative_fail_highs == 0
+            && self.null_move_verification_searches == 0
             && self.null_move_cutoffs == 0
             && self.frontier_futility_prunes == 0
             && self.frontier_razor_attempts == 0
@@ -528,6 +614,9 @@ impl SearchDiagnostics {
             self.lmr_reductions,
             self.lmr_researches,
             self.null_move_attempts,
+            self.null_move_disabled_nodes,
+            self.null_move_speculative_fail_highs,
+            self.null_move_verification_searches,
             self.null_move_cutoffs,
             self.frontier_futility_prunes,
             self.frontier_razor_attempts,

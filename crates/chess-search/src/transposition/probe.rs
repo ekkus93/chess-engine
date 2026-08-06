@@ -20,6 +20,8 @@ pub enum TranspositionScoreReuse {
     SuppressedForRepetition,
     /// Cached scores are suppressed because selective-extension budget is path-dependent.
     SuppressedForSelectiveExtension,
+    /// Cached scores are suppressed throughout a synthetic null-move subtree.
+    SuppressedForNullMove,
 }
 
 /// Complete information required to probe one transposition-table position.

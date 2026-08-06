@@ -38,7 +38,8 @@ pub use check_extension::{
     CheckExtensionDiagnostics, CheckExtensionEvent, MAX_CHECK_EXTENSIONS_PER_LINE,
 };
 pub use diagnostics::{
-    SearchDiagnosticCounter, SearchDiagnosticEvent, SearchDiagnosticOverflow, SearchDiagnostics,
+    NullMoveDisabledReason, SearchDiagnosticCounter, SearchDiagnosticEvent,
+    SearchDiagnosticOverflow, SearchDiagnostics,
 };
 pub use evaluation::{
     evaluate, evaluate_term, evaluate_trace, evaluate_trace_with_weights, evaluate_with_weights,
@@ -75,7 +76,10 @@ pub use search_policy::{
     SearchPolicyValidationError, TranspositionPolicy, LATE_MOVE_REDUCTIONS_SEARCH_POLICY_ID,
     LMR_MINIMUM_DEPTH, LMR_MINIMUM_LEGAL_MOVES, LMR_MINIMUM_MOVE_INDEX, LMR_MINIMUM_TOTAL_PIECES,
     LMR_REDUCTION_TABLE, MAXIMUM_ASPIRATION_HALF_WIDTH_CENTIPAWNS,
-    MAXIMUM_CHECK_EXTENSIONS_PER_LINE, PRINCIPAL_VARIATION_SEARCH_POLICY_ID,
+    MAXIMUM_CHECK_EXTENSIONS_PER_LINE, NULL_MOVE_MINIMUM_DEPTH,
+    NULL_MOVE_MINIMUM_SIDE_NON_PAWN_PIECES, NULL_MOVE_MINIMUM_TOTAL_NON_PAWN_PIECES,
+    NULL_MOVE_PRUNING_SEARCH_POLICY_ID, NULL_MOVE_REDUCTION, NULL_MOVE_VERIFICATION_REDUCTION,
+    NULL_MOVE_VERIFY_ALL_CUTOFFS, PRINCIPAL_VARIATION_SEARCH_POLICY_ID,
     SEARCH_POLICY_SCHEMA_VERSION, SEE_AND_DELTA_QUIESCENCE_PRUNING_SEARCH_POLICY_ID,
     SEE_CAPTURE_ORDERING_SEARCH_POLICY_ID, SEE_QUIESCENCE_PRUNING_SEARCH_POLICY_ID,
     V0_1_SEARCH_POLICY_CHECKSUM, V0_1_SEARCH_POLICY_ID,
