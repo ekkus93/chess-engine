@@ -46,9 +46,11 @@ fn main() {
 fn run() -> Result<(), Box<dyn Error>> {
     let mut arguments = env::args_os();
     let _program = arguments.next();
-    let output_directory = PathBuf::from(arguments.next().ok_or(
-        "usage: s2_13_variant_control OUTPUT_DIRECTORY TIER PROTOCOL",
-    )?);
+    let output_directory = PathBuf::from(
+        arguments
+            .next()
+            .ok_or("usage: s2_13_variant_control OUTPUT_DIRECTORY TIER PROTOCOL")?,
+    );
     let tier_text = arguments
         .next()
         .ok_or("usage: s2_13_variant_control OUTPUT_DIRECTORY TIER PROTOCOL")?
@@ -287,7 +289,9 @@ fn validate_control_report(report: &EngineVariantValidationReport) -> Result<(),
         || report.time_forfeits != 0
         || report.infrastructure_failures != 0
     {
-        return Err("S2-13 control report contains activation or game infrastructure failure".into());
+        return Err(
+            "S2-13 control report contains activation or game infrastructure failure".into(),
+        );
     }
     let expected_games = report
         .config
