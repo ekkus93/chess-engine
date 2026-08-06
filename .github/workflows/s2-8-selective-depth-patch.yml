@@ -30,7 +30,7 @@ jobs:
           components: rustfmt, clippy
 
       - name: Apply reporting patch
-        # Match semantic output fields instead of one brittle complete format string.
+        # The patch locates the benchmark, sample, and summary lines by their literal Rust prefixes.
         run: python3 .github/s2_8_selective_depth_patch.py
 
       - name: Validate reporting and evidence tool
