@@ -1,4 +1,4 @@
-name: S2-9.3 null-move policy validation
+name: S2-9 null-move final validation
 
 on:
   push:
@@ -13,14 +13,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: s2-9-null-policy-${{ github.workflow }}-${{ github.ref }}
+  group: s2-9-null-move-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   linux-x86-64:
-    name: Linux x86-64 conservative policy
+    name: Linux x86-64 final validation
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - name: Install stable Rust
@@ -30,25 +30,52 @@ jobs:
       - name: Cache Cargo data
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: rust-engine-s2-9-null-policy-x86-64
-      - name: Audit S2-9 boundaries
+          shared-key: rust-engine-s2-9-final-x86-64
+      - name: Audit complete S2-9 boundary
         run: |
           bash scripts/task_s2_9_null_move_feasibility_audit.sh
           bash scripts/task_s2_9_search_null_transition_audit.sh
           bash scripts/task_s2_9_null_move_policy_audit.sh
+          bash scripts/task_s2_9_null_move_validation_audit.sh
       - name: Check formatting and strict Clippy
         run: |
           cargo fmt --all -- --check
-          cargo clippy --locked -p chess-core -p chess-search --all-targets --all-features -- -D warnings
-      - name: Run complete core and search tests
+          cargo clippy --locked -p chess-core -p chess-search -p chess-tools --all-targets --all-features -- -D warnings
+      - name: Run complete core, search, and evidence tests
         run: |
           cargo test --locked -p chess-core --all-targets --all-features
           cargo test --locked -p chess-search --all-targets --all-features
+          cargo test --locked -p chess-tools --bin s2_9_null_move
+      - name: Build release evidence tool
+        run: cargo build --locked --release -p chess-tools --bin s2_9_null_move
+      - name: Record exact build identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          build_identity="$(rustc -Vv | paste -sd '|' - | tr ' ' '_')"
+          echo "S2_9_SOURCE_SHA=${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "S2_9_BUILD_IDENTITY=${build_identity}" >> "$GITHUB_ENV"
+      - name: Generate byte-identical deterministic evidence twice
+        run: |
+          target/release/s2_9_null_move deterministic s2-9-final-x86-a
+          target/release/s2_9_null_move deterministic s2-9-final-x86-b
+          diff -ru s2-9-final-x86-a s2-9-final-x86-b
+      - name: Generate clock development evidence
+        run: target/release/s2_9_null_move clock s2-9-final-clock
+      - name: Preserve final x86-64 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: s2-9-final-x86-64-${{ github.sha }}
+          path: |
+            s2-9-final-x86-a
+            s2-9-final-clock
+          if-no-files-found: error
+          retention-days: 30
 
   linux-arm64:
-    name: Linux ARM64 conservative policy
+    name: Linux ARM64 final validation
     runs-on: ubuntu-24.04-arm
-    timeout-minutes: 40
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - name: Install stable Rust
@@ -58,13 +85,32 @@ jobs:
       - name: Cache Cargo data
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: rust-engine-s2-9-null-policy-arm64
+          shared-key: rust-engine-s2-9-final-arm64
       - name: Audit, lint, and test on native ARM64
         run: |
           bash scripts/task_s2_9_null_move_feasibility_audit.sh
           bash scripts/task_s2_9_search_null_transition_audit.sh
           bash scripts/task_s2_9_null_move_policy_audit.sh
+          bash scripts/task_s2_9_null_move_validation_audit.sh
           cargo fmt --all -- --check
-          cargo clippy --locked -p chess-core -p chess-search --all-targets --all-features -- -D warnings
+          cargo clippy --locked -p chess-core -p chess-search -p chess-tools --all-targets --all-features -- -D warnings
           cargo test --locked -p chess-core --all-targets --all-features
           cargo test --locked -p chess-search --all-targets --all-features
+          cargo test --locked -p chess-tools --bin s2_9_null_move
+          cargo build --locked --release -p chess-tools --bin s2_9_null_move
+      - name: Record exact build identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          build_identity="$(rustc -Vv | paste -sd '|' - | tr ' ' '_')"
+          echo "S2_9_SOURCE_SHA=${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "S2_9_BUILD_IDENTITY=${build_identity}" >> "$GITHUB_ENV"
+      - name: Generate deterministic ARM64 evidence
+        run: target/release/s2_9_null_move deterministic s2-9-final-arm64
+      - name: Preserve final ARM64 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: s2-9-final-arm64-${{ github.sha }}
+          path: s2-9-final-arm64
+          if-no-files-found: error
+          retention-days: 30

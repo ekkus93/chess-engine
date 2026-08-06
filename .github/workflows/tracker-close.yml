@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   tracker-audit:
-    name: Strength tracker authority and evidence
+    name: Strength tracker authority and S2-9 closure
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -40,63 +40,57 @@ jobs:
           bash scripts/task_s2_9_null_move_feasibility_audit.sh
           bash scripts/task_s2_9_search_null_transition_audit.sh
           bash scripts/task_s2_9_null_move_policy_audit.sh
+          bash scripts/task_s2_9_null_move_validation_audit.sh
 
-      - name: Verify S2-9 conservative-policy progression
+      - name: Verify completed S2-9 progression
         shell: bash
         run: |
           set -euo pipefail
           tracker=docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md
-          decision=docs/RUST_CHESS_ENGINE_V0_2_S2_9_NULL_MOVE_FEASIBILITY_2026-08-05.md
-          transition=docs/RUST_CHESS_ENGINE_V0_2_S2_9_SEARCH_NULL_TRANSITION_2026-08-05.md
-          policy=docs/RUST_CHESS_ENGINE_V0_2_S2_9_NULL_MOVE_POLICY_2026-08-05.md
-          transition_workflow=.github/workflows/s2-9-search-null.yml
-          policy_workflow=.github/workflows/s2-9-null-policy.yml
+          final=docs/RUST_CHESS_ENGINE_V0_2_S2_9_NULL_MOVE_2026-08-06.md
+          workflow=.github/workflows/s2-9-null-policy.yml
 
           grep -Fq '| S2-8 | Late Move Reductions candidate | **Complete — standalone rejected; inactive for combinations** |' "$tracker"
-          grep -Fq '| S2-9 | Optional null-move pruning decision/candidate | **In progress — conservative policy complete; validation/disposition not started** |' "$tracker"
+          grep -Fq '| S2-9 | Optional null-move pruning decision/candidate | **Complete — standalone rejected; inactive** |' "$tracker"
           grep -Fq '| S2-10 | Optional frontier and quiet-move pruning candidates | **Not started** |' "$tracker"
           grep -Fq '## S2-9 feasibility record' "$tracker"
           grep -Fq '## S2-9.2 transition record' "$tracker"
           grep -Fq '## S2-9.3 conservative policy record' "$tracker"
-          grep -Fq '# Task S2-9: Optional null-move pruning decision/candidate — IN PROGRESS' "$tracker"
+          grep -Fq '## S2-9.4 validation record' "$tracker"
+          grep -Fq '# Task S2-9: Optional null-move pruning decision/candidate — COMPLETE' "$tracker"
           grep -Fq '# Task S2-10: Optional frontier and quiet-move pruning candidates — NOT STARTED' "$tracker"
-          grep -Fq 'Begin with **S2-9.4 only**:' "$tracker"
+          grep -Fq 'Begin with **S2-10.1 only**:' "$tracker"
 
-          grep -Fq '**Status:** Feasibility complete' "$decision"
-          grep -Fq '**Disposition:** `implement`' "$decision"
-          grep -Fq '**Activation:** `false`' "$decision"
-          grep -Fq '**Status:** Complete' "$transition"
-          grep -Fq '**Activation:** `false`' "$transition"
-          grep -Fq '**Status:** Implementation complete; validation pending' "$policy"
-          grep -Fq '**Activation:** `false`' "$policy"
+          grep -Fq '**Status:** Complete — standalone activation rejected' "$final"
+          grep -Fq '**Disposition:** `rejected_strength`' "$final"
+          grep -Fq '**Activation:** `false`' "$final"
 
-          s2_9_1="$(sed -n '/## S2-9.1 Feasibility decision/,/## S2-9.2 Search-only transition if implemented/p' "$tracker")"
-          test "$(grep -Fc -- '- [x]' <<<"$s2_9_1")" -eq 4
-          test "$(grep -Fc -- '- [ ]' <<<"$s2_9_1")" -eq 0
-          s2_9_2="$(sed -n '/## S2-9.2 Search-only transition if implemented/,/## S2-9.3 Conservative policy if implemented/p' "$tracker")"
-          test "$(grep -Fc -- '- [x]' <<<"$s2_9_2")" -eq 5
-          test "$(grep -Fc -- '- [ ]' <<<"$s2_9_2")" -eq 0
-          s2_9_3="$(sed -n '/## S2-9.3 Conservative policy if implemented/,/## S2-9.4 Validation if implemented/p' "$tracker")"
-          test "$(grep -Fc -- '- [x]' <<<"$s2_9_3")" -eq 7
-          test "$(grep -Fc -- '- [ ]' <<<"$s2_9_3")" -eq 0
-          s2_9_4="$(sed -n '/## S2-9.4 Validation if implemented/,/# Task S2-10:/p' "$tracker")"
-          test "$(grep -Fc -- '- [ ]' <<<"$s2_9_4")" -eq 7
+          s2_9="$(sed -n '/# Task S2-9:/,/# Task S2-10:/p' "$tracker")"
+          test "$(grep -Fc -- '- [x]' <<<"$s2_9")" -eq 23
+          test "$(grep -Fc -- '- [ ]' <<<"$s2_9")" -eq 0
+          s2_10="$(sed -n '/# Task S2-10:/,/# Task S2-11:/p' "$tracker")"
+          test "$(grep -Fc -- '- [x]' <<<"$s2_10")" -eq 0
+          test "$(grep -Fc -- '- [ ]' <<<"$s2_10")" -gt 0
 
-          for workflow in "$transition_workflow" "$policy_workflow"; do
-            test -f "$workflow"
-            grep -q '^permissions:' "$workflow"
-            grep -q '^  contents: read$' "$workflow"
-            if grep -q 'contents: write' "$workflow"; then
-              echo "permanent S2-9 workflow can write repository contents: $workflow" >&2
-              exit 1
-            fi
+          test -f "$workflow"
+          grep -q '^permissions:' "$workflow"
+          grep -q '^  contents: read$' "$workflow"
+          if grep -q 'contents: write' "$workflow"; then
+            echo "permanent S2-9 workflow can write repository contents" >&2
+            exit 1
+          fi
+
+          for path in \
+            .github/s2_9_feasibility.py \
+            .github/workflows/s2-9-feasibility.yml \
+            .github/s2_9_2_transition.py \
+            .github/s2_9_2_audit_fix.py \
+            .github/workflows/s2-9-2-transition.yml \
+            .github/s2_9_3_policy.py \
+            .github/s2_9_3_finalize.py \
+            .github/workflows/s2-9-3-stage.yml \
+            .github/s2_9_4_finalize.py \
+            .github/workflows/s2-9-4-stage.yml \
+            .github/workflows/s2-9-4-finalize.yml; do
+            test ! -e "$path"
           done
-
-          test ! -e .github/s2_9_feasibility.py
-          test ! -e .github/workflows/s2-9-feasibility.yml
-          test ! -e .github/s2_9_2_transition.py
-          test ! -e .github/s2_9_2_audit_fix.py
-          test ! -e .github/workflows/s2-9-2-transition.yml
-          test ! -e .github/s2_9_3_policy.py
-          test ! -e .github/s2_9_3_finalize.py
-          test ! -e .github/workflows/s2-9-3-stage.yml
