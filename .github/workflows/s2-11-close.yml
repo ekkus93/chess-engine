@@ -5,9 +5,6 @@ on:
     branches:
       - master
     paths:
-      - .github/s2_11_close_tracker.py
-      - .github/s2_11_close_evidence.py
-      - .github/s2_11_close_audit.py
       - .github/workflows/s2-11-close.yml
 
 permissions:
@@ -19,7 +16,7 @@ concurrency:
 
 jobs:
   close:
-    name: Close S2-11 and remove temporary machinery
+    name: Publish validated S2-11 evidence
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -27,19 +24,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Verify staging ancestry and scope
+      - name: Verify repair ancestry and scope
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "6f5472de19e2b784d1f965815bb5ee19d09efa43"
-          changed="$(git diff --name-only HEAD^ HEAD | sort)"
-          expected="$(printf '%s\n' \
-            .github/s2_11_close_audit.py \
-            .github/s2_11_close_evidence.py \
-            .github/s2_11_close_tracker.py \
-            .github/workflows/s2-11-close.yml | sort)"
-          test "$changed" = "$expected"
-          test "$(git rev-parse HEAD^^)" = "392342c3122c54c47cf485d8bb36c8f5a8c5a762"
+          test "$(git rev-parse HEAD^)" = "2540f769cfaf0f5c628d8a6428eebaee34b87223"
+          changed="$(git diff --name-only HEAD^ HEAD)"
+          test "$changed" = ".github/workflows/s2-11-close.yml"
+          test "$(git rev-parse HEAD^^)" = "6f5472de19e2b784d1f965815bb5ee19d09efa43"
 
       - name: Apply reviewed closure
         shell: bash
@@ -48,6 +40,8 @@ jobs:
           python3 .github/s2_11_close_tracker.py
           python3 .github/s2_11_close_evidence.py
           python3 .github/s2_11_close_audit.py
+          mkdir -p /tmp/s2-11-generated-audit
+          cp .github/workflows/tracker-close.yml /tmp/s2-11-generated-audit/tracker-close.yml
 
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
@@ -94,29 +88,25 @@ jobs:
           grep -Fxq $'profile_search_qnodes\t242711' /tmp/profile-search.txt
           grep -Fxq $'profile_search_depth\t4' /tmp/profile-search.txt
 
-      - name: Commit permanent closure
+      - name: Preserve generated permanent audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: s2-11-generated-tracker-audit-${{ github.sha }}
+          path: /tmp/s2-11-generated-audit/tracker-close.yml
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Commit non-workflow closure evidence
         shell: bash
         run: |
           set -euo pipefail
-          git rm \
-            .github/s2_11_close_audit.py \
-            .github/s2_11_close_evidence.py \
-            .github/s2_11_close_tracker.py \
-            .github/workflows/s2-11-close.yml \
-            .github/workflows/s2-11-final-dispatch-validation.yml
+          git restore .github/workflows/tracker-close.yml
           git add \
-            .github/workflows/tracker-close.yml \
             benchmarks/s2-11 \
             docs/RUST_CHESS_ENGINE_V0_2_S2_11_PROFILING_2026-08-06.md \
             docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md
           staged="$(git diff --cached --name-only | sort)"
           expected="$(printf '%s\n' \
-            .github/s2_11_close_audit.py \
-            .github/s2_11_close_evidence.py \
-            .github/s2_11_close_tracker.py \
-            .github/workflows/s2-11-close.yml \
-            .github/workflows/s2-11-final-dispatch-validation.yml \
-            .github/workflows/tracker-close.yml \
             benchmarks/s2-11/artifact-manifest.tsv \
             benchmarks/s2-11/final-dispatch-comparison.tsv \
             benchmarks/s2-11/profile-summary.tsv \
@@ -125,5 +115,5 @@ jobs:
           test "$staged" = "$expected"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "perf: close S2-11 profiling decisions"
+          git commit -m "perf: record S2-11 profiling decisions"
           git push origin HEAD:master
