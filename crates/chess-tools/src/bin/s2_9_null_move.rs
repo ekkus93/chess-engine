@@ -182,8 +182,7 @@ fn run_development_match<'a>(
     weights: &'a EvaluationWeightSet,
     protocol: EngineVariantResourceProtocol,
     protocol_name: &str,
-) -> Result<chess_tools::engine_variant_validation::EngineVariantValidationReport, Box<dyn Error>>
-{
+) -> Result<chess_tools::engine_variant_validation::EngineVariantValidationReport, Box<dyn Error>> {
     let (baseline_policy, candidate_policy) = policies;
     let baseline_identity = identity(
         0x5332_3942_4153_4531,
@@ -272,7 +271,10 @@ fn run_parity_corpus(
         validate_baseline_diagnostics(baseline_diagnostics, &case.identifier)?;
         validate_candidate_diagnostics(candidate_diagnostics, &case.identifier)?;
         for (destination, value) in [
-            (&mut total_attempts, candidate_diagnostics.null_move_attempts()),
+            (
+                &mut total_attempts,
+                candidate_diagnostics.null_move_attempts(),
+            ),
             (
                 &mut total_disabled,
                 candidate_diagnostics.null_move_disabled_nodes(),
@@ -285,7 +287,10 @@ fn run_parity_corpus(
                 &mut total_verifications,
                 candidate_diagnostics.null_move_verification_searches(),
             ),
-            (&mut total_cutoffs, candidate_diagnostics.null_move_cutoffs()),
+            (
+                &mut total_cutoffs,
+                candidate_diagnostics.null_move_cutoffs(),
+            ),
         ] {
             *destination = destination
                 .checked_add(value)
@@ -651,8 +656,7 @@ mod tests {
     fn development_openings_are_complete_and_strictly_parseable() {
         let text = control_openings().expect("development openings generate");
         assert_eq!(text.lines().skip(1).count(), 200);
-        chess_tools::self_play::OpeningSuite::from_text(&text)
-            .expect("development openings parse");
+        chess_tools::self_play::OpeningSuite::from_text(&text).expect("development openings parse");
     }
 
     #[test]
