@@ -47,7 +47,6 @@ jobs:
           path = Path('crates/chess-search/src/alpha_beta.rs')
           text = path.read_text(encoding='utf-8')
 
-          # Propagate the recursive state through the final exact PVS re-search.
           old = "        full_window,\n        context,\n    )?;"
           new = "        full_window,\n        null_move_state,\n        context,\n    )?;"
           index = text.rfind(old)
@@ -55,8 +54,6 @@ jobs:
               raise SystemExit('exact PVS re-search call without null state was not found')
           text = text[:index] + new + text[index + len(old):]
 
-          # Keep the recursive API within strict Clippy's argument bound by
-          # carrying both path-dependent fields in one typed stack value.
           state_enum = """enum NullMoveState {
               Allowed,
               SpeculativeSubtree,
@@ -125,8 +122,6 @@ jobs:
           if call_count < 5:
               raise SystemExit(f'expected at least five recursive path-state calls, found {call_count}')
 
-          # The policy constant is identity evidence; a runtime assertion on a
-          # compile-time true constant adds no safety and violates strict Clippy.
           assertion = '                    debug_assert!(NULL_MOVE_VERIFY_ALL_CUTOFFS);\n'
           if text.count(assertion) != 1:
               raise SystemExit('verification constant assertion shape changed unexpectedly')
@@ -136,8 +131,20 @@ jobs:
               'NULL_MOVE_REDUCTION, NULL_MOVE_VERIFICATION_REDUCTION,',
               1,
           )
-
           path.write_text(text, encoding='utf-8')
+
+          test_path = Path('crates/chess-search/tests/s2_9_null_move.rs')
+          test_text = test_path.read_text(encoding='utf-8')
+          test_text = test_text.replace(
+              'NULL_MOVE_REDUCTION, NULL_MOVE_VERIFICATION_REDUCTION, NULL_MOVE_VERIFY_ALL_CUTOFFS,',
+              'NULL_MOVE_REDUCTION, NULL_MOVE_VERIFICATION_REDUCTION,',
+              1,
+          )
+          constant_assertion = '    assert!(NULL_MOVE_VERIFY_ALL_CUTOFFS);\n'
+          if test_text.count(constant_assertion) != 1:
+              raise SystemExit('integration-test verification assertion shape changed unexpectedly')
+          test_text = test_text.replace(constant_assertion, '', 1)
+          test_path.write_text(test_text, encoding='utf-8')
           PY
 
       - name: Validate core implementation
