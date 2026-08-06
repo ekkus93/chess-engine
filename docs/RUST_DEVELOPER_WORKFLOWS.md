@@ -45,7 +45,15 @@ bash scripts/dev.sh full
 
 It includes the fast gate plus release depth-four perft, warning-free rustdoc, debug/release workspace builds, and the pinned differential corpus/seeded-playout oracle. Run bootstrap first so `.venv-oracle` exists.
 
-The slow depth-five perft, bounded fuzz campaigns, Miri, sanitizers, dual-architecture performance measurements, Android API-35 instrumentation, and 400-game strength control remain independent CI workflows because they require specialized runners or extended execution.
+The slow depth-five perft, bounded fuzz campaigns, Miri, sanitizers, dual-architecture performance measurements, Android API-35 instrumentation, the historical 400-game strength control, and complete-variant controls remain independent CI workflows because they require specialized runners or extended execution.
+
+Run the consolidated v0.2 authority audit directly with:
+
+```bash
+bash scripts/dev.sh strength-audit
+```
+
+This chains the completed v0.1/full-port/post-port audits and every permanent v0.2 search-decision audit, then verifies schema identities, activation boundaries, stable adapters, read-only workflows, documentation authority, and absence of temporary or hidden runtime fallback machinery.
 
 ## Perft
 
@@ -138,6 +146,29 @@ A successful output directory contains:
 
 The command refuses an existing output directory, publishes through a sibling staging directory, and deletes incomplete staging output on failure. Candidate activation remains the independent Task 21 process.
 
+
+## Complete-variant control evidence
+
+Run one local complete-variant control from a clean committed checkout:
+
+```bash
+bash scripts/dev.sh variant-control \
+  variant-evidence-smoke \
+  smoke \
+  fixed_nodes
+```
+
+The accepted tiers are `smoke`, `development`, and `production`; protocols are `fixed_nodes` and `clock_ms`. The dispatcher records the exact Git commit, Rust target/toolchain/profile identity, and command. It refuses a dirty checkout or an existing output directory. The output contains a versioned opening suite, strict checksummed report, provenance manifest, and validation summary. It always records `activated=false` and cannot change runtime defaults.
+
+Validate any complete report independently:
+
+```bash
+cargo run --locked --release -p chess-tools -- \
+  variant-report-validate /path/to/report
+```
+
+The permanent `Variant validation` workflow runs bounded native x86-64 and ARM64 smoke controls on relevant changes, scheduled development and production controls, and explicit manual tiers/protocols. These are infrastructure controls. A behaviorally distinct production candidate remains the separate S2-14 process.
+
 ## Fuzzing
 
 Stable parser/corpus regressions:
@@ -157,6 +188,7 @@ Permanent independent workflows are:
 - `Robustness`: fuzz, Miri, ASan/LSan, and TSan;
 - `Performance`: x86-64/ARM64 budgets and scheduled Callgrind;
 - `Slow perft`: scheduled/manual depth-five fixtures;
-- `Strength`: scheduled/manual 200-pair/400-game baseline control.
+- `Strength`: scheduled/manual 200-pair/400-game historical weight-only baseline control;
+- `Variant validation`: native x86-64/ARM64 complete-identity smoke, development, and production controls.
 
 `report-master-validation.yml` reports completed exact-`master` runs to the repository validation issue. No workflow combines a performance, strength, or robustness result with correctness in a way that can hide a failure.

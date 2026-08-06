@@ -325,7 +325,7 @@
 | S2-10 | Optional frontier and quiet-move pruning candidates | **Complete — S2-10.1, S2-10.2, and S2-10.3 deferred; inactive** |
 | S2-11 | Fresh profiling and measured hot-path decisions | **Complete — x86-64 sliding dispatch accepted; non-x86 baseline preserved** |
 | S2-12 | Optional Syzygy tablebase decision/integration | **Complete — deferred; no compliant backend integrated; inactive** |
-| S2-13 | API, UCI, ABI/JNI, Android, CI, and documentation integration | **Not started** |
+| S2-13 | API, UCI, ABI/JNI, Android, CI, and documentation integration | **Complete — internal candidate infrastructure integrated; public adapters unchanged; inactive** |
 | S2-14 | Production candidate selection and validation | **Not started** |
 | S2-15 | Separate activation and v0.2 release gate | **Not started** |
 | S2-16 | Final audit, report, and closure | **Not started** |
@@ -905,60 +905,60 @@
 
 ---
 
-# Task S2-13: API, UCI, ABI/JNI, Android, CI, and documentation integration — NOT STARTED
+# Task S2-13: API, UCI, ABI/JNI, Android, CI, and documentation integration — COMPLETE
 
-## S2-13.1 Rust API
+## S2-13.1 Rust API — COMPLETE
 
-- [ ] Preserve existing production APIs and defaults.
-- [ ] Add candidate-policy entry points only where required.
-- [ ] Version new request/report structures.
-- [ ] Keep ownership, cancellation, TT, and error semantics explicit.
+- [x] Preserve existing production APIs and defaults. Package `0.1.0`, the v0.1 baseline policy, baseline weights, ordinary search entry points, and safe-facade defaults remain authoritative.
+- [x] Add candidate-policy entry points only where required. No new production entry point was required; explicit policy/weight/TT entry points remain internal to search and offline tooling.
+- [x] Version new request/report structures. No public request changed; complete variant identity/report schemas remain version `1`, and the new control manifest is explicitly schema `1`.
+- [x] Keep ownership, cancellation, TT, and error semantics explicit. Control identities record independent TT size and invocation; existing caller-owned TT, cancellation, and typed error contracts are unchanged.
 
-## S2-13.2 UCI
+## S2-13.2 UCI — COMPLETE
 
-- [ ] Do not advertise unsupported experimental options.
-- [ ] For accepted configurable features, define exact option names, types, ranges, defaults, and transactional errors.
-- [ ] Preserve handshake, `isready`, position, stop, quit, and stale-output behavior.
-- [ ] Add subprocess tests for every new supported option.
+- [x] Do not advertise unsupported experimental options. UCI still advertises only `Hash`, `CheckExtension`, and `OwnBook`; rejected/deferred candidates and tablebases remain absent.
+- [x] For accepted configurable features, define exact option names, types, ranges, defaults, and transactional errors. No accepted configurable feature exists, so no option or ignored compatibility alias was added.
+- [x] Preserve handshake, `isready`, position, stop, quit, and stale-output behavior. Existing session and subprocess contracts remain unchanged and permanently tested.
+- [x] Add subprocess tests for every new supported option. No option was added; the exact existing option transcript and malformed/stale-output subprocess tests remain authoritative.
 
-## S2-13.3 C ABI/JNI/Android
+## S2-13.3 C ABI/JNI/Android — COMPLETE
 
-- [ ] Keep old ABI records/functions stable.
-- [ ] Use additive versioned functions/records if external policy configuration is required.
-- [ ] Preserve opaque handles and all-or-nothing buffer validation.
-- [ ] Preserve panic containment and exact error codes/messages.
-- [ ] Update JNI/Kotlin declarations and ownership tests together.
-- [ ] Preserve Android off-main search, cancellation, repeated lifecycle, dual ABI, and API-35 tests.
+- [x] Keep old ABI records/functions stable. C ABI version `1`, existing structs, flags, result codes, and functions are unchanged.
+- [x] Use additive versioned functions/records if external policy configuration is required. External configuration was not justified, so no ABI/JNI/Kotlin record was added.
+- [x] Preserve opaque handles and all-or-nothing buffer validation. Engine/cancellation handles and transactional owned-buffer validation remain unchanged.
+- [x] Preserve panic containment and exact error codes/messages. C and JNI boundaries retain their existing panic/error mapping without fallback.
+- [x] Update JNI/Kotlin declarations and ownership tests together. Neither declaration surface changed; existing synchronized declaration and ownership tests remain authoritative.
+- [x] Preserve Android off-main search, cancellation, repeated lifecycle, dual ABI, and API-35 tests. The permanent Android workflow remains independent and unchanged.
 
-## S2-13.4 Permanent audits
+## S2-13.4 Permanent audits — COMPLETE
 
-- [ ] Add `scripts/task_v0_2_strength_audit.sh` or equivalent.
-- [ ] Audit active TODO/spec/report paths.
-- [ ] Audit policy/variant/report schema identities.
-- [ ] Audit activation boundary and `activated=false` reports.
-- [ ] Audit absence of temporary helpers and hidden Python/runtime fallback.
-- [ ] Chain v0.1, Task 26, Task 27, and post-port audits.
+- [x] Add `scripts/task_v0_2_strength_audit.sh` or equivalent. Added one consolidated fail-closed v0.2 authority audit.
+- [x] Audit active TODO/spec/report paths. The audit requires the active specification, tracker, every later decision report, developer documentation, and this integration report.
+- [x] Audit policy/variant/report schema identities. Exact policy, weights, engine-variant, complete-report, and historical report identities are pinned.
+- [x] Audit activation boundary and `activated=false` reports. Package/default authority, report parser rejection, control manifest, and adapter non-exposure are checked.
+- [x] Audit absence of temporary helpers and hidden Python/runtime fallback. Temporary S2-13 assets, Python inside crates, and production Python/subprocess bridges are rejected.
+- [x] Chain v0.1, Task 26, Task 27, and post-port audits. The consolidated audit also chains every permanent S2-1 through S2-9 audit.
 
-## S2-13.5 Workflows
+## S2-13.5 Workflows — COMPLETE
 
-- [ ] Wire v0.2 audit into CI.
-- [ ] Add bounded strength smoke workflow if practical.
-- [ ] Add manual/scheduled development and production variant validation.
-- [ ] Preserve artifacts with exact names/SHAs.
-- [ ] Ensure workflows cannot edit source/default policy.
-- [ ] Preserve x86-64, ARM64, Android, robustness, performance, slow perft, and strength gates.
+- [x] Wire v0.2 audit into CI. `CI` validates the script/assets and executes the consolidated audit before Rust compilation.
+- [x] Add bounded strength smoke workflow if practical. Relevant pushes and pull requests run a one-pair fixed-node complete-variant control on x86-64 and native ARM64.
+- [x] Add manual/scheduled development and production variant validation. Manual tier/protocol inputs, weekly development fixed-node, and monthly production clock controls are explicit.
+- [x] Preserve artifacts with exact names/SHAs. Artifacts are `variant-validation-control-<tier>-<protocol>-<architecture>-<source-sha>` with strict report and manifest provenance.
+- [x] Ensure workflows cannot edit source/default policy. All permanent workflows retain read-only contents permission; variant validation requires `git diff --exit-code` and has no commit/push path.
+- [x] Preserve x86-64, ARM64, Android, robustness, performance, slow perft, and strength gates. All prior independent workflows remain present; complete-variant control is additive.
 
-## S2-13.6 Documentation
+## S2-13.6 Documentation — COMPLETE
 
-- [ ] Search-policy/variant schema.
-- [ ] SEE contract and oracle.
-- [ ] Quiescence/selectivity decisions.
-- [ ] Strength protocol and report schema.
-- [ ] Performance/profiling updates.
-- [ ] Optional tablebase configuration/failure policy if implemented.
-- [ ] Developer commands and artifact ownership.
+- [x] Search-policy/variant schema. Existing identity documentation remains authoritative and is indexed by the S2-13 report/audit.
+- [x] SEE contract and oracle. The accepted standalone SEE contract and exhaustive oracle report remain required.
+- [x] Quiescence/selectivity decisions. S2-6 through S2-10 rejection/defer records remain required and inactive.
+- [x] Strength protocol and report schema. Complete-variant and historical weight-only protocols remain distinct, versioned, and documented.
+- [x] Performance/profiling updates. The S2-11 architecture-specific profiling report remains required and the accepted dispatch is preserved.
+- [x] Optional tablebase configuration/failure policy if implemented. Tablebases remain unimplemented; the S2-12 frozen future failure/configuration contract is required instead.
+- [x] Developer commands and artifact ownership. Developer workflows, local audit/control commands, artifact naming, manifest ownership, and promotion rules are documented.
 
-**S2-13 gate:** Accepted/internal candidate infrastructure is integrated without breaking existing adapters or weakening permanent CI.
+**S2-13 gate:** Complete. Accepted internal candidate infrastructure is integrated under read-only exact-identity controls without changing production Rust APIs, UCI, C ABI, JNI, Kotlin, Android behavior, package version, policy defaults, weights, or activation. S2-14 remains not started.
 
 ---
 

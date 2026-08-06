@@ -11,6 +11,10 @@ mod tuning_cli;
 
 use chess_search::{EvaluationWeightSet, SearchPolicySet};
 
+use chess_tools::engine_variant_validation::{
+    EngineVariantValidationReport, ENGINE_VARIANT_VALIDATION_IDENTIFIER,
+    ENGINE_VARIANT_VALIDATION_SCHEMA_VERSION,
+};
 use chess_tools::self_play::{
     generate_self_play_dataset, OpeningSuite, SelfPlayDataset, SelfPlayFileConfig,
     SELF_PLAY_DATASET_SCHEMA_VERSION,
@@ -203,6 +207,24 @@ fn run(arguments: &[String]) -> Result<(), String> {
             let set = deserialize_search_policy(&text).map_err(|error| error.to_string())?;
             println!("identifier\t{:016x}", set.identifier);
             println!("checksum\t{:016x}", set.checksum);
+        }
+        "variant-report-validate" => {
+            if arguments.len() != 2 {
+                return Err(usage().to_owned());
+            }
+            let text = fs::read_to_string(&arguments[1])
+                .map_err(|error| format!("failed to read {:?}: {error}", arguments[1]))?;
+            let report = EngineVariantValidationReport::deserialize(&text)
+                .map_err(|error| error.to_string())?;
+            println!("schema\t{ENGINE_VARIANT_VALIDATION_SCHEMA_VERSION}");
+            println!("identifier\t{ENGINE_VARIANT_VALIDATION_IDENTIFIER:016x}");
+            println!("tier\t{}", report.config.tier());
+            println!("protocol\t{}", report.config.protocol());
+            println!("pairs\t{}", report.config.pair_count());
+            println!("games\t{}", report.games.len());
+            println!("decision\t{}", report.decision);
+            println!("activated\t{}", report.activated());
+            println!("checksum\t{:016x}", report.checksum);
         }
         "self-play" => {
             if arguments.len() != 3 {

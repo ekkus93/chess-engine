@@ -49,3 +49,6 @@ android-harness/**/build/
 /s2-8-clock/
 /s2-8-bootstrap-benchmark.tsv
 /s2-8-linux-*.tsv
+
+# Generated S2-13 complete-variant control outputs
+/variant-evidence-*/

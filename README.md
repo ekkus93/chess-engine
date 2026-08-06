@@ -4,6 +4,7 @@
 [![Android JNI](https://github.com/ekkus93/chess-engine/actions/workflows/android.yml/badge.svg?branch=master)](https://github.com/ekkus93/chess-engine/actions/workflows/android.yml)
 [![Robustness](https://github.com/ekkus93/chess-engine/actions/workflows/robustness.yml/badge.svg?branch=master)](https://github.com/ekkus93/chess-engine/actions/workflows/robustness.yml)
 [![Performance](https://github.com/ekkus93/chess-engine/actions/workflows/performance.yml/badge.svg?branch=master)](https://github.com/ekkus93/chess-engine/actions/workflows/performance.yml)
+[![Variant validation](https://github.com/ekkus93/chess-engine/actions/workflows/variant-validation.yml/badge.svg?branch=master)](https://github.com/ekkus93/chess-engine/actions/workflows/variant-validation.yml)
 
 A correctness-first Rust chess engine with a Linux UCI executable, portable engine/search crates, C and JNI adapters, Android integration, explicit opening-book support, offline self-play and tuning infrastructure, and permanent perft, differential, robustness, performance, and strength gates.
 
@@ -48,6 +49,9 @@ bash scripts/dev.sh uci
 # Build JNI libraries and Android harness
 export ANDROID_NDK_HOME="$HOME/Android/Sdk/ndk/<version>"
 bash scripts/dev.sh android
+
+# Consolidated v0.2 authority audit
+bash scripts/dev.sh strength-audit
 
 # Stable fuzz corpus/regression replay
 bash scripts/dev.sh fuzz-smoke
@@ -112,7 +116,8 @@ Permanent workflows are intentionally separate:
 - `Robustness` — fuzzing, Miri, ASan/LSan, and TSan;
 - `Performance` — x86-64 and ARM64 regression budgets plus scheduled Callgrind;
 - `Slow perft` — scheduled/manual authoritative depth five;
-- `Strength` — scheduled/manual 200-pair, 400-game control validation.
+- `Strength` — scheduled/manual historical weight-only 200-pair, 400-game control validation;
+- `Variant validation` — native x86-64/ARM64 complete-identity smoke, development, and production controls.
 
 Generated-output rules and deliberate evidence promotion are defined in [`docs/RUST_GENERATED_ARTIFACT_POLICY.md`](docs/RUST_GENERATED_ARTIFACT_POLICY.md).
 

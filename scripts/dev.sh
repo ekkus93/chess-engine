@@ -18,6 +18,8 @@ Commands:
   self-play CONFIG OUTPUT           Generate one versioned offline dataset.
   tune CONFIG DATASET OUTPUT [CKPT] Run/resume offline SPSA; candidate stays inactive.
   fuzz-smoke                        Run stable fuzz entrypoint and corpus regressions.
+  strength-audit                    Run the consolidated v0.2 authority audit.
+  variant-control OUT TIER PROTOCOL Run one inactive complete-variant control.
   artifact-audit                    Audit tracked filenames and generated artifacts.
 EOF
 }
@@ -51,9 +53,43 @@ artifact_audit() {
   bash -n scripts/dev.sh scripts/build_android_jni.sh scripts/prepare_android_harness_jni.sh
 }
 
+strength_audit() {
+  bash scripts/task_v0_2_strength_audit.sh
+}
+
+variant_control() {
+  local output="$1"
+  local tier="$2"
+  local protocol="$3"
+  require_command cargo
+  require_command git
+  require_command rustc
+  if [[ -e "$output" ]]; then
+    echo "developer-workflow: output already exists: $output" >&2
+    exit 1
+  fi
+  if [[ -n "$(git status --porcelain --untracked-files=all)" ]]; then
+    echo 'developer-workflow: variant control requires a clean committed checkout' >&2
+    exit 1
+  fi
+  export S2_13_SOURCE_SHA="$(git rev-parse HEAD)"
+  export S2_13_BUILD_IDENTITY="local;$(rustc -vV | tr '\n' ';')"
+  export S2_13_EXACT_INVOCATION="bash scripts/dev.sh variant-control $output $tier $protocol"
+  cargo run --locked --release -p chess-tools --bin s2_13_variant_control -- \
+    "$output" "$tier" "$protocol"
+  local report
+  report="$(find "$output" -maxdepth 1 -type f -name '*.report' -print)"
+  [[ -n "$report" && "$(printf '%s\n' "$report" | wc -l)" -eq 1 ]] || {
+    echo 'developer-workflow: expected exactly one complete-variant report' >&2
+    exit 1
+  }
+  cargo run --locked --release -p chess-tools -- variant-report-validate "$report"
+}
+
 fast() {
   require_command cargo
   artifact_audit
+  strength_audit
   cargo fmt --all -- --check
   cargo check --locked --workspace --all-targets --all-features
   cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
@@ -122,6 +158,11 @@ case "${command}" in
     cargo fmt --manifest-path fuzz/Cargo.toml -- --check
     cargo clippy --manifest-path fuzz/Cargo.toml --locked --lib --tests -- -D warnings
     cargo test --manifest-path fuzz/Cargo.toml --locked --lib --tests
+    ;;
+  strength-audit) [[ $# -eq 0 ]] || { usage; exit 2; }; strength_audit ;;
+  variant-control)
+    [[ $# -eq 3 ]] || { usage; exit 2; }
+    variant_control "$1" "$2" "$3"
     ;;
   artifact-audit) [[ $# -eq 0 ]] || { usage; exit 2; }; artifact_audit ;;
   help|-h|--help) usage ;;

@@ -24,6 +24,7 @@ These are never committed by default:
 - local virtual environments;
 - self-play datasets produced during experimentation;
 - SPSA checkpoints, candidate reports, and candidate artifacts;
+- complete engine-variant control reports, manifests, generated opening suites, and validation summaries;
 - current performance TSVs and Callgrind output;
 - Android logcat performance captures;
 - temporary staging files/directories.
@@ -40,7 +41,9 @@ A generated artifact may be committed only when all of the following are true:
 4. a deterministic validator or replay exists;
 5. the commit explains why the artifact belongs in source control.
 
-Promotion never implies runtime activation. Weight, book, and tuning artifacts still require their explicit adapter and activation policies.
+Promotion never implies runtime activation. Weight, book, tuning, and complete-variant artifacts still require their explicit adapter, validation, and activation policies. A complete-variant control artifact is infrastructure evidence only; only a separately frozen behaviorally distinct candidate may enter the S2-14 production matrix.
+
+Permanent variant-control artifacts use the exact name `variant-validation-control-<tier>-<protocol>-<architecture>-<source-sha>`. Their manifest records the source SHA, build identity, exact invocation, policy/weight/variant identities, report checksum, decision, and `activated=false`. Workflows may upload these artifacts but may not commit them or edit source/default policy.
 
 ## Automated audit
 
