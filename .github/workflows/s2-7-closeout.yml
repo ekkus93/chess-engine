@@ -27,6 +27,7 @@ jobs:
       - name: Apply exact S2-7 closeout
         run: |
           python3 .github/s2_7_closure_repair.py
+          python3 .github/s2_7_closure_pointer_repair.py
           python3 .github/s2_7_closure.py
 
       - name: Validate audits and tracker state
@@ -45,7 +46,7 @@ jobs:
               '# Task S2-7: Principal Variation Search candidate — COMPLETE',
               '| S2-7 | Principal Variation Search candidate | **Complete — standalone rejected; inactive** |',
               '## S2-7 implementation record',
-              '- Begin with S2-8 only.',
+              'Begin with **S2-8 only**:',
           ]
           for needle in required:
               if needle not in tracker:
