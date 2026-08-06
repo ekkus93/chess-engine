@@ -1,0 +1,194 @@
+name: S2-11 sliding attacks validation
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/s2-11-sliding-validation.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: s2-11-sliding-validation-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Sliding attacks ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86-64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prove candidate source equivalence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "507a7536e9312b607c091fd873d29396c1b578d7"
+          changed="$(git diff --name-only HEAD^ HEAD)"
+          test "$changed" = ".github/workflows/s2-11-sliding-validation.yml"
+          test ! -e .github/s2_11_sliding_candidate.py
+          test ! -e .github/s2_11_sliding_candidate_fix.py
+          test ! -e .github/workflows/s2-11-sliding-candidate.yml
+          test ! -e .github/workflows/s2-11-profiling.yml
+
+      - name: Install stable Rust and Callgrind
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Install profiling tools
+        run: sudo apt-get update && sudo apt-get install --yes valgrind
+
+      - name: Record provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p s2-11-sliding
+          {
+            printf 'validation_commit\t%s\n' "$(git rev-parse HEAD)"
+            printf 'candidate_commit\t%s\n' "$(git rev-parse HEAD^)"
+            printf 'baseline_commit\t%s\n' 'b20d34b3fc6210f0eff7a2124168e6d5e084f36a'
+            printf 'architecture\t%s\n' '${{ matrix.arch }}'
+            printf 'runner\t%s\n' '${{ matrix.runner }}'
+            printf '\n[rustc]\n'
+            rustc -Vv
+            printf '\n[cargo]\n'
+            cargo -V
+            printf '\n[valgrind]\n'
+            valgrind --version
+            printf '\n[uname]\n'
+            uname -a
+            printf '\n[lscpu]\n'
+            lscpu
+          } > s2-11-sliding/provenance.txt
+
+      - name: Validate candidate correctness
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all -- --check
+          cargo check --locked -p chess-core --all-targets --all-features
+          cargo clippy --locked -p chess-core --all-targets --all-features -- -D warnings
+          cargo test --locked -p chess-core attacks_tests -- --nocapture
+          cargo test --locked -p chess-core --all-features
+
+      - name: Build matched baseline and candidate harnesses
+        shell: bash
+        run: |
+          set -euo pipefail
+          git worktree add --detach /tmp/s2-11-baseline b20d34b3fc6210f0eff7a2124168e6d5e084f36a
+          git worktree add --detach /tmp/s2-11-candidate 507a7536e9312b607c091fd873d29396c1b578d7
+          CARGO_TARGET_DIR=/tmp/s2-11-baseline-target \
+            cargo build --manifest-path /tmp/s2-11-baseline/Cargo.toml --locked --release \
+            -p chess-tools --bin performance
+          CARGO_TARGET_DIR=/tmp/s2-11-candidate-target \
+            cargo build --manifest-path /tmp/s2-11-candidate/Cargo.toml --locked --release \
+            -p chess-tools --bin performance
+          sha256sum \
+            /tmp/s2-11-baseline-target/release/performance \
+            /tmp/s2-11-candidate-target/release/performance \
+            > s2-11-sliding/harnesses.sha256
+
+      - name: Run matched allocation and benchmark evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/s2-11-baseline-target/release/performance allocation-audit \
+            > s2-11-sliding/baseline-allocation.tsv
+          /tmp/s2-11-candidate-target/release/performance allocation-audit \
+            > s2-11-sliding/candidate-allocation.tsv
+          /tmp/s2-11-baseline-target/release/performance baseline 7 1 \
+            > s2-11-sliding/baseline-performance.tsv
+          /tmp/s2-11-candidate-target/release/performance baseline 7 1 \
+            > s2-11-sliding/candidate-performance.tsv
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          def load(path):
+              with Path(path).open(newline='') as handle:
+                  return {row['benchmark']: row for row in csv.DictReader(handle, delimiter='\t')}
+
+          baseline = load('s2-11-sliding/baseline-performance.tsv')
+          candidate = load('s2-11-sliding/candidate-performance.tsv')
+          names = [
+              'attacks.sliding_sweep',
+              'movegen.legal',
+              'perft.starting.depth4',
+              'perft.kiwipete.depth3',
+              'perft.endgame.depth4',
+              'search.starting.nodes20000',
+              'search.tactical.nodes20000',
+              'ffi.legal_moves',
+              'ffi.search_nodes',
+          ]
+          with Path('s2-11-sliding/matched-comparison.tsv').open('w', newline='') as handle:
+              writer = csv.writer(handle, delimiter='\t')
+              writer.writerow(['benchmark', 'baseline_median_ns', 'candidate_median_ns', 'candidate_ratio'])
+              for name in names:
+                  b = int(baseline[name]['median_ns_per_operation'])
+                  c = int(candidate[name]['median_ns_per_operation'])
+                  writer.writerow([name, b, c, f'{c / b:.6f}'])
+          PY
+
+      - name: Verify exact deterministic workloads
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/s2-11-candidate-target/release/performance profile-perft \
+            | tee s2-11-sliding/profile-perft.native.txt
+          grep -Fxq $'profile_perft_nodes\t4085603' s2-11-sliding/profile-perft.native.txt
+          /tmp/s2-11-candidate-target/release/performance profile-search \
+            | tee s2-11-sliding/profile-search.native.txt
+          grep -Fxq $'profile_search_nodes\t250000' s2-11-sliding/profile-search.native.txt
+          grep -Fxq $'profile_search_qnodes\t242711' s2-11-sliding/profile-search.native.txt
+          grep -Fxq $'profile_search_depth\t4' s2-11-sliding/profile-search.native.txt
+
+      - name: Profile candidate perft and search
+        shell: bash
+        run: |
+          set -euo pipefail
+          valgrind --tool=callgrind --error-exitcode=97 \
+            --callgrind-out-file=s2-11-sliding/callgrind.perft.out \
+            /tmp/s2-11-candidate-target/release/performance profile-perft \
+            > s2-11-sliding/profile-perft.callgrind.stdout.txt \
+            2> s2-11-sliding/profile-perft.callgrind.stderr.txt
+          valgrind --tool=callgrind --error-exitcode=97 \
+            --callgrind-out-file=s2-11-sliding/callgrind.search.out \
+            /tmp/s2-11-candidate-target/release/performance profile-search \
+            > s2-11-sliding/profile-search.callgrind.stdout.txt \
+            2> s2-11-sliding/profile-search.callgrind.stderr.txt
+          callgrind_annotate --inclusive=yes --threshold=0.1 \
+            s2-11-sliding/callgrind.perft.out \
+            > s2-11-sliding/callgrind.perft.inclusive.txt
+          callgrind_annotate --threshold=0.1 \
+            s2-11-sliding/callgrind.perft.out \
+            > s2-11-sliding/callgrind.perft.exclusive.txt
+          callgrind_annotate --inclusive=yes --threshold=0.1 \
+            s2-11-sliding/callgrind.search.out \
+            > s2-11-sliding/callgrind.search.inclusive.txt
+          callgrind_annotate --threshold=0.1 \
+            s2-11-sliding/callgrind.search.out \
+            > s2-11-sliding/callgrind.search.exclusive.txt
+          sha256sum s2-11-sliding/* > s2-11-sliding/artifact-files.sha256
+
+      - name: Preserve candidate validation evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: s2-11-sliding-${{ matrix.arch }}-${{ github.sha }}
+          path: s2-11-sliding/
+          if-no-files-found: error
+          retention-days: 30
