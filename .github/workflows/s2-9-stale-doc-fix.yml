@@ -1,0 +1,56 @@
+name: S2-9 stale record correction
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: s2-9-stale-doc-fix-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  correct:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Detect correction payload
+        id: payload
+        shell: bash
+        run: |
+          if [[ -f .github/s2_9_stale_doc_fix.py ]]; then
+            echo 'present=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'present=false' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Correct stale record and install audit guard
+        if: steps.payload.outputs.present == 'true'
+        run: python3 .github/s2_9_stale_doc_fix.py
+      - name: Validate corrected repository state
+        if: steps.payload.outputs.present == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          bash scripts/task_s2_9_null_move_validation_audit.sh
+          bash scripts/task_s2_9_null_move_feasibility_audit.sh
+          bash scripts/task_s2_9_search_null_transition_audit.sh
+          bash scripts/task_s2_9_null_move_policy_audit.sh
+      - name: Publish correction
+        if: steps.payload.outputs.present == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs scripts .github/s2_9_stale_doc_fix.py
+          git diff --cached --check
+          git commit -m "docs: clarify S2-9.3 historical boundary"
+          git push origin HEAD:master
