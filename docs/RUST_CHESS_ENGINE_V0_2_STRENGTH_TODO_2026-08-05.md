@@ -198,6 +198,24 @@
 - x86-64 artifact `8951692759`, digest `cbef3feb8816de99899b66fa29d68c047e94e22b9015607a7a7c0553993d08f4`; ARM64 artifact `8951682899`, digest `2295ec2fe5a024d48b336f00dc2b39b6216f7be8fd05cacbcc4c99de1df369cb`.
 - Production UCI, safe Rust facade, C ABI, JNI, Android, package version, evaluation weights, authoritative v0.1 policy, and defaults remain unchanged. No silent fallback, implicit discovery, committed generated evidence, temporary helper, or write-capable permanent workflow remains.
 
+## S2-8 implementation record
+
+- Disposition: complete; standalone LMR activation rejected; the corrected typed candidate remains inactive for possible explicitly identified combination experiments.
+- Core implementation SHA: `6ecc8cce609a11d26dde81a03db38b9284a801f1`.
+- Evidence-harness SHA: `12a959756864c01cc82e18d71f109c0eb0938786`.
+- Explicit selective-depth evidence SHA: `ba565dea4afc2dcf074520d9cf5b7c55e60c9e6f`.
+- Exact validation SHA: `c8d4e835f0946ccd385b32e9a03b62cba6112d4b`.
+- Candidate policy identifier/checksum: `5332384c4d523031` / `250607d2af491286`; baseline remains `5630315f504f4c31` / `0c0769ef9d034770`.
+- Parameters: minimum depth `4`; fifth ordered move; at least `6` legal moves and `10` total pieces; reduction table `[(4, 4, 1), (7, 8, 2)]`; reductions retain at least one full child ply.
+- Protected: first/PV move, TT move, killers, captures, promotions, in-check nodes, checking moves, low-mobility nodes, low-material positions, mate windows, and underflowing depths.
+- Every reduced alpha raise receives exactly one full-depth verification. Deterministic evidence recorded `29` reductions, `7` reduced fail-highs, and `7` verifications across 13 parity cases; zero differing best moves; checksum `60faa8a799565fc7`; repeated x86-64 output was byte-identical and ARM64 semantics matched.
+- The first candidate exposed a forced-mate defect on `4Q2k/8/4K3/8/8/8/8/8 b - - 0 1`, returning `-1030` instead of `-29994`. Low-material and mate-window exclusions fixed it; the unchanged fixture is a permanent regression.
+- Fixed-node development: 8 pairs / 16 games at 2,000 nodes; candidate W/D/L `2/0/2`, unfinished `12`, all failure categories zero, `rejected_strength`, checksum `b0f204ec892fb99d`.
+- Clock development: 8 pairs / 16 games at 10 ms; candidate W/D/L `2/0/2`, unfinished `12`, all failure categories zero, `rejected_strength`, checksum `e837571ccedb820d`.
+- Seven-sample x86-64 median ratio `1.001488`; ARM64 ratio `1.000153`; candidate was fractionally slower on both. Nodes remained `40,000`; qnodes `35,620/35,665`; selective depth `22/22`; allocations and bytes were unchanged.
+- Exact permanent run `31065063892`: x86-64 job `92501001970`, artifact `8953737384`, digest `22844449c56536ae94957726ff5a378511bec99fffbdf2f839a9164e6b0818c0`; ARM64 job `92501001923`, artifact `8953681761`, digest `01c0563109c18ec0cb7a3204452f454cac66e897ee05646c592edfd1dee5be85`; all gates passed.
+- Production UCI, safe Rust facade, C ABI, JNI, Android, package version, evaluation weights, authoritative v0.1 policy, and defaults remain unchanged. No silent fallback, implicit discovery, committed generated evidence, or write-capable permanent workflow remains.
+
 ## Program guardrails
 
 - Work directly on `master` unless the user explicitly requests a branch.
@@ -227,7 +245,7 @@
 | S2-5 | SEE capture-ordering candidate | **Complete — standalone rejected; inactive for combinations** |
 | S2-6 | Quiescence redesign candidates | **Complete — SEE and delta rejected; inactive** |
 | S2-7 | Principal Variation Search candidate | **Complete — standalone rejected; inactive** |
-| S2-8 | Late Move Reductions candidate | **Not started** |
+| S2-8 | Late Move Reductions candidate | **Complete — standalone rejected; inactive for combinations** |
 | S2-9 | Optional null-move pruning decision/candidate | **Not started** |
 | S2-10 | Optional frontier and quiet-move pruning candidates | **Not started** |
 | S2-11 | Fresh profiling and measured hot-path decisions | **Not started** |
@@ -602,42 +620,43 @@
 
 ---
 
-# Task S2-8: Late Move Reductions candidate — NOT STARTED
+# Task S2-8: Late Move Reductions candidate — COMPLETE
 
 ## S2-8.1 Reduction policy
 
-- [ ] Add versioned inactive LMR policy.
-- [ ] Define minimum depth, move index, and reduction table.
-- [ ] Initial reductions apply only to quiet, non-checking, non-promotion late moves.
-- [ ] Protect TT move, first/PV move, captures, promotions, checks, and configured tactical candidates.
-- [ ] Bound reductions so effective depth cannot underflow or escape mate domain.
+- [x] Add a versioned inactive LMR policy.
+- [x] Define minimum depth `4`, first eligible move index `4`, low-mobility/material guards, and reduction table `[(4, 4, 1), (7, 8, 2)]`.
+- [x] Apply initial reductions only to quiet, non-checking, non-promotion late moves.
+- [x] Protect TT move, first/PV move, captures, promotions, checks, killers, low-mobility nodes, low-material positions, and mate windows.
+- [x] Bound reductions so effective depth retains at least one full child ply and cannot escape the mate domain.
 
 ## S2-8.2 Verification
 
-- [ ] A reduced search that raises alpha receives the required full-depth re-search.
-- [ ] Count reductions, reduced fail-highs, and full-depth verification searches.
-- [ ] Never report a reduced speculative result as exact without verification.
-- [ ] Preserve TT bound/store correctness across reduced searches.
+- [x] A reduced search that raises alpha receives the required full-depth verification search.
+- [x] Count reductions, reduced fail-highs, and full-depth verification searches independently.
+- [x] Require reduced fail-high and verification totals to match exactly.
+- [x] Never report or store a reduced speculative result as exact without verification.
+- [x] Preserve TT bound/store, fail-soft score, mate normalization, and deterministic equal-score correctness across reduced searches.
 
 ## S2-8.3 Targeted correctness
 
-- [ ] Quiet tactical resource fixtures.
-- [ ] Quiet defensive resource fixtures.
-- [ ] Forced mate and longest-survival fixtures.
-- [ ] Promotion races.
-- [ ] Low-mobility and zugzwang-sensitive endings.
-- [ ] Check extension interaction.
-- [ ] Cancellation/limit/restoration paths.
+- [x] Quiet tactical-resource fixtures.
+- [x] Quiet defensive-resource fixtures.
+- [x] Forced-mate and longest-survival fixtures, including the permanent sparse forced-mate regression discovered during implementation.
+- [x] Promotion races and en-passant tactics.
+- [x] Low-mobility, low-material, and zugzwang-sensitive endings.
+- [x] Check-extension and mate-window interaction.
+- [x] Cancellation, node/time limits, legal PV replay, and position/history/Zobrist restoration paths.
 
 ## S2-8.4 Evidence
 
-- [ ] Node, time, selective depth, reduction, and verification diagnostics.
-- [ ] Fixed-node development match.
-- [ ] Clock-based development match.
-- [ ] Independent disposition and parameters recorded.
-- [ ] Default remains inactive.
+- [x] Record nodes, qnodes, elapsed time, selective depth, cutoffs, reductions, reduced fail-highs, verification searches, allocations, and semantic checksums.
+- [x] Run deterministic fixed-node development match; result `rejected_strength`.
+- [x] Run clock-based development match; result `rejected_strength`.
+- [x] Record independent standalone rejection and exact parameters in `docs/RUST_CHESS_ENGINE_V0_2_S2_8_LMR_2026-08-05.md`.
+- [x] Keep default inactive and preserve all production adapters/defaults unchanged.
 
-**S2-8 gate:** LMR is bounded, verified, tactically protected, and independently evaluated.
+**S2-8 gate:** Complete. LMR is isolated, bounded, fully verified after reduced alpha raises, tactically protected, reproducible on x86-64 and native ARM64, and independently evaluated. Standalone activation is rejected and the candidate remains inactive.
 
 ---
 
@@ -1040,4 +1059,4 @@ Remaining risks:
 
 ## Initial next action
 
-Begin with **S2-8 only**: the inactive Late Move Reductions candidate. Do not begin S2-9 or later work until S2-8 has an isolated policy identity, bounded reduction/verification semantics, exact correctness evidence, architecture-specific performance measurements, development strength evidence, and an explicit disposition.
+Begin with **S2-9 only**: make the optional null-move pruning feasibility decision before coding. Do not add futility pruning, razoring, late quiet-move pruning, tablebases, or combine rejected candidates until S2-9 has an explicit implement/reject/defer architectural disposition.
