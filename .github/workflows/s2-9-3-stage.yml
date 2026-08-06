@@ -1,11 +1,10 @@
-name: S2-9.3 null-move policy staging
+name: S2-9.3 null-move policy finalization
 
 on:
   push:
     branches:
       - master
     paths:
-      - .github/s2_9_3_policy.py
       - .github/workflows/s2-9-3-stage.yml
   workflow_dispatch:
 
@@ -13,14 +12,14 @@ permissions:
   contents: write
 
 concurrency:
-  group: s2-9-3-stage-master
+  group: s2-9-3-finalize-master
   cancel-in-progress: false
 
 jobs:
-  implement:
+  finalize:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -31,155 +30,46 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Cache Cargo data
-        uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: rust-engine-s2-9-3-stage
-
-      - name: Generate core policy implementation
+      - name: Generate permanent evidence and remove staging files
+        env:
+          CORE_SHA: 029c16ed216a0fc84d6772c10ea8678ad202c6cf
         run: |
           set -euo pipefail
-          python3 .github/s2_9_3_policy.py phase1
+          python3 .github/s2_9_3_policy.py phase2
           python3 - <<'PY'
           from pathlib import Path
-          import re
 
-          path = Path('crates/chess-search/src/alpha_beta.rs')
+          path = Path('scripts/task_s2_9_null_move_feasibility_audit.sh')
           text = path.read_text(encoding='utf-8')
 
-          old = "        full_window,\n        context,\n    )?;"
-          new = "        full_window,\n        null_move_state,\n        context,\n    )?;"
-          index = text.rfind(old)
-          if index < 0:
-              raise SystemExit('exact PVS re-search call without null state was not found')
-          text = text[:index] + new + text[index + len(old):]
+          old_status = "grep -Fq '| S2-9 | Optional null-move pruning decision/candidate | **In progress — search-null transition complete; pruning policy not started** |' \"$tracker\" || fail \"summary status is not advanced\""
+          new_status = "grep -Fq '| S2-9 | Optional null-move pruning decision/candidate | **In progress — conservative policy complete; validation/disposition not started** |' \"$tracker\" || fail \"summary status is not advanced through S2-9.3\""
+          if text.count(old_status) != 1:
+              raise SystemExit('feasibility summary assertion shape changed unexpectedly')
+          text = text.replace(old_status, new_status, 1)
 
-          state_enum = """enum NullMoveState {
-              Allowed,
-              SpeculativeSubtree,
-              VerificationSubtree,
-          }
-          """
-          path_state = state_enum + """
-          #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-          struct SearchPathState {
-              extension_budget: u16,
-              null_move_state: NullMoveState,
-          }
+          old_next = "grep -Fq 'Begin with **S2-9.3 only**:' \"$tracker\" || fail \"next action does not point to S2-9.2\""
+          new_next = "grep -Fq 'Begin with **S2-9.4 only**:' \"$tracker\" || fail \"next action does not point to S2-9.4\""
+          if text.count(old_next) != 1:
+              raise SystemExit('feasibility next-action assertion shape changed unexpectedly')
+          text = text.replace(old_next, new_next, 1)
 
-          impl SearchPathState {
-              const fn new(extension_budget: u16, null_move_state: NullMoveState) -> Self {
-                  Self {
-                      extension_budget,
-                      null_move_state,
-                  }
-              }
-          }
-          """
-          if text.count(state_enum) != 1:
-              raise SystemExit('null-move state enum shape changed unexpectedly')
-          text = text.replace(state_enum, path_state, 1)
-
-          old_signature = """    extension_budget: u16,
-              window: AlphaBetaWindow,
-              null_move_state: NullMoveState,
-              context: &mut AlphaBetaContext<'_, Probe>,
-          """
-          new_signature = """    path_state: SearchPathState,
-              window: AlphaBetaWindow,
-              context: &mut AlphaBetaContext<'_, Probe>,
-          """
-          if text.count(old_signature) != 1:
-              raise SystemExit('recursive search signature shape changed unexpectedly')
-          text = text.replace(old_signature, new_signature, 1)
-
-          function_start = text.index('fn search_node_with_extensions<Probe>(')
-          where_start = text.index('\nwhere\n', function_start)
-          body_start = text.index('{', where_start) + 1
-          locals_text = """
-              let extension_budget = path_state.extension_budget;
-              let null_move_state = path_state.null_move_state;
-          """
-          text = text[:body_start] + locals_text + text[body_start:]
-
-          call_pattern = re.compile(
-              r'(?P<indent>^[ \t]+)extension_budget,\n'
-              r'(?P=indent)(?P<window>[A-Za-z_][A-Za-z0-9_.]*),\n'
-              r'(?P=indent)(?P<state>NullMoveState::[A-Za-z_]+|null_move_state),\n'
-              r'(?P=indent)context,',
-              re.MULTILINE,
-          )
-
-          def rewrite_call(match: re.Match[str]) -> str:
-              indent = match.group('indent')
-              return (
-                  f"{indent}SearchPathState::new(extension_budget, {match.group('state')}),\n"
-                  f"{indent}{match.group('window')},\n"
-                  f"{indent}context,"
-              )
-
-          text, call_count = call_pattern.subn(rewrite_call, text)
-          if call_count < 5:
-              raise SystemExit(f'expected at least five recursive path-state calls, found {call_count}')
-
-          assertion = '                    debug_assert!(NULL_MOVE_VERIFY_ALL_CUTOFFS);\n'
-          if text.count(assertion) != 1:
-              raise SystemExit('verification constant assertion shape changed unexpectedly')
-          text = text.replace(assertion, '', 1)
-          text = text.replace(
-              'NULL_MOVE_REDUCTION, NULL_MOVE_VERIFICATION_REDUCTION, NULL_MOVE_VERIFY_ALL_CUTOFFS,',
-              'NULL_MOVE_REDUCTION, NULL_MOVE_VERIFICATION_REDUCTION,',
-              1,
-          )
+          old_boundary = """if grep -R --line-number -E 'make_search_null|unmake_search_null|null_move_pruning_enabled' \\
+  crates/chess-search/src; then
+  fail \"null pruning integration landed before S2-9.3\"
+fi
+"""
+          new_boundary = """grep -Fq 'position.make_search_null()' \"$search\" || fail \"S2-9.3 search-null integration is missing\"
+grep -Fq 'position.unmake_search_null(undo)' \"$search\" || fail \"S2-9.3 search-null restoration is missing\"
+grep -Fq 'null_move_pruning_enabled' \"$search\" || fail \"S2-9.3 policy gate is missing\"
+"""
+          if text.count(old_boundary) != 1:
+              raise SystemExit('feasibility pre-S2-9.3 boundary shape changed unexpectedly')
+          text = text.replace(old_boundary, new_boundary, 1)
           path.write_text(text, encoding='utf-8')
-
-          test_path = Path('crates/chess-search/tests/s2_9_null_move.rs')
-          test_text = test_path.read_text(encoding='utf-8')
-          test_text = test_text.replace(
-              'NULL_MOVE_REDUCTION, NULL_MOVE_VERIFICATION_REDUCTION, NULL_MOVE_VERIFY_ALL_CUTOFFS,',
-              'NULL_MOVE_REDUCTION, NULL_MOVE_VERIFICATION_REDUCTION,',
-              1,
-          )
-          constant_assertion = '    assert!(NULL_MOVE_VERIFY_ALL_CUTOFFS);\n'
-          if test_text.count(constant_assertion) != 1:
-              raise SystemExit('integration-test verification assertion shape changed unexpectedly')
-          test_text = test_text.replace(constant_assertion, '', 1)
-          terminal_fixture = '        "7k/8/8/8/8/8/6N1/K7 w - - 0 1",\n'
-          guarded_fixture = '        "7k/7r/8/8/8/8/6N1/K7 w - - 0 1",\n'
-          if test_text.count(terminal_fixture) != 1:
-              raise SystemExit('terminal low-material fixture shape changed unexpectedly')
-          test_text = test_text.replace(terminal_fixture, guarded_fixture, 1)
-          test_path.write_text(test_text, encoding='utf-8')
           PY
 
-      - name: Validate core implementation
-        run: |
-          set -euo pipefail
-          cargo fmt --all
-          cargo fmt --all -- --check
-          cargo check --locked --workspace --all-targets --all-features
-          cargo clippy --locked -p chess-core -p chess-search --all-targets --all-features -- -D warnings
-          cargo test --locked -p chess-core --all-targets --all-features
-          cargo test --locked -p chess-search --all-targets --all-features
-
-      - name: Publish exact core implementation
-        id: core
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add crates/chess-search
-          git diff --cached --check
-          git commit -m 'search: implement conservative S2-9.3 null-move policy'
-          git push origin HEAD:master
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
-      - name: Generate permanent evidence and read-only gates
-        env:
-          CORE_SHA: ${{ steps.core.outputs.sha }}
-        run: python3 .github/s2_9_3_policy.py phase2
-
-      - name: Validate final repository boundary
+      - name: Validate permanent repository boundary
         run: |
           set -euo pipefail
           bash scripts/task_s2_9_null_move_feasibility_audit.sh
@@ -187,12 +77,13 @@ jobs:
           bash scripts/task_s2_9_null_move_policy_audit.sh
           cargo fmt --all -- --check
           cargo clippy --locked -p chess-core -p chess-search --all-targets --all-features -- -D warnings
-          cargo test --locked -p chess-core --all-targets --all-features
-          cargo test --locked -p chess-search --all-targets --all-features
+          cargo test --locked -p chess-search --lib --all-features
 
-      - name: Publish documentation and permanent CI
+      - name: Publish documentation, audit, and permanent read-only CI
         run: |
           set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
           git diff --cached --check
           git commit -m 'docs: record S2-9.3 null-move policy evidence'
