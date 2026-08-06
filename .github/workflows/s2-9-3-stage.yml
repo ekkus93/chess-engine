@@ -30,44 +30,8 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Generate permanent evidence and remove staging files
-        env:
-          CORE_SHA: 029c16ed216a0fc84d6772c10ea8678ad202c6cf
-        run: |
-          set -euo pipefail
-          python3 .github/s2_9_3_policy.py phase2
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path('scripts/task_s2_9_null_move_feasibility_audit.sh')
-          text = path.read_text(encoding='utf-8')
-
-          old_status = "grep -Fq '| S2-9 | Optional null-move pruning decision/candidate | **In progress — search-null transition complete; pruning policy not started** |' \"$tracker\" || fail \"summary status is not advanced\""
-          new_status = "grep -Fq '| S2-9 | Optional null-move pruning decision/candidate | **In progress — conservative policy complete; validation/disposition not started** |' \"$tracker\" || fail \"summary status is not advanced through S2-9.3\""
-          if text.count(old_status) != 1:
-              raise SystemExit('feasibility summary assertion shape changed unexpectedly')
-          text = text.replace(old_status, new_status, 1)
-
-          old_next = "grep -Fq 'Begin with **S2-9.3 only**:' \"$tracker\" || fail \"next action does not point to S2-9.2\""
-          new_next = "grep -Fq 'Begin with **S2-9.4 only**:' \"$tracker\" || fail \"next action does not point to S2-9.4\""
-          if text.count(old_next) != 1:
-              raise SystemExit('feasibility next-action assertion shape changed unexpectedly')
-          text = text.replace(old_next, new_next, 1)
-
-          old_boundary = """if grep -R --line-number -E 'make_search_null|unmake_search_null|null_move_pruning_enabled' \\
-  crates/chess-search/src; then
-  fail \"null pruning integration landed before S2-9.3\"
-fi
-"""
-          new_boundary = """grep -Fq 'position.make_search_null()' \"$search\" || fail \"S2-9.3 search-null integration is missing\"
-grep -Fq 'position.unmake_search_null(undo)' \"$search\" || fail \"S2-9.3 search-null restoration is missing\"
-grep -Fq 'null_move_pruning_enabled' \"$search\" || fail \"S2-9.3 policy gate is missing\"
-"""
-          if text.count(old_boundary) != 1:
-              raise SystemExit('feasibility pre-S2-9.3 boundary shape changed unexpectedly')
-          text = text.replace(old_boundary, new_boundary, 1)
-          path.write_text(text, encoding='utf-8')
-          PY
+      - name: Generate permanent evidence and cleanup
+        run: python3 .github/s2_9_3_finalize.py
 
       - name: Validate permanent repository boundary
         run: |
