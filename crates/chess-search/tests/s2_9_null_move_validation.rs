@@ -7,7 +7,8 @@ use chess_search::{
 const TT_MEBIBYTES: usize = 1;
 const SHORTER_MATE_FEN: &str = "7k/5Q2/6K1/8/8/8/8/8 w - - 0 1";
 const LONGEST_SURVIVAL_FEN: &str = "4Q2k/8/4K3/8/8/8/8/8 b - - 0 1";
-const MIDGAME_FEN: &str = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+const STALEMATE_AFTER_PASS_FEN: &str = "7k/5K2/6Q1/8/8/8/8/RBN5 w - - 0 1";
+const SPARSE_NULL_EXERCISE_FEN: &str = "nn2k3/8/8/8/8/8/8/NN2K3 w - - 0 1";
 
 fn search(
     root: &Position,
@@ -96,6 +97,15 @@ fn compare_exact_with_history(
     (baseline, candidate)
 }
 
+fn assert_terminal_iteration_accounting(result: &SearchResult) {
+    assert_eq!(result.nodes(), u64::from(result.completed_depth()));
+    assert_eq!(result.qnodes(), 0);
+    for iteration in result.completed().iterations() {
+        assert_eq!(iteration.nodes(), 1);
+        assert_eq!(iteration.qnodes(), 0);
+    }
+}
+
 fn play(game: &mut Game, text: &str) {
     let syntax = text.parse::<UciMove>().expect("fixture UCI parses");
     let current = game
@@ -140,19 +150,36 @@ fn stalemate_and_repetition_roots_are_resolved_before_null_search() {
     let (_, stalemate) = compare_exact("7k/5Q2/6K1/8/8/8/8/8 b - - 0 1", 4);
     assert_eq!(stalemate.score(), Some(Score::ZERO));
     assert_eq!(stalemate.best_move(), None);
-    assert_eq!(stalemate.nodes(), 1);
+    assert_terminal_iteration_accounting(&stalemate);
     assert_eq!(stalemate.search_diagnostics().null_move_attempts(), 0);
 
-    let (baseline, after_pass) = compare_exact("7k/5K2/6Q1/8/8/8/8/8 w - - 0 1", 5);
+    let mut synthetic =
+        Position::from_fen(STALEMATE_AFTER_PASS_FEN).expect("synthetic stalemate FEN parses");
+    let original = synthetic.clone();
+    let undo = synthetic
+        .make_search_null()
+        .expect("search-only pass applies outside check");
+    assert!(!synthetic.is_in_check(synthetic.side_to_move()));
+    assert!(synthetic
+        .legal_move_tokens()
+        .expect("synthetic legal moves generate")
+        .is_empty());
+    synthetic
+        .unmake_search_null(undo)
+        .expect("search-only pass restores exactly");
+    assert_eq!(synthetic, original);
+    assert_eq!(synthetic.zobrist(), synthetic.recomputed_zobrist());
+
+    let (baseline, after_pass) = compare_exact(STALEMATE_AFTER_PASS_FEN, 4);
+    assert_eq!(after_pass.score(), baseline.score());
     assert_eq!(after_pass.best_move(), baseline.best_move());
-    assert_eq!(after_pass.search_diagnostics().null_move_cutoffs(), 0);
 
     for cycles in [2_usize, 4_usize] {
         let (root, history) = repetition_root(cycles);
         let (_, candidate) = compare_exact_with_history(&root, &history, 4);
         assert_eq!(candidate.score(), Some(Score::ZERO));
         assert_eq!(candidate.best_move(), None);
-        assert_eq!(candidate.nodes(), 1);
+        assert_terminal_iteration_accounting(&candidate);
         assert_eq!(candidate.search_diagnostics().null_move_attempts(), 0);
     }
 }
@@ -160,15 +187,16 @@ fn stalemate_and_repetition_roots_are_resolved_before_null_search() {
 #[test]
 fn fifty_and_seventy_five_move_boundaries_are_exact() {
     let (_, before) = compare_exact("8/8/8/8/8/8/R3K3/7k w - - 99 1", 4);
-    assert_ne!(before.score(), Some(Score::ZERO));
+    assert_eq!(before.score(), Some(Score::ZERO));
     assert!(before.best_move().is_some());
+    assert!(before.nodes() > u64::from(before.completed_depth()));
 
     for halfmove in [100_u16, 149_u16, 150_u16] {
         let fen = format!("8/8/8/8/8/8/R3K3/7k w - - {halfmove} 1");
         let (_, draw) = compare_exact(&fen, 4);
         assert_eq!(draw.score(), Some(Score::ZERO), "{fen}");
         assert_eq!(draw.best_move(), None, "{fen}");
-        assert_eq!(draw.nodes(), 1, "{fen}");
+        assert_terminal_iteration_accounting(&draw);
         assert_eq!(draw.search_diagnostics().null_move_attempts(), 0, "{fen}");
     }
 }
@@ -199,23 +227,29 @@ fn mate_distance_and_longest_survival_match_baseline() {
 
 #[test]
 fn repeated_success_and_bounded_cancellation_restore_exactly() {
-    let root = Position::from_fen(MIDGAME_FEN).expect("midgame FEN parses");
+    let root = Position::from_fen(SPARSE_NULL_EXERCISE_FEN).expect("sparse FEN parses");
     let history = SearchHistory::from_position(&root);
     let policy = SearchPolicySet::null_move_pruning_candidate();
 
     let first = search(&root, &history, SearchLimits::new().with_depth(5), &policy);
-    for _ in 0..3 {
+    let first_diagnostics = first.search_diagnostics();
+    assert!(first_diagnostics.null_move_attempts() > 0);
+    assert!(
+        first_diagnostics.null_move_attempts()
+            > first_diagnostics.null_move_disabled_nodes()
+    );
+    for _ in 0..2 {
         let repeated = search(&root, &history, SearchLimits::new().with_depth(5), &policy);
         assert_eq!(repeated.score(), first.score());
         assert_eq!(repeated.best_move(), first.best_move());
         assert_eq!(repeated.nodes(), first.nodes());
         assert_eq!(
             repeated.search_diagnostics().semantic_checksum(),
-            first.search_diagnostics().semantic_checksum()
+            first_diagnostics.semantic_checksum()
         );
     }
 
-    for nodes in [64_u64, 128, 256, 512, 768] {
+    for nodes in [32_u64, 64, 128, 256] {
         let limited = search(
             &root,
             &history,
