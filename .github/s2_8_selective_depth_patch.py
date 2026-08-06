@@ -59,7 +59,7 @@ replace_once(
 replace_once(
     source,
     "    aggregate.checksum = aggregate\n",
-    "    aggregate.selective_depth = aggregate.selective_depth.max(diagnostics.selective_depth());\n    aggregate.checksum = aggregate\n",
+    "    aggregate.selective_depth = aggregate.selective_depth.max(result.selective_depth());\n    aggregate.checksum = aggregate\n",
     "selective-depth aggregation",
 )
 replace_in_unique_line(
