@@ -29,9 +29,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "c4597231e2122b4fb1ef4e7a39b7028ffe8d6ce2"
-          test "$(git rev-parse HEAD^^)" = "302e59b1c935703a35cfc3cb95b44e7229472950"
-          changed="$(git diff --name-only HEAD^^ HEAD | sort)"
+          test "$(git rev-parse HEAD^)" = "73a32fa2426713136fb4719e1e1c71ce9aea38c8"
+          test "$(git rev-parse HEAD^^)" = "c4597231e2122b4fb1ef4e7a39b7028ffe8d6ce2"
+          test "$(git rev-parse HEAD^^^)" = "302e59b1c935703a35cfc3cb95b44e7229472950"
+          changed="$(git diff --name-only HEAD^^^ HEAD | sort)"
           expected="$(printf '%s\n' \
             .github/s2_12_close.py \
             .github/workflows/s2-12-closure.yml | sort)"
@@ -80,6 +81,7 @@ jobs:
             exit 1
           fi
 
+          git add -N "$report"
           changed="$(git diff --name-only | sort)"
           expected="$(printf '%s\n' \
             .github/workflows/tracker-close.yml \
