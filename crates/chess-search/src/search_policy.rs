@@ -17,6 +17,8 @@ pub const SEE_CAPTURE_ORDERING_SEARCH_POLICY_ID: u64 = 0x5332_3553_4545_4f31;
 pub const SEE_QUIESCENCE_PRUNING_SEARCH_POLICY_ID: u64 = 0x5332_3653_4545_5031;
 /// Stable identifier for the inactive S2-6 SEE-plus-delta candidate.
 pub const SEE_AND_DELTA_QUIESCENCE_PRUNING_SEARCH_POLICY_ID: u64 = 0x5332_3644_454c_5031;
+/// Stable identifier for the inactive S2-7 Principal Variation Search candidate.
+pub const PRINCIPAL_VARIATION_SEARCH_POLICY_ID: u64 = 0x5332_3750_5653_3031;
 /// Largest accepted aspiration half-width.
 pub const MAXIMUM_ASPIRATION_HALF_WIDTH_CENTIPAWNS: u16 = 10_000;
 /// Largest accepted bounded check-extension budget.
@@ -190,6 +192,10 @@ impl ExperimentalSearchFeatures {
         bits: ExperimentalSearchFeature::SeeQuiescencePruning.bit()
             | ExperimentalSearchFeature::DeltaPruning.bit(),
     };
+    /// Inactive S2-7 Principal Variation Search candidate.
+    pub const PRINCIPAL_VARIATION_SEARCH: Self = Self {
+        bits: ExperimentalSearchFeature::PrincipalVariationSearch.bit(),
+    };
     /// All currently assigned feature bits.
     pub const KNOWN_BITS: u64 = (1_u64 << 9) - 1;
 
@@ -240,6 +246,7 @@ impl ExperimentalSearchFeatures {
                 ExperimentalSearchFeature::SeeCaptureOrdering
                     | ExperimentalSearchFeature::SeeQuiescencePruning
                     | ExperimentalSearchFeature::DeltaPruning
+                    | ExperimentalSearchFeature::PrincipalVariationSearch
             );
             (self.bits & bit != 0 && !implemented).then_some(feature)
         })
@@ -328,6 +335,19 @@ impl SearchPolicy {
         experimental_features: ExperimentalSearchFeatures::SEE_AND_DELTA_QUIESCENCE_PRUNING,
     });
 
+    /// Inactive S2-7 candidate: baseline semantics plus Principal Variation Search.
+    pub const PRINCIPAL_VARIATION_SEARCH: Self = Self::new(SearchPolicyParameters {
+        alpha_beta: AlphaBetaMode::FullWindowFailSoft,
+        transposition: TranspositionPolicy::ClusteredFullKey,
+        move_ordering: MoveOrderingPolicy::V0_1MvvLvaKillersHistory,
+        quiescence: QuiescencePolicy::CapturesPromotionsAndEvasions,
+        aspiration_windows: true,
+        aspiration_half_width_centipawns: DEFAULT_ASPIRATION_HALF_WIDTH_CENTIPAWNS as u16,
+        maximum_quiescence_ply: MAX_QUIESCENCE_PLY,
+        maximum_check_extensions_per_line: MAX_CHECK_EXTENSIONS_PER_LINE,
+        experimental_features: ExperimentalSearchFeatures::PRINCIPAL_VARIATION_SEARCH,
+    });
+
     /// Constructs explicit typed parameters for subsequent validation.
     #[must_use]
     pub const fn new(parameters: SearchPolicyParameters) -> Self {
@@ -386,6 +406,14 @@ impl SearchPolicy {
         self.parameters
             .experimental_features
             .contains(ExperimentalSearchFeature::DeltaPruning)
+    }
+
+    /// Returns whether the inactive S2-7 PVS candidate is selected.
+    #[must_use]
+    pub const fn principal_variation_search_enabled(self) -> bool {
+        self.parameters
+            .experimental_features
+            .contains(ExperimentalSearchFeature::PrincipalVariationSearch)
     }
 
     /// Validates supported ranges and rejects not-yet-implemented features.
@@ -515,6 +543,15 @@ impl SearchPolicySet {
         Self::new(
             SEE_AND_DELTA_QUIESCENCE_PRUNING_SEARCH_POLICY_ID,
             SearchPolicy::SEE_AND_DELTA_QUIESCENCE_PRUNING,
+        )
+    }
+
+    /// Returns the inactive S2-7 Principal Variation Search candidate.
+    #[must_use]
+    pub fn principal_variation_search_candidate() -> Self {
+        Self::new(
+            PRINCIPAL_VARIATION_SEARCH_POLICY_ID,
+            SearchPolicy::PRINCIPAL_VARIATION_SEARCH,
         )
     }
 
@@ -731,7 +768,7 @@ mod tests {
         ));
 
         let mut parameters: SearchPolicyParameters = SearchPolicy::V0_1.parameters();
-        parameters.experimental_features = ExperimentalSearchFeatures::from_bits(1 << 3)
+        parameters.experimental_features = ExperimentalSearchFeatures::from_bits(1 << 4)
             .expect("assigned feature bit is recognized");
         let unsupported = SearchPolicySet::new(1, SearchPolicy::new(parameters));
         assert!(matches!(

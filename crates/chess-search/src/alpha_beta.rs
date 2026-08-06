@@ -129,6 +129,18 @@ impl AlphaBetaWindow {
     pub(crate) fn is_full(self) -> bool {
         self == Self::full()
     }
+
+    fn pvs_child(parent_alpha: Score) -> Result<Self, AlphaBetaSearchError> {
+        let child_beta = -parent_alpha;
+        let child_alpha_raw = child_beta.centipawns() - 1;
+        let child_alpha =
+            Score::from_raw(child_alpha_raw).ok_or(AlphaBetaSearchError::PvsWindowOutOfRange {
+                parent_alpha: parent_alpha.centipawns(),
+            })?;
+        Self::new(child_alpha, child_beta).ok_or(AlphaBetaSearchError::PvsWindowOutOfRange {
+            parent_alpha: parent_alpha.centipawns(),
+        })
+    }
 }
 
 /// A fail-loud alpha-beta search error.
@@ -140,6 +152,11 @@ pub enum AlphaBetaSearchError {
     History(SearchHistoryError),
     /// SEE capture ordering found contradictory internal move state.
     StaticExchange(StaticExchangeError),
+    /// A one-centipawn PVS child window could not be represented.
+    PvsWindowOutOfRange {
+        /// Parent alpha whose negated successor was outside the score domain.
+        parent_alpha: i32,
+    },
     /// Fixed-capacity transposition-table allocation failed.
     TranspositionTableAllocation(TranspositionTableAllocationError),
     /// A transposition probe could not be evaluated safely.
@@ -183,6 +200,10 @@ impl fmt::Display for AlphaBetaSearchError {
             Self::Rules(error) => error.fmt(formatter),
             Self::History(error) => error.fmt(formatter),
             Self::StaticExchange(error) => error.fmt(formatter),
+            Self::PvsWindowOutOfRange { parent_alpha } => write!(
+                formatter,
+                "cannot construct PVS null window from parent alpha {parent_alpha}"
+            ),
             Self::TranspositionTableAllocation(error) => error.fmt(formatter),
             Self::TranspositionProbe(error) => error.fmt(formatter),
             Self::TranspositionScoreConversion(error) => error.fmt(formatter),
@@ -498,6 +519,7 @@ where
         see_capture_ordering: policy.search_policy.see_capture_ordering_enabled(),
         see_quiescence_pruning: policy.search_policy.see_quiescence_pruning_enabled(),
         delta_pruning: policy.search_policy.delta_pruning_enabled(),
+        principal_variation_search: policy.search_policy.principal_variation_search_enabled(),
         weights: policy.weights,
         cancellation,
     };
@@ -525,6 +547,7 @@ where
     see_capture_ordering: bool,
     see_quiescence_pruning: bool,
     delta_pruning: bool,
+    principal_variation_search: bool,
     weights: &'a EvaluationWeights,
     cancellation: &'a mut Probe,
 }
@@ -686,10 +709,6 @@ where
         let current = token.move_made();
         let position_undo = position.make_legal_token(token)?;
         let history_undo = history.push_position(position);
-        let child_window = AlphaBetaWindow {
-            alpha: -beta,
-            beta: -alpha,
-        };
         let child_in_check = position.is_in_check(position.side_to_move());
         let extension = decide_check_extension(
             depth,
@@ -701,14 +720,19 @@ where
         if let Some(event) = extension.event() {
             context.cancellation.on_check_extension(event);
         }
-        let child = search_node_with_extensions(
+        let child = search_child_with_optional_pvs(
             position,
             history,
-            extension.child_depth(),
-            ply + 1,
-            extension.remaining_budget(),
-            child_window,
+            PvsChildSearch {
+                depth: extension.child_depth(),
+                ply: ply + 1,
+                extension_budget: extension.remaining_budget(),
+                move_index,
+                alpha,
+                beta,
+            },
             context,
+            &mut diagnostics,
         );
         let history_restore = history.pop_position(history_undo);
         let position_restore = position.unmake_move(position_undo);
@@ -795,6 +819,103 @@ where
     Ok(result)
 }
 
+#[derive(Clone, Copy)]
+struct PvsChildSearch {
+    depth: u16,
+    ply: u16,
+    extension_budget: u16,
+    move_index: usize,
+    alpha: Score,
+    beta: Score,
+}
+
+fn search_child_with_optional_pvs<Probe>(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    request: PvsChildSearch,
+    context: &mut AlphaBetaContext<'_, Probe>,
+    diagnostics: &mut SearchDiagnostics,
+) -> Result<AlphaBetaSearchResult, AlphaBetaSearchError>
+where
+    Probe: SearchCancellationProbe + ?Sized,
+{
+    let PvsChildSearch {
+        depth,
+        ply,
+        extension_budget,
+        move_index,
+        alpha,
+        beta,
+    } = request;
+    let full_window = AlphaBetaWindow {
+        alpha: -beta,
+        beta: -alpha,
+    };
+    if !context.principal_variation_search || move_index == 0 {
+        return search_node_with_extensions(
+            position,
+            history,
+            depth,
+            ply,
+            extension_budget,
+            full_window,
+            context,
+        );
+    }
+
+    let zero_window_event = SearchDiagnosticEvent::PvsZeroWindowSearch;
+    diagnostics.record_checked(zero_window_event)?;
+    context.cancellation.on_search_diagnostic(zero_window_event);
+    let zero_window = AlphaBetaWindow::pvs_child(alpha)?;
+    let narrow = search_node_with_extensions(
+        position,
+        history,
+        depth,
+        ply,
+        extension_budget,
+        zero_window,
+        context,
+    )?;
+    let narrow_parent_score = -narrow.score;
+    if narrow_parent_score <= alpha || narrow_parent_score >= beta {
+        return Ok(narrow);
+    }
+
+    let research_event = SearchDiagnosticEvent::PvsResearch;
+    diagnostics.record_checked(research_event)?;
+    context.cancellation.on_search_diagnostic(research_event);
+    let exact = search_node_with_extensions(
+        position,
+        history,
+        depth,
+        ply,
+        extension_budget,
+        full_window,
+        context,
+    )?;
+    combine_pvs_attempts(narrow, exact)
+}
+
+fn combine_pvs_attempts(
+    narrow: AlphaBetaSearchResult,
+    exact: AlphaBetaSearchResult,
+) -> Result<AlphaBetaSearchResult, AlphaBetaSearchError> {
+    Ok(AlphaBetaSearchResult {
+        score: exact.score,
+        best_move: exact.best_move,
+        nodes: narrow
+            .nodes
+            .checked_add(exact.nodes)
+            .ok_or(AlphaBetaSearchError::NodeCountOverflow)?,
+        qnodes: narrow
+            .qnodes
+            .checked_add(exact.qnodes)
+            .ok_or(AlphaBetaSearchError::NodeCountOverflow)?,
+        selective_depth: narrow.selective_depth.max(exact.selective_depth),
+        diagnostics: narrow.diagnostics.checked_add(exact.diagnostics)?,
+    })
+}
+
 fn transposition_score_reuse(
     position: &Position,
     check_extension_enabled: bool,
@@ -853,6 +974,7 @@ mod ordering_tests {
             see_capture_ordering: false,
             see_quiescence_pruning: false,
             delta_pruning: false,
+            principal_variation_search: false,
             weights: &crate::EvaluationWeights::DEFAULT,
             cancellation: &mut cancellation,
         };
@@ -886,6 +1008,7 @@ mod ordering_tests {
             see_capture_ordering: false,
             see_quiescence_pruning: false,
             delta_pruning: false,
+            principal_variation_search: false,
             weights: &crate::EvaluationWeights::DEFAULT,
             cancellation: &mut cancellation,
         };
@@ -999,6 +1122,7 @@ mod ordering_tests {
                 see_capture_ordering: false,
                 see_quiescence_pruning: false,
                 delta_pruning: false,
+                principal_variation_search: false,
                 weights: &crate::EvaluationWeights::DEFAULT,
                 cancellation: &mut cancellation,
             };
