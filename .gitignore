@@ -37,3 +37,9 @@ performance-*.tsv
 task24-android-performance.txt
 android-harness/.gradle/
 android-harness/**/build/
+
+# Generated S2-7 evidence outputs
+/s2-7-deterministic-*/
+/s2-7-clock/
+/s2-7-bootstrap-benchmark.tsv
+/s2-7-linux-*.tsv
