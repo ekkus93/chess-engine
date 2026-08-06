@@ -9,6 +9,7 @@ on:
       - master
   workflow_dispatch:
 
+# This permanent candidate gate is read-only and cannot activate or rewrite the engine.
 permissions:
   contents: read
 
