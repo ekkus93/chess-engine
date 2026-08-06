@@ -30,9 +30,7 @@ jobs:
           components: rustfmt, clippy
 
       - name: Apply S2-8 core implementation
-        run: |
-          python3 .github/s2_8_core_bootstrap_repair.py
-          python3 .github/s2_8_core_bootstrap.py
+        run: python3 .github/s2_8_core_bootstrap_repair.py
 
       - name: Audit and format generated implementation
         shell: bash
