@@ -1,0 +1,61 @@
+name: Temporary S2-8 selective-depth patch
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/s2-8-selective-depth-patch.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-s2-8-selective-depth
+  cancel-in-progress: false
+
+jobs:
+  validate-and-publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Apply reporting patch
+        run: python3 .github/s2_8_selective_depth_patch.py
+
+      - name: Validate reporting and evidence tool
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all
+          bash scripts/task_s2_8_lmr_audit.sh
+          cargo fmt --all -- --check
+          cargo clippy --locked -p chess-search -p chess-tools --all-targets --all-features -- -D warnings
+          cargo test --locked -p chess-tools --bin s2_8_lmr
+          cargo build --locked --release -p chess-tools --bin s2_8_lmr
+          build_identity="$(rustc -Vv | paste -sd '|' - | tr ' ' '_')"
+          export S2_8_SOURCE_SHA="${GITHUB_SHA}"
+          export S2_8_BUILD_IDENTITY="${build_identity}"
+          target/release/s2_8_lmr benchmark 1 | tee s2-8-selective-depth-smoke.tsv
+          grep -q 'baseline_selective_depth=' s2-8-selective-depth-smoke.tsv
+          grep -q 'candidate_selective_depth=' s2-8-selective-depth-smoke.tsv
+
+      - name: Commit validated reporting patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "test: record S2-8 selective depth explicitly"
+          git push origin HEAD:master
