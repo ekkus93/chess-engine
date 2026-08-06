@@ -35,6 +35,7 @@ jobs:
           python3 .github/s2_8_evidence_bootstrap_repair.py
           python3 .github/s2_8_evidence_bootstrap_repair2.py
           python3 .github/s2_8_evidence_bootstrap_repair3.py
+          python3 .github/s2_8_evidence_bootstrap_repair4.py
           python3 .github/s2_8_evidence_bootstrap.py
 
       - name: Audit format lint and test
