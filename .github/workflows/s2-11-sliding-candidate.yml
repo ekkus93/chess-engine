@@ -6,6 +6,7 @@ on:
       - master
     paths:
       - .github/s2_11_sliding_candidate.py
+      - .github/s2_11_sliding_candidate_fix.py
       - .github/workflows/s2-11-sliding-candidate.yml
 
 permissions:
@@ -25,21 +26,24 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Verify staging ancestry and scope
+      - name: Verify repair ancestry and scope
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "c75a003886d43fcf25e14b9d6fd3752c17849569"
+          test "$(git rev-parse HEAD^)" = "2b7e4d2ea0fa1983e686b57889360dd85f2085d2"
           changed="$(git diff --name-only HEAD^ HEAD | sort)"
           expected="$(printf '%s\n' \
-            .github/s2_11_sliding_candidate.py \
-            .github/workflows/s2-11-profiling.yml \
+            .github/s2_11_sliding_candidate_fix.py \
             .github/workflows/s2-11-sliding-candidate.yml | sort)"
           test "$changed" = "$expected"
           test ! -e .github/workflows/s2-11-profiling.yml
 
       - name: Generate reviewed candidate
-        run: python3 .github/s2_11_sliding_candidate.py
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/s2_11_sliding_candidate.py
+          python3 .github/s2_11_sliding_candidate_fix.py
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -91,6 +95,7 @@ jobs:
           set -euo pipefail
           git rm \
             .github/s2_11_sliding_candidate.py \
+            .github/s2_11_sliding_candidate_fix.py \
             .github/workflows/s2-11-sliding-candidate.yml
           git add \
             crates/chess-core/src/attacks.rs \
@@ -98,6 +103,7 @@ jobs:
           staged="$(git diff --cached --name-only | sort)"
           expected="$(printf '%s\n' \
             .github/s2_11_sliding_candidate.py \
+            .github/s2_11_sliding_candidate_fix.py \
             .github/workflows/s2-11-sliding-candidate.yml \
             crates/chess-core/src/attacks.rs \
             crates/chess-core/src/attacks_tests.rs | sort)"
