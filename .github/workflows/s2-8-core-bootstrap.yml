@@ -37,6 +37,7 @@ jobs:
         run: |
           set -euo pipefail
           bash scripts/task_s2_8_lmr_audit.sh
+          cargo fmt --all
           cargo fmt --all -- --check
           cargo clippy --locked -p chess-search --all-targets --all-features -- -D warnings
           cargo test --locked -p chess-search --all-targets --all-features
