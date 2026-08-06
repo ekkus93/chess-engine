@@ -1,0 +1,108 @@
+name: S2-9.2 search-null transition
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/s2_9_2_transition.py
+      - .github/workflows/s2-9-2-transition.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: s2-9-2-search-null-transition
+  cancel-in-progress: false
+
+jobs:
+  implement:
+    name: Implement and validate reversible search-null transition
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out exact master
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate S2-9.2 implementation
+        run: python3 .github/s2_9_2_transition.py
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Cargo data
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-engine-s2-9-2-transition
+
+      - name: Format generated Rust
+        run: cargo fmt --all
+
+      - name: Validate architecture and focused core behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f crates/chess-core/src/position/search_null.rs
+          test -f scripts/task_s2_9_search_null_transition_audit.sh
+          test -f docs/RUST_CHESS_ENGINE_V0_2_S2_9_SEARCH_NULL_TRANSITION_2026-08-05.md
+          test ! -e .github/s2_9_2_transition.py
+
+          bash -n scripts/task_s2_9_null_move_feasibility_audit.sh
+          bash -n scripts/task_s2_9_search_null_transition_audit.sh
+          bash scripts/task_s2_9_null_move_feasibility_audit.sh
+          bash scripts/task_s2_8_lmr_audit.sh
+          bash scripts/task_post_port_review_fix_audit.sh
+
+          cargo fmt --all -- --check
+          cargo check --locked -p chess-core --all-targets --all-features
+          cargo clippy --locked -p chess-core --all-targets --all-features -- -D warnings
+          cargo test --locked -p chess-core --all-targets --all-features
+          git diff --check
+
+      - name: Commit implementation and exact evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout HEAD -- .github/workflows/s2-9-2-transition.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          git add -A
+          git diff --cached --check
+          git diff --cached --quiet && {
+            echo 'S2-9.2 generation produced no changes' >&2
+            exit 1
+          }
+          git commit -m 'feat: add reversible search-null transition'
+          core_sha="$(git rev-parse HEAD)"
+
+          python3 - "$core_sha" <<'PY'
+          from pathlib import Path
+          import sys
+
+          core_sha = sys.argv[1]
+          paths = [
+              Path('docs/RUST_CHESS_ENGINE_V0_2_S2_9_SEARCH_NULL_TRANSITION_2026-08-05.md'),
+              Path('docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md'),
+          ]
+          for path in paths:
+              text = path.read_text(encoding='utf-8')
+              count = text.count('CORE_IMPLEMENTATION_SHA')
+              if count != 1:
+                  raise SystemExit(f'{path}: expected one core SHA placeholder, found {count}')
+              path.write_text(text.replace('CORE_IMPLEMENTATION_SHA', core_sha), encoding='utf-8')
+          PY
+
+          bash scripts/task_s2_9_null_move_feasibility_audit.sh
+          bash scripts/task_s2_9_search_null_transition_audit.sh
+          git diff --check
+          git add docs/RUST_CHESS_ENGINE_V0_2_S2_9_SEARCH_NULL_TRANSITION_2026-08-05.md \
+            docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md
+          git diff --cached --check
+          git commit -m 'docs: record S2-9.2 transition evidence'
+          git push origin HEAD:master
