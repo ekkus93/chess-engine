@@ -32,7 +32,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "9191bb962d0e2f069dc4bca84674fde869ce2bea"
+          test "$(git rev-parse HEAD^)" = "1c2052b1ee19c8acbcb5465e1e40c61534ef5c4f"
           changed="$(git diff --name-only HEAD^ HEAD | sort)"
           expected="$(printf '%s\n' \
             .github/s2_13_payload_00 \
