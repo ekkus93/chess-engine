@@ -30,6 +30,7 @@ jobs:
           components: rustfmt, clippy
 
       - name: Apply reporting patch
+        # The patch records an already-existing diagnostic as an explicit evidence field.
         run: python3 .github/s2_8_selective_depth_patch.py
 
       - name: Validate reporting and evidence tool
