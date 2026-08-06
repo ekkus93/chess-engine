@@ -1,0 +1,13 @@
+architecture	workload	metric	value	unit	run
+x86-64	profile-perft	sliding_attack_instruction_share	24.54	percent_approx	31103010137
+x86-64	profile-search	sliding_attack_instruction_share	16.64	percent_approx	31103010137
+arm64	profile-perft	sliding_attack_instruction_share	12.09	percent_approx	31103010137
+arm64	profile-search	sliding_attack_instruction_share	8.38	percent_approx	31103010137
+x86-64	profile-search	evaluation_instruction_share	4.79	percent_approx	31103010137
+arm64	profile-search	evaluation_instruction_share	3.27	percent_approx	31103010137
+x86-64	profile-search	move_ordering_instruction_share	14.50	percent_approx	31103010137
+arm64	profile-search	move_ordering_instruction_share	13.00	percent_approx	31103010137
+x86-64	profile-search	make_unmake_instruction_share	18.30	percent_approx	31103010137
+arm64	profile-search	make_unmake_instruction_share	18.14	percent_approx	31103010137
+x86-64	profile-search	memcpy_instruction_share	5.36	percent_approx	31103010137
+arm64	profile-search	memcpy_instruction_share	7.07	percent_approx	31103010137

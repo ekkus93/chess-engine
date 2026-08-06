@@ -323,7 +323,7 @@
 | S2-8 | Late Move Reductions candidate | **Complete — standalone rejected; inactive for combinations** |
 | S2-9 | Optional null-move pruning decision/candidate | **Complete — standalone rejected; inactive** |
 | S2-10 | Optional frontier and quiet-move pruning candidates | **Complete — S2-10.1, S2-10.2, and S2-10.3 deferred; inactive** |
-| S2-11 | Fresh profiling and measured hot-path decisions | **Not started** |
+| S2-11 | Fresh profiling and measured hot-path decisions | **Complete — x86-64 sliding dispatch accepted; non-x86 baseline preserved** |
 | S2-12 | Optional Syzygy tablebase decision/integration | **Not started** |
 | S2-13 | API, UCI, ABI/JNI, Android, CI, and documentation integration | **Not started** |
 | S2-14 | Production candidate selection and validation | **Not started** |
@@ -812,51 +812,51 @@
 
 ---
 
-# Task S2-11: Fresh profiling and measured hot-path decisions — NOT STARTED
+# Task S2-11: Fresh profiling and measured hot-path decisions — COMPLETE
 
-## S2-11.1 Reprofile
+## S2-11.1 Reprofile — COMPLETE
 
-- [ ] Run Callgrind/profile-perft after current candidate set.
-- [ ] Run profile-search after current candidate set.
-- [ ] Capture x86-64 and native ARM64 performance distributions.
-- [ ] Capture Android/JNI metrics if integration code or hot paths changed.
-- [ ] Preserve old artifacts and exact provenance.
+- [x] Run Callgrind/profile-perft after current candidate set. Exact Kiwipete depth-four workload completed at `4,085,603` nodes on x86-64 and native ARM64.
+- [x] Run profile-search after current candidate set. Exact fixed-node workload completed at `250,000` main nodes, `242,711` qnodes, and depth `4` on both architectures.
+- [x] Capture x86-64 and native ARM64 performance distributions. Seven-sample matched baseline/candidate distributions were preserved for both architectures.
+- [x] Capture Android/JNI metrics if integration code or hot paths changed. The exact-head Android/JNI artifact was preserved; the accepted change is inside the shared Rust attack primitive and does not alter JNI integration semantics.
+- [x] Preserve old artifacts and exact provenance. Baseline, Callgrind, rejected portable-candidate, accepted final-dispatch, and Android artifact identifiers/digests are recorded in `benchmarks/s2-11/artifact-manifest.tsv`.
 
-## S2-11.2 Decision: direct legal generation
+## S2-11.2 Decision: direct legal generation — COMPLETE (DEFERRED)
 
-- [ ] Compare current legal-generation cost and search share.
-- [ ] Decide `implement`, `reject`, or `defer`.
-- [ ] If implemented, retain old legal generation as a test oracle.
-- [ ] Require exhaustive move-set equivalence, perft, differential, property, fuzz, and restoration evidence before activation.
-- [ ] Keep fail-loud internal contradiction coverage.
+- [x] Compare current legal-generation cost and search share. Move generation is material, but the profile does not isolate avoidable legality probes from mandatory make/unmake and attack work strongly enough to justify a rewrite.
+- [x] Decide `implement`, `reject`, or `defer`. Disposition: `defer_pending_legality_probe_instrumentation`.
+- [x] If implemented, retain old legal generation as a test oracle. No implementation was started; the existing generator remains authoritative and is required as the future oracle.
+- [x] Require exhaustive move-set equivalence, perft, differential, property, fuzz, and restoration evidence before activation. These remain mandatory reconsideration gates.
+- [x] Keep fail-loud internal contradiction coverage. No behavior or error contract changed.
 
-## S2-11.3 Decision: sliding attacks
+## S2-11.3 Decision: sliding attacks — COMPLETE (ACCEPTED ARCHITECTURE DISPATCH)
 
-- [ ] Re-evaluate measured cost.
-- [ ] Decide `implement`, `reject`, or `defer`.
-- [ ] Reject speculative magic/PEXT/table rewrites without architecture evidence.
-- [ ] Preserve exhaustive attack-oracle tests for any change.
+- [x] Re-evaluate measured cost. Baseline Callgrind showed sliding attacks at approximately `24.54%` of x86-64 perft instructions and `16.64%` of x86-64 search instructions, versus approximately `12.09%` and `8.38%` on ARM64.
+- [x] Decide `implement`, `reject`, or `defer`. The portable ray-table candidate was `rejected_cross_architecture`; the explicit x86-64 ray-table/non-x86 step-walk dispatch was accepted.
+- [x] Reject speculative magic/PEXT/table rewrites without architecture evidence. No magic bitboards, PEXT dependency, runtime CPU probing, or silent fallback was added.
+- [x] Preserve exhaustive attack-oracle tests for any change. Every source square and relevant blocker subset is compared with the independent step-walk oracle; exact perft/search diagnostics, allocations, and semantic checksums remain unchanged.
 
-## S2-11.4 Decision: incremental evaluation
+## S2-11.4 Decision: incremental evaluation — COMPLETE (DEFERRED)
 
-- [ ] Re-evaluate measured evaluation cost.
-- [ ] Decide `implement`, `reject`, or `defer`.
-- [ ] If implemented, bind state to undo and prove full recomputation parity after every move category and random sequence.
+- [x] Re-evaluate evaluation share after search changes. Evaluation accounted for approximately `4.79%` of x86-64 search instructions and `3.27%` on ARM64.
+- [x] Decide whether incremental evaluation is justified. Disposition: `defer_low_profile_share`; updating state on every make/unmake is not justified by the measured share.
+- [x] If implemented, keep full recomputation as a test oracle and require exact parity after every make/unmake path. No implementation was started; these remain mandatory reconsideration gates.
 
-## S2-11.5 Decision: move-list and TT layout
+## S2-11.5 Decision: TT/layout/allocation work — COMPLETE
 
-- [ ] Re-evaluate allocation, cache, and probe/store profile.
-- [ ] Decide separately for move-list compaction and TT packing.
-- [ ] Preserve semantic checksums, replacement policy, full-key verification, and mate normalization.
+- [x] Reprofile TT replacement/packing, move-list behavior, and allocation. TT probe/store was negligible, hot-path allocation remained zero, while move ordering and copy/layout costs remained measurable.
+- [x] Decide separately on TT replacement, custom allocation, and layout changes. TT replacement/packing: `reject_not_hot`; custom allocation: `reject_zero_allocation_path`; move-list/layout: `defer_requires_isolated_candidate`.
+- [x] Preserve zero-allocation hot-path guarantees and exact semantics. Allocation audit rows and semantic checksums are identical between baseline and accepted candidate on both architectures.
 
-## S2-11.6 Reference update policy
+## S2-11.6 Reference discipline — COMPLETE
 
-- [ ] Do not overwrite references automatically.
-- [ ] Preserve before/after distributions.
-- [ ] Update references only in an intentional reviewed commit.
-- [ ] Record semantic checksum changes and rationale.
+- [x] Do not overwrite old references. Existing benchmark references were left unchanged.
+- [x] Do not update budgets automatically. No performance budget or threshold was rewritten.
+- [x] Update semantic checksums only for intentional semantic changes. Attack sets, perft, search diagnostics, and committed semantic checksums were unchanged because the candidate is behaviorally equivalent.
+- [x] Preserve last-known-green and candidate evidence separately. Baseline, rejected portable candidate, and accepted architecture-dispatch evidence have distinct commits, runs, artifact IDs, and digests.
 
-**S2-11 gate:** Every optimization area has a fresh profile-backed disposition; implemented changes retain independent correctness proof.
+**S2-11 gate:** Complete. Fresh cross-architecture profiling produced independent decisions. Direct legal generation, incremental evaluation, and move-list/layout work are deferred; TT replacement and custom allocation are rejected under the current profile. The portable ray-table candidate was rejected after ARM64 representative-workload regressions. The accepted implementation uses a compile-time x86-64 ray-table path and preserves the original step-walk path on non-x86 architectures, with exhaustive oracle equivalence, exact deterministic workloads, zero-allocation parity, strong x86-64 gains, and ARM64 parity.
 
 ---
 
