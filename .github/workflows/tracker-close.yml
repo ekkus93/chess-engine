@@ -38,33 +38,60 @@ jobs:
           bash scripts/task_s2_7_pvs_audit.sh
           bash scripts/task_s2_8_lmr_audit.sh
           bash scripts/task_s2_9_null_move_feasibility_audit.sh
+          bash scripts/task_s2_9_search_null_transition_audit.sh
 
-      - name: Verify S2-9 feasibility progression
+      - name: Verify S2-9 transition progression
         shell: bash
         run: |
           set -euo pipefail
           tracker=docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md
           decision=docs/RUST_CHESS_ENGINE_V0_2_S2_9_NULL_MOVE_FEASIBILITY_2026-08-05.md
+          transition=docs/RUST_CHESS_ENGINE_V0_2_S2_9_SEARCH_NULL_TRANSITION_2026-08-05.md
+          workflow=.github/workflows/s2-9-search-null.yml
 
           grep -Fq '| S2-8 | Late Move Reductions candidate | **Complete — standalone rejected; inactive for combinations** |' "$tracker"
-          grep -Fq '| S2-9 | Optional null-move pruning decision/candidate | **In progress — feasibility complete; implementation approved** |' "$tracker"
+          grep -Fq '| S2-9 | Optional null-move pruning decision/candidate | **In progress — search-null transition complete; pruning policy not started** |' "$tracker"
           grep -Fq '| S2-10 | Optional frontier and quiet-move pruning candidates | **Not started** |' "$tracker"
           grep -Fq '## S2-9 feasibility record' "$tracker"
+          grep -Fq '## S2-9.2 transition record' "$tracker"
           grep -Fq '# Task S2-9: Optional null-move pruning decision/candidate — IN PROGRESS' "$tracker"
           grep -Fq '# Task S2-10: Optional frontier and quiet-move pruning candidates — NOT STARTED' "$tracker"
-          grep -Fq 'Begin with **S2-9.2 only**:' "$tracker"
+          grep -Fq 'Begin with **S2-9.3 only**:' "$tracker"
 
           grep -Fq '**Status:** Feasibility complete' "$decision"
           grep -Fq '**Inspected source SHA:** `76862f5730a518957bf0fbd3daf15af99f37ce6c`' "$decision"
           grep -Fq '**Disposition:** `implement`' "$decision"
           grep -Fq '**Activation:** `false`' "$decision"
 
+          grep -Fq '**Status:** Complete' "$transition"
+          grep -Fq '**Starting master SHA:** `152b8a52b90989b113411a9dffc33cb520e45e6b`' "$transition"
+          grep -Fq '**Core implementation SHA:** `ee65c38624df12c3d30ec954fd3157e66456373d`' "$transition"
+          grep -Fq '**Focused validation run:** `31074949590`' "$transition"
+          grep -Fq '**Activation:** `false`' "$transition"
+
           s2_9_1="$(sed -n '/## S2-9.1 Feasibility decision/,/## S2-9.2 Search-only transition if implemented/p' "$tracker")"
           test "$(grep -Fc -- '- [x]' <<<"$s2_9_1")" -eq 4
           test "$(grep -Fc -- '- [ ]' <<<"$s2_9_1")" -eq 0
 
-          s2_9_remaining="$(sed -n '/## S2-9.2 Search-only transition if implemented/,/# Task S2-10:/p' "$tracker")"
+          s2_9_2="$(sed -n '/## S2-9.2 Search-only transition if implemented/,/## S2-9.3 Conservative policy if implemented/p' "$tracker")"
+          test "$(grep -Fc -- '- [x]' <<<"$s2_9_2")" -eq 5
+          test "$(grep -Fc -- '- [ ]' <<<"$s2_9_2")" -eq 0
+
+          s2_9_remaining="$(sed -n '/## S2-9.3 Conservative policy if implemented/,/# Task S2-10:/p' "$tracker")"
           test "$(grep -Fc -- '- [ ]' <<<"$s2_9_remaining")" -gt 0
+
+          test -f crates/chess-core/src/position/search_null.rs
+          test -f scripts/task_s2_9_search_null_transition_audit.sh
+          test -f "$workflow"
+          grep -q '^permissions:' "$workflow"
+          grep -q '^  contents: read$' "$workflow"
+          if grep -q 'contents: write' "$workflow"; then
+            echo 'permanent S2-9 workflow can write repository contents' >&2
+            exit 1
+          fi
 
           test ! -e .github/s2_9_feasibility.py
           test ! -e .github/workflows/s2-9-feasibility.yml
+          test ! -e .github/s2_9_2_transition.py
+          test ! -e .github/s2_9_2_audit_fix.py
+          test ! -e .github/workflows/s2-9-2-transition.yml
