@@ -526,7 +526,7 @@ fn replay_pv(
 }
 
 fn control_openings() -> Result<String, Box<dyn Error>> {
-    let root = Position::starting();
+    let mut root = Position::starting();
     let mut white_moves = root.legal_moves()?.iter().collect::<Vec<_>>();
     white_moves.sort_by_key(|current| current.to_uci());
     let mut output = String::from("CHESS_SELF_PLAY_OPENINGS\t1\n");
