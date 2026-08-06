@@ -45,7 +45,7 @@ jobs:
       - name: Verify progression through S2-10.3
         shell: bash
         run: |
-          set -euo pipefail
+          set -euxo pipefail
           tracker=docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md
           lmr=docs/RUST_CHESS_ENGINE_V0_2_S2_8_LMR_2026-08-05.md
           null_move=docs/RUST_CHESS_ENGINE_V0_2_S2_9_NULL_MOVE_2026-08-06.md
