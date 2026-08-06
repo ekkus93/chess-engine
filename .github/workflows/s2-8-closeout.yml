@@ -59,10 +59,10 @@ jobs:
           PY
           python3 -m py_compile .github/s2_8_closeout.py
 
-      - name: Generate closeout, advance tracker, and remove temporary helpers
+      - name: Generate closeout, advance tracker, and prepare cleanup
         run: python3 .github/s2_8_closeout.py
 
-      - name: Validate closeout tree
+      - name: Validate generated closeout tree
         shell: bash
         run: |
           set -euo pipefail
@@ -107,6 +107,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # GitHub's workflow token may not create, update, or delete workflow files.
+          # Restore those two paths for this push; the connected GitHub writer performs
+          # the already-validated permanent-workflow update and one-shot cleanup next.
+          git checkout HEAD -- .github/workflows/tracker-close.yml
+          git checkout HEAD -- .github/workflows/s2-8-closeout.yml
+
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
