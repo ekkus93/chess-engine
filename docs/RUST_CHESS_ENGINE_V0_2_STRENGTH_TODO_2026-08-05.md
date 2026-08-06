@@ -246,6 +246,19 @@
 - S2-9.3 remains blocked from silently reusing/storing TT scores, nesting null attempts, or cutting off without its separately frozen conservative policy and diagnostics.
 - Production search policy, defaults, package/UCI version, adapters, and activation remain unchanged.
 
+## S2-9.3 conservative policy record
+
+- Disposition: implementation complete; validation and strength disposition remain pending; activation remains false.
+- Core implementation SHA: `029c16ed216a0fc84d6772c10ea8678ad202c6cf`.
+- Staging validation workflow run: `31080097848`.
+- Candidate policy identifier: `5332394e4d503031`; isolated null-move feature bit only.
+- Frozen policy: minimum depth `4`; speculative reduction `2` after the synthetic pass ply; verification reduction `1`; side-to-move non-pawn minimum `2`; total non-pawn minimum `4`; every speculative fail-high requires verification.
+- Disabled contexts: root, check, shallow depth, pawn-only/low non-pawn material, nested/speculative/verification subtrees, mate-sensitive bounds/domain, and static evaluation below beta.
+- Synthetic subtrees suppress TT score reuse and storage through the explicit `SuppressedForNullMove` reason while retaining legal-checked TT move ordering hints. Verification searches return to ordinary TT score policy but keep null disabled for the complete verification subtree.
+- Diagnostics now count eligibility attempts, disabled nodes with stable reason events, speculative fail-highs, verification searches, and confirmed cutoffs using checked exact-result accumulation.
+- The authoritative v0.1 policy, production adapters, UCI, C ABI, JNI, Android, package version, and defaults remain unchanged.
+- S2-9.4 correctness, development strength, and final disposition are not claimed.
+
 ## Program guardrails
 
 - Work directly on `master` unless the user explicitly requests a branch.
@@ -276,7 +289,7 @@
 | S2-6 | Quiescence redesign candidates | **Complete — SEE and delta rejected; inactive** |
 | S2-7 | Principal Variation Search candidate | **Complete — standalone rejected; inactive** |
 | S2-8 | Late Move Reductions candidate | **Complete — standalone rejected; inactive for combinations** |
-| S2-9 | Optional null-move pruning decision/candidate | **In progress — search-null transition complete; pruning policy not started** |
+| S2-9 | Optional null-move pruning decision/candidate | **In progress — conservative policy complete; validation/disposition not started** |
 | S2-10 | Optional frontier and quiet-move pruning candidates | **Not started** |
 | S2-11 | Fresh profiling and measured hot-path decisions | **Not started** |
 | S2-12 | Optional Syzygy tablebase decision/integration | **Not started** |
@@ -709,13 +722,13 @@
 
 ## S2-9.3 Conservative policy if implemented
 
-- [ ] Disable in check.
-- [ ] Disable at shallow depth.
-- [ ] Disable in low non-pawn material and pawn-only endings.
-- [ ] Disable consecutive null moves.
-- [ ] Disable in mate-sensitive windows/contexts as specified.
-- [ ] Add optional verification search policy.
-- [ ] Count attempts, disabled nodes, cutoffs, and verifications.
+- [x] Disable in check.
+- [x] Disable at shallow depth.
+- [x] Disable in low non-pawn material and pawn-only endings.
+- [x] Disable consecutive null moves.
+- [x] Disable in mate-sensitive windows/contexts as specified.
+- [x] Add optional verification search policy.
+- [x] Count attempts, disabled nodes, cutoffs, and verifications.
 
 ## S2-9.4 Validation if implemented
 
@@ -1089,4 +1102,4 @@ Remaining risks:
 
 ## Initial next action
 
-Begin with **S2-9.3 only**: implement the dedicated reversible search-only null transition and focused core correctness tests described in `docs/RUST_CHESS_ENGINE_V0_2_S2_9_NULL_MOVE_FEASIBILITY_2026-08-05.md`. Do not integrate null pruning into alpha-beta, enable the policy bit, add strength evidence, begin S2-10, or combine rejected candidates until the transition's exact restoration, hash parity, failure atomicity, and permanent audit pass.
+Begin with **S2-9.4 only**: validate the inactive conservative null-move candidate against zugzwang, stalemate, repetition, fifty/seventy-five-move, mate-distance, longest-survival, restoration, cancellation, fixed-node, and clock protocols. Do not activate the candidate, begin S2-10, or combine it with rejected candidates until S2-9.4 records an explicit evidence-backed disposition.

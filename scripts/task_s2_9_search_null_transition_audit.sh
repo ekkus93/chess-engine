@@ -45,12 +45,16 @@ if grep -Eq '#!\[(allow|expect)|#\[(allow|expect)' "$source_file"; then
 fi
 
 unexpected="$(grep -R --line-number -E 'make_search_null|unmake_search_null' crates \
-  | grep -v '^crates/chess-core/src/position/search_null.rs:' || true)"
-[[ -z "$unexpected" ]] || fail "search-null transition escaped its core module: $unexpected"
-
+  | grep -v '^crates/chess-core/src/position/search_null.rs:' \
+  | grep -v '^crates/chess-search/src/alpha_beta.rs:' || true)"
+[[ -z "$unexpected" ]] || fail "search-null transition escaped approved core/search modules: $unexpected"
+grep -Fq 'position.make_search_null()' crates/chess-search/src/alpha_beta.rs \
+  || fail "S2-9.3 search integration is missing make_search_null"
+grep -Fq 'position.unmake_search_null(undo)' crates/chess-search/src/alpha_beta.rs \
+  || fail "S2-9.3 search integration is missing unmake_search_null"
 if grep -R --line-number -E 'make_search_null|unmake_search_null|null_move_pruning_enabled' \
-  crates/chess-search/src crates/chess-uci crates/chess-ffi crates/chess-jni 2>/dev/null; then
-  fail "search pruning or adapter integration landed during S2-9.2"
+  crates/chess-uci crates/chess-ffi crates/chess-jni 2>/dev/null; then
+  fail "search-null transition leaked into a production adapter"
 fi
 
 grep -Fq 'search_null_round_trip_clears_en_passant_and_restores_exactly' "$source_file" || fail "round-trip regression is missing"
@@ -69,16 +73,17 @@ grep -Fq '**Focused validation run:** `S2_9_VALIDATION_RUN_ID`' "$record" \
 grep -Fq 'Production policy, defaults, package/UCI version, adapters, and activation remain unchanged.' "$record" \
   || fail "production non-change is missing"
 
-grep -Fq '| S2-9 | Optional null-move pruning decision/candidate | **In progress — search-null transition complete; pruning policy not started** |' "$tracker" \
-  || fail "tracker summary was not advanced"
+grep -Fq '| S2-9 | Optional null-move pruning decision/candidate | **In progress — conservative policy complete; validation/disposition not started** |' "$tracker" \
+  || fail "tracker summary was not advanced through S2-9.3"
 grep -Fq '## S2-9.2 transition record' "$tracker" || fail "tracker transition record is missing"
-grep -Fq 'Begin with **S2-9.3 only**:' "$tracker" || fail "next action does not point to S2-9.3"
+grep -Fq 'Begin with **S2-9.4 only**:' "$tracker" || fail "next action does not point to S2-9.4"
 
 s2_9_2="$(sed -n '/## S2-9.2 Search-only transition if implemented/,/## S2-9.3 Conservative policy if implemented/p' "$tracker")"
 [[ "$(grep -Fc -- '- [x]' <<<"$s2_9_2")" -eq 5 ]] || fail "S2-9.2 does not have exactly five completed requirements"
 [[ "$(grep -Fc -- '- [ ]' <<<"$s2_9_2")" -eq 0 ]] || fail "S2-9.2 still has incomplete requirements"
 
 s2_9_3="$(sed -n '/## S2-9.3 Conservative policy if implemented/,/## S2-9.4 Validation if implemented/p' "$tracker")"
-[[ "$(grep -Fc -- '- [ ]' <<<"$s2_9_3")" -gt 0 ]] || fail "S2-9.3 was advanced without policy evidence"
+[[ "$(grep -Fc -- '- [x]' <<<"$s2_9_3")" -eq 7 ]] || fail "S2-9.3 does not have exactly seven completed requirements"
+[[ "$(grep -Fc -- '- [ ]' <<<"$s2_9_3")" -eq 0 ]] || fail "S2-9.3 still has incomplete requirements"
 
 echo "S2-9.2 search-null transition audit passed"
