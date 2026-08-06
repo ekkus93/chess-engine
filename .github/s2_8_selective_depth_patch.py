@@ -45,7 +45,7 @@ replace_once(
 )
 replace_in_unique_line(
     source,
-    "sample\\tpolicy=",
+    '"sample',
     "qnodes={}",
     "qnodes={}\\tselective_depth={}",
     "sample selective-depth heading",
@@ -64,7 +64,7 @@ replace_once(
 )
 replace_in_unique_line(
     source,
-    "summary\\tpolicy=",
+    '"summary',
     "maximum_nanos={}",
     "maximum_nanos={}\\tselective_depth={}",
     "summary selective-depth heading",
