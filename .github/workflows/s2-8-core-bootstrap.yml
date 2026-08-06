@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: temporary-s2-8-lmr-core
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   validate-and-publish:
@@ -32,15 +32,26 @@ jobs:
       - name: Apply S2-8 core implementation
         run: python3 .github/s2_8_core_bootstrap.py
 
-      - name: Validate architecture formatting lint and behavior
+      - name: Audit and format generated implementation
         shell: bash
         run: |
           set -euo pipefail
           bash scripts/task_s2_8_lmr_audit.sh
           cargo fmt --all
           cargo fmt --all -- --check
-          cargo clippy --locked -p chess-search --all-targets --all-features -- -D warnings
-          cargo test --locked -p chess-search --all-targets --all-features
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked -p chess-search --all-targets --all-features -- -D warnings
+
+      - name: Run focused S2-8 tests
+        run: |
+          cargo test --locked -p chess-search --test s2_8_lmr
+          cargo test --locked -p chess-search --lib lmr_policy_tests
+          cargo test --locked -p chess-search --lib diagnostics::tests::lmr_events_distinguish_reduction_fail_high_and_verification
+          cargo test --locked -p chess-search --lib search_policy::tests::s2_8_lmr_candidate_is_distinct_valid_and_inactive_by_default
+
+      - name: Run complete chess-search suite
+        run: cargo test --locked -p chess-search --all-targets --all-features
 
       - name: Commit validated core
         shell: bash
