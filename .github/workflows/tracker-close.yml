@@ -24,19 +24,47 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Audit TODO authority and inherited closure
-        run: bash scripts/task_post_port_review_fix_audit.sh
+      - name: Run inherited and active strength audits
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/task_post_port_review_fix_audit.sh
+          bash scripts/task_s2_1_policy_identity_audit.sh
+          bash scripts/task_s2_2_variant_validation_audit.sh
+          bash scripts/task_s2_3_baseline_audit.sh
+          bash scripts/task_s2_4_see_audit.sh
+          bash scripts/task_s2_5_see_ordering_audit.sh
+          bash scripts/task_s2_6_quiescence_audit.sh
+          bash scripts/task_s2_7_pvs_audit.sh
+          bash scripts/task_s2_8_lmr_audit.sh
+          bash scripts/task_s2_9_null_move_feasibility_audit.sh
 
-      - name: Audit search policy and variant identity
-        run: bash scripts/task_s2_1_policy_identity_audit.sh
+      - name: Verify S2-9 feasibility progression
+        shell: bash
+        run: |
+          set -euo pipefail
+          tracker=docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md
+          decision=docs/RUST_CHESS_ENGINE_V0_2_S2_9_NULL_MOVE_FEASIBILITY_2026-08-05.md
 
-      - name: Audit complete engine-variant validation
-        run: bash scripts/task_s2_2_variant_validation_audit.sh
+          grep -Fq '| S2-8 | Late Move Reductions candidate | **Complete — standalone rejected; inactive for combinations** |' "$tracker"
+          grep -Fq '| S2-9 | Optional null-move pruning decision/candidate | **In progress — feasibility complete; implementation approved** |' "$tracker"
+          grep -Fq '| S2-10 | Optional frontier and quiet-move pruning candidates | **Not started** |' "$tracker"
+          grep -Fq '## S2-9 feasibility record' "$tracker"
+          grep -Fq '# Task S2-9: Optional null-move pruning decision/candidate — IN PROGRESS' "$tracker"
+          grep -Fq '# Task S2-10: Optional frontier and quiet-move pruning candidates — NOT STARTED' "$tracker"
+          grep -Fq 'Begin with **S2-9.2 only**:' "$tracker"
 
-      - name: Audit S2-3 diagnostics and baselines
-        run: bash scripts/task_s2_3_baseline_audit.sh
+          grep -Fq '**Status:** Feasibility complete' "$decision"
+          grep -Fq '**Inspected source SHA:** `76862f5730a518957bf0fbd3daf15af99f37ce6c`' "$decision"
+          grep -Fq '**Disposition:** `implement`' "$decision"
+          grep -Fq '**Activation:** `false`' "$decision"
 
-      - name: Audit standalone S2-4 SEE
-        run: bash scripts/task_s2_4_see_audit.sh
+          s2_9_1="$(sed -n '/## S2-9.1 Feasibility decision/,/## S2-9.2 Search-only transition if implemented/p' "$tracker")"
+          test "$(grep -Fc -- '- [x]' <<<"$s2_9_1")" -eq 4
+          test "$(grep -Fc -- '- [ ]' <<<"$s2_9_1")" -eq 0
 
-      - name: Audit S2-5 SEE 
+          s2_9_remaining="$(sed -n '/## S2-9.2 Search-only transition if implemented/,/# Task S2-10:/p' "$tracker")"
+          test "$(grep -Fc -- '- [ ]' <<<"$s2_9_remaining")" -gt 0
+
+          test ! -e .github/s2_9_feasibility.py
+          test ! -e .github/workflows/s2-9-feasibility.yml
