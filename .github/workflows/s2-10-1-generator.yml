@@ -37,7 +37,9 @@ jobs:
           components: rustfmt, clippy
       - name: Generate isolated candidate
         if: steps.payload.outputs.present == 'true'
-        run: python3 .github/s2_10_1_generator.py
+        run: |
+          python3 .github/s2_10_1_generator.py
+          python3 .github/s2_10_1_generator_fix.py
       - name: Format generated Rust
         if: steps.payload.outputs.present == 'true'
         run: cargo fmt --all
@@ -57,7 +59,7 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add crates .github/s2_10_1_generator.py
+          git add crates .github/s2_10_1_generator.py .github/s2_10_1_generator_fix.py
           git diff --cached --check
           git commit -m "search: add isolated S2-10.1 futility candidate"
           git push origin HEAD:master
