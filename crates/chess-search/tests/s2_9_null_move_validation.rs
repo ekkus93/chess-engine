@@ -234,10 +234,7 @@ fn repeated_success_and_bounded_cancellation_restore_exactly() {
     let first = search(&root, &history, SearchLimits::new().with_depth(5), &policy);
     let first_diagnostics = first.search_diagnostics();
     assert!(first_diagnostics.null_move_attempts() > 0);
-    assert!(
-        first_diagnostics.null_move_attempts()
-            > first_diagnostics.null_move_disabled_nodes()
-    );
+    assert!(first_diagnostics.null_move_attempts() > first_diagnostics.null_move_disabled_nodes());
     for _ in 0..2 {
         let repeated = search(&root, &history, SearchLimits::new().with_depth(5), &policy);
         assert_eq!(repeated.score(), first.score());
