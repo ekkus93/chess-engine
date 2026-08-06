@@ -1,0 +1,86 @@
+name: S2-9.3 null-move policy staging
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/s2_9_3_policy.py
+      - .github/workflows/s2-9-3-stage.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: s2-9-3-stage-master
+  cancel-in-progress: false
+
+jobs:
+  implement:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Cargo data
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-engine-s2-9-3-stage
+
+      - name: Generate core policy implementation
+        run: python3 .github/s2_9_3_policy.py phase1
+
+      - name: Validate core implementation
+        run: |
+          set -euo pipefail
+          cargo fmt --all
+          cargo fmt --all -- --check
+          cargo check --locked --workspace --all-targets --all-features
+          cargo clippy --locked -p chess-core -p chess-search --all-targets --all-features -- -D warnings
+          cargo test --locked -p chess-core --all-targets --all-features
+          cargo test --locked -p chess-search --all-targets --all-features
+
+      - name: Publish exact core implementation
+        id: core
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add crates/chess-search
+          git diff --cached --check
+          git commit -m 'search: implement conservative S2-9.3 null-move policy'
+          git push origin HEAD:master
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Generate permanent evidence and read-only gates
+        env:
+          CORE_SHA: ${{ steps.core.outputs.sha }}
+        run: python3 .github/s2_9_3_policy.py phase2
+
+      - name: Validate final repository boundary
+        run: |
+          set -euo pipefail
+          bash scripts/task_s2_9_null_move_feasibility_audit.sh
+          bash scripts/task_s2_9_search_null_transition_audit.sh
+          bash scripts/task_s2_9_null_move_policy_audit.sh
+          cargo fmt --all -- --check
+          cargo clippy --locked -p chess-core -p chess-search --all-targets --all-features -- -D warnings
+          cargo test --locked -p chess-core --all-targets --all-features
+          cargo test --locked -p chess-search --all-targets --all-features
+
+      - name: Publish documentation and permanent CI
+        run: |
+          set -euo pipefail
+          git add -A
+          git diff --cached --check
+          git commit -m 'docs: record S2-9.3 null-move policy evidence'
+          git push origin HEAD:master
