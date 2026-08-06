@@ -12,8 +12,15 @@ const ALL_DIRECTIONS: [(i8, i8); 8] = [
     (1, -1),
     (1, 1),
 ];
+#[cfg(not(target_arch = "x86_64"))]
+const ORTHOGONAL_DIRECTIONS: [(i8, i8); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
+#[cfg(not(target_arch = "x86_64"))]
+const DIAGONAL_DIRECTIONS: [(i8, i8); 4] = [(-1, -1), (-1, 1), (1, -1), (1, 1)];
+#[cfg(target_arch = "x86_64")]
 const ORTHOGONAL_DIRECTION_INDICES: [usize; 4] = [0, 1, 2, 3];
+#[cfg(target_arch = "x86_64")]
 const DIAGONAL_DIRECTION_INDICES: [usize; 4] = [4, 5, 6, 7];
+#[cfg(target_arch = "x86_64")]
 const DIRECTION_DECREASES_INDEX: [bool; 8] = [true, false, true, false, true, true, false, false];
 
 const PAWN_ATTACKS: [[Bitboard; BOARD_SQUARES]; 2] = [
@@ -22,6 +29,7 @@ const PAWN_ATTACKS: [[Bitboard; BOARD_SQUARES]; 2] = [
 ];
 const KNIGHT_ATTACKS: [Bitboard; BOARD_SQUARES] = build_knight_attacks();
 const KING_ATTACKS: [Bitboard; BOARD_SQUARES] = build_king_attacks();
+#[cfg(target_arch = "x86_64")]
 static SLIDING_RAYS: [[Bitboard; BOARD_SQUARES]; 8] = build_sliding_rays();
 static RAY_TABLE: [Bitboard; GEOMETRY_ENTRIES] = build_ray_table();
 static BETWEEN_TABLE: [Bitboard; GEOMETRY_ENTRIES] = build_between_table();
@@ -53,7 +61,14 @@ pub const fn king_attacks(square: Square) -> Bitboard {
 /// The first occupied square on each ray is included and terminates that ray.
 #[must_use]
 pub fn rook_attacks(square: Square, occupancy: Bitboard) -> Bitboard {
-    sliding_attacks(square, occupancy, &ORTHOGONAL_DIRECTION_INDICES)
+    #[cfg(target_arch = "x86_64")]
+    {
+        sliding_attacks_ray(square, occupancy, &ORTHOGONAL_DIRECTION_INDICES)
+    }
+    #[cfg(not(target_arch = "x86_64"))]
+    {
+        sliding_attacks_step(square, occupancy, &ORTHOGONAL_DIRECTIONS)
+    }
 }
 
 /// Returns bishop attacks for arbitrary occupancy.
@@ -61,7 +76,14 @@ pub fn rook_attacks(square: Square, occupancy: Bitboard) -> Bitboard {
 /// The first occupied square on each ray is included and terminates that ray.
 #[must_use]
 pub fn bishop_attacks(square: Square, occupancy: Bitboard) -> Bitboard {
-    sliding_attacks(square, occupancy, &DIAGONAL_DIRECTION_INDICES)
+    #[cfg(target_arch = "x86_64")]
+    {
+        sliding_attacks_ray(square, occupancy, &DIAGONAL_DIRECTION_INDICES)
+    }
+    #[cfg(not(target_arch = "x86_64"))]
+    {
+        sliding_attacks_step(square, occupancy, &DIAGONAL_DIRECTIONS)
+    }
 }
 
 /// Returns queen attacks for arbitrary occupancy.
@@ -166,7 +188,8 @@ impl Position {
     }
 }
 
-fn sliding_attacks(
+#[cfg(target_arch = "x86_64")]
+fn sliding_attacks_ray(
     square: Square,
     occupancy: Bitboard,
     direction_indices: &[usize; 4],
@@ -195,6 +218,30 @@ fn sliding_attacks(
     Bitboard::from_bits(attacks)
 }
 
+#[cfg(not(target_arch = "x86_64"))]
+fn sliding_attacks_step(
+    square: Square,
+    occupancy: Bitboard,
+    directions: &[(i8, i8); 4],
+) -> Bitboard {
+    let mut attacks = Bitboard::EMPTY;
+    for &(row_step, file_step) in directions {
+        let mut row = square.row() as i8 + row_step;
+        let mut file = square.file() as i8 + file_step;
+        while in_bounds(row, file) {
+            let target = square_from_coordinates(row, file);
+            attacks.set(target);
+            if occupancy.contains(target) {
+                break;
+            }
+            row += row_step;
+            file += file_step;
+        }
+    }
+    attacks
+}
+
+#[cfg(target_arch = "x86_64")]
 const fn build_sliding_rays() -> [[Bitboard; BOARD_SQUARES]; 8] {
     let mut rays = [[Bitboard::EMPTY; BOARD_SQUARES]; 8];
     let mut direction_index = 0_usize;
