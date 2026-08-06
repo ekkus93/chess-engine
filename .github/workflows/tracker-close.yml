@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   tracker-audit:
-    name: Strength tracker authority through S2-11
+    name: Strength tracker authority through S2-12
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -42,7 +42,7 @@ jobs:
           bash scripts/task_s2_9_null_move_policy_audit.sh
           bash scripts/task_s2_9_null_move_validation_audit.sh
 
-      - name: Verify progression and evidence through S2-11
+      - name: Verify progression and evidence through S2-12
         shell: bash
         run: |
           set -euo pipefail
@@ -67,9 +67,11 @@ jobs:
           grep -Fq '| S2-9 | Optional null-move pruning decision/candidate | **Complete — standalone rejected; inactive** |' "$tracker"
           grep -Fq '| S2-10 | Optional frontier and quiet-move pruning candidates | **Complete — S2-10.1, S2-10.2, and S2-10.3 deferred; inactive** |' "$tracker"
           grep -Fq '| S2-11 | Fresh profiling and measured hot-path decisions | **Complete — x86-64 sliding dispatch accepted; non-x86 baseline preserved** |' "$tracker"
-          grep -Fq '| S2-12 | Optional Syzygy tablebase decision/integration | **Not started** |' "$tracker"
+          grep -Fq '| S2-12 | Optional Syzygy tablebase decision/integration | **Complete — deferred; no compliant backend integrated; inactive** |' "$tracker"
+          grep -Fq '| S2-13 | API, UCI, ABI/JNI, Android, CI, and documentation integration | **Not started** |' "$tracker"
           grep -Fq '# Task S2-11: Fresh profiling and measured hot-path decisions — COMPLETE' "$tracker"
-          grep -Fq '# Task S2-12: Optional Syzygy tablebase decision/integration — NOT STARTED' "$tracker"
+          grep -Fq '# Task S2-12: Optional Syzygy tablebase decision/integration — COMPLETE (DEFERRED)' "$tracker"
+          grep -Fq '# Task S2-13: API, UCI, ABI/JNI, Android, CI, and documentation integration — NOT STARTED' "$tracker"
 
           s2_9="$(sed -n '/^# Task S2-9:/,/^# Task S2-10:/p' "$tracker")"
           test "$(grep -Fc -- '- [x]' <<<"$s2_9")" -eq 23
@@ -80,6 +82,9 @@ jobs:
           s2_11="$(sed -n '/^# Task S2-11:/,/^# Task S2-12:/p' "$tracker")"
           test "$(grep -Fc -- '- [x]' <<<"$s2_11")" -eq 24
           test "$(grep -Fc -- '- [ ]' <<<"$s2_11")" -eq 0
+          s2_12="$(sed -n '/^# Task S2-12:/,/^# Task S2-13:/p' "$tracker")"
+          test "$(grep -Fc -- '- [x]' <<<"$s2_12")" -eq 24
+          test "$(grep -Fc -- '- [ ]' <<<"$s2_12")" -eq 0
 
           grep -Fq '**Status:** Complete — standalone activation rejected' "$null_move"
           grep -Fq '**Disposition:** `rejected_strength`' "$null_move"
@@ -110,6 +115,23 @@ jobs:
           grep -Fq $'portable-candidate\tarm64\t31104319109\t92625431759\t8968925643' "$manifest"
           grep -Fq $'final-dispatch\tarm64\t31105092637\t92628044139\t8969177826' "$manifest"
           grep -Fq $'android-jni\tandroid-arm64\t31100066741\t-\t8967168646' "$manifest"
+
+          syzygy_report=docs/RUST_CHESS_ENGINE_V0_2_S2_12_SYZYGY_DECISION_2026-08-06.md
+          grep -Fq '**Status:** Complete — deferred' "$syzygy_report"
+          grep -Fq '**Disposition:** `deferred_insufficient_evidence`' "$syzygy_report"
+          grep -Fq '**Activation:** `false`' "$syzygy_report"
+          grep -Fq '`c9c6fef0dddc05d2e242c183acf5833149ab676d`' "$syzygy_report"
+          grep -Fq '`417562c482e0938981c2fbb2dacae2e018849cd7`' "$syzygy_report"
+          grep -Fq '`03882f25149661595d82ea1ed393d744f03c907f`' "$syzygy_report"
+          grep -Fq 'ignores the boolean return from `tb_init`' "$syzygy_report"
+          if grep -Eiq 'fathom|syzygy|tablebase' Cargo.toml Cargo.lock; then
+            echo 'deferred S2-12 unexpectedly added a tablebase dependency' >&2
+            exit 1
+          fi
+          if grep -REiq --exclude='*.md' --exclude='tracker-close.yml' --exclude='s2_12_close.py' 'syzygy|tb_init|tb_probe_(wdl|root)' crates; then
+            echo 'deferred S2-12 unexpectedly added production tablebase logic' >&2
+            exit 1
+          fi
 
           grep -Fq '#[cfg(target_arch = "x86_64")]' "$attacks"
           grep -Fq '#[cfg(not(target_arch = "x86_64"))]' "$attacks"
@@ -169,7 +191,9 @@ jobs:
             .github/s2_11_close_tracker.py \
             .github/s2_11_close_evidence.py \
             .github/s2_11_close_audit.py \
-            .github/workflows/s2-11-close.yml; do
+            .github/workflows/s2-11-close.yml \
+            .github/s2_12_close.py \
+            .github/workflows/s2-12-closure.yml; do
             test ! -e "$path"
           done
 
