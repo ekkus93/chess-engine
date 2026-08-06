@@ -12,8 +12,10 @@ diagnostics="crates/chess-search/src/diagnostics.rs"
 ordering="crates/chess-search/src/move_ordering.rs"
 lib="crates/chess-search/src/lib.rs"
 tests="crates/chess-search/tests/s2_8_lmr.rs"
+evidence="crates/chess-tools/src/bin/s2_8_lmr.rs"
+workflow=".github/workflows/s2-8-lmr.yml"
 
-for path in "$policy" "$search" "$diagnostics" "$ordering" "$lib" "$tests"; do
+for path in "$policy" "$search" "$diagnostics" "$ordering" "$lib" "$tests" "$evidence" "$workflow"; do
   [[ -f "$path" ]] || fail "missing $path"
 done
 
@@ -53,3 +55,12 @@ if grep -R --line-number -E 'unwrap_or\(|unwrap_or_default\(|\.ok\(\)' crates/ch
 fi
 
 echo "S2-8 LMR audit passed"
+
+grep -q 'late_move_reductions_candidate' "$evidence" || fail "evidence harness does not select LMR"
+grep -q 'lmr_reduced_fail_highs' "$evidence" || fail "evidence omits reduced fail-highs"
+grep -q 'activated=false' "$evidence" || fail "evidence omits inactive disposition"
+grep -q '^permissions:' "$workflow" || fail "workflow permissions are missing"
+grep -q '^  contents: read$' "$workflow" || fail "permanent workflow is not read-only"
+if grep -q 'contents: write' "$workflow"; then
+  fail "permanent workflow can write repository contents"
+fi
