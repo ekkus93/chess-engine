@@ -25,7 +25,9 @@ jobs:
           fetch-depth: 0
 
       - name: Apply exact S2-7 closeout
-        run: python3 .github/s2_7_closure.py
+        run: |
+          python3 .github/s2_7_closure_repair.py
+          python3 .github/s2_7_closure.py
 
       - name: Validate audits and tracker state
         shell: bash
