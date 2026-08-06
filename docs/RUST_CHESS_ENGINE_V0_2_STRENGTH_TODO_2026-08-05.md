@@ -248,7 +248,7 @@
 
 ## S2-9.3 conservative policy record
 
-- Disposition: implementation complete; validation and strength disposition remain pending; activation remains false.
+- Disposition: implementation complete; S2-9.4 validation is recorded below; standalone activation is rejected and activation remains false.
 - Core implementation SHA: `029c16ed216a0fc84d6772c10ea8678ad202c6cf`.
 - Staging validation workflow run: `31080097848`.
 - Candidate policy identifier: `5332394e4d503031`; isolated null-move feature bit only.
@@ -258,6 +258,21 @@
 - Diagnostics now count eligibility attempts, disabled nodes with stable reason events, speculative fail-highs, verification searches, and confirmed cutoffs using checked exact-result accumulation.
 - The authoritative v0.1 policy, production adapters, UCI, C ABI, JNI, Android, package version, and defaults remain unchanged.
 - S2-9.4 correctness, development strength, and final disposition are not claimed.
+
+## S2-9.4 validation record
+
+- Disposition: complete; standalone null-move activation rejected as `rejected_strength`; candidate remains inactive.
+- Validated candidate source SHA: `8638611e38c712009e7f98bd4881fb266034df13`.
+- Staging validation run: `31085412059`; evidence artifact `8961204541`; digest `sha256:1c7ed56774119f9d771453e045b03345d4aae31d840eec30a7c03b96a28d8a19`.
+- Final record: `docs/RUST_CHESS_ENGINE_V0_2_S2_9_NULL_MOVE_2026-08-06.md`.
+- Candidate identity/checksum: `5332394e4d503031` / `4364aad2ac2abc2a`; baseline remains `5630315f504f4c31` / `0c0769ef9d034770`.
+- The versioned 14-case corpus covers zugzwang, root and synthetic-pass stalemate, threefold/fivefold repetition, halfmove clocks `99/100/149/150`, mate distance, longest survival, active speculative-null execution, repeated restoration, and bounded node cancellation.
+- Every exact case matched baseline score and completed depth; all 14 best moves matched; all PVs replayed legally; position/history/Zobrist restoration passed.
+- Aggregate diagnostics: `11071` attempts, `11066` disabled nodes, `0` speculative fail-highs, `0` verifications, `0` cutoffs; checksum `75da625a5ae9c6d7`; activated `false`.
+- Fixed-node development: 8 pairs / 16 games at 2,000 nodes and 48 maximum plies; all 16 unfinished, all failure categories zero, `rejected_strength`, checksum `81a8a72c9242da64`.
+- Clock development: 8 pairs / 16 games at 10 ms and 48 maximum plies; all 16 unfinished, all failure categories zero, `rejected_strength`, checksum `9054382ea9b188c5`.
+- The evidence does not establish that null move is weaker; it supplies no positive standalone strength basis and therefore fails the project acceptance gate in both independent protocols.
+- Production UCI, safe Rust facade, C ABI, JNI, Android, package version, evaluation weights, authoritative v0.1 policy, and defaults remain unchanged.
 
 ## Program guardrails
 
@@ -289,7 +304,7 @@
 | S2-6 | Quiescence redesign candidates | **Complete — SEE and delta rejected; inactive** |
 | S2-7 | Principal Variation Search candidate | **Complete — standalone rejected; inactive** |
 | S2-8 | Late Move Reductions candidate | **Complete — standalone rejected; inactive for combinations** |
-| S2-9 | Optional null-move pruning decision/candidate | **In progress — conservative policy complete; validation/disposition not started** |
+| S2-9 | Optional null-move pruning decision/candidate | **Complete — standalone rejected; inactive** |
 | S2-10 | Optional frontier and quiet-move pruning candidates | **Not started** |
 | S2-11 | Fresh profiling and measured hot-path decisions | **Not started** |
 | S2-12 | Optional Syzygy tablebase decision/integration | **Not started** |
@@ -703,7 +718,7 @@
 
 ---
 
-# Task S2-9: Optional null-move pruning decision/candidate — IN PROGRESS
+# Task S2-9: Optional null-move pruning decision/candidate — COMPLETE
 
 ## S2-9.1 Feasibility decision
 
@@ -732,15 +747,15 @@
 
 ## S2-9.4 Validation if implemented
 
-- [ ] Zugzwang corpus.
-- [ ] Stalemate and repetition corpus.
-- [ ] Fifty/seventy-five move boundaries.
-- [ ] Mate-distance and longest-survival corpus.
-- [ ] Exact restoration and cancellation.
-- [ ] Development fixed-node and clock matches.
-- [ ] Explicit disposition; default inactive.
+- [x] Zugzwang corpus.
+- [x] Stalemate and repetition corpus.
+- [x] Fifty/seventy-five move boundaries.
+- [x] Mate-distance and longest-survival corpus.
+- [x] Exact restoration and cancellation.
+- [x] Development fixed-node and clock matches.
+- [x] Explicit disposition; default inactive.
 
-**S2-9 gate:** Null move is either rejected/deferred with architectural evidence or implemented conservatively with dedicated correctness and strength evidence.
+**S2-9 gate:** Complete. The conservative candidate passed the dedicated correctness/restoration matrix, both independent development protocols returned `rejected_strength`, standalone activation is rejected, and the candidate remains inactive.
 
 ---
 
@@ -1102,4 +1117,4 @@ Remaining risks:
 
 ## Initial next action
 
-Begin with **S2-9.4 only**: validate the inactive conservative null-move candidate against zugzwang, stalemate, repetition, fifty/seventy-five-move, mate-distance, longest-survival, restoration, cancellation, fixed-node, and clock protocols. Do not activate the candidate, begin S2-10, or combine it with rejected candidates until S2-9.4 records an explicit evidence-backed disposition.
+Begin with **S2-10.1 only**: decide whether a separately versioned, shallow non-PV futility-pruning candidate is justified by the current profile and accepted baseline. Do not combine it with rejected PVS, LMR, SEE/delta, or null-move candidates, and do not activate or expose it through production adapters without its own correctness and strength disposition.

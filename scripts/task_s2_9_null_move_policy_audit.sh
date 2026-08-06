@@ -45,7 +45,7 @@ test -f "$doc"
 test -f "$workflow"
 grep -Fq '**Activation:** `false`' "$doc"
 grep -Fq '## S2-9.3 conservative policy record' "$tracker"
-grep -Fq 'Begin with **S2-9.4 only**:' "$tracker"
+grep -Fq 'Begin with **S2-10.1 only**:' "$tracker"
 
 s2_9_3="$(sed -n '/## S2-9.3 Conservative policy if implemented/,/## S2-9.4 Validation if implemented/p' "$tracker")"
 test "$(grep -Fc -- '- [x]' <<<"$s2_9_3")" -eq 7

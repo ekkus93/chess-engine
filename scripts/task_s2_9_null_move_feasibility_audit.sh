@@ -38,17 +38,18 @@ grep -Fq 'No second null transition may occur anywhere inside that speculative s
 grep -Fq 'S2-9.2 may now add only the dedicated reversible search-null transition' "$decision" || fail "next implementation boundary is missing"
 grep -Fq 'Production behavior, package/UCI version, adapters, authoritative policy, and defaults remain unchanged.' "$decision" || fail "production non-change is missing"
 
-grep -Fq '| S2-9 | Optional null-move pruning decision/candidate | **In progress — conservative policy complete; validation/disposition not started** |' "$tracker" || fail "summary status is not advanced through S2-9.3"
+grep -Fq '| S2-9 | Optional null-move pruning decision/candidate | **Complete — standalone rejected; inactive** |' "$tracker" || fail "summary status is not advanced through S2-9.3"
 grep -Fq '## S2-9 feasibility record' "$tracker" || fail "tracker feasibility record is missing"
-grep -Fq '# Task S2-9: Optional null-move pruning decision/candidate — IN PROGRESS' "$tracker" || fail "S2-9 heading is not in progress"
-grep -Fq 'Begin with **S2-9.4 only**:' "$tracker" || fail "next action does not point to S2-9.4"
+grep -Fq '# Task S2-9: Optional null-move pruning decision/candidate — COMPLETE' "$tracker" || fail "S2-9 heading is not in progress"
+grep -Fq 'Begin with **S2-10.1 only**:' "$tracker" || fail "next action does not point to S2-9.4"
 
 s2_9_1="$(sed -n '/## S2-9.1 Feasibility decision/,/## S2-9.2 Search-only transition if implemented/p' "$tracker")"
 [[ "$(grep -Fc -- '- [x]' <<<"$s2_9_1")" -eq 4 ]] || fail "S2-9.1 does not have exactly four completed requirements"
 [[ "$(grep -Fc -- '- [ ]' <<<"$s2_9_1")" -eq 0 ]] || fail "S2-9.1 still has incomplete requirements"
 
 s2_9_remaining="$(sed -n '/## S2-9.2 Search-only transition if implemented/,/# Task S2-10:/p' "$tracker")"
-[[ "$(grep -Fc -- '- [ ]' <<<"$s2_9_remaining")" -gt 0 ]] || fail "later S2-9 implementation work was marked complete without evidence"
+[[ "$(grep -Fc -- '- [x]' <<<"$s2_9_remaining")" -eq 19 ]] || fail "later S2-9 work is not fully completed"
+[[ "$(grep -Fc -- '- [ ]' <<<"$s2_9_remaining")" -eq 0 ]] || fail "later S2-9 work still has incomplete requirements"
 
 grep -Fq 'pub struct Position {' "$position" || fail "private position state inventory is missing"
 grep -Fq 'previous_zobrist: u64' "$make_unmake" || fail "legal undo no longer retains exact prior hash"

@@ -1,6 +1,6 @@
 # S2-9.3 Conservative Null-Move Pruning Policy
 
-**Status:** Implementation complete; validation pending
+**Status:** Complete — standalone activation rejected; candidate inactive
 **Date:** 2026-08-05
 **Branch:** `master`
 **Core implementation SHA:** `029c16ed216a0fc84d6772c10ea8678ad202c6cf`
@@ -46,6 +46,6 @@ Every speculative fail-high must have exactly one verification search. Confirmed
 
 Tests cover policy identity/default inactivity, checked depths and windows, root/check/shallow/material/nested guards, explicit TT suppression, midgame diagnostics, pawn-only and low-material exclusion, legal PV replay, deterministic restoration, and node-limited cancellation.
 
-## Remaining S2-9.4 work
+## S2-9.4 final disposition
 
-S2-9.4 must independently validate zugzwang, stalemate, repetition, fifty/seventy-five-move boundaries, mate distance, longest survival, exact restoration/cancellation, and fixed-node plus clock development strength. It must then record `accept`, `reject`, or `defer`. The candidate remains inactive until that evidence exists.
+S2-9.4 completed on candidate source SHA `8638611e38c712009e7f98bd4881fb266034df13` in staging run `31085412059`. The 14-case correctness matrix passed with exact score/depth parity, zero differing best moves, legal PV replay, and exact restoration. Fixed-node report checksum `81a8a72c9242da64` and clock report checksum `9054382ea9b188c5` both returned `rejected_strength`. Standalone activation is rejected and the candidate remains inactive. See `docs/RUST_CHESS_ENGINE_V0_2_S2_9_NULL_MOVE_2026-08-06.md`.

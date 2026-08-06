@@ -79,10 +79,10 @@ grep -Fq '**Focused validation run:** `S2_9_VALIDATION_RUN_ID`' "$record" \
 grep -Fq 'Production policy, defaults, package/UCI version, adapters, and activation remain unchanged.' "$record" \
   || fail "production non-change is missing"
 
-grep -Fq '| S2-9 | Optional null-move pruning decision/candidate | **In progress — conservative policy complete; validation/disposition not started** |' "$tracker" \
+grep -Fq '| S2-9 | Optional null-move pruning decision/candidate | **Complete — standalone rejected; inactive** |' "$tracker" \
   || fail "tracker summary was not advanced through S2-9.3"
 grep -Fq '## S2-9.2 transition record' "$tracker" || fail "tracker transition record is missing"
-grep -Fq 'Begin with **S2-9.4 only**:' "$tracker" || fail "next action does not point to S2-9.4"
+grep -Fq 'Begin with **S2-10.1 only**:' "$tracker" || fail "next action does not point to S2-9.4"
 
 s2_9_2="$(sed -n '/## S2-9.2 Search-only transition if implemented/,/## S2-9.3 Conservative policy if implemented/p' "$tracker")"
 [[ "$(grep -Fc -- '- [x]' <<<"$s2_9_2")" -eq 5 ]] || fail "S2-9.2 does not have exactly five completed requirements"
