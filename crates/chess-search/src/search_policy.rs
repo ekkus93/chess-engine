@@ -23,6 +23,12 @@ pub const PRINCIPAL_VARIATION_SEARCH_POLICY_ID: u64 = 0x5332_3750_5653_3031;
 pub const LATE_MOVE_REDUCTIONS_SEARCH_POLICY_ID: u64 = 0x5332_384c_4d52_3031;
 /// Stable identifier for the inactive S2-9 null-move pruning candidate.
 pub const NULL_MOVE_PRUNING_SEARCH_POLICY_ID: u64 = 0x5332_394e_4d50_3031;
+/// Stable identifier for the inactive S2-10.1 frontier-futility candidate.
+pub const FUTILITY_PRUNING_SEARCH_POLICY_ID: u64 = 0x5332_3130_4655_5431;
+/// Largest remaining depth at which frontier futility may be considered.
+pub const FUTILITY_PRUNING_MAXIMUM_DEPTH: u16 = 1;
+/// Frozen optimistic material margin for the isolated frontier-futility candidate.
+pub const FUTILITY_PRUNING_MARGIN_CENTIPAWNS: u16 = 150;
 /// Smallest remaining depth at which null move may be considered.
 pub const NULL_MOVE_MINIMUM_DEPTH: u16 = 4;
 /// Fixed speculative depth reduction after the synthetic pass ply.
@@ -230,6 +236,10 @@ impl ExperimentalSearchFeatures {
     pub const NULL_MOVE_PRUNING: Self = Self {
         bits: ExperimentalSearchFeature::NullMovePruning.bit(),
     };
+    /// Inactive S2-10.1 conservative frontier-futility candidate.
+    pub const FUTILITY_PRUNING: Self = Self {
+        bits: ExperimentalSearchFeature::FutilityPruning.bit(),
+    };
     /// All currently assigned feature bits.
     pub const KNOWN_BITS: u64 = (1_u64 << 9) - 1;
 
@@ -283,6 +293,7 @@ impl ExperimentalSearchFeatures {
                     | ExperimentalSearchFeature::PrincipalVariationSearch
                     | ExperimentalSearchFeature::LateMoveReductions
                     | ExperimentalSearchFeature::NullMovePruning
+                    | ExperimentalSearchFeature::FutilityPruning
             );
             (self.bits & bit != 0 && !implemented).then_some(feature)
         })
@@ -410,6 +421,19 @@ impl SearchPolicy {
         experimental_features: ExperimentalSearchFeatures::NULL_MOVE_PRUNING,
     });
 
+    /// Inactive S2-10.1 candidate: baseline semantics plus frontier futility.
+    pub const FUTILITY_PRUNING: Self = Self::new(SearchPolicyParameters {
+        alpha_beta: AlphaBetaMode::FullWindowFailSoft,
+        transposition: TranspositionPolicy::ClusteredFullKey,
+        move_ordering: MoveOrderingPolicy::V0_1MvvLvaKillersHistory,
+        quiescence: QuiescencePolicy::CapturesPromotionsAndEvasions,
+        aspiration_windows: true,
+        aspiration_half_width_centipawns: DEFAULT_ASPIRATION_HALF_WIDTH_CENTIPAWNS as u16,
+        maximum_quiescence_ply: MAX_QUIESCENCE_PLY,
+        maximum_check_extensions_per_line: MAX_CHECK_EXTENSIONS_PER_LINE,
+        experimental_features: ExperimentalSearchFeatures::FUTILITY_PRUNING,
+    });
+
     /// Constructs explicit typed parameters for subsequent validation.
     #[must_use]
     pub const fn new(parameters: SearchPolicyParameters) -> Self {
@@ -494,6 +518,14 @@ impl SearchPolicy {
             .contains(ExperimentalSearchFeature::NullMovePruning)
     }
 
+    /// Returns whether the inactive S2-10.1 frontier-futility candidate is selected.
+    #[must_use]
+    pub const fn futility_pruning_enabled(self) -> bool {
+        self.parameters
+            .experimental_features
+            .contains(ExperimentalSearchFeature::FutilityPruning)
+    }
+
     /// Validates supported ranges and rejects not-yet-implemented features.
     pub fn validate(self) -> Result<(), SearchPolicyValidationError> {
         let aspiration_width = self.parameters.aspiration_half_width_centipawns;
@@ -546,6 +578,12 @@ impl SearchPolicy {
                 != ExperimentalSearchFeatures::NULL_MOVE_PRUNING.bits()
         {
             return Err(SearchPolicyValidationError::NullMovePruningMustBeIsolated);
+        }
+        if self.futility_pruning_enabled()
+            && self.parameters.experimental_features.bits()
+                != ExperimentalSearchFeatures::FUTILITY_PRUNING.bits()
+        {
+            return Err(SearchPolicyValidationError::FutilityPruningMustBeIsolated);
         }
         if let Some(feature) = self
             .parameters
@@ -663,6 +701,15 @@ impl SearchPolicySet {
         )
     }
 
+    /// Returns the inactive S2-10.1 frontier-futility candidate.
+    #[must_use]
+    pub fn futility_pruning_candidate() -> Self {
+        Self::new(
+            FUTILITY_PRUNING_SEARCH_POLICY_ID,
+            SearchPolicy::FUTILITY_PRUNING,
+        )
+    }
+
     /// Computes the canonical checksum.
     #[must_use]
     pub fn computed_checksum(&self) -> u64 {
@@ -685,6 +732,11 @@ impl SearchPolicySet {
             &parameters.maximum_check_extensions_per_line.to_le_bytes(),
         );
         hash = hash_bytes(hash, &parameters.experimental_features.bits().to_le_bytes());
+        if self.policy.futility_pruning_enabled() {
+            hash = hash_bytes(hash, b"s2-10-frontier-futility-policy-v1");
+            hash = hash_bytes(hash, &FUTILITY_PRUNING_MAXIMUM_DEPTH.to_le_bytes());
+            hash = hash_bytes(hash, &FUTILITY_PRUNING_MARGIN_CENTIPAWNS.to_le_bytes());
+        }
         if self.policy.null_move_pruning_enabled() {
             hash = hash_bytes(hash, b"s2-9-null-move-policy-v1");
             hash = hash_bytes(hash, &NULL_MOVE_MINIMUM_DEPTH.to_le_bytes());
@@ -757,6 +809,8 @@ pub enum SearchPolicyValidationError {
     LateMoveReductionsMustBeIsolated,
     /// Null move was combined with another unevaluated feature.
     NullMovePruningMustBeIsolated,
+    /// Frontier futility was combined with another unevaluated feature.
+    FutilityPruningMustBeIsolated,
     /// A known future feature was enabled before its implementation task.
     UnsupportedExperimentalFeature { feature: ExperimentalSearchFeature },
     /// Serialized checksum does not match the canonical parameters.
@@ -798,6 +852,9 @@ impl fmt::Display for SearchPolicyValidationError {
             Self::NullMovePruningMustBeIsolated => formatter.write_str(
                 "null-move pruning must be evaluated as an isolated policy candidate",
             ),
+            Self::FutilityPruningMustBeIsolated => formatter.write_str(
+                "frontier futility pruning must be evaluated as an isolated policy candidate",
+            ),
             Self::UnsupportedExperimentalFeature { feature } => write!(
                 formatter,
                 "experimental search feature {} is not implemented and cannot be enabled",
@@ -825,10 +882,10 @@ fn hash_bytes(mut hash: u64, bytes: &[u8]) -> u64 {
 mod tests {
     use super::{
         ExperimentalSearchFeatures, SearchPolicy, SearchPolicyParameters, SearchPolicySet,
-        SearchPolicyValidationError, LATE_MOVE_REDUCTIONS_SEARCH_POLICY_ID,
-        NULL_MOVE_PRUNING_SEARCH_POLICY_ID, SEE_AND_DELTA_QUIESCENCE_PRUNING_SEARCH_POLICY_ID,
-        SEE_CAPTURE_ORDERING_SEARCH_POLICY_ID, SEE_QUIESCENCE_PRUNING_SEARCH_POLICY_ID,
-        V0_1_SEARCH_POLICY_CHECKSUM,
+        SearchPolicyValidationError, FUTILITY_PRUNING_SEARCH_POLICY_ID,
+        LATE_MOVE_REDUCTIONS_SEARCH_POLICY_ID, NULL_MOVE_PRUNING_SEARCH_POLICY_ID,
+        SEE_AND_DELTA_QUIESCENCE_PRUNING_SEARCH_POLICY_ID, SEE_CAPTURE_ORDERING_SEARCH_POLICY_ID,
+        SEE_QUIESCENCE_PRUNING_SEARCH_POLICY_ID, V0_1_SEARCH_POLICY_CHECKSUM,
     };
 
     #[test]
@@ -895,6 +952,17 @@ mod tests {
     }
 
     #[test]
+    fn s2_10_futility_candidate_is_distinct_valid_and_inactive_by_default() {
+        let baseline = SearchPolicySet::baseline();
+        let candidate = SearchPolicySet::futility_pruning_candidate();
+        assert_eq!(candidate.identifier, FUTILITY_PRUNING_SEARCH_POLICY_ID);
+        assert_eq!(candidate.validate(), Ok(()));
+        assert!(!baseline.policy.futility_pruning_enabled());
+        assert!(candidate.policy.futility_pruning_enabled());
+        assert_ne!(candidate.checksum, baseline.checksum);
+    }
+
+    #[test]
     fn delta_pruning_without_see_pruning_fails_loudly() {
         let mut parameters = SearchPolicy::V0_1.parameters();
         parameters.experimental_features =
@@ -931,7 +999,7 @@ mod tests {
         ));
 
         let mut parameters: SearchPolicyParameters = SearchPolicy::V0_1.parameters();
-        parameters.experimental_features = ExperimentalSearchFeatures::from_bits(1 << 6)
+        parameters.experimental_features = ExperimentalSearchFeatures::from_bits(1 << 7)
             .expect("assigned feature bit is recognized");
         let unsupported = SearchPolicySet::new(1, SearchPolicy::new(parameters));
         assert!(matches!(

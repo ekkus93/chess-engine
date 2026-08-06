@@ -16,10 +16,11 @@ use crate::{
     quiescence::{search_quiescence_node_with_weights, QuiescenceContext, QuiescenceSearchPolicy},
     search_common::resolved_node_score,
     search_policy::{
-        LMR_MINIMUM_DEPTH, LMR_MINIMUM_LEGAL_MOVES, LMR_MINIMUM_MOVE_INDEX,
-        LMR_MINIMUM_TOTAL_PIECES, LMR_REDUCTION_TABLE, NULL_MOVE_MINIMUM_DEPTH,
-        NULL_MOVE_MINIMUM_SIDE_NON_PAWN_PIECES, NULL_MOVE_MINIMUM_TOTAL_NON_PAWN_PIECES,
-        NULL_MOVE_REDUCTION, NULL_MOVE_VERIFICATION_REDUCTION,
+        FUTILITY_PRUNING_MARGIN_CENTIPAWNS, FUTILITY_PRUNING_MAXIMUM_DEPTH, LMR_MINIMUM_DEPTH,
+        LMR_MINIMUM_LEGAL_MOVES, LMR_MINIMUM_MOVE_INDEX, LMR_MINIMUM_TOTAL_PIECES,
+        LMR_REDUCTION_TABLE, NULL_MOVE_MINIMUM_DEPTH, NULL_MOVE_MINIMUM_SIDE_NON_PAWN_PIECES,
+        NULL_MOVE_MINIMUM_TOTAL_NON_PAWN_PIECES, NULL_MOVE_REDUCTION,
+        NULL_MOVE_VERIFICATION_REDUCTION,
     },
     EvaluationWeights, NullMoveDisabledReason, Score, SearchCancellationProbe,
     SearchDiagnosticEvent, SearchDiagnosticOverflow, SearchDiagnostics, SearchPolicy,
@@ -211,6 +212,13 @@ pub enum AlphaBetaSearchError {
         /// Parent alpha whose negated successor was outside the score domain.
         parent_alpha: i32,
     },
+    /// Frontier-futility margin arithmetic left the supported score domain.
+    FutilityMarginOutOfRange {
+        /// Static evaluation before the optimistic margin.
+        static_evaluation: i32,
+        /// Frozen optimistic margin.
+        margin: u16,
+    },
     /// Fixed-capacity transposition-table allocation failed.
     TranspositionTableAllocation(TranspositionTableAllocationError),
     /// A transposition probe could not be evaluated safely.
@@ -266,6 +274,13 @@ impl fmt::Display for AlphaBetaSearchError {
             Self::PvsWindowOutOfRange { parent_alpha } => write!(
                 formatter,
                 "cannot construct PVS null window from parent alpha {parent_alpha}"
+            ),
+            Self::FutilityMarginOutOfRange {
+                static_evaluation,
+                margin,
+            } => write!(
+                formatter,
+                "cannot add frontier-futility margin {margin} to static evaluation {static_evaluation}"
             ),
             Self::TranspositionTableAllocation(error) => error.fmt(formatter),
             Self::TranspositionProbe(error) => error.fmt(formatter),
@@ -591,6 +606,7 @@ where
         principal_variation_search: policy.search_policy.principal_variation_search_enabled(),
         late_move_reductions: policy.search_policy.late_move_reductions_enabled(),
         null_move_pruning: policy.search_policy.null_move_pruning_enabled(),
+        futility_pruning: policy.search_policy.futility_pruning_enabled(),
         weights: policy.weights,
         cancellation,
     };
@@ -621,6 +637,7 @@ where
     principal_variation_search: bool,
     late_move_reductions: bool,
     null_move_pruning: bool,
+    futility_pruning: bool,
     weights: &'a EvaluationWeights,
     cancellation: &'a mut Probe,
 }
@@ -905,6 +922,15 @@ where
     let legal_move_count = ordered_tokens.iter().len();
     let total_piece_count = u16::try_from(position.all_occupancy().count())
         .expect("a chess position contains at most 64 pieces");
+    let frontier_futility_upper_bound = decide_frontier_futility(
+        position,
+        depth,
+        ply,
+        parent_in_check,
+        window,
+        context.futility_pruning,
+        context.weights,
+    )?;
 
     for (move_index, token) in ordered_tokens.iter().enumerate() {
         if context.cancellation.should_cancel() {
@@ -915,8 +941,28 @@ where
         let protected_quiet_candidate = context.quiet_ordering.is_killer(ply, current);
         let is_transposition_table_move = transposition_table_move == Some(current);
         let position_undo = position.make_legal_token(token)?;
-        let history_undo = history.push_position(position);
         let child_in_check = position.is_in_check(position.side_to_move());
+        let futility_candidate = frontier_futility_upper_bound.is_some()
+            && move_index > 0
+            && legal_move_count > 1
+            && !child_in_check
+            && !current.kind().is_capture()
+            && current.promotion().is_none()
+            && !is_transposition_table_move
+            && !protected_quiet_candidate;
+        if futility_candidate {
+            let attempt = SearchDiagnosticEvent::FrontierFutilityAttempt;
+            diagnostics.record_checked(attempt)?;
+            context.cancellation.on_search_diagnostic(attempt);
+            if frontier_futility_upper_bound.is_some_and(|upper_bound| upper_bound <= alpha) {
+                position.unmake_move(position_undo)?;
+                let prune = SearchDiagnosticEvent::FrontierFutilityPrune;
+                diagnostics.record_checked(prune)?;
+                context.cancellation.on_search_diagnostic(prune);
+                continue;
+            }
+        }
+        let history_undo = history.push_position(position);
         let extension = decide_check_extension(
             depth,
             ply,
@@ -1033,6 +1079,42 @@ where
     }
 
     Ok(result)
+}
+
+fn decide_frontier_futility(
+    position: &Position,
+    depth: u16,
+    ply: u16,
+    parent_in_check: bool,
+    window: AlphaBetaWindow,
+    enabled: bool,
+    weights: &EvaluationWeights,
+) -> Result<Option<Score>, AlphaBetaSearchError> {
+    if !enabled
+        || depth == 0
+        || depth > FUTILITY_PRUNING_MAXIMUM_DEPTH
+        || ply == 0
+        || parent_in_check
+        || window.alpha().is_mate()
+        || window.beta().is_mate()
+        || ply >= MAX_MATE_PLY.saturating_sub(depth)
+    {
+        return Ok(None);
+    }
+    let static_evaluation = evaluate_with_weights(position, weights);
+    let raw = static_evaluation
+        .centipawns()
+        .checked_add(i32::from(FUTILITY_PRUNING_MARGIN_CENTIPAWNS))
+        .ok_or(AlphaBetaSearchError::FutilityMarginOutOfRange {
+            static_evaluation: static_evaluation.centipawns(),
+            margin: FUTILITY_PRUNING_MARGIN_CENTIPAWNS,
+        })?;
+    Score::from_raw(raw)
+        .map(Some)
+        .ok_or(AlphaBetaSearchError::FutilityMarginOutOfRange {
+            static_evaluation: static_evaluation.centipawns(),
+            margin: FUTILITY_PRUNING_MARGIN_CENTIPAWNS,
+        })
 }
 
 fn decide_null_move(
@@ -1338,6 +1420,68 @@ fn transposition_score_reuse(
 }
 
 #[cfg(test)]
+mod futility_policy_tests {
+    use chess_core::Position;
+
+    use super::{decide_frontier_futility, AlphaBetaWindow};
+    use crate::{
+        EvaluationWeights, Score, FUTILITY_PRUNING_MARGIN_CENTIPAWNS,
+        FUTILITY_PRUNING_MAXIMUM_DEPTH,
+    };
+
+    fn window(alpha: i32, beta: i32) -> AlphaBetaWindow {
+        AlphaBetaWindow::new(
+            Score::from_raw(alpha).expect("alpha fits"),
+            Score::from_raw(beta).expect("beta fits"),
+        )
+        .expect("valid window")
+    }
+
+    #[test]
+    fn frozen_frontier_margin_is_typed_and_checked() {
+        let position = Position::starting();
+        let upper = decide_frontier_futility(
+            &position,
+            1,
+            1,
+            false,
+            window(-200, 200),
+            true,
+            &EvaluationWeights::DEFAULT,
+        )
+        .expect("decision succeeds")
+        .expect("frontier is eligible");
+        assert_eq!(FUTILITY_PRUNING_MAXIMUM_DEPTH, 1);
+        assert_eq!(FUTILITY_PRUNING_MARGIN_CENTIPAWNS, 150);
+        assert_eq!(upper.centipawns(), 150);
+    }
+
+    #[test]
+    fn root_check_deeper_and_mate_sensitive_nodes_are_protected() {
+        let position = Position::starting();
+        for (depth, ply, parent_in_check, current_window) in [
+            (1, 0, false, window(-200, 200)),
+            (1, 1, true, window(-200, 200)),
+            (2, 1, false, window(-200, 200)),
+            (1, 1, false, AlphaBetaWindow::full()),
+        ] {
+            assert_eq!(
+                decide_frontier_futility(
+                    &position,
+                    depth,
+                    ply,
+                    parent_in_check,
+                    current_window,
+                    true,
+                    &EvaluationWeights::DEFAULT,
+                ),
+                Ok(None)
+            );
+        }
+    }
+}
+
+#[cfg(test)]
 mod null_move_policy_tests {
     use chess_core::Position;
 
@@ -1610,6 +1754,7 @@ mod ordering_tests {
             principal_variation_search: false,
             late_move_reductions: false,
             null_move_pruning: false,
+            futility_pruning: false,
             weights: &crate::EvaluationWeights::DEFAULT,
             cancellation: &mut cancellation,
         };
@@ -1646,6 +1791,7 @@ mod ordering_tests {
             principal_variation_search: false,
             late_move_reductions: false,
             null_move_pruning: false,
+            futility_pruning: false,
             weights: &crate::EvaluationWeights::DEFAULT,
             cancellation: &mut cancellation,
         };
@@ -1762,6 +1908,7 @@ mod ordering_tests {
                 principal_variation_search: false,
                 late_move_reductions: false,
                 null_move_pruning: false,
+                futility_pruning: false,
                 weights: &crate::EvaluationWeights::DEFAULT,
                 cancellation: &mut cancellation,
             };
