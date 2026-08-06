@@ -1,0 +1,45 @@
+name: S2-9.4 final disposition publication
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: s2-9-4-finalize-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    if: ${{ hashFiles('.github/s2_9_4_finalize.py') != '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Generate final documentation and audits
+        run: python3 .github/s2_9_4_finalize.py
+      - name: Validate generated repository text
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          bash scripts/task_s2_9_null_move_feasibility_audit.sh
+          bash scripts/task_s2_9_search_null_transition_audit.sh
+          bash scripts/task_s2_9_null_move_policy_audit.sh
+          test -f scripts/task_s2_9_null_move_validation_audit.sh
+      - name: Publish final documentation and audit sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs scripts .github/s2_9_4_finalize.py
+          git diff --cached --check
+          git commit -m "docs: record S2-9 null-move rejection"
+          git push origin HEAD:master
