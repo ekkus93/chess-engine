@@ -28,13 +28,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "2674bd00a9c129212231073d7134050426518d0b"
+          test "$(git rev-parse HEAD^)" = "2a7b3d29ae5cf624a0eb5bb6f8c8815fcdb79594"
           changed="$(git diff --name-only HEAD^ HEAD | sort)"
-          expected="$(printf '%s\n' \
-            .github/workflows/s2-13-apply.yml \
-            .github/workflows/s2-13-source-snapshot.yml \
-            .github/workflows/strength-integration-apply.yml | sort)"
-          test "$changed" = "$expected"
+          test "$changed" = ".github/workflows/strength-integration-apply.yml"
+          test ! -e .github/workflows/s2-13-apply.yml
+          test ! -e .github/workflows/s2-13-source-snapshot.yml
           for path in \
             .github/s2_13_payload_00 \
             .github/s2_13_payload_01 \
