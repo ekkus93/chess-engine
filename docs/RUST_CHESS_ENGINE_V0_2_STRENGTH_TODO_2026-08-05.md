@@ -324,7 +324,7 @@
 | S2-9 | Optional null-move pruning decision/candidate | **Complete — standalone rejected; inactive** |
 | S2-10 | Optional frontier and quiet-move pruning candidates | **Complete — S2-10.1, S2-10.2, and S2-10.3 deferred; inactive** |
 | S2-11 | Fresh profiling and measured hot-path decisions | **Complete — x86-64 sliding dispatch accepted; non-x86 baseline preserved** |
-| S2-12 | Optional Syzygy tablebase decision/integration | **Not started** |
+| S2-12 | Optional Syzygy tablebase decision/integration | **Complete — deferred; no compliant backend integrated; inactive** |
 | S2-13 | API, UCI, ABI/JNI, Android, CI, and documentation integration | **Not started** |
 | S2-14 | Production candidate selection and validation | **Not started** |
 | S2-15 | Separate activation and v0.2 release gate | **Not started** |
@@ -860,48 +860,48 @@
 
 ---
 
-# Task S2-12: Optional Syzygy tablebase decision/integration — NOT STARTED
+# Task S2-12: Optional Syzygy tablebase decision/integration — COMPLETE (DEFERRED)
 
-## S2-12.1 Dependency and architecture review
+## S2-12.1 Dependency and architecture review — COMPLETE
 
-- [ ] Review implementation/library options, licensing, maintenance, platform support, and provenance.
-- [ ] Choose adapter-neutral interface/crate placement.
-- [ ] Keep filesystem discovery out of `chess-core` and `chess-search` internals.
-- [ ] Record `implement`, `reject`, or `defer`.
+- [x] Review implementation/library options, licensing, maintenance, platform support, and provenance. Reviewed `shakmaty-syzygy` 0.28.1, maintained `jdart1/Fathom`, the published `fathom-syzygy` 0.1.0 wrapper, remote tablebase APIs, and a project-owned implementation.
+- [x] Choose adapter-neutral interface/crate placement. A future integration must use a dedicated outward `chess-tablebase` crate depending on `chess-core`; filesystem and backend lifecycle stay in adapter/provider implementations.
+- [x] Keep filesystem discovery out of `chess-core` and `chess-search` internals. No code, dependency, path lookup, environment lookup, or tablebase state was added to either crate.
+- [x] Record `implement`, `reject`, or `defer`. Disposition: `deferred_insufficient_evidence`; no currently published Rust backend satisfies the complete license, lifecycle, failure, toolchain, and Android evidence contract without a separately audited wrapper.
 
-## S2-12.2 Explicit configuration if implemented
+## S2-12.2 Explicit configuration if implemented — COMPLETE (CONTRACT FROZEN; NOT IMPLEMENTED)
 
-- [ ] Caller supplies enabled state and provider/path.
-- [ ] Caller supplies supported piece-count/probe policy.
-- [ ] Record implementation/version/data identity.
-- [ ] No environment or conventional path discovery.
-- [ ] Disabled/not configured is normal and explicit.
+- [x] Caller supplies enabled state and provider/path. Required for reconsideration; disabled remains the only current state.
+- [x] Caller supplies supported piece-count/probe policy. Required as typed configuration; no implicit backend maximum may become product policy.
+- [x] Record implementation/version/data identity. A future provider must bind backend commit/version plus a canonical table-file manifest and digest.
+- [x] No environment or conventional path discovery. `RTBPATH`, current-directory, home-directory, bundled-asset, and conventional-path discovery are prohibited.
+- [x] Disabled/not configured is normal and explicit. Production remains tablebase-disabled with no advertised option or hidden discovery.
 
-## S2-12.3 Failure semantics if implemented
+## S2-12.3 Failure semantics if implemented — COMPLETE (CONTRACT FROZEN; NOT IMPLEMENTED)
 
-- [ ] Distinguish `not_applicable` from probe/data failure.
-- [ ] Missing/corrupt/incompatible configured data fails visible.
-- [ ] No silent fallback after a configured probe error.
-- [ ] Define adapter-specific error reporting without panic crossing boundaries.
+- [x] Distinguish `not_applicable` from probe/data failure. A future API must use separate typed outcomes; `Option` is insufficient.
+- [x] Missing/corrupt/incompatible configured data fails visible. Enabled configuration with zero recognized tables is an error, not a disabled state.
+- [x] No silent fallback after a configured probe error. Search may continue only for typed scope exclusions, never after configured data or probe failure.
+- [x] Define adapter-specific error reporting without panic crossing boundaries. Rust errors must map additively through UCI/C ABI/JNI/Android with existing panic containment and ownership rules.
 
-## S2-12.4 Chess semantics if implemented
+## S2-12.4 Chess semantics if implemented — COMPLETE (RECONSIDERATION GATES; NOT IMPLEMENTED)
 
-- [ ] Specify WDL mapping.
-- [ ] Specify DTZ and fifty-move interaction.
-- [ ] Specify root move selection and tie policy.
-- [ ] Specify TT storage/reuse.
-- [ ] Specify UCI score/info behavior.
-- [ ] Add known-position oracle fixtures and lifecycle tests.
+- [x] Specify WDL mapping. Five-valued side-to-move WDL must remain distinct until an explicitly reviewed search/root mapping is selected.
+- [x] Specify DTZ and fifty-move interaction. The rule-50 clock, zeroing moves, rounded/ambiguous DTZ, and cursed/blessed outcomes require exact fixtures before use.
+- [x] Specify root move selection and tie policy. A future root policy must be deterministic and defined over legal engine move identities; backend iteration order is not a tie-break.
+- [x] Specify TT storage/reuse. Initial integration must not store tablebase results in the existing TT until rule-50, provider identity, bounds, and reuse semantics are proven.
+- [x] Specify UCI score/info behavior. No UCI tablebase option, `tbhits`, score conversion, or info field is currently advertised.
+- [x] Add known-position oracle fixtures and lifecycle tests. Required future evidence includes WDL/DTZ fixtures, terminal positions, en passant, promotions, rule-50 boundaries, missing/corrupt data, repeated open/close, and concurrent probes.
 
-## S2-12.5 Evidence if implemented
+## S2-12.5 Evidence if implemented — COMPLETE (NOT APPLICABLE TO DEFERRED DECISION)
 
-- [ ] Unit/integration/oracle tests.
-- [ ] Corrupt/missing data tests.
-- [ ] Linux, C ABI/JNI, and Android behavior as applicable.
-- [ ] Probe performance and allocation evidence.
-- [ ] Strength disposition separate from functional correctness.
+- [x] Unit/integration/oracle tests. No behavior was implemented; future integration requires an independent oracle and real table fixtures with recorded provenance.
+- [x] Corrupt/missing data tests. Frozen as mandatory before any backend can be accepted.
+- [x] Linux, C ABI/JNI, and Android behavior as applicable. No adapter surface changed; future work must validate native x86-64/ARM64 and Android API-35 repeated lifecycle.
+- [x] Probe performance and allocation evidence. No probe path exists; future WDL-search and DTZ-root measurements must be architecture-specific and preserve current zero-allocation search guarantees where applicable.
+- [x] Strength disposition separate from functional correctness. No strength match was run because no tablebase candidate was implemented or activated.
 
-**S2-12 gate:** Syzygy is explicitly rejected/deferred or integrated without implicit discovery or silent probe fallback.
+**S2-12 gate:** Complete with `deferred_insufficient_evidence` and `activated=false`. No tablebase dependency, code path, configuration, UCI option, ABI/JNI surface, Android asset policy, implicit discovery, or silent fallback was added. Reconsideration requires a project-owned audited wrapper around a pinned permissive backend, explicit provider/data identity, typed failure separation, real-table oracle fixtures, and complete cross-platform lifecycle evidence.
 
 ---
 
