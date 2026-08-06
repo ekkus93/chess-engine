@@ -37,7 +37,22 @@ jobs:
           shared-key: rust-engine-s2-9-3-stage
 
       - name: Generate core policy implementation
-        run: python3 .github/s2_9_3_policy.py phase1
+        run: |
+          set -euo pipefail
+          python3 .github/s2_9_3_policy.py phase1
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('crates/chess-search/src/alpha_beta.rs')
+          text = path.read_text(encoding='utf-8')
+          old = "        full_window,\n        context,\n    )?;"
+          new = "        full_window,\n        null_move_state,\n        context,\n    )?;"
+          index = text.rfind(old)
+          if index < 0:
+              raise SystemExit('exact PVS re-search call without null state was not found')
+          text = text[:index] + new + text[index + len(old):]
+          path.write_text(text, encoding='utf-8')
+          PY
 
       - name: Validate core implementation
         run: |
