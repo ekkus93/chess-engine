@@ -13,6 +13,10 @@ use crate::{
     },
     quiescence::{search_quiescence_node_with_weights, QuiescenceContext, QuiescenceSearchPolicy},
     search_common::resolved_node_score,
+    search_policy::{
+        LMR_MINIMUM_DEPTH, LMR_MINIMUM_LEGAL_MOVES, LMR_MINIMUM_MOVE_INDEX,
+        LMR_MINIMUM_TOTAL_PIECES, LMR_REDUCTION_TABLE,
+    },
     EvaluationWeights, Score, SearchCancellationProbe, SearchDiagnosticEvent,
     SearchDiagnosticOverflow, SearchDiagnostics, SearchPolicy, TranspositionBound,
     TranspositionEntry, TranspositionProbeError, TranspositionProbeRequest,
@@ -520,6 +524,7 @@ where
         see_quiescence_pruning: policy.search_policy.see_quiescence_pruning_enabled(),
         delta_pruning: policy.search_policy.delta_pruning_enabled(),
         principal_variation_search: policy.search_policy.principal_variation_search_enabled(),
+        late_move_reductions: policy.search_policy.late_move_reductions_enabled(),
         weights: policy.weights,
         cancellation,
     };
@@ -548,6 +553,7 @@ where
     see_quiescence_pruning: bool,
     delta_pruning: bool,
     principal_variation_search: bool,
+    late_move_reductions: bool,
     weights: &'a EvaluationWeights,
     cancellation: &'a mut Probe,
 }
@@ -700,6 +706,10 @@ where
         .record_into(&mut diagnostics, &mut *context.cancellation)?;
     let mut best_score = None;
     let mut best_move = None;
+    let parent_in_check = position.is_in_check(position.side_to_move());
+    let legal_move_count = ordered_tokens.iter().len();
+    let total_piece_count = u16::try_from(position.all_occupancy().count())
+        .expect("a chess position contains at most 64 pieces");
 
     for (move_index, token) in ordered_tokens.iter().enumerate() {
         if context.cancellation.should_cancel() {
@@ -707,6 +717,8 @@ where
         }
 
         let current = token.move_made();
+        let protected_quiet_candidate = context.quiet_ordering.is_killer(ply, current);
+        let is_transposition_table_move = transposition_table_move == Some(current);
         let position_undo = position.make_legal_token(token)?;
         let history_undo = history.push_position(position);
         let child_in_check = position.is_in_check(position.side_to_move());
@@ -720,14 +732,22 @@ where
         if let Some(event) = extension.event() {
             context.cancellation.on_check_extension(event);
         }
-        let child = search_child_with_optional_pvs(
+        let child = search_child_with_optional_lmr(
             position,
             history,
-            PvsChildSearch {
+            ChildSearch {
+                parent_depth: depth,
                 depth: extension.child_depth(),
                 ply: ply + 1,
                 extension_budget: extension.remaining_budget(),
                 move_index,
+                legal_move_count,
+                total_piece_count,
+                current,
+                parent_in_check,
+                child_in_check,
+                is_transposition_table_move,
+                protected_quiet_candidate,
                 alpha,
                 beta,
             },
@@ -820,32 +840,117 @@ where
 }
 
 #[derive(Clone, Copy)]
-struct PvsChildSearch {
+struct ChildSearch {
+    parent_depth: u16,
     depth: u16,
     ply: u16,
     extension_budget: u16,
     move_index: usize,
+    legal_move_count: usize,
+    total_piece_count: u16,
+    current: Move,
+    parent_in_check: bool,
+    child_in_check: bool,
+    is_transposition_table_move: bool,
+    protected_quiet_candidate: bool,
     alpha: Score,
     beta: Score,
 }
 
-fn search_child_with_optional_pvs<Probe>(
+fn search_child_with_optional_lmr<Probe>(
     position: &mut Position,
     history: &mut SearchHistory,
-    request: PvsChildSearch,
+    request: ChildSearch,
     context: &mut AlphaBetaContext<'_, Probe>,
     diagnostics: &mut SearchDiagnostics,
 ) -> Result<AlphaBetaSearchResult, AlphaBetaSearchError>
 where
     Probe: SearchCancellationProbe + ?Sized,
 {
-    let PvsChildSearch {
+    let Some(reduction) = late_move_reduction(request, context.late_move_reductions) else {
+        return search_child_with_optional_pvs(position, history, request, context, diagnostics);
+    };
+
+    let reduction_event = SearchDiagnosticEvent::LmrReduction;
+    diagnostics.record_checked(reduction_event)?;
+    context.cancellation.on_search_diagnostic(reduction_event);
+
+    let mut reduced_request = request;
+    reduced_request.depth -= reduction;
+    let reduced =
+        search_child_with_optional_pvs(position, history, reduced_request, context, diagnostics)?;
+    let reduced_parent_score = -reduced.score;
+    if reduced_parent_score <= request.alpha {
+        return Ok(reduced);
+    }
+
+    let fail_high_event = SearchDiagnosticEvent::LmrReducedFailHigh;
+    diagnostics.record_checked(fail_high_event)?;
+    context.cancellation.on_search_diagnostic(fail_high_event);
+    let verification_event = SearchDiagnosticEvent::LmrResearch;
+    diagnostics.record_checked(verification_event)?;
+    context
+        .cancellation
+        .on_search_diagnostic(verification_event);
+    let exact = search_child_with_optional_pvs(position, history, request, context, diagnostics)?;
+    combine_lmr_attempts(reduced, exact)
+}
+
+fn late_move_reduction(request: ChildSearch, enabled: bool) -> Option<u16> {
+    if !enabled
+        || request.parent_depth < LMR_MINIMUM_DEPTH
+        || request.move_index == 0
+        || request.parent_in_check
+        || request.child_in_check
+        || request.is_transposition_table_move
+        || request.protected_quiet_candidate
+        || request.total_piece_count < LMR_MINIMUM_TOTAL_PIECES
+        || request.alpha.is_mate()
+        || request.beta.is_mate()
+        || request.current.kind().is_capture()
+        || request.current.promotion().is_some()
+    {
+        return None;
+    }
+    let Ok(move_index) = u16::try_from(request.move_index) else {
+        return None;
+    };
+    let Ok(legal_move_count) = u16::try_from(request.legal_move_count) else {
+        return None;
+    };
+    if move_index < LMR_MINIMUM_MOVE_INDEX || legal_move_count < LMR_MINIMUM_LEGAL_MOVES {
+        return None;
+    }
+
+    let mut selected = 0_u16;
+    for (minimum_depth, minimum_move_index, reduction) in LMR_REDUCTION_TABLE {
+        if request.parent_depth >= minimum_depth && move_index >= minimum_move_index {
+            selected = reduction;
+        }
+    }
+    let maximum = request.depth.saturating_sub(1);
+    let bounded = selected.min(maximum);
+    (bounded > 0).then_some(bounded)
+}
+
+fn search_child_with_optional_pvs<Probe>(
+    position: &mut Position,
+    history: &mut SearchHistory,
+    request: ChildSearch,
+    context: &mut AlphaBetaContext<'_, Probe>,
+    diagnostics: &mut SearchDiagnostics,
+) -> Result<AlphaBetaSearchResult, AlphaBetaSearchError>
+where
+    Probe: SearchCancellationProbe + ?Sized,
+{
+    let ChildSearch {
         depth,
         ply,
         extension_budget,
         move_index,
         alpha,
         beta,
+        ..
     } = request;
     let full_window = AlphaBetaWindow {
         alpha: -beta,
@@ -900,19 +1005,33 @@ fn combine_pvs_attempts(
     narrow: AlphaBetaSearchResult,
     exact: AlphaBetaSearchResult,
 ) -> Result<AlphaBetaSearchResult, AlphaBetaSearchError> {
+    combine_search_attempts(narrow, exact)
+}
+
+fn combine_lmr_attempts(
+    reduced: AlphaBetaSearchResult,
+    exact: AlphaBetaSearchResult,
+) -> Result<AlphaBetaSearchResult, AlphaBetaSearchError> {
+    combine_search_attempts(reduced, exact)
+}
+
+fn combine_search_attempts(
+    first: AlphaBetaSearchResult,
+    exact: AlphaBetaSearchResult,
+) -> Result<AlphaBetaSearchResult, AlphaBetaSearchError> {
     Ok(AlphaBetaSearchResult {
         score: exact.score,
         best_move: exact.best_move,
-        nodes: narrow
+        nodes: first
             .nodes
             .checked_add(exact.nodes)
             .ok_or(AlphaBetaSearchError::NodeCountOverflow)?,
-        qnodes: narrow
+        qnodes: first
             .qnodes
             .checked_add(exact.qnodes)
             .ok_or(AlphaBetaSearchError::NodeCountOverflow)?,
-        selective_depth: narrow.selective_depth.max(exact.selective_depth),
-        diagnostics: narrow.diagnostics.checked_add(exact.diagnostics)?,
+        selective_depth: first.selective_depth.max(exact.selective_depth),
+        diagnostics: first.diagnostics.checked_add(exact.diagnostics)?,
     })
 }
 
@@ -926,6 +1045,97 @@ fn transposition_score_reuse(
         TranspositionScoreReuse::Allowed
     } else {
         TranspositionScoreReuse::SuppressedForRepetition
+    }
+}
+
+#[cfg(test)]
+mod lmr_policy_tests {
+    use chess_core::Position;
+
+    use super::{late_move_reduction, ChildSearch};
+    use crate::Score;
+
+    fn quiet_move(fen: &str, uci: &str) -> chess_core::Move {
+        let mut position = Position::from_fen(fen).expect("fixture parses");
+        position
+            .legal_moves()
+            .expect("legal moves generate")
+            .iter()
+            .find(|current| current.to_uci() == uci)
+            .expect("fixture move exists")
+    }
+
+    fn request(current: chess_core::Move) -> ChildSearch {
+        ChildSearch {
+            parent_depth: 4,
+            depth: 3,
+            ply: 1,
+            extension_budget: 0,
+            move_index: 4,
+            legal_move_count: 20,
+            total_piece_count: 32,
+            current,
+            parent_in_check: false,
+            child_in_check: false,
+            is_transposition_table_move: false,
+            protected_quiet_candidate: false,
+            alpha: Score::from_raw(-20).expect("score fits"),
+            beta: Score::from_raw(20).expect("score fits"),
+        }
+    }
+
+    #[test]
+    fn reduction_table_is_bounded_and_deterministic() {
+        let current = quiet_move(
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            "e2e4",
+        );
+        assert_eq!(late_move_reduction(request(current), true), Some(1));
+        let mut deep = request(current);
+        deep.parent_depth = 7;
+        deep.depth = 6;
+        deep.move_index = 8;
+        assert_eq!(late_move_reduction(deep, true), Some(2));
+        deep.depth = 1;
+        assert_eq!(late_move_reduction(deep, true), None);
+        assert_eq!(late_move_reduction(request(current), false), None);
+    }
+
+    #[test]
+    fn tactical_and_low_mobility_moves_are_never_reduced() {
+        let quiet = quiet_move(
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            "e2e4",
+        );
+        let mut protected = request(quiet);
+        protected.parent_in_check = true;
+        assert_eq!(late_move_reduction(protected, true), None);
+        protected = request(quiet);
+        protected.child_in_check = true;
+        assert_eq!(late_move_reduction(protected, true), None);
+        protected = request(quiet);
+        protected.is_transposition_table_move = true;
+        assert_eq!(late_move_reduction(protected, true), None);
+        protected = request(quiet);
+        protected.protected_quiet_candidate = true;
+        assert_eq!(late_move_reduction(protected, true), None);
+        protected = request(quiet);
+        protected.legal_move_count = 5;
+        assert_eq!(late_move_reduction(protected, true), None);
+        protected = request(quiet);
+        protected.total_piece_count = 3;
+        assert_eq!(late_move_reduction(protected, true), None);
+        protected = request(quiet);
+        protected.alpha = Score::mate_in(4).expect("mate score fits");
+        assert_eq!(late_move_reduction(protected, true), None);
+        protected = request(quiet);
+        protected.beta = Score::mated_in(4).expect("mate score fits");
+        assert_eq!(late_move_reduction(protected, true), None);
+
+        let capture = quiet_move("4k3/8/2p5/3p4/4P3/8/8/4K3 w - - 0 1", "e4d5");
+        assert_eq!(late_move_reduction(request(capture), true), None);
+        let promotion = quiet_move("7k/P7/8/8/8/8/8/K7 w - - 0 1", "a7a8q");
+        assert_eq!(late_move_reduction(request(promotion), true), None);
     }
 }
 
@@ -975,6 +1185,7 @@ mod ordering_tests {
             see_quiescence_pruning: false,
             delta_pruning: false,
             principal_variation_search: false,
+            late_move_reductions: false,
             weights: &crate::EvaluationWeights::DEFAULT,
             cancellation: &mut cancellation,
         };
@@ -1009,6 +1220,7 @@ mod ordering_tests {
             see_quiescence_pruning: false,
             delta_pruning: false,
             principal_variation_search: false,
+            late_move_reductions: false,
             weights: &crate::EvaluationWeights::DEFAULT,
             cancellation: &mut cancellation,
         };
@@ -1123,6 +1335,7 @@ mod ordering_tests {
                 see_quiescence_pruning: false,
                 delta_pruning: false,
                 principal_variation_search: false,
+                late_move_reductions: false,
                 weights: &crate::EvaluationWeights::DEFAULT,
                 cancellation: &mut cancellation,
             };

@@ -24,6 +24,7 @@ pub enum SearchDiagnosticCounter {
     QuiescenceDeltaAttempts,
     QuiescenceDeltaPrunes,
     LmrReductions,
+    LmrReducedFailHighs,
     LmrResearches,
     NullMoveAttempts,
     NullMoveCutoffs,
@@ -53,6 +54,7 @@ impl fmt::Display for SearchDiagnosticCounter {
             Self::QuiescenceDeltaAttempts => "quiescence_delta_attempts",
             Self::QuiescenceDeltaPrunes => "quiescence_delta_prunes",
             Self::LmrReductions => "lmr_reductions",
+            Self::LmrReducedFailHighs => "lmr_reduced_fail_highs",
             Self::LmrResearches => "lmr_researches",
             Self::NullMoveAttempts => "null_move_attempts",
             Self::NullMoveCutoffs => "null_move_cutoffs",
@@ -112,6 +114,7 @@ pub enum SearchDiagnosticEvent {
     QuiescenceDeltaAttempt,
     QuiescenceDeltaPrune,
     LmrReduction,
+    LmrReducedFailHigh,
     LmrResearch,
     NullMoveAttempt,
     NullMoveCutoff,
@@ -146,6 +149,7 @@ pub struct SearchDiagnostics {
     quiescence_delta_attempts: u64,
     quiescence_delta_prunes: u64,
     lmr_reductions: u64,
+    lmr_reduced_fail_highs: u64,
     lmr_researches: u64,
     null_move_attempts: u64,
     null_move_cutoffs: u64,
@@ -175,6 +179,7 @@ impl SearchDiagnostics {
         quiescence_delta_attempts: 0,
         quiescence_delta_prunes: 0,
         lmr_reductions: 0,
+        lmr_reduced_fail_highs: 0,
         lmr_researches: 0,
         null_move_attempts: 0,
         null_move_cutoffs: 0,
@@ -284,6 +289,10 @@ impl SearchDiagnostics {
                 &mut self.lmr_reductions,
                 SearchDiagnosticCounter::LmrReductions,
             ),
+            SearchDiagnosticEvent::LmrReducedFailHigh => increment_checked(
+                &mut self.lmr_reduced_fail_highs,
+                SearchDiagnosticCounter::LmrReducedFailHighs,
+            ),
             SearchDiagnosticEvent::LmrResearch => increment_checked(
                 &mut self.lmr_researches,
                 SearchDiagnosticCounter::LmrResearches,
@@ -352,6 +361,7 @@ impl SearchDiagnostics {
             quiescence_delta_attempts: sum!(quiescence_delta_attempts, QuiescenceDeltaAttempts),
             quiescence_delta_prunes: sum!(quiescence_delta_prunes, QuiescenceDeltaPrunes),
             lmr_reductions: sum!(lmr_reductions, LmrReductions),
+            lmr_reduced_fail_highs: sum!(lmr_reduced_fail_highs, LmrReducedFailHighs),
             lmr_researches: sum!(lmr_researches, LmrResearches),
             null_move_attempts: sum!(null_move_attempts, NullMoveAttempts),
             null_move_cutoffs: sum!(null_move_cutoffs, NullMoveCutoffs),
@@ -435,7 +445,16 @@ impl SearchDiagnostics {
         self.lmr_reductions
     }
     #[must_use]
+    pub const fn lmr_reduced_fail_highs(self) -> u64 {
+        self.lmr_reduced_fail_highs
+    }
+    #[must_use]
     pub const fn lmr_researches(self) -> u64 {
+        self.lmr_researches
+    }
+    /// Alias naming the exact full-depth LMR verification count.
+    #[must_use]
+    pub const fn lmr_verification_searches(self) -> u64 {
         self.lmr_researches
     }
     #[must_use]
@@ -479,6 +498,7 @@ impl SearchDiagnostics {
             && self.quiescence_delta_attempts == 0
             && self.quiescence_delta_prunes == 0
             && self.lmr_reductions == 0
+            && self.lmr_reduced_fail_highs == 0
             && self.lmr_researches == 0
             && self.null_move_attempts == 0
             && self.null_move_cutoffs == 0
@@ -518,6 +538,10 @@ impl SearchDiagnostics {
         if self.quiescence_delta_attempts != 0 {
             hash = hash_bytes(hash, b"quiescence-delta-attempts-v1");
             hash = hash_bytes(hash, &self.quiescence_delta_attempts.to_le_bytes());
+        }
+        if self.lmr_reduced_fail_highs != 0 {
+            hash = hash_bytes(hash, b"lmr-reduced-fail-highs-v1");
+            hash = hash_bytes(hash, &self.lmr_reduced_fail_highs.to_le_bytes());
         }
         if self.see_winning_captures != 0
             || self.see_equal_captures != 0
@@ -607,6 +631,21 @@ mod tests {
         assert_eq!(diagnostics.see_equal_captures(), 0);
         assert_eq!(diagnostics.see_losing_captures(), 0);
         assert_ne!(diagnostics.semantic_checksum(), baseline_checksum);
+    }
+
+    #[test]
+    fn lmr_events_distinguish_reduction_fail_high_and_verification() {
+        let mut diagnostics = SearchDiagnostics::default();
+        for event in [
+            SearchDiagnosticEvent::LmrReduction,
+            SearchDiagnosticEvent::LmrReducedFailHigh,
+            SearchDiagnosticEvent::LmrResearch,
+        ] {
+            diagnostics.record_checked(event).expect("small counts fit");
+        }
+        assert_eq!(diagnostics.lmr_reductions(), 1);
+        assert_eq!(diagnostics.lmr_reduced_fail_highs(), 1);
+        assert_eq!(diagnostics.lmr_verification_searches(), 1);
     }
 
     #[test]

@@ -19,6 +19,18 @@ pub const SEE_QUIESCENCE_PRUNING_SEARCH_POLICY_ID: u64 = 0x5332_3653_4545_5031;
 pub const SEE_AND_DELTA_QUIESCENCE_PRUNING_SEARCH_POLICY_ID: u64 = 0x5332_3644_454c_5031;
 /// Stable identifier for the inactive S2-7 Principal Variation Search candidate.
 pub const PRINCIPAL_VARIATION_SEARCH_POLICY_ID: u64 = 0x5332_3750_5653_3031;
+/// Stable identifier for the inactive S2-8 Late Move Reductions candidate.
+pub const LATE_MOVE_REDUCTIONS_SEARCH_POLICY_ID: u64 = 0x5332_384c_4d52_3031;
+/// Smallest parent depth at which S2-8 may reduce a move.
+pub const LMR_MINIMUM_DEPTH: u16 = 4;
+/// Zero-based first move index eligible for S2-8 reduction.
+pub const LMR_MINIMUM_MOVE_INDEX: u16 = 4;
+/// Smallest legal move count at which S2-8 may reduce a move.
+pub const LMR_MINIMUM_LEGAL_MOVES: u16 = 6;
+/// Smallest total piece count at which S2-8 may reduce a move.
+pub const LMR_MINIMUM_TOTAL_PIECES: u16 = 10;
+/// Ordered `(minimum depth, minimum zero-based move index, reduction)` rules.
+pub const LMR_REDUCTION_TABLE: [(u16, u16, u16); 2] = [(4, 4, 1), (7, 8, 2)];
 /// Largest accepted aspiration half-width.
 pub const MAXIMUM_ASPIRATION_HALF_WIDTH_CENTIPAWNS: u16 = 10_000;
 /// Largest accepted bounded check-extension budget.
@@ -196,6 +208,10 @@ impl ExperimentalSearchFeatures {
     pub const PRINCIPAL_VARIATION_SEARCH: Self = Self {
         bits: ExperimentalSearchFeature::PrincipalVariationSearch.bit(),
     };
+    /// Inactive S2-8 Late Move Reductions candidate.
+    pub const LATE_MOVE_REDUCTIONS: Self = Self {
+        bits: ExperimentalSearchFeature::LateMoveReductions.bit(),
+    };
     /// All currently assigned feature bits.
     pub const KNOWN_BITS: u64 = (1_u64 << 9) - 1;
 
@@ -247,6 +263,7 @@ impl ExperimentalSearchFeatures {
                     | ExperimentalSearchFeature::SeeQuiescencePruning
                     | ExperimentalSearchFeature::DeltaPruning
                     | ExperimentalSearchFeature::PrincipalVariationSearch
+                    | ExperimentalSearchFeature::LateMoveReductions
             );
             (self.bits & bit != 0 && !implemented).then_some(feature)
         })
@@ -348,6 +365,19 @@ impl SearchPolicy {
         experimental_features: ExperimentalSearchFeatures::PRINCIPAL_VARIATION_SEARCH,
     });
 
+    /// Inactive S2-8 candidate: baseline semantics plus bounded verified LMR.
+    pub const LATE_MOVE_REDUCTIONS: Self = Self::new(SearchPolicyParameters {
+        alpha_beta: AlphaBetaMode::FullWindowFailSoft,
+        transposition: TranspositionPolicy::ClusteredFullKey,
+        move_ordering: MoveOrderingPolicy::V0_1MvvLvaKillersHistory,
+        quiescence: QuiescencePolicy::CapturesPromotionsAndEvasions,
+        aspiration_windows: true,
+        aspiration_half_width_centipawns: DEFAULT_ASPIRATION_HALF_WIDTH_CENTIPAWNS as u16,
+        maximum_quiescence_ply: MAX_QUIESCENCE_PLY,
+        maximum_check_extensions_per_line: MAX_CHECK_EXTENSIONS_PER_LINE,
+        experimental_features: ExperimentalSearchFeatures::LATE_MOVE_REDUCTIONS,
+    });
+
     /// Constructs explicit typed parameters for subsequent validation.
     #[must_use]
     pub const fn new(parameters: SearchPolicyParameters) -> Self {
@@ -416,6 +446,14 @@ impl SearchPolicy {
             .contains(ExperimentalSearchFeature::PrincipalVariationSearch)
     }
 
+    /// Returns whether the inactive S2-8 LMR candidate is selected.
+    #[must_use]
+    pub const fn late_move_reductions_enabled(self) -> bool {
+        self.parameters
+            .experimental_features
+            .contains(ExperimentalSearchFeature::LateMoveReductions)
+    }
+
     /// Validates supported ranges and rejects not-yet-implemented features.
     pub fn validate(self) -> Result<(), SearchPolicyValidationError> {
         let aspiration_width = self.parameters.aspiration_half_width_centipawns;
@@ -456,6 +494,12 @@ impl SearchPolicy {
 
         if self.delta_pruning_enabled() && !self.see_quiescence_pruning_enabled() {
             return Err(SearchPolicyValidationError::DeltaPruningRequiresSeePruning);
+        }
+        if self.late_move_reductions_enabled()
+            && self.parameters.experimental_features.bits()
+                != ExperimentalSearchFeatures::LATE_MOVE_REDUCTIONS.bits()
+        {
+            return Err(SearchPolicyValidationError::LateMoveReductionsMustBeIsolated);
         }
         if let Some(feature) = self
             .parameters
@@ -555,6 +599,15 @@ impl SearchPolicySet {
         )
     }
 
+    /// Returns the inactive S2-8 Late Move Reductions candidate.
+    #[must_use]
+    pub fn late_move_reductions_candidate() -> Self {
+        Self::new(
+            LATE_MOVE_REDUCTIONS_SEARCH_POLICY_ID,
+            SearchPolicy::LATE_MOVE_REDUCTIONS,
+        )
+    }
+
     /// Computes the canonical checksum.
     #[must_use]
     pub fn computed_checksum(&self) -> u64 {
@@ -576,7 +629,20 @@ impl SearchPolicySet {
             hash,
             &parameters.maximum_check_extensions_per_line.to_le_bytes(),
         );
-        hash_bytes(hash, &parameters.experimental_features.bits().to_le_bytes())
+        hash = hash_bytes(hash, &parameters.experimental_features.bits().to_le_bytes());
+        if self.policy.late_move_reductions_enabled() {
+            hash = hash_bytes(hash, b"s2-8-lmr-policy-v1");
+            hash = hash_bytes(hash, &LMR_MINIMUM_DEPTH.to_le_bytes());
+            hash = hash_bytes(hash, &LMR_MINIMUM_MOVE_INDEX.to_le_bytes());
+            hash = hash_bytes(hash, &LMR_MINIMUM_LEGAL_MOVES.to_le_bytes());
+            hash = hash_bytes(hash, &LMR_MINIMUM_TOTAL_PIECES.to_le_bytes());
+            for (minimum_depth, minimum_move_index, reduction) in LMR_REDUCTION_TABLE {
+                hash = hash_bytes(hash, &minimum_depth.to_le_bytes());
+                hash = hash_bytes(hash, &minimum_move_index.to_le_bytes());
+                hash = hash_bytes(hash, &reduction.to_le_bytes());
+            }
+        }
+        hash
     }
 
     /// Validates schema, identity, parameters, and checksum.
@@ -623,6 +689,8 @@ pub enum SearchPolicyValidationError {
     UnknownExperimentalFeatureBits { bits: u64 },
     /// Delta pruning was enabled without its required SEE-pruning predecessor.
     DeltaPruningRequiresSeePruning,
+    /// LMR was combined with another unevaluated experimental feature.
+    LateMoveReductionsMustBeIsolated,
     /// A known future feature was enabled before its implementation task.
     UnsupportedExperimentalFeature { feature: ExperimentalSearchFeature },
     /// Serialized checksum does not match the canonical parameters.
@@ -658,6 +726,9 @@ impl fmt::Display for SearchPolicyValidationError {
             Self::DeltaPruningRequiresSeePruning => formatter.write_str(
                 "delta pruning requires SEE quiescence pruning in the same policy",
             ),
+            Self::LateMoveReductionsMustBeIsolated => formatter.write_str(
+                "late move reductions must be evaluated as an isolated policy candidate",
+            ),
             Self::UnsupportedExperimentalFeature { feature } => write!(
                 formatter,
                 "experimental search feature {} is not implemented and cannot be enabled",
@@ -685,9 +756,9 @@ fn hash_bytes(mut hash: u64, bytes: &[u8]) -> u64 {
 mod tests {
     use super::{
         ExperimentalSearchFeatures, SearchPolicy, SearchPolicyParameters, SearchPolicySet,
-        SearchPolicyValidationError, SEE_AND_DELTA_QUIESCENCE_PRUNING_SEARCH_POLICY_ID,
-        SEE_CAPTURE_ORDERING_SEARCH_POLICY_ID, SEE_QUIESCENCE_PRUNING_SEARCH_POLICY_ID,
-        V0_1_SEARCH_POLICY_CHECKSUM,
+        SearchPolicyValidationError, LATE_MOVE_REDUCTIONS_SEARCH_POLICY_ID,
+        SEE_AND_DELTA_QUIESCENCE_PRUNING_SEARCH_POLICY_ID, SEE_CAPTURE_ORDERING_SEARCH_POLICY_ID,
+        SEE_QUIESCENCE_PRUNING_SEARCH_POLICY_ID, V0_1_SEARCH_POLICY_CHECKSUM,
     };
 
     #[test]
@@ -732,6 +803,17 @@ mod tests {
     }
 
     #[test]
+    fn s2_8_lmr_candidate_is_distinct_valid_and_inactive_by_default() {
+        let baseline = SearchPolicySet::baseline();
+        let candidate = SearchPolicySet::late_move_reductions_candidate();
+        assert_eq!(candidate.identifier, LATE_MOVE_REDUCTIONS_SEARCH_POLICY_ID);
+        assert_eq!(candidate.validate(), Ok(()));
+        assert!(!baseline.policy.late_move_reductions_enabled());
+        assert!(candidate.policy.late_move_reductions_enabled());
+        assert_ne!(candidate.checksum, baseline.checksum);
+    }
+
+    #[test]
     fn delta_pruning_without_see_pruning_fails_loudly() {
         let mut parameters = SearchPolicy::V0_1.parameters();
         parameters.experimental_features =
@@ -768,7 +850,7 @@ mod tests {
         ));
 
         let mut parameters: SearchPolicyParameters = SearchPolicy::V0_1.parameters();
-        parameters.experimental_features = ExperimentalSearchFeatures::from_bits(1 << 4)
+        parameters.experimental_features = ExperimentalSearchFeatures::from_bits(1 << 5)
             .expect("assigned feature bit is recognized");
         let unsupported = SearchPolicySet::new(1, SearchPolicy::new(parameters));
         assert!(matches!(

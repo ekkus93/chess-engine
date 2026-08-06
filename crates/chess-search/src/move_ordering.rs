@@ -162,6 +162,11 @@ impl QuietOrderingState {
             .unwrap_or_default()
     }
 
+    pub(crate) fn is_killer(&self, ply: u16, current: Move) -> bool {
+        let killers = self.killers(ply);
+        killers.primary == Some(current) || killers.secondary == Some(current)
+    }
+
     fn history_score(&self, color: Color, current: Move) -> u32 {
         self.history[color.index()][usize::from(current.source().index())]
             [usize::from(current.destination().index())]
