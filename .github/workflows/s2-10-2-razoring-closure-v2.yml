@@ -28,7 +28,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = 79088af4bcdd39525fdeb0b9bbb173cd8b0d6ee3
+          test "$(git rev-parse HEAD^)" = e2a08373b33b44f177dd86cb5a13cdfbff7bee9d
 
           spec=docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_SPEC_2026-08-05.md
           tracker=docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md
@@ -154,48 +154,15 @@ jobs:
           '''
           Path('docs/RUST_CHESS_ENGINE_V0_2_S2_10_2_RAZORING_2026-08-06.md').write_text(report.replace('\n          ', '\n').lstrip())
           PY
-
-      - name: Advance permanent tracker audit
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path('.github/workflows/tracker-close.yml')
-          text = path.read_text()
-          replacements = {
-              'Strength tracker authority and S2-9 closure': 'Strength tracker authority through S2-10.2',
-              'Verify completed S2-9 progression': 'Verify progression through S2-10.2',
-              '          workflow=.github/workflows/s2-9-null-policy.yml\n': '          workflow=.github/workflows/s2-9-null-policy.yml\n          futility=docs/RUST_CHESS_ENGINE_V0_2_S2_10_1_FUTILITY_2026-08-06.md\n          razoring=docs/RUST_CHESS_ENGINE_V0_2_S2_10_2_RAZORING_2026-08-06.md\n          policy=crates/chess-search/src/search_policy.rs\n          search=crates/chess-search/src/alpha_beta.rs\n',
-              "          grep -Fq '| S2-10 | Optional frontier and quiet-move pruning candidates | **Not started** |' \"$tracker\"\n": "          grep -Fq '| S2-10 | Optional frontier and quiet-move pruning candidates | **In progress — S2-10.1 and S2-10.2 deferred; S2-10.3 not started** |' \"$tracker\"\n",
-              "          grep -Fq '# Task S2-10: Optional frontier and quiet-move pruning candidates — NOT STARTED' \"$tracker\"\n": "          grep -Fq '# Task S2-10: Optional frontier and quiet-move pruning candidates — IN PROGRESS' \"$tracker\"\n",
-              "          grep -Fq 'Begin with **S2-10.1 only**:' \"$tracker\"\n": "          grep -Fq '## S2-10.1 Futility pruning — COMPLETE (DEFERRED)' \"$tracker\"\n          grep -Fq '## S2-10.2 Razoring — COMPLETE (DEFERRED)' \"$tracker\"\n          grep -Fq '## S2-10.3 Late quiet-move pruning' \"$tracker\"\n",
-              "          s2_10=\"$(sed -n '/# Task S2-10:/,/# Task S2-11:/p' \"$tracker\")\"\n          test \"$(grep -Fc -- '- [x]' <<<\"$s2_10\")\" -eq 0\n          test \"$(grep -Fc -- '- [ ]' <<<\"$s2_10\")\" -gt 0\n": "          s2_10_1=\"$(sed -n '/## S2-10.1 /,/## S2-10.2 /p' \"$tracker\")\"\n          test \"$(grep -Fc -- '- [ ]' <<<\"$s2_10_1\")\" -eq 0\n          test \"$(grep -Fc -- '- [x]' <<<\"$s2_10_1\")\" -gt 0\n          s2_10_2=\"$(sed -n '/## S2-10.2 /,/## S2-10.3 /p' \"$tracker\")\"\n          test \"$(grep -Fc -- '- [ ]' <<<\"$s2_10_2\")\" -eq 0\n          test \"$(grep -Fc -- '- [x]' <<<\"$s2_10_2\")\" -eq 5\n          s2_10_3=\"$(sed -n '/## S2-10.3 /,/# Task S2-11:/p' \"$tracker\")\"\n          test \"$(grep -Fc -- '- [x]' <<<\"$s2_10_3\")\" -eq 0\n          test \"$(grep -Fc -- '- [ ]' <<<\"$s2_10_3\")\" -gt 0\n",
-              "          grep -Fq '**Activation:** `false`' \"$final\"\n": "          grep -Fq '**Activation:** `false`' \"$final\"\n          grep -Fq '**Status:** Complete — deferred' \"$futility\"\n          grep -Fq '**Disposition:** `defer`' \"$futility\"\n          grep -Fq '**Activation:** `false`' \"$futility\"\n          grep -Fq '**Status:** Complete — deferred' \"$razoring\"\n          grep -Fq '**Disposition:** `defer`' \"$razoring\"\n          grep -Fq '**Activation:** `false`' \"$razoring\"\n          grep -Fq '(1 << 7, ExperimentalSearchFeature::Razoring)' \"$policy\"\n          if grep -Fq 'RAZORING_SEARCH_POLICY_ID' \"$policy\"; then exit 1; fi\n          if grep -Eiq '\\brazor(ing)?\\b' \"$search\"; then exit 1; fi\n",
-              '          for path in \\\n': '          for path in \\\n            .github/workflows/s2-10-2-razoring-closure.yml \\\n            .github/workflows/s2-10-2-razoring-closure-v2.yml \\\n',
-          }
-          for old, new in replacements.items():
-              if text.count(old) != 1:
-                  raise SystemExit(f'unexpected permanent-audit marker count for: {old!r}')
-              text = text.replace(old, new)
-          path.write_text(text)
-          PY
-
-          rm .github/workflows/s2-10-2-razoring-closure.yml
-          rm .github/workflows/s2-10-2-razoring-closure-v2.yml
           git diff --check
 
-      - name: Commit closure to master
+      - name: Commit documentation closure to master
         shell: bash
         run: |
           set -euo pipefail
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md \
-                  docs/RUST_CHESS_ENGINE_V0_2_S2_10_2_RAZORING_2026-08-06.md \
-                  .github/workflows/tracker-close.yml \
-                  .github/workflows/s2-10-2-razoring-closure.yml \
-                  .github/workflows/s2-10-2-razoring-closure-v2.yml
+                  docs/RUST_CHESS_ENGINE_V0_2_S2_10_2_RAZORING_2026-08-06.md
           git commit -m 'search: defer S2-10.2 razoring candidate'
           git push origin HEAD:master
