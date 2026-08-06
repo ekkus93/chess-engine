@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: s2-13-apply-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   apply:
@@ -28,7 +28,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "01ea36342d52a4b315d1d51692e62447392a5a57"
+          test "$(git rev-parse HEAD^)" = "c3d1c3516f1d0d09297a418779534d22c20f1cb5"
           changed="$(git diff --name-only HEAD^ HEAD | sort)"
           test "$changed" = ".github/workflows/strength-integration-apply.yml"
           test ! -e .github/workflows/s2-13-apply.yml
