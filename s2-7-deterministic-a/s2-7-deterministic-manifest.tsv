@@ -1,0 +1,17 @@
+S2_7_DETERMINISTIC_MANIFEST	1
+source_sha	93803e0be5dda29d989846f836612bfeac1d6416
+build_identity	rustc_1.97.1_(8bab26f4f_2026-07-14)|binary:_rustc|commit-hash:_8bab26f4f68e0e26f0bb7960be334d5b520ea452|commit-date:_2026-07-14|host:_x86_64-unknown-linux-gnu|release:_1.97.1|LLVM_version:_22.1.6
+baseline_policy_identifier	5630315f504f4c31
+baseline_policy_checksum	0c0769ef9d034770
+candidate_policy_identifier	5332375056533031
+candidate_policy_checksum	ef730d158002ccfa
+weight_identifier	424153454c494e45
+weight_checksum	d2cca7ae10ec6e34
+fixed_node_pairs	8
+fixed_node_limit	2000
+fixed_node_decision	rejected_strength
+fixed_node_mean_bits	3fe2000000000000
+fixed_node_se_bits	3fa4f2ec413cb52a
+fixed_node_lower_bits	3fdfb158dc150770
+fixed_node_checksum	37cb32207254b165
+activated	false
