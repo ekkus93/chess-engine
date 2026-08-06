@@ -48,6 +48,7 @@ jobs:
           test -f scripts/task_s2_4_see_audit.sh
           test -f scripts/task_s2_5_see_ordering_audit.sh
           test -f scripts/task_s2_6_quiescence_audit.sh
+          test -f scripts/task_v0_2_strength_audit.sh
           test -f scripts/dev.sh
           test -f fixtures/tuning_config.example
           test -f docs/RUST_DEVELOPER_WORKFLOWS.md
@@ -58,12 +59,15 @@ jobs:
           test -f docs/RUST_CHESS_ENGINE_V0_2_S2_4_SEE_2026-08-05.md
           test -f docs/RUST_CHESS_ENGINE_V0_2_S2_5_SEE_ORDERING_2026-08-05.md
           test -f docs/RUST_CHESS_ENGINE_V0_2_S2_6_QUIESCENCE_2026-08-05.md
+          test -f docs/RUST_CHESS_ENGINE_V0_2_S2_13_INTEGRATION_2026-08-06.md
           test -f crates/chess-book/tests/task_19_5.rs
           test -f crates/chess-tools/src/engine_variant_validation.rs
           test -f crates/chess-tools/src/bin/s2_4_see_benchmark.rs
           test -f crates/chess-tools/src/bin/s2_5_see_ordering.rs
           test -f crates/chess-tools/src/bin/s2_6_quiescence.rs
+          test -f crates/chess-tools/src/bin/s2_13_variant_control.rs
           test -f .github/workflows/s2-6-quiescence.yml
+          test -f .github/workflows/variant-validation.yml
           python3 -m py_compile \
             scripts/differential_oracle.py \
             scripts/task_14_5_exclusion_audit.py \
@@ -80,7 +84,8 @@ jobs:
             scripts/task_s2_2_variant_validation_audit.sh \
             scripts/task_s2_4_see_audit.sh \
             scripts/task_s2_5_see_ordering_audit.sh \
-            scripts/task_s2_6_quiescence_audit.sh
+            scripts/task_s2_6_quiescence_audit.sh \
+            scripts/task_v0_2_strength_audit.sh
 
       - name: Run Task 25 developer-workflow audits
         run: |
@@ -107,6 +112,9 @@ jobs:
 
       - name: Run S2-6 quiescence redesign audit
         run: bash scripts/task_s2_6_quiescence_audit.sh
+
+      - name: Run v0.2 strength integration audit
+        run: bash scripts/task_v0_2_strength_audit.sh
 
       - name: Run Task 14.5 exclusion audit
         run: python3 scripts/task_14_5_exclusion_audit.py

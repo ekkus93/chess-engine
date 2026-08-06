@@ -9,6 +9,7 @@ on:
       - Robustness
       - Performance
       - Strength
+      - Variant validation
     types:
       - completed
 

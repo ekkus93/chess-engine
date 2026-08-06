@@ -191,8 +191,13 @@ require_literal '/variant-evidence-*/' .gitignore
 temporary_paths=(
   .github/workflows/s2-13-source-snapshot.yml
   .github/workflows/s2-13-closure.yml
+  .github/workflows/strength-integration-apply.yml
   .github/s2_13_close.py
   .github/s2_13_payload.py
+  .github/s2_13_payload_00
+  .github/s2_13_payload_01
+  .github/s2_13_payload_02
+  .github/s2_13_payload_03
 )
 for path in "${temporary_paths[@]}"; do
   test ! -e "$path" || fail "temporary S2-13 asset remains: $path"

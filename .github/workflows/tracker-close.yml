@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   tracker-audit:
-    name: Strength tracker authority through S2-12
+    name: Strength tracker authority through S2-13
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -41,8 +41,9 @@ jobs:
           bash scripts/task_s2_9_search_null_transition_audit.sh
           bash scripts/task_s2_9_null_move_policy_audit.sh
           bash scripts/task_s2_9_null_move_validation_audit.sh
+          bash scripts/task_v0_2_strength_audit.sh
 
-      - name: Verify progression and evidence through S2-12
+      - name: Verify progression and evidence through S2-13
         shell: bash
         run: |
           set -euo pipefail
@@ -68,10 +69,12 @@ jobs:
           grep -Fq '| S2-10 | Optional frontier and quiet-move pruning candidates | **Complete — S2-10.1, S2-10.2, and S2-10.3 deferred; inactive** |' "$tracker"
           grep -Fq '| S2-11 | Fresh profiling and measured hot-path decisions | **Complete — x86-64 sliding dispatch accepted; non-x86 baseline preserved** |' "$tracker"
           grep -Fq '| S2-12 | Optional Syzygy tablebase decision/integration | **Complete — deferred; no compliant backend integrated; inactive** |' "$tracker"
-          grep -Fq '| S2-13 | API, UCI, ABI/JNI, Android, CI, and documentation integration | **Not started** |' "$tracker"
+          grep -Fq '| S2-13 | API, UCI, ABI/JNI, Android, CI, and documentation integration | **Complete — internal candidate infrastructure integrated; public adapters unchanged; inactive** |' "$tracker"
+          grep -Fq '| S2-14 | Production candidate selection and validation | **Not started** |' "$tracker"
           grep -Fq '# Task S2-11: Fresh profiling and measured hot-path decisions — COMPLETE' "$tracker"
           grep -Fq '# Task S2-12: Optional Syzygy tablebase decision/integration — COMPLETE (DEFERRED)' "$tracker"
-          grep -Fq '# Task S2-13: API, UCI, ABI/JNI, Android, CI, and documentation integration — NOT STARTED' "$tracker"
+          grep -Fq '# Task S2-13: API, UCI, ABI/JNI, Android, CI, and documentation integration — COMPLETE' "$tracker"
+          grep -Fq '# Task S2-14: Production candidate selection and validation — NOT STARTED' "$tracker"
 
           s2_9="$(sed -n '/^# Task S2-9:/,/^# Task S2-10:/p' "$tracker")"
           test "$(grep -Fc -- '- [x]' <<<"$s2_9")" -eq 23
@@ -85,6 +88,12 @@ jobs:
           s2_12="$(sed -n '/^# Task S2-12:/,/^# Task S2-13:/p' "$tracker")"
           test "$(grep -Fc -- '- [x]' <<<"$s2_12")" -eq 24
           test "$(grep -Fc -- '- [ ]' <<<"$s2_12")" -eq 0
+          s2_13="$(sed -n '/^# Task S2-13:/,/^# Task S2-14:/p' "$tracker")"
+          test "$(grep -Fc -- '- [x]' <<<"$s2_13")" -eq 33
+          test "$(grep -Fc -- '- [ ]' <<<"$s2_13")" -eq 0
+          s2_14="$(sed -n '/^# Task S2-14:/,/^# Task S2-15:/p' "$tracker")"
+          test "$(grep -Fc -- '- [x]' <<<"$s2_14")" -eq 0
+          test "$(grep -Fc -- '- [ ]' <<<"$s2_14")" -gt 0
 
           grep -Fq '**Status:** Complete — standalone activation rejected' "$null_move"
           grep -Fq '**Disposition:** `rejected_strength`' "$null_move"
@@ -115,6 +124,15 @@ jobs:
           grep -Fq $'portable-candidate\tarm64\t31104319109\t92625431759\t8968925643' "$manifest"
           grep -Fq $'final-dispatch\tarm64\t31105092637\t92628044139\t8969177826' "$manifest"
           grep -Fq $'android-jni\tandroid-arm64\t31100066741\t-\t8967168646' "$manifest"
+
+          integration_report=docs/RUST_CHESS_ENGINE_V0_2_S2_13_INTEGRATION_2026-08-06.md
+          grep -Fq '**Status:** Complete' "$integration_report"
+          grep -Fq '**Activation:** `false`' "$integration_report"
+          grep -Fq '**Public adapter change:** none' "$integration_report"
+          grep -Fq '**Next task:** S2-14' "$integration_report"
+          test -f scripts/task_v0_2_strength_audit.sh
+          test -f .github/workflows/variant-validation.yml
+          test -f crates/chess-tools/src/bin/s2_13_variant_control.rs
 
           syzygy_report=docs/RUST_CHESS_ENGINE_V0_2_S2_12_SYZYGY_DECISION_2026-08-06.md
           grep -Fq '**Status:** Complete — deferred' "$syzygy_report"
@@ -193,7 +211,15 @@ jobs:
             .github/s2_11_close_audit.py \
             .github/workflows/s2-11-close.yml \
             .github/s2_12_close.py \
-            .github/workflows/s2-12-closure.yml; do
+            .github/workflows/s2-12-closure.yml \
+            .github/workflows/s2-13-source-snapshot.yml \
+            .github/workflows/s2-13-closure.yml \
+            .github/workflows/strength-integration-apply.yml \
+            .github/s2_13_close.py \
+            .github/s2_13_payload_00 \
+            .github/s2_13_payload_01 \
+            .github/s2_13_payload_02 \
+            .github/s2_13_payload_03; do
             test ! -e "$path"
           done
 

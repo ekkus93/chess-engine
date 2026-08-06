@@ -1,0 +1,159 @@
+name: Variant validation
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - Cargo.lock
+      - Cargo.toml
+      - crates/chess-core/**
+      - crates/chess-search/**
+      - crates/chess-tools/**
+      - fixtures/perft.tsv
+      - .github/workflows/variant-validation.yml
+      - scripts/task_v0_2_strength_audit.sh
+  pull_request:
+    branches:
+      - master
+    paths:
+      - Cargo.lock
+      - Cargo.toml
+      - crates/chess-core/**
+      - crates/chess-search/**
+      - crates/chess-tools/**
+      - fixtures/perft.tsv
+      - .github/workflows/variant-validation.yml
+      - scripts/task_v0_2_strength_audit.sh
+  workflow_dispatch:
+    inputs:
+      tier:
+        description: Complete-variant evidence tier
+        required: true
+        default: smoke
+        type: choice
+        options:
+          - smoke
+          - development
+          - production
+      protocol:
+        description: Equal-resource protocol
+        required: true
+        default: fixed_nodes
+        type: choice
+        options:
+          - fixed_nodes
+          - clock_ms
+  schedule:
+    - cron: "17 6 * * 6"
+    - cron: "29 8 1 * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: variant-validation-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  control:
+    name: Complete-variant ${{ matrix.architecture }} control
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: x86-64
+            runner: ubuntu-24.04
+          - architecture: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 180
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve explicit control configuration
+        id: configuration
+        shell: bash
+        env:
+          DISPATCH_TIER: ${{ inputs.tier }}
+          DISPATCH_PROTOCOL: ${{ inputs.protocol }}
+          EVENT_SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          set -euo pipefail
+          tier=smoke
+          protocol=fixed_nodes
+          case "${GITHUB_EVENT_NAME}" in
+            workflow_dispatch)
+              tier="${DISPATCH_TIER}"
+              protocol="${DISPATCH_PROTOCOL}"
+              ;;
+            schedule)
+              case "${EVENT_SCHEDULE}" in
+                '17 6 * * 6')
+                  tier=development
+                  protocol=fixed_nodes
+                  ;;
+                '29 8 1 * *')
+                  tier=production
+                  protocol=clock_ms
+                  ;;
+                *)
+                  echo "unsupported schedule ${EVENT_SCHEDULE@Q}" >&2
+                  exit 1
+                  ;;
+              esac
+              ;;
+            push|pull_request)
+              ;;
+            *)
+              echo "unsupported event ${GITHUB_EVENT_NAME@Q}" >&2
+              exit 1
+              ;;
+          esac
+          printf 'tier=%s\nprotocol=%s\n' "$tier" "$protocol" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo data
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: variant-validation-${{ matrix.architecture }}
+
+      - name: Run complete-variant control
+        shell: bash
+        env:
+          TIER: ${{ steps.configuration.outputs.tier }}
+          PROTOCOL: ${{ steps.configuration.outputs.protocol }}
+          S2_13_SOURCE_SHA: ${{ github.sha }}
+          S2_13_BUILD_IDENTITY: ${{ matrix.architecture }}-rust-stable-release-all-features
+        run: |
+          set -euo pipefail
+          output="variant-evidence-${TIER}-${PROTOCOL}-${{ matrix.architecture }}"
+          export S2_13_EXACT_INVOCATION="cargo run --locked --release -p chess-tools --bin s2_13_variant_control -- ${output} ${TIER} ${PROTOCOL}"
+          summary_tmp="s2-13-control-summary-${{ matrix.architecture }}.tmp"
+          cargo run --locked --release -p chess-tools --bin s2_13_variant_control -- \
+            "$output" "$TIER" "$PROTOCOL" | tee "$summary_tmp"
+          mv "$summary_tmp" "$output/summary.tsv"
+          report="$(find "$output" -maxdepth 1 -type f -name '*.report' -print)"
+          test -n "$report"
+          test "$(printf '%s\n' "$report" | wc -l)" -eq 1
+          cargo run --locked --release -p chess-tools -- \
+            variant-report-validate "$report" | tee "$output/report-validation.tsv"
+          grep -F $'activated\tfalse' "$output/report-validation.tsv"
+          grep -F $'source_sha\t'"${GITHUB_SHA}" "$output/s2-13-control-manifest.tsv"
+          grep -F $'activated\tfalse' "$output/s2-13-control-manifest.tsv"
+          git diff --exit-code
+          unexpected="$(git status --porcelain --untracked-files=all | grep -v "^?? ${output}/" || true)"
+          test -z "$unexpected"
+
+      - name: Preserve complete-variant evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: variant-validation-control-${{ steps.configuration.outputs.tier }}-${{ steps.configuration.outputs.protocol }}-${{ matrix.architecture }}-${{ github.sha }}
+          path: variant-evidence-${{ steps.configuration.outputs.tier }}-${{ steps.configuration.outputs.protocol }}-${{ matrix.architecture }}/
+          if-no-files-found: error
+          retention-days: 30
