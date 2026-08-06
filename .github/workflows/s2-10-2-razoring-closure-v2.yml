@@ -28,7 +28,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = 2c3377cb346bee4092e4e71cca15843c742dd288
+          test "$(git rev-parse HEAD^)" = 79088af4bcdd39525fdeb0b9bbb173cd8b0d6ee3
 
           spec=docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_SPEC_2026-08-05.md
           tracker=docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md
@@ -40,7 +40,7 @@ jobs:
           grep -Fq 'Razoring is evaluated only if profiling and node evidence justify it after futility work.' "$spec"
           grep -Fq 'It must not turn an uncertain frontier into an exact score without verification.' "$spec"
           grep -Fq '**Disposition:** `defer`' "$futility"
-          grep -Fq 'zero attempts' "$futility"
+          grep -Fq 'frontier_futility_attempts()` was exactly zero' "$futility"
           grep -Fq '(1 << 7, ExperimentalSearchFeature::Razoring)' "$policy"
           grep -Fq 'Self::Razoring => "razoring"' "$policy"
           if grep -Eiq '\brazor(ing)?\b' "$search"; then
@@ -52,7 +52,7 @@ jobs:
             exit 1
           fi
 
-      - name: Record decision and repair permanent tracker audit
+      - name: Record S2-10.2 decision
         shell: bash
         run: |
           set -euo pipefail
@@ -63,7 +63,6 @@ jobs:
 
           tracker_path = Path('docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md')
           tracker = tracker_path.read_text()
-
           old_summary = '| S2-10 | Optional frontier and quiet-move pruning candidates | **In progress — S2-10.1 deferred; S2-10.2 and S2-10.3 not started** |'
           new_summary = '| S2-10 | Optional frontier and quiet-move pruning candidates | **In progress — S2-10.1 and S2-10.2 deferred; S2-10.3 not started** |'
           if tracker.count(old_summary) != 1:
@@ -90,8 +89,7 @@ jobs:
           '''
           if tracker.count(old_block) != 1:
               raise SystemExit('unexpected S2-10.2 block marker count')
-          tracker = tracker.replace(old_block, new_block)
-          tracker_path.write_text(tracker)
+          tracker_path.write_text(tracker.replace(old_block, new_block))
 
           staging = os.environ['STAGING_SHA']
           report = f'''# Rust Chess Engine v0.2 S2-10.2 Razoring Decision
@@ -104,176 +102,85 @@ jobs:
           **Decision staging SHA:** `{staging}`
           **Tracker:** `docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md`
           **Specification:** `docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_SPEC_2026-08-05.md`
-          **Prerequisite record:** `docs/RUST_CHESS_ENGINE_V0_2_S2_10_1_FUTILITY_2026-08-06.md`
+          **Prerequisite:** `docs/RUST_CHESS_ENGINE_V0_2_S2_10_1_FUTILITY_2026-08-06.md`
 
           ## Decision
 
-          S2-10.2 is closed with `defer`. No razoring policy, margin, counter mutation, search branch, test-only activation path, or production behavior is retained.
+          S2-10.2 is complete with `defer`. No razoring policy, margin, diagnostics mutation, search branch, test-only activation path, or production behavior is retained. This does not establish that razoring is intrinsically weak; it records that the ordered prerequisite evidence does not exist.
 
-          This is an independent razoring disposition. It does not infer that razoring is intrinsically weak. It records that the repository does not presently have the prerequisite evidence required to justify implementing and strength-testing it.
+          ## Prerequisite finding
 
-          ## Prerequisite evaluation
+          The tracker permits razoring only after futility evidence. The specification permits it only when profiling and node evidence justify it after futility work. S2-10.1 produced no executable evidence:
 
-          The tracker requires razoring to be evaluated only after futility evidence, while the specification permits it only when profiling and node evidence justify it after futility work. S2-10.1 did not produce that evidence:
+          - the accepted engine remains full-window fail-soft alpha-beta;
+          - the strict futility candidate recorded exactly zero attempts;
+          - the wide-window draft violated the non-PV contract;
+          - PVS, which provides systematic null-window contexts, was independently rejected and remains inactive;
+          - all futility implementation, policy, margin, diagnostics mutation, and candidate tests were removed rather than retained as dead configuration.
 
-          - the accepted production search remains the authoritative full-window fail-soft alpha-beta baseline;
-          - the conservative futility review required an eligible non-PV frontier context;
-          - the resulting compliant candidate recorded zero attempts and no behavior;
-          - the wide-window draft was rejected as contract-violating;
-          - the PVS candidate that could provide systematic null-window contexts was independently rejected and remains inactive;
-          - all experimental futility policy, margin, code, and tests were removed rather than retained as dead configuration.
+          Implementing razoring now would therefore bypass the evidence order, create an inert candidate, or silently combine it with rejected/inactive search behavior.
 
-          Therefore S2-10.2's first gate is not satisfied. Adding razoring now would either bypass the ordered evidence program, create an inert candidate, or form an undeclared combination with rejected/inactive search policies.
+          ## Required future verification semantics
 
-          ## Required verification behavior for reconsideration
+          Any reconsidered candidate must satisfy all of these conditions:
 
-          A future razoring candidate must define and prove all of the following before any activation decision:
-
-          1. Eligibility must be shallow, explicitly bounded, outside check and forced-evasion contexts, outside mate-score windows, and attached to a complete versioned policy identity.
-          2. A static-evaluation margin may request a razor probe only. It is not an exact search result.
-          3. The probe must use legal quiescence verification against the original alpha bound.
-          4. Only a verified fail-low may return early, and that return is an upper bound rather than an exact value.
-          5. A probe that raises alpha, reaches an ambiguous boundary, encounters arithmetic/capacity failure, or otherwise cannot prove the bound must fall through to the unchanged normal search.
-          6. A razor probe must never create an exact transposition-table entry. Any permitted upper-bound storage must be separately specified and depth-safe.
-          7. Checks, forced evasions, promotions, mate-sensitive positions, tactically unstable positions, quiet defensive resources, and low-material/endgame positions require dedicated regressions.
-          8. Attempts, verified fail-lows, fall-throughs, and any prunes must be counted independently without allocation or silent saturation in exact-result aggregation.
+          1. Eligibility is shallow, explicitly bounded, outside check, forced-evasion, mate-score, promotion, tactically unstable, and unproven low-material contexts.
+          2. Static evaluation plus a typed versioned margin requests only a razor probe; it is not an exact result.
+          3. The probe uses legal quiescence verification against the original alpha bound.
+          4. Only a verified fail-low may return early, and that return is an upper bound.
+          5. A probe that raises alpha, is ambiguous, or encounters any arithmetic/capacity/internal failure falls through to the unchanged full search.
+          6. The probe never creates an exact transposition-table entry. Any upper-bound storage must be separately specified and depth-safe.
+          7. Dedicated regressions cover checks, evasions, mate distance, promotions, quiet defenses, tactical instability, and low-material/endgame positions.
+          8. Attempts, verified fail-lows, fall-throughs, and prunes are independently counted without allocation or silent exact-aggregation overflow.
 
           ## Correctness and strength disposition
 
-          No behavioral candidate passed the prerequisite gate, so no candidate correctness matrix or strength match was run. Running an identical-policy match would only reproduce the existing 0.5 control and would not constitute razoring evidence.
+          No behaviorally distinct candidate passed the prerequisite gate. Consequently:
 
-          This is fail-closed:
-
-          - correctness disposition: not applicable because no candidate exists;
-          - fixed-node strength disposition: not run;
-          - clock strength disposition: not run;
+          - candidate correctness matrix: not run;
+          - fixed-node strength match: not run;
+          - clock strength match: not run;
           - activation: `false`.
+
+          An identical-policy match would only reproduce the frozen 0.5 control and would not constitute razoring evidence.
 
           ## Production impact
 
-          None. The following remain unchanged:
-
-          - authoritative v0.1 search policy and checksum;
-          - full-window alpha-beta and quiescence behavior;
-          - transposition-table semantics;
-          - search diagnostics and reserved counters;
-          - evaluation weights;
-          - UCI, safe Rust API, C ABI, JNI, and Android behavior;
-          - package version and all production defaults.
-
-          `ExperimentalSearchFeature::Razoring` remains unsupported by policy validation, and production alpha-beta contains no razoring branch.
+          None. The authoritative policy/checksum, alpha-beta, quiescence, TT semantics, diagnostics, evaluation weights, UCI, Rust API, C ABI, JNI, Android behavior, package version, and defaults remain unchanged. `ExperimentalSearchFeature::Razoring` remains unsupported by policy validation, and production alpha-beta contains no razoring branch.
 
           ## Reconsideration gate
 
-          Reconsider razoring only after either:
-
-          - independently accepted futility evidence establishes a safe and useful frontier-pruning context; or
-          - a new explicitly approved combination candidate defines its complete search-policy identity and independently proves the combined semantics.
-
-          Reconsideration still requires the full correctness matrix plus separate fixed-node and clock-based strength reports. No previously rejected candidate may be silently enabled merely to make razoring executable.
+          Reconsider only after independently accepted futility evidence, or as an explicitly approved combination with a new complete policy identity and independent combined-semantics proof. Full correctness plus separate fixed-node and clock strength reports remain mandatory. No rejected candidate may be silently enabled merely to exercise razoring.
           '''
           Path('docs/RUST_CHESS_ENGINE_V0_2_S2_10_2_RAZORING_2026-08-06.md').write_text(report.replace('\n          ', '\n').lstrip())
           PY
 
-          cat > .github/workflows/tracker-close.yml <<'YAML'
-          name: Strength tracker audit
+      - name: Advance permanent tracker audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
 
-          on:
-            push:
-              branches:
-                - master
-            pull_request:
-              branches:
-                - master
-            workflow_dispatch:
-
-          permissions:
-            contents: read
-
-          concurrency:
-            group: strength-tracker-${{ github.workflow }}-${{ github.ref }}
-            cancel-in-progress: true
-
-          jobs:
-            tracker-audit:
-              name: Strength tracker authority through S2-10.2
-              runs-on: ubuntu-24.04
-              timeout-minutes: 10
-              steps:
-                - uses: actions/checkout@v4
-
-                - name: Run inherited and active strength audits
-                  shell: bash
-                  run: |
-                    set -euo pipefail
-                    bash scripts/task_post_port_review_fix_audit.sh
-                    bash scripts/task_s2_1_policy_identity_audit.sh
-                    bash scripts/task_s2_2_variant_validation_audit.sh
-                    bash scripts/task_s2_3_baseline_audit.sh
-                    bash scripts/task_s2_4_see_audit.sh
-                    bash scripts/task_s2_5_see_ordering_audit.sh
-                    bash scripts/task_s2_6_quiescence_audit.sh
-                    bash scripts/task_s2_7_pvs_audit.sh
-                    bash scripts/task_s2_8_lmr_audit.sh
-                    bash scripts/task_s2_9_null_move_feasibility_audit.sh
-                    bash scripts/task_s2_9_search_null_transition_audit.sh
-                    bash scripts/task_s2_9_null_move_policy_audit.sh
-                    bash scripts/task_s2_9_null_move_validation_audit.sh
-
-                - name: Verify S2-10.1 and S2-10.2 deferred closure
-                  shell: bash
-                  run: |
-                    set -euo pipefail
-                    tracker=docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md
-                    futility=docs/RUST_CHESS_ENGINE_V0_2_S2_10_1_FUTILITY_2026-08-06.md
-                    razoring=docs/RUST_CHESS_ENGINE_V0_2_S2_10_2_RAZORING_2026-08-06.md
-                    policy=crates/chess-search/src/search_policy.rs
-                    search=crates/chess-search/src/alpha_beta.rs
-
-                    grep -Fq '| S2-9 | Optional null-move pruning decision/candidate | **Complete — standalone rejected; inactive** |' "$tracker"
-                    grep -Fq '| S2-10 | Optional frontier and quiet-move pruning candidates | **In progress — S2-10.1 and S2-10.2 deferred; S2-10.3 not started** |' "$tracker"
-                    grep -Fq '# Task S2-10: Optional frontier and quiet-move pruning candidates — IN PROGRESS' "$tracker"
-                    grep -Fq '## S2-10.1 Futility pruning — COMPLETE (DEFERRED)' "$tracker"
-                    grep -Fq '## S2-10.2 Razoring — COMPLETE (DEFERRED)' "$tracker"
-                    grep -Fq '## S2-10.3 Late quiet-move pruning' "$tracker"
-
-                    grep -Fq '**Status:** Complete — deferred' "$futility"
-                    grep -Fq '**Disposition:** `defer`' "$futility"
-                    grep -Fq '**Activation:** `false`' "$futility"
-                    grep -Fq '**Status:** Complete — deferred' "$razoring"
-                    grep -Fq '**Disposition:** `defer`' "$razoring"
-                    grep -Fq '**Activation:** `false`' "$razoring"
-
-                    s2_10_1="$(sed -n '/## S2-10.1 /,/## S2-10.2 /p' "$tracker")"
-                    test "$(grep -Fc -- '- [ ]' <<<"$s2_10_1")" -eq 0
-                    test "$(grep -Fc -- '- [x]' <<<"$s2_10_1")" -gt 0
-                    s2_10_2="$(sed -n '/## S2-10.2 /,/## S2-10.3 /p' "$tracker")"
-                    test "$(grep -Fc -- '- [ ]' <<<"$s2_10_2")" -eq 0
-                    test "$(grep -Fc -- '- [x]' <<<"$s2_10_2")" -eq 5
-                    s2_10_3="$(sed -n '/## S2-10.3 /,/# Task S2-11:/p' "$tracker")"
-                    test "$(grep -Fc -- '- [x]' <<<"$s2_10_3")" -eq 0
-                    test "$(grep -Fc -- '- [ ]' <<<"$s2_10_3")" -gt 0
-
-                    grep -Fq '(1 << 7, ExperimentalSearchFeature::Razoring)' "$policy"
-                    grep -Fq 'Self::Razoring => "razoring"' "$policy"
-                    if grep -Fq 'RAZORING_SEARCH_POLICY_ID' "$policy"; then
-                      echo 'unexpected retained razoring candidate identity' >&2
-                      exit 1
-                    fi
-                    if grep -Eiq '\brazor(ing)?\b' "$search"; then
-                      echo 'production alpha-beta unexpectedly contains razoring logic' >&2
-                      exit 1
-                    fi
-
-                    test ! -e .github/workflows/s2-10-2-razoring-closure.yml
-                    test ! -e .github/workflows/s2-10-2-razoring-closure-v2.yml
-                    grep -q '^permissions:' .github/workflows/tracker-close.yml
-                    grep -q '^  contents: read$' .github/workflows/tracker-close.yml
-                    if grep -q 'contents: write' .github/workflows/tracker-close.yml; then
-                      echo 'permanent tracker workflow can write repository contents' >&2
-                      exit 1
-                    fi
-          YAML
+          path = Path('.github/workflows/tracker-close.yml')
+          text = path.read_text()
+          replacements = {
+              'Strength tracker authority and S2-9 closure': 'Strength tracker authority through S2-10.2',
+              'Verify completed S2-9 progression': 'Verify progression through S2-10.2',
+              '          workflow=.github/workflows/s2-9-null-policy.yml\n': '          workflow=.github/workflows/s2-9-null-policy.yml\n          futility=docs/RUST_CHESS_ENGINE_V0_2_S2_10_1_FUTILITY_2026-08-06.md\n          razoring=docs/RUST_CHESS_ENGINE_V0_2_S2_10_2_RAZORING_2026-08-06.md\n          policy=crates/chess-search/src/search_policy.rs\n          search=crates/chess-search/src/alpha_beta.rs\n',
+              "          grep -Fq '| S2-10 | Optional frontier and quiet-move pruning candidates | **Not started** |' \"$tracker\"\n": "          grep -Fq '| S2-10 | Optional frontier and quiet-move pruning candidates | **In progress — S2-10.1 and S2-10.2 deferred; S2-10.3 not started** |' \"$tracker\"\n",
+              "          grep -Fq '# Task S2-10: Optional frontier and quiet-move pruning candidates — NOT STARTED' \"$tracker\"\n": "          grep -Fq '# Task S2-10: Optional frontier and quiet-move pruning candidates — IN PROGRESS' \"$tracker\"\n",
+              "          grep -Fq 'Begin with **S2-10.1 only**:' \"$tracker\"\n": "          grep -Fq '## S2-10.1 Futility pruning — COMPLETE (DEFERRED)' \"$tracker\"\n          grep -Fq '## S2-10.2 Razoring — COMPLETE (DEFERRED)' \"$tracker\"\n          grep -Fq '## S2-10.3 Late quiet-move pruning' \"$tracker\"\n",
+              "          s2_10=\"$(sed -n '/# Task S2-10:/,/# Task S2-11:/p' \"$tracker\")\"\n          test \"$(grep -Fc -- '- [x]' <<<\"$s2_10\")\" -eq 0\n          test \"$(grep -Fc -- '- [ ]' <<<\"$s2_10\")\" -gt 0\n": "          s2_10_1=\"$(sed -n '/## S2-10.1 /,/## S2-10.2 /p' \"$tracker\")\"\n          test \"$(grep -Fc -- '- [ ]' <<<\"$s2_10_1\")\" -eq 0\n          test \"$(grep -Fc -- '- [x]' <<<\"$s2_10_1\")\" -gt 0\n          s2_10_2=\"$(sed -n '/## S2-10.2 /,/## S2-10.3 /p' \"$tracker\")\"\n          test \"$(grep -Fc -- '- [ ]' <<<\"$s2_10_2\")\" -eq 0\n          test \"$(grep -Fc -- '- [x]' <<<\"$s2_10_2\")\" -eq 5\n          s2_10_3=\"$(sed -n '/## S2-10.3 /,/# Task S2-11:/p' \"$tracker\")\"\n          test \"$(grep -Fc -- '- [x]' <<<\"$s2_10_3\")\" -eq 0\n          test \"$(grep -Fc -- '- [ ]' <<<\"$s2_10_3\")\" -gt 0\n",
+              "          grep -Fq '**Activation:** `false`' \"$final\"\n": "          grep -Fq '**Activation:** `false`' \"$final\"\n          grep -Fq '**Status:** Complete — deferred' \"$futility\"\n          grep -Fq '**Disposition:** `defer`' \"$futility\"\n          grep -Fq '**Activation:** `false`' \"$futility\"\n          grep -Fq '**Status:** Complete — deferred' \"$razoring\"\n          grep -Fq '**Disposition:** `defer`' \"$razoring\"\n          grep -Fq '**Activation:** `false`' \"$razoring\"\n          grep -Fq '(1 << 7, ExperimentalSearchFeature::Razoring)' \"$policy\"\n          if grep -Fq 'RAZORING_SEARCH_POLICY_ID' \"$policy\"; then exit 1; fi\n          if grep -Eiq '\\brazor(ing)?\\b' \"$search\"; then exit 1; fi\n",
+              '          for path in \\\n': '          for path in \\\n            .github/workflows/s2-10-2-razoring-closure.yml \\\n            .github/workflows/s2-10-2-razoring-closure-v2.yml \\\n',
+          }
+          for old, new in replacements.items():
+              if text.count(old) != 1:
+                  raise SystemExit(f'unexpected permanent-audit marker count for: {old!r}')
+              text = text.replace(old, new)
+          path.write_text(text)
+          PY
 
           rm .github/workflows/s2-10-2-razoring-closure.yml
           rm .github/workflows/s2-10-2-razoring-closure-v2.yml
