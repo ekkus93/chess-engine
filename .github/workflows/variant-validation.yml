@@ -52,7 +52,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: variant-validation-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  group: variant-validation-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
