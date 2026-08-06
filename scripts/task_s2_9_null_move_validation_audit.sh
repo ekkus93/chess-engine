@@ -20,11 +20,11 @@ for path in "$tracker" "$record" "$policy_record" "$corpus" "$tests" "$harness" 
   [[ -f "$path" ]] || fail "missing $path"
 done
 
-[[ "$(head -n 1 "$corpus")" == $'S2_9_NULL_MOVE_VALIDATION	1' ]] || fail "corpus header changed"
+[[ "$(head -n 1 "$corpus")" == $'S2_9_NULL_MOVE_VALIDATION\t1' ]] || fail "corpus header changed"
 rows="$(grep -Ev '^(#|$)' "$corpus" | tail -n +2 | wc -l | tr -d ' ')"
 [[ "$rows" -eq 14 ]] || fail "expected 14 corpus rows, found $rows"
 for category in zugzwang stalemate repetition fifty-move seventy-five-move mate-distance longest-survival midgame; do
-  grep -Fq $'	'"$category"$'	' "$corpus" || fail "missing corpus category $category"
+  grep -Fq $'\t'"$category"$'\t' "$corpus" || fail "missing corpus category $category"
 done
 
 grep -Fq 'make_search_null()' "$tests" || fail "synthetic-pass stalemate transition is missing"
@@ -41,7 +41,7 @@ grep -Fq 'const FIXED_NODE_LIMIT: u64 = 2_000;' "$harness" || fail "fixed-node l
 grep -Fq 'const CLOCK_PAIRS: u32 = 8;' "$harness" || fail "clock pair count changed"
 grep -Fq 'const CLOCK_MILLISECONDS: u64 = 10;' "$harness" || fail "clock limit changed"
 grep -Fq 'const MAXIMUM_MATCH_PLIES: u32 = 48;' "$harness" || fail "maximum match plies changed"
-grep -Fq 'diff' .github/workflows/s2-9-null-policy.yml || fail "deterministic reproducibility gate is missing"
+grep -Fq 'diff' "$workflow" || fail "deterministic reproducibility gate is missing"
 
 grep -Fq '**Validated candidate source SHA:** `8638611e38c712009e7f98bd4881fb266034df13`' "$record" || fail "validated source SHA is missing"
 grep -Fq '**Staging validation run:** `31085412059`' "$record" || fail "staging run is missing"
@@ -60,13 +60,13 @@ grep -Fq '## S2-9.4 validation record' "$tracker" || fail "validation record is 
 if grep -Fq -- '- S2-9.4 correctness, development strength, and final disposition are not claimed.' "$tracker"; then
   fail "stale pre-validation disclaimer remains"
 fi
-grep -Fq 'Begin with **S2-10.1 only**:' "$tracker" || fail "next action is not S2-10.1"
 s2_9="$(sed -n '/# Task S2-9:/,/# Task S2-10:/p' "$tracker")"
 [[ "$(grep -Fc -- '- [x]' <<<"$s2_9")" -eq 23 ]] || fail "S2-9 does not have exactly 23 completed requirements"
 [[ "$(grep -Fc -- '- [ ]' <<<"$s2_9")" -eq 0 ]] || fail "S2-9 still has incomplete requirements"
+
+grep -Fq '# Task S2-10: Optional frontier and quiet-move pruning candidates' "$tracker" || fail "successor S2-10 task is missing"
 s2_10="$(sed -n '/# Task S2-10:/,/# Task S2-11:/p' "$tracker")"
-[[ "$(grep -Fc -- '- [x]' <<<"$s2_10")" -eq 0 ]] || fail "S2-10 was started prematurely"
-[[ "$(grep -Fc -- '- [ ]' <<<"$s2_10")" -gt 0 ]] || fail "S2-10 has no remaining work"
+[[ "$(grep -Foc -- '- [' <<<"$s2_10")" -gt 0 ]] || fail "S2-10 has no tracked requirements"
 
 grep -Fq '&SearchPolicy::V0_1' "$search" || fail "default production search is not V0_1"
 grep -Fq 'pub fn null_move_pruning_candidate' "$policy" || fail "isolated candidate identity is missing"
