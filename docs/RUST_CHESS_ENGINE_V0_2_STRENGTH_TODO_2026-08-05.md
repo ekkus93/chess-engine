@@ -322,7 +322,7 @@
 | S2-7 | Principal Variation Search candidate | **Complete — standalone rejected; inactive** |
 | S2-8 | Late Move Reductions candidate | **Complete — standalone rejected; inactive for combinations** |
 | S2-9 | Optional null-move pruning decision/candidate | **Complete — standalone rejected; inactive** |
-| S2-10 | Optional frontier and quiet-move pruning candidates | **In progress — S2-10.1 deferred; S2-10.2 and S2-10.3 not started** |
+| S2-10 | Optional frontier and quiet-move pruning candidates | **In progress — S2-10.1 and S2-10.2 deferred; S2-10.3 not started** |
 | S2-11 | Fresh profiling and measured hot-path decisions | **Not started** |
 | S2-12 | Optional Syzygy tablebase decision/integration | **Not started** |
 | S2-13 | API, UCI, ABI/JNI, Android, CI, and documentation integration | **Not started** |
@@ -790,13 +790,15 @@
 
 **S2-10.1 gate:** Complete with `defer`. A wide-window implementation was rejected as contract-violating, the strict non-PV implementation was proven inert under the authoritative baseline, and all experimental code/configuration was removed.
 
-## S2-10.2 Razoring
+## S2-10.2 Razoring — COMPLETE (DEFERRED)
 
-- [ ] Evaluate only after futility evidence.
-- [ ] Specify verification behavior.
-- [ ] Never convert uncertain frontier values into exact results without proof.
-- [ ] Protect tactical and mate-sensitive contexts.
-- [ ] Record independent disposition.
+- [x] Evaluate only after futility evidence. The prerequisite is not met: S2-10.1 produced no executable futility evidence under the accepted full-window baseline and was deferred.
+- [x] Specify verification behavior. No candidate was implemented. Any future candidate must treat the razor test as a probe, verify a prospective fail-low through legal quiescence against the original alpha bound, and fall through to the normal full search whenever the probe raises alpha or is ambiguous.
+- [x] Never convert uncertain frontier values into exact results without proof. A future verified fail-low may produce only an upper-bound result; it must not publish an exact transposition-table entry from the razor probe.
+- [x] Protect tactical and mate-sensitive contexts. No candidate was retained. Future reconsideration must exclude checks, forced evasions, mate-score windows, promotions, and tactically unstable or low-material frontier positions unless separately proven safe.
+- [x] Record independent disposition. `defer`, activation `false`; no correctness or strength match was run because no behaviorally distinct candidate passed the prerequisite gate.
+
+**S2-10.2 gate:** Complete with `defer`. The required futility evidence does not exist. Implementing razoring now would bypass the ordered evidence gate or couple it to rejected/inactive search candidates. Production code, policy identity, diagnostics, evaluation, adapters, and defaults remain unchanged.
 
 ## S2-10.3 Late quiet-move pruning
 
