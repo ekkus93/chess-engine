@@ -179,6 +179,25 @@
 - Exact Android/JNI run `31049824819`: API-35 instrumented JNI job `92454146368`, host JVM job `92454146421`, Android lint job `92454146646`; all passed.
 - Production UCI, safe Rust facade, C ABI, JNI, Android, package version, evaluation weights, authoritative v0.1 policy, and defaults remain unchanged. No first-party lint suppression, ignored failure, downgraded gate, silent fallback, implicit discovery, temporary helper, or write-capable permanent workflow remains in the validated candidate tree.
 
+## S2-7 implementation record
+
+- Disposition: complete; standalone PVS activation rejected; the typed candidate remains inactive for possible later combination experiments.
+- Core implementation SHA: `c5ee43810355deaef062c1f7903bc410df2d883e`.
+- Evidence-harness SHA: `06c20e219ad54227ee9c9ff4b7e43df2ee6d560d`.
+- Exact validation SHA: `a6bd183065e77605c55459e750ac0ea2ffbd9dd3`.
+- Candidate policy identifier/checksum: `5332375056533031` / `ef730d158002ccfa`.
+- Baseline policy identifier/checksum: `5630315f504f4c31` / `0c0769ef9d034770`.
+- Added first-move full-window search, later-move one-centipawn null-window search, mandatory exact re-search on strict alpha improvement below beta, typed window-construction failure, exact attempt aggregation, and PVS probe/re-search diagnostics.
+- Full-window score, depth, best-move, mate-distance, longest-survival, aspiration recovery, cancellation/limits, legal PV, TT semantics, and position/history/Zobrist restoration remain exact. No unverified narrow result is reported or stored as exact.
+- Deterministic parity: 13 cases, zero differing best moves, 62,133 zero-window searches, 310 re-searches, checksum `aeee18b6a927f146`; repeated x86-64 evidence was byte-identical and native ARM64 semantics matched.
+- Fixed-node development: 8 pairs at 2,000 nodes per move; 2 candidate wins, 0 draws, 0 losses, 14 unfinished; no illegal moves, crashes, time forfeits, or infrastructure failures; `rejected_strength`; checksum `b05aa8e4b464ee2f`.
+- Clock development: 8 pairs at 10 ms; 1 candidate win, 0 draws, 0 losses, 15 unfinished; no illegal moves, crashes, time forfeits, or infrastructure failures; `rejected_strength`; checksum `84bb4b1a050370f3`.
+- Seven-sample x86-64 release median ratio: `1.010052`; candidate approximately 1.005% slower while reducing qnodes from 35,620 to 35,176.
+- Seven-sample ARM64 release median ratio: `1.014173`; candidate approximately 1.417% slower.
+- Exact permanent validation run `31059515279`: x86-64 job `92484209606` and native ARM64 job `92484209677`; audit, formatting, strict Clippy, complete search/evidence tests, byte-identical deterministic evidence, clock evidence, zero-allocation audit, seven-sample distributions, and artifact upload passed.
+- x86-64 artifact `8951692759`, digest `cbef3feb8816de99899b66fa29d68c047e94e22b9015607a7a7c0553993d08f4`; ARM64 artifact `8951682899`, digest `2295ec2fe5a024d48b336f00dc2b39b6216f7be8fd05cacbcc4c99de1df369cb`.
+- Production UCI, safe Rust facade, C ABI, JNI, Android, package version, evaluation weights, authoritative v0.1 policy, and defaults remain unchanged. No silent fallback, implicit discovery, committed generated evidence, temporary helper, or write-capable permanent workflow remains.
+
 ## Program guardrails
 
 - Work directly on `master` unless the user explicitly requests a branch.
@@ -207,7 +226,7 @@
 | S2-4 | Correct allocation-free Static Exchange Evaluation | **Complete** |
 | S2-5 | SEE capture-ordering candidate | **Complete — standalone rejected; inactive for combinations** |
 | S2-6 | Quiescence redesign candidates | **Complete — SEE and delta rejected; inactive** |
-| S2-7 | Principal Variation Search candidate | **Not started** |
+| S2-7 | Principal Variation Search candidate | **Complete — standalone rejected; inactive** |
 | S2-8 | Late Move Reductions candidate | **Not started** |
 | S2-9 | Optional null-move pruning decision/candidate | **Not started** |
 | S2-10 | Optional frontier and quiet-move pruning candidates | **Not started** |
@@ -548,38 +567,38 @@
 
 ---
 
-# Task S2-7: Principal Variation Search candidate — NOT STARTED
+# Task S2-7: Principal Variation Search candidate — COMPLETE
 
 ## S2-7.1 Implementation
 
-- [ ] Add inactive PVS policy identity.
-- [ ] Search the first ordered move with the full window.
-- [ ] Search later moves with a valid null window.
-- [ ] Re-search with the full window whenever required to establish the exact value.
-- [ ] Preserve fail-soft score semantics and bound classification.
-- [ ] Preserve TT mate normalization and score reuse policy.
-- [ ] Preserve deterministic equal-score handling.
-- [ ] Add zero-window and re-search diagnostics.
+- [x] Add inactive PVS policy identity.
+- [x] Search the first ordered move with the full window.
+- [x] Search later moves with a valid one-centipawn null window.
+- [x] Re-search with the full window whenever required to establish the exact value.
+- [x] Preserve fail-soft score semantics and bound classification.
+- [x] Preserve TT mate normalization and score reuse policy.
+- [x] Preserve deterministic equal-score handling.
+- [x] Add zero-window and re-search diagnostics.
 
 ## S2-7.2 Correctness
 
-- [ ] Exact score parity with full-window alpha-beta over the deterministic corpus.
-- [ ] Best-move/PV parity subject only to documented equal-score ties.
-- [ ] Mate-distance and longest-survival parity.
-- [ ] Aspiration fail-high/fail-low recovery remains exact.
-- [ ] Cancellation/node/time limit behavior remains exact.
-- [ ] No unverified narrow-window result is stored/reported as exact.
-- [ ] Position/history/table restoration passes all paths.
+- [x] Exact score parity with full-window alpha-beta over the deterministic corpus.
+- [x] Best-move/PV parity subject only to documented equal-score ties; observed differing best moves: zero.
+- [x] Mate-distance and longest-survival parity.
+- [x] Aspiration fail-high/fail-low recovery remains exact.
+- [x] Cancellation/node/time limit behavior remains exact.
+- [x] No unverified narrow-window result is stored or reported as exact.
+- [x] Position/history/Zobrist/table restoration passes successful, interrupted, and error paths.
 
 ## S2-7.3 Evidence
 
-- [ ] Record node/time/cutoff/re-search distributions.
-- [ ] Run fixed-node development protocol.
-- [ ] Run clock-based development protocol if speed changes materially.
-- [ ] Record independent disposition.
-- [ ] Keep default inactive.
+- [x] Record node, qnode, elapsed-time, cutoff, zero-window, and re-search distributions on x86-64 and ARM64.
+- [x] Run the deterministic fixed-node development protocol; result `rejected_strength`.
+- [x] Run the clock-based development protocol; result `rejected_strength`.
+- [x] Record the independent standalone rejection in `docs/RUST_CHESS_ENGINE_V0_2_S2_7_PVS_2026-08-05.md`.
+- [x] Keep default inactive and preserve all production adapters/defaults unchanged.
 
-**S2-7 gate:** PVS is exact relative to full-window alpha-beta and has measured efficiency/strength evidence.
+**S2-7 gate:** Complete. PVS is exact relative to full-window alpha-beta, deterministic evidence is reproducible, re-search behavior is bounded, performance was measured on x86-64 and native ARM64, and standalone activation is explicitly rejected. The candidate remains inactive.
 
 ---
 
@@ -1021,4 +1040,4 @@ Remaining risks:
 
 ## Initial next action
 
-Begin with **S2-7 only**: the inactive SEE capture-ordering candidate. Do not add SEE pruning, quiescence redesign, PVS, LMR, null move, frontier pruning, or tablebases until S2-5 has isolated policy identity, exact correctness parity, diagnostics, performance evidence, and an explicit disposition.
+Begin with **S2-8 only**: the inactive Late Move Reductions candidate. Do not begin S2-9 or later work until S2-8 has an isolated policy identity, bounded reduction/verification semantics, exact correctness evidence, architecture-specific performance measurements, development strength evidence, and an explicit disposition.
