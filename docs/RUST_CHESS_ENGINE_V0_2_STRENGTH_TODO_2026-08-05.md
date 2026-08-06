@@ -235,7 +235,7 @@
 
 - Disposition: complete; the reversible search-only position transition is accepted as infrastructure for S2-9.3, while null pruning remains unimplemented and inactive.
 - Starting master SHA: `152b8a52b90989b113411a9dffc33cb520e45e6b`.
-- Core implementation SHA: `CORE_IMPLEMENTATION_SHA`.
+- Core implementation SHA: `ee65c38624df12c3d30ec954fd3157e66456373d`.
 - Focused validation run: `31074949590`.
 - Added `SearchNullUndo`, `SearchNullError`, `Position::make_search_null`, and `Position::unmake_search_null` in a dedicated `chess-core` position module.
 - State contract: board representations and castling remain unchanged; side toggles; en-passant clears; legal clocks remain unchanged; incremental hash removes the prior canonical en-passant key and toggles the side key.
