@@ -141,7 +141,7 @@ jobs:
           report="$(find "$output" -maxdepth 1 -type f -name '*.report' -print)"
           test -n "$report"
           test "$(printf '%s\n' "$report" | wc -l)" -eq 1
-          cargo run --locked --release -p chess-tools -- \
+          cargo run --locked --release -p chess-tools --bin chess-tools -- \
             variant-report-validate "$report" | tee "$output/report-validation.tsv"
           grep -F $'activated\tfalse' "$output/report-validation.tsv"
           grep -F $'source_sha\t'"${GITHUB_SHA}" "$output/s2-13-control-manifest.tsv"
