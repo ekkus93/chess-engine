@@ -25,52 +25,16 @@ jobs:
           fetch-depth: 0
 
       - name: Remove committed generated evidence and add ignore rules
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          while IFS= read -r -d '' path; do
-            git rm -r -- "$path"
-          done < <(find . -maxdepth 1 -mindepth 1 -name 's2-7-*' -print0)
-
-          cat >> .gitignore <<'EOF'
-
-# Generated S2-7 evidence outputs
-/s2-7-deterministic-*/
-/s2-7-clock/
-/s2-7-bootstrap-benchmark.tsv
-/s2-7-linux-*.tsv
-EOF
-
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path('.gitignore')
-          lines = path.read_text(encoding='utf-8').splitlines()
-          seen = set()
-          output = []
-          for line in lines:
-              if line and line in seen:
-                  continue
-              if line:
-                  seen.add(line)
-              output.append(line.rstrip())
-          path.write_text('\n'.join(output).rstrip() + '\n', encoding='utf-8')
-          PY
+        run: python3 .github/s2_7_generated_output_cleanup.py
 
       - name: Commit cleanup
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git diff --cached --check
-          if git diff --cached --quiet; then
-            echo "No generated S2-7 outputs were present" >&2
-            exit 1
-          fi
           git commit -m "chore: remove generated S2-7 evidence outputs"
           git push origin HEAD:master
