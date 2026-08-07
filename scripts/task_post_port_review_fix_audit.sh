@@ -55,9 +55,9 @@ grep -Fq '**Status:** Complete — program closed without promotion' "$s3_todo"
 grep -Fq '**Status:** Complete — program closed without promotion' "$s3_report"
 grep -Fq '**Status:** Complete — tuning method accepted for future experimentation; no production promotion' "$s4_todo"
 grep -Fq '**Status:** Complete — tuning method accepted for future experimentation; no production promotion' "$s4_spec"
-grep -Fq '**Status:** Closure candidate — H0-H7.2 complete; final closed-SHA validation pending' "$hardening_todo"
-grep -Fq '**Status:** Closure candidate — implementation complete; final closed-SHA validation pending' "$hardening_spec"
-grep -Fq '**Status:** Closure candidate — implementation validated; final closed-SHA validation pending' "$hardening_report"
+grep -Fq '**Status:** Complete — closure hardening validated; no production promotion' "$hardening_todo"
+grep -Fq '**Status:** Complete — closure hardening validated; no production promotion' "$hardening_spec"
+grep -Fq '**Status:** Complete — closure hardening validated; no production promotion' "$hardening_report"
 
 for stale in '| Active v0.2 strength program |' '| Active S3 evaluation strength program |' '| Active S4 evaluation tuning calibration program |'; do
     if grep -Fq "$stale" "$legacy_index"; then
@@ -107,8 +107,8 @@ grep -Fq '# Task S4-0: Authority registration and baseline freeze — COMPLETE' 
 grep -Fq '# Task S4-12: Final report and closure — COMPLETE (NO PRODUCTION PROMOTION)' "$s4_todo"
 grep -Fq '# Task H0: Authority registration and baseline freeze — COMPLETE' "$hardening_todo"
 grep -Fq '# Task H6: Permanent audit and workflow integration — COMPLETE' "$hardening_todo"
-grep -Fq '# Task H7: Final implementation report and authority cleanup — IN PROGRESS (FINAL VALIDATION PENDING)' "$hardening_todo"
-grep -Fq 'H7.1 implementation reporting and H7.2 authority cleanup are complete' "$hardening_report"
+grep -Fq '# Task H7: Final implementation report and authority cleanup — COMPLETE' "$hardening_todo"
+grep -Fq 'H7 is complete.' "$hardening_report"
 
 while IFS= read -r todo_path; do
     case "$todo_path" in

@@ -31,6 +31,7 @@ hardening_spec=docs/RUST_CHESS_ENGINE_S4_CLOSURE_HARDENING_SPEC_2026-08-07.md
 hardening_todo=docs/RUST_CHESS_ENGINE_S4_CLOSURE_HARDENING_TODO_2026-08-07.md
 final_addendum=docs/RUST_CHESS_ENGINE_S4_FINAL_VALIDATION_ADDENDUM_2026-08-07.md
 hardening_report=docs/RUST_CHESS_ENGINE_S4_CLOSURE_HARDENING_IMPLEMENTATION_REPORT.md
+hardening_final=docs/RUST_CHESS_ENGINE_S4_CLOSURE_HARDENING_FINAL_VALIDATION_2026-08-07.md
 legacy=docs/LEGACY_TODO_INDEX.md
 s3_tracker=docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_TODO_2026-08-07.md
 s3_report=docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_IMPLEMENTATION_REPORT.md
@@ -38,7 +39,7 @@ diagnostics=crates/chess-tune/src/diagnostics.rs
 trace=crates/chess-tune/src/trace.rs
 optimizer=crates/chess-tune/src/optimizer.rs
 
-for path in "$spec" "$tracker" "$baseline" "$diagnosis" "$corpus" "$matrix" "$selected" "$smoke" "$method" "$final_report" "$hardening_spec" "$hardening_todo" "$final_addendum" "$hardening_report" "$legacy" "$s3_tracker" "$s3_report" "$diagnostics" "$trace" "$optimizer"; do
+for path in "$spec" "$tracker" "$baseline" "$diagnosis" "$corpus" "$matrix" "$selected" "$smoke" "$method" "$final_report" "$hardening_spec" "$hardening_todo" "$final_addendum" "$hardening_report" "$hardening_final" "$legacy" "$s3_tracker" "$s3_report" "$diagnostics" "$trace" "$optimizer"; do
   require_file "$path"
 done
 
@@ -53,9 +54,10 @@ if grep -Fq '| Active S4 closure hardening program |' "$legacy"; then
 fi
 require_literal 'There is no active implementation TODO.' "$legacy"
 require_literal '75 TODO-named files total; 2 authority documents; 1 authority index; 72 historical' "$legacy"
-require_literal '**Status:** Closure candidate — H0-H7.2 complete; final closed-SHA validation pending' "$hardening_todo"
-require_literal '**Status:** Closure candidate — implementation complete; final closed-SHA validation pending' "$hardening_spec"
-require_literal '**Status:** Closure candidate — implementation validated; final closed-SHA validation pending' "$hardening_report"
+require_literal '**Status:** Complete — closure hardening validated; no production promotion' "$hardening_todo"
+require_literal '**Status:** Complete — closure hardening validated; no production promotion' "$hardening_spec"
+require_literal '**Status:** Complete — closure hardening validated; no production promotion' "$hardening_report"
+require_literal '**Status:** Complete exact closed-authority validation evidence' "$hardening_final"
 require_literal '**Status:** Complete — tuning method accepted for future experimentation; no production promotion' "$tracker"
 require_literal '**Status:** Complete — tuning method accepted for future experimentation; no production promotion' "$spec"
 require_literal '**Status:** Complete — program closed without promotion' "$s3_tracker"
@@ -237,13 +239,40 @@ fi
 require_literal 'checkpoint_best_weights_preserve_inactive_parameters_after_masked_run' "$optimizer"
 require_literal '# Task H0: Authority registration and baseline freeze — COMPLETE' "$hardening_todo"
 require_literal '# Task H6: Permanent audit and workflow integration — COMPLETE' "$hardening_todo"
-require_literal '# Task H7: Final implementation report and authority cleanup — IN PROGRESS (FINAL VALIDATION PENDING)' "$hardening_todo"
+require_literal '# Task H7: Final implementation report and authority cleanup — COMPLETE' "$hardening_todo"
 require_literal '31212586187' "$hardening_report"
 require_literal '31212586069' "$hardening_report"
 require_literal '31212586338' "$hardening_report"
 require_literal '31212586580' "$hardening_report"
 require_literal '31212586025' "$hardening_report"
 require_literal '31213948156' "$hardening_report"
-for temporary in .github/s4_closure_hardening_apply.py .github/workflows/s4-closure-hardening-apply.yml .github/s4_closure_hardening_close.py .github/workflows/s4-closure-hardening-close.yml; do
+for temporary in .github/s4_closure_hardening_apply.py .github/workflows/s4-closure-hardening-apply.yml .github/s4_closure_hardening_close.py .github/workflows/s4-closure-hardening-close.yml .github/s4_closure_hardening_finalize.py .github/workflows/s4-closure-hardening-finalize.yml; do
   test ! -e "$temporary" || fail "temporary S4 hardening control remains: $temporary"
 done
+
+# Final H7 closed-SHA evidence.
+require_literal '040dbfa7d88df71380c9082d224f54b99e17c583' "$hardening_final"
+require_literal '31214468559' "$hardening_final"
+require_literal '92984632692' "$hardening_final"
+require_literal '92984632651' "$hardening_final"
+require_literal '31214473918' "$hardening_final"
+require_literal '92984650575' "$hardening_final"
+require_literal '92984650722' "$hardening_final"
+require_literal '31214467831' "$hardening_final"
+require_literal '92984630799' "$hardening_final"
+require_literal '92984630807' "$hardening_final"
+require_literal '92984630842' "$hardening_final"
+require_literal '31214467810' "$hardening_final"
+require_literal '92984646200' "$hardening_final"
+require_literal '92984646272' "$hardening_final"
+require_literal '92984646321' "$hardening_final"
+require_literal '31214467814' "$hardening_final"
+require_literal '92984630452' "$hardening_final"
+require_literal '31215644023' "$hardening_final"
+require_literal '92988408595' "$hardening_final"
+require_literal '9007948263' "$hardening_final"
+require_literal '4aa8e1ed737a51728b2a4edd8e98fac671be89307979c2476e45d4ac39aaf63b' "$hardening_final"
+require_literal '9007944932' "$hardening_final"
+require_literal 'a32c74557f09348a4856cc0591c798d2b472d321d958ae84eef967d13a8598cf' "$hardening_final"
+require_literal '9008040056' "$hardening_final"
+require_literal '48224d6b5da1d299caa9403a573f8642f4ba2b21d88847d24946f9b737f3a38a' "$hardening_final"

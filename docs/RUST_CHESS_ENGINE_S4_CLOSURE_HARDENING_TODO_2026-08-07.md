@@ -1,6 +1,6 @@
 # Rust Chess Engine S4 Closure Hardening TODO — 2026-08-07
 
-**Status:** Closure candidate — H0-H7.2 complete; final closed-SHA validation pending
+**Status:** Complete — closure hardening validated; no production promotion
 **Date:** 2026-08-07
 **Branch:** `master`
 **Planning baseline SHA:** `bc406d78d673cc3258e8b522bcec25c4838f5e32`
@@ -225,7 +225,7 @@ Choose one path and complete it:
 
 ---
 
-# Task H7: Final implementation report and authority cleanup — IN PROGRESS (FINAL VALIDATION PENDING)
+# Task H7: Final implementation report and authority cleanup — COMPLETE
 
 ## H7.1 Implementation report
 
@@ -250,17 +250,20 @@ Choose one path and complete it:
 
 ## H7.3 Final validation
 
-- [ ] Run permanent S4 Evaluation Tuning Calibration workflow.
-- [ ] Run strict workspace CI.
-- [ ] Run Performance workflow or explicitly justify if unchanged hot-path behavior makes it unnecessary.
-- [ ] Run Robustness workflow.
-- [ ] Run Android/JNI workflow or explicitly justify if adapter-facing behavior is unchanged.
-- [ ] Run report-publication validation.
-- [ ] Record exact final SHA, run IDs, job IDs, artifact IDs, and checksums.
+Exact validated hardening closure SHA: `040dbfa7d88df71380c9082d224f54b99e17c583`. Evidence: `docs/RUST_CHESS_ENGINE_S4_CLOSURE_HARDENING_FINAL_VALIDATION_2026-08-07.md`.
+
+
+- [x] Run permanent S4 Evaluation Tuning Calibration workflow.
+- [x] Run strict workspace CI.
+- [x] Run Performance workflow or explicitly justify if unchanged hot-path behavior makes it unnecessary.
+- [x] Run Robustness workflow.
+- [x] Run Android/JNI workflow or explicitly justify if adapter-facing behavior is unchanged.
+- [x] Run report-publication validation.
+- [x] Record exact final SHA, run IDs, job IDs, artifact IDs, and checksums.
 
 ## H7 gate
 
-- [ ] S4 closure hardening is truthfully closed with exact evidence and no production promotion.
+- [x] S4 closure hardening is truthfully closed with exact evidence and no production promotion.
 
 ---
 
@@ -273,4 +276,4 @@ Choose one path and complete it:
 - [x] H4 canonical tuning source-commit parsing complete.
 - [x] H5 checkpoint materialization API review complete.
 - [x] H6 permanent audit/workflow integration complete.
-- [ ] H7 final report and authority cleanup complete.
+- [x] H7 final report and authority cleanup complete.

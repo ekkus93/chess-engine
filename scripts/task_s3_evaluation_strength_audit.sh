@@ -52,7 +52,7 @@ if grep -Fq '| Active S4 closure hardening program |' "$legacy"; then
   fail 'closure-candidate hardening TODO is still active'
 fi
 require_literal 'There is no active implementation TODO.' "$legacy"
-require_literal '**Status:** Closure candidate — H0-H7.2 complete; final closed-SHA validation pending' "$hardening_todo"
+require_literal '**Status:** Complete — closure hardening validated; no production promotion' "$hardening_todo"
 for stale in '| Active S3 evaluation strength program |' '| Active S4 evaluation tuning calibration program |'; do
   if grep -Fq "$stale" "$legacy"; then
     fail "closed strength/tuning tracker is still classified as active: $stale"

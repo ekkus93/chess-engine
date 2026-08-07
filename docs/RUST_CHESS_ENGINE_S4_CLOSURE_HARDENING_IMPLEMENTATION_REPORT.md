@@ -1,6 +1,6 @@
 # Rust Chess Engine S4 Closure Hardening Implementation Report
 
-**Status:** Closure candidate — implementation validated; final closed-SHA validation pending
+**Status:** Complete — closure hardening validated; no production promotion
 **Date:** 2026-08-07
 **Planning baseline SHA:** `bc406d78d673cc3258e8b522bcec25c4838f5e32`
 **Implementation-start SHA:** `9f5c398a70e22228454f0184225a414f1466cdf5`
@@ -119,3 +119,18 @@ All other hardening changes are evidence, authority, or audit documentation/scri
 ## H7 closure state
 
 H7.1 implementation reporting and H7.2 authority cleanup are complete in this closure candidate. The hardening TODO is historical and there is no active implementation TODO. H7.3 remains pending until a normal repository write on this closed-authority state triggers and passes the permanent CI, Performance, Robustness, Android/JNI, S4, and report-publication gates. No final completion claim is made before that evidence exists.
+
+## H7 exact final validation
+
+The exact closed-authority hardening SHA `040dbfa7d88df71380c9082d224f54b99e17c583` passed the complete permanent matrix. `docs/RUST_CHESS_ENGINE_S4_CLOSURE_HARDENING_FINAL_VALIDATION_2026-08-07.md` is the authoritative detailed record.
+
+- CI `31214468559`: jobs `92984632692`, `92984632651` success.
+- Performance `31214473918`: jobs `92984650575`, `92984650722` success.
+- Robustness `31214467831`: jobs `92984630799`, `92984630807`, `92984630842` success.
+- Android/JNI `31214467810`: jobs `92984646200`, `92984646272`, `92984646321` success.
+- S4 `31214467814`: job `92984630452` success.
+- post-CI report publication `31215644023`: job `92988408595` success.
+
+Retained final evidence artifacts are Performance `9007948263` (`sha256:4aa8e1ed737a51728b2a4edd8e98fac671be89307979c2476e45d4ac39aaf63b`), Performance ARM64 `9007944932` (`sha256:a32c74557f09348a4856cc0591c798d2b472d321d958ae84eef967d13a8598cf`), and Android `9008040056` (`sha256:48224d6b5da1d299caa9403a573f8642f4ba2b21d88847d24946f9b737f3a38a`).
+
+H7 is complete. The hardening tracker remains historical, there is no active implementation TODO, and no production promotion occurred.
