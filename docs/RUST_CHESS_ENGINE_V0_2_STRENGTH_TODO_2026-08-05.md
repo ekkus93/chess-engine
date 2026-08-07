@@ -291,6 +291,21 @@
 - Exact cleanup validation: CI run `31093244779`; performance run `31093244660`; robustness run `31093244674`; Android/JNI run `31093244043`; all successful.
 - Reconsider only after a narrow-window main-search policy is independently accepted, or as an explicitly identified combination candidate with its own policy identity, correctness evidence, and strength disposition.
 
+## S2-14 implementation record
+
+- Disposition: complete with `rejected_strength`; standalone PVS remains inactive and v0.1 remains authoritative.
+- Frozen candidate source SHA: `21406b5e92b6bd42a3a902591dddae22c9b3f16f`.
+- Candidate policy identifier/checksum: `5332375056533031` / `ef730d158002ccfa`; baseline `5630315f504f4c31` / `0c0769ef9d034770`; weights `424153454c494e45` / `d2cca7ae10ec6e34`.
+- Preflight run `31146057113`: x86-64 job `92765623932`, artifact `8981719767`, median ratio `1.012722`; ARM64 job `92765623863`, artifact `8981761297`, median ratio `1.013350`; frozen ceiling `1.05`; both passed.
+- Exact full-matrix evidence on the candidate SHA: CI `31146057163`, performance `31146057128`, robustness `31146057142`, Android/JNI `31146057103`, tracker `31146057112`, report validation `31146990298`; all passed.
+- Production run `31146807904` succeeded as evidence generation/validation. Fixed-node job `92767800034`: 1,000 pairs, W/D/L `862/144/977`, unfinished `17`, failures `0`, mean `0.47125`, LCB `0.4578061271735924`, `rejected_strength`, checksum `bad7aa1f69e9d18e`, artifact `8982304975`.
+- Clock job `92767800098`: 1,000 pairs, W/D/L `857/144/972`, unfinished `27`, failures `0`, mean `0.47125`, LCB `0.45802189803116894`, `rejected_strength`, checksum `d3b883442ec6107b`, artifact `8982375018`.
+- Required lower confidence bound was strictly `> 0.5`; both protocols failed it. Unfinished-rate, correctness, and infrastructure gates passed, so the rejection is specifically strength-based.
+- Opening file SHA-256 `6c3ff4cc9837bc66dd517d4a7c60d56e71a9b3a4e1fb1aabd904de81dad4e9b7`; semantic suite checksum `36c98c850cff76ba`; 1,200 unique deterministic first-party openings.
+- The earlier SEE+LMR preselection was rejected without threshold relaxation at x86-64 `1.054297` and ARM64 `1.055081` versus the frozen `1.05` performance ceiling; its active candidate code was removed before PVS freeze.
+- No production API, UCI, package version, safe facade, C ABI, JNI, Kotlin/Android interface, policy default, weights, benchmark reference, or activation state changed in S2-14.
+- Final evidence record: `docs/RUST_CHESS_ENGINE_V0_2_S2_14_PRODUCTION_VALIDATION_2026-08-06.md`.
+
 ## Program guardrails
 
 - Work directly on `master` unless the user explicitly requests a branch.
@@ -326,7 +341,7 @@
 | S2-11 | Fresh profiling and measured hot-path decisions | **Complete — x86-64 sliding dispatch accepted; non-x86 baseline preserved** |
 | S2-12 | Optional Syzygy tablebase decision/integration | **Complete — deferred; no compliant backend integrated; inactive** |
 | S2-13 | API, UCI, ABI/JNI, Android, CI, and documentation integration | **Complete — internal candidate infrastructure integrated; public adapters unchanged; inactive** |
-| S2-14 | Production candidate selection and validation | **Not started** |
+| S2-14 | Production candidate selection and validation | **Complete — PVS rejected_strength; v0.1 remains authoritative; inactive** |
 | S2-15 | Separate activation and v0.2 release gate | **Not started** |
 | S2-16 | Final audit, report, and closure | **Not started** |
 
@@ -962,55 +977,55 @@
 
 ---
 
-# Task S2-14: Production candidate selection and validation — NOT STARTED
+# Task S2-14: Production candidate selection and validation — COMPLETE (REJECTED)
 
 ## S2-14.1 Select candidate
 
-- [ ] Select one exact candidate or evidence-backed combination from individually evaluated components.
-- [ ] Record why each included component is present.
-- [ ] Record why excluded/deferred components are absent.
-- [ ] Freeze search-policy identity, weights, source SHA, toolchain, opening suite, TT, limits, seeds, and commands.
-- [ ] Candidate remains inactive.
+- [x] Select one exact candidate or evidence-backed combination from individually evaluated components. Standalone PVS was selected and frozen after the SEE+LMR preselection failed the predeclared performance ceiling.
+- [x] Record why each included component is present. `docs/RUST_CHESS_ENGINE_V0_2_S2_14_CANDIDATE_SELECTION_2026-08-06.md` records the PVS selection rationale and exact identity.
+- [x] Record why excluded/deferred components are absent. SEE ordering, SEE/delta pruning, LMR, null move, frontier pruning, Syzygy, and the rejected SEE+LMR combination are explicitly excluded with evidence-backed reasons.
+- [x] Freeze search-policy identity, weights, source SHA, toolchain, opening suite, TT, limits, seeds, and commands. Exact source `21406b5e92b6bd42a3a902591dddae22c9b3f16f` and all identities/protocol inputs are bound in preflight and production artifacts.
+- [x] Candidate remains inactive. Every S2-14 report and manifest records `activated=false`; production defaults remain v0.1.
 
 ## S2-14.2 Full correctness matrix
 
-- [ ] Formatting/check/Clippy/all-target tests.
-- [ ] Release perft depth four.
-- [ ] Differential oracle and seeded playouts.
-- [ ] Tactical/mate/draw/zugzwang/promotion corpus.
-- [ ] Legal PV replay and exact restoration.
-- [ ] Cancellation, limits, UCI, safe facade, C ABI, JNI, Android.
-- [ ] Fuzz, Miri, ASan/LSan, TSan.
-- [ ] Candidate-specific audits.
+- [x] Formatting/check/Clippy/all-target tests. Exact CI run `31146057163` and S2-14 preflight run `31146057113` passed.
+- [x] Release perft depth four. Exact CI run `31146057163` passed the authoritative release perft gate.
+- [x] Differential oracle and seeded playouts. Exact CI run `31146057163` passed the pinned differential oracle/seeded playout gate.
+- [x] Tactical/mate/draw/zugzwang/promotion corpus. Candidate-specific preflight and inherited frozen corpus gates passed on the exact source SHA.
+- [x] Legal PV replay and exact restoration. PVS evidence and full search tests passed on the exact source SHA.
+- [x] Cancellation, limits, UCI, safe facade, C ABI, JNI, Android. Exact CI and Android/JNI run `31146057103` passed without adapter/default changes.
+- [x] Fuzz, Miri, ASan/LSan, TSan. Exact robustness run `31146057142` passed.
+- [x] Candidate-specific audits. The frozen S2-14 PVS boundary audit passed on native x86-64 and ARM64.
 
 ## S2-14.3 Performance matrix
 
-- [ ] x86-64 seven-sample baseline/comparator.
-- [ ] Native ARM64 seven-sample baseline/comparator.
-- [ ] Zero-allocation audit.
-- [ ] Search diagnostics and checksum.
-- [ ] Android metrics if applicable.
-- [ ] Record any intentional reference update separately.
+- [x] x86-64 seven-sample baseline/comparator. Fresh candidate/baseline median ratio `1.012722`, within the frozen `1.05` ceiling.
+- [x] Native ARM64 seven-sample baseline/comparator. Fresh candidate/baseline median ratio `1.013350`, within the frozen `1.05` ceiling.
+- [x] Zero-allocation audit. The designated recursive hot-path gate passed on both native architectures.
+- [x] Search diagnostics and checksum. Deterministic PVS evidence, complete-variant identity, and suite/report checksums were preserved.
+- [x] Android metrics if applicable. Exact Android/JNI lifecycle/cancellation instrumentation run `31146057103` passed; no adapter semantics changed.
+- [x] Record any intentional reference update separately. No benchmark reference or acceptance threshold was rewritten for S2-14.
 
 ## S2-14.4 Production strength matrix
 
-- [ ] At least 200 independent opening pairs / 400 games.
-- [ ] Color-swapped identical openings.
-- [ ] Fixed-node production evidence.
-- [ ] Clock-based production evidence for release-relevant strength.
-- [ ] Unfinished rate within ceiling.
-- [ ] Lower confidence bound strictly exceeds required margin.
-- [ ] Report checksum and atomic persistence pass.
-- [ ] Report decision is explicit.
-- [ ] Report records `activated=false`.
+- [x] At least 200 independent opening pairs / 400 games. Each protocol ran 1,000 independent pairs / 2,000 games.
+- [x] Color-swapped identical openings. Both colors were played from each of 1,000 scheduled openings; the 1,200-line source suite was identical across protocols.
+- [x] Fixed-node production evidence. Run `31146807904`, job `92767800034`, artifact `8982304975`; report checksum `bad7aa1f69e9d18e`.
+- [x] Clock-based production evidence for release-relevant strength. Run `31146807904`, job `92767800098`, artifact `8982375018`; report checksum `d3b883442ec6107b`.
+- [x] Unfinished rate within ceiling. Fixed-node `17/2000` (8.5 per mille) and clock `27/2000` (13.5 per mille) are both below the 50-per-mille ceiling.
+- [x] Lower confidence bound gate evaluated fail-closed. Required `> 0.5`; fixed-node LCB `0.4578061271735924` and clock LCB `0.45802189803116894`, so both protocols fail the strength gate.
+- [x] Report checksum and atomic persistence pass. Both reports round-tripped, validated, were atomically persisted, and were preserved as GitHub artifacts.
+- [x] Report decision is explicit. Both production reports state `rejected_strength`.
+- [x] Report records `activated=false`. Both reports and manifests remain inactive.
 
 ## S2-14.5 Disposition
 
-- [ ] If rejected, preserve exact reason and keep v0.1 authoritative.
-- [ ] If accepted, record `accepted_for_activation`; do not change defaults in this task.
-- [ ] No manual interpretation may override the report rule.
+- [x] Rejected candidate reason is preserved exactly and v0.1 remains authoritative. `docs/RUST_CHESS_ENGINE_V0_2_S2_14_PRODUCTION_VALIDATION_2026-08-06.md` records complete preflight/production evidence and the `rejected_strength` disposition.
+- [x] Accepted-candidate activation path is not applicable. Neither production report emitted `accepted_for_activation`; S2-15's activation precondition is unsatisfied and no default is changed.
+- [x] No manual interpretation overrides the report rule. The failed lower-confidence-bound gate is final for this frozen candidate; no threshold, score, unfinished ceiling, or failure classification was changed after measurement.
 
-**S2-14 gate:** One frozen candidate receives complete exact-SHA correctness, performance, and production strength evidence while remaining inactive.
+**S2-14 gate:** Complete with `rejected_strength` and `activated=false`. One frozen standalone PVS candidate received complete exact-SHA correctness, robustness, performance, and two-protocol 1,000-pair production evaluations. Both production reports rejected it for strength, so the v0.1 policy remains authoritative and S2-15 activation is not authorized.
 
 ---
 

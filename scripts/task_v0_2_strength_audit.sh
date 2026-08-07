@@ -56,11 +56,18 @@ required_paths=(
   docs/RUST_CHESS_ENGINE_V0_2_S2_11_PROFILING_2026-08-06.md
   docs/RUST_CHESS_ENGINE_V0_2_S2_12_SYZYGY_DECISION_2026-08-06.md
   docs/RUST_CHESS_ENGINE_V0_2_S2_13_INTEGRATION_2026-08-06.md
+  docs/RUST_CHESS_ENGINE_V0_2_S2_14_CANDIDATE_SELECTION_2026-08-06.md
+  docs/RUST_CHESS_ENGINE_V0_2_S2_14_SEE_LMR_PREFLIGHT_REJECTION_2026-08-06.md
+  docs/RUST_CHESS_ENGINE_V0_2_S2_14_PRODUCTION_VALIDATION_2026-08-06.md
   docs/RUST_DEVELOPER_WORKFLOWS.md
   docs/RUST_GENERATED_ARTIFACT_POLICY.md
   crates/chess-tools/src/bin/s2_13_variant_control.rs
+  crates/chess-tools/src/bin/s2_14_production.rs
+  scripts/task_s2_14_candidate_audit.sh
   scripts/task_v0_2_strength_audit.sh
   .github/workflows/variant-validation.yml
+  .github/workflows/s2-14-candidate-preflight.yml
+  .github/workflows/s2-14-production.yml
 )
 for path in "${required_paths[@]}"; do
   require_file "$path"
@@ -75,17 +82,35 @@ validation=crates/chess-tools/src/engine_variant_validation.rs
 legacy=crates/chess-tools/src/candidate_validation.rs
 control=crates/chess-tools/src/bin/s2_13_variant_control.rs
 workflow=.github/workflows/variant-validation.yml
+s2_14_report=docs/RUST_CHESS_ENGINE_V0_2_S2_14_PRODUCTION_VALIDATION_2026-08-06.md
 
 require_literal '| S2-13 | API, UCI, ABI/JNI, Android, CI, and documentation integration | **Complete — internal candidate infrastructure integrated; public adapters unchanged; inactive** |' "$tracker"
-require_literal '| S2-14 | Production candidate selection and validation | **Not started** |' "$tracker"
+require_literal '| S2-14 | Production candidate selection and validation | **Complete — PVS rejected_strength; v0.1 remains authoritative; inactive** |' "$tracker"
 require_literal '# Task S2-13: API, UCI, ABI/JNI, Android, CI, and documentation integration — COMPLETE' "$tracker"
-require_literal '# Task S2-14: Production candidate selection and validation — NOT STARTED' "$tracker"
+require_literal '# Task S2-14: Production candidate selection and validation — COMPLETE (REJECTED)' "$tracker"
 s2_13="$(sed -n '/^# Task S2-13:/,/^# Task S2-14:/p' "$tracker")"
 test "$(grep -Fc -- '- [x]' <<<"$s2_13")" -eq 33 || fail 'S2-13 must contain exactly 33 completed requirements'
 test "$(grep -Fc -- '- [ ]' <<<"$s2_13")" -eq 0 || fail 'S2-13 retains incomplete requirements'
 s2_14="$(sed -n '/^# Task S2-14:/,/^# Task S2-15:/p' "$tracker")"
-test "$(grep -Fc -- '- [x]' <<<"$s2_14")" -eq 0 || fail 'S2-14 was advanced by S2-13'
-test "$(grep -Fc -- '- [ ]' <<<"$s2_14")" -gt 0 || fail 'S2-14 has no remaining requirements'
+test "$(grep -Fc -- '- [x]' <<<"$s2_14")" -eq 31 || fail 'S2-14 must contain exactly 31 completed requirements'
+test "$(grep -Fc -- '- [ ]' <<<"$s2_14")" -eq 0 || fail 'S2-14 retains incomplete requirements'
+
+# S2-14 is an evidence-backed rejection, not an activation. Pin the immutable
+# candidate SHA and both independent production decisions so documentation
+# cannot silently turn workflow success into candidate acceptance.
+require_literal '**Status:** Complete — candidate rejected' "$s2_14_report"
+require_literal '**Disposition:** `rejected_strength`' "$s2_14_report"
+require_literal '**Activation:** `false`' "$s2_14_report"
+require_literal '**Frozen candidate source SHA:** `21406b5e92b6bd42a3a902591dddae22c9b3f16f`' "$s2_14_report"
+require_literal 'run `31146807904`, job `92767800034`' "$s2_14_report"
+require_literal 'run `31146807904`, job `92767800098`' "$s2_14_report"
+require_literal 'Report checksum: `bad7aa1f69e9d18e`.' "$s2_14_report"
+require_literal 'Report checksum: `d3b883442ec6107b`.' "$s2_14_report"
+require_literal 'Artifact `8982304975`' "$s2_14_report"
+require_literal 'Artifact `8982375018`' "$s2_14_report"
+require_literal '0.4578061271735924' "$s2_14_report"
+require_literal '0.45802189803116894' "$s2_14_report"
+require_literal 'does not authorize S2-15 activation' "$s2_14_report"
 
 # Exact schema and identity boundaries.
 require_literal 'pub const SEARCH_POLICY_SCHEMA_VERSION: u16 = 1;' "$policy"
@@ -198,6 +223,8 @@ temporary_paths=(
   .github/s2_13_payload_01
   .github/s2_13_payload_02
   .github/s2_13_payload_03
+  .github/s2_14_close_once.py
+  .github/workflows/s2-14-close-once.yml
 )
 for path in "${temporary_paths[@]}"; do
   test ! -e "$path" || fail "temporary S2-13 asset remains: $path"
