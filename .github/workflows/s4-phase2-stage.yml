@@ -5,6 +5,7 @@ on:
     branches: [master]
     paths:
       - .github/s4_phase2.py
+      - .github/s4_phase2_repair.py
       - .github/workflows/s4-phase2-stage.yml
   workflow_dispatch:
 
@@ -27,6 +28,8 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+      - name: Repair trace test
+        run: python3 .github/s4_phase2_repair.py
       - name: Apply trace patch
         run: python3 .github/s4_phase2.py
       - name: Format staged source
