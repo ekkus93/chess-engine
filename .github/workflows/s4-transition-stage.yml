@@ -1,0 +1,45 @@
+name: S4 Transition Stage
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - .github/s4_transition_fix.py
+      - .github/workflows/s4-transition-stage.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: s4-transition-stage
+  cancel-in-progress: false
+
+jobs:
+  stage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply transition fix
+        run: python3 .github/s4_transition_fix.py
+      - name: Verify audit syntax
+        run: bash -n scripts/task_s3_evaluation_strength_audit.sh
+      - name: Verify authority audits
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/task_post_port_review_fix_audit.sh
+          bash scripts/task_s3_evaluation_strength_audit.sh
+          git diff --check
+      - name: Commit validated transition fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Phillip Chin"
+          git config user.email "ekkus93@gmail.com"
+          git add scripts/task_s3_evaluation_strength_audit.sh
+          git commit -m "ci: keep S3 closure audit compatible with active S4"
+          git push origin HEAD:master
