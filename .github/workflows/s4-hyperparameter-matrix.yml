@@ -1,0 +1,242 @@
+name: S4 Hyperparameter Matrix
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - .github/workflows/s4-hyperparameter-matrix.yml
+      - docs/RUST_CHESS_ENGINE_S4_HYPERPARAMETER_MATRIX_2026-08-07.md
+      - crates/chess-tune/**
+      - crates/chess-tools/**
+      - crates/chess-search/**
+      - crates/chess-core/**
+      - fixtures/self_play_openings.tsv
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: s4-hyperparameter-matrix-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  matrix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Verify frozen matrix authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import re
+          from pathlib import Path
+
+          path = Path('docs/RUST_CHESS_ENGINE_S4_HYPERPARAMETER_MATRIX_2026-08-07.md')
+          text = path.read_text()
+          matches = re.findall(r'```text\n(.*?)```', text, flags=re.S)
+          if len(matches) != 1:
+              raise SystemExit(f'expected exactly one canonical matrix block, found {len(matches)}')
+          matrix = matches[0]
+          expected = '021a1f2cc30281b5167e0557fe68d8c3cf5d62b7f6d1789604d9d956920cad8e'
+          actual = hashlib.sha256(matrix.encode()).hexdigest()
+          if actual != expected:
+              raise SystemExit(f'matrix SHA-256 drift: expected {expected}, found {actual}')
+          if 'clipping_count == 0' not in text:
+              raise SystemExit('zero-clipping gate is not frozen in matrix authority')
+          Path('/tmp/s4-matrix.tsv').write_text(matrix)
+          PY
+      - name: Build release tooling
+        run: cargo build --locked --release -p chess-tools --bin chess-tools
+      - name: Regenerate exact stronger calibration corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/s4-stronger.txt <<'EOF'
+          schema=1
+          games=96
+          seed=1395929912
+          maximum_plies=256
+          white_limit=nodes:1024
+          white_tt_mib=1
+          white_check_extension=false
+          black_limit=nodes:1024
+          black_tt_mib=1
+          black_check_extension=false
+          claimable_draw=accept
+          opening_positions=exclude
+          split_train=70
+          split_validation=20
+          split_test=10
+          opening_path=fixtures/self_play_openings.tsv
+          EOF
+          printf '%s  %s\n' '11102da8d9581089429884e29a1a942c6d504e300813e9229e3270036361def1' /tmp/s4-stronger.txt | sha256sum --check --status
+          target/release/chess-tools s3-self-play "$GITHUB_SHA" /tmp/s4-stronger.txt /tmp/s4-stronger | tee /tmp/stronger.log
+          target/release/chess-tools s3-self-play-validate /tmp/s4-stronger | tee /tmp/stronger-validate.log
+          grep -Fxq $'dataset_checksum\t85c0e5949cb329e3' /tmp/stronger.log
+          grep -Fxq $'training_occurrences\t8202' /tmp/stronger.log
+          grep -Fxq $'validation_occurrences\t2465' /tmp/stronger.log
+          grep -Fxq $'excluded_rows\t0' /tmp/stronger.log
+          grep -Fxq $'admitted_for_tuning\ttrue' /tmp/stronger-validate.log
+      - name: Execute all frozen rows exactly once
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/s4-matrix-runs
+          tail -n +2 /tmp/s4-matrix.tsv | while IFS=$'\t' read -r run learning perturb reg iterations step_decay perturb_decay stability seed candidate; do
+            test -n "$run"
+            out="/tmp/s4-matrix-runs/run-${run}"
+            config="/tmp/s4-matrix-run-${run}.txt"
+            printf 'CHESS_TUNING_CONFIG\t1\n' > "$config"
+            cat >> "$config" <<EOF
+          engine_identifier=5995211731466014277
+          initial_weight_identifier=4774188637087157829
+          candidate_weight_identifier=${candidate}
+          source_commit=${GITHUB_SHA}
+          generated_at_unix_seconds=$((1786112000 + run))
+          maximum_iterations=${iterations}
+          advance_iterations=${iterations}
+          learning_rate=${learning}
+          step_decay=${step_decay}
+          perturbation_size=${perturb}
+          perturbation_decay=${perturb_decay}
+          stability_constant=${stability}
+          minimum_weight=-2000
+          maximum_weight=2000
+          regularization_strength=${reg}
+          random_seed=${seed}
+          k_minimum=0.1
+          k_maximum=3.0
+          k_intervals=20
+          EOF
+            target/release/chess-tools tune-group full_existing_evaluator "$config" /tmp/s4-stronger "$out" > "/tmp/run-${run}.log" 2>&1 || {
+              cat "/tmp/run-${run}.log"
+              echo "matrix row ${run} failed to execute; no result is accepted" >&2
+              exit 1
+            }
+            test -f "$out/ACTIVATION_DISABLED"
+            test -f "$out/s4-summary.tsv"
+            test -f "$out/s4-optimizer-trace.txt"
+            grep -Fxq $'activated\tfalse' "$out/s4-summary.tsv"
+            grep -Fxq $'disposition\tunassessed' "$out/s4-summary.tsv"
+          done
+      - name: Classify and deterministically select
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          baseline_value_checksum = '16e06c1ca0cece90'
+          validation_tolerance = 0.0005
+          matrix = list(csv.DictReader(Path('/tmp/s4-matrix.tsv').read_text().splitlines(), delimiter='\t'))
+          results = []
+          for row in matrix:
+              run = int(row['run'])
+              summary = {}
+              for line in Path(f'/tmp/s4-matrix-runs/run-{run}/s4-summary.tsv').read_text().splitlines():
+                  key, value = line.split('\t', 1)
+                  if key in summary:
+                      raise SystemExit(f'run {run}: duplicate summary field {key}')
+                  summary[key] = value
+              required = {
+                  'group','mask_fingerprint','active_parameter_count','initial_training_loss',
+                  'final_training_loss','training_loss_delta','initial_validation_loss',
+                  'final_validation_loss','validation_loss_delta','changed_parameter_count',
+                  'maximum_absolute_parameter_delta','mean_absolute_parameter_delta',
+                  'zero_after_quantization_count','clipping_count','candidate_value_checksum',
+                  'candidate_artifact_checksum','trace_checksum','activated','disposition'
+              }
+              if set(summary) != required:
+                  raise SystemExit(f'run {run}: S4 summary schema drift: {set(summary) ^ required}')
+              if summary['group'] != 'full_existing_evaluator':
+                  raise SystemExit(f'run {run}: wrong group')
+              if summary['mask_fingerprint'] != '02c6c0907d4847c3':
+                  raise SystemExit(f'run {run}: wrong mask fingerprint')
+              if int(summary['active_parameter_count']) != 810:
+                  raise SystemExit(f'run {run}: wrong active count')
+              if summary['activated'] != 'false' or summary['disposition'] != 'unassessed':
+                  raise SystemExit(f'run {run}: invalid activation/disposition state')
+              changed = int(summary['changed_parameter_count'])
+              train_delta = float(summary['training_loss_delta'])
+              validation_delta = float(summary['validation_loss_delta'])
+              clipping = int(summary['clipping_count'])
+              candidate_checksum = summary['candidate_value_checksum']
+              if changed <= 0:
+                  disposition = 'rejected_no_movement'
+              elif candidate_checksum == baseline_value_checksum:
+                  disposition = 'rejected_identity_not_changed'
+              elif train_delta >= 0.0:
+                  disposition = 'rejected_no_training_improvement'
+              elif validation_delta > validation_tolerance:
+                  disposition = 'rejected_validation_regression'
+              elif clipping != 0:
+                  disposition = 'rejected_clipping'
+              else:
+                  disposition = 'advances_to_reproduction'
+              results.append({**row, **summary, 'matrix_disposition': disposition})
+
+          fields = [
+              'run','learning_rate','perturbation_size','regularization_strength','iterations',
+              'training_loss_delta','validation_loss_delta','changed_parameter_count',
+              'maximum_absolute_parameter_delta','mean_absolute_parameter_delta',
+              'zero_after_quantization_count','clipping_count','candidate_value_checksum',
+              'candidate_artifact_checksum','trace_checksum','matrix_disposition'
+          ]
+          out = Path('/tmp/matrix-results.tsv')
+          with out.open('w', newline='') as handle:
+              writer = csv.DictWriter(handle, fieldnames=fields, delimiter='\t', lineterminator='\n')
+              writer.writeheader()
+              for result in results:
+                  writer.writerow({key: result[key] for key in fields})
+
+          advancing = [r for r in results if r['matrix_disposition'] == 'advances_to_reproduction']
+          advancing.sort(key=lambda r: (
+              float(r['validation_loss_delta']),
+              float(r['training_loss_delta']),
+              int(r['maximum_absolute_parameter_delta']),
+              int(r['run']),
+          ))
+          selection = Path('/tmp/matrix-selection.tsv')
+          if advancing:
+              chosen = advancing[0]
+              selection.write_text(
+                  'status\tselected\n'
+                  f"run\t{chosen['run']}\n"
+                  f"candidate_value_checksum\t{chosen['candidate_value_checksum']}\n"
+                  f"candidate_artifact_checksum\t{chosen['candidate_artifact_checksum']}\n"
+                  f"trace_checksum\t{chosen['trace_checksum']}\n"
+                  f"training_loss_delta\t{chosen['training_loss_delta']}\n"
+                  f"validation_loss_delta\t{chosen['validation_loss_delta']}\n"
+                  f"maximum_absolute_parameter_delta\t{chosen['maximum_absolute_parameter_delta']}\n"
+                  'activated\tfalse\n'
+              )
+          else:
+              selection.write_text('status\tno_eligible_row\nactivated\tfalse\n')
+          print(out.read_text(), end='')
+          print(selection.read_text(), end='')
+          PY
+      - name: Package matrix evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p s4-matrix-evidence
+          cp /tmp/s4-matrix.tsv /tmp/matrix-results.tsv /tmp/matrix-selection.tsv /tmp/s4-stronger.txt /tmp/stronger.log /tmp/stronger-validate.log s4-matrix-evidence/
+          cp -a /tmp/s4-matrix-runs s4-matrix-evidence/runs
+          for run in $(seq 1 12); do cp "/tmp/s4-matrix-run-${run}.txt" "s4-matrix-evidence/run-${run}-config.txt"; cp "/tmp/run-${run}.log" "s4-matrix-evidence/run-${run}.log"; done
+          printf '%s\n' "$GITHUB_SHA" > s4-matrix-evidence/source-sha.txt
+          printf '%s\n' '021a1f2cc30281b5167e0557fe68d8c3cf5d62b7f6d1789604d9d956920cad8e' > s4-matrix-evidence/matrix-sha256.txt
+          printf 'activated\tfalse\n' > s4-matrix-evidence/disposition.tsv
+      - name: Upload matrix evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: s4-hyperparameter-matrix-${{ github.sha }}
+          path: s4-matrix-evidence
+          if-no-files-found: error
+          retention-days: 30
