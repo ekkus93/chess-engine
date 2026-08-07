@@ -76,8 +76,7 @@ jobs:
             docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_IMPLEMENTATION_REPORT.md \
             docs/LEGACY_TODO_INDEX.md \
             scripts/task_post_port_review_fix_audit.sh \
-            scripts/task_v0_2_strength_audit.sh \
-            .github/workflows/tracker-close.yml
+            scripts/task_v0_2_strength_audit.sh
           git diff --cached --check
           git commit -m "docs: close S2-16 without v0.2 promotion"
           git push origin HEAD:master
