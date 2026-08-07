@@ -205,7 +205,6 @@ pub struct S3CandidateEnvelope {
 
 impl S3CandidateEnvelope {
     /// Constructs a strict inactive candidate sidecar.
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
         group: EvaluationParameterGroup,
         artifact: &NamedWeightArtifact,
