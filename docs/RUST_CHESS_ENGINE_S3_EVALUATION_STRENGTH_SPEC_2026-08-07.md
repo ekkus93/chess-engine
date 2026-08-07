@@ -1,10 +1,11 @@
 # Rust Chess Engine S3 Evaluation Strength Specification — 2026-08-07
 
-**Status:** Active planning authority; implementation not yet complete  
+**Status:** Complete — program closed without promotion  
 **Date:** 2026-08-07  
 **Branch:** `master`  
 **Planning baseline SHA:** `f5fdd516e469cce5e7d6322488e0265950b02197`  
 **Companion TODO:** `docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_TODO_2026-08-07.md`  
+**Final report:** `docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_IMPLEMENTATION_REPORT.md`  
 **Completed Rust-port tracker:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
 **Completed Rust-port task definitions:** `docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md`  
 **S2 closure report:** `docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_IMPLEMENTATION_REPORT.md`
