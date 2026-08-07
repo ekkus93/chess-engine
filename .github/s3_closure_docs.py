@@ -1,5 +1,6 @@
 from pathlib import Path
 
+# Temporary closure-only documentation helper. Removed after the exact wording commit lands.
 path = Path('docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_SPEC_2026-08-07.md')
 text = path.read_text()
 replacements = [
