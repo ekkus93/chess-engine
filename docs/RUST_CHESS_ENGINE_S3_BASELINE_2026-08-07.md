@@ -60,8 +60,8 @@ The S3 planning commit changes documentation and TODO-authority audit state only
   - Android API 35 JNI smoke job `92868991806`: success.
   - Host JVM JNI contract job `92868991817`: success.
 - Report-master validation run `31179755209`: success.
-- CI run `31179459907`: exact planning-baseline run; ARM64 job `92868992078` succeeded. The x86-64 workspace-quality job `92868991929` was still running when this baseline record was first staged and must be recorded as successful before S3-0 is marked complete.
+- CI run `31179459907`: ARM64 job `92868992078` succeeded. The x86-64 workspace-quality job `92868991929` was later cancelled by workflow concurrency after subsequent S3 pushes; it did not fail a test. The later clean permanent S3 gates run the complete x86-64 workspace checks and therefore provide the implementation signoff rather than retroactively relabeling this cancelled planning-baseline job as successful.
 
 ## Non-promotion rule
 
-This document is evidence capture only. It authorizes no weight, search-policy, version, opening, tablebase, ABI, JNI, Android, or production-default change. Candidate work begins only after the S3 tracker records its own validated implementation evidence.
+This document is evidence capture only. It authorizes no weight, search-policy, version, opening, tablebase, ABI, JNI, Android, or production-default change. The completed S3 tracker and final report record the later implementation evidence and no-promotion disposition.
