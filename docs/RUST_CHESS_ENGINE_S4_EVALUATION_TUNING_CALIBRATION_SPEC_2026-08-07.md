@@ -145,17 +145,9 @@ S4 must not:
 ### 6.1 Iteration trace
 
 Introduce a versioned, checksummed S4 optimizer-trace artifact or equivalent
-strict report extension. It must bind to:
-
-- source SHA;
-- tuning config checksum;
-- dataset manifest checksum;
-- parameter-mask fingerprint;
-- initial weight identity/checksum;
-- random seed;
-- optimizer iteration number;
-- exact SPSA schedule values;
-- candidate/checkpoint identity.
+strict report extension. It must bind to source SHA, tuning-config checksum,
+dataset-manifest checksum, parameter-mask fingerprint, initial weight identity,
+random seed, optimizer iteration, and checkpoint identity.
 
 The trace must contain enough information to reproduce every update decision.
 Critical numeric values must be serialized canonically and must not depend on
@@ -165,30 +157,15 @@ locale or debug formatting.
 
 Because runtime evaluator weights are integer-valued, S4 must explicitly measure
 where floating-point optimizer movement is lost when materialized as integer
-weights. Reports must distinguish:
-
-- zero estimated gradient;
-- non-zero gradient but sub-integer proposed update;
-- non-zero integer update;
-- update clipped by configured min/max bounds;
-- update cancelled or reduced by regularization.
-
-No final `0.0` loss delta may be accepted without reporting which of these cases
-occurred.
+weights. Reports must distinguish zero estimated gradient, sub-integer proposed
+updates, non-zero integer updates, bound clipping, and regularization effects.
 
 ### 6.3 Gradient diagnostics
 
-Each run must report bounded statistics such as:
-
-- number of active parameters;
-- positive/negative/zero gradient estimates;
-- minimum/maximum/mean absolute gradient estimate;
-- minimum/maximum/mean proposed update magnitude;
-- number and fraction of zero-after-quantization updates;
-- number and fraction of clipped updates.
-
-Raw per-parameter traces may be emitted as generated artifacts but must follow the
-repository artifact policy.
+Each run must report active-parameter count, gradient-sign counts, absolute
+gradient statistics, proposed-update statistics, zero-after-quantization count,
+and clipped-update count. Raw per-parameter traces may be generated as artifacts
+but must follow repository artifact policy.
 
 ---
 
@@ -206,23 +183,17 @@ parameter toward the optimum and converges within a declared tolerance.
 ### 7.2 Multi-parameter synthetic objective
 
 Construct a bounded deterministic objective over multiple parameters with a known
-optimum and mixed gradient signs. Prove:
-
-- inactive parameters never move;
-- active parameters move in the expected directions;
-- bounds are respected;
-- resume produces the same result as an uninterrupted run;
-- changing seed/config changes the expected provenance identity.
+optimum and mixed gradient signs. Prove inactive parameters never move, active
+parameters move correctly, bounds are respected, resume equals uninterrupted
+execution, and provenance changes when seed/config changes.
 
 ### 7.3 Deliberately degraded chess evaluator
 
-Create one or more **test-only/inactive** evaluator variants with known degraded
-weights, such as materially wrong piece values or a deliberately distorted
-piece-square term. Use a deterministic chess-position dataset to prove the tuner
-can recover toward the authoritative baseline or another predeclared target.
-
-This experiment must never be exposed through production adapters and must never
-be mistaken for a releasable candidate.
+Create test-only/inactive evaluator variants with known degraded weights, such as
+materially wrong piece values or a deliberately distorted PST term. Use a
+deterministic chess-position dataset to prove the tuner can recover toward the
+authoritative baseline or another predeclared target. These variants must never
+be exposed through production adapters.
 
 ---
 
@@ -230,62 +201,26 @@ be mistaken for a releasable candidate.
 
 S3's 32-game depth-1 corpus was appropriate for pipeline validation, not for
 strong tuning conclusions. S4 must define and generate a stronger deterministic
-corpus.
+corpus with explicit opening identity, game count, resource limits, TT budget,
+draw policy, maximum plies, seed, train/validation/test split, row eligibility,
+unfinished-game ceiling, occurrence minimums, source SHA, and invocation.
 
-The calibration corpus must predeclare:
-
-- opening suite identity;
-- number of games;
-- per-side search limits;
-- transposition-table budget;
-- draw policy;
-- maximum plies;
-- deterministic random seed;
-- train/validation/test split;
-- opening-row eligibility policy;
-- unfinished-game ceiling;
-- minimum training and validation occurrence counts;
-- exact source SHA and invocation.
-
-Prefer fixed-node search limits for cross-run reproducibility. If clock-based data
-is used, it must be separated from deterministic calibration evidence.
-
-S4 should evaluate at least two corpus scales so that the project can determine
-whether optimizer signal improves materially with more or stronger positions.
-The larger corpus must remain bounded and must not be committed if repository
-artifact policy forbids it.
+Prefer fixed-node limits for cross-run reproducibility. S4 should evaluate at
+least two bounded corpus scales to determine whether optimizer signal materially
+improves with more or stronger positions.
 
 ---
 
 ## 9. Hyperparameter calibration
 
-S4 must predeclare a bounded hyperparameter matrix before running experiments.
-Candidate dimensions may include:
+S4 must predeclare a bounded hyperparameter matrix before experiments. Candidate
+dimensions may include learning rate, perturbation size, decay schedules,
+stability constant, regularization strength, and iteration count.
 
-- learning rate;
-- SPSA perturbation size;
-- learning-rate decay;
-- perturbation decay;
-- stability constant;
-- regularization strength;
-- iteration count.
-
-The matrix must be small enough to be auditable and must not become an
-uncontrolled random search.
-
-Every calibration run must report:
-
-- exact config identity;
-- exact dataset identity;
-- parameter-mask identity;
-- initial and final training loss;
-- initial and final held-out loss;
-- parameter-change count;
-- maximum and mean absolute parameter delta;
-- quantization-zero count;
-- clipping count;
-- deterministic candidate checksum;
-- inactive activation state.
+Each run must report exact config/dataset/mask identities, train/held-out loss,
+changed-parameter count, maximum/mean absolute parameter delta,
+zero-after-quantization count, clipping count, candidate checksum, and
+`activated=false`.
 
 A configuration cannot advance merely because it changes more parameters. It
 must satisfy the predeclared held-out rule and all correctness/provenance gates.
@@ -294,21 +229,19 @@ must satisfy the predeclared held-out rule and all correctness/provenance gates.
 
 ## 10. Real-data tuning-signal gate
 
-Before S4 can recommend evaluator-feature work, at least one existing-weight run
-must demonstrate all of the following:
+Before future evaluator-feature work, at least one existing-weight run must show:
 
 - deterministic source/config/dataset identities;
 - non-zero effective parameter movement;
-- at least one parameter change after integer materialization;
 - training loss improves by more than zero;
 - held-out loss does not regress beyond the predeclared tolerance;
-- repeated run with the same inputs produces the same candidate checksum;
+- same inputs reproduce the same candidate checksum;
 - candidate remains `activated=false`;
 - candidate registry accepts the artifact;
-- production defaults remain byte-for-byte/identity unchanged.
+- production defaults remain unchanged.
 
-If no configuration meets this gate, S4 must stop and recommend redesign or
-replacement of the tuning method rather than continue into evaluator-feature
+If no bounded configuration meets this gate, S4 must stop and recommend redesign
+or replacement of the tuning method rather than continue into evaluator-feature
 experimentation.
 
 ---
@@ -316,82 +249,48 @@ experimentation.
 ## 11. Optional development strength check
 
 A small development match is permitted only after the real-data tuning-signal
-gate passes. It is intended to detect catastrophic chess regressions and validate
-candidate plumbing, not to authorize release.
-
-The match must:
-
-- compare against untouched v0.1;
-- use paired/color-swapped openings;
-- use equal resource limits;
-- keep independent transposition tables;
-- record crashes, illegal moves, unfinished games, and infrastructure failures
-  separately;
-- remain inactive regardless of result.
-
-Large production validation belongs to a later program after a genuinely
-promising evaluator candidate exists.
+gate passes. It may detect catastrophic chess regressions and validate candidate
+plumbing, but it cannot authorize release. It must compare against untouched
+v0.1 under paired/color-swapped equal-resource conditions and keep independent
+TTs and explicit failure accounting.
 
 ---
 
 ## 12. Acceptance criteria
 
-S4 succeeds in the preferred path when:
-
-1. optimizer iteration traces make zero-movement causes observable;
-2. synthetic known-answer tests move in the expected direction;
-3. deliberately degraded evaluator tests recover measurably toward the target;
-4. stronger deterministic corpus generation is reproducible and provenance-bound;
-5. at least one bounded hyperparameter configuration produces non-zero real-data
-   weight movement with improved training loss and acceptable held-out behavior;
-6. the result reproduces exactly from the same inputs;
-7. production defaults and public adapters remain unchanged.
+S4 succeeds in the preferred path when optimizer traces explain movement,
+synthetic known-answer tests move correctly, degraded evaluator tests recover,
+stronger deterministic corpora are reproducible, and at least one bounded
+real-data configuration yields non-zero effective movement with improved
+training loss and acceptable held-out behavior.
 
 S4 may also close successfully with a **method rejected** outcome if rigorous
 evidence shows that the current SPSA/integer-weight approach cannot provide a
 credible tuning signal under reasonable bounded configurations. That closure
-must include a concrete recommendation for the next method to evaluate.
+must recommend the next method to evaluate.
 
 ---
 
 ## 13. Validation requirements
 
-At minimum, permanent S4 validation must preserve or extend:
+Permanent S4 validation must preserve or extend formatting, workspace check,
+strict Clippy, all workspace tests, S3 provenance and candidate-registry tests,
+public-surface audits, tuning resume/checkpoint regressions, optimizer
+known-answer tests, deterministic trace tests, TODO-authority audit, and any
+performance/robustness/Android/JNI gates required by touched code.
 
-- `cargo fmt --all -- --check`;
-- `cargo check --locked --workspace --all-targets --all-features`;
-- `cargo clippy --locked --workspace --all-targets --all-features -- -D warnings`;
-- `cargo test --locked --workspace --all-targets --all-features`;
-- S3 dataset/provenance regressions;
-- S3 candidate-registry regressions;
-- S3 public-surface audits;
-- tuning resume/checkpoint regressions;
-- optimizer known-answer tests;
-- deterministic optimizer-trace tests;
-- permanent TODO-authority audit;
-- performance/robustness/Android/JNI validation when touched code requires it.
-
-First-party failures must be fixed at source or explicitly recorded as a real
-program blocker. No gate may be weakened merely to obtain a green run.
+First-party failures must be fixed at source or explicitly recorded as real
+program blockers. No gate may be weakened merely to obtain a green run.
 
 ---
 
 ## 14. Documentation and closure
 
-S4 must produce a final implementation report containing:
-
-- exact baseline and final SHAs;
-- root cause(s) of the S3 zero-movement result;
-- optimizer trace schema/identity;
-- synthetic recovery results;
-- degraded-evaluator recovery results;
-- corpus identities and statistics;
-- hyperparameter matrix and dispositions;
-- real-data tuning results;
-- any development match results;
-- exact run/job/artifact IDs and checksums;
-- whether the tuning method is accepted for future evaluator work or rejected;
-- confirmation that activation did not occur.
+S4 must produce a final implementation report with exact baseline/final SHAs,
+root cause of S3 zero movement, optimizer-trace identity, known-answer and
+recovery results, corpus identities, hyperparameter matrix, real-data tuning
+results, optional development match, exact run/job/artifact evidence, final
+method disposition, and explicit confirmation that activation did not occur.
 
 When S4 closes, its TODO must move from active authority to historical inventory
 and the permanent authority audit must be updated accordingly.
@@ -403,5 +302,5 @@ and the permanent authority audit must be updated accordingly.
 S4 is complete only when the project can explain the S3 zero-movement outcome
 with exact evidence and can either demonstrate a reproducible non-zero tuning
 signal or formally reject the current tuning method. Merely running more SPSA
-iterations, increasing dataset size, or obtaining a workflow-success status is
-not sufficient.
+iterations, increasing dataset size, or obtaining workflow success is not
+sufficient.
