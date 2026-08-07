@@ -47,12 +47,18 @@ impl S4OptimizerTraceBinding {
         for (name, value) in [
             ("tuning config checksum", self.tuning_config_checksum),
             ("dataset manifest checksum", self.dataset_manifest_checksum),
-            ("parameter mask fingerprint", self.parameter_mask_fingerprint),
+            (
+                "parameter mask fingerprint",
+                self.parameter_mask_fingerprint,
+            ),
             ("initial weight identifier", self.initial_weight_identifier),
             ("initial weight checksum", self.initial_weight_checksum),
             ("config fingerprint", self.config_fingerprint),
             ("dataset fingerprint", self.dataset_fingerprint),
-            ("initial checkpoint checksum", self.initial_checkpoint_checksum),
+            (
+                "initial checkpoint checksum",
+                self.initial_checkpoint_checksum,
+            ),
         ] {
             if value == 0 {
                 return Err(S4OptimizerTraceError::EmptyIdentity(name));
@@ -160,8 +166,7 @@ impl S4OptimizerTrace {
             });
         }
         let source_commit = parse_key_commit(&lines, &mut cursor, "source_commit")?;
-        let tuning_config_checksum =
-            parse_key_hex(&lines, &mut cursor, "tuning_config_checksum")?;
+        let tuning_config_checksum = parse_key_hex(&lines, &mut cursor, "tuning_config_checksum")?;
         let dataset_manifest_checksum =
             parse_key_hex(&lines, &mut cursor, "dataset_manifest_checksum")?;
         let parameter_mask_fingerprint =
@@ -295,11 +300,26 @@ impl S4OptimizerTrace {
             format_commit(self.binding.source_commit)
         ));
         for (key, value) in [
-            ("tuning_config_checksum", self.binding.tuning_config_checksum),
-            ("dataset_manifest_checksum", self.binding.dataset_manifest_checksum),
-            ("parameter_mask_fingerprint", self.binding.parameter_mask_fingerprint),
-            ("initial_weight_identifier", self.binding.initial_weight_identifier),
-            ("initial_weight_checksum", self.binding.initial_weight_checksum),
+            (
+                "tuning_config_checksum",
+                self.binding.tuning_config_checksum,
+            ),
+            (
+                "dataset_manifest_checksum",
+                self.binding.dataset_manifest_checksum,
+            ),
+            (
+                "parameter_mask_fingerprint",
+                self.binding.parameter_mask_fingerprint,
+            ),
+            (
+                "initial_weight_identifier",
+                self.binding.initial_weight_identifier,
+            ),
+            (
+                "initial_weight_checksum",
+                self.binding.initial_weight_checksum,
+            ),
         ] {
             output.push_str(&format!("{key}={value:016x}\n"));
         }
@@ -307,7 +327,10 @@ impl S4OptimizerTrace {
         for (key, value) in [
             ("config_fingerprint", self.binding.config_fingerprint),
             ("dataset_fingerprint", self.binding.dataset_fingerprint),
-            ("initial_checkpoint_checksum", self.binding.initial_checkpoint_checksum),
+            (
+                "initial_checkpoint_checksum",
+                self.binding.initial_checkpoint_checksum,
+            ),
         ] {
             output.push_str(&format!("{key}={value:016x}\n"));
         }
@@ -352,7 +375,10 @@ impl fmt::Display for S4OptimizerTraceError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::SchemaVersion { expected, found } => {
-                write!(formatter, "expected S4 trace schema {expected}, found {found}")
+                write!(
+                    formatter,
+                    "expected S4 trace schema {expected}, found {found}"
+                )
             }
             Self::Identifier { expected, found } => write!(
                 formatter,
@@ -371,7 +397,10 @@ impl fmt::Display for S4OptimizerTraceError {
             ),
             Self::BindingMismatch => formatter.write_str("S4 trace provenance binding mismatch"),
             Self::ImpossibleCounts { iteration } => {
-                write!(formatter, "impossible S4 diagnostic counts at iteration {iteration}")
+                write!(
+                    formatter,
+                    "impossible S4 diagnostic counts at iteration {iteration}"
+                )
             }
             Self::IterationSequence { previous, found } => write!(
                 formatter,
@@ -382,7 +411,10 @@ impl fmt::Display for S4OptimizerTraceError {
                 "invalid S4 checkpoint identity at iteration {iteration}"
             ),
             Self::NonFinite { iteration } => {
-                write!(formatter, "non-finite S4 diagnostic at iteration {iteration}")
+                write!(
+                    formatter,
+                    "non-finite S4 diagnostic at iteration {iteration}"
+                )
             }
         }
     }
@@ -476,7 +508,10 @@ fn parse_iteration(line: &str) -> Result<SpsaIterationDiagnostics, S4OptimizerTr
     let validation = if fields[29] == "none" {
         None
     } else {
-        Some(f64::from_bits(parse_hex(fields[29], "validation loss bits")?))
+        Some(f64::from_bits(parse_hex(
+            fields[29],
+            "validation loss bits",
+        )?))
     };
     let diagnostic = SpsaIterationDiagnostics {
         iteration: parse_u64(fields[1], "iteration")?,
@@ -485,8 +520,14 @@ fn parse_iteration(line: &str) -> Result<SpsaIterationDiagnostics, S4OptimizerTr
         negative_value_checksum: parse_hex(fields[4], "negative value checksum")?,
         positive_data_loss: f64::from_bits(parse_hex(fields[5], "positive loss bits")?),
         negative_data_loss: f64::from_bits(parse_hex(fields[6], "negative loss bits")?),
-        positive_regularization: f64::from_bits(parse_hex(fields[7], "positive regularization bits")?),
-        negative_regularization: f64::from_bits(parse_hex(fields[8], "negative regularization bits")?),
+        positive_regularization: f64::from_bits(parse_hex(
+            fields[7],
+            "positive regularization bits",
+        )?),
+        negative_regularization: f64::from_bits(parse_hex(
+            fields[8],
+            "negative regularization bits",
+        )?),
         objective_difference: f64::from_bits(parse_hex(fields[9], "objective difference bits")?),
         gain: f64::from_bits(parse_hex(fields[10], "gain bits")?),
         perturbation: f64::from_bits(parse_hex(fields[11], "perturbation bits")?),
@@ -519,13 +560,13 @@ fn parse_key_value<'a>(
     cursor: &mut usize,
     expected_key: &str,
 ) -> Result<&'a str, S4OptimizerTraceError> {
-    let line = lines.get(*cursor).ok_or_else(|| {
-        S4OptimizerTraceError::Malformed(format!("missing field {expected_key}"))
-    })?;
+    let line = lines
+        .get(*cursor)
+        .ok_or_else(|| S4OptimizerTraceError::Malformed(format!("missing field {expected_key}")))?;
     *cursor += 1;
-    let (key, value) = line.split_once('=').ok_or_else(|| {
-        S4OptimizerTraceError::Malformed(format!("invalid field {line:?}"))
-    })?;
+    let (key, value) = line
+        .split_once('=')
+        .ok_or_else(|| S4OptimizerTraceError::Malformed(format!("invalid field {line:?}")))?;
     if key != expected_key || value.is_empty() || value.trim() != value {
         return Err(S4OptimizerTraceError::Malformed(format!(
             "expected field {expected_key}, found {line:?}"
@@ -591,7 +632,11 @@ fn parse_u32(value: &str, name: &str) -> Result<u32, S4OptimizerTraceError> {
 }
 
 fn parse_hex(value: &str, name: &str) -> Result<u64, S4OptimizerTraceError> {
-    if value.len() != 16 || value.bytes().any(|byte| !byte.is_ascii_hexdigit() || byte.is_ascii_uppercase()) {
+    if value.len() != 16
+        || value
+            .bytes()
+            .any(|byte| !byte.is_ascii_hexdigit() || byte.is_ascii_uppercase())
+    {
         return Err(S4OptimizerTraceError::Malformed(format!(
             "noncanonical hexadecimal {name}"
         )));
@@ -601,7 +646,11 @@ fn parse_hex(value: &str, name: &str) -> Result<u64, S4OptimizerTraceError> {
 }
 
 fn parse_commit(value: &str) -> Result<[u8; 20], S4OptimizerTraceError> {
-    if value.len() != 40 || value.bytes().any(|byte| !byte.is_ascii_hexdigit() || byte.is_ascii_uppercase()) {
+    if value.len() != 40
+        || value
+            .bytes()
+            .any(|byte| !byte.is_ascii_hexdigit() || byte.is_ascii_uppercase())
+    {
         return Err(S4OptimizerTraceError::Malformed(
             "source commit must be 40 lowercase hexadecimal characters".to_owned(),
         ));
@@ -632,9 +681,7 @@ fn hash_bytes(mut hash: u64, bytes: &[u8]) -> u64 {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        S4OptimizerTrace, S4OptimizerTraceBinding, S4OptimizerTraceError,
-    };
+    use super::{S4OptimizerTrace, S4OptimizerTraceBinding, S4OptimizerTraceError};
     use crate::SpsaIterationDiagnostics;
 
     fn diagnostic(iteration: u64, checkpoint_checksum: u64) -> SpsaIterationDiagnostics {
@@ -689,11 +736,9 @@ mod tests {
 
     #[test]
     fn trace_round_trip_is_bit_canonical() {
-        let trace = S4OptimizerTrace::new(
-            binding(),
-            vec![diagnostic(1, 0x50), diagnostic(2, 0x51)],
-        )
-        .expect("trace is valid");
+        let trace =
+            S4OptimizerTrace::new(binding(), vec![diagnostic(1, 0x50), diagnostic(2, 0x51)])
+                .expect("trace is valid");
         let text = trace.to_text().expect("trace serializes");
         let parsed = S4OptimizerTrace::from_text(&text).expect("trace parses");
         assert_eq!(parsed, trace);
@@ -702,10 +747,10 @@ mod tests {
 
     #[test]
     fn trace_checksum_corruption_fails_closed() {
-        let trace = S4OptimizerTrace::new(binding(), vec![diagnostic(1, 0x50)])
-            .expect("trace is valid");
+        let trace =
+            S4OptimizerTrace::new(binding(), vec![diagnostic(1, 0x50)]).expect("trace is valid");
         let text = trace.to_text().expect("trace serializes");
-        let corrupted = text.replacen("positive", "positive", 0).replace(
+        let corrupted = text.replace(
             "initial_weight_checksum=0000000000000016",
             "initial_weight_checksum=0000000000000017",
         );
@@ -717,8 +762,8 @@ mod tests {
 
     #[test]
     fn wrong_binding_fails_closed() {
-        let trace = S4OptimizerTrace::new(binding(), vec![diagnostic(1, 0x50)])
-            .expect("trace is valid");
+        let trace =
+            S4OptimizerTrace::new(binding(), vec![diagnostic(1, 0x50)]).expect("trace is valid");
         let mut wrong = binding();
         wrong.dataset_manifest_checksum += 1;
         assert_eq!(
@@ -729,14 +774,13 @@ mod tests {
 
     #[test]
     fn malformed_or_impossible_trace_is_rejected() {
-        let trace = S4OptimizerTrace::new(binding(), vec![diagnostic(1, 0x50)])
-            .expect("trace is valid");
+        let trace =
+            S4OptimizerTrace::new(binding(), vec![diagnostic(1, 0x50)]).expect("trace is valid");
         let text = trace.to_text().expect("trace serializes");
         assert!(S4OptimizerTrace::from_text(&text.replace("schema=1", "schema=2")).is_err());
-        assert!(S4OptimizerTrace::from_text(&text.replace(
-            "iteration_count=1",
-            "iteration_count=1\nunknown=1"
-        ))
+        assert!(S4OptimizerTrace::from_text(
+            &text.replace("iteration_count=1", "iteration_count=1\nunknown=1")
+        )
         .is_err());
 
         let mut impossible = diagnostic(1, 0x50);

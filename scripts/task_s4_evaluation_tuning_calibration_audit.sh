@@ -23,8 +23,11 @@ baseline=docs/RUST_CHESS_ENGINE_S4_BASELINE_2026-08-07.md
 legacy=docs/LEGACY_TODO_INDEX.md
 s3_tracker=docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_TODO_2026-08-07.md
 s3_report=docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_IMPLEMENTATION_REPORT.md
+diagnostics=crates/chess-tune/src/diagnostics.rs
+trace=crates/chess-tune/src/trace.rs
+optimizer=crates/chess-tune/src/optimizer.rs
 
-for path in "$spec" "$tracker" "$baseline" "$legacy" "$s3_tracker" "$s3_report"; do
+for path in "$spec" "$tracker" "$baseline" "$legacy" "$s3_tracker" "$s3_report" "$diagnostics" "$trace" "$optimizer"; do
   require_file "$path"
 done
 
@@ -63,6 +66,22 @@ require_literal 'pub const WEIGHT_VALUE_COUNT: usize = 816;' crates/chess-search
 require_literal 'pub const TUNABLE_PARAMETER_COUNT: usize = 810;' crates/chess-tune/src/lib.rs
 require_literal 'pub const S3_CANDIDATE_SCHEMA_VERSION: u16 = 1;' crates/chess-tools/src/s3_candidate.rs
 require_literal 'pub const S3_CANDIDATE_FORMAT_IDENTIFIER: u64 = 0x5333_4341_4e44_3031;' crates/chess-tools/src/s3_candidate.rs
+
+# S4 optimizer diagnostics and strict trace contract.
+require_literal 'pub const S4_OPTIMIZER_DIAGNOSTIC_SCHEMA_VERSION: u16 = 1;' "$diagnostics"
+require_literal 'pub const S4_OPTIMIZER_DIAGNOSTIC_IDENTIFIER: u64 = 0x5334_4449_4147_3031;' "$diagnostics"
+require_literal 'pub const S4_OPTIMIZER_TRACE_SCHEMA_VERSION: u16 = 1;' "$trace"
+require_literal 'pub const S4_OPTIMIZER_TRACE_IDENTIFIER: u64 = 0x5334_5452_4143_3031;' "$trace"
+require_literal 'pub fn advance_with_diagnostics(' "$optimizer"
+require_literal 'positive_regularization' "$diagnostics"
+require_literal 'zero_after_quantization_count' "$diagnostics"
+require_literal 'clipped_update_count' "$diagnostics"
+require_literal 'initial_checkpoint_checksum' "$trace"
+require_literal 'pub fn validate_binding(' "$trace"
+require_literal 'if trace.to_text()? != text' "$trace"
+require_literal 'trace_round_trip_is_bit_canonical' "$trace"
+require_literal 'trace_checksum_corruption_fails_closed' "$trace"
+require_literal 'wrong_binding_fails_closed' "$trace"
 
 # Temporary S4 staging controls must never become permanent evidence.
 while IFS= read -r path; do

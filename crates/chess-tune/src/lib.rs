@@ -9,6 +9,7 @@ mod diagnostics;
 mod loss;
 mod mask;
 mod optimizer;
+mod trace;
 
 pub use loss::{
     logistic_result_probability, KCalibrationConfig, KCalibrationResult, LogisticK, LossDataset,
@@ -25,6 +26,10 @@ pub use optimizer::{
     SpsaCheckpoint, SpsaConfig, SpsaOptimizer, SpsaOptimizerError, SpsaRunSummary, SpsaSchedule,
     SpsaWeightBounds, MAX_SPSA_ITERATIONS, MAX_SPSA_WEIGHT_MAGNITUDE,
     SPSA_CHECKPOINT_SCHEMA_VERSION, SPSA_OPTIMIZER_IDENTIFIER,
+};
+pub use trace::{
+    S4OptimizerTrace, S4OptimizerTraceBinding, S4OptimizerTraceError,
+    S4_OPTIMIZER_TRACE_IDENTIFIER, S4_OPTIMIZER_TRACE_SCHEMA_VERSION,
 };
 
 use core::{fmt, fmt::Write as _, iter::FusedIterator};
