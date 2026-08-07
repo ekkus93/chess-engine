@@ -12,7 +12,7 @@ This file prevents historical planning documents from being mistaken for current
 
 ## Exhaustive classification rule
 
-Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO` and is not one of the two authority documents above is a historical or legacy reference. Those files preserve implementation history, but they are not active instructions and must not override the active v0.2 tracker or the completed Rust-port authority records.
+Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO` and is not one of the two authority documents above is a historical or legacy reference. Those files preserve implementation history, but they are not active instructions and must not override the completed Rust-port authority records or any future TODO explicitly registered in the authority table.
 
 Inventory captured on 2026-08-05 and reclassified at S2-16 closure on 2026-08-07: **72 TODO-named files total; 2 authority documents; 1 authority index; 69 historical.**
 

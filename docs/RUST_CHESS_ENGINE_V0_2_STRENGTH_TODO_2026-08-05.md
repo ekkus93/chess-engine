@@ -1156,9 +1156,9 @@ Discovered defects and permanent regressions:
 Remaining risks:
 ```
 
-## Initial next action
+## Post-closure roadmap
 
-Begin with **S2-10.1 only**: decide whether a separately versioned, shallow non-PV futility-pruning candidate is justified by the current profile and accepted baseline. Do not combine it with rejected PVS, LMR, SEE/delta, or null-move candidates, and do not activate or expose it through production adapters without its own correctness and strength disposition.
+No active v0.2 strength task remains under this tracker. Any future strength work must begin under a new explicitly registered specification/TODO authority with fresh candidate identities and evidence; this completed tracker is historical and does not authorize activation of rejected or deferred candidates.
 
 ## S2-16 closure record
 
