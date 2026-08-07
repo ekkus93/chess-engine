@@ -6,6 +6,7 @@ on:
       - master
     paths:
       - .github/s3_phase3.py
+      - .github/s3_phase3_fix.py
       - .github/workflows/s3-phase3-stage.yml
   workflow_dispatch:
 
@@ -31,7 +32,9 @@ jobs:
           components: rustfmt, clippy
 
       - name: Apply S3 phase 3 changes
-        run: python3 .github/s3_phase3.py
+        run: |
+          python3 .github/s3_phase3_fix.py
+          python3 .github/s3_phase3.py
 
       - name: Format generated Rust changes
         run: cargo fmt --all
@@ -55,8 +58,7 @@ jobs:
         run: cargo test --locked -p chess-tools 's3::'
 
       - name: Exercise S3 CLI usage and legacy tuning tests
-        run: |
-          cargo test --locked -p chess-tools --bin chess-tools
+        run: cargo test --locked -p chess-tools --bin chess-tools
 
       - name: Reject whitespace errors
         run: git diff --check
