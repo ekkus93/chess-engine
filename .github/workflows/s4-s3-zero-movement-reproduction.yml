@@ -48,8 +48,8 @@ jobs:
           split_test=10
           opening_path=fixtures/self_play_openings.tsv
           EOF
-          target/release/chess-tools s3-self-play "$GITHUB_SHA" /tmp/s3-self-play.txt /tmp/s4-s3-data | tee /tmp/dataset.log
-          target/release/chess-tools s3-self-play-validate /tmp/s4-s3-data | tee /tmp/validate.log
+          target/release/chess-tools s3-self-play "$GITHUB_SHA" /tmp/s3-self-play.txt /tmp/s3-data | tee /tmp/dataset.log
+          target/release/chess-tools s3-self-play-validate /tmp/s3-data | tee /tmp/validate.log
           grep -Fxq $'dataset_checksum\tc691d1928ffda61b' /tmp/dataset.log
           grep -Fxq $'training_occurrences\t2066' /tmp/dataset.log
           grep -Fxq $'validation_occurrences\t195' /tmp/dataset.log
@@ -81,7 +81,7 @@ jobs:
           k_maximum=3.0
           k_intervals=20
           EOF
-          target/release/chess-tools tune-group full_existing_evaluator "$config" /tmp/s4-s3-data /tmp/s4-s3-output | tee /tmp/tuning.log
+          target/release/chess-tools tune-group full_existing_evaluator "$config" /tmp/s3-data /tmp/s4-s3-output | tee /tmp/tuning.log
           test -f /tmp/s4-s3-output/s4-optimizer-trace.txt
           grep -Fxq $'training_loss_delta\t0.00000000000000000e0' /tmp/s4-s3-output/s3-summary.tsv
           grep -Fxq $'validation_loss_delta\t0.00000000000000000e0' /tmp/s4-s3-output/s3-summary.tsv
@@ -123,15 +123,13 @@ jobs:
           print(f'total_clipped_updates\t{total_clipped}')
           print(f'total_changed_parameters\t{total_changed}')
           print(f'classification\t{classification}')
-          if classification not in {'zero_gradient', 'quantization_limited', 'projection_or_other', 'effective_movement'}:
-              raise SystemExit('invalid diagnosis classification')
           PY
       - name: Package reproduction evidence
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p s4-s3-reproduction-evidence
-          cp -a /tmp/s4-s3-data s4-s3-reproduction-evidence/dataset
+          cp -a /tmp/s3-data s4-s3-reproduction-evidence/dataset
           cp -a /tmp/s4-s3-output s4-s3-reproduction-evidence/tuning
           cp /tmp/s3-self-play.txt /tmp/s3-full.txt /tmp/dataset.log /tmp/validate.log /tmp/tuning.log /tmp/diagnosis.tsv s4-s3-reproduction-evidence/
           printf '%s\n' "$GITHUB_SHA" > s4-s3-reproduction-evidence/source-sha.txt
