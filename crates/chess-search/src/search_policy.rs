@@ -21,8 +21,6 @@ pub const SEE_AND_DELTA_QUIESCENCE_PRUNING_SEARCH_POLICY_ID: u64 = 0x5332_3644_4
 pub const PRINCIPAL_VARIATION_SEARCH_POLICY_ID: u64 = 0x5332_3750_5653_3031;
 /// Stable identifier for the inactive S2-8 Late Move Reductions candidate.
 pub const LATE_MOVE_REDUCTIONS_SEARCH_POLICY_ID: u64 = 0x5332_384c_4d52_3031;
-/// Stable identifier for the frozen inactive S2-14 SEE-ordering plus LMR candidate.
-pub const S2_14_SEE_LMR_SEARCH_POLICY_ID: u64 = 0x5332_3134_534c_4d31;
 /// Stable identifier for the inactive S2-9 null-move pruning candidate.
 pub const NULL_MOVE_PRUNING_SEARCH_POLICY_ID: u64 = 0x5332_394e_4d50_3031;
 /// Smallest remaining depth at which null move may be considered.
@@ -228,11 +226,6 @@ impl ExperimentalSearchFeatures {
     pub const LATE_MOVE_REDUCTIONS: Self = Self {
         bits: ExperimentalSearchFeature::LateMoveReductions.bit(),
     };
-    /// Frozen inactive S2-14 combination: SEE capture ordering plus verified LMR.
-    pub const S2_14_SEE_LMR: Self = Self {
-        bits: ExperimentalSearchFeature::SeeCaptureOrdering.bit()
-            | ExperimentalSearchFeature::LateMoveReductions.bit(),
-    };
     /// Inactive S2-9 conservative null-move pruning candidate.
     pub const NULL_MOVE_PRUNING: Self = Self {
         bits: ExperimentalSearchFeature::NullMovePruning.bit(),
@@ -404,19 +397,6 @@ impl SearchPolicy {
         experimental_features: ExperimentalSearchFeatures::LATE_MOVE_REDUCTIONS,
     });
 
-    /// Frozen inactive S2-14 candidate: SEE capture ordering plus bounded verified LMR.
-    pub const S2_14_SEE_LMR: Self = Self::new(SearchPolicyParameters {
-        alpha_beta: AlphaBetaMode::FullWindowFailSoft,
-        transposition: TranspositionPolicy::ClusteredFullKey,
-        move_ordering: MoveOrderingPolicy::V0_1MvvLvaKillersHistory,
-        quiescence: QuiescencePolicy::CapturesPromotionsAndEvasions,
-        aspiration_windows: true,
-        aspiration_half_width_centipawns: DEFAULT_ASPIRATION_HALF_WIDTH_CENTIPAWNS as u16,
-        maximum_quiescence_ply: MAX_QUIESCENCE_PLY,
-        maximum_check_extensions_per_line: MAX_CHECK_EXTENSIONS_PER_LINE,
-        experimental_features: ExperimentalSearchFeatures::S2_14_SEE_LMR,
-    });
-
     /// Inactive S2-9 candidate: baseline semantics plus conservative verified null move.
     pub const NULL_MOVE_PRUNING: Self = Self::new(SearchPolicyParameters {
         alpha_beta: AlphaBetaMode::FullWindowFailSoft,
@@ -555,13 +535,11 @@ impl SearchPolicy {
         if self.delta_pruning_enabled() && !self.see_quiescence_pruning_enabled() {
             return Err(SearchPolicyValidationError::DeltaPruningRequiresSeePruning);
         }
-        if self.late_move_reductions_enabled() {
-            let enabled = self.parameters.experimental_features.bits();
-            if enabled != ExperimentalSearchFeatures::LATE_MOVE_REDUCTIONS.bits()
-                && enabled != ExperimentalSearchFeatures::S2_14_SEE_LMR.bits()
-            {
-                return Err(SearchPolicyValidationError::LateMoveReductionsMustBeIsolated);
-            }
+        if self.late_move_reductions_enabled()
+            && self.parameters.experimental_features.bits()
+                != ExperimentalSearchFeatures::LATE_MOVE_REDUCTIONS.bits()
+        {
+            return Err(SearchPolicyValidationError::LateMoveReductionsMustBeIsolated);
         }
         if self.null_move_pruning_enabled()
             && self.parameters.experimental_features.bits()
@@ -676,12 +654,6 @@ impl SearchPolicySet {
         )
     }
 
-    /// Returns the frozen inactive S2-14 SEE-ordering plus LMR candidate.
-    #[must_use]
-    pub fn s2_14_see_lmr_candidate() -> Self {
-        Self::new(S2_14_SEE_LMR_SEARCH_POLICY_ID, SearchPolicy::S2_14_SEE_LMR)
-    }
-
     /// Returns the inactive S2-9 conservative null-move candidate.
     #[must_use]
     pub fn null_move_pruning_candidate() -> Self {
@@ -781,7 +753,7 @@ pub enum SearchPolicyValidationError {
     UnknownExperimentalFeatureBits { bits: u64 },
     /// Delta pruning was enabled without its required SEE-pruning predecessor.
     DeltaPruningRequiresSeePruning,
-    /// LMR was combined outside the isolated S2-8 or frozen S2-14 SEE+LMR policies.
+    /// LMR was combined with another unevaluated experimental feature.
     LateMoveReductionsMustBeIsolated,
     /// Null move was combined with another unevaluated feature.
     NullMovePruningMustBeIsolated,
@@ -821,7 +793,7 @@ impl fmt::Display for SearchPolicyValidationError {
                 "delta pruning requires SEE quiescence pruning in the same policy",
             ),
             Self::LateMoveReductionsMustBeIsolated => formatter.write_str(
-                "late move reductions are valid only as isolated S2-8 or frozen S2-14 SEE+LMR policy",
+                "late move reductions must be evaluated as an isolated policy candidate",
             ),
             Self::NullMovePruningMustBeIsolated => formatter.write_str(
                 "null-move pruning must be evaluated as an isolated policy candidate",
@@ -854,9 +826,9 @@ mod tests {
     use super::{
         ExperimentalSearchFeatures, SearchPolicy, SearchPolicyParameters, SearchPolicySet,
         SearchPolicyValidationError, LATE_MOVE_REDUCTIONS_SEARCH_POLICY_ID,
-        NULL_MOVE_PRUNING_SEARCH_POLICY_ID, S2_14_SEE_LMR_SEARCH_POLICY_ID,
-        SEE_AND_DELTA_QUIESCENCE_PRUNING_SEARCH_POLICY_ID, SEE_CAPTURE_ORDERING_SEARCH_POLICY_ID,
-        SEE_QUIESCENCE_PRUNING_SEARCH_POLICY_ID, V0_1_SEARCH_POLICY_CHECKSUM,
+        NULL_MOVE_PRUNING_SEARCH_POLICY_ID, SEE_AND_DELTA_QUIESCENCE_PRUNING_SEARCH_POLICY_ID,
+        SEE_CAPTURE_ORDERING_SEARCH_POLICY_ID, SEE_QUIESCENCE_PRUNING_SEARCH_POLICY_ID,
+        V0_1_SEARCH_POLICY_CHECKSUM,
     };
 
     #[test]
@@ -908,20 +880,6 @@ mod tests {
         assert_eq!(candidate.validate(), Ok(()));
         assert!(!baseline.policy.late_move_reductions_enabled());
         assert!(candidate.policy.late_move_reductions_enabled());
-        assert_ne!(candidate.checksum, baseline.checksum);
-    }
-
-    #[test]
-    fn s2_14_see_lmr_candidate_is_exact_distinct_and_inactive_by_default() {
-        let baseline = SearchPolicySet::baseline();
-        let candidate = SearchPolicySet::s2_14_see_lmr_candidate();
-        assert_eq!(candidate.identifier, S2_14_SEE_LMR_SEARCH_POLICY_ID);
-        assert_eq!(candidate.validate(), Ok(()));
-        assert!(candidate.policy.see_capture_ordering_enabled());
-        assert!(candidate.policy.late_move_reductions_enabled());
-        assert!(!candidate.policy.principal_variation_search_enabled());
-        assert!(!candidate.policy.null_move_pruning_enabled());
-        assert_ne!(candidate.identifier, baseline.identifier);
         assert_ne!(candidate.checksum, baseline.checksum);
     }
 

@@ -83,19 +83,20 @@ fn run() -> Result<(), Box<dyn Error>> {
     fs::create_dir(&output_directory)?;
 
     let policy = SearchPolicySet::baseline();
-    let candidate_policy = SearchPolicySet::s2_14_see_lmr_candidate();
+    let candidate_policy = SearchPolicySet::principal_variation_search_candidate();
     let weights = EvaluationWeightSet::baseline();
     policy.validate()?;
     candidate_policy.validate()?;
     weights.validate()?;
-    if policy.policy.see_capture_ordering_enabled()
-        || policy.policy.late_move_reductions_enabled()
-        || !candidate_policy.policy.see_capture_ordering_enabled()
-        || !candidate_policy.policy.late_move_reductions_enabled()
-        || candidate_policy.policy.principal_variation_search_enabled()
+    if policy.policy.principal_variation_search_enabled()
+        || !candidate_policy.policy.principal_variation_search_enabled()
+        || candidate_policy.policy.see_capture_ordering_enabled()
+        || candidate_policy.policy.see_quiescence_pruning_enabled()
+        || candidate_policy.policy.delta_pruning_enabled()
+        || candidate_policy.policy.late_move_reductions_enabled()
         || candidate_policy.policy.null_move_pruning_enabled()
     {
-        return Err("S2-14 candidate policy boundary is invalid".into());
+        return Err("S2-14 PVS candidate policy boundary is invalid".into());
     }
 
     let openings = control_openings()?;
@@ -199,17 +200,17 @@ fn control_plan(value: &str) -> Result<ControlPlan, Box<dyn Error>> {
         "smoke" => Ok(ControlPlan {
             tier: EngineVariantValidationTier::Smoke,
             pair_count: 1,
-            seed: 0x5332_3133_534d_4f4b,
+            seed: 0x5332_3134_534d_4f4b,
         }),
         "development" => Ok(ControlPlan {
             tier: EngineVariantValidationTier::Development,
             pair_count: 8,
-            seed: 0x5332_3133_4445_5631,
+            seed: 0x5332_3134_4445_5631,
         }),
         "production" => Ok(ControlPlan {
             tier: EngineVariantValidationTier::Production,
             pair_count: 1_000,
-            seed: 0x5332_3133_5052_4f44,
+            seed: 0x5332_3134_5052_4f44,
         }),
         _ => Err(format!("unsupported S2-14 validation tier {value:?}").into()),
     }
