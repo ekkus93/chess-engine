@@ -20,6 +20,7 @@ require_literal() {
 spec=docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_SPEC_2026-08-07.md
 tracker=docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_TODO_2026-08-07.md
 baseline=docs/RUST_CHESS_ENGINE_S4_BASELINE_2026-08-07.md
+diagnosis=docs/RUST_CHESS_ENGINE_S4_ZERO_MOVEMENT_DIAGNOSIS_2026-08-07.md
 legacy=docs/LEGACY_TODO_INDEX.md
 s3_tracker=docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_TODO_2026-08-07.md
 s3_report=docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_IMPLEMENTATION_REPORT.md
@@ -27,7 +28,7 @@ diagnostics=crates/chess-tune/src/diagnostics.rs
 trace=crates/chess-tune/src/trace.rs
 optimizer=crates/chess-tune/src/optimizer.rs
 
-for path in "$spec" "$tracker" "$baseline" "$legacy" "$s3_tracker" "$s3_report" "$diagnostics" "$trace" "$optimizer"; do
+for path in "$spec" "$tracker" "$baseline" "$diagnosis" "$legacy" "$s3_tracker" "$s3_report" "$diagnostics" "$trace" "$optimizer"; do
   require_file "$path"
 done
 
@@ -57,6 +58,12 @@ require_literal 'Rust JNI export source blob: `63a3e4e4b7dcbe12106b17a36ce15117d
 require_literal 'Kotlin public wrapper blob: `67c58b41e86be4d00ffb07a7296f5034f10b198e`.' "$baseline"
 require_literal 'S3 Evaluation Strength run `31186888170`, job `92893571662`: **failure**.' "$baseline"
 require_literal 'A failed permanent gate is not reclassified as green' "$baseline"
+require_literal '**Workflow run:** `31198269449`' "$diagnosis"
+require_literal '**Workflow job:** `92931740915`' "$diagnosis"
+require_literal '**Artifact ID:** `9001742616`' "$diagnosis"
+require_literal 'quantization_limited' "$diagnosis"
+require_literal '`6,480`' "$diagnosis"
+require_literal '`2.06410316075983228e-04`' "$diagnosis"
 
 # Release identities remain frozen.
 require_literal 'version = "0.1.0"' Cargo.toml
@@ -85,6 +92,13 @@ require_literal 'wrong_binding_fails_closed' "$trace"
 require_literal 'advance_with_diagnostics(&dataset, iterations)' crates/chess-tools/src/tuning_cli.rs
 require_literal 's4-optimizer-trace.txt' crates/chess-tools/src/tuning_cli.rs
 require_literal 'initial_checkpoint_checksum: checkpoint_checksum(&initial_checkpoint)?' crates/chess-tools/src/tuning_cli.rs
+require_literal 'fn apply_gradient_step(' "$optimizer"
+require_literal 'subinteger_update_is_explicitly_quantization_limited' "$optimizer"
+require_literal 'effective_integer_update_changes_runtime_checksum' "$optimizer"
+require_literal 'clipping_accounting_is_signed_and_exact' "$optimizer"
+require_literal 'regularization_contribution_is_independently_accounted' "$optimizer"
+require_literal 'one_parameter_known_answer_moves_toward_optimum_deterministically' "$optimizer"
+require_literal 'multi_parameter_known_answer_preserves_inactive_values_and_converges' "$optimizer"
 
 # Temporary S4 staging controls must never become permanent evidence.
 while IFS= read -r path; do
