@@ -20,7 +20,7 @@ jobs:
   guardrails:
     name: S3 guardrails
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -46,3 +46,14 @@ jobs:
 
       - name: Run UCI process regressions
         run: cargo test --locked -p chess-uci --test uci_process
+
+      - name: Run tuning regressions
+        run: cargo test --locked -p chess-tune
+
+      - name: Run S3 dataset and provenance regressions
+        run: |
+          cargo test --locked -p chess-tools 's3::'
+
+      - name: Preserve tuning adapter regressions
+        run: |
+          cargo test --locked -p chess-tools 'tuning::'
