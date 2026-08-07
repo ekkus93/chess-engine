@@ -6,16 +6,17 @@ This file prevents historical planning documents from being mistaken for current
 
 | Classification | Path | Authority |
 |---|---|---|
-| Active S3 evaluation strength program | `docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_TODO_2026-08-07.md` | Active implementation tracker for S3 evaluation tuning and strength work. |
 | Completed Rust-port tracker | `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md` | Authoritative completion record for the Rust-port program. |
 | Completed Rust-port task definitions | `docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md` | Detailed definitions and evidence for the completed Rust-port program. |
 | Authority index, not an implementation TODO | `docs/LEGACY_TODO_INDEX.md` | Classifies active, completed-authority, and historical TODO-named documents. |
 
+There is currently **no active implementation TODO**. A future program becomes active only when it is explicitly added to this authority table and to the permanent TODO-authority audit.
+
 ## Exhaustive classification rule
 
-Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO` and is not one of the three authority documents above is a historical or legacy reference. Those files preserve implementation history, but they are not active instructions and must not override the active S3 evaluation-strength TODO, the completed Rust-port authority records, or any future TODO explicitly registered in the authority table.
+Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO` and is not one of the two completed Rust-port authority documents above is a historical or legacy reference. Those files preserve implementation history, but they are not active instructions and must not override the completed Rust-port authority records or any future TODO explicitly registered in the authority table.
 
-Inventory captured on 2026-08-05, reclassified at S2-16 closure on 2026-08-07, and updated for S3 on 2026-08-07: **73 TODO-named files total; 3 authority documents; 1 authority index; 69 historical.**
+Inventory captured on 2026-08-05, reclassified at S2-16 closure on 2026-08-07, activated for S3 on 2026-08-07, and reclassified again at S3 closure on 2026-08-07: **73 TODO-named files total; 2 authority documents; 1 authority index; 70 historical.**
 
 ## Historical TODO inventory
 
@@ -63,6 +64,7 @@ Inventory captured on 2026-08-05, reclassified at S2-16 closure on 2026-08-07, a
 - `docs/MIDDLEGAME_FIX1_TODO.md`
 - `docs/REFACTOR_BOARD_TODO.md`
 - `docs/RUST_CHESS_ENGINE_POST_PORT_REVIEW_FIX_TODO_2026-08-04.md`
+- `docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_TODO_2026-08-07.md`
 - `docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md`
 - `docs/RUST_ENGINE_REVIEW_FIX_TODO_2026-08-02.md`
 - `docs/STOCKFISH1_TODO.md`
