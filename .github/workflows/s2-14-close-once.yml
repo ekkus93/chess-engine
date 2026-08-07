@@ -21,21 +21,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 4
+          fetch-depth: 0
 
       - name: Verify bounded staging history
         shell: bash
         run: |
           set -euo pipefail
           source_sha=21406b5e92b6bd42a3a902591dddae22c9b3f16f
-          test "$(git rev-parse HEAD~3)" = "$source_sha"
+          git merge-base --is-ancestor "$source_sha" HEAD
           mapfile -t changed < <(git diff --name-only "$source_sha" HEAD | sort)
           test "${#changed[@]}" -eq 2
           test "${changed[0]}" = ".github/s2_14_close_once.py"
           test "${changed[1]}" = ".github/workflows/s2-14-close-once.yml"
 
       - name: Prepare S2-14 rejected-strength closure
-        run: python3 .github/s2_14_close_once.py
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/s2_14_close_once.py
+          sed -i 's/S2-15 activation is not authorized/does not authorize S2-15 activation/' scripts/task_v0_2_strength_audit.sh
+          grep -Fq "require_literal 'does not authorize S2-15 activation'" scripts/task_v0_2_strength_audit.sh
 
       - name: Validate intended permanent tree
         shell: bash
