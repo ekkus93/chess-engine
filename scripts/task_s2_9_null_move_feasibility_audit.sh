@@ -40,8 +40,13 @@ grep -Fq 'Production behavior, package/UCI version, adapters, authoritative poli
 
 grep -Fq '| S2-9 | Optional null-move pruning decision/candidate | **Complete — standalone rejected; inactive** |' "$tracker" || fail "summary status is not advanced through S2-9.3"
 grep -Fq '## S2-9 feasibility record' "$tracker" || fail "tracker feasibility record is missing"
-grep -Fq '# Task S2-9: Optional null-move pruning decision/candidate — COMPLETE' "$tracker" || fail "S2-9 heading is not in progress"
-grep -Fq 'Begin with **S2-10.1 only**:' "$tracker" || fail "next action does not point to S2-9.4"
+grep -Fq '# Task S2-9: Optional null-move pruning decision/candidate — COMPLETE' "$tracker" || fail "S2-9 heading is not complete"
+if grep -Fq '**Status:** Complete — program closed without v0.2 promotion' "$tracker"; then
+  grep -Fq '## Post-closure roadmap' "$tracker" || fail "post-closure roadmap is missing"
+  grep -Fq 'No active v0.2 strength task remains under this tracker.' "$tracker" || fail "closed tracker still implies active S2 work"
+else
+  grep -Fq 'Begin with **S2-10.1 only**:' "$tracker" || fail "next action does not point to the next strength task"
+fi
 
 s2_9_1="$(sed -n '/## S2-9.1 Feasibility decision/,/## S2-9.2 Search-only transition if implemented/p' "$tracker")"
 [[ "$(grep -Fc -- '- [x]' <<<"$s2_9_1")" -eq 4 ]] || fail "S2-9.1 does not have exactly four completed requirements"
