@@ -66,27 +66,32 @@ jobs:
           grep -Fq 'SearchPolicySet::principal_variation_search_candidate()' crates/chess-tools/src/bin/s2_14_production.rs
           grep -Fq "S2_14_MAX_MEDIAN_TIME_RATIO: '1.05'" .github/workflows/s2-14-candidate-preflight.yml
 
-      - name: Commit only cleaned permanent S2-14 files
+      - name: Commit only non-workflow source cleanup
         shell: bash
         run: |
           set -euo pipefail
-          git rm .github/s2_14_reselect_pvs.py .github/workflows/s2-14-reselect-pvs-once.yml
+          # The GitHub Actions token may update source but is intentionally not
+          # permitted to rewrite workflow definitions. Preserve the validated
+          # preflight workflow change for a connector-owned follow-up commit.
+          git checkout HEAD -- .github/workflows/s2-14-candidate-preflight.yml
+          git rm .github/s2_14_reselect_pvs.py
           git add \
             crates/chess-search/src/search_policy.rs \
             crates/chess-tools/src/bin/s2_14_candidate.rs \
             crates/chess-tools/src/bin/s2_14_production.rs \
-            scripts/task_s2_14_candidate_audit.sh \
-            .github/workflows/s2-14-candidate-preflight.yml
+            scripts/task_s2_14_candidate_audit.sh
           staged="$(git diff --cached --name-only | sort)"
           expected="$(printf '%s\n' \
             .github/s2_14_reselect_pvs.py \
-            .github/workflows/s2-14-candidate-preflight.yml \
-            .github/workflows/s2-14-reselect-pvs-once.yml \
             crates/chess-search/src/search_policy.rs \
             crates/chess-tools/src/bin/s2_14_candidate.rs \
             crates/chess-tools/src/bin/s2_14_production.rs \
             scripts/task_s2_14_candidate_audit.sh | sort)"
           test "$staged" = "$expected"
+          if git diff --cached --name-only | grep -q '^\.github/workflows/'; then
+            echo 'source cleanup attempted to stage a workflow file' >&2
+            exit 1
+          fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'strength: reselect PVS for S2-14 production validation'
