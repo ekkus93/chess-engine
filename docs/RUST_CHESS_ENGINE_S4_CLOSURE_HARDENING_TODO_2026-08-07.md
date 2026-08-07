@@ -1,6 +1,6 @@
 # Rust Chess Engine S4 Closure Hardening TODO — 2026-08-07
 
-**Status:** Active — H0-H6 implemented; permanent validation pending
+**Status:** Closure candidate — H0-H7.2 complete; final closed-SHA validation pending
 **Date:** 2026-08-07
 **Branch:** `master`
 **Planning baseline SHA:** `bc406d78d673cc3258e8b522bcec25c4838f5e32`
@@ -225,28 +225,28 @@ Choose one path and complete it:
 
 ---
 
-# Task H7: Final implementation report and authority cleanup — NOT STARTED
+# Task H7: Final implementation report and authority cleanup — IN PROGRESS (FINAL VALIDATION PENDING)
 
 ## H7.1 Implementation report
 
-- [ ] Create `docs/RUST_CHESS_ENGINE_S4_CLOSURE_HARDENING_IMPLEMENTATION_REPORT.md`.
-- [ ] Record baseline SHA and final hardening SHA.
-- [ ] Record every source file changed.
-- [ ] Record final-SHA evidence correction outcome.
-- [ ] Record diagnostic-count validation changes.
-- [ ] Record malformed-trace tests.
-- [ ] Record staging-cleanup behavior change.
-- [ ] Record source-commit parser change.
-- [ ] Record checkpoint materialization API decision.
-- [ ] Record audit/workflow updates.
-- [ ] Confirm no production activation or version/API behavior change.
+- [x] Create `docs/RUST_CHESS_ENGINE_S4_CLOSURE_HARDENING_IMPLEMENTATION_REPORT.md`.
+- [x] Record baseline SHA and final hardening SHA.
+- [x] Record every source file changed.
+- [x] Record final-SHA evidence correction outcome.
+- [x] Record diagnostic-count validation changes.
+- [x] Record malformed-trace tests.
+- [x] Record staging-cleanup behavior change.
+- [x] Record source-commit parser change.
+- [x] Record checkpoint materialization API decision.
+- [x] Record audit/workflow updates.
+- [x] Confirm no production activation or version/API behavior change.
 
 ## H7.2 TODO closure
 
-- [ ] Mark every completed task/subtask in this TODO.
-- [ ] Move this TODO from active authority to historical inventory when hardening closes.
-- [ ] Update `docs/LEGACY_TODO_INDEX.md` counts/classification.
-- [ ] Confirm no other active implementation TODO remains.
+- [x] Mark every completed task/subtask in this TODO.
+- [x] Move this TODO from active authority to historical inventory when hardening closes.
+- [x] Update `docs/LEGACY_TODO_INDEX.md` counts/classification.
+- [x] Confirm no other active implementation TODO remains.
 
 ## H7.3 Final validation
 
@@ -266,11 +266,11 @@ Choose one path and complete it:
 
 # Final hardening completion checklist
 
-- [ ] H0 authority and baseline freeze complete.
-- [ ] H1 final S4 validation evidence correction complete.
-- [ ] H2 strict diagnostic-count validation complete.
-- [ ] H3 fail-visible tuning-output staging cleanup complete.
-- [ ] H4 canonical tuning source-commit parsing complete.
-- [ ] H5 checkpoint materialization API review complete.
-- [ ] H6 permanent audit/workflow integration complete.
+- [x] H0 authority and baseline freeze complete.
+- [x] H1 final S4 validation evidence correction complete.
+- [x] H2 strict diagnostic-count validation complete.
+- [x] H3 fail-visible tuning-output staging cleanup complete.
+- [x] H4 canonical tuning source-commit parsing complete.
+- [x] H5 checkpoint materialization API review complete.
+- [x] H6 permanent audit/workflow integration complete.
 - [ ] H7 final report and authority cleanup complete.

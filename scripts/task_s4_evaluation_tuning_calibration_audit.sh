@@ -30,6 +30,7 @@ final_report=docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_IMPLEMENTAT
 hardening_spec=docs/RUST_CHESS_ENGINE_S4_CLOSURE_HARDENING_SPEC_2026-08-07.md
 hardening_todo=docs/RUST_CHESS_ENGINE_S4_CLOSURE_HARDENING_TODO_2026-08-07.md
 final_addendum=docs/RUST_CHESS_ENGINE_S4_FINAL_VALIDATION_ADDENDUM_2026-08-07.md
+hardening_report=docs/RUST_CHESS_ENGINE_S4_CLOSURE_HARDENING_IMPLEMENTATION_REPORT.md
 legacy=docs/LEGACY_TODO_INDEX.md
 s3_tracker=docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_TODO_2026-08-07.md
 s3_report=docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_IMPLEMENTATION_REPORT.md
@@ -37,7 +38,7 @@ diagnostics=crates/chess-tune/src/diagnostics.rs
 trace=crates/chess-tune/src/trace.rs
 optimizer=crates/chess-tune/src/optimizer.rs
 
-for path in "$spec" "$tracker" "$baseline" "$diagnosis" "$corpus" "$matrix" "$selected" "$smoke" "$method" "$final_report" "$hardening_spec" "$hardening_todo" "$final_addendum" "$legacy" "$s3_tracker" "$s3_report" "$diagnostics" "$trace" "$optimizer"; do
+for path in "$spec" "$tracker" "$baseline" "$diagnosis" "$corpus" "$matrix" "$selected" "$smoke" "$method" "$final_report" "$hardening_spec" "$hardening_todo" "$final_addendum" "$hardening_report" "$legacy" "$s3_tracker" "$s3_report" "$diagnostics" "$trace" "$optimizer"; do
   require_file "$path"
 done
 
@@ -47,10 +48,14 @@ bash scripts/task_s3_evaluation_strength_audit.sh
 # S4 is closed and historical; S3 remains closed and historical.
 require_literal '`docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_TODO_2026-08-07.md`' "$legacy"
 require_literal '`docs/RUST_CHESS_ENGINE_S4_CLOSURE_HARDENING_TODO_2026-08-07.md`' "$legacy"
-require_literal '| Active S4 closure hardening program |' "$legacy"
-require_literal '75 TODO-named files total; 3 authority documents; 1 authority index; 71 historical' "$legacy"
-require_literal '**Status:** Active — H0-H6 implemented; permanent validation pending' "$hardening_todo"
-require_literal '**Status:** Active — closure hardening implementation in progress' "$hardening_spec"
+if grep -Fq '| Active S4 closure hardening program |' "$legacy"; then
+  fail 'closure-candidate hardening TODO is still active'
+fi
+require_literal 'There is no active implementation TODO.' "$legacy"
+require_literal '75 TODO-named files total; 2 authority documents; 1 authority index; 72 historical' "$legacy"
+require_literal '**Status:** Closure candidate — H0-H7.2 complete; final closed-SHA validation pending' "$hardening_todo"
+require_literal '**Status:** Closure candidate — implementation complete; final closed-SHA validation pending' "$hardening_spec"
+require_literal '**Status:** Closure candidate — implementation validated; final closed-SHA validation pending' "$hardening_report"
 require_literal '**Status:** Complete — tuning method accepted for future experimentation; no production promotion' "$tracker"
 require_literal '**Status:** Complete — tuning method accepted for future experimentation; no production promotion' "$spec"
 require_literal '**Status:** Complete — program closed without promotion' "$s3_tracker"
@@ -232,6 +237,13 @@ fi
 require_literal 'checkpoint_best_weights_preserve_inactive_parameters_after_masked_run' "$optimizer"
 require_literal '# Task H0: Authority registration and baseline freeze — COMPLETE' "$hardening_todo"
 require_literal '# Task H6: Permanent audit and workflow integration — COMPLETE' "$hardening_todo"
-for temporary in .github/s4_closure_hardening_apply.py .github/workflows/s4-closure-hardening-apply.yml; do
+require_literal '# Task H7: Final implementation report and authority cleanup — IN PROGRESS (FINAL VALIDATION PENDING)' "$hardening_todo"
+require_literal '31212586187' "$hardening_report"
+require_literal '31212586069' "$hardening_report"
+require_literal '31212586338' "$hardening_report"
+require_literal '31212586580' "$hardening_report"
+require_literal '31212586025' "$hardening_report"
+require_literal '31213948156' "$hardening_report"
+for temporary in .github/s4_closure_hardening_apply.py .github/workflows/s4-closure-hardening-apply.yml .github/s4_closure_hardening_close.py .github/workflows/s4-closure-hardening-close.yml; do
   test ! -e "$temporary" || fail "temporary S4 hardening control remains: $temporary"
 done

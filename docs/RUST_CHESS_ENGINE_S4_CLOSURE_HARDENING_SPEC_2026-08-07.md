@@ -1,6 +1,6 @@
 # Rust Chess Engine S4 Closure Hardening Spec — 2026-08-07
 
-**Status:** Active — closure hardening implementation in progress
+**Status:** Closure candidate — implementation complete; final closed-SHA validation pending
 **Date:** 2026-08-07
 **Branch:** `master`
 **Planning baseline SHA:** `bc406d78d673cc3258e8b522bcec25c4838f5e32`
