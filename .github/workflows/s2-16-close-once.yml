@@ -1,4 +1,4 @@
-name: S2-16 one-shot no-promotion closure
+name: S2-16 one-shot authority wording cleanup
 
 on:
   push:
@@ -17,66 +17,60 @@ concurrency:
 jobs:
   close:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 10
+          fetch-depth: 3
 
-      - name: Verify bounded staging scope
+      - name: Verify exact closure parent
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git merge-base 677cd2a4d2a4a4f3c376f7bf47fae412171206fb HEAD)" = "677cd2a4d2a4a4f3c376f7bf47fae412171206fb"
-          actual="$(git diff --name-only 677cd2a4d2a4a4f3c376f7bf47fae412171206fb..HEAD | sort)"
-          expected="$(printf '%s\n' '.github/s2_16_close.py' '.github/workflows/s2-16-close-once.yml' | sort)"
-          test "$actual" = "$expected"
+          test "$(git rev-parse HEAD^)" = "4ed0a4861b1c6b6e39a7ac3608a90d3cee3fb7c2"
+          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/s2-16-close-once.yml"
 
-      - name: Normalize evidence ledger extraction
+      - name: Remove stale active-program wording
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
 
-          path = Path('.github/s2_16_close.py')
-          text = path.read_text()
-          start = text.index('records = []\nfor n in range(15):')
-          end = text.index('\ntask_table = ', start)
-          replacement = '''record_start = tracker.index("## S2-0 implementation record")
-          record_end = tracker.index("\\n# Task S2-0:", record_start)
-          evidence_ledger = tracker[record_start:record_end].strip()
-          '''
-          path.write_text(text[:start] + replacement + text[end:])
-          PY
+          tracker = Path('docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md')
+          text = tracker.read_text()
+          old = '''## Initial next action
 
-      - name: Run bounded closure transformer
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 -m py_compile .github/s2_16_close.py
-          python3 .github/s2_16_close.py
-          python3 - <<'PY'
-          from pathlib import Path
-          path = Path('docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md')
-          path.write_text(path.read_text().rstrip() + '\n')
+          Begin with **S2-10.1 only**: decide whether a separately versioned, shallow non-PV futility-pruning candidate is justified by the current profile and accepted baseline. Do not combine it with rejected PVS, LMR, SEE/delta, or null-move candidates, and do not activate or expose it through production adapters without its own correctness and strength disposition.'''
+          new = '''## Post-closure roadmap
+
+          No active v0.2 strength task remains under this tracker. Any future strength work must begin under a new explicitly registered specification/TODO authority with fresh candidate identities and evidence; this completed tracker is historical and does not authorize activation of rejected or deferred candidates.'''
+          if text.count(old) != 1:
+              raise SystemExit('unexpected stale tracker next-action count')
+          tracker.write_text(text.replace(old, new, 1))
+
+          index = Path('docs/LEGACY_TODO_INDEX.md')
+          text = index.read_text()
+          old = 'Those files preserve implementation history, but they are not active instructions and must not override the active v0.2 tracker or the completed Rust-port authority records.'
+          new = 'Those files preserve implementation history, but they are not active instructions and must not override the completed Rust-port authority records or any future TODO explicitly registered in the authority table.'
+          if text.count(old) != 1:
+              raise SystemExit('unexpected stale legacy-index authority wording count')
+          index.write_text(text.replace(old, new, 1))
           PY
           git diff --check
+          grep -Fq '## Post-closure roadmap' docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md
+          ! grep -Fq '## Initial next action' docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md
+          ! grep -Fq 'active v0.2 tracker' docs/LEGACY_TODO_INDEX.md
 
-      - name: Commit closure authority and report
+      - name: Commit wording cleanup
         shell: bash
         run: |
           set -euo pipefail
-          git status --short
           git config user.name "Phillip Chin"
           git config user.email "ekkus93@gmail.com"
           git add \
             docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md \
-            docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_SPEC_2026-08-05.md \
-            docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_IMPLEMENTATION_REPORT.md \
-            docs/LEGACY_TODO_INDEX.md \
-            scripts/task_post_port_review_fix_audit.sh \
-            scripts/task_v0_2_strength_audit.sh
+            docs/LEGACY_TODO_INDEX.md
           git diff --cached --check
-          git commit -m "docs: close S2-16 without v0.2 promotion"
+          git commit -m "docs: remove stale v0.2 active-program wording"
           git push origin HEAD:master
