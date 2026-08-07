@@ -60,7 +60,7 @@ jobs:
           cp -a /tmp/s3-data /tmp/s3-data-first
           rm -rf /tmp/s3-data
           target/release/chess-tools s3-self-play "$GITHUB_SHA" /tmp/s3-self-play.txt /tmp/s3-data | tee /tmp/s3-self-play-second.log
-          cmp -r /tmp/s3-data-first /tmp/s3-data
+          diff -r /tmp/s3-data-first /tmp/s3-data
           cmp /tmp/s3-self-play-first.log /tmp/s3-self-play-second.log
           target/release/chess-tools s3-self-play-validate /tmp/s3-data | tee /tmp/s3-self-play-validation.log
           grep -Fxq $'admitted_for_tuning\ttrue' /tmp/s3-self-play-validation.log
@@ -89,8 +89,9 @@ jobs:
           seeds=(1395864401 1395864402 1395864403 1395864404 1395864405 1395864406)
           for index in "${!groups[@]}"; do
             group="${groups[$index]}"
-            cat > "/tmp/s3-configs/${group}.txt" <<EOF
-          CHESS_TUNING_CONFIG	1
+            config="/tmp/s3-configs/${group}.txt"
+            printf 'CHESS_TUNING_CONFIG\t1\n' > "$config"
+            cat >> "$config" <<EOF
           engine_identifier=5995211731466014277
           initial_weight_identifier=4774188637087157829
           candidate_weight_identifier=${candidate_ids[$index]}
@@ -151,7 +152,7 @@ jobs:
             /tmp/s3-data \
             /tmp/s3-tuning/pawn_structure \
             | tee /tmp/s3-tuning/pawn_structure.log
-          cmp -r /tmp/pawn-first /tmp/s3-tuning/pawn_structure
+          diff -r /tmp/pawn-first /tmp/s3-tuning/pawn_structure
           cmp /tmp/pawn-first.log /tmp/s3-tuning/pawn_structure.log
 
       - name: Record grouped held-out loss evidence
