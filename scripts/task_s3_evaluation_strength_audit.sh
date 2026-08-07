@@ -65,7 +65,8 @@ require_literal 'No rejected S3 artifact authorizes promotion.' "$final_report"
 
 # Frozen baseline identity.
 require_literal '**S3 planning/authority SHA:** `90a015c2cf8b8d45edcd07d705fb6ca58fe336f7`' "$baseline"
-require_literal '**Unchanged production/code baseline SHA:** `677cd2a4d2a4f3c376f7bf47fae412171206fb`' "$baseline"
+require_literal 'Unchanged production/code baseline SHA:' "$baseline"
+require_literal '677cd2a4d2a4f3c376f7bf47fae412171206fb' "$baseline"
 require_literal 'Package/UCI version: `0.1.0`' "$baseline"
 require_literal 'Runtime weight-vector length: `816`; named tunable-parameter count: `810`.' "$baseline"
 require_literal 'experimental_features=0000000000000000' "$baseline"

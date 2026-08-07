@@ -5,6 +5,7 @@
 //! outside the runtime search crate. Loading or activating an artifact is an
 //! explicit caller action.
 
+mod diagnostics;
 mod loss;
 mod mask;
 mod optimizer;
@@ -15,6 +16,10 @@ pub use loss::{
     TEXEL_EVALUATION_SCALE_CENTIPAWNS,
 };
 
+pub use diagnostics::{
+    SpsaIterationDiagnostics, S4_OPTIMIZER_DIAGNOSTIC_IDENTIFIER,
+    S4_OPTIMIZER_DIAGNOSTIC_SCHEMA_VERSION,
+};
 pub use mask::{EvaluationParameterGroup, TunableParameterMask, TUNABLE_PARAMETER_MASK_WORD_COUNT};
 pub use optimizer::{
     SpsaCheckpoint, SpsaConfig, SpsaOptimizer, SpsaOptimizerError, SpsaRunSummary, SpsaSchedule,
