@@ -111,7 +111,9 @@ fn search_failure_clears_thinking_and_is_visible_without_moving() {
         engine_depth: 1,
     })
     .expect("game starts");
-    let request = app.take_pending_search().expect("engine search is scheduled");
+    let request = app
+        .take_pending_search()
+        .expect("engine search is scheduled");
     let before = app.session.as_ref().expect("session").game.clone();
 
     app.handle_engine_event(EngineEvent::Failed {
@@ -138,7 +140,9 @@ fn stale_progress_is_ignored_without_overwriting_engine_information() {
         engine_depth: 1,
     })
     .expect("game starts");
-    let request = app.take_pending_search().expect("engine search is scheduled");
+    let request = app
+        .take_pending_search()
+        .expect("engine search is scheduled");
 
     app.handle_engine_event(EngineEvent::Progress {
         ticket: SearchTicket {
@@ -160,8 +164,8 @@ fn stale_progress_is_ignored_without_overwriting_engine_information() {
 
 #[test]
 fn terminal_human_move_stops_search_scheduling_and_future_input() {
-    let position = Position::from_fen("7k/5Q2/6K1/8/8/8/8/8 w - - 0 1")
-        .expect("mate-in-one fixture parses");
+    let position =
+        Position::from_fen("7k/5Q2/6K1/8/8/8/8/8 w - - 0 1").expect("mate-in-one fixture parses");
     let mut app = AppState::new();
     app.start_game(GameConfig::HumanVsEngine {
         human_color: Color::White,
