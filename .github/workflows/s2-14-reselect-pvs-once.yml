@@ -33,6 +33,16 @@ jobs:
         run: |
           set -euo pipefail
           python3 .github/s2_14_reselect_pvs.py
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/task_s2_14_candidate_audit.sh')
+          text = path.read_text()
+          old = "if grep -R -E 'S2_14_SEE_LMR|s2_14_see_lmr' crates scripts/task_s2_14_candidate_audit.sh; then"
+          new = "if grep -R -E 'S2_14_SEE_LMR|s2_14_see_lmr' crates; then"
+          if text.count(old) != 1:
+              raise SystemExit('expected one generated self-matching audit grep')
+          path.write_text(text.replace(old, new, 1))
+          PY
           chmod +x scripts/task_s2_14_candidate_audit.sh
           cargo fmt --all
 
@@ -49,7 +59,7 @@ jobs:
           cargo test --locked -p chess-tools --bin s2_14_production
           git diff --check
           test ! -e crates/chess-tools/src/bin/s2_14_candidate.rs
-          if grep -R -E 'S2_14_SEE_LMR|s2_14_see_lmr' crates scripts/task_s2_14_candidate_audit.sh; then
+          if grep -R -E 'S2_14_SEE_LMR|s2_14_see_lmr' crates; then
             echo 'rejected SEE+LMR code remains after cleanup' >&2
             exit 1
           fi
