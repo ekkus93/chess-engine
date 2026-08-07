@@ -82,6 +82,9 @@ require_literal 'if trace.to_text()? != text' "$trace"
 require_literal 'trace_round_trip_is_bit_canonical' "$trace"
 require_literal 'trace_checksum_corruption_fails_closed' "$trace"
 require_literal 'wrong_binding_fails_closed' "$trace"
+require_literal 'advance_with_diagnostics(&dataset, iterations)' crates/chess-tools/src/tuning_cli.rs
+require_literal 's4-optimizer-trace.txt' crates/chess-tools/src/tuning_cli.rs
+require_literal 'initial_checkpoint_checksum: checkpoint_checksum(&initial_checkpoint)?' crates/chess-tools/src/tuning_cli.rs
 
 # Temporary S4 staging controls must never become permanent evidence.
 while IFS= read -r path; do

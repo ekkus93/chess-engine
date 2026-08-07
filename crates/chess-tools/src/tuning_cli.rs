@@ -4,8 +4,8 @@ use std::{collections::BTreeMap, fs, path::Path};
 
 use chess_search::{EvaluationWeightSet, EvaluationWeights};
 use chess_tune::{
-    EvaluationParameterGroup, KCalibrationConfig, SpsaCheckpoint, SpsaConfig, SpsaOptimizer,
-    SpsaSchedule, SpsaWeightBounds,
+    EvaluationParameterGroup, KCalibrationConfig, S4OptimizerTrace, S4OptimizerTraceBinding,
+    SpsaCheckpoint, SpsaConfig, SpsaOptimizer, SpsaSchedule, SpsaWeightBounds,
 };
 
 use chess_tools::s3::S3DatasetManifest;
@@ -326,9 +326,35 @@ fn run_tuning(
     if iterations == 0 {
         return Err("checkpoint already reached maximum_iterations".to_owned());
     }
-    let summary = optimizer
-        .advance(&dataset, iterations)
-        .map_err(|error| error.to_string())?;
+    let initial_checkpoint = optimizer.checkpoint();
+    let (summary, s4_trace) = match &s3 {
+        Some(context) => {
+            let binding = S4OptimizerTraceBinding {
+                source_commit: file_config.source_commit,
+                tuning_config_checksum: checksum_text(&config_text),
+                dataset_manifest_checksum: context.manifest.checksum(),
+                parameter_mask_fingerprint: context.group.mask_fingerprint(),
+                initial_weight_identifier: initial_set.identifier,
+                initial_weight_checksum: initial_set.checksum,
+                random_seed: file_config.random_seed,
+                config_fingerprint: initial_checkpoint.config_fingerprint(),
+                dataset_fingerprint: initial_checkpoint.dataset_fingerprint(),
+                initial_checkpoint_checksum: checkpoint_checksum(&initial_checkpoint)?,
+            };
+            let (summary, diagnostics) = optimizer
+                .advance_with_diagnostics(&dataset, iterations)
+                .map_err(|error| error.to_string())?;
+            let trace =
+                S4OptimizerTrace::new(binding, diagnostics).map_err(|error| error.to_string())?;
+            (summary, Some(trace))
+        }
+        None => (
+            optimizer
+                .advance(&dataset, iterations)
+                .map_err(|error| error.to_string())?,
+            None,
+        ),
+    };
     let checkpoint = optimizer.checkpoint();
     let exact_command = std::env::args().collect::<Vec<_>>().join(" ");
     let provenance = TuningReportProvenance::new(
@@ -359,7 +385,7 @@ fn run_tuning(
         &report,
         &candidate,
         summary,
-        s3.as_ref(),
+        s3.as_ref().zip(s4_trace.as_ref()),
     )?;
     println!("output\t{}", output_dir.display());
     println!("iterations\t{}", checkpoint.completed_iterations());
@@ -397,7 +423,7 @@ fn publish_output_directory(
     report: &TuningReport,
     candidate: &chess_tune::NamedWeightArtifact,
     summary: chess_tune::SpsaRunSummary,
-    s3: Option<&S3GroupContext>,
+    group_evidence: Option<(&S3GroupContext, &S4OptimizerTrace)>,
 ) -> Result<(), String> {
     if output_dir.exists() {
         return Err(format!(
@@ -448,7 +474,7 @@ fn publish_output_directory(
             "This candidate is inactive. Activation requires the independent Task 21 gate.\n",
         )
         .map_err(|error| format!("failed to write activation marker: {error}"))?;
-        if let Some(context) = s3 {
+        if let Some((context, trace)) = group_evidence {
             fs::write(
                 staging.join("s3-group.txt"),
                 format!("{}\n", context.group.name()),
@@ -473,6 +499,9 @@ fn publish_output_directory(
             );
             fs::write(staging.join("s3-summary.tsv"), s3_summary)
                 .map_err(|error| format!("failed to write S3 tuning summary: {error}"))?;
+            let trace_text = trace.to_text().map_err(|error| error.to_string())?;
+            fs::write(staging.join("s4-optimizer-trace.txt"), trace_text)
+                .map_err(|error| format!("failed to write S4 optimizer trace: {error}"))?;
         }
         fs::rename(&staging, output_dir)
             .map_err(|error| format!("failed to publish tuning output directory: {error}"))?;
@@ -482,6 +511,36 @@ fn publish_output_directory(
         let _ = fs::remove_dir_all(&staging);
     }
     result
+}
+
+const FNV_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
+const FNV_PRIME: u64 = 0x0000_0100_0000_01b3;
+
+fn checksum_text(text: &str) -> u64 {
+    hash_bytes(FNV_OFFSET, text.as_bytes())
+}
+
+fn checkpoint_checksum(checkpoint: &SpsaCheckpoint) -> Result<u64, String> {
+    let bytes = checkpoint.to_bytes();
+    let suffix = bytes
+        .get(bytes.len().saturating_sub(8)..)
+        .ok_or_else(|| "checkpoint is too short to contain its checksum".to_owned())?;
+    let array: [u8; 8] = suffix
+        .try_into()
+        .map_err(|_| "checkpoint checksum has invalid length".to_owned())?;
+    let checksum = u64::from_le_bytes(array);
+    if checksum == 0 {
+        return Err("checkpoint checksum must be non-zero".to_owned());
+    }
+    Ok(checksum)
+}
+
+fn hash_bytes(mut hash: u64, bytes: &[u8]) -> u64 {
+    for byte in bytes {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(FNV_PRIME);
+    }
+    hash
 }
 
 fn parse_unsigned(value: &str, field: &str) -> Result<u64, String> {
