@@ -1,0 +1,145 @@
+name: S4 S3 Zero-Movement Reproduction
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - .github/workflows/s4-s3-zero-movement-reproduction.yml
+      - crates/chess-tune/**
+      - crates/chess-tools/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: s4-s3-zero-movement-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  reproduce:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Build release tooling
+        run: cargo build --locked --release -p chess-tools --bin chess-tools
+      - name: Generate exact S3 pilot dataset configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/s3-self-play.txt <<'EOF'
+          schema=1
+          games=32
+          seed=1395864373
+          maximum_plies=256
+          white_limit=depth:1
+          white_tt_mib=1
+          white_check_extension=false
+          black_limit=depth:1
+          black_tt_mib=1
+          black_check_extension=false
+          claimable_draw=accept
+          opening_positions=exclude
+          split_train=70
+          split_validation=20
+          split_test=10
+          opening_path=fixtures/self_play_openings.tsv
+          EOF
+          target/release/chess-tools s3-self-play "$GITHUB_SHA" /tmp/s3-self-play.txt /tmp/s4-s3-data | tee /tmp/dataset.log
+          target/release/chess-tools s3-self-play-validate /tmp/s4-s3-data | tee /tmp/validate.log
+          grep -Fxq $'dataset_checksum\tc691d1928ffda61b' /tmp/dataset.log
+          grep -Fxq $'training_occurrences\t2066' /tmp/dataset.log
+          grep -Fxq $'validation_occurrences\t195' /tmp/dataset.log
+          grep -Fxq $'admitted_for_tuning\ttrue' /tmp/validate.log
+      - name: Run frozen S3 full-evaluator tuning configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          config=/tmp/s3-full.txt
+          printf 'CHESS_TUNING_CONFIG\t1\n' > "$config"
+          cat >> "$config" <<EOF
+          engine_identifier=5995211731466014277
+          initial_weight_identifier=4774188637087157829
+          candidate_weight_identifier=5995213947818487900
+          source_commit=${GITHUB_SHA}
+          generated_at_unix_seconds=1786110300
+          maximum_iterations=8
+          advance_iterations=8
+          learning_rate=0.5
+          step_decay=0.602
+          perturbation_size=2.0
+          perturbation_decay=0.101
+          stability_constant=10.0
+          minimum_weight=-2000
+          maximum_weight=2000
+          regularization_strength=0.0001
+          random_seed=1395864499
+          k_minimum=0.1
+          k_maximum=3.0
+          k_intervals=20
+          EOF
+          target/release/chess-tools tune-group full_existing_evaluator "$config" /tmp/s4-s3-data /tmp/s4-s3-output | tee /tmp/tuning.log
+          test -f /tmp/s4-s3-output/s4-optimizer-trace.txt
+          grep -Fxq $'training_loss_delta\t0.00000000000000000e0' /tmp/s4-s3-output/s3-summary.tsv
+          grep -Fxq $'validation_loss_delta\t0.00000000000000000e0' /tmp/s4-s3-output/s3-summary.tsv
+          grep -Fxq $'activated\tfalse' /tmp/s4-s3-output/s3-summary.tsv
+      - name: Classify traced arithmetic
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' | tee /tmp/diagnosis.tsv
+          import struct
+          from pathlib import Path
+
+          trace = Path('/tmp/s4-s3-output/s4-optimizer-trace.txt').read_text().splitlines()
+          rows = [line.split('\t') for line in trace if line.startswith('iteration\t')]
+          if len(rows) != 8:
+              raise SystemExit(f'expected 8 trace rows, found {len(rows)}')
+          def f(bits):
+              return struct.unpack('>d', bytes.fromhex(bits))[0]
+          max_abs_objective = max(abs(f(row[9])) for row in rows)
+          max_abs_gradient = max(f(row[18]) for row in rows)
+          max_proposed_update = max(f(row[21]) for row in rows)
+          total_zero_after_quantization = sum(int(row[23]) for row in rows)
+          total_integer_updates = sum(int(row[24]) for row in rows)
+          total_clipped = sum(int(row[25]) for row in rows)
+          total_changed = sum(int(row[26]) for row in rows)
+          all_zero_gradient = all(int(row[16]) == int(row[13]) for row in rows)
+          classification = (
+              'zero_gradient' if all_zero_gradient else
+              'quantization_limited' if total_changed == 0 and max_proposed_update < 0.5 else
+              'projection_or_other' if total_changed == 0 else
+              'effective_movement'
+          )
+          print(f'iterations\t{len(rows)}')
+          print(f'max_abs_objective_difference\t{max_abs_objective:.17e}')
+          print(f'max_abs_gradient\t{max_abs_gradient:.17e}')
+          print(f'max_proposed_update\t{max_proposed_update:.17e}')
+          print(f'total_zero_after_quantization\t{total_zero_after_quantization}')
+          print(f'total_integer_updates\t{total_integer_updates}')
+          print(f'total_clipped_updates\t{total_clipped}')
+          print(f'total_changed_parameters\t{total_changed}')
+          print(f'classification\t{classification}')
+          if classification not in {'zero_gradient', 'quantization_limited', 'projection_or_other', 'effective_movement'}:
+              raise SystemExit('invalid diagnosis classification')
+          PY
+      - name: Package reproduction evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p s4-s3-reproduction-evidence
+          cp -a /tmp/s4-s3-data s4-s3-reproduction-evidence/dataset
+          cp -a /tmp/s4-s3-output s4-s3-reproduction-evidence/tuning
+          cp /tmp/s3-self-play.txt /tmp/s3-full.txt /tmp/dataset.log /tmp/validate.log /tmp/tuning.log /tmp/diagnosis.tsv s4-s3-reproduction-evidence/
+          printf '%s\n' "$GITHUB_SHA" > s4-s3-reproduction-evidence/source-sha.txt
+          printf 'activated\tfalse\n' > s4-s3-reproduction-evidence/disposition.tsv
+      - name: Upload reproduction evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: s4-s3-zero-movement-${{ github.sha }}
+          path: s4-s3-reproduction-evidence
+          if-no-files-found: error
+          retention-days: 30
