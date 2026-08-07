@@ -28,6 +28,16 @@ jobs:
         run: |
           set -euo pipefail
           python3 .github/s4_final_closure.py
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/task_s3_evaluation_strength_audit.sh')
+          text = path.read_text()
+          old = "require_literal 'Active S4 evaluation tuning calibration program' \"$legacy\"\nrequire_literal '`docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_TODO_2026-08-07.md`' \"$legacy\"\nif grep -Fq '| Active S3 evaluation strength program |' \"$legacy\"; then\n  fail 'closed S3 tracker is still classified as active'\nfi"
+          new = "require_literal '`docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_TODO_2026-08-07.md`' \"$legacy\"\nrequire_literal 'There is no active implementation TODO.' \"$legacy\"\nfor stale in '| Active S3 evaluation strength program |' '| Active S4 evaluation tuning calibration program |'; do\n  if grep -Fq \"$stale\" \"$legacy\"; then\n    fail \"closed strength/tuning tracker is still classified as active: $stale\"\n  fi\ndone"
+          if text.count(old) != 1:
+              raise SystemExit(f'S3 closure authority witness: expected one match, found {text.count(old)}')
+          path.write_text(text.replace(old, new, 1))
+          PY
           sed -i 's/[[:space:]]*$//' \
             docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_TODO_2026-08-07.md \
             docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_SPEC_2026-08-07.md \
@@ -41,6 +51,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          bash -n scripts/task_s3_evaluation_strength_audit.sh
           bash -n scripts/task_post_port_review_fix_audit.sh
           bash -n scripts/task_s4_evaluation_tuning_calibration_audit.sh
           bash scripts/task_post_port_review_fix_audit.sh
