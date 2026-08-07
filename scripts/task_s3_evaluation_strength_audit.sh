@@ -29,8 +29,12 @@ uci_tests=crates/chess-uci/tests/uci_process.rs
 mask=crates/chess-tune/src/mask.rs
 optimizer=crates/chess-tune/src/optimizer.rs
 s3_tools=crates/chess-tools/src/s3.rs
+s3_cli=crates/chess-tools/src/s3_cli.rs
+tuning_cli=crates/chess-tools/src/tuning_cli.rs
+tuning_report=crates/chess-tools/src/tuning/report.rs
+tools_main=crates/chess-tools/src/main.rs
 
-for path in "$spec" "$tracker" "$baseline" "$pipeline" "$legacy" "$editor" "$position_mod" "$core_lib" "$uci_tests" "$mask" "$optimizer" "$s3_tools"; do
+for path in "$spec" "$tracker" "$baseline" "$pipeline" "$legacy" "$editor" "$position_mod" "$core_lib" "$uci_tests" "$mask" "$optimizer" "$s3_tools" "$s3_cli" "$tuning_cli" "$tuning_report" "$tools_main"; do
   require_file "$path"
 done
 
@@ -46,7 +50,7 @@ require_literal 'Runtime weight-vector length: `816`; named tunable-parameter co
 require_literal 'experimental_features=0000000000000000' "$baseline"
 require_literal 'Tablebases/Syzygy are disabled' "$baseline"
 
-# PositionEditor must be private to chess-core and must explicitly remain hash-neutral.
+# PositionEditor must be private to chess-core and explicitly hash-neutral.
 if grep -Eq '^[[:space:]]*pub[[:space:]]+use[[:space:]].*PositionEditor' "$position_mod" "$core_lib"; then
   fail 'PositionEditor is publicly re-exported'
 fi
@@ -85,11 +89,19 @@ require_literal 'pub const S3_MAXIMUM_UNFINISHED_PER_MILLE: u32 = 250;' "$s3_too
 require_literal 'pub const S3_MINIMUM_TRAINING_OCCURRENCES: u64 = 128;' "$s3_tools"
 require_literal 'pub const S3_MINIMUM_VALIDATION_OCCURRENCES: u64 = 16;' "$s3_tools"
 require_literal 'pub struct S3DatasetManifest' "$s3_tools"
+require_literal 'exact_invocation: String,' "$s3_tools"
+require_literal 'total_position_rows: u64,' "$s3_tools"
+require_literal 'eligible_position_rows: u64,' "$s3_tools"
+require_literal 'excluded_position_rows: u64,' "$s3_tools"
+require_literal 'writeln!(output, "exact_invocation={}", self.exact_invocation)' "$s3_tools"
+require_literal 'writeln!(output, "total_position_rows={}", self.total_position_rows)' "$s3_tools"
+require_literal 'const KEYS: [&str; 25]' "$s3_tools"
 require_literal 'pub fn validate_dataset(' "$s3_tools"
 require_literal 'dataset: &SelfPlayDataset,' "$s3_tools"
 require_literal 'pub fn validate_for_tuning(&self) -> Result<(), S3DatasetAdmissionError>' "$s3_tools"
 require_literal 'fn manifest_round_trip_binds_exact_dataset_and_source()' "$s3_tools"
 require_literal 'fn manifest_checksum_and_dataset_binding_fail_closed()' "$s3_tools"
+require_literal 'fn exact_invocation_is_provenance_and_changes_manifest_checksum()' "$s3_tools"
 require_literal 'the strict Task 20 dataset image' "$pipeline"
 require_literal 'a strict `CHESS_S3_TRAINING_DATASET_MANIFEST` sidecar' "$pipeline"
 require_literal 'no Git, environment, filesystem, or process discovery is used by the library contract' "$pipeline"
@@ -110,8 +122,27 @@ require_literal 'b"spsa-parameter-mask-v1"' "$optimizer"
 require_literal 'if direction == 0 {' "$optimizer"
 require_literal 'fn masked_optimizer_never_changes_inactive_parameters()' "$optimizer"
 require_literal 'fn mask_identity_binds_checkpoint_configuration()' "$optimizer"
+require_literal 'fn masked_optimizer_report_uses_the_same_regularization_domain()' "$tuning_report"
 require_literal 'Regularization is normalized over the selected parameter count' "$pipeline"
 require_literal 'validation MSE separately after bounded work' "$pipeline"
+
+# The reproducible S3 command surface must remain explicit and inactive.
+require_literal 'pub(crate) fn run_s3_self_play(arguments: &[String])' "$s3_cli"
+require_literal 'pub(crate) fn run_s3_self_play_validate(arguments: &[String])' "$s3_cli"
+require_literal 'ACTIVATION_DISABLED' "$s3_cli"
+require_literal 'std::env::args().collect::<Vec<_>>().join(" ")' "$s3_cli"
+require_literal 'fs::rename(&staging, output_dir)' "$s3_cli"
+require_literal 'pub(crate) fn run_group_tuning_command(arguments: &[String])' "$tuning_cli"
+require_literal 'manifest.validate_for_tuning()' "$tuning_cli"
+require_literal 'S3 dataset source commit differs from tuning config source_commit' "$tuning_cli"
+require_literal 'resume requires the exact previous S3 tuning group' "$tuning_cli"
+require_literal 'resume requires the exact previous S3 dataset manifest' "$tuning_cli"
+require_literal 's3-summary.tsv' "$tuning_cli"
+require_literal '"s3-self-play" =>' "$tools_main"
+require_literal '"s3-self-play-validate" =>' "$tools_main"
+require_literal '"tune-group" =>' "$tools_main"
+require_literal 'chess-tools s3-self-play SOURCE_SHA CONFIG_PATH OUTPUT_DIR' "$pipeline"
+require_literal 'chess-tools tune-group GROUP CONFIG_PATH S3_DATASET_DIR OUTPUT_DIR [PREVIOUS_OUTPUT_DIR]' "$pipeline"
 
 # S3 candidate exploration must not drift production release identity.
 require_literal 'version = "0.1.0"' Cargo.toml
@@ -126,7 +157,10 @@ for temporary in \
   .github/workflows/s3-phase1-stage.yml \
   .github/s3_phase2.py \
   .github/s3_phase2_fix.py \
-  .github/workflows/s3-phase2-stage.yml; do
+  .github/workflows/s3-phase2-stage.yml \
+  .github/s3_phase3.py \
+  .github/s3_phase3_fix.py \
+  .github/workflows/s3-phase3-stage.yml; do
   if test -e "$temporary"; then
     fail "temporary S3 staging control remains: $temporary"
   fi
