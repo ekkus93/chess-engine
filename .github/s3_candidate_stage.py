@@ -1,5 +1,6 @@
 from pathlib import Path
 
+# Temporary fail-closed staging helper. Removed after the focused gate passes.
 path = Path('crates/chess-tools/src/lib.rs')
 text = path.read_text()
 old = 'pub mod s3;\n'
