@@ -10,7 +10,7 @@ mod tests;
 mod zobrist;
 
 use builder::PositionBuilder;
-pub use editor::PositionEditor;
+use editor::PositionEditor;
 pub use error::{PositionBuildError, PositionInvariantError, PositionMutationError};
 pub use fen::FenError;
 pub use legal::{LegalMoveError, LegalMoveToken, LegalMoveTokenList};

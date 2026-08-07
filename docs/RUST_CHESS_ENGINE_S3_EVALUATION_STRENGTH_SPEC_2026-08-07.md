@@ -99,9 +99,11 @@ S3 must not:
 ### 5.1 Evaluation
 
 The evaluator already supports baseline and caller-supplied
-`EvaluationWeights`. The current dense tunable vector has 816 signed scalar
-values. S3 should treat these weights as an existing tuning surface, not as an
-already-validated strength improvement.
+`EvaluationWeights`. The canonical runtime weight vector has 816 signed scalar
+values. The named optimizer surface contains 810 tunable scalars; six fixed-zero
+structural slots (king material plus pawn/king mobility, each in two phases) are
+excluded from tuning. S3 should treat the 810 named parameters as the tuning
+surface, not as an already-validated strength improvement.
 
 Required tuning groups:
 

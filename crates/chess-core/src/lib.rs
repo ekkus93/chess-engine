@@ -33,12 +33,12 @@ pub use game::{
 pub use move_encoding::{Move, MoveKind};
 pub use movegen::{MoveList, MoveListOverflow, MAX_PSEUDO_LEGAL_MOVES};
 pub use piece::{Color, Piece, PieceKind};
+#[doc(hidden)]
+pub use position::PositionMutationError;
 pub use position::{
     FenError, LegalMoveError, LegalMoveToken, LegalMoveTokenList, Position, PositionBuildError,
     PositionInvariantError, PositionUndo, SearchNullError, SearchNullUndo,
 };
-#[doc(hidden)]
-pub use position::{PositionEditor, PositionMutationError};
 pub use see::{
     static_exchange_evaluation, static_exchange_piece_value, static_exchange_semantic_checksum,
     StaticExchangeClass, StaticExchangeError, StaticExchangeMoveStateError, StaticExchangeValue,

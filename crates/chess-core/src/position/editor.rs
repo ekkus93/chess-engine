@@ -5,7 +5,9 @@ use super::{Position, PositionMutationError};
 /// Capability that atomically updates every private position representation.
 ///
 /// Only `Position` can construct an editor, so adapters cannot mutate mailbox
-/// or bitboard state directly.
+/// or bitboard state directly. The editor deliberately does **not** update the
+/// Zobrist key: reversible move/search-null callers own incremental hash updates
+/// around editor mutations and verify them against authoritative recomputation.
 pub struct PositionEditor<'a> {
     pub(super) position: &'a mut Position,
 }
@@ -83,5 +85,34 @@ impl PositionEditor<'_> {
         self.position.pieces[piece.color.index()][piece.kind.index()].clear(square);
         self.position.occupancy[piece.color.index()].clear(square);
         self.position.all_occupancy.clear(square);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Piece, PieceKind, Position, Square};
+
+    #[test]
+    fn editor_mutation_is_hash_neutral_until_the_caller_updates_hash_state() {
+        let mut position = Position::starting();
+        let original_hash = position.zobrist();
+        let square: Square = "a2".parse().expect("fixture square parses");
+        let pawn = Piece::new(crate::Color::White, PieceKind::Pawn);
+
+        {
+            let mut editor = position.editor();
+            assert_eq!(editor.remove_piece(square), Ok(pawn));
+        }
+        assert_eq!(position.zobrist(), original_hash);
+
+        {
+            let mut editor = position.editor();
+            editor.add_piece(square, pawn).expect("fixture restores");
+        }
+        assert_eq!(position.zobrist(), original_hash);
+        assert_eq!(position.zobrist(), position.recomputed_zobrist());
+        position
+            .validate_invariants()
+            .expect("restored position is valid");
     }
 }

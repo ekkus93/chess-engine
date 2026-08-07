@@ -379,3 +379,90 @@ fn concurrent_processes_keep_state_and_stdout_isolated() {
     terminal.quit_cleanly();
     normal.quit_cleanly();
 }
+
+#[test]
+fn position_replacement_discards_active_search_without_stale_bestmove() {
+    let mut process = UciProcess::spawn();
+    process.send("position startpos");
+    process.send("go infinite");
+    let before_replace = process.read_until(OUTPUT_TIMEOUT, |line| line.starts_with("info depth "));
+    assert!(before_replace
+        .iter()
+        .all(|line| !line.starts_with("bestmove ")));
+
+    process.send("position startpos moves e2e4");
+    process.send("isready");
+    let replacement = process.read_until(OUTPUT_TIMEOUT, |line| line == "readyok");
+    assert!(
+        replacement
+            .iter()
+            .all(|line| !line.starts_with("bestmove ")),
+        "position replacement leaked stale bestmove: {replacement:?}"
+    );
+
+    process.send("go depth 1");
+    let fresh = process.read_through_bestmove();
+    assert_legal_bestmove(game_after_moves(&["e2e4"]), bestmove_line(&fresh));
+    process.quit_cleanly();
+}
+
+#[test]
+fn ucinewgame_discards_active_search_without_stale_bestmove() {
+    let mut process = UciProcess::spawn();
+    process.send("position startpos moves e2e4");
+    process.send("go infinite");
+    let before_new_game =
+        process.read_until(OUTPUT_TIMEOUT, |line| line.starts_with("info depth "));
+    assert!(before_new_game
+        .iter()
+        .all(|line| !line.starts_with("bestmove ")));
+
+    process.send("ucinewgame");
+    process.send("isready");
+    let reset = process.read_until(OUTPUT_TIMEOUT, |line| line == "readyok");
+    assert!(
+        reset.iter().all(|line| !line.starts_with("bestmove ")),
+        "ucinewgame leaked stale bestmove: {reset:?}"
+    );
+
+    process.send("go depth 1");
+    let fresh = process.read_through_bestmove();
+    assert_legal_bestmove(Game::starting(), bestmove_line(&fresh));
+    process.quit_cleanly();
+}
+
+#[test]
+fn repeated_stop_and_restart_cycles_emit_exactly_one_bestmove_per_search() {
+    let mut process = UciProcess::spawn();
+    process.send("position startpos");
+
+    for cycle in 0..3 {
+        process.send("go infinite");
+        let before_stop =
+            process.read_until(OUTPUT_TIMEOUT, |line| line.starts_with("info depth "));
+        assert!(before_stop
+            .iter()
+            .all(|line| !line.starts_with("bestmove ")));
+        process.send("stop");
+        let after_stop = process.read_through_bestmove();
+        assert_legal_bestmove(Game::starting(), bestmove_line(&after_stop));
+        let bestmove_count = before_stop
+            .iter()
+            .chain(after_stop.iter())
+            .filter(|line| line.starts_with("bestmove "))
+            .count();
+        assert_eq!(
+            bestmove_count, 1,
+            "cycle {cycle} emitted an unexpected final-move count"
+        );
+
+        process.send("isready");
+        let readiness = process.read_until(OUTPUT_TIMEOUT, |line| line == "readyok");
+        assert!(
+            readiness.iter().all(|line| !line.starts_with("bestmove ")),
+            "cycle {cycle} leaked an extra bestmove after stop: {readiness:?}"
+        );
+    }
+
+    process.quit_cleanly();
+}

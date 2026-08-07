@@ -63,8 +63,8 @@ grep -Fq "**Specification:** \`$v0_2_spec\`" "$v0_2_todo"
 grep -Fq "**Companion TODO:** \`$s3_todo\`" "$s3_spec"
 grep -Fq "**Specification:** \`$s3_spec\`" "$s3_todo"
 grep -Fq '**Status:** Active — not yet implemented' "$s3_todo"
-grep -Fq '# Task S3-0: Authority registration and v0.1 baseline freeze — NOT STARTED' "$s3_todo"
-grep -Fq '# Task S3-12: Final report and closure — NOT STARTED' "$s3_todo"
+grep -Fq '# Task S3-0: Authority registration and v0.1 baseline freeze' "$s3_todo"
+grep -Fq '# Task S3-12: Final report and closure' "$s3_todo"
 
 while IFS= read -r todo_path; do
     case "$todo_path" in

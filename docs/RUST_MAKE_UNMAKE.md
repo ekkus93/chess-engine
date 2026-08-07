@@ -42,6 +42,8 @@ A successful move updates all redundant board representations through `PositionE
 - combined occupancy;
 - cached king squares.
 
+`PositionEditor` is intentionally an internal board-representation capability. It does not update the Zobrist key itself and is not exported from `chess-core`; the reversible move and search-null paths own incremental hash transitions around editor mutations and verify the stored key against authoritative recomputation in debug/test coverage.
+
 It also updates:
 
 - side to move after every move;
