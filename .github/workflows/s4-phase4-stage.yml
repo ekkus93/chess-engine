@@ -1,0 +1,52 @@
+name: S4 Phase 4 Quantization and Known-Answer Stage
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - .github/s4_phase4.py
+      - .github/workflows/s4-phase4-stage.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: s4-phase4-stage
+  cancel-in-progress: false
+
+jobs:
+  stage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Apply S4 phase 4 patch
+        run: python3 .github/s4_phase4.py
+      - name: Format staged source
+        run: cargo fmt --all
+      - name: Check workspace
+        run: cargo check --locked --workspace --all-targets --all-features
+      - name: Run strict Clippy
+        run: cargo clippy --locked -p chess-tune --all-targets --all-features -- -D warnings
+      - name: Run quantization and known-answer regressions
+        run: cargo test --locked -p chess-tune --all-targets --all-features -- --nocapture
+      - name: Verify S4 audit syntax
+        run: bash -n scripts/task_s4_evaluation_tuning_calibration_audit.sh
+      - name: Check patch whitespace
+        run: git diff --check
+      - name: Commit validated phase 4
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Phillip Chin"
+          git config user.email "ekkus93@gmail.com"
+          git add crates/chess-tune/src/optimizer.rs scripts/task_s4_evaluation_tuning_calibration_audit.sh
+          git commit -m "test: prove S4 quantization and known-answer behavior"
+          git push origin HEAD:master
