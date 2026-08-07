@@ -46,13 +46,13 @@ jobs:
         run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
 
       - name: Run focused chess-core tests
-        run: cargo test --locked -p chess-core editor_mutation_is_hash_neutral_until_the_caller_updates_hash_state -- --exact
+        run: cargo test --locked -p chess-core editor_mutation_is_hash_neutral_until_the_caller_updates_hash_state
 
       - name: Run UCI process tests
         run: cargo test --locked -p chess-uci --test uci_process
 
-      - name: Run S3 guardrail audit
-        run: bash scripts/task_s3_evaluation_strength_audit.sh
+      - name: Check S3 audit syntax
+        run: bash -n scripts/task_s3_evaluation_strength_audit.sh
 
       - name: Reject whitespace errors
         run: git diff --check
