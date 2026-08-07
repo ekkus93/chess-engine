@@ -161,3 +161,7 @@ Closure also fixed three first-party repository defects without weakening gates:
 The S4 TODO is historical after this closure. There is no active implementation TODO. The completed Rust-port authority documents and this authority index remain the standing authority until a future program is explicitly registered.
 
 No activation occurred anywhere in S4. Package/UCI version `0.1.0`, the v0.1 evaluator/search policy, ABI/JNI/Android surface, opening default, and tablebase state remain unchanged.
+
+## Final post-closure validation evidence correction
+
+`docs/RUST_CHESS_ENGINE_S4_FINAL_VALIDATION_ADDENDUM_2026-08-07.md` records the completed permanent validation matrix for final closed SHA `bc406d78d673cc3258e8b522bcec25c4838f5e32`. The pre-closure matrix above remains valid implementation evidence; it is not the final closed-SHA signoff. The addendum records CI `31208874474`, Performance `31208875019`, Robustness `31208875521`, Android/JNI `31208874646`, S4 `31208874643`, and final report publication `31209467578`, all successful on the exact final closed SHA. The selected S4 candidate remains `rejected_strength`, inactive, and non-production.

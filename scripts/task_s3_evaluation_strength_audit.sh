@@ -23,6 +23,7 @@ baseline=docs/RUST_CHESS_ENGINE_S3_BASELINE_2026-08-07.md
 pipeline=docs/RUST_CHESS_ENGINE_S3_PIPELINE.md
 pilot=docs/RUST_CHESS_ENGINE_S3_PILOT_EVALUATION_2026-08-07.md
 final_report=docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_IMPLEMENTATION_REPORT.md
+hardening_todo=docs/RUST_CHESS_ENGINE_S4_CLOSURE_HARDENING_TODO_2026-08-07.md
 legacy=docs/LEGACY_TODO_INDEX.md
 editor=crates/chess-core/src/position/editor.rs
 position_mod=crates/chess-core/src/position/mod.rs
@@ -36,7 +37,7 @@ tuning_cli=crates/chess-tools/src/tuning_cli.rs
 tuning_report=crates/chess-tools/src/tuning/report.rs
 tools_main=crates/chess-tools/src/main.rs
 
-for path in "$spec" "$tracker" "$baseline" "$pipeline" "$pilot" "$final_report" "$legacy" "$editor" "$position_mod" "$core_lib" "$uci_tests" "$mask" "$optimizer" "$s3_tools" "$s3_cli" "$tuning_cli" "$tuning_report" "$tools_main"; do
+for path in "$spec" "$tracker" "$baseline" "$pipeline" "$pilot" "$final_report" "$hardening_todo" "$legacy" "$editor" "$position_mod" "$core_lib" "$uci_tests" "$mask" "$optimizer" "$s3_tools" "$s3_cli" "$tuning_cli" "$tuning_report" "$tools_main"; do
   require_file "$path"
 done
 
@@ -46,7 +47,9 @@ bash scripts/task_v0_2_strength_audit.sh
 # Closed-program authority and no-promotion disposition.
 require_literal '`docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_TODO_2026-08-07.md`' "$legacy"
 require_literal '`docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_TODO_2026-08-07.md`' "$legacy"
-require_literal 'There is no active implementation TODO.' "$legacy"
+require_literal '`docs/RUST_CHESS_ENGINE_S4_CLOSURE_HARDENING_TODO_2026-08-07.md`' "$legacy"
+require_literal '| Active S4 closure hardening program |' "$legacy"
+require_literal '**Status:** Active — H0-H6 implemented; permanent validation pending' "$hardening_todo"
 for stale in '| Active S3 evaluation strength program |' '| Active S4 evaluation tuning calibration program |'; do
   if grep -Fq "$stale" "$legacy"; then
     fail "closed strength/tuning tracker is still classified as active: $stale"

@@ -650,10 +650,27 @@ disposition	unassessed
             .map_err(|error| format!("failed to publish tuning output directory: {error}"))?;
         Ok(())
     })();
-    if result.is_err() {
-        let _ = fs::remove_dir_all(&staging);
+    match result {
+        Ok(()) => Ok(()),
+        Err(primary_error) => Err(cleanup_staging_after_failure(&staging, primary_error)),
     }
-    result
+}
+
+fn cleanup_staging_after_failure(staging: &Path, primary_error: String) -> String {
+    match fs::remove_dir_all(staging) {
+        Ok(()) => primary_error,
+        Err(cleanup_error) => cleanup_failure_message(&primary_error, staging, &cleanup_error),
+    }
+}
+
+fn cleanup_failure_message(
+    primary_error: &str,
+    staging: &Path,
+    cleanup_error: &std::io::Error,
+) -> String {
+    format!(
+        "{primary_error}; additionally failed to remove tuning staging directory {staging:?}: {cleanup_error}"
+    )
 }
 
 const FNV_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
@@ -704,8 +721,12 @@ fn parse_unsigned(value: &str, field: &str) -> Result<u64, String> {
 }
 
 fn parse_source_commit(value: &str) -> Result<[u8; 20], String> {
-    if value.len() != 40 || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
-        return Err("source_commit must be exactly 40 hexadecimal characters".to_owned());
+    if value.len() != 40
+        || value
+            .bytes()
+            .any(|byte| !byte.is_ascii_hexdigit() || byte.is_ascii_uppercase())
+    {
+        return Err("source_commit must be exactly 40 lowercase hexadecimal characters".to_owned());
     }
     let mut output = [0_u8; 20];
     for (index, current) in output.iter_mut().enumerate() {
@@ -720,7 +741,9 @@ fn parse_source_commit(value: &str) -> Result<[u8; 20], String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_source_commit, TuningFileConfig, CONFIG_MARKER};
+    use std::{io, path::Path};
+
+    use super::{cleanup_failure_message, parse_source_commit, TuningFileConfig, CONFIG_MARKER};
 
     fn valid_config() -> String {
         format!(
@@ -744,12 +767,40 @@ mod tests {
     }
 
     #[test]
-    fn source_commit_is_exact_and_nonzero() {
+    fn source_commit_accepts_canonical_lowercase() {
         assert_eq!(
             parse_source_commit("abababababababababababababababababababab").expect("commit"),
             [0xab; 20]
         );
+    }
+
+    #[test]
+    fn source_commit_rejects_uppercase() {
+        assert!(parse_source_commit("ABABABABABABABABABABABABABABABABABABABAB").is_err());
+    }
+
+    #[test]
+    fn source_commit_rejects_mixed_case() {
+        assert!(parse_source_commit("abababababababababababababababababababAB").is_err());
+    }
+
+    #[test]
+    fn source_commit_rejects_short_invalid_and_zero() {
         assert!(parse_source_commit("00").is_err());
+        assert!(parse_source_commit("gggggggggggggggggggggggggggggggggggggggg").is_err());
         assert!(parse_source_commit("0000000000000000000000000000000000000000").is_err());
+    }
+
+    #[test]
+    fn cleanup_failure_context_preserves_primary_error() {
+        let cleanup = io::Error::other("permission denied");
+        let message = cleanup_failure_message(
+            "primary publication failure",
+            Path::new(".out.staging"),
+            &cleanup,
+        );
+        assert!(message.starts_with("primary publication failure; additionally failed"));
+        assert!(message.contains(".out.staging"));
+        assert!(message.contains("permission denied"));
     }
 }

@@ -27,6 +27,9 @@ selected=docs/RUST_CHESS_ENGINE_S4_SELECTED_CANDIDATE_REPRODUCTION_2026-08-07.md
 smoke=docs/RUST_CHESS_ENGINE_S4_DEVELOPMENT_STRENGTH_SMOKE_2026-08-07.md
 method=docs/RUST_CHESS_ENGINE_S4_METHOD_DISPOSITION_AND_S5_READINESS_2026-08-07.md
 final_report=docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_IMPLEMENTATION_REPORT.md
+hardening_spec=docs/RUST_CHESS_ENGINE_S4_CLOSURE_HARDENING_SPEC_2026-08-07.md
+hardening_todo=docs/RUST_CHESS_ENGINE_S4_CLOSURE_HARDENING_TODO_2026-08-07.md
+final_addendum=docs/RUST_CHESS_ENGINE_S4_FINAL_VALIDATION_ADDENDUM_2026-08-07.md
 legacy=docs/LEGACY_TODO_INDEX.md
 s3_tracker=docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_TODO_2026-08-07.md
 s3_report=docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_IMPLEMENTATION_REPORT.md
@@ -34,7 +37,7 @@ diagnostics=crates/chess-tune/src/diagnostics.rs
 trace=crates/chess-tune/src/trace.rs
 optimizer=crates/chess-tune/src/optimizer.rs
 
-for path in "$spec" "$tracker" "$baseline" "$diagnosis" "$corpus" "$matrix" "$selected" "$smoke" "$method" "$final_report" "$legacy" "$s3_tracker" "$s3_report" "$diagnostics" "$trace" "$optimizer"; do
+for path in "$spec" "$tracker" "$baseline" "$diagnosis" "$corpus" "$matrix" "$selected" "$smoke" "$method" "$final_report" "$hardening_spec" "$hardening_todo" "$final_addendum" "$legacy" "$s3_tracker" "$s3_report" "$diagnostics" "$trace" "$optimizer"; do
   require_file "$path"
 done
 
@@ -43,8 +46,11 @@ bash scripts/task_s3_evaluation_strength_audit.sh
 
 # S4 is closed and historical; S3 remains closed and historical.
 require_literal '`docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_TODO_2026-08-07.md`' "$legacy"
-require_literal 'There is no active implementation TODO.' "$legacy"
-require_literal '74 TODO-named files total; 2 authority documents; 1 authority index; 71 historical' "$legacy"
+require_literal '`docs/RUST_CHESS_ENGINE_S4_CLOSURE_HARDENING_TODO_2026-08-07.md`' "$legacy"
+require_literal '| Active S4 closure hardening program |' "$legacy"
+require_literal '75 TODO-named files total; 3 authority documents; 1 authority index; 71 historical' "$legacy"
+require_literal '**Status:** Active — H0-H6 implemented; permanent validation pending' "$hardening_todo"
+require_literal '**Status:** Active — closure hardening implementation in progress' "$hardening_spec"
 require_literal '**Status:** Complete — tuning method accepted for future experimentation; no production promotion' "$tracker"
 require_literal '**Status:** Complete — tuning method accepted for future experimentation; no production promotion' "$spec"
 require_literal '**Status:** Complete — program closed without promotion' "$s3_tracker"
@@ -193,3 +199,39 @@ if grep -R --line-number --include='*.rs' -E 'Command::new\("python(3)?"|Py_Init
 fi
 
 echo 'S4 evaluation-tuning calibration closure audit passed'
+
+# S4 closure hardening H1-H6 witnesses.
+require_literal '**Status:** Complete evidence correction' "$final_addendum"
+require_literal 'bc406d78d673cc3258e8b522bcec25c4838f5e32' "$final_addendum"
+require_literal '31208874474' "$final_addendum"
+require_literal '31208875019' "$final_addendum"
+require_literal '31208875521' "$final_addendum"
+require_literal '31208874646' "$final_addendum"
+require_literal '31208874643' "$final_addendum"
+require_literal '31209467578' "$final_addendum"
+require_literal '9005860229' "$final_addendum"
+require_literal '9005851414' "$final_addendum"
+require_literal '9005947857' "$final_addendum"
+require_literal '.checked_add(self.negative_gradient_count)' "$diagnostics"
+require_literal '.checked_add(self.nonzero_integer_update_count)' "$diagnostics"
+require_literal 'gradient_count == Some(active)' "$diagnostics"
+require_literal 'self.changed_parameter_count == self.nonzero_integer_update_count' "$diagnostics"
+require_literal 'trace_rejects_impossible_quantization_update_partition' "$trace"
+require_literal 'trace_rejects_changed_count_mismatch' "$trace"
+require_literal 'cleanup_staging_after_failure' crates/chess-tools/src/tuning_cli.rs
+require_literal 'cleanup_failure_message' crates/chess-tools/src/tuning_cli.rs
+if grep -Fq 'let _ = fs::remove_dir_all(&staging);' crates/chess-tools/src/tuning_cli.rs; then
+  fail 'silent tuning staging cleanup discard returned'
+fi
+require_literal 'source_commit must be exactly 40 lowercase hexadecimal characters' crates/chess-tools/src/tuning_cli.rs
+require_literal 'source_commit_rejects_uppercase' crates/chess-tools/src/tuning_cli.rs
+require_literal 'source_commit_rejects_mixed_case' crates/chess-tools/src/tuning_cli.rs
+if grep -Fq 'pub fn current_weights(' "$optimizer"; then
+  fail 'unused public raw checkpoint materializer returned'
+fi
+require_literal 'checkpoint_best_weights_preserve_inactive_parameters_after_masked_run' "$optimizer"
+require_literal '# Task H0: Authority registration and baseline freeze — COMPLETE' "$hardening_todo"
+require_literal '# Task H6: Permanent audit and workflow integration — COMPLETE' "$hardening_todo"
+for temporary in .github/s4_closure_hardening_apply.py .github/workflows/s4-closure-hardening-apply.yml; do
+  test ! -e "$temporary" || fail "temporary S4 hardening control remains: $temporary"
+done

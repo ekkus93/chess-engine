@@ -790,4 +790,42 @@ mod tests {
             Err(S4OptimizerTraceError::ImpossibleCounts { .. })
         ));
     }
+
+    fn mutate_iteration_field(text: &str, field_index: usize, value: &str) -> String {
+        let mut lines = text.lines().map(str::to_owned).collect::<Vec<_>>();
+        let row = lines
+            .iter_mut()
+            .find(|line| line.starts_with("iteration\t"))
+            .expect("fixture contains an iteration row");
+        let mut fields = row.split('\t').map(str::to_owned).collect::<Vec<_>>();
+        assert_eq!(fields.len(), 31);
+        fields[field_index] = value.to_owned();
+        *row = fields.join("\t");
+        lines.join("\n") + "\n"
+    }
+
+    #[test]
+    fn trace_rejects_impossible_quantization_update_partition() {
+        let trace =
+            S4OptimizerTrace::new(binding(), vec![diagnostic(1, 0x50)]).expect("trace is valid");
+        let text = trace.to_text().expect("trace serializes");
+        let text = mutate_iteration_field(&text, 24, "1");
+        let text = mutate_iteration_field(&text, 26, "1");
+        assert!(matches!(
+            S4OptimizerTrace::from_text(&text),
+            Err(S4OptimizerTraceError::ImpossibleCounts { .. })
+        ));
+    }
+
+    #[test]
+    fn trace_rejects_changed_count_mismatch() {
+        let trace =
+            S4OptimizerTrace::new(binding(), vec![diagnostic(1, 0x50)]).expect("trace is valid");
+        let text = trace.to_text().expect("trace serializes");
+        let text = mutate_iteration_field(&text, 26, "1");
+        assert!(matches!(
+            S4OptimizerTrace::from_text(&text),
+            Err(S4OptimizerTraceError::ImpossibleCounts { .. })
+        ));
+    }
 }

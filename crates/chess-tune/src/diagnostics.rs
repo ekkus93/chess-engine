@@ -227,15 +227,19 @@ impl SpsaIterationDiagnostics {
     }
 
     pub(crate) fn validate_counts(self) -> bool {
-        let active = self.active_parameter_count as usize;
-        active <= TUNABLE_PARAMETER_COUNT
-            && self.positive_gradient_count as usize
-                + self.negative_gradient_count as usize
-                + self.zero_gradient_count as usize
-                == active
-            && self.zero_after_quantization_count as usize <= active
-            && self.nonzero_integer_update_count as usize <= active
-            && self.clipped_update_count as usize <= active
-            && self.changed_parameter_count as usize <= active
+        let active = self.active_parameter_count;
+        let gradient_count = self
+            .positive_gradient_count
+            .checked_add(self.negative_gradient_count)
+            .and_then(|count| count.checked_add(self.zero_gradient_count));
+        let movement_count = self
+            .zero_after_quantization_count
+            .checked_add(self.nonzero_integer_update_count);
+
+        active as usize <= TUNABLE_PARAMETER_COUNT
+            && gradient_count == Some(active)
+            && movement_count.is_some_and(|count| count <= active)
+            && self.changed_parameter_count == self.nonzero_integer_update_count
+            && self.clipped_update_count <= active
     }
 }

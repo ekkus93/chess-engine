@@ -507,3 +507,7 @@ If S4-9 fails:
 - [x] S4-10 development strength smoke complete or explicitly skipped.
 - [x] S4-11 method disposition and next-step recommendation complete.
 - [x] S4-12 final report and closure complete.
+
+### Final post-closure validation evidence correction
+
+S4-12.3 final closed-SHA evidence is recorded in `docs/RUST_CHESS_ENGINE_S4_FINAL_VALIDATION_ADDENDUM_2026-08-07.md`. Final closed SHA `bc406d78d673cc3258e8b522bcec25c4838f5e32` passed CI run `31208874474`, Performance run `31208875019`, Robustness run `31208875521`, Android/JNI run `31208874646`, S4 run `31208874643`, and final report-publication run `31209467578`. This supplements, rather than replaces, the pre-closure implementation evidence. No S4 candidate was activated.

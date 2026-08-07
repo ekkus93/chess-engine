@@ -1,9 +1,10 @@
 # Rust Chess Engine S4 Closure Hardening Spec — 2026-08-07
 
-**Status:** Proposed planning authority; implementation not yet started
+**Status:** Active — closure hardening implementation in progress
 **Date:** 2026-08-07
 **Branch:** `master`
 **Planning baseline SHA:** `bc406d78d673cc3258e8b522bcec25c4838f5e32`
+**Implementation-start SHA:** `9f5c398a70e22228454f0184225a414f1466cdf5`
 **Companion TODO:** `docs/RUST_CHESS_ENGINE_S4_CLOSURE_HARDENING_TODO_2026-08-07.md`
 **Source review:** Post-S4 code review of final `master` closure state
 

@@ -14,6 +14,8 @@ s3_todo="docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_TODO_2026-08-07.md"
 s3_report="docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_IMPLEMENTATION_REPORT.md"
 s4_spec="docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_SPEC_2026-08-07.md"
 s4_todo="docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_TODO_2026-08-07.md"
+hardening_spec="docs/RUST_CHESS_ENGINE_S4_CLOSURE_HARDENING_SPEC_2026-08-07.md"
+hardening_todo="docs/RUST_CHESS_ENGINE_S4_CLOSURE_HARDENING_TODO_2026-08-07.md"
 legacy_index="docs/LEGACY_TODO_INDEX.md"
 fen_doc="docs/RUST_FEN_AND_UCI_NOTATION.md"
 fen_source="crates/chess-core/src/position/fen.rs"
@@ -29,6 +31,8 @@ for required in \
     "$s3_report" \
     "$s4_spec" \
     "$s4_todo" \
+    "$hardening_spec" \
+    "$hardening_todo" \
     "$legacy_index" \
     "$fen_doc" \
     "$fen_source"; do
@@ -49,6 +53,8 @@ grep -Fq '**Status:** Complete — program closed without promotion' "$s3_todo"
 grep -Fq '**Status:** Complete — program closed without promotion' "$s3_report"
 grep -Fq '**Status:** Complete — tuning method accepted for future experimentation; no production promotion' "$s4_todo"
 grep -Fq '**Status:** Complete — tuning method accepted for future experimentation; no production promotion' "$s4_spec"
+grep -Fq '**Status:** Active — H0-H6 implemented; permanent validation pending' "$hardening_todo"
+grep -Fq '**Status:** Active — closure hardening implementation in progress' "$hardening_spec"
 
 for stale in '| Active v0.2 strength program |' '| Active S3 evaluation strength program |' '| Active S4 evaluation tuning calibration program |'; do
     if grep -Fq "$stale" "$legacy_index"; then
@@ -60,6 +66,7 @@ done
 authority_todos=(
     "$tracker"
     "$definitions"
+    "$hardening_todo"
 )
 for authority in "${authority_todos[@]}"; do
     grep -Fq "\`$authority\`" "$legacy_index"
@@ -69,19 +76,23 @@ grep -Fq "\`$postport_record\`" "$legacy_index"
 grep -Fq "\`$v0_2_todo\`" "$legacy_index"
 grep -Fq "\`$s3_todo\`" "$legacy_index"
 grep -Fq "\`$s4_todo\`" "$legacy_index"
+grep -Fq "\`$hardening_todo\`" "$legacy_index"
 if grep -Fq 'Active S4 evaluation tuning calibration program' "$legacy_index"; then
     echo 'closed S4 TODO is still active' >&2
     exit 1
 fi
-grep -Fq 'There is no active implementation TODO.' "$legacy_index"
-grep -Fq 'Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO` and is not one of the two completed-authority documents above' "$legacy_index"
-grep -Fq '74 TODO-named files total; 2 authority documents; 1 authority index; 71 historical' "$legacy_index"
+grep -Fq '| Active S4 closure hardening program |' "$legacy_index"
+grep -Fq 'The S4 closure-hardening TODO is the single active implementation tracker.' "$legacy_index"
+grep -Fq 'Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO` and is not one of the three authority documents above' "$legacy_index"
+grep -Fq '75 TODO-named files total; 3 authority documents; 1 authority index; 71 historical' "$legacy_index"
 grep -Fq "**Companion TODO:** \`$v0_2_todo\`" "$v0_2_spec"
 grep -Fq "**Specification:** \`$v0_2_spec\`" "$v0_2_todo"
 grep -Fq "**Companion TODO:** \`$s3_todo\`" "$s3_spec"
 grep -Fq "**Specification:** \`$s3_spec\`" "$s3_todo"
 grep -Fq "**Companion TODO:** \`$s4_todo\`" "$s4_spec"
 grep -Fq "**Specification:** \`$s4_spec\`" "$s4_todo"
+grep -Fq "**Companion TODO:** \`$hardening_todo\`" "$hardening_spec"
+grep -Fq "**Specification:** \`$hardening_spec\`" "$hardening_todo"
 grep -Fq '# Task S3-7: Development strength validation — SKIPPED (NO ADVANCING CANDIDATE)' "$s3_todo"
 grep -Fq '# Task S3-8: Optional new evaluation feature candidates — DEFERRED' "$s3_todo"
 grep -Fq '# Task S3-10: Production candidate validation — SKIPPED (NO ELIGIBLE CANDIDATE)' "$s3_todo"
@@ -89,10 +100,12 @@ grep -Fq '# Task S3-11: Separate activation and release gate — SKIPPED (NO ACC
 grep -Fq '# Task S3-12: Final report, audit, cleanup, and closure — COMPLETE (NO PROMOTION)' "$s3_todo"
 grep -Fq '# Task S4-0: Authority registration and baseline freeze — COMPLETE' "$s4_todo"
 grep -Fq '# Task S4-12: Final report and closure — COMPLETE (NO PRODUCTION PROMOTION)' "$s4_todo"
+grep -Fq '# Task H0: Authority registration and baseline freeze — COMPLETE' "$hardening_todo"
+grep -Fq '# Task H6: Permanent audit and workflow integration — COMPLETE' "$hardening_todo"
 
 while IFS= read -r todo_path; do
     case "$todo_path" in
-        "$tracker"|"$definitions"|"$legacy_index")
+        "$tracker"|"$definitions"|"$hardening_todo"|"$legacy_index")
             ;;
         *)
             grep -Fq "\`$todo_path\`" "$legacy_index" || {

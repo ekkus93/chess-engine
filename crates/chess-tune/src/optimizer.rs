@@ -308,20 +308,6 @@ impl SpsaCheckpoint {
         self.completed_iterations
     }
 
-    /// Current rounded runtime weights.
-    pub fn current_weights(
-        &self,
-        bounds: SpsaWeightBounds,
-    ) -> Result<EvaluationWeights, SpsaOptimizerError> {
-        let values = project_parameters(
-            &self.current_parameters,
-            bounds,
-            TunableParameterMask::all(),
-            &self.reference_values,
-        )?;
-        Ok(weights_from_tunable_values(values))
-    }
-
     /// Best training-objective weights observed so far.
     #[must_use]
     pub fn best_weights(&self) -> EvaluationWeights {
@@ -1658,6 +1644,38 @@ mod tests {
                         parameter.name()
                     );
                 }
+            }
+        }
+    }
+
+    #[test]
+    fn checkpoint_best_weights_preserve_inactive_parameters_after_masked_run() {
+        let data = dataset(OutcomeTarget::Win);
+        let mask = EvaluationParameterGroup::PawnStructure.mask();
+        let masked_config = config(20)
+            .with_parameter_mask(mask)
+            .expect("group mask is valid");
+        let baseline = tunable_values(&EvaluationWeights::DEFAULT);
+        let mut optimizer = SpsaOptimizer::new(
+            masked_config,
+            0x5344_4841_5244_454e,
+            EvaluationWeights::DEFAULT,
+            &data,
+            k(),
+        )
+        .expect("masked optimizer starts");
+        optimizer
+            .advance(&data, 20)
+            .expect("masked advance succeeds");
+        let best = tunable_values(&optimizer.checkpoint().best_weights());
+        for parameter in TunableParameter::all() {
+            if !mask.contains(parameter) {
+                assert_eq!(
+                    best[parameter.index()],
+                    baseline[parameter.index()],
+                    "inactive checkpoint best weight changed: {}",
+                    parameter.name()
+                );
             }
         }
     }
