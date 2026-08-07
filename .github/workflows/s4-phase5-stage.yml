@@ -5,6 +5,7 @@ on:
     branches: [master]
     paths:
       - .github/s4_phase5.py
+      - .github/s4_phase5_repair.py
       - .github/workflows/s4-phase5-stage.yml
   workflow_dispatch:
 
@@ -27,6 +28,8 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+      - name: Repair degraded fixture
+        run: python3 .github/s4_phase5_repair.py
       - name: Apply degraded-recovery patch
         run: python3 .github/s4_phase5.py
       - name: Format staged source
