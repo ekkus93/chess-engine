@@ -114,6 +114,12 @@ require_literal 'one_parameter_known_answer_moves_toward_optimum_deterministical
 require_literal 'multi_parameter_known_answer_preserves_inactive_values_and_converges' "$optimizer"
 require_literal 'S4_DEGRADED_TEST_WEIGHT_ID' "$optimizer"
 require_literal 'degraded_queen_material_recovers_real_chess_loss_signal' "$optimizer"
+require_file crates/chess-tools/src/bin/s4_candidate_smoke.rs
+require_literal 'NamedWeightArtifact::deserialize' crates/chess-tools/src/bin/s4_candidate_smoke.rs
+require_literal 'SearchPolicySet::baseline()' crates/chess-tools/src/bin/s4_candidate_smoke.rs
+require_literal 'EvaluationWeightSet::new(artifact.identifier, artifact.weights)' crates/chess-tools/src/bin/s4_candidate_smoke.rs
+require_literal 'EngineVariantValidationTier::Development' crates/chess-tools/src/bin/s4_candidate_smoke.rs
+require_literal 'activated\tfalse' crates/chess-tools/src/bin/s4_candidate_smoke.rs
 require_literal 'final_validation <= initial_validation + 0.02' "$optimizer"
 
 for path in crates/chess-uci/src crates/chess-ffi/src crates/chess-jni/src crates/chess-jni/kotlin/src/main android-harness; do
