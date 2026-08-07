@@ -9,6 +9,8 @@ definitions="docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md"
 postport_record="docs/RUST_CHESS_ENGINE_POST_PORT_REVIEW_FIX_TODO_2026-08-04.md"
 v0_2_spec="docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_SPEC_2026-08-05.md"
 v0_2_todo="docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md"
+s3_spec="docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_SPEC_2026-08-07.md"
+s3_todo="docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_TODO_2026-08-07.md"
 legacy_index="docs/LEGACY_TODO_INDEX.md"
 fen_doc="docs/RUST_FEN_AND_UCI_NOTATION.md"
 fen_source="crates/chess-core/src/position/fen.rs"
@@ -19,6 +21,8 @@ for required in \
     "$postport_record" \
     "$v0_2_spec" \
     "$v0_2_todo" \
+    "$s3_spec" \
+    "$s3_todo" \
     "$legacy_index" \
     "$fen_doc" \
     "$fen_source"; do
@@ -41,6 +45,7 @@ if grep -Fq '| Active v0.2 strength program |' "$legacy_index"; then
 fi
 
 authority_todos=(
+    "$s3_todo"
     "$tracker"
     "$definitions"
 )
@@ -49,13 +54,21 @@ for authority in "${authority_todos[@]}"; do
 done
 grep -Fq "\`$legacy_index\`" "$legacy_index"
 grep -Fq "\`$postport_record\`" "$legacy_index"
-grep -Fq 'Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO`' "$legacy_index"
+grep -Fq "\`$v0_2_todo\`" "$legacy_index"
+grep -Fq 'Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO` and is not one of the three authority documents above' "$legacy_index"
+grep -Fq 'Active S3 evaluation strength program' "$legacy_index"
+grep -Fq "73 TODO-named files total; 3 authority documents; 1 authority index; 69 historical" "$legacy_index"
 grep -Fq "**Companion TODO:** \`$v0_2_todo\`" "$v0_2_spec"
 grep -Fq "**Specification:** \`$v0_2_spec\`" "$v0_2_todo"
+grep -Fq "**Companion TODO:** \`$s3_todo\`" "$s3_spec"
+grep -Fq "**Specification:** \`$s3_spec\`" "$s3_todo"
+grep -Fq '**Status:** Active — not yet implemented' "$s3_todo"
+grep -Fq '# Task S3-0: Authority registration and v0.1 baseline freeze — NOT STARTED' "$s3_todo"
+grep -Fq '# Task S3-12: Final report and closure — NOT STARTED' "$s3_todo"
 
 while IFS= read -r todo_path; do
     case "$todo_path" in
-        "$tracker"|"$definitions"|"$legacy_index")
+        "$s3_todo"|"$tracker"|"$definitions"|"$legacy_index")
             ;;
         *)
             grep -Fq "\`$todo_path\`" "$legacy_index" || {
