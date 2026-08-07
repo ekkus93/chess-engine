@@ -1,0 +1,48 @@
+name: S3 Evaluation Strength
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: s3-evaluation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  guardrails:
+    name: S3 guardrails
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Verify audit syntax
+        run: bash -n scripts/task_s3_evaluation_strength_audit.sh
+
+      - name: Run S3 evaluation-strength audit
+        run: bash scripts/task_s3_evaluation_strength_audit.sh
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+
+      - name: Run editor contract regression
+        run: cargo test --locked -p chess-core editor_mutation_is_hash_neutral_until_the_caller_updates_hash_state
+
+      - name: Run UCI process regressions
+        run: cargo test --locked -p chess-uci --test uci_process
