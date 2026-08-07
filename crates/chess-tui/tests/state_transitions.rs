@@ -46,7 +46,10 @@ fn current_progress_changes_presentation_only() {
     assert_eq!(session.game, before);
     assert_eq!(session.active_search, Some(request.ticket));
     assert!(session.thinking);
-    assert_eq!(session.engine_info.as_ref().and_then(|info| info.depth), Some(1));
+    assert_eq!(
+        session.engine_info.as_ref().and_then(|info| info.depth),
+        Some(1)
+    );
 }
 
 #[test]
@@ -70,15 +73,17 @@ fn resume_self_play_schedules_from_the_current_position() {
 
 #[test]
 fn terminal_self_play_engine_move_schedules_nothing_more() {
-    let position = Position::from_fen("7k/5Q2/6K1/8/8/8/8/8 w - - 0 1")
-        .expect("mate-in-one fixture parses");
+    let position =
+        Position::from_fen("7k/5Q2/6K1/8/8/8/8/8 w - - 0 1").expect("mate-in-one fixture parses");
     let mut app = AppState::new();
     app.start_game(GameConfig::SelfPlay {
         white_depth: 1,
         black_depth: 1,
     })
     .expect("self-play starts");
-    let request = app.take_pending_search().expect("white search is scheduled");
+    let request = app
+        .take_pending_search()
+        .expect("white search is scheduled");
     app.session.as_mut().expect("session").game = Game::new(position);
     let mating_move = app
         .session
