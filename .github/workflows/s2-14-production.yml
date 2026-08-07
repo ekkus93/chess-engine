@@ -1,0 +1,160 @@
+name: S2-14 production strength
+
+on:
+  workflow_run:
+    workflows:
+      - S2-14 production candidate preflight
+    types:
+      - completed
+
+permissions:
+  contents: read
+
+concurrency:
+  group: s2-14-production-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  fixed-nodes:
+    name: Production fixed-node match
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'master'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: '1'
+      SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo data
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-engine-s2-14-production-fixed
+
+      - name: Verify exact candidate source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          bash scripts/task_s2_14_candidate_audit.sh
+          git diff --exit-code
+
+      - name: Build release production tool
+        run: cargo build --locked --release -p chess-tools --bin s2_14_production
+
+      - name: Record exact build identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          build_identity="$(rustc -Vv | paste -sd '|' - | tr ' ' '_')"
+          echo "S2_14_SOURCE_SHA=${SOURCE_SHA}" >> "$GITHUB_ENV"
+          echo "S2_14_BUILD_IDENTITY=${build_identity}" >> "$GITHUB_ENV"
+          echo "S2_14_EXACT_INVOCATION=s2-14-production-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-fixed-nodes" >> "$GITHUB_ENV"
+
+      - name: Run production fixed-node comparison
+        run: target/release/s2_14_production s2-14-production-fixed production fixed_nodes
+
+      - name: Validate fixed-node report and manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$(find s2-14-production-fixed -maxdepth 1 -type f -name '*.report' -print)"
+          test -n "$report"
+          test "$(printf '%s\n' "$report" | wc -l)" -eq 1
+          cargo run --locked --release -p chess-tools --bin chess-tools -- \
+            variant-report-validate "$report" | tee s2-14-production-fixed/report-validation.tsv
+          grep -Fq $'activated\tfalse' s2-14-production-fixed/report-validation.tsv
+          grep -Fq $'source_sha\t'"${SOURCE_SHA}" s2-14-production-fixed/s2-14-control-manifest.tsv
+          grep -Fq $'tier\tproduction' s2-14-production-fixed/s2-14-control-manifest.tsv
+          grep -Fq $'protocol\tfixed_nodes:2000' s2-14-production-fixed/s2-14-control-manifest.tsv
+          grep -Fq $'candidate_policy_identifier\t5332375056533031' s2-14-production-fixed/s2-14-control-manifest.tsv
+          grep -Fq $'activated\tfalse' s2-14-production-fixed/s2-14-control-manifest.tsv
+          git diff --exit-code
+
+      - name: Preserve fixed-node production evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: s2-14-production-fixed-nodes-${{ github.event.workflow_run.head_sha }}
+          path: s2-14-production-fixed/
+          if-no-files-found: error
+          retention-days: 90
+
+  clock:
+    name: Production clock match
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'master'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: '1'
+      SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo data
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-engine-s2-14-production-clock
+
+      - name: Verify exact candidate source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          bash scripts/task_s2_14_candidate_audit.sh
+          git diff --exit-code
+
+      - name: Build release production tool
+        run: cargo build --locked --release -p chess-tools --bin s2_14_production
+
+      - name: Record exact build identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          build_identity="$(rustc -Vv | paste -sd '|' - | tr ' ' '_')"
+          echo "S2_14_SOURCE_SHA=${SOURCE_SHA}" >> "$GITHUB_ENV"
+          echo "S2_14_BUILD_IDENTITY=${build_identity}" >> "$GITHUB_ENV"
+          echo "S2_14_EXACT_INVOCATION=s2-14-production-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-clock" >> "$GITHUB_ENV"
+
+      - name: Run production clock comparison
+        run: target/release/s2_14_production s2-14-production-clock production clock_ms
+
+      - name: Validate clock report and manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$(find s2-14-production-clock -maxdepth 1 -type f -name '*.report' -print)"
+          test -n "$report"
+          test "$(printf '%s\n' "$report" | wc -l)" -eq 1
+          cargo run --locked --release -p chess-tools --bin chess-tools -- \
+            variant-report-validate "$report" | tee s2-14-production-clock/report-validation.tsv
+          grep -Fq $'activated\tfalse' s2-14-production-clock/report-validation.tsv
+          grep -Fq $'source_sha\t'"${SOURCE_SHA}" s2-14-production-clock/s2-14-control-manifest.tsv
+          grep -Fq $'tier\tproduction' s2-14-production-clock/s2-14-control-manifest.tsv
+          grep -Fq $'protocol\tclock_ms:10' s2-14-production-clock/s2-14-control-manifest.tsv
+          grep -Fq $'candidate_policy_identifier\t5332375056533031' s2-14-production-clock/s2-14-control-manifest.tsv
+          grep -Fq $'activated\tfalse' s2-14-production-clock/s2-14-control-manifest.tsv
+          git diff --exit-code
+
+      - name: Preserve clock production evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: s2-14-production-clock-${{ github.event.workflow_run.head_sha }}
+          path: s2-14-production-clock/
+          if-no-files-found: error
+          retention-days: 90

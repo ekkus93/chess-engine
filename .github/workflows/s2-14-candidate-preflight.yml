@@ -6,25 +6,29 @@ on:
       - master
     paths:
       - '.github/workflows/s2-14-candidate-preflight.yml'
+      - '.github/workflows/s2-14-production.yml'
       - 'crates/chess-search/src/search_policy.rs'
-      - 'crates/chess-tools/src/bin/s2_14_candidate.rs'
+      - 'crates/chess-tools/src/bin/s2_7_pvs.rs'
       - 'crates/chess-tools/src/bin/s2_14_production.rs'
       - 'scripts/task_s2_14_candidate_audit.sh'
+      - 'docs/RUST_CHESS_ENGINE_V0_2_S2_14_CANDIDATE_SELECTION_2026-08-06.md'
   pull_request:
     branches:
       - master
     paths:
       - '.github/workflows/s2-14-candidate-preflight.yml'
+      - '.github/workflows/s2-14-production.yml'
       - 'crates/chess-search/src/search_policy.rs'
-      - 'crates/chess-tools/src/bin/s2_14_candidate.rs'
+      - 'crates/chess-tools/src/bin/s2_7_pvs.rs'
       - 'crates/chess-tools/src/bin/s2_14_production.rs'
       - 'scripts/task_s2_14_candidate_audit.sh'
+      - 'docs/RUST_CHESS_ENGINE_V0_2_S2_14_CANDIDATE_SELECTION_2026-08-06.md'
 
 permissions:
   contents: read
 
 env:
-  # Predeclared before S2-14 candidate measurements are inspected.
+  # Frozen before PVS is selected for S2-14 production validation.
   # A median slowdown above 5% on either native architecture is materially bad.
   S2_14_MAX_MEDIAN_TIME_RATIO: '1.05'
 
@@ -34,7 +38,7 @@ concurrency:
 
 jobs:
   linux-x86-64:
-    name: Linux x86-64 candidate correctness and performance
+    name: Linux x86-64 PVS correctness and performance
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     steps:
@@ -48,7 +52,7 @@ jobs:
       - name: Cache Cargo data
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: rust-engine-s2-14-preflight-x86-64
+          shared-key: rust-engine-s2-14-pvs-preflight-x86-64
 
       - name: Audit frozen candidate boundary
         run: bash scripts/task_s2_14_candidate_audit.sh
@@ -58,15 +62,15 @@ jobs:
           cargo fmt --all -- --check
           cargo clippy --locked -p chess-search -p chess-tools --all-targets --all-features -- -D warnings
 
-      - name: Run candidate policy and evidence tests
+      - name: Run PVS and production evidence tests
         run: |
           cargo test --locked -p chess-search --all-targets --all-features
-          cargo test --locked -p chess-tools --bin s2_14_candidate
+          cargo test --locked -p chess-tools --bin s2_7_pvs
           cargo test --locked -p chess-tools --bin s2_14_production
 
       - name: Build release evidence tools
         run: |
-          cargo build --locked --release -p chess-tools --bin s2_14_candidate
+          cargo build --locked --release -p chess-tools --bin s2_7_pvs
           cargo build --locked --release -p chess-tools --bin s2_14_production
 
       - name: Record exact build identity
@@ -74,15 +78,17 @@ jobs:
         run: |
           set -euo pipefail
           build_identity="$(rustc -Vv | paste -sd '|' - | tr ' ' '_')"
+          echo "S2_7_SOURCE_SHA=${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "S2_7_BUILD_IDENTITY=${build_identity}" >> "$GITHUB_ENV"
           echo "S2_14_SOURCE_SHA=${GITHUB_SHA}" >> "$GITHUB_ENV"
           echo "S2_14_BUILD_IDENTITY=${build_identity}" >> "$GITHUB_ENV"
-          echo "S2_14_EXACT_INVOCATION=s2-14-preflight-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-x86-64" >> "$GITHUB_ENV"
+          echo "S2_14_EXACT_INVOCATION=s2-14-pvs-preflight-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-x86-64" >> "$GITHUB_ENV"
 
-      - name: Generate byte-identical deterministic evidence twice
+      - name: Generate byte-identical PVS evidence twice
         run: |
-          target/release/s2_14_candidate deterministic s2-14-deterministic-a
-          target/release/s2_14_candidate deterministic s2-14-deterministic-b
-          diff -ru s2-14-deterministic-a s2-14-deterministic-b
+          target/release/s2_7_pvs deterministic s2-14-pvs-deterministic-a
+          target/release/s2_7_pvs deterministic s2-14-pvs-deterministic-b
+          diff -ru s2-14-pvs-deterministic-a s2-14-pvs-deterministic-b
 
       - name: Freeze suite and run bounded complete-variant smoke
         run: target/release/s2_14_production s2-14-freeze smoke fixed_nodes
@@ -95,14 +101,16 @@ jobs:
           sha256sum "$openings" | tee s2-14-opening-sha256.txt
           count="$(tail -n +2 "$openings" | wc -l)"
           unique="$(tail -n +2 "$openings" | sort -u | wc -l)"
-          test "$count" -ge 1000
+          test "$count" -eq 1200
           test "$unique" -eq "$count"
+          grep -Fq $'candidate_policy_identifier\t5332375056533031' s2-14-freeze/s2-14-control-manifest.tsv
+          grep -Fq $'activated\tfalse' s2-14-freeze/s2-14-control-manifest.tsv
 
       - name: Preserve zero-allocation hot-path gate
         run: cargo run --locked --release -p chess-tools --bin performance -- allocation-audit
 
-      - name: Capture seven-sample x86-64 candidate distribution
-        run: target/release/s2_14_candidate benchmark 7 | tee s2-14-linux-x86-64.tsv
+      - name: Capture seven-sample x86-64 PVS distribution
+        run: target/release/s2_7_pvs benchmark 7 | tee s2-14-linux-x86-64.tsv
 
       - name: Enforce predeclared x86-64 performance gate
         shell: bash
@@ -115,9 +123,9 @@ jobs:
       - name: Preserve x86-64 S2-14 preflight evidence
         uses: actions/upload-artifact@v4
         with:
-          name: s2-14-preflight-linux-x86-64-${{ github.sha }}
+          name: s2-14-pvs-preflight-linux-x86-64-${{ github.sha }}
           path: |
-            s2-14-deterministic-a
+            s2-14-pvs-deterministic-a
             s2-14-freeze
             s2-14-opening-sha256.txt
             s2-14-linux-x86-64.tsv
@@ -125,7 +133,7 @@ jobs:
           retention-days: 30
 
   linux-arm64:
-    name: Linux ARM64 candidate correctness and performance
+    name: Linux ARM64 PVS correctness and performance
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 120
     steps:
@@ -139,7 +147,7 @@ jobs:
       - name: Cache Cargo data
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: rust-engine-s2-14-preflight-arm64
+          shared-key: rust-engine-s2-14-pvs-preflight-arm64
 
       - name: Audit, lint, and test on native ARM64
         run: |
@@ -147,12 +155,12 @@ jobs:
           cargo fmt --all -- --check
           cargo clippy --locked -p chess-search -p chess-tools --all-targets --all-features -- -D warnings
           cargo test --locked -p chess-search --all-targets --all-features
-          cargo test --locked -p chess-tools --bin s2_14_candidate
+          cargo test --locked -p chess-tools --bin s2_7_pvs
           cargo test --locked -p chess-tools --bin s2_14_production
 
       - name: Build release evidence tools
         run: |
-          cargo build --locked --release -p chess-tools --bin s2_14_candidate
+          cargo build --locked --release -p chess-tools --bin s2_7_pvs
           cargo build --locked --release -p chess-tools --bin s2_14_production
 
       - name: Record exact build identity
@@ -160,21 +168,33 @@ jobs:
         run: |
           set -euo pipefail
           build_identity="$(rustc -Vv | paste -sd '|' - | tr ' ' '_')"
+          echo "S2_7_SOURCE_SHA=${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "S2_7_BUILD_IDENTITY=${build_identity}" >> "$GITHUB_ENV"
           echo "S2_14_SOURCE_SHA=${GITHUB_SHA}" >> "$GITHUB_ENV"
           echo "S2_14_BUILD_IDENTITY=${build_identity}" >> "$GITHUB_ENV"
-          echo "S2_14_EXACT_INVOCATION=s2-14-preflight-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-arm64" >> "$GITHUB_ENV"
+          echo "S2_14_EXACT_INVOCATION=s2-14-pvs-preflight-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-arm64" >> "$GITHUB_ENV"
 
-      - name: Generate native ARM64 deterministic evidence
-        run: target/release/s2_14_candidate deterministic s2-14-deterministic-arm64
+      - name: Generate native ARM64 PVS deterministic evidence
+        run: target/release/s2_7_pvs deterministic s2-14-pvs-deterministic-arm64
 
       - name: Freeze native ARM64 identity and suite
         run: target/release/s2_14_production s2-14-freeze-arm64 smoke fixed_nodes
 
+      - name: Verify native ARM64 suite and identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          openings=s2-14-freeze-arm64/s2-14-control-openings.tsv
+          test "$(tail -n +2 "$openings" | wc -l)" -eq 1200
+          test "$(tail -n +2 "$openings" | sort -u | wc -l)" -eq 1200
+          grep -Fq $'candidate_policy_identifier\t5332375056533031' s2-14-freeze-arm64/s2-14-control-manifest.tsv
+          grep -Fq $'activated\tfalse' s2-14-freeze-arm64/s2-14-control-manifest.tsv
+
       - name: Preserve ARM64 zero-allocation hot-path gate
         run: cargo run --locked --release -p chess-tools --bin performance -- allocation-audit
 
-      - name: Capture seven-sample ARM64 candidate distribution
-        run: target/release/s2_14_candidate benchmark 7 | tee s2-14-linux-arm64.tsv
+      - name: Capture seven-sample ARM64 PVS distribution
+        run: target/release/s2_7_pvs benchmark 7 | tee s2-14-linux-arm64.tsv
 
       - name: Enforce predeclared ARM64 performance gate
         shell: bash
@@ -187,9 +207,9 @@ jobs:
       - name: Preserve ARM64 S2-14 preflight evidence
         uses: actions/upload-artifact@v4
         with:
-          name: s2-14-preflight-linux-arm64-${{ github.sha }}
+          name: s2-14-pvs-preflight-linux-arm64-${{ github.sha }}
           path: |
-            s2-14-deterministic-arm64
+            s2-14-pvs-deterministic-arm64
             s2-14-freeze-arm64
             s2-14-linux-arm64.tsv
           if-no-files-found: error
