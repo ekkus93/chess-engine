@@ -34,6 +34,12 @@ jobs:
         with:
           components: rustfmt, clippy
 
+      - name: Apply current Ralph source correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          sed -i 's/Color, DrawReason, Game, GameStatus, Move, UciMove/Color, DrawReason, Game, GameStatus, UciMove/' crates/chess-tui/src/app.rs
+
       - name: Normalize lockfile and Rust formatting
         shell: bash
         run: |
@@ -41,7 +47,7 @@ jobs:
           cargo generate-lockfile
           cargo fmt --all
 
-      - name: Commit generated lockfile or formatting changes
+      - name: Commit generated or corrected Rust TUI sources
         shell: bash
         run: |
           set -euo pipefail
@@ -51,7 +57,7 @@ jobs:
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add Cargo.lock Cargo.toml crates/chess-tui
-          git commit -m 'Normalize Rust TUI lockfile and formatting'
+          git commit -m 'Fix Rust TUI focused validation issues'
           git push origin HEAD:master
 
       - name: Validate locked metadata
