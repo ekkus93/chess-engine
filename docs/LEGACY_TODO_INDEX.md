@@ -6,17 +6,18 @@ This file prevents historical planning documents from being mistaken for current
 
 | Classification | Path | Authority |
 |---|---|---|
+| Active S4 evaluation tuning calibration program | `docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_TODO_2026-08-07.md` | Active implementation tracker for S4 optimizer/tuning-signal calibration. |
 | Completed Rust-port tracker | `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md` | Authoritative completion record for the Rust-port program. |
 | Completed Rust-port task definitions | `docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md` | Detailed definitions and evidence for the completed Rust-port program. |
 | Authority index, not an implementation TODO | `docs/LEGACY_TODO_INDEX.md` | Classifies active, completed-authority, and historical TODO-named documents. |
 
-There is currently **no active implementation TODO**. A future program becomes active only when it is explicitly added to this authority table and to the permanent TODO-authority audit.
+The S4 evaluation tuning calibration TODO is the single active implementation tracker. Closed S2 and S3 strength-program TODOs remain historical and cannot override S4 or the completed Rust-port authority records.
 
 ## Exhaustive classification rule
 
-Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO` and is not one of the two completed Rust-port authority documents above is a historical or legacy reference. Those files preserve implementation history, but they are not active instructions and must not override the completed Rust-port authority records or any future TODO explicitly registered in the authority table.
+Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO` and is not one of the three authority documents above is a historical or legacy reference. Those files preserve implementation history, but they are not active instructions and must not override the active S4 tracker, the completed Rust-port authority records, or any future TODO explicitly registered in the authority table.
 
-Inventory captured on 2026-08-05, reclassified at S2-16 closure on 2026-08-07, activated for S3 on 2026-08-07, and reclassified again at S3 closure on 2026-08-07: **73 TODO-named files total; 2 authority documents; 1 authority index; 70 historical.**
+Inventory captured on 2026-08-05, reclassified at S2-16 closure on 2026-08-07, activated for S3 on 2026-08-07, reclassified again at S3 closure on 2026-08-07, and activated for S4 on 2026-08-07: **74 TODO-named files total; 3 authority documents; 1 authority index; 70 historical.**
 
 ## Historical TODO inventory
 
