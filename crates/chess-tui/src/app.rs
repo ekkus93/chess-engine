@@ -1,6 +1,6 @@
 use core::fmt;
 
-use chess_core::{Color, DrawReason, Game, GameStatus, Move, UciMove};
+use chess_core::{Color, DrawReason, Game, GameStatus, UciMove};
 
 use crate::worker::{EngineEvent, SearchMetrics, SearchRequest, SearchTicket};
 
