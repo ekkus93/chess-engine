@@ -3,20 +3,18 @@ from pathlib import Path
 path = Path('crates/chess-tools/src/tuning_cli.rs')
 text = path.read_text()
 
-old = '''use chess_tools::{
-    s3::S3DatasetManifest,
-    tuning::{
-        read_tuning_checkpoint, write_candidate_artifact_atomic, write_tuning_checkpoint_atomic,
-        write_tuning_report_atomic, TuningReport, TuningReportProvenance,
-    },
+old = '''use chess_tools::s3::S3DatasetManifest;
+use chess_tools::self_play::SelfPlayDataset;
+use chess_tools::tuning::{
+    loss_dataset_and_provenance_from_self_play_text, write_candidate_artifact_atomic,
+    write_tuning_report_atomic, TuningReport, TuningReportProvenance,
 };'''
-new = '''use chess_tools::{
-    s3::S3DatasetManifest,
-    s3_candidate::{S3CandidateEnvelope, S3CandidateRegistry, S3LossEvidence},
-    tuning::{
-        read_tuning_checkpoint, write_candidate_artifact_atomic, write_tuning_checkpoint_atomic,
-        write_tuning_report_atomic, TuningReport, TuningReportProvenance,
-    },
+new = '''use chess_tools::s3::S3DatasetManifest;
+use chess_tools::s3_candidate::{S3CandidateEnvelope, S3CandidateRegistry, S3LossEvidence};
+use chess_tools::self_play::SelfPlayDataset;
+use chess_tools::tuning::{
+    loss_dataset_and_provenance_from_self_play_text, write_candidate_artifact_atomic,
+    write_tuning_report_atomic, TuningReport, TuningReportProvenance,
 };'''
 if text.count(old) != 1:
     raise SystemExit('candidate registry import anchor missing')
