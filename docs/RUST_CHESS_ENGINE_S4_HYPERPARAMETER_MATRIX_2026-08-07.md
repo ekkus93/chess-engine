@@ -66,7 +66,7 @@ run	learning_rate	perturbation_size	regularization_strength	iterations	step_deca
    - candidate value checksum differs from baseline;
    - training loss delta < 0;
    - validation loss delta <= `0.0005`;
-   - clipping does not indicate runaway saturation;
+   - `clipping_count == 0`; any explicit optimizer-bound clipping rejects the row as `rejected_clipping`;
    - artifact/trace checksums validate;
    - `activated=false`.
 6. If multiple rows pass, selection for S4-9 is deterministic in this order:
@@ -76,4 +76,4 @@ run	learning_rate	perturbation_size	regularization_strength	iterations	step_deca
    - then lowest matrix run number.
 7. S4-9 must repeat the selected row with identical inputs and require an identical candidate value checksum before any optional chess-strength smoke.
 
-The `0.0005` held-out regression tolerance is frozen before execution. It permits a small held-out fluctuation during optimizer calibration but prevents material held-out degradation from being hidden by training improvement.
+The `0.0005` held-out regression tolerance and zero-clipping requirement are frozen before execution. The held-out tolerance permits a small validation fluctuation during optimizer calibration but prevents material held-out degradation from being hidden by training improvement. The zero-clipping rule prevents a parameter hitting the explicit `[-2000, 2000]` optimizer boundary from being interpreted as healthy calibrated movement.
