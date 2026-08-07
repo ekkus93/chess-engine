@@ -12,6 +12,8 @@ v0_2_todo="docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md"
 s3_spec="docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_SPEC_2026-08-07.md"
 s3_todo="docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_TODO_2026-08-07.md"
 s3_report="docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_IMPLEMENTATION_REPORT.md"
+s4_spec="docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_SPEC_2026-08-07.md"
+s4_todo="docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_TODO_2026-08-07.md"
 legacy_index="docs/LEGACY_TODO_INDEX.md"
 fen_doc="docs/RUST_FEN_AND_UCI_NOTATION.md"
 fen_source="crates/chess-core/src/position/fen.rs"
@@ -25,6 +27,8 @@ for required in \
     "$s3_spec" \
     "$s3_todo" \
     "$s3_report" \
+    "$s4_spec" \
+    "$s4_todo" \
     "$legacy_index" \
     "$fen_doc" \
     "$fen_source"; do
@@ -43,6 +47,8 @@ grep -Fq '**Status:** Complete' "$postport_record"
 grep -Fq '**Status:** Complete — program closed without v0.2 promotion' "$v0_2_todo"
 grep -Fq '**Status:** Complete — program closed without promotion' "$s3_todo"
 grep -Fq '**Status:** Complete — program closed without promotion' "$s3_report"
+grep -Fq '**Status:** Active — not yet implemented' "$s4_todo"
+grep -Fq '**Status:** Active planning authority; implementation not yet complete' "$s4_spec"
 
 for stale in '| Active v0.2 strength program |' '| Active S3 evaluation strength program |'; do
     if grep -Fq "$stale" "$legacy_index"; then
@@ -52,6 +58,7 @@ for stale in '| Active v0.2 strength program |' '| Active S3 evaluation strength
 done
 
 authority_todos=(
+    "$s4_todo"
     "$tracker"
     "$definitions"
 )
@@ -62,22 +69,27 @@ grep -Fq "\`$legacy_index\`" "$legacy_index"
 grep -Fq "\`$postport_record\`" "$legacy_index"
 grep -Fq "\`$v0_2_todo\`" "$legacy_index"
 grep -Fq "\`$s3_todo\`" "$legacy_index"
-grep -Fq 'There is currently **no active implementation TODO**.' "$legacy_index"
-grep -Fq 'Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO` and is not one of the two completed Rust-port authority documents above' "$legacy_index"
-grep -Fq '73 TODO-named files total; 2 authority documents; 1 authority index; 70 historical' "$legacy_index"
+grep -Fq 'Active S4 evaluation tuning calibration program' "$legacy_index"
+grep -Fq 'The S4 evaluation tuning calibration TODO is the single active implementation tracker.' "$legacy_index"
+grep -Fq 'Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO` and is not one of the three authority documents above' "$legacy_index"
+grep -Fq '74 TODO-named files total; 3 authority documents; 1 authority index; 70 historical' "$legacy_index"
 grep -Fq "**Companion TODO:** \`$v0_2_todo\`" "$v0_2_spec"
 grep -Fq "**Specification:** \`$v0_2_spec\`" "$v0_2_todo"
 grep -Fq "**Companion TODO:** \`$s3_todo\`" "$s3_spec"
 grep -Fq "**Specification:** \`$s3_spec\`" "$s3_todo"
+grep -Fq "**Companion TODO:** \`$s4_todo\`" "$s4_spec"
+grep -Fq "**Specification:** \`$s4_spec\`" "$s4_todo"
 grep -Fq '# Task S3-7: Development strength validation — SKIPPED (NO ADVANCING CANDIDATE)' "$s3_todo"
 grep -Fq '# Task S3-8: Optional new evaluation feature candidates — DEFERRED' "$s3_todo"
 grep -Fq '# Task S3-10: Production candidate validation — SKIPPED (NO ELIGIBLE CANDIDATE)' "$s3_todo"
 grep -Fq '# Task S3-11: Separate activation and release gate — SKIPPED (NO ACCEPTED CANDIDATE)' "$s3_todo"
 grep -Fq '# Task S3-12: Final report, audit, cleanup, and closure — COMPLETE (NO PROMOTION)' "$s3_todo"
+grep -Fq '# Task S4-0: Authority registration and baseline freeze — NOT STARTED' "$s4_todo"
+grep -Fq '# Task S4-12: Final report and closure — NOT STARTED' "$s4_todo"
 
 while IFS= read -r todo_path; do
     case "$todo_path" in
-        "$tracker"|"$definitions"|"$legacy_index")
+        "$s4_todo"|"$tracker"|"$definitions"|"$legacy_index")
             ;;
         *)
             grep -Fq "\`$todo_path\`" "$legacy_index" || {
