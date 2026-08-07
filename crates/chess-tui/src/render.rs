@@ -9,8 +9,9 @@ use crate::{
 };
 
 pub const MIN_TERMINAL_WIDTH: u16 = 58;
-pub const MIN_TERMINAL_HEIGHT: u16 = 20;
-pub const WIDE_TERMINAL_WIDTH: u16 = 100;
+pub const MIN_TERMINAL_HEIGHT: u16 = 32;
+pub const WIDE_TERMINAL_WIDTH: u16 = 80;
+pub const STACKED_MIN_TERMINAL_HEIGHT: u16 = 46;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BoardOrientation {
@@ -27,12 +28,12 @@ pub enum LayoutDecision {
 
 #[must_use]
 pub const fn layout_decision(width: u16, height: u16) -> LayoutDecision {
-    if width < MIN_TERMINAL_WIDTH || height < MIN_TERMINAL_HEIGHT {
-        LayoutDecision::TooSmall
-    } else if width >= WIDE_TERMINAL_WIDTH {
+    if width >= WIDE_TERMINAL_WIDTH && height >= MIN_TERMINAL_HEIGHT {
         LayoutDecision::Horizontal
-    } else {
+    } else if width >= MIN_TERMINAL_WIDTH && height >= STACKED_MIN_TERMINAL_HEIGHT {
         LayoutDecision::Vertical
+    } else {
+        LayoutDecision::TooSmall
     }
 }
 
@@ -290,10 +291,13 @@ mod tests {
     }
 
     #[test]
-    fn narrow_layout_decision_is_safe() {
+    fn layout_requires_enough_height_for_the_complete_board() {
         assert_eq!(layout_decision(20, 8), LayoutDecision::TooSmall);
-        assert_eq!(layout_decision(70, 24), LayoutDecision::Vertical);
-        assert_eq!(layout_decision(120, 30), LayoutDecision::Horizontal);
+        assert_eq!(layout_decision(70, 24), LayoutDecision::TooSmall);
+        assert_eq!(layout_decision(79, 45), LayoutDecision::TooSmall);
+        assert_eq!(layout_decision(58, 46), LayoutDecision::Vertical);
+        assert_eq!(layout_decision(80, 32), LayoutDecision::Horizontal);
+        assert_eq!(layout_decision(120, 30), LayoutDecision::TooSmall);
     }
 
     #[test]

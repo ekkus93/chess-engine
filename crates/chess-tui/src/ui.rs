@@ -19,7 +19,7 @@ use crate::{
     render::{
         board_lines, color_name, format_move_history, format_search_metrics, layout_decision,
         orientation_for_config, turn_status, LayoutDecision, MIN_TERMINAL_HEIGHT,
-        MIN_TERMINAL_WIDTH,
+        MIN_TERMINAL_WIDTH, STACKED_MIN_TERMINAL_HEIGHT, WIDE_TERMINAL_WIDTH,
     },
     save::{serialize_game, write_game},
     worker::{EngineEvent, SearchTicket, SearchWorker, SearchWorkerError},
@@ -431,7 +431,7 @@ fn render_game(frame: &mut Frame<'_>, app: &AppState) {
     let size = frame.size();
     if layout_decision(size.width, size.height) == LayoutDecision::TooSmall {
         let text = format!(
-            "Terminal too small. Need at least {MIN_TERMINAL_WIDTH}×{MIN_TERMINAL_HEIGHT}; current {}×{}.",
+            "Terminal too small. Need {WIDE_TERMINAL_WIDTH}×{MIN_TERMINAL_HEIGHT} for the wide layout or {MIN_TERMINAL_WIDTH}×{STACKED_MIN_TERMINAL_HEIGHT} for the stacked layout; current {}×{}.",
             size.width, size.height
         );
         frame.render_widget(
