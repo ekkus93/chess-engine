@@ -19,4 +19,9 @@ new = '''use chess_search::{EvaluationWeightSet, WEIGHT_VALUE_COUNT};
 '''
 if text.count(old) != 1:
     raise SystemExit(f'expected one candidate import witness, found {text.count(old)}')
+text = text.replace(old, new, 1)
+old = 'wrong.weights.passed_pawn.mg += 1;'
+new = 'wrong.weights.passed_pawn.middlegame += 1;'
+if text.count(old) != 1:
+    raise SystemExit(f'expected one corruption-field witness, found {text.count(old)}')
 candidate.write_text(text.replace(old, new, 1))
