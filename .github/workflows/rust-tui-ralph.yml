@@ -34,11 +34,21 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Apply current Ralph source correction
+      - name: Apply current Ralph source corrections
         shell: bash
         run: |
           set -euo pipefail
           sed -i 's/Color, DrawReason, Game, GameStatus, Move, UciMove/Color, DrawReason, Game, GameStatus, UciMove/' crates/chess-tui/src/app.rs
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('crates/chess-tui/src/ui.rs')
+          text = path.read_text()
+          old = 'io::Error::new(io::ErrorKind::Other, error.to_string())'
+          count = text.count(old)
+          if count not in (0, 4):
+              raise SystemExit(f'unexpected io::Error replacement count: {count}')
+          path.write_text(text.replace(old, 'io::Error::other(error.to_string())'))
+          PY
 
       - name: Normalize lockfile and Rust formatting
         shell: bash
