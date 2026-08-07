@@ -19,8 +19,13 @@ dist/
 *.egg-info/
 target/
 
-# Local agent worktrees
+# Local agent state and worktrees
 .claude/worktrees/
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+
+# Editor backups
+*~
 
 run_opencode.sh
 run_copilot.sh
