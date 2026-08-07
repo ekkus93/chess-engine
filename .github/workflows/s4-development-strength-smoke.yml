@@ -143,9 +143,9 @@ jobs:
                       key, value = line.split('=', 1)
                       fields.setdefault(key, value)
               required = [
-                  'game_count','candidate_wins','draws','candidate_losses','unfinished',
+                  'scheduled_games','candidate_wins','draws','candidate_losses','unfinished',
                   'illegal_moves','crashes','time_forfeits','infrastructure_failures',
-                  'mean_pair_score','pair_score_standard_error','lower_confidence_bound',
+                  'mean_pair_score_bits','pair_score_standard_error_bits','lower_confidence_bound_bits',
                   'decision','activated','checksum'
               ]
               missing = [key for key in required if key not in fields]
@@ -163,8 +163,8 @@ jobs:
               report = next(Path(directory).glob('s4-development-*.report'))
               fields = parse_report(report)
               print(
-                  f"{protocol}\t{fields['game_count']}\t{fields['candidate_wins']}\t{fields['draws']}\t{fields['candidate_losses']}\t{fields['unfinished']}\t"
-                  f"{decode(fields['mean_pair_score']):.17e}\t{decode(fields['pair_score_standard_error']):.17e}\t{decode(fields['lower_confidence_bound']):.17e}\t"
+                  f"{protocol}\t{fields['scheduled_games']}\t{fields['candidate_wins']}\t{fields['draws']}\t{fields['candidate_losses']}\t{fields['unfinished']}\t"
+                  f"{decode(fields['mean_pair_score_bits']):.17e}\t{decode(fields['pair_score_standard_error_bits']):.17e}\t{decode(fields['lower_confidence_bound_bits']):.17e}\t"
                   f"{fields['decision']}\t{fields['checksum']}\t{fields['activated']}"
               )
           PY
