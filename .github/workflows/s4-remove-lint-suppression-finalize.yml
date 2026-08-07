@@ -1,0 +1,61 @@
+name: S4 Remove Lint Suppression Finalize
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - .github/workflows/s4-remove-lint-suppression-finalize.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: s4-remove-lint-suppression-finalize
+  cancel-in-progress: false
+
+jobs:
+  fix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Apply source fix and remove all temporary controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          path=crates/chess-tools/src/s3_candidate.rs
+          test "$(grep -Fxc '    #[allow(clippy::too_many_arguments)]' "$path")" -eq 1
+          sed -i '/^    #\[allow(clippy::too_many_arguments)\]$/d' "$path"
+          git rm .github/workflows/s4-remove-lint-suppression-stage.yml .github/workflows/s4-remove-lint-suppression-finalize.yml
+          ! grep --recursive --line-number --include='*.rs' --extended-regexp '#!\[(allow|expect)|#\[(allow|expect)' crates
+          test ! -e .github/workflows/s4-remove-lint-suppression-stage.yml
+          test ! -e .github/workflows/s4-remove-lint-suppression-finalize.yml
+          git diff --check
+      - name: Validate clean source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all -- --check
+          cargo clippy --locked --workspace --all-targets -- -D warnings
+          cargo test --locked -p chess-tools
+          bash scripts/task_s4_evaluation_tuning_calibration_audit.sh
+          git diff --check
+      - name: Publish source fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Phillip Chin"
+          git config user.email "ekkus93@gmail.com"
+          git add crates/chess-tools/src/s3_candidate.rs
+          git diff --cached --check
+          git commit -m "fix: remove obsolete S3 candidate lint suppression"
+          git fetch origin master
+          git rebase origin/master
+          git push origin HEAD:master
