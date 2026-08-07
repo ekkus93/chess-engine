@@ -2,9 +2,11 @@
 
 **Status:** Frozen S3 planning baseline; v0.1 remains authoritative  
 **S3 planning/authority SHA:** `90a015c2cf8b8d45edcd07d705fb6ca58fe336f7`  
-**Unchanged production/code baseline SHA:** `677cd2a4d2a4a4f3c376f7bf47fae412171206fb`  
+**Unchanged production/code baseline SHA:** `677cd2a4d2a4f3c376f7bf47fae412171206fb`  
 **S3 specification:** `docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_SPEC_2026-08-07.md`  
 **S3 tracker:** `docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_TODO_2026-08-07.md`
+
+Machine witness: `production_baseline_sha=677cd2a4d2a4f3c376f7bf47fae412171206fb`
 
 ## Authority and release state
 
