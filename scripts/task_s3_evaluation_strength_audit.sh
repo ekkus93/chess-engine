@@ -45,7 +45,8 @@ bash scripts/task_v0_2_strength_audit.sh
 
 # Closed-program authority and no-promotion disposition.
 require_literal '`docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_TODO_2026-08-07.md`' "$legacy"
-require_literal 'There is currently **no active implementation TODO**.' "$legacy"
+require_literal 'Active S4 evaluation tuning calibration program' "$legacy"
+require_literal '`docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_TODO_2026-08-07.md`' "$legacy"
 if grep -Fq '| Active S3 evaluation strength program |' "$legacy"; then
   fail 'closed S3 tracker is still classified as active'
 fi
@@ -193,7 +194,9 @@ for temporary in \
   .github/s3_phase3_fix.py \
   .github/workflows/s3-phase3-stage.yml \
   .github/s3_candidate_stage.py \
-  .github/workflows/s3-candidate-stage.yml; do
+  .github/workflows/s3-candidate-stage.yml \
+  .github/s3_closure_docs.py \
+  .github/workflows/s3-closure-docs-stage.yml; do
   if test -e "$temporary"; then
     fail "temporary S3 staging control remains: $temporary"
   fi
