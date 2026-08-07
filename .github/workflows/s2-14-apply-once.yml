@@ -25,7 +25,10 @@ jobs:
           components: rustfmt, clippy
 
       - name: Apply frozen S2-14 source candidate
-        run: python3 .github/s2_14_apply.py
+        run: |
+          python3 .github/s2_14_apply.py
+          sed -i 's/assert_eq!(production.pair_count, 200);/assert_eq!(production.pair_count, 1_000);/' crates/chess-tools/src/bin/s2_14_production.rs
+          sed -i 's/EngineVariantResourceProtocol::FixedNodes(8)/EngineVariantResourceProtocol::FixedNodes(2_000)/' crates/chess-tools/src/bin/s2_14_production.rs
 
       - name: Format and validate source candidate
         run: |
