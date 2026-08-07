@@ -32,6 +32,24 @@ jobs:
           expected="$(printf '%s\n' '.github/s2_16_close.py' '.github/workflows/s2-16-close-once.yml' | sort)"
           test "$actual" = "$expected"
 
+      - name: Normalize evidence ledger extraction
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('.github/s2_16_close.py')
+          text = path.read_text()
+          start = text.index('records = []\nfor n in range(15):')
+          end = text.index('\ntask_table = ', start)
+          replacement = '''record_start = tracker.index("## S2-0 implementation record")
+          record_end = tracker.index("\\n# Task S2-0:", record_start)
+          evidence_ledger = tracker[record_start:record_end].strip()
+          '''
+          path.write_text(text[:start] + replacement + text[end:])
+          PY
+
       - name: Run bounded closure transformer
         shell: bash
         run: |
