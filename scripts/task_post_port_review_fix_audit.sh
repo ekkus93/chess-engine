@@ -47,8 +47,8 @@ grep -Fq '**Status:** Complete' "$postport_record"
 grep -Fq '**Status:** Complete — program closed without v0.2 promotion' "$v0_2_todo"
 grep -Fq '**Status:** Complete — program closed without promotion' "$s3_todo"
 grep -Fq '**Status:** Complete — program closed without promotion' "$s3_report"
-grep -Fq '**Status:** Active — not yet implemented' "$s4_todo"
-grep -Fq '**Status:** Active planning authority; implementation not yet complete' "$s4_spec"
+grep -Fq '**Status:** Closure candidate — S4-0 through S4-11 complete; S4-12 exact final validation pending' "$s4_todo"
+grep -Fq '**Status:** Closure candidate; implementation complete through S4-11, exact final validation pending' "$s4_spec"
 
 for stale in '| Active v0.2 strength program |' '| Active S3 evaluation strength program |'; do
     if grep -Fq "$stale" "$legacy_index"; then
@@ -84,8 +84,8 @@ grep -Fq '# Task S3-8: Optional new evaluation feature candidates — DEFERRED' 
 grep -Fq '# Task S3-10: Production candidate validation — SKIPPED (NO ELIGIBLE CANDIDATE)' "$s3_todo"
 grep -Fq '# Task S3-11: Separate activation and release gate — SKIPPED (NO ACCEPTED CANDIDATE)' "$s3_todo"
 grep -Fq '# Task S3-12: Final report, audit, cleanup, and closure — COMPLETE (NO PROMOTION)' "$s3_todo"
-grep -Fq '# Task S4-0: Authority registration and baseline freeze — NOT STARTED' "$s4_todo"
-grep -Fq '# Task S4-12: Final report and closure — NOT STARTED' "$s4_todo"
+grep -Fq '# Task S4-0: Authority registration and baseline freeze — COMPLETE' "$s4_todo"
+grep -Fq '# Task S4-12: Final report and closure — IN PROGRESS (EXACT FINAL VALIDATION PENDING)' "$s4_todo"
 
 while IFS= read -r todo_path; do
     case "$todo_path" in

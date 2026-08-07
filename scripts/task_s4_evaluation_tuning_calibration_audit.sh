@@ -21,6 +21,12 @@ spec=docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_SPEC_2026-08-07.md
 tracker=docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_TODO_2026-08-07.md
 baseline=docs/RUST_CHESS_ENGINE_S4_BASELINE_2026-08-07.md
 diagnosis=docs/RUST_CHESS_ENGINE_S4_ZERO_MOVEMENT_DIAGNOSIS_2026-08-07.md
+corpus=docs/RUST_CHESS_ENGINE_S4_CALIBRATION_CORPUS_2026-08-07.md
+matrix=docs/RUST_CHESS_ENGINE_S4_HYPERPARAMETER_MATRIX_RESULTS_2026-08-07.md
+selected=docs/RUST_CHESS_ENGINE_S4_SELECTED_CANDIDATE_REPRODUCTION_2026-08-07.md
+smoke=docs/RUST_CHESS_ENGINE_S4_DEVELOPMENT_STRENGTH_SMOKE_2026-08-07.md
+method=docs/RUST_CHESS_ENGINE_S4_METHOD_DISPOSITION_AND_S5_READINESS_2026-08-07.md
+final_report=docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_IMPLEMENTATION_REPORT.md
 legacy=docs/LEGACY_TODO_INDEX.md
 s3_tracker=docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_TODO_2026-08-07.md
 s3_report=docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_IMPLEMENTATION_REPORT.md
@@ -28,7 +34,7 @@ diagnostics=crates/chess-tune/src/diagnostics.rs
 trace=crates/chess-tune/src/trace.rs
 optimizer=crates/chess-tune/src/optimizer.rs
 
-for path in "$spec" "$tracker" "$baseline" "$diagnosis" "$legacy" "$s3_tracker" "$s3_report" "$diagnostics" "$trace" "$optimizer"; do
+for path in "$spec" "$tracker" "$baseline" "$diagnosis" "$corpus" "$matrix" "$selected" "$smoke" "$method" "$final_report" "$legacy" "$s3_tracker" "$s3_report" "$diagnostics" "$trace" "$optimizer"; do
   require_file "$path"
 done
 
@@ -38,8 +44,8 @@ bash scripts/task_s3_evaluation_strength_audit.sh
 # S4 is the only active program; S3 remains closed and historical.
 require_literal 'Active S4 evaluation tuning calibration program' "$legacy"
 require_literal '`docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_TODO_2026-08-07.md`' "$legacy"
-require_literal '**Status:** Active — not yet implemented' "$tracker"
-require_literal '**Status:** Active planning authority; implementation not yet complete' "$spec"
+require_literal '**Status:** Closure candidate — S4-0 through S4-11 complete; S4-12 exact final validation pending' "$tracker"
+require_literal '**Status:** Closure candidate; implementation complete through S4-11, exact final validation pending' "$spec"
 require_literal '**Status:** Complete — program closed without promotion' "$s3_tracker"
 if grep -Fq '| Active S3 evaluation strength program |' "$legacy"; then
   fail 'closed S3 tracker is active again'
@@ -64,6 +70,25 @@ require_literal '**Artifact ID:** `9001742616`' "$diagnosis"
 require_literal 'quantization_limited' "$diagnosis"
 require_literal '`6,480`' "$diagnosis"
 require_literal '`2.06410316075983228e-04`' "$diagnosis"
+require_literal '**Workflow run:** `31199370707`' "$corpus"
+require_literal 'dataset checksum: `85c0e5949cb329e3`' "$corpus"
+require_literal '**Workflow run:** `31200184027`' "$matrix"
+require_literal '**selected**' "$matrix"
+require_literal '`520db5dd58086a8a`' "$matrix"
+require_literal '**Workflow run:** `31201066297`' "$selected"
+require_literal 'registered candidate count `1`' "$selected"
+require_literal '**Workflow run:** `31203299756`' "$smoke"
+require_literal '**Workflow job:** `92948219087`' "$smoke"
+require_literal '**Artifact ID:** `9003757817`' "$smoke"
+require_literal '`12 / 4 / 16`' "$smoke"
+require_literal '`14 / 2 / 15`' "$smoke"
+require_literal 'decision: `rejected_strength`' "$smoke"
+require_literal '**Status:** Accepted for future evaluator experimentation; not production activation evidence' "$method"
+require_literal '**Status:** Closure candidate — exact final validation pending' "$final_report"
+require_literal 'No activation occurred anywhere in S4.' "$final_report"
+require_literal '# Task S4-0: Authority registration and baseline freeze — COMPLETE' "$tracker"
+require_literal '# Task S4-11: Method disposition and S5 readiness — COMPLETE (METHOD ACCEPTED FOR S5 EXPERIMENTATION)' "$tracker"
+require_literal '# Task S4-12: Final report and closure — IN PROGRESS (EXACT FINAL VALIDATION PENDING)' "$tracker"
 
 # Release identities remain frozen.
 require_literal 'version = "0.1.0"' Cargo.toml
@@ -139,6 +164,10 @@ while IFS= read -r path; do
   esac
 done < <(find .github -maxdepth 2 -type f \( -name 's4_*stage*.py' -o -name 's4-*-stage.yml' -o -name 's4_*fix*.py' \) -print | sort)
 
+for temporary in .github/s4_closure_stage.py .github/workflows/s4-closure-stage.yml .github/s4_s3_audit_transition.py .github/workflows/s4-s3-audit-transition.yml; do
+  test ! -e "$temporary" || fail "temporary S4 closure/transition control remains: $temporary"
+done
+
 # Permanent S4 workflow must be read-only.
 require_file .github/workflows/s4-evaluation-tuning-calibration.yml
 if grep -Fq 'contents: write' .github/workflows/s4-evaluation-tuning-calibration.yml; then
@@ -151,4 +180,4 @@ if grep -R --line-number --include='*.rs' -E 'Command::new\("python(3)?"|Py_Init
   fail 'production Rust gained a Python/subprocess fallback'
 fi
 
-echo 'S4 evaluation-tuning calibration baseline audit passed'
+echo 'S4 evaluation-tuning calibration closure-candidate audit passed'
