@@ -1,0 +1,143 @@
+name: S4 Selected Candidate Reproduction
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - .github/workflows/s4-selected-candidate-reproduction.yml
+      - crates/chess-tune/**
+      - crates/chess-tools/**
+      - crates/chess-search/**
+      - crates/chess-core/**
+      - fixtures/self_play_openings.tsv
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: s4-selected-candidate-reproduction-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  reproduce:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Build release tooling
+        run: cargo build --locked --release -p chess-tools --bin chess-tools
+      - name: Regenerate frozen stronger corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/s4-stronger.txt <<'EOF'
+          schema=1
+          games=96
+          seed=1395929912
+          maximum_plies=256
+          white_limit=nodes:1024
+          white_tt_mib=1
+          white_check_extension=false
+          black_limit=nodes:1024
+          black_tt_mib=1
+          black_check_extension=false
+          claimable_draw=accept
+          opening_positions=exclude
+          split_train=70
+          split_validation=20
+          split_test=10
+          opening_path=fixtures/self_play_openings.tsv
+          EOF
+          printf '%s  %s\n' '11102da8d9581089429884e29a1a942c6d504e300813e9229e3270036361def1' /tmp/s4-stronger.txt | sha256sum --check --status
+          target/release/chess-tools s3-self-play "$GITHUB_SHA" /tmp/s4-stronger.txt /tmp/s4-stronger | tee /tmp/stronger.log
+          target/release/chess-tools s3-self-play-validate /tmp/s4-stronger | tee /tmp/stronger-validate.log
+          grep -Fxq $'dataset_checksum\t85c0e5949cb329e3' /tmp/stronger.log
+          grep -Fxq $'training_occurrences\t8202' /tmp/stronger.log
+          grep -Fxq $'validation_occurrences\t2465' /tmp/stronger.log
+          grep -Fxq $'excluded_rows\t0' /tmp/stronger.log
+          grep -Fxq $'admitted_for_tuning\ttrue' /tmp/stronger-validate.log
+      - name: Freeze selected row 11 configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          config=/tmp/s4-selected.txt
+          printf 'CHESS_TUNING_CONFIG\t1\n' > "$config"
+          cat >> "$config" <<EOF
+          engine_identifier=5995211731466014277
+          initial_weight_identifier=4774188637087157829
+          candidate_weight_identifier=5995501946914471947
+          source_commit=${GITHUB_SHA}
+          generated_at_unix_seconds=1786112011
+          maximum_iterations=32
+          advance_iterations=32
+          learning_rate=4096
+          step_decay=0.602
+          perturbation_size=8
+          perturbation_decay=0.101
+          stability_constant=10.0
+          minimum_weight=-2000
+          maximum_weight=2000
+          regularization_strength=0.0000
+          random_seed=1395995457
+          k_minimum=0.1
+          k_maximum=3.0
+          k_intervals=20
+          EOF
+      - name: Run selected candidate first time
+        shell: bash
+        run: |
+          set -euo pipefail
+          target/release/chess-tools tune-group full_existing_evaluator /tmp/s4-selected.txt /tmp/s4-stronger /tmp/s4-selected-output | tee /tmp/selected-first.log
+          test -f /tmp/s4-selected-output/ACTIVATION_DISABLED
+          test -f /tmp/s4-selected-output/s4-summary.tsv
+          test -f /tmp/s4-selected-output/s4-optimizer-trace.txt
+          test -f /tmp/s4-selected-output/s3-candidate-envelope.txt
+          test -f /tmp/s4-selected-output/s3-candidate-registry.tsv
+          grep -Fxq $'candidate_value_checksum\t520db5dd58086a8a' /tmp/s4-selected-output/s4-summary.tsv
+          grep -Fxq $'changed_parameter_count\t645' /tmp/s4-selected-output/s4-summary.tsv
+          grep -Fxq $'maximum_absolute_parameter_delta\t8' /tmp/s4-selected-output/s4-summary.tsv
+          grep -Fxq $'training_loss_delta\t-4.83858551862105524e-3' /tmp/s4-selected-output/s4-summary.tsv
+          grep -Fxq $'validation_loss_delta\t-6.37062441281038838e-3' /tmp/s4-selected-output/s4-summary.tsv
+          grep -Fxq $'clipping_count\t0' /tmp/s4-selected-output/s4-summary.tsv
+          grep -Fxq $'activated\tfalse' /tmp/s4-selected-output/s4-summary.tsv
+          grep -Fxq $'loss_decision\tadvance' /tmp/s4-selected-output/s3-candidate-registry.tsv
+          grep -Fxq $'registered_count\t1' /tmp/s4-selected-output/s3-candidate-registry.tsv
+          grep -Fxq $'candidate_value_checksum\t520db5dd58086a8a' /tmp/s4-selected-output/s3-candidate-registry.tsv
+          grep -Fxq $'activated\tfalse' /tmp/s4-selected-output/s3-candidate-registry.tsv
+          cp -a /tmp/s4-selected-output /tmp/s4-selected-first
+      - name: Repeat exact selected candidate invocation
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/s4-selected-output
+          target/release/chess-tools tune-group full_existing_evaluator /tmp/s4-selected.txt /tmp/s4-stronger /tmp/s4-selected-output | tee /tmp/selected-second.log
+          diff -r /tmp/s4-selected-first /tmp/s4-selected-output
+          cmp /tmp/selected-first.log /tmp/selected-second.log
+          grep -Fxq $'candidate_value_checksum\t520db5dd58086a8a' /tmp/s4-selected-output/s4-summary.tsv
+          grep -Fxq $'loss_decision\tadvance' /tmp/s4-selected-output/s3-candidate-registry.tsv
+          grep -Fxq $'registered_count\t1' /tmp/s4-selected-output/s3-candidate-registry.tsv
+          grep -Fxq $'activated\tfalse' /tmp/s4-selected-output/s3-candidate-registry.tsv
+      - name: Record reproducibility disposition
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p s4-selected-reproduction-evidence
+          cp -a /tmp/s4-selected-output s4-selected-reproduction-evidence/output
+          cp /tmp/s4-selected.txt /tmp/s4-stronger.txt /tmp/stronger.log /tmp/stronger-validate.log /tmp/selected-first.log /tmp/selected-second.log s4-selected-reproduction-evidence/
+          printf '%s\n' "$GITHUB_SHA" > s4-selected-reproduction-evidence/source-sha.txt
+          printf 'matrix_source_sha\tfd940a52f2a2cc7472ef8a36c857949ec9792281\n' > s4-selected-reproduction-evidence/disposition.tsv
+          printf 'matrix_run\t11\n' >> s4-selected-reproduction-evidence/disposition.tsv
+          printf 'matrix_value_checksum\t520db5dd58086a8a\n' >> s4-selected-reproduction-evidence/disposition.tsv
+          printf 'reproduced_value_checksum\t520db5dd58086a8a\n' >> s4-selected-reproduction-evidence/disposition.tsv
+          printf 'registry_decision\tadvance\n' >> s4-selected-reproduction-evidence/disposition.tsv
+          printf 'reproducible\ttrue\nactivated\tfalse\n' >> s4-selected-reproduction-evidence/disposition.tsv
+      - name: Upload reproduction evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: s4-selected-candidate-reproduction-${{ github.sha }}
+          path: s4-selected-reproduction-evidence
+          if-no-files-found: error
+          retention-days: 60
