@@ -110,7 +110,9 @@ pub fn format_move_history(moves: &[Move]) -> String {
     for (index, pair) in moves.chunks(2).enumerate() {
         let move_number = index + 1;
         let white = pair[0].to_uci();
-        let black = pair.get(1).map_or(String::new(), |current| current.to_uci());
+        let black = pair
+            .get(1)
+            .map_or(String::new(), |current| current.to_uci());
         if black.is_empty() {
             lines.push(format!("{move_number:>3}. {white}"));
         } else {
@@ -161,15 +163,22 @@ pub fn format_search_metrics(metrics: Option<&SearchMetrics>) -> String {
     let Some(metrics) = metrics else {
         return "depth  -\nscore  -\nnodes  -\nnps    -\ntime   -\nhash   -\npv     -".to_owned();
     };
-    let depth = metrics.depth.map_or_else(|| "-".to_owned(), |value| value.to_string());
+    let depth = metrics
+        .depth
+        .map_or_else(|| "-".to_owned(), |value| value.to_string());
     let score = metrics.score.map_or_else(|| "-".to_owned(), format_score);
-    let nodes = metrics.nodes.map_or_else(|| "-".to_owned(), |value| value.to_string());
-    let nps = metrics.nps.map_or_else(|| "-".to_owned(), |value| value.to_string());
-    let elapsed = metrics.elapsed.map_or_else(|| "-".to_owned(), format_duration);
-    let hash = metrics.hash_full_per_mille.map_or_else(
-        || "-".to_owned(),
-        |value| format!("{value}‰"),
-    );
+    let nodes = metrics
+        .nodes
+        .map_or_else(|| "-".to_owned(), |value| value.to_string());
+    let nps = metrics
+        .nps
+        .map_or_else(|| "-".to_owned(), |value| value.to_string());
+    let elapsed = metrics
+        .elapsed
+        .map_or_else(|| "-".to_owned(), format_duration);
+    let hash = metrics
+        .hash_full_per_mille
+        .map_or_else(|| "-".to_owned(), |value| format!("{value}‰"));
     let pv = if metrics.principal_variation.is_empty() {
         "-".to_owned()
     } else {
@@ -239,12 +248,18 @@ mod tests {
     fn starting_board_orients_both_sides_and_uses_knight_n() {
         let position = Position::starting();
         let white = board_lines(&position, BoardOrientation::White);
-        assert_eq!(white.first().expect("file row"), "    a   b   c   d   e   f   g   h");
+        assert_eq!(
+            white.first().expect("file row"),
+            "    a   b   c   d   e   f   g   h"
+        );
         assert!(white[2].contains("r | n | b | q | k | b | n | r"));
         assert!(white[16].contains("R | N | B | Q | K | B | N | R"));
 
         let black = board_lines(&position, BoardOrientation::Black);
-        assert_eq!(black.first().expect("file row"), "    h   g   f   e   d   c   b   a");
+        assert_eq!(
+            black.first().expect("file row"),
+            "    h   g   f   e   d   c   b   a"
+        );
         assert!(black[2].starts_with("1 |"));
         assert!(black[16].starts_with("8 |"));
     }
@@ -261,7 +276,10 @@ mod tests {
                 .expect("fixture move is legal");
             game.make_move(current).expect("fixture move applies");
         }
-        assert_eq!(format_move_history(game.moves()), "  1. e2e4   e7e5\n  2. g1f3");
+        assert_eq!(
+            format_move_history(game.moves()),
+            "  1. e2e4   e7e5\n  2. g1f3"
+        );
     }
 
     #[test]

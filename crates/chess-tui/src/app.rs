@@ -369,7 +369,9 @@ impl AppState {
             .game
             .legal_moves()
             .map_err(|error| AppError::Rules(error.to_string()))?;
-        let mut matches = legal_moves.iter().filter(|candidate| parsed.matches(*candidate));
+        let mut matches = legal_moves
+            .iter()
+            .filter(|candidate| parsed.matches(*candidate));
         let Some(current) = matches.next() else {
             return visible_error(session, "move is not legal in the current position");
         };
@@ -398,7 +400,10 @@ impl AppState {
             return visible_error(session, "the game is already over");
         }
         let Some(human_color) = session.config.human_color() else {
-            return visible_error(session, "resignation is only available in Human vs Engine mode");
+            return visible_error(
+                session,
+                "resignation is only available in Human vs Engine mode",
+            );
         };
         session.active_search = None;
         session.thinking = false;
@@ -517,7 +522,10 @@ impl AppState {
                     .legal_moves()
                     .map_err(|error| AppError::Rules(error.to_string()))?;
                 if !legal_moves.iter().any(|candidate| candidate == best_move) {
-                    return visible_error(session, "engine returned a move that is no longer legal");
+                    return visible_error(
+                        session,
+                        "engine returned a move that is no longer legal",
+                    );
                 }
                 session
                     .game
@@ -744,8 +752,8 @@ mod tests {
 
     #[test]
     fn promotion_identity_is_preserved_by_core_resolution() {
-        let position = Position::from_fen("7k/4P3/8/8/8/8/8/7K w - - 0 1")
-            .expect("promotion fixture parses");
+        let position =
+            Position::from_fen("7k/4P3/8/8/8/8/8/7K w - - 0 1").expect("promotion fixture parses");
         let mut app = AppState::new();
         app.start_game(GameConfig::HumanVsEngine {
             human_color: Color::White,
@@ -759,7 +767,10 @@ mod tests {
             app.session.as_ref().expect("session").game.moves()[0].to_uci(),
             "e7e8q"
         );
-        assert_eq!(app.session.as_ref().expect("session").generation, generation);
+        assert_eq!(
+            app.session.as_ref().expect("session").generation,
+            generation
+        );
     }
 
     #[test]

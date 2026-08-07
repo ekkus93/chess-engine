@@ -65,10 +65,7 @@ mod tests {
             .duration_since(SystemTime::UNIX_EPOCH)
             .expect("clock is after epoch")
             .as_nanos();
-        std::env::temp_dir().join(format!(
-            "chess-tui-{label}-{}-{stamp}.txt",
-            process::id()
-        ))
+        std::env::temp_dir().join(format!("chess-tui-{label}-{}-{stamp}.txt", process::id()))
     }
 
     #[test]

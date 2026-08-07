@@ -15,9 +15,7 @@ use ratatui::{
 };
 
 use crate::{
-    app::{
-        AppScreen, AppState, ConfirmationAction, GameConfig, MenuMode, Overlay,
-    },
+    app::{AppScreen, AppState, ConfirmationAction, GameConfig, MenuMode, Overlay},
     render::{
         board_lines, color_name, format_move_history, format_search_metrics, layout_decision,
         orientation_for_config, turn_status, LayoutDecision, MIN_TERMINAL_HEIGHT,
@@ -225,8 +223,7 @@ fn handle_game_key(
             KeyCode::Char(' ') if active_game => {
                 if auto_play {
                     runtime.cancel()?;
-                    app.pause_self_play()
-                        .map_err(app_error_to_io)?;
+                    app.pause_self_play().map_err(app_error_to_io)?;
                 } else {
                     app.resume_self_play().map_err(app_error_to_io)?;
                 }
@@ -351,9 +348,7 @@ fn save_current_game(app: &mut AppState) -> io::Result<()> {
     let timestamp = unix_timestamp_label()?;
     let contents = serialize_game(session, Some(&timestamp));
     match write_game(Path::new(&path_text), &contents) {
-        Ok(()) => app
-            .mark_saved(path_text)
-            .map_err(app_error_to_io),
+        Ok(()) => app.mark_saved(path_text).map_err(app_error_to_io),
         Err(error) => {
             app.mark_save_failed(format!("Save failed: {error}"));
             Ok(())
@@ -414,7 +409,11 @@ fn render_menu(frame: &mut Frame<'_>, app: &AppState) {
     ];
     let mut text = String::from("Rust Chess TUI\n\n");
     for (index, row) in rows.iter().enumerate() {
-        let marker = if index == app.menu.selected_row { ">" } else { " " };
+        let marker = if index == app.menu.selected_row {
+            ">"
+        } else {
+            " "
+        };
         text.push_str(&format!("{marker} {row}\n"));
     }
     text.push_str("\n↑/↓ select   ←/→ change   Enter activate   q quit");
@@ -470,9 +469,7 @@ fn render_game(frame: &mut Frame<'_>, app: &AppState) {
         GameConfig::SelfPlay {
             white_depth,
             black_depth,
-        } => format!(
-            "Chess Engine — Self-play — White d{white_depth} / Black d{black_depth}"
-        ),
+        } => format!("Chess Engine — Self-play — White d{white_depth} / Black d{black_depth}"),
     };
     frame.render_widget(
         Paragraph::new(title)
@@ -502,12 +499,20 @@ fn render_game(frame: &mut Frame<'_>, app: &AppState) {
         LayoutDecision::TooSmall => {}
     }
 
-    let thinking = if session.thinking { " — thinking…" } else { "" };
+    let thinking = if session.thinking {
+        " — thinking…"
+    } else {
+        ""
+    };
     let message = session.status_message.as_deref().unwrap_or("");
     let input = if session.human_to_move() {
         format!("Move: {}_", session.move_input)
     } else if session.config.is_self_play() {
-        let state = if session.auto_play { "running" } else { "paused" };
+        let state = if session.auto_play {
+            "running"
+        } else {
+            "paused"
+        };
         format!("Self-play: {state}")
     } else {
         "Move input disabled while engine is thinking".to_owned()
@@ -515,7 +520,10 @@ fn render_game(frame: &mut Frame<'_>, app: &AppState) {
     frame.render_widget(
         Paragraph::new(format!(
             "{}{}\n{}\n{}",
-            turn_status(session), thinking, input, message
+            turn_status(session),
+            thinking,
+            input,
+            message
         ))
         .block(Block::default().borders(Borders::ALL).title("Status")),
         outer[2],
@@ -620,7 +628,9 @@ mod tests {
     fn draw(app: &AppState, width: u16, height: u16) {
         let backend = TestBackend::new(width, height);
         let mut terminal = Terminal::new(backend).expect("test terminal");
-        terminal.draw(|frame| render(frame, app)).expect("render succeeds");
+        terminal
+            .draw(|frame| render(frame, app))
+            .expect("render succeeds");
     }
 
     #[test]

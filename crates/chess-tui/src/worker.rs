@@ -130,7 +130,10 @@ impl fmt::Display for SearchWorkerError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::ThreadSpawn { kind, message } => {
-                write!(formatter, "failed to spawn TUI search worker ({kind:?}): {message}")
+                write!(
+                    formatter,
+                    "failed to spawn TUI search worker ({kind:?}): {message}"
+                )
             }
             Self::ThreadPanicked => formatter.write_str("TUI search worker panicked"),
             Self::EventChannelClosed => formatter.write_str("TUI search event channel closed"),
@@ -147,7 +150,9 @@ pub struct SearchWorker {
 }
 
 impl SearchWorker {
-    pub fn spawn(request: SearchRequest) -> Result<(Self, Receiver<EngineEvent>), SearchWorkerError> {
+    pub fn spawn(
+        request: SearchRequest,
+    ) -> Result<(Self, Receiver<EngineEvent>), SearchWorkerError> {
         let stop_flag = SearchStopFlag::new();
         let discard_final = Arc::new(AtomicBool::new(false));
         let worker_stop = stop_flag.clone();
@@ -184,7 +189,9 @@ impl SearchWorker {
         let Some(handle) = self.handle.take() else {
             return Ok(());
         };
-        handle.join().map_err(|_| SearchWorkerError::ThreadPanicked)?
+        handle
+            .join()
+            .map_err(|_| SearchWorkerError::ThreadPanicked)?
     }
 
     pub fn cancel_and_join(&mut self) -> Result<(), SearchWorkerError> {
