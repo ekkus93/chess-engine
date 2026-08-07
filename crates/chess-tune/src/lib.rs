@@ -6,6 +6,7 @@
 //! explicit caller action.
 
 mod loss;
+mod mask;
 mod optimizer;
 
 pub use loss::{
@@ -14,6 +15,7 @@ pub use loss::{
     TEXEL_EVALUATION_SCALE_CENTIPAWNS,
 };
 
+pub use mask::{EvaluationParameterGroup, TunableParameterMask, TUNABLE_PARAMETER_MASK_WORD_COUNT};
 pub use optimizer::{
     SpsaCheckpoint, SpsaConfig, SpsaOptimizer, SpsaOptimizerError, SpsaRunSummary, SpsaSchedule,
     SpsaWeightBounds, MAX_SPSA_ITERATIONS, MAX_SPSA_WEIGHT_MAGNITUDE,

@@ -4,7 +4,7 @@ use chess_search::{EvaluationWeightSet, EvaluationWeights, WeightValidationError
 
 use crate::{
     tunable_values, weights_from_tunable_values, LogisticK, LossDataset, LossPartition,
-    LossPipelineError, TunableParameter, TUNABLE_PARAMETER_COUNT,
+    LossPipelineError, TunableParameter, TunableParameterMask, TUNABLE_PARAMETER_COUNT,
 };
 
 /// Current binary SPSA checkpoint schema.
@@ -162,6 +162,7 @@ pub struct SpsaConfig {
     schedule: SpsaSchedule,
     bounds: SpsaWeightBounds,
     regularization_strength: f64,
+    parameter_mask: TunableParameterMask,
 }
 
 impl SpsaConfig {
@@ -188,6 +189,7 @@ impl SpsaConfig {
             schedule,
             bounds,
             regularization_strength,
+            parameter_mask: TunableParameterMask::all(),
         })
     }
 
@@ -215,6 +217,22 @@ impl SpsaConfig {
         self.regularization_strength
     }
 
+    /// Restricts optimization to an explicit non-empty parameter set.
+    pub fn with_parameter_mask(
+        mut self,
+        parameter_mask: TunableParameterMask,
+    ) -> Result<Self, SpsaOptimizerError> {
+        validate_parameter_mask(parameter_mask)?;
+        self.parameter_mask = parameter_mask;
+        Ok(self)
+    }
+
+    /// Returns the exact selected parameter set.
+    #[must_use]
+    pub const fn parameter_mask(self) -> TunableParameterMask {
+        self.parameter_mask
+    }
+
     /// Stable exact-bit fingerprint used to bind checkpoints to configuration.
     #[must_use]
     pub fn fingerprint(self) -> u64 {
@@ -231,7 +249,14 @@ impl SpsaConfig {
             hash = hash_bytes(hash, &value.to_bits().to_le_bytes());
         }
         hash = hash_bytes(hash, &self.bounds.minimum.to_le_bytes());
-        hash_bytes(hash, &self.bounds.maximum.to_le_bytes())
+        hash = hash_bytes(hash, &self.bounds.maximum.to_le_bytes());
+        if !self.parameter_mask.is_all() {
+            hash = hash_bytes(hash, b"spsa-parameter-mask-v1");
+            for word in self.parameter_mask.words() {
+                hash = hash_bytes(hash, &word.to_le_bytes());
+            }
+        }
+        hash
     }
 }
 
@@ -287,7 +312,12 @@ impl SpsaCheckpoint {
         &self,
         bounds: SpsaWeightBounds,
     ) -> Result<EvaluationWeights, SpsaOptimizerError> {
-        let values = project_parameters(&self.current_parameters, bounds)?;
+        let values = project_parameters(
+            &self.current_parameters,
+            bounds,
+            TunableParameterMask::all(),
+            &self.reference_values,
+        )?;
         Ok(weights_from_tunable_values(values))
     }
 
@@ -444,6 +474,7 @@ impl SpsaOptimizer {
         dataset: &LossDataset,
         logistic_k: LogisticK,
     ) -> Result<Self, SpsaOptimizerError> {
+        validate_parameter_mask(config.parameter_mask)?;
         validate_runtime_weights(initial_weights)?;
         let reference_values = tunable_values(&initial_weights);
         validate_values_within_bounds(&reference_values, config.bounds)?;
@@ -455,6 +486,7 @@ impl SpsaOptimizer {
             logistic_k,
             &reference_values,
             config.regularization_strength,
+            config.parameter_mask,
         )?;
         Ok(Self {
             config,
@@ -480,6 +512,7 @@ impl SpsaOptimizer {
         dataset: &LossDataset,
         checkpoint: SpsaCheckpoint,
     ) -> Result<Self, SpsaOptimizerError> {
+        validate_parameter_mask(config.parameter_mask)?;
         let expected_config = config.fingerprint();
         if checkpoint.config_fingerprint != expected_config {
             return Err(SpsaOptimizerError::CheckpointConfigMismatch {
@@ -505,7 +538,12 @@ impl SpsaOptimizer {
         validate_values_within_bounds(&checkpoint.best_values, config.bounds)?;
         validate_runtime_weights(weights_from_tunable_values(checkpoint.reference_values))?;
         validate_runtime_weights(weights_from_tunable_values(checkpoint.best_values))?;
-        let current_values = project_parameters(&checkpoint.current_parameters, config.bounds)?;
+        let current_values = project_parameters(
+            &checkpoint.current_parameters,
+            config.bounds,
+            config.parameter_mask,
+            &checkpoint.reference_values,
+        )?;
         validate_runtime_weights(weights_from_tunable_values(current_values))?;
         let current_weights = weights_from_tunable_values(current_values);
         let current_objective = regularized_training_objective(
@@ -514,6 +552,7 @@ impl SpsaOptimizer {
             checkpoint.logistic_k,
             &checkpoint.reference_values,
             config.regularization_strength,
+            config.parameter_mask,
         )?;
         let best_weights = weights_from_tunable_values(checkpoint.best_values);
         let best_objective = regularized_training_objective(
@@ -522,6 +561,7 @@ impl SpsaOptimizer {
             checkpoint.logistic_k,
             &checkpoint.reference_values,
             config.regularization_strength,
+            config.parameter_mask,
         )?;
         require_objective_match(
             "current_training_objective",
@@ -580,8 +620,12 @@ impl SpsaOptimizer {
         for iteration in (self.checkpoint.completed_iterations + 1)..=ending_iteration {
             self.advance_one(dataset, iteration)?;
         }
-        let current_values =
-            project_parameters(&self.checkpoint.current_parameters, self.config.bounds)?;
+        let current_values = project_parameters(
+            &self.checkpoint.current_parameters,
+            self.config.bounds,
+            self.config.parameter_mask,
+            &self.checkpoint.reference_values,
+        )?;
         let current_weights = weights_from_tunable_values(current_values);
         let best_weights = weights_from_tunable_values(self.checkpoint.best_values);
         let current_validation_mse = dataset.mean_squared_error(
@@ -617,24 +661,31 @@ impl SpsaOptimizer {
             return Err(SpsaOptimizerError::NonFiniteOptimizerState);
         }
         let mut delta = [0_i8; TUNABLE_PARAMETER_COUNT];
-        for value in &mut delta {
-            *value = if next_splitmix64(&mut self.checkpoint.rng_state) & 1 == 0 {
-                -1
-            } else {
-                1
-            };
+        for (index, value) in delta.iter_mut().enumerate() {
+            let parameter = TunableParameter::from_index(index).expect("tunable index is valid");
+            if self.config.parameter_mask.contains(parameter) {
+                *value = if next_splitmix64(&mut self.checkpoint.rng_state) & 1 == 0 {
+                    -1
+                } else {
+                    1
+                };
+            }
         }
         let plus_values = perturbed_values(
             &self.checkpoint.current_parameters,
             &delta,
             perturbation,
             self.config.bounds,
+            self.config.parameter_mask,
+            &self.checkpoint.reference_values,
         )?;
         let minus_values = perturbed_values(
             &self.checkpoint.current_parameters,
             &delta,
             -perturbation,
             self.config.bounds,
+            self.config.parameter_mask,
+            &self.checkpoint.reference_values,
         )?;
         let plus_weights = weights_from_tunable_values(plus_values);
         let minus_weights = weights_from_tunable_values(minus_values);
@@ -644,6 +695,7 @@ impl SpsaOptimizer {
             self.checkpoint.logistic_k,
             &self.checkpoint.reference_values,
             self.config.regularization_strength,
+            self.config.parameter_mask,
         )?;
         let minus_objective = regularized_training_objective(
             dataset,
@@ -651,20 +703,28 @@ impl SpsaOptimizer {
             self.checkpoint.logistic_k,
             &self.checkpoint.reference_values,
             self.config.regularization_strength,
+            self.config.parameter_mask,
         )?;
         let gradient_scale = (plus_objective - minus_objective) / (2.0 * perturbation);
         if !gradient_scale.is_finite() {
             return Err(SpsaOptimizerError::NonFiniteOptimizerState);
         }
         for (parameter, direction) in self.checkpoint.current_parameters.iter_mut().zip(delta) {
+            if direction == 0 {
+                continue;
+            }
             *parameter -= gain * gradient_scale * f64::from(direction);
             *parameter = parameter.clamp(
                 f64::from(self.config.bounds.minimum),
                 f64::from(self.config.bounds.maximum),
             );
         }
-        let current_values =
-            project_parameters(&self.checkpoint.current_parameters, self.config.bounds)?;
+        let current_values = project_parameters(
+            &self.checkpoint.current_parameters,
+            self.config.bounds,
+            self.config.parameter_mask,
+            &self.checkpoint.reference_values,
+        )?;
         let current_weights = weights_from_tunable_values(current_values);
         validate_runtime_weights(current_weights)?;
         let current_objective = regularized_training_objective(
@@ -673,6 +733,7 @@ impl SpsaOptimizer {
             self.checkpoint.logistic_k,
             &self.checkpoint.reference_values,
             self.config.regularization_strength,
+            self.config.parameter_mask,
         )?;
         self.checkpoint.completed_iterations = iteration;
         self.checkpoint.current_training_objective = current_objective;
@@ -765,6 +826,10 @@ pub enum SpsaOptimizerError {
     InvalidMaximumIterations { found: u64, maximum: u64 },
     /// L2 coefficient was negative, infinite, or not a number.
     InvalidRegularization { value: f64 },
+    /// No optimizer parameter was selected.
+    EmptyParameterMask,
+    /// Material values must be tuned as one coupled ordering-constrained group.
+    PartialMaterialParameterMask { selected: usize },
     /// Initial or resumed weights violated runtime evaluator constraints.
     InvalidWeights { error: WeightValidationError },
     /// One explicit initial or checkpoint value was outside configured bounds.
@@ -836,6 +901,13 @@ impl fmt::Display for SpsaOptimizerError {
             Self::InvalidRegularization { value } => write!(
                 formatter,
                 "SPSA regularization must be finite and non-negative, found {value}"
+            ),
+            Self::EmptyParameterMask => {
+                formatter.write_str("SPSA parameter mask must select at least one parameter")
+            }
+            Self::PartialMaterialParameterMask { selected } => write!(
+                formatter,
+                "SPSA material ordering requires selecting either zero or all 10 material parameters; found {selected}"
             ),
             Self::InvalidWeights { error } => write!(formatter, "invalid SPSA weights: {error}"),
             Self::ParameterOutOfBounds {
@@ -946,6 +1018,22 @@ fn require_objective_match(
     Ok(())
 }
 
+fn validate_parameter_mask(mask: TunableParameterMask) -> Result<(), SpsaOptimizerError> {
+    if mask.is_empty() {
+        return Err(SpsaOptimizerError::EmptyParameterMask);
+    }
+    let selected_material = TunableParameter::all()
+        .take(10)
+        .filter(|parameter| mask.contains(*parameter))
+        .count();
+    if selected_material != 0 && selected_material != 10 {
+        return Err(SpsaOptimizerError::PartialMaterialParameterMask {
+            selected: selected_material,
+        });
+    }
+    Ok(())
+}
+
 fn validate_runtime_weights(weights: EvaluationWeights) -> Result<(), SpsaOptimizerError> {
     EvaluationWeightSet::new(SPSA_OPTIMIZER_IDENTIFIER, weights)
         .validate()
@@ -973,18 +1061,26 @@ fn validate_values_within_bounds(
 fn project_parameters(
     parameters: &[f64; TUNABLE_PARAMETER_COUNT],
     bounds: SpsaWeightBounds,
+    mask: TunableParameterMask,
+    reference_values: &[i16; TUNABLE_PARAMETER_COUNT],
 ) -> Result<[i16; TUNABLE_PARAMETER_COUNT], SpsaOptimizerError> {
     let mut values = [0_i16; TUNABLE_PARAMETER_COUNT];
-    for (destination, value) in values.iter_mut().zip(parameters) {
+    for (index, (destination, value)) in values.iter_mut().zip(parameters).enumerate() {
         if !value.is_finite() {
             return Err(SpsaOptimizerError::NonFiniteOptimizerState);
         }
-        *destination = value
-            .round()
-            .clamp(f64::from(bounds.minimum), f64::from(bounds.maximum))
-            as i16;
+        let parameter = TunableParameter::from_index(index).expect("tunable index is valid");
+        *destination = if mask.contains(parameter) {
+            value
+                .round()
+                .clamp(f64::from(bounds.minimum), f64::from(bounds.maximum)) as i16
+        } else {
+            reference_values[index]
+        };
     }
-    project_material_ordering(&mut values, bounds);
+    if mask.contains(TunableParameter::from_index(0).expect("material parameter exists")) {
+        project_material_ordering(&mut values, bounds);
+    }
     Ok(values)
 }
 
@@ -1018,12 +1114,14 @@ fn perturbed_values(
     delta: &[i8; TUNABLE_PARAMETER_COUNT],
     perturbation: f64,
     bounds: SpsaWeightBounds,
+    mask: TunableParameterMask,
+    reference_values: &[i16; TUNABLE_PARAMETER_COUNT],
 ) -> Result<[i16; TUNABLE_PARAMETER_COUNT], SpsaOptimizerError> {
     let mut perturbed = [0.0; TUNABLE_PARAMETER_COUNT];
     for ((destination, parameter), direction) in perturbed.iter_mut().zip(parameters).zip(delta) {
         *destination = *parameter + perturbation * f64::from(*direction);
     }
-    project_parameters(&perturbed, bounds)
+    project_parameters(&perturbed, bounds, mask, reference_values)
 }
 
 fn regularized_training_objective(
@@ -1032,18 +1130,20 @@ fn regularized_training_objective(
     logistic_k: LogisticK,
     reference_values: &[i16; TUNABLE_PARAMETER_COUNT],
     regularization_strength: f64,
+    mask: TunableParameterMask,
 ) -> Result<f64, SpsaOptimizerError> {
     let mse = dataset.mean_squared_error(LossPartition::Training, weights, logistic_k)?;
     let values = tunable_values(weights);
-    let squared_distance = values
-        .iter()
-        .zip(reference_values)
-        .map(|(value, reference)| {
-            let difference = f64::from(*value) - f64::from(*reference);
-            difference * difference
-        })
-        .sum::<f64>()
-        / TUNABLE_PARAMETER_COUNT as f64;
+    let mut squared_distance = 0.0;
+    for parameter in TunableParameter::all() {
+        if !mask.contains(parameter) {
+            continue;
+        }
+        let index = parameter.index();
+        let difference = f64::from(values[index]) - f64::from(reference_values[index]);
+        squared_distance += difference * difference;
+    }
+    squared_distance /= mask.active_count() as f64;
     let objective = mse + regularization_strength * squared_distance;
     if !objective.is_finite() {
         return Err(SpsaOptimizerError::NonFiniteOptimizerState);
@@ -1126,7 +1226,10 @@ mod tests {
     use chess_core::Position;
     use chess_search::{EvaluationWeightSet, EvaluationWeights};
 
-    use crate::{LogisticK, LossDataset, LossPosition, OutcomeTarget};
+    use crate::{
+        tunable_values, EvaluationParameterGroup, LogisticK, LossDataset, LossPosition,
+        OutcomeTarget, TunableParameter, TunableParameterMask,
+    };
 
     use super::{
         SpsaCheckpoint, SpsaConfig, SpsaOptimizer, SpsaOptimizerError, SpsaSchedule,
@@ -1270,6 +1373,60 @@ mod tests {
         }
         assert!(
             summary.best_training_objective() <= optimizer.checkpoint().best_training_objective()
+        );
+    }
+
+    #[test]
+    fn masked_optimizer_never_changes_inactive_parameters() {
+        let data = dataset(OutcomeTarget::Win);
+        let mask = EvaluationParameterGroup::PawnStructure.mask();
+        let masked_config = config(20)
+            .with_parameter_mask(mask)
+            .expect("group mask is valid");
+        let baseline = tunable_values(&EvaluationWeights::DEFAULT);
+        let mut optimizer = SpsaOptimizer::new(
+            masked_config,
+            0x5eed,
+            EvaluationWeights::DEFAULT,
+            &data,
+            k(),
+        )
+        .expect("masked optimizer starts");
+        let summary = optimizer
+            .advance(&data, 20)
+            .expect("masked advance succeeds");
+        for weights in [summary.current_weights(), summary.best_weights()] {
+            let values = tunable_values(&weights);
+            for parameter in TunableParameter::all() {
+                if !mask.contains(parameter) {
+                    assert_eq!(
+                        values[parameter.index()],
+                        baseline[parameter.index()],
+                        "inactive parameter changed: {}",
+                        parameter.name()
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn mask_identity_binds_checkpoint_configuration() {
+        let full = config(10);
+        let group = config(10)
+            .with_parameter_mask(EvaluationParameterGroup::PawnStructure.mask())
+            .expect("group mask is valid");
+        assert_ne!(full.fingerprint(), group.fingerprint());
+
+        let empty = config(10).with_parameter_mask(TunableParameterMask::empty());
+        assert_eq!(empty, Err(SpsaOptimizerError::EmptyParameterMask));
+
+        let partial_material = TunableParameterMask::from_parameters([
+            TunableParameter::from_index(0).expect("first material parameter"),
+        ]);
+        assert_eq!(
+            config(10).with_parameter_mask(partial_material),
+            Err(SpsaOptimizerError::PartialMaterialParameterMask { selected: 1 })
         );
     }
 
