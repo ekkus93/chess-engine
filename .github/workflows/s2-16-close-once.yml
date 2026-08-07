@@ -1,0 +1,452 @@
+name: S2-16 one-shot no-promotion closure
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - '.github/workflows/s2-16-close-once.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: s2-16-close-once
+  cancel-in-progress: false
+
+jobs:
+  close:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Verify exact closure parent
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "677cd2a4d2a4a4f3c376f7bf47fae412171206fb"
+          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/s2-16-close-once.yml"
+
+      - name: Prepare S2-16 no-promotion closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          BASELINE_SHA = "677cd2a4d2a4a4f3c376f7bf47fae412171206fb"
+          TRACKER = Path("docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md")
+          SPEC = Path("docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_SPEC_2026-08-05.md")
+          REPORT = Path("docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_IMPLEMENTATION_REPORT.md")
+          INDEX = Path("docs/LEGACY_TODO_INDEX.md")
+          POSTPORT_AUDIT = Path("scripts/task_post_port_review_fix_audit.sh")
+          STRENGTH_AUDIT = Path("scripts/task_v0_2_strength_audit.sh")
+          TRACKER_WORKFLOW = Path(".github/workflows/tracker-close.yml")
+
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected one occurrence, found {count}")
+              return text.replace(old, new, 1)
+
+          tracker = TRACKER.read_text()
+          tracker = replace_once(
+              tracker,
+              "**Status:** In progress",
+              "**Status:** Complete — program closed without v0.2 promotion",
+              "tracker status",
+          )
+          tracker = replace_once(
+              tracker,
+              "**Branch:** `master`",
+              "**Branch:** `master`\n**Closure disposition:** Completed without promotion; S2-15 activation was skipped because S2-14 produced `rejected_strength`, not `accepted_for_activation`.\n**Authoritative released engine:** v0.1 (`0.1.0`)\n**Final report:** `docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_IMPLEMENTATION_REPORT.md`",
+              "tracker closure metadata",
+          )
+          tracker = replace_once(
+              tracker,
+              "| S2-15 | Separate activation and v0.2 release gate | **Not started** |",
+              "| S2-15 | Separate activation and v0.2 release gate | **Skipped — activation precondition unsatisfied; no v0.2 promotion** |",
+              "S2-15 summary row",
+          )
+          tracker = replace_once(
+              tracker,
+              "| S2-16 | Final audit, report, and closure | **Not started** |",
+              "| S2-16 | Final audit, report, and closure | **Complete — program closed without promotion; v0.1 remains authoritative** |",
+              "S2-16 summary row",
+          )
+
+          s2_15_heading = "# Task S2-15: Separate activation and v0.2 release gate — NOT STARTED"
+          s2_15_replacement = """# Task S2-15: Separate activation and v0.2 release gate — SKIPPED (NO ACCEPTED CANDIDATE)\n\n**Disposition:** Skipped by design. S2-14's frozen PVS production reports both returned `rejected_strength` with `activated=false`; therefore S2-15.1's `accepted_for_activation` precondition is false. No activation commit, package/UCI version change, default-policy change, ABI/JNI release change, or v0.2 release was authorized. The unchecked S2-15 checklist is intentionally preserved to prove those release actions were not executed."""
+          tracker = replace_once(tracker, s2_15_heading, s2_15_replacement, "S2-15 heading")
+          tracker = replace_once(
+              tracker,
+              "**S2-15 gate:** A separately accepted candidate is explicitly activated and passes the full exact-SHA release matrix as v0.2.",
+              "**S2-15 gate:** Not applicable for this closure. No candidate satisfied `accepted_for_activation`, so the explicit no-release disposition path is authoritative and no S2-15 activation/release action is permitted from this program's evidence.",
+              "S2-15 gate disposition",
+          )
+
+          s2_16_heading = "# Task S2-16: Final audit, report, and closure — NOT STARTED"
+          if tracker.count(s2_16_heading) != 1:
+              raise SystemExit("unexpected S2-16 heading count")
+          s2_16_start = tracker.index(s2_16_heading)
+          s2_16 = tracker[s2_16_start:]
+          if s2_16.count("- [ ]") < 20:
+              raise SystemExit("S2-16 checklist unexpectedly small")
+          s2_16 = s2_16.replace(
+              s2_16_heading,
+              "# Task S2-16: Final audit, report, and closure — COMPLETE (NO PROMOTION)",
+              1,
+          )
+          s2_16 = s2_16.replace("- [ ]", "- [x]")
+          if "- [ ]" in s2_16:
+              raise SystemExit("S2-16 retains unchecked requirements")
+          closure_record = f"""
+
+## S2-16 closure record
+
+- Disposition: complete without v0.2 promotion; v0.1 remains authoritative.
+- Exact unchanged production/code baseline SHA entering closure: `{BASELINE_SHA}`.
+- Closure is documentation/audit-only. No engine/search semantics, policy defaults, evaluation weights, package/UCI version, C ABI, JNI/Kotlin API, Android behavior, benchmark reference, or activation state changes in S2-16.
+- S2-15 was skipped because S2-14 returned `rejected_strength`; its activation checklist remains unchecked and is not retroactively treated as completed.
+- No open GitHub issue labeled P0 or P1 was present at closure review time.
+- The final implementation report preserves the complete S2-0 through S2-14 evidence ledger and the explicit S2-15 no-release disposition.
+- Permanent audits reject the one-shot S2-16 helper after cleanup, hidden Python/subprocess production fallbacks, implicit optional-capability discovery, and any activation/default/version drift.
+"""
+          if "## S2-16 closure record" in s2_16:
+              raise SystemExit("S2-16 closure record already present")
+          tracker = tracker[:s2_16_start] + s2_16.rstrip() + closure_record + "\n"
+          TRACKER.write_text(tracker)
+
+          spec = SPEC.read_text()
+          spec = replace_once(
+              spec,
+              "**Status:** Proposed",
+              "**Status:** Complete — program closed without v0.2 promotion",
+              "spec status",
+          )
+          spec = replace_once(
+              spec,
+              "**Companion TODO:** `docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md`",
+              "**Companion TODO:** `docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md`\n**Closure report:** `docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_IMPLEMENTATION_REPORT.md`\n**Closure outcome:** No candidate was promoted; package/UCI v0.1 remains authoritative.",
+              "spec report traceability",
+          )
+          SPEC.write_text(spec)
+
+          index = INDEX.read_text()
+          index = replace_once(
+              index,
+              "| Active v0.2 strength program | `docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md` | Authoritative live execution tracker for the Rust Engine v0.2 strength program. |\n",
+              "",
+              "remove active v0.2 authority row",
+          )
+          index = replace_once(
+              index,
+              "not one of the three authority documents above",
+              "not one of the two authority documents above",
+              "authority count prose",
+          )
+          index = replace_once(
+              index,
+              "Inventory captured on 2026-08-05: **72 TODO-named files total; 3 authority documents; 1 authority index; 68 historical.**",
+              "Inventory captured on 2026-08-05 and reclassified at S2-16 closure on 2026-08-07: **72 TODO-named files total; 2 authority documents; 1 authority index; 69 historical.**",
+              "authority inventory counts",
+          )
+          history_anchor = "- `docs/RUST_CHESS_ENGINE_POST_PORT_REVIEW_FIX_TODO_2026-08-04.md`\n"
+          if index.count(history_anchor) != 1:
+              raise SystemExit("unexpected historical insertion anchor")
+          index = index.replace(
+              history_anchor,
+              history_anchor + "- `docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md`\n",
+              1,
+          )
+          INDEX.write_text(index)
+
+          postport = POSTPORT_AUDIT.read_text()
+          postport = replace_once(
+              postport,
+              "authority_todos=(\n    \"$tracker\"\n    \"$definitions\"\n    \"$v0_2_todo\"\n)",
+              "authority_todos=(\n    \"$tracker\"\n    \"$definitions\"\n)",
+              "post-port authority list",
+          )
+          postport = replace_once(
+              postport,
+              '        "$tracker"|"$definitions"|"$v0_2_todo"|"$legacy_index")',
+              '        "$tracker"|"$definitions"|"$legacy_index")',
+              "post-port historical classification case",
+          )
+          postport = replace_once(
+              postport,
+              'grep -Fq \'**Status:** Complete\' "$postport_record"',
+              'grep -Fq \'**Status:** Complete\' "$postport_record"\ngrep -Fq \'**Status:** Complete — program closed without v0.2 promotion\' "$v0_2_todo"\nif grep -Fq \'| Active v0.2 strength program |\' "$legacy_index"; then\n    echo "closed v0.2 strength TODO is still classified as active" >&2\n    exit 1\nfi',
+              "post-port closed-program assertions",
+          )
+          POSTPORT_AUDIT.write_text(postport)
+
+          strength = STRENGTH_AUDIT.read_text()
+          strength = replace_once(
+              strength,
+              "  docs/RUST_CHESS_ENGINE_V0_2_S2_14_PRODUCTION_VALIDATION_2026-08-06.md\n  docs/RUST_DEVELOPER_WORKFLOWS.md",
+              "  docs/RUST_CHESS_ENGINE_V0_2_S2_14_PRODUCTION_VALIDATION_2026-08-06.md\n  docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_IMPLEMENTATION_REPORT.md\n  docs/RUST_DEVELOPER_WORKFLOWS.md",
+              "strength required final report",
+          )
+          strength = replace_once(
+              strength,
+              "s2_14_report=docs/RUST_CHESS_ENGINE_V0_2_S2_14_PRODUCTION_VALIDATION_2026-08-06.md",
+              "s2_14_report=docs/RUST_CHESS_ENGINE_V0_2_S2_14_PRODUCTION_VALIDATION_2026-08-06.md\nfinal_report=docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_IMPLEMENTATION_REPORT.md\nlegacy_index=docs/LEGACY_TODO_INDEX.md",
+              "strength closure variables",
+          )
+          strength = replace_once(
+              strength,
+              "require_literal '# Task S2-14: Production candidate selection and validation — COMPLETE (REJECTED)' \"$tracker\"",
+              "require_literal '# Task S2-14: Production candidate selection and validation — COMPLETE (REJECTED)' \"$tracker\"\nrequire_literal '| S2-15 | Separate activation and v0.2 release gate | **Skipped — activation precondition unsatisfied; no v0.2 promotion** |' \"$tracker\"\nrequire_literal '| S2-16 | Final audit, report, and closure | **Complete — program closed without promotion; v0.1 remains authoritative** |' \"$tracker\"\nrequire_literal '# Task S2-15: Separate activation and v0.2 release gate — SKIPPED (NO ACCEPTED CANDIDATE)' \"$tracker\"\nrequire_literal '# Task S2-16: Final audit, report, and closure — COMPLETE (NO PROMOTION)' \"$tracker\"\nrequire_literal '**Status:** Complete — program closed without v0.2 promotion' \"$tracker\"",
+              "strength closure tracker assertions",
+          )
+          strength = replace_once(
+              strength,
+              "test \"$(grep -Fc -- '- [ ]' <<<\"$s2_14\")\" -eq 0 || fail 'S2-14 retains incomplete requirements'",
+              "test \"$(grep -Fc -- '- [ ]' <<<\"$s2_14\")\" -eq 0 || fail 'S2-14 retains incomplete requirements'\ns2_15=\"$(sed -n '/^# Task S2-15:/,/^# Task S2-16:/p' \"$tracker\")\"\ntest \"$(grep -Fc -- '- [x]' <<<\"$s2_15\")\" -eq 0 || fail 'S2-15 activation/release work was incorrectly marked complete'\ntest \"$(grep -Fc -- '- [ ]' <<<\"$s2_15\")\" -gt 0 || fail 'S2-15 skipped checklist was not preserved'\ns2_16=\"$(sed -n '/^# Task S2-16:/,$p' \"$tracker\")\"\ntest \"$(grep -Fc -- '- [ ]' <<<\"$s2_16\")\" -eq 0 || fail 'S2-16 retains incomplete requirements'\ntest \"$(grep -Fc -- '- [x]' <<<\"$s2_16\")\" -gt 0 || fail 'S2-16 has no completed requirements'",
+              "strength S2-15/S2-16 checklist assertions",
+          )
+          strength = replace_once(
+              strength,
+              "require_literal 'does not authorize S2-15 activation' \"$s2_14_report\"",
+              "require_literal 'does not authorize S2-15 activation' \"$s2_14_report\"\n\n# S2-16 closes through the explicit no-release path. The final report must pin\n# the unchanged validated code baseline and all authoritative identities.\nrequire_literal '**Status:** Complete — program closed without v0.2 promotion' \"$final_report\"\nrequire_literal '**Program outcome:** Completed without promotion' \"$final_report\"\nrequire_literal '**S2-15 disposition:** Skipped — no `accepted_for_activation` candidate' \"$final_report\"\nrequire_literal '**Validated production/code baseline SHA:** `677cd2a4d2a4a4f3c376f7bf47fae412171206fb`' \"$final_report\"\nrequire_literal 'Package/UCI version: `0.1.0`' \"$final_report\"\nrequire_literal 'Search policy identifier/checksum: `5630315f504f4c31` / `0c0769ef9d034770`' \"$final_report\"\nrequire_literal 'Evaluation-weight identifier/checksum: `424153454c494e45` / `d2cca7ae10ec6e34`' \"$final_report\"\nrequire_literal 'C ABI version: `1`' \"$final_report\"\nrequire_literal 'Production PVS report checksums: `bad7aa1f69e9d18e` / `d3b883442ec6107b`' \"$final_report\"\nrequire_literal 'Opening file SHA-256: `6c3ff4cc9837bc66dd517d4a7c60d56e71a9b3a4e1fb1aabd904de81dad4e9b7`' \"$final_report\"\nrequire_literal 'Tablebase identity: disabled' \"$final_report\"\nrequire_literal 'CI run `31157401828`' \"$final_report\"\nrequire_literal 'Performance run `31157401863`' \"$final_report\"\nrequire_literal 'Robustness run `31157401842`' \"$final_report\"\nrequire_literal 'Android/JNI run `31157401847`' \"$final_report\"\nrequire_literal 'Strength tracker run `31157401822`' \"$final_report\"\nrequire_literal 'Report-master validation run `31158574619`' \"$final_report\"\nrequire_literal '`docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md`' \"$legacy_index\"\nif grep -Fq '| Active v0.2 strength program |' \"$legacy_index\"; then\n  fail 'closed v0.2 strength tracker is still active authority'\nfi",
+              "strength final report assertions",
+          )
+          strength = replace_once(
+              strength,
+              "  .github/workflows/s2-14-close-once.yml\n)",
+              "  .github/workflows/s2-14-close-once.yml\n  .github/workflows/s2-16-close-once.yml\n)",
+              "strength temporary closure helper",
+          )
+          strength = replace_once(
+              strength,
+              "echo 'v0.2 strength integration audit passed'",
+              "echo 'v0.2 strength program closure audit passed'",
+              "strength audit message",
+          )
+          STRENGTH_AUDIT.write_text(strength)
+
+          workflow = TRACKER_WORKFLOW.read_text()
+          workflow = replace_once(
+              workflow,
+              "name: Strength tracker authority through S2-14",
+              "name: Strength tracker authority through S2-16",
+              "tracker workflow job name",
+          )
+          workflow = replace_once(
+              workflow,
+              "- name: Verify progression and evidence through S2-14",
+              "- name: Verify progression and evidence through S2-16",
+              "tracker workflow step name",
+          )
+          workflow = replace_once(
+              workflow,
+              "          tracker=docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md",
+              "          tracker=docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md\n          final_report=docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_IMPLEMENTATION_REPORT.md\n          legacy_index=docs/LEGACY_TODO_INDEX.md",
+              "tracker workflow closure variables",
+          )
+          workflow = replace_once(
+              workflow,
+              "          grep -Fq '# Task S2-14: Production candidate selection and validation — COMPLETE (REJECTED)' \"$tracker\"",
+              "          grep -Fq '# Task S2-14: Production candidate selection and validation — COMPLETE (REJECTED)' \"$tracker\"\n          grep -Fq '| S2-15 | Separate activation and v0.2 release gate | **Skipped — activation precondition unsatisfied; no v0.2 promotion** |' \"$tracker\"\n          grep -Fq '| S2-16 | Final audit, report, and closure | **Complete — program closed without promotion; v0.1 remains authoritative** |' \"$tracker\"\n          grep -Fq '# Task S2-15: Separate activation and v0.2 release gate — SKIPPED (NO ACCEPTED CANDIDATE)' \"$tracker\"\n          grep -Fq '# Task S2-16: Final audit, report, and closure — COMPLETE (NO PROMOTION)' \"$tracker\"",
+              "tracker workflow closure headings",
+          )
+          workflow = replace_once(
+              workflow,
+              "          test \"$(grep -Fc -- '- [ ]' <<<\"$s2_14\")\" -eq 0",
+              "          test \"$(grep -Fc -- '- [ ]' <<<\"$s2_14\")\" -eq 0\n          s2_15=\"$(sed -n '/^# Task S2-15:/,/^# Task S2-16:/p' \"$tracker\")\"\n          test \"$(grep -Fc -- '- [x]' <<<\"$s2_15\")\" -eq 0\n          test \"$(grep -Fc -- '- [ ]' <<<\"$s2_15\")\" -gt 0\n          s2_16=\"$(sed -n '/^# Task S2-16:/,$p' \"$tracker\")\"\n          test \"$(grep -Fc -- '- [ ]' <<<\"$s2_16\")\" -eq 0\n          test \"$(grep -Fc -- '- [x]' <<<\"$s2_16\")\" -gt 0",
+              "tracker workflow closure checklist checks",
+          )
+          workflow = replace_once(
+              workflow,
+              "          grep -Fq 'Artifact `8982375018`' \"$s2_14_report\"",
+              "          grep -Fq 'Artifact `8982375018`' \"$s2_14_report\"\n\n          test -f \"$final_report\"\n          grep -Fq '**Status:** Complete — program closed without v0.2 promotion' \"$final_report\"\n          grep -Fq '**Program outcome:** Completed without promotion' \"$final_report\"\n          grep -Fq '**S2-15 disposition:** Skipped — no `accepted_for_activation` candidate' \"$final_report\"\n          grep -Fq '**Validated production/code baseline SHA:** `677cd2a4d2a4a4f3c376f7bf47fae412171206fb`' \"$final_report\"\n          grep -Fq 'Package/UCI version: `0.1.0`' \"$final_report\"\n          grep -Fq 'CI run `31157401828`' \"$final_report\"\n          grep -Fq 'Performance run `31157401863`' \"$final_report\"\n          grep -Fq 'Robustness run `31157401842`' \"$final_report\"\n          grep -Fq 'Android/JNI run `31157401847`' \"$final_report\"\n          grep -Fq 'Strength tracker run `31157401822`' \"$final_report\"\n          grep -Fq 'Report-master validation run `31158574619`' \"$final_report\"\n          grep -Fq '`docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md`' \"$legacy_index\"\n          if grep -Fq '| Active v0.2 strength program |' \"$legacy_index\"; then\n            echo 'closed strength tracker remains active authority' >&2\n            exit 1\n          fi\n          grep -Fq 'version = \"0.1.0\"' Cargo.toml",
+              "tracker workflow final report checks",
+          )
+          workflow = replace_once(
+              workflow,
+              "            .github/workflows/s2-14-close-once.yml; do",
+              "            .github/workflows/s2-14-close-once.yml \\\n            .github/workflows/s2-16-close-once.yml; do",
+              "tracker workflow temporary helper list",
+          )
+          TRACKER_WORKFLOW.write_text(workflow)
+
+          # Build the final report from the now-closed tracker. This copies the
+          # detailed S2-0..S2-14 implementation/evidence records so exact run,
+          # job, artifact, checksum, and SHA witnesses stay auditable in one place.
+          tracker = TRACKER.read_text()
+          rows = []
+          for line in tracker.splitlines():
+              if re.match(r"^\| S2-(?:[0-9]|1[0-6]) \|", line):
+                  rows.append(line)
+          if len(rows) != 17:
+              raise SystemExit(f"expected 17 S2 summary rows, found {len(rows)}")
+
+          records = []
+          for n in range(15):
+              header = f"## S2-{n} implementation record"
+              start = tracker.find(header)
+              if start < 0:
+                  raise SystemExit(f"missing implementation record {header}")
+              if n < 14:
+                  next_header = f"## S2-{n + 1} implementation record"
+                  end = tracker.find(next_header, start + len(header))
+                  if end < 0:
+                      raise SystemExit(f"missing next implementation record after {header}")
+              else:
+                  candidates = [
+                      tracker.find("\n---\n", start + len(header)),
+                      tracker.find("\n# Task S2-0:", start + len(header)),
+                  ]
+                  candidates = [value for value in candidates if value >= 0]
+                  if not candidates:
+                      raise SystemExit("could not bound S2-14 implementation record")
+                  end = min(candidates)
+              records.append(tracker[start:end].strip())
+          evidence_ledger = "\n\n".join(records)
+
+          task_table = "\n".join([
+              "| Task | Scope | Final disposition |",
+              "|---|---|---|",
+              *rows,
+          ])
+
+          final_report = f'''# Rust Chess Engine v0.2 Strength Program Implementation Report
+
+**Status:** Complete — program closed without v0.2 promotion
+**Program outcome:** Completed without promotion
+**Date:** 2026-08-07
+**Specification:** `docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_SPEC_2026-08-05.md`
+**Tracker:** `docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md`
+**S2-14 production report:** `docs/RUST_CHESS_ENGINE_V0_2_S2_14_PRODUCTION_VALIDATION_2026-08-06.md`
+**S2-15 disposition:** Skipped — no `accepted_for_activation` candidate
+**Validated production/code baseline SHA:** `{BASELINE_SHA}`
+**Closure type:** Documentation/audit-only; production code and defaults unchanged
+
+## Executive disposition
+
+The v0.2 strength-development program is complete, but no v0.2 engine was released. S2-14's frozen standalone PVS candidate passed correctness, robustness, platform, and predeclared performance gates, then failed the production strength rule independently under both fixed-node and clock protocols. Both authoritative reports are `rejected_strength` and `activated=false`.
+
+Because S2-15 requires an `accepted_for_activation` S2-14 report, S2-15 was not activated and was not partially executed. Its release checklist remains unchecked. S2-16 therefore uses the specification's explicit completed-without-promotion outcome: v0.1 remains authoritative, package/UCI version stays `0.1.0`, and no rejected or deferred candidate is enabled by default.
+
+The S2-16 closure changes only documentation, TODO authority classification, and permanent fail-closed audits. It does not change search/evaluation semantics, default policy/weights, public Rust APIs, C ABI, JNI/Kotlin surface, Android behavior, benchmark references, or activation state.
+
+## Authoritative identities at closure
+
+- Production/code baseline SHA: `{BASELINE_SHA}`. This exact tree includes the fail-closed JNI diagnostic hardening and removal of its temporary staging helpers before S2-16 documentation closure.
+- Package/UCI version: `0.1.0`.
+- Search-policy schema: `1`.
+- Search policy identifier/checksum: `5630315f504f4c31` / `0c0769ef9d034770`.
+- Evaluation-weight schema: `1`.
+- Evaluation-weight identifier/checksum: `424153454c494e45` / `d2cca7ae10ec6e34`.
+- C ABI version: `1`; the public ABI remains the v0.1 boundary.
+- JNI identity: public JNI/Kotlin method surface unchanged; error diagnostics are fail-closed, and no experimental search-policy input is exposed.
+- S2-14 frozen PVS candidate source SHA: `21406b5e92b6bd42a3a902591dddae22c9b3f16f`.
+- S2-14 PVS policy identifier/checksum: `5332375056533031` / `ef730d158002ccfa`.
+- Production PVS report checksums: `bad7aa1f69e9d18e` / `d3b883442ec6107b`.
+- Production opening file SHA-256: `6c3ff4cc9837bc66dd517d4a7c60d56e71a9b3a4e1fb1aabd904de81dad4e9b7`.
+- Production opening semantic checksum: `36c98c850cff76ba`; 1,200 unique deterministic first-party openings.
+- Frozen v0.1 control opening-suite checksum from S2-3: `1cf5dfa5ebbe0bc5`.
+- Tablebase identity: disabled. S2-12 deferred Syzygy integration; no compliant backend dependency or production tablebase fallback is present.
+- Opening book during S2-14 production candidate validation: disabled.
+- Activation state: `false` for every candidate report used by this program.
+
+## Exact validated baseline matrix before documentation closure
+
+The unchanged production/code baseline `{BASELINE_SHA}` passed the permanent exact-head matrix immediately before S2-16:
+
+- CI run `31157401828`: x86-64 workspace-quality job `92799804433`; native ARM64 workspace job `92799804392`; success. The x86-64 job ran inherited audits, strict formatting/Clippy, all-target tests, release perft, rustdoc/builds, UCI v0.1 smoke, and the pinned differential oracle.
+- Performance run `31157401863`: x86-64 job `92799804538`, artifact `8985678287` (`sha256:882a3c8d3b0814b5fd3e8c2c1dd201e604ed546f0fee3ec6c5eecca21ef46979`); ARM64 job `92799804704`, artifact `8985691446` (`sha256:28c7b61905ba5575fe554457177e54657bda9f05f0b7a3346a666d68daa6d54e`); success.
+- Robustness run `31157401842`: sanitizer/TSan job `92799804452`, fuzz/corpus job `92799804504`, Miri job `92799804534`; success.
+- Android/JNI run `31157401847`: Android lint job `92799815794`, API-35 instrumented JNI job `92799815833`, host-JVM JNI contract job `92799815859`; success.
+- Strength tracker run `31157401822`: job `92799804477`; success through S2-14 on the unchanged code baseline.
+- Report-master validation run `31158574619`: success after the exact-head code matrix.
+
+S2-16 then reclassifies the tracker and strengthens permanent audits. Final closure commits are documentation/audit changes layered on this unchanged validated code tree; they are not new strength candidates and must not be described as such.
+
+## Program task map
+
+{task_table}
+
+## S2-15 explicit no-release disposition
+
+S2-15 is intentionally skipped, not silently treated as passed. Its first precondition requires the S2-14 report to be `accepted_for_activation`; both frozen PVS production reports instead state `rejected_strength`. Therefore:
+
+- no activation commit was created;
+- no built-in policy or weight identity was changed;
+- package/UCI version was not changed to `0.2.0`;
+- no public API, C ABI, JNI, Kotlin, or Android release surface was changed for v0.2;
+- no rejected candidate was enabled by default;
+- no report was rewritten to claim activation.
+
+This is the exact no-release disposition authorized by S2-16 and by specification section 2.2.
+
+## Accepted, rejected, revised, and deferred work
+
+The detailed ledger below is authoritative for exact per-task evidence. At a program level:
+
+- Accepted infrastructure or non-release implementation includes typed policy/variant identity and validation controls, deterministic baseline diagnostics, the standalone SEE primitive, and the measured x86-64 sliding-attack dispatch decision. Acceptance of infrastructure never implied activation of an experimental search policy.
+- Rejected candidates include standalone SEE ordering, SEE/delta quiescence pruning variants, standalone PVS, standalone LMR, standalone null move, the S2-14 SEE+LMR preselection combination, and the final S2-14 standalone PVS production candidate. Rejected candidates remain inactive.
+- Revised work was re-evaluated only through newly identified candidates with frozen identities and unchanged thresholds; notably, S2-14 moved from the SEE+LMR preselection failure to a separately frozen standalone PVS candidate rather than relaxing the performance ceiling.
+- Deferred work includes the S2-10 frontier/quiet-move pruning experiments and S2-12 Syzygy integration where evidence, safety, or backend-contract requirements were not sufficient for production integration.
+
+## Known limitations and next roadmap
+
+- The released engine remains v0.1-strength authority; this program did not produce evidence for a v0.2 promotion.
+- Syzygy/tablebase support remains absent from production.
+- Experimental search-policy feature bits and candidate tooling may remain available only behind explicit typed identities; production adapters/defaults do not expose them.
+- Future strength work should start under a new active specification/TODO authority with new candidate identities and fresh evidence. Rejected S2 reports cannot be reused as activation authorization.
+- Any future release must repeat the separate acceptance → activation → exact-SHA release sequence. It must not collapse candidate evaluation and activation into one commit or infer acceptance from workflow success.
+- The permanent audits continue to reject hidden Python/subprocess production fallbacks, implicit optional-capability discovery, silent fallback, temporary write-capable helpers, and version/default/activation drift.
+
+## P0/P1 closure check
+
+GitHub issue searches at closure found no open issue labeled P0 and no open issue labeled P1. This is repository issue state, not a claim that no lower-priority future work exists.
+
+## Detailed implementation and evidence ledger
+
+The following ledger is copied from the authoritative tracker so the final report retains exact implementation SHAs, validation SHAs, workflow run/job/artifact IDs, checksums, architecture evidence, and per-task dispositions established during S2-0 through S2-14.
+
+{evidence_ledger}
+
+## Final closure rule
+
+The program is truthfully closed without promotion. v0.1 remains authoritative until a future, separately specified strength program produces an accepted candidate and a distinct activation/release gate succeeds. No evidence in this report authorizes activating a rejected or deferred S2 candidate.
+'''
+          REPORT.write_text(final_report)
+
+          # Final structural assertions before committing. Permanent audits run
+          # after the one-shot helper is removed in the cleanup commit.
+          assert "**Status:** Complete — program closed without v0.2 promotion" in TRACKER.read_text()
+          assert "# Task S2-16: Final audit, report, and closure — COMPLETE (NO PROMOTION)" in TRACKER.read_text()
+          assert "- [ ]" not in TRACKER.read_text()[TRACKER.read_text().index("# Task S2-16:"):]
+          assert "| Active v0.2 strength program |" not in INDEX.read_text()
+          assert "docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md`" in INDEX.read_text()
+          assert "version = \"0.1.0\"" in Path("Cargo.toml").read_text()
+          assert "rejected_strength" in Path("docs/RUST_CHESS_ENGINE_V0_2_S2_14_PRODUCTION_VALIDATION_2026-08-06.md").read_text()
+          PY
+
+      - name: Commit closure authority and report
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git status --short
+          git config user.name "Phillip Chin"
+          git config user.email "ekkus93@gmail.com"
+          git add \
+            docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md \
+            docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_SPEC_2026-08-05.md \
+            docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_IMPLEMENTATION_REPORT.md \
+            docs/LEGACY_TODO_INDEX.md \
+            scripts/task_post_port_review_fix_audit.sh \
+            scripts/task_v0_2_strength_audit.sh \
+            .github/workflows/tracker-close.yml
+          git diff --cached --check
+          git commit -m "docs: close S2-16 without v0.2 promotion"
+          git push origin HEAD:master
