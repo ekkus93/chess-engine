@@ -14,6 +14,7 @@ Commands:
   full                              Run the complete local Rust validation gate.
   perft [DEPTH]                     Run the authoritative perft suite (default: 4).
   uci [--book PATH]                 Run the Linux UCI engine on stdin/stdout.
+  tui                               Run the native Rust terminal interface.
   android                           Build JNI libraries and the Android harness.
   self-play CONFIG OUTPUT           Generate one versioned offline dataset.
   tune CONFIG DATASET OUTPUT [CKPT] Run/resume offline SPSA; candidate stays inactive.
@@ -143,6 +144,10 @@ case "${command}" in
     ;;
   uci)
     cargo run --locked --release -p chess-uci -- "$@"
+    ;;
+  tui)
+    [[ $# -eq 0 ]] || { usage; exit 2; }
+    cargo run --locked -p chess-tui
     ;;
   android) [[ $# -eq 0 ]] || { usage; exit 2; }; android ;;
   self-play)

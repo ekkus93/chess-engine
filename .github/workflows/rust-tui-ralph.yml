@@ -1,0 +1,77 @@
+name: Rust TUI Ralph
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - Cargo.toml
+      - Cargo.lock
+      - crates/chess-tui/**
+      - scripts/dev.sh
+      - README.md
+      - docs/RUST_TUI_**
+      - .github/workflows/rust-tui-ralph.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rust-tui-ralph-master
+  cancel-in-progress: false
+
+jobs:
+  focused:
+    name: Rust TUI focused Ralph gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Normalize lockfile and Rust formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo generate-lockfile
+          cargo fmt --all
+
+      - name: Commit generated lockfile or formatting changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- Cargo.lock Cargo.toml crates/chess-tui; then
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add Cargo.lock Cargo.toml crates/chess-tui
+          git commit -m 'Normalize Rust TUI lockfile and formatting'
+          git push origin HEAD:master
+
+      - name: Validate locked metadata
+        run: cargo metadata --locked --format-version 1 --no-deps
+
+      - name: Check TUI
+        run: cargo check --locked -p chess-tui --all-targets
+
+      - name: Clippy TUI
+        run: cargo clippy --locked -p chess-tui --all-targets -- -D warnings
+
+      - name: Test TUI
+        run: cargo test --locked -p chess-tui
+
+      - name: Release-build TUI
+        run: cargo build --locked --release -p chess-tui
+
+      - name: Verify repository MSRV for TUI
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.75.0 --profile minimal
+          cargo +1.75.0 check --locked -p chess-tui

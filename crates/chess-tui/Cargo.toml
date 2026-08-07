@@ -1,0 +1,19 @@
+[package]
+name = "chess-tui"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Native Ratatui frontend for the Rust chess engine."
+
+[lints]
+workspace = true
+
+[dependencies]
+chess-core = { path = "../chess-core" }
+chess-search = { path = "../chess-search" }
+crossterm = "0.27.0"
+ratatui = "0.26.3"

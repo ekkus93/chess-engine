@@ -6,9 +6,9 @@
 [![Performance](https://github.com/ekkus93/chess-engine/actions/workflows/performance.yml/badge.svg?branch=master)](https://github.com/ekkus93/chess-engine/actions/workflows/performance.yml)
 [![Variant validation](https://github.com/ekkus93/chess-engine/actions/workflows/variant-validation.yml/badge.svg?branch=master)](https://github.com/ekkus93/chess-engine/actions/workflows/variant-validation.yml)
 
-A correctness-first Rust chess engine with a Linux UCI executable, portable engine/search crates, C and JNI adapters, Android integration, explicit opening-book support, offline self-play and tuning infrastructure, and permanent perft, differential, robustness, performance, and strength gates.
+A correctness-first Rust chess engine with Linux UCI and native terminal applications, portable engine/search crates, C and JNI adapters, Android integration, explicit opening-book support, offline self-play and tuning infrastructure, and permanent perft, differential, robustness, performance, and strength gates.
 
-**Authoritative implementation:** the Rust workspace on `master`. New integrations should use the safe Rust facade, UCI executable, C ABI, or JNI boundary. The full migration, traceability, versions, evidence, and roadmap are recorded in [`docs/RUST_CHESS_ENGINE_PORT_IMPLEMENTATION_REPORT.md`](docs/RUST_CHESS_ENGINE_PORT_IMPLEMENTATION_REPORT.md).
+**Authoritative implementation:** the Rust workspace on `master`. New integrations should use the safe Rust facade, UCI executable, native Rust TUI, C ABI, or JNI boundary. The full migration, traceability, versions, evidence, and roadmap are recorded in [`docs/RUST_CHESS_ENGINE_PORT_IMPLEMENTATION_REPORT.md`](docs/RUST_CHESS_ENGINE_PORT_IMPLEMENTATION_REPORT.md).
 
 The former Python implementation remains in the repository as historical reference material. Python development and Python engine CI are intentionally retired after migration signoff. Python remains permitted for the pinned independent `python-chess` differential oracle and repository validation tooling; production Rust crates do not embed or launch Python.
 
@@ -46,6 +46,12 @@ bash scripts/dev.sh perft
 # Linux UCI engine on stdin/stdout
 bash scripts/dev.sh uci
 
+# Native Rust terminal UI
+bash scripts/dev.sh tui
+
+# Direct TUI launch
+cargo run --locked -p chess-tui
+
 # Build JNI libraries and Android harness
 export ANDROID_NDK_HOME="$HOME/Android/Sdk/ndk/<version>"
 bash scripts/dev.sh android
@@ -73,12 +79,30 @@ bash scripts/dev.sh tune \
 
 A tuning run emits an inactive candidate and cannot change runtime defaults. Candidate validation and activation remain separate fail-closed processes.
 
+## Native Rust TUI
+
+`crates/chess-tui` is a Ratatui/Crossterm presentation adapter over the same `chess-core` and `chess-search` crates used by the UCI engine. It does not launch `chess-uci` as a subprocess and has no Python runtime dependency.
+
+The main menu supports Human vs Engine and engine-vs-engine Self-play. Human games accept UCI coordinate input such as `e2e4` and `e7e8q`; board orientation follows the human color. Self-play supports pause/resume and a one-ply step while paused. Search runs on a bounded worker thread with request-generation checks, explicit cancellation, visible failures, depth/score/nodes/NPS/time/PV/hash information, and no TUI-level random/first-legal fallback.
+
+Game controls:
+
+- type a UCI move and press Enter when it is the human turn;
+- `r` requests resignation with confirmation;
+- `Space` pauses/resumes Self-play and `s` steps one ply while paused;
+- `v` opens explicit save-path entry;
+- `n` starts a new game, `m`/Esc returns to the menu, and `q` quits, with confirmation before abandoning an active game;
+- Ctrl-C performs an orderly search cancellation before exit.
+
+Saves use the deterministic Rust TUI text format documented in [`docs/RUST_TUI_IMPLEMENTATION.md`](docs/RUST_TUI_IMPLEMENTATION.md); they are not labeled as PGN. Filesystem failures remain visible and do not mark the game saved.
+
 ## Workspace
 
 - `crates/chess-core` — position representation, rules, legal generation, FEN, hashing, history, and exact perft.
 - `crates/chess-search` — evaluation, transposition table, iterative deepening, limits, cancellation, and search.
 - `crates/chess-book` — explicit opening-book abstraction and indexed format.
 - `crates/chess-uci` — Linux UCI process adapter.
+- `crates/chess-tui` — native Ratatui terminal application over `chess-core` and `chess-search`.
 - `crates/chess-ffi` — safe facade and versioned C ABI.
 - `crates/chess-jni` — JNI adapter.
 - `crates/chess-tools` — perft, oracle, benchmarks, self-play, tuning orchestration, and candidate evidence.
@@ -127,6 +151,8 @@ Generated-output rules and deliberate evidence promotion are defined in [`docs/R
 - [`docs/RUST_CHESS_ENGINE_V0_1_IMPLEMENTATION_REPORT.md`](docs/RUST_CHESS_ENGINE_V0_1_IMPLEMENTATION_REPORT.md)
 - [`docs/RUST_DEVELOPER_WORKFLOWS.md`](docs/RUST_DEVELOPER_WORKFLOWS.md)
 - [`docs/RUST_UCI_PROCESS_INTEGRATION.md`](docs/RUST_UCI_PROCESS_INTEGRATION.md)
+- [`docs/RUST_TUI_SPEC.md`](docs/RUST_TUI_SPEC.md)
+- [`docs/RUST_TUI_IMPLEMENTATION.md`](docs/RUST_TUI_IMPLEMENTATION.md)
 - [`docs/RUST_ANDROID_JNI.md`](docs/RUST_ANDROID_JNI.md)
 - [`docs/RUST_FUZZING.md`](docs/RUST_FUZZING.md)
 - [`docs/RUST_SELF_PLAY_DATASET.md`](docs/RUST_SELF_PLAY_DATASET.md)
