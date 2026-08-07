@@ -17,3 +17,6 @@ chess-core = { path = "../chess-core" }
 chess-search = { path = "../chess-search" }
 crossterm = "0.27.0"
 ratatui = "0.26.3"
+# Ratatui permits newer unicode-segmentation releases whose MSRV now exceeds
+# this workspace's Rust 1.75 contract. Keep resolution within the supported MSRV.
+unicode-segmentation = "=1.12.0"
