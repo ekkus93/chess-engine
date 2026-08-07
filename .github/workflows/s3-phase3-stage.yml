@@ -59,6 +59,14 @@ jobs:
                   raise SystemExit(f'missing dead helper block: {block.splitlines()[0]}')
               text = text.replace(block, '', 1)
           path.write_text(text)
+
+          report = Path('crates/chess-tools/src/tuning/report.rs')
+          report_text = report.read_text()
+          old = '            optimizer.checkpoint(),\n        )\n        .expect("masked report builds");'
+          new = '            &optimizer.checkpoint(),\n        )\n        .expect("masked report builds");'
+          if report_text.count(old) != 1:
+              raise SystemExit(f'expected one masked-report checkpoint witness, found {report_text.count(old)}')
+          report.write_text(report_text.replace(old, new, 1))
           PY
 
       - name: Format generated Rust changes
