@@ -36,6 +36,8 @@ jobs:
           bash -n scripts/task_post_port_review_fix_audit.sh
           bash -n scripts/task_s3_evaluation_strength_audit.sh
           bash -n scripts/task_s4_evaluation_tuning_calibration_audit.sh
+      - name: Format generated Rust edits
+        run: cargo fmt --all
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Run strict tuning Clippy
