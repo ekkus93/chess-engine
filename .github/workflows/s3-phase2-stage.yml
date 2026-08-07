@@ -6,6 +6,7 @@ on:
       - master
     paths:
       - .github/s3_phase2.py
+      - .github/s3_phase2_fix.py
       - .github/workflows/s3-phase2-stage.yml
   workflow_dispatch:
 
@@ -31,7 +32,9 @@ jobs:
           components: rustfmt, clippy
 
       - name: Apply S3 phase 2 changes
-        run: python3 .github/s3_phase2.py
+        run: |
+          python3 .github/s3_phase2_fix.py
+          python3 .github/s3_phase2.py
 
       - name: Format generated Rust changes
         run: cargo fmt --all
