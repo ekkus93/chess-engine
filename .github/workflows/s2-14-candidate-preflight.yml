@@ -5,6 +5,7 @@ on:
     branches:
       - master
     paths:
+      - '.github/workflows/s2-14-candidate-preflight.yml'
       - 'crates/chess-search/src/search_policy.rs'
       - 'crates/chess-tools/src/bin/s2_14_candidate.rs'
       - 'crates/chess-tools/src/bin/s2_14_production.rs'
@@ -13,6 +14,7 @@ on:
     branches:
       - master
     paths:
+      - '.github/workflows/s2-14-candidate-preflight.yml'
       - 'crates/chess-search/src/search_policy.rs'
       - 'crates/chess-tools/src/bin/s2_14_candidate.rs'
       - 'crates/chess-tools/src/bin/s2_14_production.rs'
@@ -20,6 +22,11 @@ on:
 
 permissions:
   contents: read
+
+env:
+  # Predeclared before S2-14 candidate measurements are inspected.
+  # A median slowdown above 5% on either native architecture is materially bad.
+  S2_14_MAX_MEDIAN_TIME_RATIO: '1.05'
 
 concurrency:
   group: s2-14-preflight-${{ github.workflow }}-${{ github.ref }}-${{ github.sha }}
@@ -77,25 +84,33 @@ jobs:
           target/release/s2_14_candidate deterministic s2-14-deterministic-b
           diff -ru s2-14-deterministic-a s2-14-deterministic-b
 
-      - name: Freeze production suite and identities
-        run: target/release/s2_14_production freeze s2-14-freeze
+      - name: Freeze suite and run bounded complete-variant smoke
+        run: target/release/s2_14_production s2-14-freeze smoke fixed_nodes
 
-      - name: Verify normalized production-suite SHA-256
+      - name: Verify normalized production-suite SHA-256 and uniqueness
         shell: bash
         run: |
           set -euo pipefail
-          sha256sum s2-14-freeze/s2-14-production-openings.tsv | tee s2-14-opening-sha256.txt
-          test "$(tail -n +2 s2-14-freeze/s2-14-production-openings.tsv | wc -l)" -ge 1000
-          test "$(tail -n +2 s2-14-freeze/s2-14-production-openings.tsv | sort -u | wc -l)" -eq "$(tail -n +2 s2-14-freeze/s2-14-production-openings.tsv | wc -l)"
+          openings=s2-14-freeze/s2-14-control-openings.tsv
+          sha256sum "$openings" | tee s2-14-opening-sha256.txt
+          count="$(tail -n +2 "$openings" | wc -l)"
+          unique="$(tail -n +2 "$openings" | sort -u | wc -l)"
+          test "$count" -ge 1000
+          test "$unique" -eq "$count"
 
       - name: Preserve zero-allocation hot-path gate
         run: cargo run --locked --release -p chess-tools --bin performance -- allocation-audit
 
-      - name: Capture seven-sample candidate distribution
+      - name: Capture seven-sample x86-64 candidate distribution
         run: target/release/s2_14_candidate benchmark 7 | tee s2-14-linux-x86-64.tsv
 
-      - name: Run bounded complete-variant smoke
-        run: target/release/s2_14_production smoke s2-14-smoke fixed_nodes
+      - name: Enforce predeclared x86-64 performance gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          ratio="$(awk -F'median_time_ratio=' '/^comparison/{split($2,a,"\t"); print a[1]}' s2-14-linux-x86-64.tsv)"
+          test -n "$ratio"
+          python3 -c 'import sys; r=float(sys.argv[1]); limit=float(sys.argv[2]); print(f"median_time_ratio={r:.6f} limit={limit:.6f}"); raise SystemExit(0 if r <= limit else 1)' "$ratio" "$S2_14_MAX_MEDIAN_TIME_RATIO"
 
       - name: Preserve x86-64 S2-14 preflight evidence
         uses: actions/upload-artifact@v4
@@ -106,7 +121,6 @@ jobs:
             s2-14-freeze
             s2-14-opening-sha256.txt
             s2-14-linux-x86-64.tsv
-            s2-14-smoke
           if-no-files-found: error
           retention-days: 30
 
@@ -154,13 +168,21 @@ jobs:
         run: target/release/s2_14_candidate deterministic s2-14-deterministic-arm64
 
       - name: Freeze native ARM64 identity and suite
-        run: target/release/s2_14_production freeze s2-14-freeze-arm64
+        run: target/release/s2_14_production s2-14-freeze-arm64 smoke fixed_nodes
 
       - name: Preserve ARM64 zero-allocation hot-path gate
         run: cargo run --locked --release -p chess-tools --bin performance -- allocation-audit
 
-      - name: Capture seven-sample ARM64 distribution
+      - name: Capture seven-sample ARM64 candidate distribution
         run: target/release/s2_14_candidate benchmark 7 | tee s2-14-linux-arm64.tsv
+
+      - name: Enforce predeclared ARM64 performance gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          ratio="$(awk -F'median_time_ratio=' '/^comparison/{split($2,a,"\t"); print a[1]}' s2-14-linux-arm64.tsv)"
+          test -n "$ratio"
+          python3 -c 'import sys; r=float(sys.argv[1]); limit=float(sys.argv[2]); print(f"median_time_ratio={r:.6f} limit={limit:.6f}"); raise SystemExit(0 if r <= limit else 1)' "$ratio" "$S2_14_MAX_MEDIAN_TIME_RATIO"
 
       - name: Preserve ARM64 S2-14 preflight evidence
         uses: actions/upload-artifact@v4
