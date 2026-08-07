@@ -41,13 +41,99 @@ jobs:
           sed -i 's/Color, DrawReason, Game, GameStatus, Move, UciMove/Color, DrawReason, Game, GameStatus, UciMove/' crates/chess-tui/src/app.rs
           python3 - <<'PY'
           from pathlib import Path
-          path = Path('crates/chess-tui/src/ui.rs')
-          text = path.read_text()
-          old = 'io::Error::new(io::ErrorKind::Other, error.to_string())'
-          count = text.count(old)
+
+          ui = Path('crates/chess-tui/src/ui.rs')
+          text = ui.read_text()
+          old_error = 'io::Error::new(io::ErrorKind::Other, error.to_string())'
+          count = text.count(old_error)
           if count not in (0, 4):
               raise SystemExit(f'unexpected io::Error replacement count: {count}')
-          path.write_text(text.replace(old, 'io::Error::other(error.to_string())'))
+          text = text.replace(old_error, 'io::Error::other(error.to_string())')
+          old_import = '''        orientation_for_config, turn_status, LayoutDecision, MIN_TERMINAL_HEIGHT,
+        MIN_TERMINAL_WIDTH,
+'''
+          new_import = '''        orientation_for_config, turn_status, LayoutDecision, MIN_TERMINAL_HEIGHT,
+        MIN_TERMINAL_WIDTH, STACKED_MIN_TERMINAL_HEIGHT, WIDE_TERMINAL_WIDTH,
+'''
+          if old_import in text:
+              text = text.replace(old_import, new_import, 1)
+          elif new_import not in text:
+              raise SystemExit('unexpected TUI layout import block')
+          old_message = '''        let text = format!(
+            "Terminal too small. Need at least {MIN_TERMINAL_WIDTH}×{MIN_TERMINAL_HEIGHT}; current {}×{}.",
+            size.width, size.height
+        );
+'''
+          new_message = '''        let text = format!(
+            "Terminal too small. Need {WIDE_TERMINAL_WIDTH}×{MIN_TERMINAL_HEIGHT} for the wide layout or {MIN_TERMINAL_WIDTH}×{STACKED_MIN_TERMINAL_HEIGHT} for the stacked layout; current {}×{}.",
+            size.width, size.height
+        );
+'''
+          if old_message in text:
+              text = text.replace(old_message, new_message, 1)
+          elif new_message not in text:
+              raise SystemExit('unexpected minimum-size message block')
+          ui.write_text(text)
+
+          render = Path('crates/chess-tui/src/render.rs')
+          text = render.read_text()
+          old_layout = '''pub const MIN_TERMINAL_WIDTH: u16 = 58;
+pub const MIN_TERMINAL_HEIGHT: u16 = 20;
+pub const WIDE_TERMINAL_WIDTH: u16 = 100;
+'''
+          new_layout = '''pub const MIN_TERMINAL_WIDTH: u16 = 58;
+pub const MIN_TERMINAL_HEIGHT: u16 = 32;
+pub const WIDE_TERMINAL_WIDTH: u16 = 80;
+pub const STACKED_MIN_TERMINAL_HEIGHT: u16 = 46;
+'''
+          if old_layout in text:
+              text = text.replace(old_layout, new_layout, 1)
+          elif new_layout not in text:
+              raise SystemExit('unexpected layout constants')
+          old_decision = '''pub const fn layout_decision(width: u16, height: u16) -> LayoutDecision {
+    if width < MIN_TERMINAL_WIDTH || height < MIN_TERMINAL_HEIGHT {
+        LayoutDecision::TooSmall
+    } else if width >= WIDE_TERMINAL_WIDTH {
+        LayoutDecision::Horizontal
+    } else {
+        LayoutDecision::Vertical
+    }
+}
+'''
+          new_decision = '''pub const fn layout_decision(width: u16, height: u16) -> LayoutDecision {
+    if width >= WIDE_TERMINAL_WIDTH && height >= MIN_TERMINAL_HEIGHT {
+        LayoutDecision::Horizontal
+    } else if width >= MIN_TERMINAL_WIDTH && height >= STACKED_MIN_TERMINAL_HEIGHT {
+        LayoutDecision::Vertical
+    } else {
+        LayoutDecision::TooSmall
+    }
+}
+'''
+          if old_decision in text:
+              text = text.replace(old_decision, new_decision, 1)
+          elif new_decision not in text:
+              raise SystemExit('unexpected layout decision function')
+          old_test = '''    fn narrow_layout_decision_is_safe() {
+        assert_eq!(layout_decision(20, 8), LayoutDecision::TooSmall);
+        assert_eq!(layout_decision(70, 24), LayoutDecision::Vertical);
+        assert_eq!(layout_decision(120, 30), LayoutDecision::Horizontal);
+    }
+'''
+          new_test = '''    fn layout_requires_enough_height_for_the_complete_board() {
+        assert_eq!(layout_decision(20, 8), LayoutDecision::TooSmall);
+        assert_eq!(layout_decision(70, 24), LayoutDecision::TooSmall);
+        assert_eq!(layout_decision(79, 45), LayoutDecision::TooSmall);
+        assert_eq!(layout_decision(58, 46), LayoutDecision::Vertical);
+        assert_eq!(layout_decision(80, 32), LayoutDecision::Horizontal);
+        assert_eq!(layout_decision(120, 30), LayoutDecision::TooSmall);
+    }
+'''
+          if old_test in text:
+              text = text.replace(old_test, new_test, 1)
+          elif new_test not in text:
+              raise SystemExit('unexpected layout test block')
+          render.write_text(text)
           PY
 
       - name: Normalize lockfile and Rust formatting
