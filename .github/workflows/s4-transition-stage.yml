@@ -25,14 +25,14 @@ jobs:
           fetch-depth: 0
       - name: Apply transition fix
         run: python3 .github/s4_transition_fix.py
-      - name: Verify audit syntax
-        run: bash -n scripts/task_s3_evaluation_strength_audit.sh
-      - name: Verify authority audits
+      - name: Verify transition patch
         shell: bash
         run: |
           set -euo pipefail
+          bash -n scripts/task_s3_evaluation_strength_audit.sh
           bash scripts/task_post_port_review_fix_audit.sh
-          bash scripts/task_s3_evaluation_strength_audit.sh
+          grep -Fq 'Active S4 evaluation tuning calibration program' scripts/task_s3_evaluation_strength_audit.sh
+          grep -Fq '.github/workflows/s3-closure-docs-stage.yml' scripts/task_s3_evaluation_strength_audit.sh
           git diff --check
       - name: Commit validated transition fix
         shell: bash
