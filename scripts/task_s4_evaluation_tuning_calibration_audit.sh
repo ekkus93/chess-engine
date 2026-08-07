@@ -99,6 +99,15 @@ require_literal 'clipping_accounting_is_signed_and_exact' "$optimizer"
 require_literal 'regularization_contribution_is_independently_accounted' "$optimizer"
 require_literal 'one_parameter_known_answer_moves_toward_optimum_deterministically' "$optimizer"
 require_literal 'multi_parameter_known_answer_preserves_inactive_values_and_converges' "$optimizer"
+require_literal 'S4_DEGRADED_TEST_WEIGHT_ID' "$optimizer"
+require_literal 'degraded_queen_material_recovers_real_chess_loss_signal' "$optimizer"
+require_literal 'final_validation <= initial_validation + 0.02' "$optimizer"
+
+for path in crates/chess-uci/src crates/chess-ffi/src crates/chess-jni/src crates/chess-jni/kotlin/src/main android-harness; do
+  if grep -R --line-number --include='*.rs' --include='*.kt' 'S4_DEGRADED_TEST_WEIGHT_ID' "$path"; then
+    fail "test-only degraded S4 evaluator escaped through $path"
+  fi
+done
 
 # Temporary S4 staging controls must never become permanent evidence.
 while IFS= read -r path; do
