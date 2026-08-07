@@ -92,6 +92,11 @@ require_literal 'wrong_binding_fails_closed' "$trace"
 require_literal 'advance_with_diagnostics(&dataset, iterations)' crates/chess-tools/src/tuning_cli.rs
 require_literal 's4-optimizer-trace.txt' crates/chess-tools/src/tuning_cli.rs
 require_literal 's4-summary.tsv' crates/chess-tools/src/tuning_cli.rs
+require_literal 's3-candidate-envelope.txt' crates/chess-tools/src/tuning_cli.rs
+require_literal 's3-candidate-registry.tsv' crates/chess-tools/src/tuning_cli.rs
+require_literal 'S3CandidateRegistry::default()' crates/chess-tools/src/tuning_cli.rs
+require_literal '.validate_artifact(candidate)' crates/chess-tools/src/tuning_cli.rs
+require_literal 'loss_decision\t{}' crates/chess-tools/src/tuning_cli.rs
 require_literal 'changed_parameter_count' crates/chess-tools/src/tuning_cli.rs
 require_literal 'maximum_absolute_parameter_delta' crates/chess-tools/src/tuning_cli.rs
 require_literal 'mean_absolute_parameter_delta' crates/chess-tools/src/tuning_cli.rs
