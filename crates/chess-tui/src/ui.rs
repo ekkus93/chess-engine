@@ -131,7 +131,7 @@ impl EngineRuntime {
         active
             .worker
             .cancel_and_join()
-            .map_err(|error| io::Error::new(io::ErrorKind::Other, error.to_string()))
+            .map_err(|error| io::Error::other(error.to_string()))
     }
 }
 
@@ -161,7 +161,7 @@ fn handle_menu_key(app: &mut AppState, key: KeyEvent) -> io::Result<()> {
         KeyCode::Right => app.menu.adjust_selected(true),
         KeyCode::Enter if app.menu.selected_row == 3 => {
             if let Err(error) = app.start_from_menu() {
-                return Err(io::Error::new(io::ErrorKind::Other, error.to_string()));
+                return Err(io::Error::other(error.to_string()));
             }
         }
         KeyCode::Enter => app.menu.adjust_selected(true),
@@ -359,7 +359,7 @@ fn save_current_game(app: &mut AppState) -> io::Result<()> {
 fn unix_timestamp_label() -> io::Result<String> {
     let elapsed = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
-        .map_err(|error| io::Error::new(io::ErrorKind::Other, error.to_string()))?;
+        .map_err(|error| io::Error::other(error.to_string()))?;
     Ok(format!("unix-seconds:{}", elapsed.as_secs()))
 }
 
@@ -376,7 +376,7 @@ fn is_move_input_character(character: char) -> bool {
 }
 
 fn app_error_to_io(error: crate::app::AppError) -> io::Error {
-    io::Error::new(io::ErrorKind::Other, error.to_string())
+    io::Error::other(error.to_string())
 }
 
 pub fn render(frame: &mut Frame<'_>, app: &AppState) {
