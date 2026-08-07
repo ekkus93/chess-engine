@@ -1,0 +1,152 @@
+name: S4 Calibration Corpora
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - .github/workflows/s4-calibration-corpora.yml
+      - crates/chess-tools/**
+      - crates/chess-search/**
+      - crates/chess-core/**
+      - fixtures/self_play_openings.tsv
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: s4-calibration-corpora-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  corpora:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Build release tooling
+        run: cargo build --locked --release -p chess-tools --bin chess-tools
+      - name: Freeze corpus configurations
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/s4-medium.txt <<'EOF'
+          schema=1
+          games=64
+          seed=1395929911
+          maximum_plies=256
+          white_limit=nodes:512
+          white_tt_mib=1
+          white_check_extension=false
+          black_limit=nodes:512
+          black_tt_mib=1
+          black_check_extension=false
+          claimable_draw=accept
+          opening_positions=exclude
+          split_train=70
+          split_validation=20
+          split_test=10
+          opening_path=fixtures/self_play_openings.tsv
+          EOF
+          cat > /tmp/s4-stronger.txt <<'EOF'
+          schema=1
+          games=96
+          seed=1395929912
+          maximum_plies=256
+          white_limit=nodes:1024
+          white_tt_mib=1
+          white_check_extension=false
+          black_limit=nodes:1024
+          black_tt_mib=1
+          black_check_extension=false
+          claimable_draw=accept
+          opening_positions=exclude
+          split_train=70
+          split_validation=20
+          split_test=10
+          opening_path=fixtures/self_play_openings.tsv
+          EOF
+          sha256sum /tmp/s4-medium.txt /tmp/s4-stronger.txt | tee /tmp/config-sha256.txt
+      - name: Generate medium corpus twice at identical path
+        shell: bash
+        run: |
+          set -euo pipefail
+          target/release/chess-tools s3-self-play "$GITHUB_SHA" /tmp/s4-medium.txt /tmp/s4-medium | tee /tmp/medium-first.log
+          target/release/chess-tools s3-self-play-validate /tmp/s4-medium | tee /tmp/medium-first-validate.log
+          cp -a /tmp/s4-medium /tmp/s4-medium-first
+          rm -rf /tmp/s4-medium
+          target/release/chess-tools s3-self-play "$GITHUB_SHA" /tmp/s4-medium.txt /tmp/s4-medium | tee /tmp/medium-second.log
+          target/release/chess-tools s3-self-play-validate /tmp/s4-medium | tee /tmp/medium-second-validate.log
+          diff -r /tmp/s4-medium-first /tmp/s4-medium
+          cmp /tmp/medium-first.log /tmp/medium-second.log
+          cmp /tmp/medium-first-validate.log /tmp/medium-second-validate.log
+          grep -Fxq $'admitted_for_tuning\ttrue' /tmp/medium-second-validate.log
+      - name: Generate stronger corpus twice at identical path
+        shell: bash
+        run: |
+          set -euo pipefail
+          target/release/chess-tools s3-self-play "$GITHUB_SHA" /tmp/s4-stronger.txt /tmp/s4-stronger | tee /tmp/stronger-first.log
+          target/release/chess-tools s3-self-play-validate /tmp/s4-stronger | tee /tmp/stronger-first-validate.log
+          cp -a /tmp/s4-stronger /tmp/s4-stronger-first
+          rm -rf /tmp/s4-stronger
+          target/release/chess-tools s3-self-play "$GITHUB_SHA" /tmp/s4-stronger.txt /tmp/s4-stronger | tee /tmp/stronger-second.log
+          target/release/chess-tools s3-self-play-validate /tmp/s4-stronger | tee /tmp/stronger-second-validate.log
+          diff -r /tmp/s4-stronger-first /tmp/s4-stronger
+          cmp /tmp/stronger-first.log /tmp/stronger-second.log
+          cmp /tmp/stronger-first-validate.log /tmp/stronger-second-validate.log
+          grep -Fxq $'admitted_for_tuning\ttrue' /tmp/stronger-second-validate.log
+      - name: Compare scales and record identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' | tee /tmp/corpus-comparison.tsv
+          from pathlib import Path
+
+          def parse(path):
+              values = {}
+              for line in Path(path).read_text().splitlines():
+                  if '\t' in line:
+                      key, value = line.split('\t', 1)
+                      values[key] = value
+              return values
+
+          medium = parse('/tmp/medium-second-validate.log')
+          stronger = parse('/tmp/stronger-second-validate.log')
+          required = ['dataset_checksum', 'manifest_checksum', 'games', 'positions', 'eligible_rows', 'excluded_rows', 'admitted_for_tuning']
+          for name, record in [('medium', medium), ('stronger', stronger)]:
+              missing = [key for key in required if key not in record]
+              if missing:
+                  raise SystemExit(f'{name} missing fields: {missing}')
+              if record['admitted_for_tuning'] != 'true':
+                  raise SystemExit(f'{name} not admitted')
+              if int(record['excluded_rows']) != 0:
+                  raise SystemExit(f'{name} has excluded rows')
+          if int(stronger['games']) <= int(medium['games']):
+              raise SystemExit('stronger corpus does not contain more games')
+          if int(stronger['positions']) <= int(medium['positions']):
+              raise SystemExit('stronger corpus does not contain more unique positions')
+          print('field\tmedium\tstronger')
+          for key in required[:-1]:
+              print(f'{key}\t{medium[key]}\t{stronger[key]}')
+          PY
+      - name: Package corpus evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p s4-corpus-evidence
+          cp /tmp/s4-medium.txt /tmp/s4-stronger.txt /tmp/config-sha256.txt /tmp/corpus-comparison.tsv s4-corpus-evidence/
+          cp /tmp/medium-first.log /tmp/medium-second.log /tmp/medium-first-validate.log /tmp/medium-second-validate.log s4-corpus-evidence/
+          cp /tmp/stronger-first.log /tmp/stronger-second.log /tmp/stronger-first-validate.log /tmp/stronger-second-validate.log s4-corpus-evidence/
+          cp -a /tmp/s4-medium s4-corpus-evidence/medium
+          cp -a /tmp/s4-stronger s4-corpus-evidence/stronger
+          printf '%s\n' "$GITHUB_SHA" > s4-corpus-evidence/source-sha.txt
+          printf 'activated\tfalse\n' > s4-corpus-evidence/disposition.tsv
+      - name: Upload corpus evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: s4-calibration-corpora-${{ github.sha }}
+          path: s4-corpus-evidence
+          if-no-files-found: error
+          retention-days: 30
