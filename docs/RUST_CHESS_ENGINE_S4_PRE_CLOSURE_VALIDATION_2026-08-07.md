@@ -1,13 +1,26 @@
-# Rust Chess Engine S4 Pre-Closure Validation — 2026-08-07
+# Rust Chess Engine S4 Final Closure Validation — 2026-08-07
 
-**Status:** Exact permanent validation trigger after source and fuzz-lock repairs
+**Status:** Exact permanent post-closure validation trigger
 
-The clean source-fix head was `028c705e3d1abf80a906149d2c166a6c1c61b141`.
+The fully green pre-closure implementation SHA is `b66b256a5b81621ba5310a749b7b93e650cc6067`.
 
-Permanent CI exposed one repository-policy defect during S4 closure: `crates/chess-tools/src/s3_candidate.rs` retained `#[allow(clippy::too_many_arguments)]`. The suppression was removed rather than exempted. With the annotation absent, strict workspace Clippy passed, the complete `chess-tools` test suite passed, and the permanent S4 audit passed on a working tree where all temporary S4 lint-removal staging workflows had already been deleted.
+The authority-closure commit is `9ac3cc2e3830e4c7dd4fbea63882e5f3ecf8ec2b`. At that commit:
 
-Permanent Robustness then exposed a separate reproducibility defect: the committed `fuzz/Cargo.lock` no longer matched a fresh Cargo lockfile resolution. The repository kept the lockfile-drift gate strict and refreshed the committed fuzz lock instead. Clean refresh head `0986f15c2a202b5ddf47529415a6b84d47ba7531` was produced only after two consecutive lockfile generations were byte-stable, locked fuzz formatting/Clippy/tests passed, the permanent S4 audit passed, and both temporary fuzz-refresh workflows had already been removed from the staged tree.
+- `docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_TODO_2026-08-07.md` is complete and historical;
+- `docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_IMPLEMENTATION_REPORT.md` is final;
+- `docs/LEGACY_TODO_INDEX.md` states that there is no active implementation TODO and classifies 74 TODO-named files as 2 completed-authority documents, 1 authority index, and 71 historical documents;
+- the permanent post-port, S3, and S4 authority audits are closure-aware;
+- all temporary S4 closure helpers/workflows are absent.
 
-This file is documentation-only. Its current commit exists to trigger the complete permanent GitHub Actions matrix through a normal repository write after those self-deleting staging workflows published the clean repairs. It does not alter evaluator behavior, search policy, candidate identity, activation state, package/UCI version, ABI/JNI/Android surface, opening defaults, or tablebase state.
+The pre-closure permanent matrix on `b66b256a5b81621ba5310a749b7b93e650cc6067` was green:
 
-S4 remains a closure candidate until the exact commit containing this note passes the required permanent validation matrix. No S4 candidate is activated.
+- CI run `31206849862`: x86-64 job `92960021815` and ARM64 job `92960021848` succeeded;
+- Performance run `31206850107`: jobs `92959950041` and `92959950085` succeeded;
+- Robustness run `31206849667`: jobs `92959948563`, `92959948579`, and `92959948606` succeeded;
+- Android/JNI run `31206849700`: jobs `92959948648`, `92959948684`, and `92959948749` succeeded;
+- S4 Evaluation Tuning Calibration run `31206849866`, job `92959950456`, succeeded;
+- bounded report publication run `31208328421`, job `92964797405`, succeeded.
+
+This documentation-only commit intentionally triggers the permanent GitHub Actions matrix after authority closure. It changes no engine behavior, search policy, evaluator weights, candidate identity, activation state, package/UCI version, ABI/JNI/Android surface, opening defaults, or tablebase state.
+
+The S4 tuning method is accepted for future controlled evaluator experimentation. The selected S4 calibration candidate remains rejected by development chess-strength evidence and is not production authority. No S4 candidate is activated; v0.1 remains the production evaluator/search authority.
