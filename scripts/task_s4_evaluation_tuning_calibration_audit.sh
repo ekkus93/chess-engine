@@ -41,15 +41,18 @@ done
 # Preserve all prior closure/correctness guarantees.
 bash scripts/task_s3_evaluation_strength_audit.sh
 
-# S4 is the only active program; S3 remains closed and historical.
-require_literal 'Active S4 evaluation tuning calibration program' "$legacy"
+# S4 is closed and historical; S3 remains closed and historical.
 require_literal '`docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_TODO_2026-08-07.md`' "$legacy"
-require_literal '**Status:** Closure candidate — S4-0 through S4-11 complete; S4-12 exact final validation pending' "$tracker"
-require_literal '**Status:** Closure candidate; implementation complete through S4-11, exact final validation pending' "$spec"
+require_literal 'There is no active implementation TODO.' "$legacy"
+require_literal '74 TODO-named files total; 2 authority documents; 1 authority index; 71 historical' "$legacy"
+require_literal '**Status:** Complete — tuning method accepted for future experimentation; no production promotion' "$tracker"
+require_literal '**Status:** Complete — tuning method accepted for future experimentation; no production promotion' "$spec"
 require_literal '**Status:** Complete — program closed without promotion' "$s3_tracker"
-if grep -Fq '| Active S3 evaluation strength program |' "$legacy"; then
-  fail 'closed S3 tracker is active again'
-fi
+for stale in '| Active S3 evaluation strength program |' '| Active S4 evaluation tuning calibration program |'; do
+  if grep -Fq "$stale" "$legacy"; then
+    fail "closed program is active again: $stale"
+  fi
+done
 
 # Baseline identity and explicit correction of the inherited S3 closure gate.
 require_literal '**S4 planning baseline SHA:** `543dce22e51e71f821e37754a97ce0f33c3be122`' "$baseline"
@@ -84,11 +87,18 @@ require_literal '`12 / 4 / 16`' "$smoke"
 require_literal '`14 / 2 / 15`' "$smoke"
 require_literal 'decision: `rejected_strength`' "$smoke"
 require_literal '**Status:** Accepted for future evaluator experimentation; not production activation evidence' "$method"
-require_literal '**Status:** Closure candidate — exact final validation pending' "$final_report"
+require_literal '**Status:** Complete — method accepted for future experimentation; selected candidate rejected; no production promotion' "$final_report"
 require_literal 'No activation occurred anywhere in S4.' "$final_report"
 require_literal '# Task S4-0: Authority registration and baseline freeze — COMPLETE' "$tracker"
 require_literal '# Task S4-11: Method disposition and S5 readiness — COMPLETE (METHOD ACCEPTED FOR S5 EXPERIMENTATION)' "$tracker"
-require_literal '# Task S4-12: Final report and closure — IN PROGRESS (EXACT FINAL VALIDATION PENDING)' "$tracker"
+require_literal '# Task S4-12: Final report and closure — COMPLETE (NO PRODUCTION PROMOTION)' "$tracker"
+require_literal 'b66b256a5b81621ba5310a749b7b93e650cc6067' "$final_report"
+require_literal '31206849862' "$final_report"
+require_literal '31206850107' "$final_report"
+require_literal '31206849667' "$final_report"
+require_literal '31206849700' "$final_report"
+require_literal '31206849866' "$final_report"
+require_literal '31208328421' "$final_report"
 
 # Release identities remain frozen.
 require_literal 'version = "0.1.0"' Cargo.toml
@@ -182,4 +192,4 @@ if grep -R --line-number --include='*.rs' -E 'Command::new\("python(3)?"|Py_Init
   fail 'production Rust gained a Python/subprocess fallback'
 fi
 
-echo 'S4 evaluation-tuning calibration closure-candidate audit passed'
+echo 'S4 evaluation-tuning calibration closure audit passed'

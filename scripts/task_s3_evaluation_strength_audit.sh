@@ -45,11 +45,13 @@ bash scripts/task_v0_2_strength_audit.sh
 
 # Closed-program authority and no-promotion disposition.
 require_literal '`docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_TODO_2026-08-07.md`' "$legacy"
-require_literal 'Active S4 evaluation tuning calibration program' "$legacy"
 require_literal '`docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_TODO_2026-08-07.md`' "$legacy"
-if grep -Fq '| Active S3 evaluation strength program |' "$legacy"; then
-  fail 'closed S3 tracker is still classified as active'
-fi
+require_literal 'There is no active implementation TODO.' "$legacy"
+for stale in '| Active S3 evaluation strength program |' '| Active S4 evaluation tuning calibration program |'; do
+  if grep -Fq "$stale" "$legacy"; then
+    fail "closed strength/tuning tracker is still classified as active: $stale"
+  fi
+done
 require_literal '**Status:** Complete — program closed without promotion' "$tracker"
 require_literal '# Task S3-7: Development strength validation — SKIPPED (NO ADVANCING CANDIDATE)' "$tracker"
 require_literal '# Task S3-8: Optional new evaluation feature candidates — DEFERRED' "$tracker"

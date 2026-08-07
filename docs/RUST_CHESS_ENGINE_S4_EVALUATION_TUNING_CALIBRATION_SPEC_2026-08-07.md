@@ -1,11 +1,11 @@
 # Rust Chess Engine S4 Evaluation Tuning Calibration Specification — 2026-08-07
 
-**Status:** Closure candidate; implementation complete through S4-11, exact final validation pending
-**Date:** 2026-08-07  
-**Branch:** `master`  
-**Planning baseline SHA:** `543dce22e51e71f821e37754a97ce0f33c3be122`  
-**Companion TODO:** `docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_TODO_2026-08-07.md`  
-**S3 closure report:** `docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_IMPLEMENTATION_REPORT.md`  
+**Status:** Complete — tuning method accepted for future experimentation; no production promotion
+**Date:** 2026-08-07
+**Branch:** `master`
+**Planning baseline SHA:** `543dce22e51e71f821e37754a97ce0f33c3be122`
+**Companion TODO:** `docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_TODO_2026-08-07.md`
+**S3 closure report:** `docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_IMPLEMENTATION_REPORT.md`
 **S3 pilot evidence:** `docs/RUST_CHESS_ENGINE_S3_PILOT_EVALUATION_2026-08-07.md`
 
 ---

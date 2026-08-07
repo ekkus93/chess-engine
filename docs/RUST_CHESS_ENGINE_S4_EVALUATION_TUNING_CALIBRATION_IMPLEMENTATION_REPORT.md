@@ -1,6 +1,6 @@
 # Rust Chess Engine S4 Evaluation Tuning Calibration Implementation Report
 
-**Status:** Closure candidate — exact final validation pending
+**Status:** Complete — method accepted for future experimentation; selected candidate rejected; no production promotion
 **Date:** 2026-08-07
 **Planning baseline SHA:** `543dce22e51e71f821e37754a97ce0f33c3be122`
 **Clean S4 operational baseline SHA:** `b02623f20417c7f5769b6a16fc94566239e7979a`
@@ -145,8 +145,19 @@ The selected S4 row is a calibration witness, not an S5 production target.
 
 ## S4-12 closure state
 
-The technical implementation and evidence through S4-11 are complete. This report is the Phase-A closure candidate. Permanent exact-SHA CI, performance, robustness, Android/JNI, S4 audit, and report-validation evidence must pass before the tracker moves from active authority to historical and this report changes to final closed status.
+S4 is closed without production promotion. The tuning method is accepted for future controlled evaluator experimentation, while the selected calibration candidate remains explicitly rejected by development chess-strength evidence.
 
-This documentation-only commit is the explicit permanent-workflow validation trigger; it does not change engine behavior, evidence semantics, candidate state, or release authority.
+The exact validated pre-closure implementation SHA is `b66b256a5b81621ba5310a749b7b93e650cc6067`. The permanent matrix on that same SHA is green:
 
-No activation occurred anywhere in S4.
+- CI run `31206849862`: x86-64 workspace-quality job `92960021815` success; ARM64 workspace-build job `92960021848` success;
+- Performance run `31206850107`: x86-64 job `92959950041` success; ARM64 job `92959950085` success;
+- Robustness run `31206849667`: sanitizer/leak job `92959948563`, Miri job `92959948579`, and fuzz/corpus job `92959948606` all success;
+- Android/JNI run `31206849700`: API-35 JNI smoke `92959948648`, Android/Kotlin lint `92959948684`, and host JVM JNI contract `92959948749` all success;
+- S4 Evaluation Tuning Calibration run `31206849866`, job `92959950456`: success;
+- bounded report publication run `31208328421`, job `92964797405`: success.
+
+Closure also fixed three first-party repository defects without weakening gates: the obsolete lint suppression in `s3_candidate.rs` was removed, `fuzz/Cargo.lock` was deterministically refreshed under the existing drift check, and the saturated issue-comment reporter was converted to a serialized bounded issue-body update while retaining fail-on-error behavior.
+
+The S4 TODO is historical after this closure. There is no active implementation TODO. The completed Rust-port authority documents and this authority index remain the standing authority until a future program is explicitly registered.
+
+No activation occurred anywhere in S4. Package/UCI version `0.1.0`, the v0.1 evaluator/search policy, ABI/JNI/Android surface, opening default, and tablebase state remain unchanged.

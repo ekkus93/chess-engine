@@ -47,10 +47,10 @@ grep -Fq '**Status:** Complete' "$postport_record"
 grep -Fq '**Status:** Complete — program closed without v0.2 promotion' "$v0_2_todo"
 grep -Fq '**Status:** Complete — program closed without promotion' "$s3_todo"
 grep -Fq '**Status:** Complete — program closed without promotion' "$s3_report"
-grep -Fq '**Status:** Closure candidate — S4-0 through S4-11 complete; S4-12 exact final validation pending' "$s4_todo"
-grep -Fq '**Status:** Closure candidate; implementation complete through S4-11, exact final validation pending' "$s4_spec"
+grep -Fq '**Status:** Complete — tuning method accepted for future experimentation; no production promotion' "$s4_todo"
+grep -Fq '**Status:** Complete — tuning method accepted for future experimentation; no production promotion' "$s4_spec"
 
-for stale in '| Active v0.2 strength program |' '| Active S3 evaluation strength program |'; do
+for stale in '| Active v0.2 strength program |' '| Active S3 evaluation strength program |' '| Active S4 evaluation tuning calibration program |'; do
     if grep -Fq "$stale" "$legacy_index"; then
         echo "closed strength TODO is still classified as active: $stale" >&2
         exit 1
@@ -58,7 +58,6 @@ for stale in '| Active v0.2 strength program |' '| Active S3 evaluation strength
 done
 
 authority_todos=(
-    "$s4_todo"
     "$tracker"
     "$definitions"
 )
@@ -69,10 +68,14 @@ grep -Fq "\`$legacy_index\`" "$legacy_index"
 grep -Fq "\`$postport_record\`" "$legacy_index"
 grep -Fq "\`$v0_2_todo\`" "$legacy_index"
 grep -Fq "\`$s3_todo\`" "$legacy_index"
-grep -Fq 'Active S4 evaluation tuning calibration program' "$legacy_index"
-grep -Fq 'The S4 evaluation tuning calibration TODO is the single active implementation tracker.' "$legacy_index"
-grep -Fq 'Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO` and is not one of the three authority documents above' "$legacy_index"
-grep -Fq '74 TODO-named files total; 3 authority documents; 1 authority index; 70 historical' "$legacy_index"
+grep -Fq "\`$s4_todo\`" "$legacy_index"
+if grep -Fq 'Active S4 evaluation tuning calibration program' "$legacy_index"; then
+    echo 'closed S4 TODO is still active' >&2
+    exit 1
+fi
+grep -Fq 'There is no active implementation TODO.' "$legacy_index"
+grep -Fq 'Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO` and is not one of the two completed-authority documents above' "$legacy_index"
+grep -Fq '74 TODO-named files total; 2 authority documents; 1 authority index; 71 historical' "$legacy_index"
 grep -Fq "**Companion TODO:** \`$v0_2_todo\`" "$v0_2_spec"
 grep -Fq "**Specification:** \`$v0_2_spec\`" "$v0_2_todo"
 grep -Fq "**Companion TODO:** \`$s3_todo\`" "$s3_spec"
@@ -85,11 +88,11 @@ grep -Fq '# Task S3-10: Production candidate validation — SKIPPED (NO ELIGIBLE
 grep -Fq '# Task S3-11: Separate activation and release gate — SKIPPED (NO ACCEPTED CANDIDATE)' "$s3_todo"
 grep -Fq '# Task S3-12: Final report, audit, cleanup, and closure — COMPLETE (NO PROMOTION)' "$s3_todo"
 grep -Fq '# Task S4-0: Authority registration and baseline freeze — COMPLETE' "$s4_todo"
-grep -Fq '# Task S4-12: Final report and closure — IN PROGRESS (EXACT FINAL VALIDATION PENDING)' "$s4_todo"
+grep -Fq '# Task S4-12: Final report and closure — COMPLETE (NO PRODUCTION PROMOTION)' "$s4_todo"
 
 while IFS= read -r todo_path; do
     case "$todo_path" in
-        "$s4_todo"|"$tracker"|"$definitions"|"$legacy_index")
+        "$tracker"|"$definitions"|"$legacy_index")
             ;;
         *)
             grep -Fq "\`$todo_path\`" "$legacy_index" || {

@@ -1,10 +1,10 @@
 # Rust Chess Engine S4 Evaluation Tuning Calibration TODO — 2026-08-07
 
-**Status:** Closure candidate — S4-0 through S4-11 complete; S4-12 exact final validation pending
-**Date:** 2026-08-07  
-**Branch:** `master`  
-**Planning baseline SHA:** `543dce22e51e71f821e37754a97ce0f33c3be122`  
-**Specification:** `docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_SPEC_2026-08-07.md`  
+**Status:** Complete — tuning method accepted for future experimentation; no production promotion
+**Date:** 2026-08-07
+**Branch:** `master`
+**Planning baseline SHA:** `543dce22e51e71f821e37754a97ce0f33c3be122`
+**Specification:** `docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_SPEC_2026-08-07.md`
 **S3 closure report:** `docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_IMPLEMENTATION_REPORT.md`
 
 ---
@@ -438,12 +438,12 @@ If S4-9 fails:
 
 ---
 
-# Task S4-12: Final report and closure — IN PROGRESS (EXACT FINAL VALIDATION PENDING)
+# Task S4-12: Final report and closure — COMPLETE (NO PRODUCTION PROMOTION)
 
 ## S4-12.1 Final implementation report
 
 - [x] Create `docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_IMPLEMENTATION_REPORT.md`.
-- [ ] Record exact baseline and final SHAs.
+- [x] Record exact baseline and final SHAs.
 - [x] Record root cause(s) of S3 zero movement.
 - [x] Record optimizer-trace schema/identity.
 - [x] Record single-parameter known-answer result.
@@ -458,25 +458,37 @@ If S4-9 fails:
 
 ## S4-12.2 Authority cleanup
 
-- [ ] Move this TODO from active authority to historical inventory when S4 closes.
-- [ ] Update `docs/LEGACY_TODO_INDEX.md` counts/classification.
-- [ ] Update permanent TODO-authority audit.
+- [x] Move this TODO from active authority to historical inventory when S4 closes.
+- [x] Update `docs/LEGACY_TODO_INDEX.md` counts/classification.
+- [x] Update permanent TODO-authority audit.
 - [x] Confirm no temporary S4 staging helper remains.
 - [x] Confirm generated artifacts follow repository policy.
 
 ## S4-12.3 Exact final validation
 
-- [ ] Run permanent S4 audit.
-- [ ] Run strict workspace CI.
-- [ ] Run performance validation if hot-path code changed.
-- [ ] Run robustness validation.
-- [ ] Run Android/JNI validation if adapter-facing code changed.
-- [ ] Run report validation.
-- [ ] Record exact final SHA, run IDs, job IDs, artifact IDs, and checksums.
+- [x] Run permanent S4 audit.
+- [x] Run strict workspace CI.
+- [x] Run performance validation if hot-path code changed.
+- [x] Run robustness validation.
+- [x] Run Android/JNI validation if adapter-facing code changed.
+- [x] Run report validation.
+- [x] Record exact final SHA, run IDs, job IDs, artifact IDs, and checksums.
+
+### Exact validated pre-closure implementation evidence
+
+- Validated implementation/closure-candidate SHA: `b66b256a5b81621ba5310a749b7b93e650cc6067`.
+- CI run/job: `31206849862` / `92960021815` (x86-64 workspace quality) and `92960021848` (ARM64 workspace build): success.
+- Performance run/jobs: `31206850107` / `92959950041`, `92959950085`: success.
+- Robustness run/jobs: `31206849667` / `92959948563`, `92959948579`, `92959948606`: success.
+- Android/JNI run/jobs: `31206849700` / `92959948648`, `92959948684`, `92959948749`: success.
+- S4 permanent gate run/job: `31206849866` / `92959950456`: success.
+- Report-master publication run/job: `31208328421` / `92964797405`: success.
+- S4-10 artifact: `9003757817`, ZIP SHA-256 `df04923ebc25fe811b5e8c945181b7ce3b1cdb02eefff5f6e1c422600b6de0f5`.
+- No S4 candidate was activated; v0.1 remains production authority.
 
 ## S4-12 gate
 
-- [ ] S4 is truthfully closed with exact evidence and no production activation.
+- [x] S4 is truthfully closed with exact evidence and no production activation.
 
 ---
 
@@ -494,4 +506,4 @@ If S4-9 fails:
 - [x] S4-9 real-data tuning-signal gate complete or method rejected/deferred.
 - [x] S4-10 development strength smoke complete or explicitly skipped.
 - [x] S4-11 method disposition and next-step recommendation complete.
-- [ ] S4-12 final report and closure complete.
+- [x] S4-12 final report and closure complete.
