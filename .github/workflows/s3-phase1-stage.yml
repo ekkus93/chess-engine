@@ -33,6 +33,9 @@ jobs:
       - name: Apply S3 phase 1 changes
         run: python3 .github/s3_phase1.py
 
+      - name: Format generated Rust changes
+        run: cargo fmt --all
+
       - name: Check formatting
         run: cargo fmt --all -- --check
 
