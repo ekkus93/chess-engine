@@ -1,0 +1,63 @@
+name: S4 Refresh Fuzz Lock Finalize
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - .github/workflows/s4-refresh-fuzz-lock-finalize.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: s4-refresh-fuzz-lock-finalize
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Refresh lock and remove temporary controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo generate-lockfile --manifest-path fuzz/Cargo.toml
+          test -n "$(git status --short -- fuzz/Cargo.lock)"
+          first="$(sha256sum fuzz/Cargo.lock | awk '{print $1}')"
+          cargo generate-lockfile --manifest-path fuzz/Cargo.toml
+          second="$(sha256sum fuzz/Cargo.lock | awk '{print $1}')"
+          test "$first" = "$second"
+          git rm .github/workflows/s4-refresh-fuzz-lock-stage.yml .github/workflows/s4-refresh-fuzz-lock-finalize.yml
+          test ! -e .github/workflows/s4-refresh-fuzz-lock-stage.yml
+          test ! -e .github/workflows/s4-refresh-fuzz-lock-finalize.yml
+          git diff --check
+      - name: Validate refreshed fuzz workspace and closure guardrails
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --manifest-path fuzz/Cargo.toml --all -- --check
+          cargo clippy --locked --manifest-path fuzz/Cargo.toml --all-targets -- -D warnings
+          cargo test --locked --manifest-path fuzz/Cargo.toml
+          bash scripts/task_s4_evaluation_tuning_calibration_audit.sh
+          git diff --check
+      - name: Publish lockfile refresh
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Phillip Chin"
+          git config user.email "ekkus93@gmail.com"
+          git add fuzz/Cargo.lock
+          git diff --cached --check
+          git commit -m "chore: refresh fuzz lockfile"
+          git fetch origin master
+          git rebase origin/master
+          git push origin HEAD:master
