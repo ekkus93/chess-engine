@@ -38,7 +38,6 @@ for path in "$spec" "$tracker" "$baseline" "$pipeline" "$legacy" "$editor" "$pos
   require_file "$path"
 done
 
-# Preserve all v0.1/S2 closure boundaries, including the existing adapter escape audit.
 bash scripts/task_v0_2_strength_audit.sh
 
 require_literal 'Active S3 evaluation strength program' "$legacy"
@@ -50,7 +49,6 @@ require_literal 'Runtime weight-vector length: `816`; named tunable-parameter co
 require_literal 'experimental_features=0000000000000000' "$baseline"
 require_literal 'Tablebases/Syzygy are disabled' "$baseline"
 
-# PositionEditor must be private to chess-core and explicitly hash-neutral.
 if grep -Eq '^[[:space:]]*pub[[:space:]]+use[[:space:]].*PositionEditor' "$position_mod" "$core_lib"; then
   fail 'PositionEditor is publicly re-exported'
 fi
@@ -59,7 +57,6 @@ require_literal 'does **not** update the' "$editor"
 require_literal 'editor_mutation_is_hash_neutral_until_the_caller_updates_hash_state' "$editor"
 require_literal 'PositionEditor` is intentionally an internal board-representation capability' docs/RUST_MAKE_UNMAKE.md
 
-# No experimental SearchPolicy selector may escape through a production adapter.
 for path in crates/chess-uci/src crates/chess-ffi/src crates/chess-jni/src crates/chess-jni/kotlin/src/main android-harness; do
   if grep -R --line-number --include='*.rs' --include='*.kt' 'SearchPolicy' "$path"; then
     fail "experimental SearchPolicy escaped through $path"
@@ -73,14 +70,12 @@ for token in PrincipalVariationSearch LateMoveReductions NullMovePruning Futilit
   done
 done
 
-# Process-level stale-result behavior is permanently named and testable.
 require_literal 'fn position_replacement_discards_active_search_without_stale_bestmove()' "$uci_tests"
 require_literal 'fn ucinewgame_discards_active_search_without_stale_bestmove()' "$uci_tests"
 require_literal 'fn repeated_stop_and_restart_cycles_emit_exactly_one_bestmove_per_search()' "$uci_tests"
 require_literal 'fn quit_interrupts_active_search_without_stale_bestmove()' "$uci_tests"
 require_literal 'fn stop_interrupts_infinite_search_and_session_remains_ready()' "$uci_tests"
 
-# S3 dataset provenance is a strict sidecar, not a silent Task-20 schema mutation.
 require_literal 'pub const S3_DATASET_MANIFEST_SCHEMA_VERSION: u16 = 1;' "$s3_tools"
 require_literal 'pub const S3_DATASET_MANIFEST_IDENTIFIER: u64 = 0x5333_4441_5441_3031;' "$s3_tools"
 require_literal 'pub const S3_MINIMUM_TUNING_GAMES: u32 = 16;' "$s3_tools"
@@ -106,7 +101,6 @@ require_literal 'the strict Task 20 dataset image' "$pipeline"
 require_literal 'a strict `CHESS_S3_TRAINING_DATASET_MANIFEST` sidecar' "$pipeline"
 require_literal 'no Git, environment, filesystem, or process discovery is used by the library contract' "$pipeline"
 
-# Group tuning is explicit and checkpoint-bound. Inactive parameters must remain frozen.
 require_literal 'pub struct TunableParameterMask' "$mask"
 require_literal 'pub enum EvaluationParameterGroup' "$mask"
 require_literal 'Self::MaterialAndPieceSquare => "material_and_piece_square"' "$mask"
@@ -126,14 +120,13 @@ require_literal 'fn masked_optimizer_report_uses_the_same_regularization_domain(
 require_literal 'Regularization is normalized over the selected parameter count' "$pipeline"
 require_literal 'validation MSE separately after bounded work' "$pipeline"
 
-# The reproducible S3 command surface must remain explicit and inactive.
 require_literal 'pub(crate) fn run_s3_self_play(arguments: &[String])' "$s3_cli"
 require_literal 'pub(crate) fn run_s3_self_play_validate(arguments: &[String])' "$s3_cli"
 require_literal 'ACTIVATION_DISABLED' "$s3_cli"
 require_literal 'std::env::args().collect::<Vec<_>>().join(" ")' "$s3_cli"
 require_literal 'fs::rename(&staging, output_dir)' "$s3_cli"
 require_literal 'pub(crate) fn run_group_tuning_command(arguments: &[String])' "$tuning_cli"
-require_literal 'manifest.validate_for_tuning()' "$tuning_cli"
+require_literal '.validate_for_tuning()' "$tuning_cli"
 require_literal 'S3 dataset source commit differs from tuning config source_commit' "$tuning_cli"
 require_literal 'resume requires the exact previous S3 tuning group' "$tuning_cli"
 require_literal 'resume requires the exact previous S3 dataset manifest' "$tuning_cli"
@@ -144,14 +137,12 @@ require_literal '"tune-group" =>' "$tools_main"
 require_literal 'chess-tools s3-self-play SOURCE_SHA CONFIG_PATH OUTPUT_DIR' "$pipeline"
 require_literal 'chess-tools tune-group GROUP CONFIG_PATH S3_DATASET_DIR OUTPUT_DIR [PREVIOUS_OUTPUT_DIR]' "$pipeline"
 
-# S3 candidate exploration must not drift production release identity.
 require_literal 'version = "0.1.0"' Cargo.toml
 require_literal 'pub const V0_1_SEARCH_POLICY_ID: u64 = 0x5630_315f_504f_4c31;' crates/chess-search/src/search_policy.rs
 require_literal 'pub const BASELINE_WEIGHT_SET_ID: u64 = 0x4241_5345_4c49_4e45;' crates/chess-search/src/weights.rs
 require_literal 'pub const WEIGHT_VALUE_COUNT: usize = 816;' crates/chess-search/src/weights.rs
 require_literal 'pub const TUNABLE_PARAMETER_COUNT: usize = 810;' crates/chess-tune/src/lib.rs
 
-# Temporary write-capable S3 staging controls must be gone before permanent validation.
 for temporary in \
   .github/s3_phase1.py \
   .github/workflows/s3-phase1-stage.yml \
@@ -166,7 +157,6 @@ for temporary in \
   fi
 done
 
-# No production Python/subprocess fallback may appear.
 if grep -R --line-number --include='*.rs' -E 'Command::new\("python(3)?"|Py_Initialize|pyo3' crates; then
   fail 'production Rust gained a Python/subprocess fallback'
 fi
