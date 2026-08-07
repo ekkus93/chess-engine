@@ -5,6 +5,7 @@ on:
     branches: [master]
     paths:
       - .github/s4_phase1.py
+      - .github/s4_phase1_repair.py
       - .github/workflows/s4-phase1-stage.yml
   workflow_dispatch:
 
@@ -27,6 +28,8 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+      - name: Repair staging helper
+        run: python3 .github/s4_phase1_repair.py
       - name: Apply diagnostics patch
         run: python3 .github/s4_phase1.py
       - name: Format staged source
