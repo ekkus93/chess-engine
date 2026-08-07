@@ -21,334 +21,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 4
 
-      - name: Verify frozen evidence parent
+      - name: Verify bounded staging history
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "21406b5e92b6bd42a3a902591dddae22c9b3f16f"
-          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/s2-14-close-once.yml"
+          source_sha=21406b5e92b6bd42a3a902591dddae22c9b3f16f
+          test "$(git rev-parse HEAD~3)" = "$source_sha"
+          mapfile -t changed < <(git diff --name-only "$source_sha" HEAD | sort)
+          test "${#changed[@]}" -eq 2
+          test "${changed[0]}" = ".github/s2_14_close_once.py"
+          test "${changed[1]}" = ".github/workflows/s2-14-close-once.yml"
 
       - name: Prepare S2-14 rejected-strength closure
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-
-          source_sha = "21406b5e92b6bd42a3a902591dddae22c9b3f16f"
-          report_path = Path("docs/RUST_CHESS_ENGINE_V0_2_S2_14_PRODUCTION_VALIDATION_2026-08-06.md")
-          tracker_path = Path("docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md")
-          audit_path = Path("scripts/task_v0_2_strength_audit.sh")
-          tracker_workflow_path = Path(".github/workflows/tracker-close.yml")
-
-          final_report = r'''# Rust Chess Engine v0.2 — S2-14 Production Candidate Validation
-
-**Status:** Complete — candidate rejected
-**Task:** S2-14
-**Disposition:** `rejected_strength`
-**Activation:** `false`
-**Frozen candidate source SHA:** `21406b5e92b6bd42a3a902591dddae22c9b3f16f`
-**Selected candidate:** standalone Principal Variation Search (PVS)
-**Authoritative production policy after disposition:** v0.1 baseline
-
-## Executive result
-
-S2-14 is complete. The frozen standalone PVS candidate passed the complete exact-SHA correctness, robustness, adapter, allocation, and architecture-specific performance preflight, then failed the project strength rule independently in both required 1,000-pair production protocols. The result is `rejected_strength`; PVS remains inactive and the authoritative v0.1 production policy remains unchanged.
-
-The GitHub Actions workflow itself completed successfully because the reports were generated, strictly validated, checksummed, and preserved. Workflow success does not mean candidate acceptance. Both report decisions are explicitly `rejected_strength`.
-
-No threshold was relaxed, no report was manually reinterpreted, no failed game was converted into a chess result, and no activation/default/package/API/ABI/JNI change was made.
-
-## Frozen identity and protocol
-
-- Source SHA: `21406b5e92b6bd42a3a902591dddae22c9b3f16f`.
-- Candidate policy identifier/checksum: `5332375056533031` / `ef730d158002ccfa`.
-- Baseline policy identifier/checksum: `5630315f504f4c31` / `0c0769ef9d034770`.
-- Evaluation-weight identifier/checksum: `424153454c494e45` / `d2cca7ae10ec6e34`.
-- Opening book: disabled.
-- Tablebase: disabled.
-- TT: 1 MiB independently per side.
-- Maximum game length: 256 plies.
-- Fixed-node resource: 2,000 nodes per move per engine.
-- Clock resource: 10 ms per move per engine.
-- Production pair count: 1,000 independent color-swapped opening pairs per protocol / 2,000 games per protocol.
-- Minimum score margin: `0.0`; acceptance therefore requires one-sided 95% lower confidence bound strictly greater than `0.5`.
-- Maximum unfinished rate: 50 per mille.
-- Reports remain `activated=false` regardless of disposition.
-
-The first S2-14 SEE-ordering + LMR preselection experiment was already rejected at preflight because its x86-64 and ARM64 median ratios (`1.054297` and `1.055081`) exceeded the frozen `1.05` ceiling. Its code was removed and the threshold was not changed. Standalone PVS was then frozen for the production program.
-
-## Exact preflight evidence
-
-Preflight workflow run `31146057113` succeeded on the frozen source SHA.
-
-- x86-64 job `92765623932`; artifact `8981719767`; artifact digest `sha256:8b0e1119611586587aa904a3e9f32a67096b8c96e4b5733da12031b71dd44e24`; seven-sample candidate/baseline median ratio `1.012722`.
-- Native ARM64 job `92765623863`; artifact `8981761297`; artifact digest `sha256:71d99e5f753638423421d7b2f4cbb864e7f2f7db90315089d3445a30ec0a73fa`; seven-sample candidate/baseline median ratio `1.013350`.
-- Frozen maximum median ratio: `1.05`; both architectures passed.
-- Deterministic opening suite: 1,200 unique first-party legal opening lines.
-- Opening file SHA-256: `6c3ff4cc9837bc66dd517d4a7c60d56e71a9b3a4e1fb1aabd904de81dad4e9b7`.
-- Semantic opening-suite checksum: `36c98c850cff76ba`.
-- Formatting, strict Clippy, focused PVS/search tests, deterministic repeated evidence, complete-variant smoke, suite uniqueness, and zero-allocation designated-hot-path checks passed.
-
-## Exact full correctness and platform matrix
-
-The same frozen source SHA passed the permanent project matrix before production disposition:
-
-- CI run `31146057163`: x86-64 workspace-quality job `92765624453` and native ARM64 job `92765624377`; inherited audits, rustfmt, strict Clippy, complete tests, release perft, rustdoc, debug/release builds, UCI smoke, and differential oracle passed.
-- Performance run `31146057128`: success.
-- Robustness run `31146057142`: Miri, fuzz/corpus replay, ASan/LSan, and TSan gates passed.
-- Android/JNI run `31146057103`: host-JVM, Android lint, native ABI, API-35 instrumentation/lifecycle/cancellation gates passed.
-- Strength tracker audit run `31146057112`: success.
-- Report-master validation run `31146990298`: success.
-
-No correctness, illegal-move, crash, time-forfeit, or infrastructure failure was used to explain away the strength result.
-
-## Production fixed-node result
-
-Workflow run `31146807904`, job `92767800034`, exact invocation `s2-14-production-31146807904-1-fixed-nodes`.
-
-- Protocol: `fixed_nodes:2000`.
-- Pairs/games: `1000` / `2000`.
-- Candidate wins/draws/losses: `862` / `144` / `977`.
-- Unfinished: `17` (`8.5` per mille, below the 50-per-mille ceiling).
-- Illegal moves/crashes/time forfeits/infrastructure failures: `0/0/0/0`.
-- Mean independent-pair score: `0.47125`.
-- Pair-score standard error: `0.008173294332167456`.
-- One-sided 95% lower confidence bound: `0.4578061271735924`.
-- Required lower bound: strictly greater than `0.5`.
-- Decision: `rejected_strength`.
-- Report checksum: `bad7aa1f69e9d18e`.
-- Baseline variant checksum: `0f0e83e206b88553`.
-- Candidate variant checksum: `dc333116073e06e1`.
-- Artifact `8982304975`: `s2-14-production-fixed-nodes-21406b5e92b6bd42a3a902591dddae22c9b3f16f`.
-- Artifact digest: `sha256:f3997874840a160ece061f77d8a4696379d874e86d706271dfa855ebdb204eb9`.
-
-The unfinished-rate gate passed. The statistical strength gate did not.
-
-## Production clock result
-
-Workflow run `31146807904`, job `92767800098`, exact invocation `s2-14-production-31146807904-1-clock`.
-
-- Protocol: `clock_ms:10`.
-- Pairs/games: `1000` / `2000`.
-- Candidate wins/draws/losses: `857` / `144` / `972`.
-- Unfinished: `27` (`13.5` per mille, below the 50-per-mille ceiling).
-- Illegal moves/crashes/time forfeits/infrastructure failures: `0/0/0/0`.
-- Mean independent-pair score: `0.47125`.
-- Pair-score standard error: `0.008042114965176367`.
-- One-sided 95% lower confidence bound: `0.45802189803116894`.
-- Required lower bound: strictly greater than `0.5`.
-- Decision: `rejected_strength`.
-- Report checksum: `d3b883442ec6107b`.
-- Baseline variant checksum: `e9869584189d3211`.
-- Candidate variant checksum: `ac1e651d3fe824af`.
-- Artifact `8982375018`: `s2-14-production-clock-21406b5e92b6bd42a3a902591dddae22c9b3f16f`.
-- Artifact digest: `sha256:35189e3e6ff368b7f0eb5cfb004790798d42b516cddde7f1bf33ecccf116551b`.
-
-The unfinished-rate gate passed. The statistical strength gate did not.
-
-## Disposition and activation boundary
-
-Both independent production protocols fail the same predeclared acceptance rule, and both do so with a mean score below `0.5`, not merely a marginally inconclusive confidence interval. S2-14 therefore closes as `rejected_strength`.
-
-The v0.1 baseline policy remains authoritative. PVS remains an inactive controlled candidate. S2-14 does not activate anything, does not update package/UCI version, does not modify public Rust APIs, C ABI, JNI, Kotlin/Android interfaces, or production defaults, and does not authorize S2-15 activation.
-
-S2-15's first precondition (`S2-14 report is accepted_for_activation`) is not satisfied. No activation commit may be made from this evidence. Final program closure may instead use S2-16's explicit no-release disposition path.
-'''
-          report_path.write_text(final_report)
-
-          tracker = tracker_path.read_text()
-          old_row = "| S2-14 | Production candidate selection and validation | **Not started** |"
-          new_row = "| S2-14 | Production candidate selection and validation | **Complete — PVS rejected_strength; v0.1 remains authoritative; inactive** |"
-          if tracker.count(old_row) != 1:
-              raise SystemExit("unexpected S2-14 summary row count")
-          tracker = tracker.replace(old_row, new_row)
-
-          start = tracker.index("# Task S2-14: Production candidate selection and validation — NOT STARTED")
-          end = tracker.index("# Task S2-15: Separate activation and v0.2 release gate — NOT STARTED")
-          s2_14 = r'''# Task S2-14: Production candidate selection and validation — COMPLETE (REJECTED)
-
-## S2-14.1 Select candidate
-
-- [x] Select one exact candidate or evidence-backed combination from individually evaluated components. Standalone PVS was selected and frozen after the SEE+LMR preselection failed the predeclared performance ceiling.
-- [x] Record why each included component is present. `docs/RUST_CHESS_ENGINE_V0_2_S2_14_CANDIDATE_SELECTION_2026-08-06.md` records the PVS selection rationale and exact identity.
-- [x] Record why excluded/deferred components are absent. SEE ordering, SEE/delta pruning, LMR, null move, frontier pruning, Syzygy, and the rejected SEE+LMR combination are explicitly excluded with evidence-backed reasons.
-- [x] Freeze search-policy identity, weights, source SHA, toolchain, opening suite, TT, limits, seeds, and commands. Exact source `21406b5e92b6bd42a3a902591dddae22c9b3f16f` and all identities/protocol inputs are bound in preflight and production artifacts.
-- [x] Candidate remains inactive. Every S2-14 report and manifest records `activated=false`; production defaults remain v0.1.
-
-## S2-14.2 Full correctness matrix
-
-- [x] Formatting/check/Clippy/all-target tests. Exact CI run `31146057163` and S2-14 preflight run `31146057113` passed.
-- [x] Release perft depth four. Exact CI run `31146057163` passed the authoritative release perft gate.
-- [x] Differential oracle and seeded playouts. Exact CI run `31146057163` passed the pinned differential oracle/seeded playout gate.
-- [x] Tactical/mate/draw/zugzwang/promotion corpus. Candidate-specific preflight and inherited frozen corpus gates passed on the exact source SHA.
-- [x] Legal PV replay and exact restoration. PVS evidence and full search tests passed on the exact source SHA.
-- [x] Cancellation, limits, UCI, safe facade, C ABI, JNI, Android. Exact CI and Android/JNI run `31146057103` passed without adapter/default changes.
-- [x] Fuzz, Miri, ASan/LSan, TSan. Exact robustness run `31146057142` passed.
-- [x] Candidate-specific audits. The frozen S2-14 PVS boundary audit passed on native x86-64 and ARM64.
-
-## S2-14.3 Performance matrix
-
-- [x] x86-64 seven-sample baseline/comparator. Fresh candidate/baseline median ratio `1.012722`, within the frozen `1.05` ceiling.
-- [x] Native ARM64 seven-sample baseline/comparator. Fresh candidate/baseline median ratio `1.013350`, within the frozen `1.05` ceiling.
-- [x] Zero-allocation audit. The designated recursive hot-path gate passed on both native architectures.
-- [x] Search diagnostics and checksum. Deterministic PVS evidence, complete-variant identity, and suite/report checksums were preserved.
-- [x] Android metrics if applicable. Exact Android/JNI lifecycle/cancellation instrumentation run `31146057103` passed; no adapter semantics changed.
-- [x] Record any intentional reference update separately. No benchmark reference or acceptance threshold was rewritten for S2-14.
-
-## S2-14.4 Production strength matrix
-
-- [x] At least 200 independent opening pairs / 400 games. Each protocol ran 1,000 independent pairs / 2,000 games.
-- [x] Color-swapped identical openings. Both colors were played from each of 1,000 scheduled openings; the 1,200-line source suite was identical across protocols.
-- [x] Fixed-node production evidence. Run `31146807904`, job `92767800034`, artifact `8982304975`; report checksum `bad7aa1f69e9d18e`.
-- [x] Clock-based production evidence for release-relevant strength. Run `31146807904`, job `92767800098`, artifact `8982375018`; report checksum `d3b883442ec6107b`.
-- [x] Unfinished rate within ceiling. Fixed-node `17/2000` (8.5 per mille) and clock `27/2000` (13.5 per mille) are both below the 50-per-mille ceiling.
-- [x] Lower confidence bound gate evaluated fail-closed. Required `> 0.5`; fixed-node LCB `0.4578061271735924` and clock LCB `0.45802189803116894`, so both protocols fail the strength gate.
-- [x] Report checksum and atomic persistence pass. Both reports round-tripped, validated, were atomically persisted, and were preserved as GitHub artifacts.
-- [x] Report decision is explicit. Both production reports state `rejected_strength`.
-- [x] Report records `activated=false`. Both reports and manifests remain inactive.
-
-## S2-14.5 Disposition
-
-- [x] Rejected candidate reason is preserved exactly and v0.1 remains authoritative. `docs/RUST_CHESS_ENGINE_V0_2_S2_14_PRODUCTION_VALIDATION_2026-08-06.md` records complete preflight/production evidence and the `rejected_strength` disposition.
-- [x] Accepted-candidate activation path is not applicable. Neither production report emitted `accepted_for_activation`; S2-15's activation precondition is unsatisfied and no default is changed.
-- [x] No manual interpretation overrides the report rule. The failed lower-confidence-bound gate is final for this frozen candidate; no threshold, score, unfinished ceiling, or failure classification was changed after measurement.
-
-**S2-14 gate:** Complete with `rejected_strength` and `activated=false`. One frozen standalone PVS candidate received complete exact-SHA correctness, robustness, performance, and two-protocol 1,000-pair production evaluations. Both production reports rejected it for strength, so the v0.1 policy remains authoritative and S2-15 activation is not authorized.
-
----
-
-'''
-          tracker = tracker[:start] + s2_14 + tracker[end:]
-
-          marker = "## Program guardrails"
-          record = r'''## S2-14 implementation record
-
-- Disposition: complete with `rejected_strength`; standalone PVS remains inactive and v0.1 remains authoritative.
-- Frozen candidate source SHA: `21406b5e92b6bd42a3a902591dddae22c9b3f16f`.
-- Candidate policy identifier/checksum: `5332375056533031` / `ef730d158002ccfa`; baseline `5630315f504f4c31` / `0c0769ef9d034770`; weights `424153454c494e45` / `d2cca7ae10ec6e34`.
-- Preflight run `31146057113`: x86-64 job `92765623932`, artifact `8981719767`, median ratio `1.012722`; ARM64 job `92765623863`, artifact `8981761297`, median ratio `1.013350`; frozen ceiling `1.05`; both passed.
-- Exact full-matrix evidence on the candidate SHA: CI `31146057163`, performance `31146057128`, robustness `31146057142`, Android/JNI `31146057103`, tracker `31146057112`, report validation `31146990298`; all passed.
-- Production run `31146807904` succeeded as evidence generation/validation. Fixed-node job `92767800034`: 1,000 pairs, W/D/L `862/144/977`, unfinished `17`, failures `0`, mean `0.47125`, LCB `0.4578061271735924`, `rejected_strength`, checksum `bad7aa1f69e9d18e`, artifact `8982304975`.
-- Clock job `92767800098`: 1,000 pairs, W/D/L `857/144/972`, unfinished `27`, failures `0`, mean `0.47125`, LCB `0.45802189803116894`, `rejected_strength`, checksum `d3b883442ec6107b`, artifact `8982375018`.
-- Required lower confidence bound was strictly `> 0.5`; both protocols failed it. Unfinished-rate, correctness, and infrastructure gates passed, so the rejection is specifically strength-based.
-- Opening file SHA-256 `6c3ff4cc9837bc66dd517d4a7c60d56e71a9b3a4e1fb1aabd904de81dad4e9b7`; semantic suite checksum `36c98c850cff76ba`; 1,200 unique deterministic first-party openings.
-- The earlier SEE+LMR preselection was rejected without threshold relaxation at x86-64 `1.054297` and ARM64 `1.055081` versus the frozen `1.05` performance ceiling; its active candidate code was removed before PVS freeze.
-- No production API, UCI, package version, safe facade, C ABI, JNI, Kotlin/Android interface, policy default, weights, benchmark reference, or activation state changed in S2-14.
-- Final evidence record: `docs/RUST_CHESS_ENGINE_V0_2_S2_14_PRODUCTION_VALIDATION_2026-08-06.md`.
-
-'''
-          if "## S2-14 implementation record" in tracker:
-              raise SystemExit("S2-14 implementation record already present")
-          if marker not in tracker:
-              raise SystemExit("program guardrail marker missing")
-          tracker = tracker.replace(marker, record + marker, 1)
-          tracker_path.write_text(tracker)
-
-          audit = audit_path.read_text()
-          audit = audit.replace(
-              "  docs/RUST_CHESS_ENGINE_V0_2_S2_13_INTEGRATION_2026-08-06.md\n  docs/RUST_DEVELOPER_WORKFLOWS.md",
-              "  docs/RUST_CHESS_ENGINE_V0_2_S2_13_INTEGRATION_2026-08-06.md\n  docs/RUST_CHESS_ENGINE_V0_2_S2_14_CANDIDATE_SELECTION_2026-08-06.md\n  docs/RUST_CHESS_ENGINE_V0_2_S2_14_SEE_LMR_PREFLIGHT_REJECTION_2026-08-06.md\n  docs/RUST_CHESS_ENGINE_V0_2_S2_14_PRODUCTION_VALIDATION_2026-08-06.md\n  docs/RUST_DEVELOPER_WORKFLOWS.md"
-          )
-          audit = audit.replace(
-              "  crates/chess-tools/src/bin/s2_13_variant_control.rs\n  scripts/task_v0_2_strength_audit.sh\n  .github/workflows/variant-validation.yml",
-              "  crates/chess-tools/src/bin/s2_13_variant_control.rs\n  crates/chess-tools/src/bin/s2_14_production.rs\n  scripts/task_s2_14_candidate_audit.sh\n  scripts/task_v0_2_strength_audit.sh\n  .github/workflows/variant-validation.yml\n  .github/workflows/s2-14-candidate-preflight.yml\n  .github/workflows/s2-14-production.yml"
-          )
-          audit = audit.replace(
-              "workflow=.github/workflows/variant-validation.yml\n",
-              "workflow=.github/workflows/variant-validation.yml\ns2_14_report=docs/RUST_CHESS_ENGINE_V0_2_S2_14_PRODUCTION_VALIDATION_2026-08-06.md\n"
-          )
-          audit = audit.replace(
-              "require_literal '| S2-14 | Production candidate selection and validation | **Not started** |' \"$tracker\"",
-              "require_literal '| S2-14 | Production candidate selection and validation | **Complete — PVS rejected_strength; v0.1 remains authoritative; inactive** |' \"$tracker\""
-          )
-          audit = audit.replace(
-              "require_literal '# Task S2-14: Production candidate selection and validation — NOT STARTED' \"$tracker\"",
-              "require_literal '# Task S2-14: Production candidate selection and validation — COMPLETE (REJECTED)' \"$tracker\""
-          )
-          audit = audit.replace(
-              "test \"$(grep -Fc -- '- [x]' <<<\"$s2_14\")\" -eq 0 || fail 'S2-14 was advanced by S2-13'\ntest \"$(grep -Fc -- '- [ ]' <<<\"$s2_14\")\" -gt 0 || fail 'S2-14 has no remaining requirements'",
-              "test \"$(grep -Fc -- '- [x]' <<<\"$s2_14\")\" -eq 31 || fail 'S2-14 must contain exactly 31 completed requirements'\ntest \"$(grep -Fc -- '- [ ]' <<<\"$s2_14\")\" -eq 0 || fail 'S2-14 retains incomplete requirements'"
-          )
-          evidence_checks = r'''
-# S2-14 is an evidence-backed rejection, not an activation. Pin the immutable
-# candidate SHA and both independent production decisions so documentation
-# cannot silently turn workflow success into candidate acceptance.
-require_literal '**Status:** Complete — candidate rejected' "$s2_14_report"
-require_literal '**Disposition:** `rejected_strength`' "$s2_14_report"
-require_literal '**Activation:** `false`' "$s2_14_report"
-require_literal '**Frozen candidate source SHA:** `21406b5e92b6bd42a3a902591dddae22c9b3f16f`' "$s2_14_report"
-require_literal 'run `31146807904`, job `92767800034`' "$s2_14_report"
-require_literal 'run `31146807904`, job `92767800098`' "$s2_14_report"
-require_literal 'Report checksum: `bad7aa1f69e9d18e`.' "$s2_14_report"
-require_literal 'Report checksum: `d3b883442ec6107b`.' "$s2_14_report"
-require_literal 'Artifact `8982304975`' "$s2_14_report"
-require_literal 'Artifact `8982375018`' "$s2_14_report"
-require_literal '0.4578061271735924' "$s2_14_report"
-require_literal '0.45802189803116894' "$s2_14_report"
-require_literal 'S2-15 activation is not authorized' "$s2_14_report"
-'''
-          anchor = "# Exact schema and identity boundaries.\n"
-          if anchor not in audit:
-              raise SystemExit("audit insertion anchor missing")
-          audit = audit.replace(anchor, evidence_checks + "\n" + anchor, 1)
-          audit = audit.replace(
-              "  .github/s2_13_payload_03\n)",
-              "  .github/s2_13_payload_03\n  .github/workflows/s2-14-close-once.yml\n)"
-          )
-          audit_path.write_text(audit)
-
-          tw = tracker_workflow_path.read_text()
-          tw = tw.replace("Strength tracker authority through S2-13", "Strength tracker authority through S2-14")
-          tw = tw.replace("Verify progression and evidence through S2-13", "Verify progression and evidence through S2-14")
-          tw = tw.replace(
-              "          grep -Fq '| S2-14 | Production candidate selection and validation | **Not started** |' \"$tracker\"",
-              "          grep -Fq '| S2-14 | Production candidate selection and validation | **Complete — PVS rejected_strength; v0.1 remains authoritative; inactive** |' \"$tracker\""
-          )
-          tw = tw.replace(
-              "          grep -Fq '# Task S2-14: Production candidate selection and validation — NOT STARTED' \"$tracker\"",
-              "          grep -Fq '# Task S2-14: Production candidate selection and validation — COMPLETE (REJECTED)' \"$tracker\""
-          )
-          tw = tw.replace(
-              "          test \"$(grep -Fc -- '- [x]' <<<\"$s2_14\")\" -eq 0\n          test \"$(grep -Fc -- '- [ ]' <<<\"$s2_14\")\" -gt 0",
-              "          test \"$(grep -Fc -- '- [x]' <<<\"$s2_14\")\" -eq 31\n          test \"$(grep -Fc -- '- [ ]' <<<\"$s2_14\")\" -eq 0"
-          )
-          report_checks = r'''
-          s2_14_report=docs/RUST_CHESS_ENGINE_V0_2_S2_14_PRODUCTION_VALIDATION_2026-08-06.md
-          test -f "$s2_14_report"
-          grep -Fq '**Status:** Complete — candidate rejected' "$s2_14_report"
-          grep -Fq '**Disposition:** `rejected_strength`' "$s2_14_report"
-          grep -Fq '**Activation:** `false`' "$s2_14_report"
-          grep -Fq '**Frozen candidate source SHA:** `21406b5e92b6bd42a3a902591dddae22c9b3f16f`' "$s2_14_report"
-          grep -Fq 'Report checksum: `bad7aa1f69e9d18e`.' "$s2_14_report"
-          grep -Fq 'Report checksum: `d3b883442ec6107b`.' "$s2_14_report"
-          grep -Fq 'Artifact `8982304975`' "$s2_14_report"
-          grep -Fq 'Artifact `8982375018`' "$s2_14_report"
-'''
-          anchor2 = "          integration_report=docs/RUST_CHESS_ENGINE_V0_2_S2_13_INTEGRATION_2026-08-06.md\n"
-          if anchor2 not in tw:
-              raise SystemExit("tracker workflow report anchor missing")
-          tw = tw.replace(anchor2, report_checks + "\n" + anchor2, 1)
-          tw = tw.replace(
-              "            .github/s2_13_payload_03; do",
-              "            .github/s2_13_payload_03 \\\n            .github/workflows/s2-14-close-once.yml; do"
-          )
-          Path("/tmp/tracker-close.yml").write_text(tw)
-          PY
+        run: python3 .github/s2_14_close_once.py
 
       - name: Validate intended permanent tree
         shell: bash
         run: |
           set -euo pipefail
+          mv .github/s2_14_close_once.py /tmp/s2_14_close_once.py
           mv .github/workflows/s2-14-close-once.yml /tmp/s2-14-close-once.yml
-          trap 'mv /tmp/s2-14-close-once.yml .github/workflows/s2-14-close-once.yml' EXIT
+          trap 'mv /tmp/s2_14_close_once.py .github/s2_14_close_once.py; mv /tmp/s2-14-close-once.yml .github/workflows/s2-14-close-once.yml' EXIT
           bash scripts/task_v0_2_strength_audit.sh
           test -f /tmp/tracker-close.yml
           grep -Fq 'Strength tracker authority through S2-14' /tmp/tracker-close.yml
           grep -Fq 'Complete — PVS rejected_strength; v0.1 remains authoritative; inactive' /tmp/tracker-close.yml
           grep -Fq 's2-14-close-once.yml' /tmp/tracker-close.yml
+          grep -Fq 's2_14_close_once.py' /tmp/tracker-close.yml
 
       - name: Commit evidence closure source
         shell: bash
@@ -362,7 +63,7 @@ require_literal 'S2-15 activation is not authorized' "$s2_14_report"
             scripts/task_v0_2_strength_audit.sh
           test "$(git diff --cached --name-only | wc -l)" -eq 3
           git diff --cached --check
-          git commit -m "docs: close S2-14 as rejected strength" -m "Record the exact PVS production evidence from source 21406b5e92b6bd42a3a902591dddae22c9b3f16f. Both fixed-node and clock reports are rejected_strength, activation remains false, and v0.1 remains authoritative."
+          git commit -m "docs: close S2-14 as rejected strength" -m "Record exact PVS production evidence from source 21406b5e92b6bd42a3a902591dddae22c9b3f16f. Both production reports are rejected_strength, activation remains false, and v0.1 remains authoritative."
           git push origin HEAD:master
 
       - name: Preserve patched permanent tracker workflow
