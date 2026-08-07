@@ -17,6 +17,7 @@ s4_todo="docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_TODO_2026-08-07
 hardening_spec="docs/RUST_CHESS_ENGINE_S4_CLOSURE_HARDENING_SPEC_2026-08-07.md"
 hardening_todo="docs/RUST_CHESS_ENGINE_S4_CLOSURE_HARDENING_TODO_2026-08-07.md"
 hardening_report="docs/RUST_CHESS_ENGINE_S4_CLOSURE_HARDENING_IMPLEMENTATION_REPORT.md"
+tui_todo="docs/RUST_TUI_TODO.md"
 legacy_index="docs/LEGACY_TODO_INDEX.md"
 fen_doc="docs/RUST_FEN_AND_UCI_NOTATION.md"
 fen_source="crates/chess-core/src/position/fen.rs"
@@ -35,6 +36,7 @@ for required in \
     "$hardening_spec" \
     "$hardening_todo" \
     "$hardening_report" \
+    "$tui_todo" \
     "$legacy_index" \
     "$fen_doc" \
     "$fen_source"; do
@@ -58,6 +60,7 @@ grep -Fq '**Status:** Complete — tuning method accepted for future experimenta
 grep -Fq '**Status:** Complete — closure hardening validated; no production promotion' "$hardening_todo"
 grep -Fq '**Status:** Complete — closure hardening validated; no production promotion' "$hardening_spec"
 grep -Fq '**Status:** Complete — closure hardening validated; no production promotion' "$hardening_report"
+grep -Fq 'Status: implementation complete through Phase 11; permanent regression gates and manual real-terminal acceptance remain open.' "$tui_todo"
 
 for stale in '| Active v0.2 strength program |' '| Active S3 evaluation strength program |' '| Active S4 evaluation tuning calibration program |'; do
     if grep -Fq "$stale" "$legacy_index"; then
@@ -79,6 +82,7 @@ grep -Fq "\`$v0_2_todo\`" "$legacy_index"
 grep -Fq "\`$s3_todo\`" "$legacy_index"
 grep -Fq "\`$s4_todo\`" "$legacy_index"
 grep -Fq "\`$hardening_todo\`" "$legacy_index"
+grep -Fq "\`$tui_todo\`" "$legacy_index"
 if grep -Fq 'Active S4 evaluation tuning calibration program' "$legacy_index"; then
     echo 'closed S4 TODO is still active' >&2
     exit 1
@@ -87,9 +91,9 @@ if grep -Fq '| Active S4 closure hardening program |' "$legacy_index"; then
     echo 'closure-candidate hardening TODO is still active' >&2
     exit 1
 fi
-grep -Fq 'There is no active implementation TODO.' "$legacy_index"
-grep -Fq 'Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO` and is not one of the two completed-authority documents above' "$legacy_index"
-grep -Fq '75 TODO-named files total; 2 authority documents; 1 authority index; 72 historical' "$legacy_index"
+grep -Fq 'Active implementation TODO: `docs/RUST_TUI_TODO.md`.' "$legacy_index"
+grep -Fq 'Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO`, is not one of the two completed-authority documents above, and is not explicitly registered as active in the authority table' "$legacy_index"
+grep -Fq '76 TODO-named files total; 2 completed-authority documents; 1 active authority document; 1 authority index; 72 historical' "$legacy_index"
 grep -Fq "**Companion TODO:** \`$v0_2_todo\`" "$v0_2_spec"
 grep -Fq "**Specification:** \`$v0_2_spec\`" "$v0_2_todo"
 grep -Fq "**Companion TODO:** \`$s3_todo\`" "$s3_spec"
@@ -112,7 +116,7 @@ grep -Fq 'H7 is complete.' "$hardening_report"
 
 while IFS= read -r todo_path; do
     case "$todo_path" in
-        "$tracker"|"$definitions"|"$legacy_index")
+        "$tracker"|"$definitions"|"$tui_todo"|"$legacy_index")
             ;;
         *)
             grep -Fq "\`$todo_path\`" "$legacy_index" || {
