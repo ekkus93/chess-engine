@@ -19,7 +19,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: report-master-validation-${{ github.event.workflow_run.id }}
+  group: report-master-validation-master
   cancel-in-progress: false
 
 jobs:
@@ -47,6 +47,6 @@ jobs:
               "repos/${REPOSITORY}/actions/runs/${RUN_ID}/jobs?filter=latest&per_page=100" \
               --jq '.jobs | map("- `" + .name + "`: **" + (.conclusion // .status) + "**") | join("\n")'
           )"
-          body="$(printf '### %s\n\n- Run: [%s](%s)\n- Head SHA: `%s`\n- Conclusion: **%s**\n\n%s\n' \
+          body="$(printf 'Temporary authoritative status record for master validation. Full historical run evidence remains in GitHub Actions.\n\n### Latest completed run: %s\n\n- Run: [%s](%s)\n- Head SHA: `%s`\n- Conclusion: **%s**\n\n%s\n' \
             "${RUN_NAME}" "${RUN_ID}" "${RUN_URL}" "${HEAD_SHA}" "${RUN_CONCLUSION}" "${jobs}")"
-          gh issue comment "${ISSUE_NUMBER}" --repo "${REPOSITORY}" --body "${body}"
+          gh issue edit "${ISSUE_NUMBER}" --repo "${REPOSITORY}" --body "${body}"
