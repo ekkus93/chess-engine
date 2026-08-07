@@ -37,8 +37,9 @@ jobs:
           python3 .github/s3_phase3.py
           python3 - <<'PY'
           from pathlib import Path
-          path = Path('crates/chess-tools/src/s3_cli.rs')
-          text = path.read_text()
+
+          cli = Path('crates/chess-tools/src/s3_cli.rs')
+          cli_text = cli.read_text()
           for block in [
               '''pub(crate) fn dataset_text(directory: &Path) -> Result<String, String> {
               let path = directory.join(DATASET_NAME);
@@ -55,10 +56,10 @@ jobs:
 
           ''',
           ]:
-              if block not in text:
+              if block not in cli_text:
                   raise SystemExit(f'missing dead helper block: {block.splitlines()[0]}')
-              text = text.replace(block, '', 1)
-          path.write_text(text)
+              cli_text = cli_text.replace(block, '', 1)
+          cli.write_text(cli_text)
 
           report = Path('crates/chess-tools/src/tuning/report.rs')
           report_text = report.read_text()
@@ -67,6 +68,34 @@ jobs:
           if report_text.count(old) != 1:
               raise SystemExit(f'expected one masked-report checkpoint witness, found {report_text.count(old)}')
           report.write_text(report_text.replace(old, new, 1))
+
+          s3 = Path('crates/chess-tools/src/s3.rs')
+          s3_text = s3.read_text()
+          engine_block = '''        writeln!(output, "engine_version={}", self.engine_version)
+              .expect("String write cannot fail");
+          '''
+          invocation_line = '''        writeln!(output, "exact_invocation={}", self.exact_invocation)
+              .expect("String write cannot fail");
+          '''
+          if 'exact_invocation={}' not in s3_text:
+              if s3_text.count(engine_block) != 1:
+                  raise SystemExit(f'expected one engine serialization block, found {s3_text.count(engine_block)}')
+              s3_text = s3_text.replace(engine_block, engine_block + invocation_line, 1)
+          test_block = '''        writeln!(output, "test_occurrences={}", self.test_occurrences)
+              .expect("String write cannot fail");
+          '''
+          row_lines = '''        writeln!(output, "total_position_rows={}", self.total_position_rows)
+              .expect("String write cannot fail");
+          writeln!(output, "eligible_position_rows={}", self.eligible_position_rows)
+              .expect("String write cannot fail");
+          writeln!(output, "excluded_position_rows={}", self.excluded_position_rows)
+              .expect("String write cannot fail");
+          '''
+          if 'total_position_rows={}' not in s3_text:
+              if s3_text.count(test_block) != 1:
+                  raise SystemExit(f'expected one test-occurrence serialization block, found {s3_text.count(test_block)}')
+              s3_text = s3_text.replace(test_block, test_block + row_lines, 1)
+          s3.write_text(s3_text)
           PY
 
       - name: Format generated Rust changes
