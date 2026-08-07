@@ -136,7 +136,7 @@ require_literal 'Search policy identifier/checksum: `5630315f504f4c31` / `0c0769
 require_literal 'Evaluation-weight identifier/checksum: `424153454c494e45` / `d2cca7ae10ec6e34`' "$final_report"
 require_literal 'C ABI version: `1`' "$final_report"
 require_literal 'Production PVS report checksums: `bad7aa1f69e9d18e` / `d3b883442ec6107b`' "$final_report"
-require_literal 'Opening file SHA-256: `6c3ff4cc9837bc66dd517d4a7c60d56e71a9b3a4e1fb1aabd904de81dad4e9b7`' "$final_report"
+require_literal 'Production opening file SHA-256: `6c3ff4cc9837bc66dd517d4a7c60d56e71a9b3a4e1fb1aabd904de81dad4e9b7`' "$final_report"
 require_literal 'Tablebase identity: disabled' "$final_report"
 require_literal 'CI run `31157401828`' "$final_report"
 require_literal 'Performance run `31157401863`' "$final_report"
