@@ -2,276 +2,282 @@
 
 Companion specification: `docs/RUST_TUI_SPEC.md`
 
-Status: implementation plan; unchecked items are not complete.
+Status: implementation complete through Phase 11; permanent regression gates and manual real-terminal acceptance remain open.
 
 The objective is a native Rust `chess-tui` application based behaviorally on the historical Python Textual TUI while using the authoritative Rust core/search implementation. This work is a frontend/integration milestone. It must not alter engine strength, evaluation weights, search policy, tuning state, or candidate-promotion disposition.
 
 ## Phase 0 — Baseline and architecture confirmation
 
-- [ ] Record the starting `master` SHA before implementation.
+- [x] Record the starting `master` SHA before implementation.
 - [ ] Run the existing fast Rust validation and record the result.
-- [ ] Confirm `crates/chess-core`, `crates/chess-search`, `crates/chess-book`, and `crates/chess-uci` public APIs needed by the TUI.
-- [ ] Map historical Python behaviors from `chess_game/tui.py` and `chess_game/tui_game.py` to Rust APIs.
-- [ ] Explicitly classify Python-only behavior that will not be ported, especially online self-learning/automatic weight mutation.
-- [ ] Verify whether UCI worker/search orchestration contains presentation-neutral code worth extracting.
-- [ ] Do not make `chess-search` depend on UCI/TUI/filesystem code.
-- [ ] Do not use a `chess-uci` subprocess unless a documented blocker makes in-process reuse impossible.
+- [x] Confirm `crates/chess-core`, `crates/chess-search`, `crates/chess-book`, and `crates/chess-uci` public APIs needed by the TUI.
+- [x] Map historical Python behaviors from `chess_game/tui.py` and `chess_game/tui_game.py` to Rust APIs.
+- [x] Explicitly classify Python-only behavior that will not be ported, especially online self-learning/automatic weight mutation.
+- [x] Verify whether UCI worker/search orchestration contains presentation-neutral code worth extracting.
+- [x] Do not make `chess-search` depend on UCI/TUI/filesystem code.
+- [x] Do not use a `chess-uci` subprocess unless a documented blocker makes in-process reuse impossible.
 
 ### Phase 0 acceptance
 
-- [ ] A short implementation note identifies the exact state/search APIs to be reused.
-- [ ] Any required shared abstraction has a clear owner and does not invert existing dependency direction.
-- [ ] No engine algorithm change is included in the TUI plan.
+- [x] A short implementation note identifies the exact state/search APIs to be reused.
+- [x] Any required shared abstraction has a clear owner and does not invert existing dependency direction.
+- [x] No engine algorithm change is included in the TUI plan.
 
 ## Phase 1 — Create `chess-tui` crate
 
-- [ ] Add `crates/chess-tui/Cargo.toml`.
-- [ ] Add `crates/chess-tui` to workspace members.
-- [ ] Add Ratatui and Crossterm dependencies compatible with the repository MSRV.
-- [ ] Depend on `chess-core`.
-- [ ] Depend on `chess-search`.
-- [ ] Add `chess-book` only if explicit book support is implemented in this milestone.
-- [ ] Apply workspace lint configuration.
-- [ ] Add `#![forbid(unsafe_code)]` unless a documented terminal-library requirement proves otherwise.
-- [ ] Add a minimal `main.rs` that initializes and safely restores the terminal.
-- [ ] Ensure terminal cleanup is RAII/scoped rather than dependent only on the happy path.
+- [x] Add `crates/chess-tui/Cargo.toml`.
+- [x] Add `crates/chess-tui` to workspace members.
+- [x] Add Ratatui and Crossterm dependencies compatible with the repository MSRV.
+- [x] Depend on `chess-core`.
+- [x] Depend on `chess-search`.
+- [x] Add `chess-book` only if explicit book support is implemented in this milestone.
+- [x] Apply workspace lint configuration.
+- [x] Add `#![forbid(unsafe_code)]` unless a documented terminal-library requirement proves otherwise.
+- [x] Add a minimal `main.rs` that initializes and safely restores the terminal.
+- [x] Ensure terminal cleanup is RAII/scoped rather than dependent only on the happy path.
 
 ### Phase 1 tests/gates
 
-- [ ] `cargo fmt --all -- --check`
-- [ ] `cargo check -p chess-tui`
-- [ ] `cargo clippy -p chess-tui --all-targets -- -D warnings`
-- [ ] Launch/quit smoke test restores the shell terminal correctly.
+- [x] `cargo fmt --all -- --check`
+- [x] `cargo check -p chess-tui`
+- [x] `cargo clippy -p chess-tui --all-targets -- -D warnings`
+- [x] Launch/quit smoke test restores the shell terminal correctly.
 
 ## Phase 2 — Presentation-neutral application/session model
 
 Create a controller/state layer that can be tested without a live terminal.
 
-- [ ] Define `AppState`/equivalent top-level state.
-- [ ] Define screen/mode state: Main Menu, Game, confirmation modal, Game Over/error state as needed.
-- [ ] Define `GameConfig` with Human vs Engine and Self-play variants or an equivalently type-safe representation.
-- [ ] Store the authoritative `chess_core::Game` in the game session.
-- [ ] Store move history as structured Rust moves rather than authoritative free-form strings.
-- [ ] Track game generation/session ID.
-- [ ] Track active search request generation.
-- [ ] Track thinking/search status explicitly.
-- [ ] Track self-play auto/pause state explicitly.
-- [ ] Track visible nonfatal user error/status messages explicitly.
-- [ ] Make illegal state transitions reject visibly in debug/tests rather than silently doing nothing when that would hide a bug.
+- [x] Define `AppState`/equivalent top-level state.
+- [x] Define screen/mode state: Main Menu, Game, confirmation modal, Game Over/error state as needed.
+- [x] Define `GameConfig` with Human vs Engine and Self-play variants or an equivalently type-safe representation.
+- [x] Store the authoritative `chess_core::Game` in the game session.
+- [x] Store move history as structured Rust moves rather than authoritative free-form strings.
+- [x] Track game generation/session ID.
+- [x] Track active search request generation.
+- [x] Track thinking/search status explicitly.
+- [x] Track self-play auto/pause state explicitly.
+- [x] Track visible nonfatal user error/status messages explicitly.
+- [x] Make illegal state transitions reject visibly in debug/tests rather than silently doing nothing when that would hide a bug.
 
 ### Phase 2 tests
 
-- [ ] Default menu configuration matches the intended defaults.
-- [ ] Starting Human/White creates a fresh starting game with human input enabled.
-- [ ] Starting Human/Black creates a fresh starting game requiring an engine move first.
-- [ ] Starting Self-play schedules White engine search.
-- [ ] New game increments/replaces the generation so old search results become stale.
-- [ ] Game-over state disables future move/search scheduling.
+- [x] Default menu configuration matches the intended defaults.
+- [x] Starting Human/White creates a fresh starting game with human input enabled.
+- [x] Starting Human/Black creates a fresh starting game requiring an engine move first.
+- [x] Starting Self-play schedules White engine search.
+- [x] New game increments/replaces the generation so old search results become stale.
+- [x] Game-over state disables future move/search scheduling.
 
 ## Phase 3 — Board and game rendering model
 
-- [ ] Implement a pure board-render/model helper independent of terminal side effects.
-- [ ] Render files and ranks.
-- [ ] Render White pieces uppercase and Black pieces lowercase.
-- [ ] Render knights as `N`/`n`.
-- [ ] Support White-at-bottom orientation.
-- [ ] Support Black-at-bottom orientation.
-- [ ] Human-vs-engine orientation follows human color.
-- [ ] Self-play defaults to White at bottom.
-- [ ] Add turn/status text.
-- [ ] Add check indication using authoritative core state.
-- [ ] Add numbered move-history formatting.
-- [ ] Add terminal-result formatting.
-- [ ] Do not make correctness depend on terminal color support.
+- [x] Implement a pure board-render/model helper independent of terminal side effects.
+- [x] Render files and ranks.
+- [x] Render White pieces uppercase and Black pieces lowercase.
+- [x] Render knights as `N`/`n`.
+- [x] Support White-at-bottom orientation.
+- [x] Support Black-at-bottom orientation.
+- [x] Human-vs-engine orientation follows human color.
+- [x] Self-play defaults to White at bottom.
+- [x] Add turn/status text.
+- [x] Add check indication using authoritative core state.
+- [x] Add numbered move-history formatting.
+- [x] Add terminal-result formatting.
+- [x] Do not make correctness depend on terminal color support.
 
 ### Phase 3 tests
 
-- [ ] Starting position White orientation snapshot/structural test.
-- [ ] Starting position Black orientation snapshot/structural test.
-- [ ] Piece-case test.
-- [ ] Rank/file-label test.
-- [ ] Move-list numbering test for odd and even ply counts.
-- [ ] Narrow-terminal layout decision does not panic.
+- [x] Starting position White orientation snapshot/structural test.
+- [x] Starting position Black orientation snapshot/structural test.
+- [x] Piece-case test.
+- [x] Rank/file-label test.
+- [x] Move-list numbering test for odd and even ply counts.
+- [x] Narrow-terminal layout decision does not panic.
 
 ## Phase 4 — Ratatui screens and responsive layout
 
-- [ ] Implement main-menu screen.
-- [ ] Implement Human vs Engine mode selection.
-- [ ] Implement human color selection.
-- [ ] Implement initial engine depth selection.
-- [ ] Implement Self-play mode selection.
-- [ ] Implement separate White/Black depth selection.
-- [ ] Implement game screen with board pane.
-- [ ] Implement move-history pane.
-- [ ] Implement status/input area.
-- [ ] Implement engine-information pane.
-- [ ] Implement thinking indicator.
-- [ ] Implement game-over panel/modal.
-- [ ] Implement confirmation UI for resignation and abandoning an active game.
-- [ ] Handle terminal resize events.
-- [ ] For unusably small terminals, render a minimum-size message instead of panicking or corrupting layout.
+- [x] Implement main-menu screen.
+- [x] Implement Human vs Engine mode selection.
+- [x] Implement human color selection.
+- [x] Implement initial engine depth selection.
+- [x] Implement Self-play mode selection.
+- [x] Implement separate White/Black depth selection.
+- [x] Implement game screen with board pane.
+- [x] Implement move-history pane.
+- [x] Implement status/input area.
+- [x] Implement engine-information pane.
+- [x] Implement thinking indicator.
+- [x] Implement game-over panel/modal.
+- [x] Implement confirmation UI for resignation and abandoning an active game.
+- [x] Handle terminal resize events.
+- [x] For unusably small terminals, render a minimum-size message instead of panicking or corrupting layout.
 
 ### Phase 4 tests
 
-- [ ] Render tests for menu state.
-- [ ] Render tests for human game state.
-- [ ] Render tests for self-play state.
-- [ ] Render tests for thinking state.
-- [ ] Render tests for game-over/error state.
-- [ ] Small-dimension rendering smoke tests.
+- [x] Render tests for menu state.
+- [x] Render tests for human game state.
+- [x] Render tests for self-play state.
+- [x] Render tests for thinking state.
+- [x] Render tests for game-over/error state.
+- [x] Small-dimension rendering smoke tests.
 
 ## Phase 5 — Human move input
 
-- [ ] Add focused move-entry editing.
-- [ ] Accept UCI coordinate notation such as `e2e4`.
-- [ ] Accept promotion suffixes such as `e7e8q`.
-- [ ] Parse through Rust-core move types/APIs rather than a second TUI chess parser where possible.
-- [ ] Validate moves against the authoritative current game.
-- [ ] Apply a legal move transactionally.
-- [ ] Append move history only after successful application.
-- [ ] Reject malformed input visibly.
-- [ ] Reject illegal moves visibly.
-- [ ] Preserve game state exactly after rejected input.
-- [ ] Detect terminal state after a human move before scheduling engine work.
-- [ ] Ensure shortcuts do not trigger accidentally while editing move text.
+- [x] Add focused move-entry editing.
+- [x] Accept UCI coordinate notation such as `e2e4`.
+- [x] Accept promotion suffixes such as `e7e8q`.
+- [x] Parse through Rust-core move types/APIs rather than a second TUI chess parser where possible.
+- [x] Validate moves against the authoritative current game.
+- [x] Apply a legal move transactionally.
+- [x] Append move history only after successful application.
+- [x] Reject malformed input visibly.
+- [x] Reject illegal moves visibly.
+- [x] Preserve game state exactly after rejected input.
+- [x] Detect terminal state after a human move before scheduling engine work.
+- [x] Ensure shortcuts do not trigger accidentally while editing move text.
 
 ### Phase 5 tests
 
-- [ ] `e2e4` succeeds from the starting position.
-- [ ] malformed move is rejected without mutation.
-- [ ] well-formed illegal move is rejected without mutation.
-- [ ] promotion move preserves explicit promotion identity.
-- [ ] move submission when it is not the human's turn is rejected/disabled.
-- [ ] terminal human move does not schedule another engine search.
+- [x] `e2e4` succeeds from the starting position.
+- [x] malformed move is rejected without mutation.
+- [x] well-formed illegal move is rejected without mutation.
+- [x] promotion move preserves explicit promotion identity.
+- [x] move submission when it is not the human's turn is rejected/disabled.
+- [x] terminal human move does not schedule another engine search.
 
 ## Phase 6 — Engine worker and cancellation lifecycle
 
-- [ ] Implement a dedicated search worker or equivalent bounded worker abstraction.
-- [ ] Keep search off the terminal event thread.
-- [ ] Guarantee at most one TUI-owned active search per game session.
-- [ ] Use existing `SearchLimits` for fixed-depth search.
-- [ ] Use existing transposition/search policy APIs rather than TUI-local search behavior.
-- [ ] Pass safely owned/snapshotted state into the worker.
-- [ ] Assign every search a request/generation ID.
-- [ ] Return typed progress/completion/error events to the UI/controller.
-- [ ] Reject a completion whose generation does not match the active game/request.
-- [ ] Wire existing cancellation/stop support for menu/new-game/quit/pause transitions where appropriate.
-- [ ] Resolve worker ownership cleanly during application shutdown.
-- [ ] Catch/report worker failures at the application boundary as appropriate; do not leave `thinking=true` forever.
+- [x] Implement a dedicated search worker or equivalent bounded worker abstraction.
+- [x] Keep search off the terminal event thread.
+- [x] Guarantee at most one TUI-owned active search per game session.
+- [x] Use existing `SearchLimits` for fixed-depth search.
+- [x] Use existing transposition/search policy APIs rather than TUI-local search behavior.
+- [x] Pass safely owned/snapshotted state into the worker.
+- [x] Assign every search a request/generation ID.
+- [x] Return typed progress/completion/error events to the UI/controller.
+- [x] Reject a completion whose generation does not match the active game/request.
+- [x] Wire existing cancellation/stop support for menu/new-game/quit/pause transitions where appropriate.
+- [x] Resolve worker ownership cleanly during application shutdown.
+- [x] Catch/report worker failures at the application boundary as appropriate; do not leave `thinking=true` forever.
 
 ### Explicit forbidden fallbacks
 
-- [ ] Verify there is no random-legal-move fallback after search failure.
-- [ ] Verify there is no first-legal-move fallback after search failure.
-- [ ] Verify there is no silent depth reduction/retry.
-- [ ] Verify there is no silent search-policy replacement.
-- [ ] Verify there is no Python-engine fallback.
-- [ ] Verify cancellation cannot later apply an obsolete best move to a new game.
+- [x] Verify there is no random-legal-move fallback after search failure.
+- [x] Verify there is no first-legal-move fallback after search failure.
+- [x] Verify there is no silent depth reduction/retry.
+- [x] Verify there is no silent search-policy replacement.
+- [x] Verify there is no Python-engine fallback.
+- [x] Verify cancellation cannot later apply an obsolete best move to a new game.
 
 ### Phase 6 tests
 
-- [ ] Search runs without blocking synthetic UI event processing.
-- [ ] Completed engine move is legal and applied exactly once.
-- [ ] Stale generation completion is ignored.
-- [ ] Search error clears thinking state and becomes visible.
-- [ ] Cancellation does not mutate the game after abandonment.
-- [ ] Quit/new-game while searching does not deadlock.
+- [x] Search runs without blocking synthetic UI event processing.
+- [x] Completed engine move is legal and applied exactly once.
+- [x] Stale generation completion is ignored.
+- [x] Search error clears thinking state and becomes visible.
+- [x] Cancellation does not mutate the game after abandonment.
+- [x] Quit/new-game while searching does not deadlock.
 
 ## Phase 7 — Search progress and engine panel
 
 Use existing observer/progress APIs rather than instrumenting the search algorithm specifically for the TUI unless a small presentation-neutral API improvement is required.
 
-- [ ] Display completed/current depth where available.
-- [ ] Display score in centipawns.
-- [ ] Format mate scores distinctly.
-- [ ] Display node count.
-- [ ] Display NPS when calculable from authoritative progress/time data.
-- [ ] Display elapsed time.
-- [ ] Display principal variation.
-- [ ] Display hash fullness only if available cleanly.
-- [ ] Represent unavailable fields as unavailable/blank, never invented zero values that imply real measurements.
-- [ ] Rate-limit redraw/progress delivery if necessary so search progress cannot flood the terminal event loop.
+- [x] Display completed/current depth where available.
+- [x] Display score in centipawns.
+- [x] Format mate scores distinctly.
+- [x] Display node count.
+- [x] Display NPS when calculable from authoritative progress/time data.
+- [x] Display elapsed time.
+- [x] Display principal variation.
+- [x] Display hash fullness only if available cleanly.
+- [x] Represent unavailable fields as unavailable/blank, never invented zero values that imply real measurements.
+- [x] Rate-limit redraw/progress delivery if necessary so search progress cannot flood the terminal event loop.
 
 ### Phase 7 tests
 
-- [ ] Progress event updates only presentation state.
-- [ ] Progress from stale request is ignored.
-- [ ] Mate score formatting test.
-- [ ] Missing optional metrics do not panic and are not fabricated.
+- [x] Progress event updates only presentation state.
+- [x] Progress from stale request is ignored.
+- [x] Mate score formatting test.
+- [x] Missing optional metrics do not panic and are not fabricated.
 
 ## Phase 8 — Human vs Engine complete workflow
 
-- [ ] Human White game starts awaiting input.
-- [ ] Valid human move automatically starts engine search.
-- [ ] Engine completion applies the engine move and returns control to the human.
-- [ ] Human Black game starts with an engine search.
-- [ ] Check status is displayed.
-- [ ] Checkmate/stalemate/draw result stops play.
-- [ ] Add resignation shortcut/action.
-- [ ] Add resignation confirmation.
-- [ ] Correctly declare the opponent winner on resignation.
-- [ ] Add new-game/menu/quit confirmation when abandoning an active game.
+- [x] Human White game starts awaiting input.
+- [x] Valid human move automatically starts engine search.
+- [x] Engine completion applies the engine move and returns control to the human.
+- [x] Human Black game starts with an engine search.
+- [x] Check status is displayed.
+- [x] Checkmate/stalemate/draw result stops play.
+- [x] Add resignation shortcut/action.
+- [x] Add resignation confirmation.
+- [x] Correctly declare the opponent winner on resignation.
+- [x] Add new-game/menu/quit confirmation when abandoning an active game.
 
 ### Phase 8 integration tests
 
-- [ ] Human White: `e2e4` -> engine legal response -> human to move.
-- [ ] Human Black: engine legal first move -> human to move.
-- [ ] Resignation as White declares Black winner.
-- [ ] Resignation as Black declares White winner.
-- [ ] Terminal game cannot accept another move.
+- [x] Human White: `e2e4` -> engine legal response -> human to move.
+- [x] Human Black: engine legal first move -> human to move.
+- [x] Resignation as White declares Black winner.
+- [x] Resignation as Black declares White winner.
+- [x] Terminal game cannot accept another move.
 
 ## Phase 9 — Self-play workflow
 
-- [ ] Start White engine search automatically.
-- [ ] Apply White result and schedule Black automatically.
-- [ ] Continue until paused or terminal.
-- [ ] Space/explicit action pauses auto-play.
-- [ ] Resume continues from the current authoritative game.
-- [ ] Step while paused schedules exactly one ply.
-- [ ] Step remains disabled while a search is active.
-- [ ] Game-over stops all auto scheduling.
-- [ ] Do not port Python online-learning/background weight mutation.
+- [x] Start White engine search automatically.
+- [x] Apply White result and schedule Black automatically.
+- [x] Continue until paused or terminal.
+- [x] Space/explicit action pauses auto-play.
+- [x] Resume continues from the current authoritative game.
+- [x] Step while paused schedules exactly one ply.
+- [x] Step remains disabled while a search is active.
+- [x] Game-over stops all auto scheduling.
+- [x] Do not port Python online-learning/background weight mutation.
 
 ### Phase 9 tests
 
-- [ ] Self-play alternates sides legally.
-- [ ] Pause prevents scheduling the next ply.
-- [ ] Step applies exactly one ply and remains paused.
-- [ ] Resume restarts automatic scheduling.
-- [ ] Terminal state schedules no additional search.
-- [ ] No tuning/evaluation files are written by self-play TUI mode.
+- [x] Self-play alternates sides legally.
+- [x] Pause prevents scheduling the next ply.
+- [x] Step applies exactly one ply and remains paused.
+- [x] Resume restarts automatic scheduling.
+- [x] Terminal state schedules no additional search.
+- [x] No tuning/evaluation files are written by self-play TUI mode.
 
 ## Phase 10 — Save game
 
-- [ ] Define a deterministic text serialization function separate from filesystem I/O.
-- [ ] Include mode/configuration.
-- [ ] Include ordered UCI moves.
-- [ ] Include result/reason.
-- [ ] Include date/time only through an injectable/testable boundary where needed.
-- [ ] Implement explicit save path entry/action.
-- [ ] Do not claim PGN unless valid PGN is implemented.
-- [ ] Surface path/permission/write errors in the UI.
-- [ ] Mark Saved only after the complete write succeeds.
-- [ ] Avoid implicit writes or auto-save unless separately specified.
+- [x] Define a deterministic text serialization function separate from filesystem I/O.
+- [x] Include mode/configuration.
+- [x] Include ordered UCI moves.
+- [x] Include result/reason.
+- [x] Include date/time only through an injectable/testable boundary where needed.
+- [x] Implement explicit save path entry/action.
+- [x] Do not claim PGN unless valid PGN is implemented.
+- [x] Surface path/permission/write errors in the UI.
+- [x] Mark Saved only after the complete write succeeds.
+- [x] Avoid implicit writes or auto-save unless separately specified.
 
 ### Phase 10 tests
 
-- [ ] Serialization golden test.
-- [ ] Successful write test using temporary directory.
-- [ ] Failed write remains visible and does not set Saved state.
-- [ ] Saved move order/result matches authoritative session state.
+- [x] Serialization golden test.
+- [x] Successful write test using temporary directory.
+- [x] Failed write remains visible and does not set Saved state.
+- [x] Saved move order/result matches authoritative session state.
 
 ## Phase 11 — Developer workflow and documentation
 
-- [ ] Add `bash scripts/dev.sh tui`.
-- [ ] Add `tui` to `scripts/dev.sh help`.
-- [ ] Document direct `cargo run -p chess-tui` usage.
-- [ ] Update README description to mention native Rust TUI.
-- [ ] Add `crates/chess-tui` to README workspace list.
-- [ ] Add TUI launch command to README common commands.
-- [ ] Document controls and modes.
-- [ ] Document that the historical Python TUI is reference-only and is not a runtime dependency.
-- [ ] Document architecture relationship among `chess-tui`, `chess-uci`, `chess-search`, and `chess-core`.
+- [x] Add `bash scripts/dev.sh tui`.
+- [x] Add `tui` to `scripts/dev.sh help`.
+- [x] Document direct `cargo run -p chess-tui` usage.
+- [x] Update README description to mention native Rust TUI.
+- [x] Add `crates/chess-tui` to README workspace list.
+- [x] Add TUI launch command to README common commands.
+- [x] Document controls and modes.
+- [x] Document that the historical Python TUI is reference-only and is not a runtime dependency.
+- [x] Document architecture relationship among `chess-tui`, `chess-uci`, `chess-search`, and `chess-core`.
+
+## Focused Ralph evidence
+
+- Focused run `31227985266` / job `93025997708`: locked metadata, TUI check, strict Clippy, TUI tests, release build, PTY launch/quit cleanup smoke, and Rust 1.75 MSRV check all succeeded.
+- Earlier focused runs `31227684896`, `31227799491`, `31227882334`, and `31227931565` established workflow, integration, responsive-layout, terminal-lifecycle, and state-machine regressions before source freeze.
+- The TUI rejects `SearchResult` emergency cancellation fallback moves and accepts only an exact `completed().best_move()` from a completed iterative-deepening depth.
 
 ## Phase 12 — Validation and regression gates
 
