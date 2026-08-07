@@ -52,6 +52,9 @@ jobs:
           git config user.email "ekkus93@gmail.com"
           git add crates/chess-tools/src/bin/s4_candidate_smoke.rs scripts/task_s4_evaluation_tuning_calibration_audit.sh
           git commit -m "feat: add inactive S4 candidate strength smoke"
+          git restore .github/s4_phase8.py
+          git status --porcelain
+          test -z "$(git status --porcelain)"
           git fetch origin master
           git rebase origin/master
           git push origin HEAD:master
