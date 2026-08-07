@@ -1,0 +1,55 @@
+name: S4 Closure Stage
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - .github/s4_closure_stage.py
+      - .github/workflows/s4-closure-stage.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: s4-closure-stage
+  cancel-in-progress: false
+
+jobs:
+  close:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply Phase-A closure candidate
+        run: python3 .github/s4_closure_stage.py
+      - name: Validate transformed closure candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n scripts/task_s3_evaluation_strength_audit.sh
+          bash -n scripts/task_s4_evaluation_tuning_calibration_audit.sh
+          bash -n scripts/task_post_port_review_fix_audit.sh
+          grep -Fq '**Status:** Closure candidate — S4-0 through S4-11 complete; S4-12 exact final validation pending' docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_TODO_2026-08-07.md
+          grep -Fq '# Task S4-11: Method disposition and S5 readiness — COMPLETE (METHOD ACCEPTED FOR S5 EXPERIMENTATION)' docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_TODO_2026-08-07.md
+          grep -Fq '# Task S4-12: Final report and closure — IN PROGRESS (EXACT FINAL VALIDATION PENDING)' docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_TODO_2026-08-07.md
+          grep -Fq '**Status:** Closure candidate — exact final validation pending' docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_IMPLEMENTATION_REPORT.md
+          grep -Fq '**Workflow run:** `31203299756`' docs/RUST_CHESS_ENGINE_S4_DEVELOPMENT_STRENGTH_SMOKE_2026-08-07.md
+          git diff --check
+      - name: Remove staging controls and publish candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Phillip Chin"
+          git config user.email "ekkus93@gmail.com"
+          git rm .github/s4_closure_stage.py .github/workflows/s4-closure-stage.yml
+          git add docs scripts
+          test ! -e .github/s4_closure_stage.py
+          test ! -e .github/workflows/s4-closure-stage.yml
+          git diff --cached --check
+          git commit -m "docs: prepare S4 closure candidate"
+          git fetch origin master
+          git rebase origin/master
+          git push origin HEAD:master
