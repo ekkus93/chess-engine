@@ -5,7 +5,7 @@ use std::{collections::BTreeMap, fs, path::Path};
 use chess_search::{EvaluationWeightSet, EvaluationWeights};
 use chess_tune::{
     EvaluationParameterGroup, KCalibrationConfig, S4OptimizerTrace, S4OptimizerTraceBinding,
-    SpsaCheckpoint, SpsaConfig, SpsaOptimizer, SpsaSchedule, SpsaWeightBounds,
+    SpsaCheckpoint, SpsaConfig, SpsaOptimizer, SpsaSchedule, SpsaWeightBounds, TunableParameter,
 };
 
 use chess_tools::s3::S3DatasetManifest;
@@ -502,6 +502,89 @@ fn publish_output_directory(
             let trace_text = trace.to_text().map_err(|error| error.to_string())?;
             fs::write(staging.join("s4-optimizer-trace.txt"), trace_text)
                 .map_err(|error| format!("failed to write S4 optimizer trace: {error}"))?;
+
+            let mask = context.group.mask();
+            let mut changed_parameter_count = 0_u32;
+            let mut maximum_absolute_parameter_delta = 0_i32;
+            let mut total_absolute_parameter_delta = 0_u64;
+            for parameter in TunableParameter::all() {
+                if !mask.contains(parameter) {
+                    continue;
+                }
+                let initial = i32::from(parameter.value(&EvaluationWeights::DEFAULT));
+                let final_value = i32::from(parameter.value(&candidate.weights));
+                let delta = (final_value - initial).abs();
+                if delta != 0 {
+                    changed_parameter_count += 1;
+                }
+                maximum_absolute_parameter_delta = maximum_absolute_parameter_delta.max(delta);
+                total_absolute_parameter_delta +=
+                    u64::try_from(delta).expect("absolute i16 parameter delta fits u64");
+            }
+            let active_count =
+                u32::try_from(mask.active_count()).expect("tunable parameter count fits u32");
+            let mean_absolute_parameter_delta =
+                total_absolute_parameter_delta as f64 / f64::from(active_count);
+            let zero_after_quantization_count: u64 = trace
+                .iterations()
+                .iter()
+                .map(|diagnostic| u64::from(diagnostic.zero_after_quantization_count()))
+                .sum();
+            let clipping_count: u64 = trace
+                .iterations()
+                .iter()
+                .map(|diagnostic| u64::from(diagnostic.clipped_update_count()))
+                .sum();
+            let s4_summary = format!(
+                concat!(
+                    "group	{}
+mask_fingerprint	{:016x}
+active_parameter_count	{}
+",
+                    "initial_training_loss	{:.17e}
+final_training_loss	{:.17e}
+training_loss_delta	{:.17e}
+",
+                    "initial_validation_loss	{:.17e}
+final_validation_loss	{:.17e}
+validation_loss_delta	{:.17e}
+",
+                    "changed_parameter_count	{}
+maximum_absolute_parameter_delta	{}
+",
+                    "mean_absolute_parameter_delta	{:.17e}
+zero_after_quantization_count	{}
+",
+                    "clipping_count	{}
+candidate_value_checksum	{:016x}
+",
+                    "candidate_artifact_checksum	{:016x}
+trace_checksum	{:016x}
+",
+                    "activated	false
+disposition	unassessed
+"
+                ),
+                context.group.name(),
+                context.group.mask_fingerprint(),
+                active_count,
+                report.initial_training_loss,
+                report.final_training_loss,
+                report.final_training_loss - report.initial_training_loss,
+                report.initial_validation_loss,
+                report.final_validation_loss,
+                report.final_validation_loss - report.initial_validation_loss,
+                changed_parameter_count,
+                maximum_absolute_parameter_delta,
+                mean_absolute_parameter_delta,
+                zero_after_quantization_count,
+                clipping_count,
+                evaluation_value_checksum(&candidate.weights),
+                candidate.checksum,
+                trace.checksum(),
+            );
+            fs::write(staging.join("s4-summary.tsv"), s4_summary)
+                .map_err(|error| format!("failed to write S4 tuning summary: {error}"))?;
         }
         fs::rename(&staging, output_dir)
             .map_err(|error| format!("failed to publish tuning output directory: {error}"))?;
@@ -518,6 +601,14 @@ const FNV_PRIME: u64 = 0x0000_0100_0000_01b3;
 
 fn checksum_text(text: &str) -> u64 {
     hash_bytes(FNV_OFFSET, text.as_bytes())
+}
+
+fn evaluation_value_checksum(weights: &EvaluationWeights) -> u64 {
+    let mut hash = FNV_OFFSET;
+    for value in weights.values() {
+        hash = hash_bytes(hash, &value.to_le_bytes());
+    }
+    hash
 }
 
 fn checkpoint_checksum(checkpoint: &SpsaCheckpoint) -> Result<u64, String> {

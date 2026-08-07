@@ -91,6 +91,14 @@ require_literal 'trace_checksum_corruption_fails_closed' "$trace"
 require_literal 'wrong_binding_fails_closed' "$trace"
 require_literal 'advance_with_diagnostics(&dataset, iterations)' crates/chess-tools/src/tuning_cli.rs
 require_literal 's4-optimizer-trace.txt' crates/chess-tools/src/tuning_cli.rs
+require_literal 's4-summary.tsv' crates/chess-tools/src/tuning_cli.rs
+require_literal 'changed_parameter_count' crates/chess-tools/src/tuning_cli.rs
+require_literal 'maximum_absolute_parameter_delta' crates/chess-tools/src/tuning_cli.rs
+require_literal 'mean_absolute_parameter_delta' crates/chess-tools/src/tuning_cli.rs
+require_literal 'zero_after_quantization_count' crates/chess-tools/src/tuning_cli.rs
+require_literal 'clipping_count' crates/chess-tools/src/tuning_cli.rs
+require_literal 'candidate_value_checksum' crates/chess-tools/src/tuning_cli.rs
+require_literal 'disposition\tunassessed' crates/chess-tools/src/tuning_cli.rs
 require_literal 'initial_checkpoint_checksum: checkpoint_checksum(&initial_checkpoint)?' crates/chess-tools/src/tuning_cli.rs
 require_literal 'fn apply_gradient_step(' "$optimizer"
 require_literal 'subinteger_update_is_explicitly_quantization_limited' "$optimizer"
