@@ -4,9 +4,12 @@ use std::{collections::BTreeMap, fs, path::Path};
 
 use chess_search::{EvaluationWeightSet, EvaluationWeights};
 use chess_tune::{
-    KCalibrationConfig, SpsaCheckpoint, SpsaConfig, SpsaOptimizer, SpsaSchedule, SpsaWeightBounds,
+    EvaluationParameterGroup, KCalibrationConfig, SpsaCheckpoint, SpsaConfig, SpsaOptimizer,
+    SpsaSchedule, SpsaWeightBounds,
 };
 
+use chess_tools::s3::S3DatasetManifest;
+use chess_tools::self_play::SelfPlayDataset;
 use chess_tools::tuning::{
     loss_dataset_and_provenance_from_self_play_text, write_candidate_artifact_atomic,
     write_tuning_report_atomic, TuningReport, TuningReportProvenance,
@@ -138,7 +141,10 @@ impl TuningFileConfig {
         })
     }
 
-    fn optimizer_config(&self) -> Result<SpsaConfig, String> {
+    fn optimizer_config(
+        &self,
+        group: Option<EvaluationParameterGroup>,
+    ) -> Result<SpsaConfig, String> {
         let schedule = SpsaSchedule::new(
             self.learning_rate,
             self.step_decay,
@@ -149,13 +155,19 @@ impl TuningFileConfig {
         .map_err(|error| error.to_string())?;
         let bounds = SpsaWeightBounds::new(self.minimum_weight, self.maximum_weight)
             .map_err(|error| error.to_string())?;
-        SpsaConfig::new(
+        let config = SpsaConfig::new(
             self.maximum_iterations,
             schedule,
             bounds,
             self.regularization_strength,
         )
-        .map_err(|error| error.to_string())
+        .map_err(|error| error.to_string())?;
+        match group {
+            Some(group) => config
+                .with_parameter_mask(group.mask())
+                .map_err(|error| error.to_string()),
+            None => Ok(config),
+        }
     }
 }
 
@@ -166,13 +178,75 @@ pub(crate) fn run_tuning_command(arguments: &[String]) -> Result<(), String> {
                 .to_owned(),
         );
     }
-    let config_path = Path::new(&arguments[0]);
-    let dataset_path = Path::new(&arguments[1]);
-    let output_dir = Path::new(&arguments[2]);
-    let previous_output_dir = arguments.get(3).map(String::as_str).map(Path::new);
+    run_tuning(
+        Path::new(&arguments[0]),
+        Path::new(&arguments[1]),
+        Path::new(&arguments[2]),
+        arguments.get(3).map(String::as_str).map(Path::new),
+        None,
+    )
+}
+
+pub(crate) fn run_group_tuning_command(arguments: &[String]) -> Result<(), String> {
+    if !(arguments.len() == 4 || arguments.len() == 5) {
+        return Err(
+            "usage: chess-tools tune-group GROUP CONFIG_PATH S3_DATASET_DIR OUTPUT_DIR [PREVIOUS_OUTPUT_DIR]"
+                .to_owned(),
+        );
+    }
+    let group = parse_group(&arguments[0])?;
+    let dataset_dir = Path::new(&arguments[2]);
+    let dataset_path = dataset_dir.join("dataset.tsv");
+    let manifest_path = dataset_dir.join("manifest.txt");
+    let manifest_text = fs::read_to_string(&manifest_path)
+        .map_err(|error| format!("failed to read S3 manifest {manifest_path:?}: {error}"))?;
+    let manifest =
+        S3DatasetManifest::from_text(&manifest_text).map_err(|error| error.to_string())?;
+    let dataset_text = fs::read_to_string(&dataset_path)
+        .map_err(|error| format!("failed to read S3 dataset {dataset_path:?}: {error}"))?;
+    let self_play = SelfPlayDataset::from_text(&dataset_text).map_err(|error| error.to_string())?;
+    manifest
+        .validate_dataset(&self_play)
+        .map_err(|error| error.to_string())?;
+    manifest
+        .validate_for_tuning()
+        .map_err(|error| format!("S3 dataset is not admitted for tuning: {error}"))?;
+    run_tuning(
+        Path::new(&arguments[1]),
+        &dataset_path,
+        Path::new(&arguments[3]),
+        arguments.get(4).map(String::as_str).map(Path::new),
+        Some(S3GroupContext {
+            group,
+            manifest,
+            manifest_text,
+        }),
+    )
+}
+
+struct S3GroupContext {
+    group: EvaluationParameterGroup,
+    manifest: S3DatasetManifest,
+    manifest_text: String,
+}
+
+fn run_tuning(
+    config_path: &Path,
+    dataset_path: &Path,
+    output_dir: &Path,
+    previous_output_dir: Option<&Path>,
+    s3: Option<S3GroupContext>,
+) -> Result<(), String> {
     let config_text = fs::read_to_string(config_path)
         .map_err(|error| format!("failed to read tuning config {config_path:?}: {error}"))?;
     let file_config = TuningFileConfig::parse(&config_text)?;
+    if let Some(context) = &s3 {
+        if context.manifest.source_commit() != file_config.source_commit {
+            return Err(
+                "S3 dataset source commit differs from tuning config source_commit".to_owned(),
+            );
+        }
+    }
     let dataset_text = fs::read_to_string(dataset_path)
         .map_err(|error| format!("failed to read tuning dataset {dataset_path:?}: {error}"))?;
     let (dataset, dataset_provenance) =
@@ -185,7 +259,8 @@ pub(crate) fn run_tuning_command(arguments: &[String]) -> Result<(), String> {
             initial_set.identifier
         ));
     }
-    let optimizer_config = file_config.optimizer_config()?;
+    let group = s3.as_ref().map(|context| context.group);
+    let optimizer_config = file_config.optimizer_config(group)?;
     let mut optimizer = match previous_output_dir {
         Some(path) => {
             let previous_config_path = path.join("tuning-config.txt");
@@ -194,6 +269,22 @@ pub(crate) fn run_tuning_command(arguments: &[String]) -> Result<(), String> {
             })?;
             if previous_config != config_text {
                 return Err("resume requires the exact previous tuning configuration".to_owned());
+            }
+            if let Some(context) = &s3 {
+                let previous_group_path = path.join("s3-group.txt");
+                let previous_group = fs::read_to_string(&previous_group_path).map_err(|error| {
+                    format!("failed to read previous S3 group {previous_group_path:?}: {error}")
+                })?;
+                if previous_group != format!("{}\n", context.group.name()) {
+                    return Err("resume requires the exact previous S3 tuning group".to_owned());
+                }
+                let previous_manifest_path = path.join("s3-dataset-manifest.txt");
+                let previous_manifest = fs::read_to_string(&previous_manifest_path).map_err(|error| {
+                    format!("failed to read previous S3 manifest {previous_manifest_path:?}: {error}")
+                })?;
+                if previous_manifest != context.manifest_text {
+                    return Err("resume requires the exact previous S3 dataset manifest".to_owned());
+                }
             }
             let checkpoint_path = path.join("checkpoint.bin");
             let bytes = fs::read(&checkpoint_path).map_err(|error| {
@@ -268,6 +359,7 @@ pub(crate) fn run_tuning_command(arguments: &[String]) -> Result<(), String> {
         &report,
         &candidate,
         summary,
+        s3.as_ref(),
     )?;
     println!("output\t{}", output_dir.display());
     println!("iterations\t{}", checkpoint.completed_iterations());
@@ -275,8 +367,27 @@ pub(crate) fn run_tuning_command(arguments: &[String]) -> Result<(), String> {
         "candidate\t{:016x}",
         file_config.candidate_weight_identifier
     );
+    if let Some(context) = &s3 {
+        println!("group\t{}", context.group.name());
+        println!("mask\t{:016x}", context.group.mask_fingerprint());
+        println!(
+            "training_loss_delta\t{:.17e}",
+            report.final_training_loss - report.initial_training_loss
+        );
+        println!(
+            "validation_loss_delta\t{:.17e}",
+            report.final_validation_loss - report.initial_validation_loss
+        );
+    }
     println!("activated\tfalse");
     Ok(())
+}
+
+fn parse_group(value: &str) -> Result<EvaluationParameterGroup, String> {
+    EvaluationParameterGroup::ALL
+        .into_iter()
+        .find(|group| group.name() == value)
+        .ok_or_else(|| format!("unknown S3 evaluation parameter group {value:?}"))
 }
 
 fn publish_output_directory(
@@ -286,6 +397,7 @@ fn publish_output_directory(
     report: &TuningReport,
     candidate: &chess_tune::NamedWeightArtifact,
     summary: chess_tune::SpsaRunSummary,
+    s3: Option<&S3GroupContext>,
 ) -> Result<(), String> {
     if output_dir.exists() {
         return Err(format!(
@@ -336,6 +448,32 @@ fn publish_output_directory(
             "This candidate is inactive. Activation requires the independent Task 21 gate.\n",
         )
         .map_err(|error| format!("failed to write activation marker: {error}"))?;
+        if let Some(context) = s3 {
+            fs::write(
+                staging.join("s3-group.txt"),
+                format!("{}\n", context.group.name()),
+            )
+            .map_err(|error| format!("failed to write S3 group identity: {error}"))?;
+            fs::write(
+                staging.join("s3-dataset-manifest.txt"),
+                &context.manifest_text,
+            )
+            .map_err(|error| format!("failed to write S3 dataset manifest: {error}"))?;
+            let s3_summary = format!(
+                "group\t{}\nmask_fingerprint\t{:016x}\ndataset_manifest_checksum\t{:016x}\ninitial_training_loss\t{:.17e}\nfinal_training_loss\t{:.17e}\ntraining_loss_delta\t{:.17e}\ninitial_validation_loss\t{:.17e}\nfinal_validation_loss\t{:.17e}\nvalidation_loss_delta\t{:.17e}\nactivated\tfalse\n",
+                context.group.name(),
+                context.group.mask_fingerprint(),
+                context.manifest.checksum(),
+                report.initial_training_loss,
+                report.final_training_loss,
+                report.final_training_loss - report.initial_training_loss,
+                report.initial_validation_loss,
+                report.final_validation_loss,
+                report.final_validation_loss - report.initial_validation_loss,
+            );
+            fs::write(staging.join("s3-summary.tsv"), s3_summary)
+                .map_err(|error| format!("failed to write S3 tuning summary: {error}"))?;
+        }
         fs::rename(&staging, output_dir)
             .map_err(|error| format!("failed to publish tuning output directory: {error}"))?;
         Ok(())

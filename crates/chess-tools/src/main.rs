@@ -7,6 +7,7 @@
 
 use std::{env, fs, io, process::ExitCode, time::Instant};
 
+mod s3_cli;
 mod tuning_cli;
 
 use chess_search::{EvaluationWeightSet, SearchPolicySet};
@@ -26,7 +27,7 @@ use chess_tools::{
 };
 
 fn usage() -> &'static str {
-    "usage:\n  chess-tools legal [FEN]\n  chess-tools play UCI [FEN]\n  chess-tools perft DEPTH [FEN]\n  chess-tools divide DEPTH [FEN]\n  chess-tools suite MAX_DEPTH\n  chess-tools eval [FEN]\n  chess-tools eval-bench ITERATIONS [FEN]\n  chess-tools tt-bench ITERATIONS\n  chess-tools cancel-bench ITERATIONS\n  chess-tools weights-export\n  chess-tools weights-validate PATH\n  chess-tools policy-export\n  chess-tools policy-validate PATH\n  chess-tools self-play CONFIG_PATH OUTPUT_PATH\n  chess-tools self-play-validate DATASET_PATH\n  chess-tools self-play-replay DATASET_PATH GAME_ID\n  chess-tools tune CONFIG_PATH DATASET_PATH OUTPUT_DIR [PREVIOUS_OUTPUT_DIR]\n  chess-tools oracle"
+    "usage:\n  chess-tools legal [FEN]\n  chess-tools play UCI [FEN]\n  chess-tools perft DEPTH [FEN]\n  chess-tools divide DEPTH [FEN]\n  chess-tools suite MAX_DEPTH\n  chess-tools eval [FEN]\n  chess-tools eval-bench ITERATIONS [FEN]\n  chess-tools tt-bench ITERATIONS\n  chess-tools cancel-bench ITERATIONS\n  chess-tools weights-export\n  chess-tools weights-validate PATH\n  chess-tools policy-export\n  chess-tools policy-validate PATH\n  chess-tools self-play CONFIG_PATH OUTPUT_PATH\n  chess-tools self-play-validate DATASET_PATH\n  chess-tools self-play-replay DATASET_PATH GAME_ID\n  chess-tools s3-self-play SOURCE_SHA CONFIG_PATH OUTPUT_DIR\n  chess-tools s3-self-play-validate DATASET_DIR\n  chess-tools tune CONFIG_PATH DATASET_PATH OUTPUT_DIR [PREVIOUS_OUTPUT_DIR]\n  chess-tools tune-group GROUP CONFIG_PATH S3_DATASET_DIR OUTPUT_DIR [PREVIOUS_OUTPUT_DIR]\n  chess-tools oracle"
 }
 
 fn parse_depth(value: &str) -> Result<u8, String> {
@@ -279,8 +280,17 @@ fn run(arguments: &[String]) -> Result<(), String> {
             println!("termination\t{}", replay.termination());
             println!("final_fen\t{}", replay.final_fen());
         }
+        "s3-self-play" => {
+            s3_cli::run_s3_self_play(&arguments[1..])?;
+        }
+        "s3-self-play-validate" => {
+            s3_cli::run_s3_self_play_validate(&arguments[1..])?;
+        }
         "tune" => {
             tuning_cli::run_tuning_command(&arguments[1..])?;
+        }
+        "tune-group" => {
+            tuning_cli::run_group_tuning_command(&arguments[1..])?;
         }
         "oracle" => {
             if arguments.len() != 1 {

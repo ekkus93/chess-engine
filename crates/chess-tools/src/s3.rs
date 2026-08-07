@@ -35,6 +35,7 @@ const FNV_PRIME: u64 = 0x0000_0100_0000_01b3;
 pub struct S3DatasetManifest {
     source_commit: [u8; 20],
     engine_version: String,
+    exact_invocation: String,
     search_policy_schema: u16,
     search_policy_identifier: u64,
     search_policy_checksum: u64,
@@ -52,6 +53,9 @@ pub struct S3DatasetManifest {
     training_occurrences: u64,
     validation_occurrences: u64,
     test_occurrences: u64,
+    total_position_rows: u64,
+    eligible_position_rows: u64,
+    excluded_position_rows: u64,
     checksum: u64,
 }
 
@@ -59,6 +63,7 @@ impl S3DatasetManifest {
     /// Binds an already validated baseline self-play dataset to an explicit source commit.
     pub fn from_dataset(
         source_commit: [u8; 20],
+        exact_invocation: String,
         dataset: &SelfPlayDataset,
     ) -> Result<Self, S3DatasetManifestError> {
         dataset
@@ -67,6 +72,7 @@ impl S3DatasetManifest {
         if source_commit == [0; 20] {
             return Err(S3DatasetManifestError::ZeroSourceCommit);
         }
+        validate_invocation(&exact_invocation)?;
         let policy = SearchPolicySet::baseline();
         policy
             .validate()
@@ -120,12 +126,26 @@ impl S3DatasetManifest {
                 .checked_add(u64::from(position.occurrences()))
                 .ok_or(S3DatasetManifestError::CountOverflow)?;
         }
+        let total_position_rows = u64::try_from(dataset.positions().len())
+            .map_err(|_| S3DatasetManifestError::CountOverflow)?;
+        let eligible_position_rows = u64::try_from(
+            dataset
+                .positions()
+                .iter()
+                .filter(|position| position.eligible())
+                .count(),
+        )
+        .map_err(|_| S3DatasetManifestError::CountOverflow)?;
+        let excluded_position_rows = total_position_rows
+            .checked_sub(eligible_position_rows)
+            .ok_or(S3DatasetManifestError::CountOverflow)?;
         let dataset_checksum = hash_bytes(FNV_OFFSET, dataset.to_text().as_bytes());
         let config_checksum = canonical_config_checksum(dataset);
         let opening_checksum = canonical_opening_checksum(dataset);
         let mut manifest = Self {
             source_commit,
             engine_version: env!("CARGO_PKG_VERSION").to_owned(),
+            exact_invocation,
             search_policy_schema: policy.schema_version,
             search_policy_identifier: policy.identifier,
             search_policy_checksum: policy.checksum,
@@ -143,6 +163,9 @@ impl S3DatasetManifest {
             training_occurrences,
             validation_occurrences,
             test_occurrences,
+            total_position_rows,
+            eligible_position_rows,
+            excluded_position_rows,
             checksum: 0,
         };
         manifest.checksum = manifest.computed_checksum();
@@ -174,10 +197,11 @@ impl S3DatasetManifest {
                 )));
             }
         }
-        const KEYS: [&str; 21] = [
+        const KEYS: [&str; 25] = [
             "identifier",
             "source_commit",
             "engine_version",
+            "exact_invocation",
             "search_policy_schema",
             "search_policy_identifier",
             "search_policy_checksum",
@@ -195,6 +219,9 @@ impl S3DatasetManifest {
             "training_occurrences",
             "validation_occurrences",
             "test_occurrences",
+            "total_position_rows",
+            "eligible_position_rows",
+            "excluded_position_rows",
             "checksum",
         ];
         if fields.len() != KEYS.len() || KEYS.iter().any(|key| !fields.contains_key(*key)) {
@@ -211,6 +238,7 @@ impl S3DatasetManifest {
         let manifest = Self {
             source_commit: parse_commit(&fields["source_commit"])?,
             engine_version: fields["engine_version"].clone(),
+            exact_invocation: fields["exact_invocation"].clone(),
             search_policy_schema: parse_number(
                 &fields["search_policy_schema"],
                 "search_policy_schema",
@@ -243,6 +271,18 @@ impl S3DatasetManifest {
                 "validation_occurrences",
             )?,
             test_occurrences: parse_number(&fields["test_occurrences"], "test_occurrences")?,
+            total_position_rows: parse_number(
+                &fields["total_position_rows"],
+                "total_position_rows",
+            )?,
+            eligible_position_rows: parse_number(
+                &fields["eligible_position_rows"],
+                "eligible_position_rows",
+            )?,
+            excluded_position_rows: parse_number(
+                &fields["excluded_position_rows"],
+                "excluded_position_rows",
+            )?,
             checksum: parse_hex_u64(&fields["checksum"], "checksum")?,
         };
         manifest.validate()?;
@@ -263,6 +303,8 @@ impl S3DatasetManifest {
         )
         .expect("String write cannot fail");
         writeln!(output, "engine_version={}", self.engine_version)
+            .expect("String write cannot fail");
+        writeln!(output, "exact_invocation={}", self.exact_invocation)
             .expect("String write cannot fail");
         writeln!(output, "search_policy_schema={}", self.search_policy_schema)
             .expect("String write cannot fail");
@@ -307,6 +349,20 @@ impl S3DatasetManifest {
         .expect("String write cannot fail");
         writeln!(output, "test_occurrences={}", self.test_occurrences)
             .expect("String write cannot fail");
+        writeln!(output, "total_position_rows={}", self.total_position_rows)
+            .expect("String write cannot fail");
+        writeln!(
+            output,
+            "eligible_position_rows={}",
+            self.eligible_position_rows
+        )
+        .expect("String write cannot fail");
+        writeln!(
+            output,
+            "excluded_position_rows={}",
+            self.excluded_position_rows
+        )
+        .expect("String write cannot fail");
         writeln!(output, "checksum={:016x}", self.checksum).expect("String write cannot fail");
         output
     }
@@ -316,7 +372,8 @@ impl S3DatasetManifest {
         &self,
         dataset: &SelfPlayDataset,
     ) -> Result<(), S3DatasetManifestError> {
-        let reconstructed = Self::from_dataset(self.source_commit, dataset)?;
+        let reconstructed =
+            Self::from_dataset(self.source_commit, self.exact_invocation.clone(), dataset)?;
         if &reconstructed != self {
             return Err(S3DatasetManifestError::Dataset(
                 "S3 dataset manifest does not match the supplied dataset".to_owned(),
@@ -396,6 +453,7 @@ impl S3DatasetManifest {
         if self.source_commit == [0; 20] {
             return Err(S3DatasetManifestError::ZeroSourceCommit);
         }
+        validate_invocation(&self.exact_invocation)?;
         let policy = SearchPolicySet::baseline();
         let weights = EvaluationWeightSet::baseline();
         if self.engine_version != env!("CARGO_PKG_VERSION")
@@ -423,9 +481,14 @@ impl S3DatasetManifest {
                 .checked_add(self.unfinished_games)
                 .ok_or(S3DatasetManifestError::CountOverflow)?
                 != self.games
+            || self
+                .eligible_position_rows
+                .checked_add(self.excluded_position_rows)
+                .ok_or(S3DatasetManifestError::CountOverflow)?
+                != self.total_position_rows
         {
             return Err(S3DatasetManifestError::Malformed(
-                "S3 game counts are inconsistent".to_owned(),
+                "S3 game or position-row counts are inconsistent".to_owned(),
             ));
         }
         let expected = self.computed_checksum();
@@ -436,6 +499,30 @@ impl S3DatasetManifest {
             });
         }
         Ok(())
+    }
+
+    /// Exact generation invocation bound by this package.
+    #[must_use]
+    pub fn exact_invocation(&self) -> &str {
+        &self.exact_invocation
+    }
+
+    /// Total unique dataset position rows before eligibility filtering.
+    #[must_use]
+    pub const fn total_position_rows(&self) -> u64 {
+        self.total_position_rows
+    }
+
+    /// Rows eligible for the configured split semantics.
+    #[must_use]
+    pub const fn eligible_position_rows(&self) -> u64 {
+        self.eligible_position_rows
+    }
+
+    /// Rows excluded by opening/unfinished-game policy.
+    #[must_use]
+    pub const fn excluded_position_rows(&self) -> u64 {
+        self.excluded_position_rows
     }
 
     fn computed_checksum(&self) -> u64 {
@@ -582,6 +669,20 @@ fn canonical_opening_checksum(dataset: &SelfPlayDataset) -> u64 {
     hash_bytes(FNV_OFFSET, text.as_bytes())
 }
 
+fn validate_invocation(value: &str) -> Result<(), S3DatasetManifestError> {
+    if value.is_empty()
+        || value.trim() != value
+        || value
+            .bytes()
+            .any(|byte| matches!(byte, b'\n' | b'\r' | b'\0'))
+    {
+        return Err(S3DatasetManifestError::Malformed(
+            "exact_invocation must be non-empty canonical single-line text".to_owned(),
+        ));
+    }
+    Ok(())
+}
+
 fn parse_commit(value: &str) -> Result<[u8; 20], S3DatasetManifestError> {
     if value.len() != 40 || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
         return Err(S3DatasetManifestError::Malformed(
@@ -673,7 +774,9 @@ mod tests {
         let dataset = small_dataset(6);
         let source =
             parse_source_commit("0123456789abcdef0123456789abcdef01234567").expect("commit parses");
-        let manifest = S3DatasetManifest::from_dataset(source, &dataset).expect("manifest builds");
+        let manifest =
+            S3DatasetManifest::from_dataset(source, "s3-test-self-play".to_owned(), &dataset)
+                .expect("manifest builds");
         let text = manifest.to_text();
         let parsed = S3DatasetManifest::from_text(&text).expect("manifest parses");
         assert_eq!(parsed, manifest);
@@ -689,7 +792,9 @@ mod tests {
         let dataset = small_dataset(6);
         let source =
             parse_source_commit("0123456789abcdef0123456789abcdef01234567").expect("commit parses");
-        let manifest = S3DatasetManifest::from_dataset(source, &dataset).expect("manifest builds");
+        let manifest =
+            S3DatasetManifest::from_dataset(source, "s3-test-self-play".to_owned(), &dataset)
+                .expect("manifest builds");
         let corrupt = manifest.to_text().replace("seed=21299", "seed=21300");
         assert!(S3DatasetManifest::from_text(&corrupt).is_err());
 
@@ -698,11 +803,34 @@ mod tests {
     }
 
     #[test]
+    fn exact_invocation_is_provenance_and_changes_manifest_checksum() {
+        let dataset = small_dataset(6);
+        let source =
+            parse_source_commit("0123456789abcdef0123456789abcdef01234567").expect("commit parses");
+        let first = S3DatasetManifest::from_dataset(
+            source,
+            "chess-tools s3-self-play first".to_owned(),
+            &dataset,
+        )
+        .expect("first manifest builds");
+        let second = S3DatasetManifest::from_dataset(
+            source,
+            "chess-tools s3-self-play second".to_owned(),
+            &dataset,
+        )
+        .expect("second manifest builds");
+        assert_ne!(first.checksum(), second.checksum());
+        assert_ne!(first.to_text(), second.to_text());
+    }
+
+    #[test]
     fn small_pilot_is_valid_but_not_admitted_as_training_scale() {
         let dataset = small_dataset(6);
         let source =
             parse_source_commit("0123456789abcdef0123456789abcdef01234567").expect("commit parses");
-        let manifest = S3DatasetManifest::from_dataset(source, &dataset).expect("manifest builds");
+        let manifest =
+            S3DatasetManifest::from_dataset(source, "s3-test-self-play".to_owned(), &dataset)
+                .expect("manifest builds");
         assert_eq!(
             manifest.validate_for_tuning(),
             Err(S3DatasetAdmissionError::TooFewGames {

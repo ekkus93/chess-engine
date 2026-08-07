@@ -14,7 +14,7 @@ use chess_tune::{
     tunable_values, LogisticK, LossDataset, LossPartition, LossPipelineError, NamedWeightArtifact,
     NamedWeightArtifactError, OutcomeTarget, SpsaCheckpoint, SpsaConfig, SpsaOptimizer,
     SpsaOptimizerError, TrainingDatasetProvenance, TrainingMetadata, TrainingRunProvenance,
-    TunableParameter, SPSA_OPTIMIZER_IDENTIFIER, TUNABLE_PARAMETER_COUNT,
+    TunableParameter, TunableParameterMask, SPSA_OPTIMIZER_IDENTIFIER, TUNABLE_PARAMETER_COUNT,
 };
 
 /// Current strict tuning-report schema.
@@ -220,6 +220,7 @@ impl TuningReport {
             candidate_weights,
             final_training_loss,
             config.regularization_strength(),
+            config.parameter_mask(),
         );
         require_float(
             "checkpoint initial-weight reference",
@@ -733,18 +734,19 @@ fn regularized_training_objective(
     candidate: EvaluationWeights,
     training_loss: f64,
     regularization_strength: f64,
+    mask: TunableParameterMask,
 ) -> f64 {
     let initial_values = tunable_values(&initial);
     let candidate_values = tunable_values(&candidate);
-    let mean_squared_delta = initial_values
-        .iter()
-        .zip(candidate_values)
-        .map(|(initial_value, candidate_value)| {
-            let difference = f64::from(candidate_value) - f64::from(*initial_value);
+    let mean_squared_delta = TunableParameter::all()
+        .filter(|parameter| mask.contains(*parameter))
+        .map(|parameter| {
+            let index = parameter.index();
+            let difference = f64::from(candidate_values[index]) - f64::from(initial_values[index]);
             difference * difference
         })
         .sum::<f64>()
-        / TUNABLE_PARAMETER_COUNT as f64;
+        / mask.active_count() as f64;
     training_loss + regularization_strength * mean_squared_delta
 }
 
@@ -905,8 +907,9 @@ mod tests {
     use chess_core::Position;
     use chess_search::{EvaluationWeights, BASELINE_WEIGHT_SET_ID};
     use chess_tune::{
-        LogisticK, LossDataset, LossPosition, OutcomeTarget, SpsaConfig, SpsaOptimizer,
-        SpsaSchedule, SpsaWeightBounds, TrainingDatasetProvenance, TUNABLE_PARAMETER_COUNT,
+        EvaluationParameterGroup, LogisticK, LossDataset, LossPosition, OutcomeTarget, SpsaConfig,
+        SpsaOptimizer, SpsaSchedule, SpsaWeightBounds, TrainingDatasetProvenance,
+        TUNABLE_PARAMETER_COUNT,
     };
 
     use super::{TuningReport, TuningReportProvenance, FNV_OFFSET};
@@ -918,6 +921,65 @@ mod tests {
             occurrences,
         )
         .expect("valid loss row")
+    }
+
+    #[test]
+    fn masked_optimizer_report_uses_the_same_regularization_domain() {
+        let dataset = LossDataset::new(
+            vec![position(
+                "7k/8/8/8/8/8/Q6K/8 w - - 0 1",
+                OutcomeTarget::Win,
+                3,
+            )],
+            vec![position(
+                "7k/q7/8/8/8/8/8/7K b - - 0 1",
+                OutcomeTarget::Draw,
+                2,
+            )],
+        )
+        .expect("valid dataset");
+        let schedule = SpsaSchedule::new(1.0, 0.602, 1.0, 0.101, 10.0).expect("schedule");
+        let config = SpsaConfig::new(
+            4,
+            schedule,
+            SpsaWeightBounds::new(-2_000, 2_000).expect("bounds"),
+            0.001,
+        )
+        .expect("config")
+        .with_parameter_mask(EvaluationParameterGroup::PawnStructure.mask())
+        .expect("mask");
+        let mut optimizer = SpsaOptimizer::new(
+            config,
+            7,
+            EvaluationWeights::DEFAULT,
+            &dataset,
+            LogisticK::new(1.0).expect("K"),
+        )
+        .expect("optimizer");
+        optimizer.advance(&dataset, 4).expect("advance");
+        let report = TuningReport::from_checkpoint(
+            TuningReportProvenance::new(
+                1,
+                "0.1.0-test".to_owned(),
+                [1; 20],
+                BASELINE_WEIGHT_SET_ID,
+                2,
+                "cargo run --locked -p chess-tools -- tune-group pawn_structure".to_owned(),
+            )
+            .expect("valid provenance"),
+            TrainingDatasetProvenance::new(
+                1,
+                FNV_OFFSET,
+                dataset.training_occurrences(),
+                dataset.validation_occurrences(),
+            ),
+            config,
+            &dataset,
+            EvaluationWeights::DEFAULT,
+            &optimizer.checkpoint(),
+        )
+        .expect("masked report builds");
+        report.validate().expect("masked report validates");
     }
 
     #[test]

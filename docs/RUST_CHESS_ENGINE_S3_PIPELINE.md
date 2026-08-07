@@ -43,3 +43,20 @@ Only selected parameters receive perturbation directions or optimizer updates. I
 Validation loss remains held out from optimizer state transitions. Existing `LossDataset::calibrate_k` calibrates `K` on training data only, and SPSA reports validation MSE separately after bounded work.
 
 No artifact described here is a production activation mechanism. v0.1 defaults remain authoritative until the distinct S3 activation gate is explicitly approved and passes.
+
+
+## S3 command surface
+
+The S3 package commands are explicit and offline:
+
+```text
+chess-tools s3-self-play SOURCE_SHA CONFIG_PATH OUTPUT_DIR
+chess-tools s3-self-play-validate DATASET_DIR
+chess-tools tune-group GROUP CONFIG_PATH S3_DATASET_DIR OUTPUT_DIR [PREVIOUS_OUTPUT_DIR]
+```
+
+`s3-self-play` publishes one directory through a same-parent staging rename. The directory contains the exact input config, exact opening-suite text, canonical dataset, canonical manifest, and an activation-disabled marker. The manifest binds the exact command-line invocation as single-line provenance and records total, eligible, and excluded unique position-row counts.
+
+`tune-group` refuses a dataset package unless its manifest matches the dataset, satisfies S3 admission thresholds, and has the same source commit as the tuning config. The selected group becomes the optimizer parameter mask and therefore part of the checkpoint-bound config fingerprint. Resume additionally requires the exact prior group name and exact dataset manifest text.
+
+The legacy `tune` command remains the historical all-parameter Task-21 adapter and its config format is unchanged.
