@@ -1,0 +1,188 @@
+name: S4 Development Strength Smoke
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - .github/workflows/s4-development-strength-smoke.yml
+      - crates/chess-tools/src/bin/s4_candidate_smoke.rs
+      - crates/chess-tools/src/engine_variant_validation.rs
+      - crates/chess-tools/src/tuning_cli.rs
+      - crates/chess-tune/**
+      - crates/chess-search/**
+      - crates/chess-core/**
+      - fixtures/self_play_openings.tsv
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: s4-development-strength-smoke-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Build release tooling and smoke binary
+        run: cargo build --locked --release -p chess-tools --bin chess-tools --bin s4_candidate_smoke
+      - name: Regenerate frozen stronger calibration corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/s4-stronger.txt <<'EOF'
+          schema=1
+          games=96
+          seed=1395929912
+          maximum_plies=256
+          white_limit=nodes:1024
+          white_tt_mib=1
+          white_check_extension=false
+          black_limit=nodes:1024
+          black_tt_mib=1
+          black_check_extension=false
+          claimable_draw=accept
+          opening_positions=exclude
+          split_train=70
+          split_validation=20
+          split_test=10
+          opening_path=fixtures/self_play_openings.tsv
+          EOF
+          printf '%s  %s\n' '11102da8d9581089429884e29a1a942c6d504e300813e9229e3270036361def1' /tmp/s4-stronger.txt | sha256sum --check --status
+          target/release/chess-tools s3-self-play "$GITHUB_SHA" /tmp/s4-stronger.txt /tmp/s4-stronger | tee /tmp/stronger.log
+          target/release/chess-tools s3-self-play-validate /tmp/s4-stronger | tee /tmp/stronger-validate.log
+          grep -Fxq $'dataset_checksum\t85c0e5949cb329e3' /tmp/stronger.log
+          grep -Fxq $'training_occurrences\t8202' /tmp/stronger.log
+          grep -Fxq $'validation_occurrences\t2465' /tmp/stronger.log
+          grep -Fxq $'excluded_rows\t0' /tmp/stronger.log
+          grep -Fxq $'admitted_for_tuning\ttrue' /tmp/stronger-validate.log
+      - name: Reproduce selected row 11 on smoke SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          config=/tmp/s4-selected.txt
+          printf 'CHESS_TUNING_CONFIG\t1\n' > "$config"
+          cat >> "$config" <<EOF
+          engine_identifier=5995211731466014277
+          initial_weight_identifier=4774188637087157829
+          candidate_weight_identifier=5995501946914471947
+          source_commit=${GITHUB_SHA}
+          generated_at_unix_seconds=1786112011
+          maximum_iterations=32
+          advance_iterations=32
+          learning_rate=4096
+          step_decay=0.602
+          perturbation_size=8
+          perturbation_decay=0.101
+          stability_constant=10.0
+          minimum_weight=-2000
+          maximum_weight=2000
+          regularization_strength=0.0000
+          random_seed=1395995457
+          k_minimum=0.1
+          k_maximum=3.0
+          k_intervals=20
+          EOF
+          target/release/chess-tools tune-group full_existing_evaluator "$config" /tmp/s4-stronger /tmp/s4-selected-output | tee /tmp/selected.log
+          grep -Fxq $'candidate_value_checksum\t520db5dd58086a8a' /tmp/s4-selected-output/s4-summary.tsv
+          grep -Fxq $'changed_parameter_count\t645' /tmp/s4-selected-output/s4-summary.tsv
+          grep -Fxq $'training_loss_delta\t-4.83858551862105524e-3' /tmp/s4-selected-output/s4-summary.tsv
+          grep -Fxq $'validation_loss_delta\t-6.37062441281038838e-3' /tmp/s4-selected-output/s4-summary.tsv
+          grep -Fxq $'clipping_count\t0' /tmp/s4-selected-output/s4-summary.tsv
+          grep -Fxq $'loss_decision\tadvance' /tmp/s4-selected-output/s3-candidate-registry.tsv
+          grep -Fxq $'registered_count\t1' /tmp/s4-selected-output/s3-candidate-registry.tsv
+          grep -Fxq $'activated\tfalse' /tmp/s4-selected-output/s3-candidate-registry.tsv
+      - name: Run paired fixed-node development smoke
+        shell: bash
+        env:
+          S4_SMOKE_EXPECTED_VALUE_CHECKSUM: 520db5dd58086a8a
+        run: |
+          set -euo pipefail
+          export S4_SMOKE_SOURCE_SHA="$GITHUB_SHA"
+          export S4_SMOKE_BUILD_IDENTITY="ubuntu-24.04-x86_64-rustc-1.97.1-release"
+          export S4_SMOKE_EXACT_INVOCATION="target/release/s4_candidate_smoke /tmp/s4-selected-output/candidate-weights.txt /tmp/s4-smoke-fixed fixed_nodes"
+          target/release/s4_candidate_smoke \
+            /tmp/s4-selected-output/candidate-weights.txt \
+            /tmp/s4-smoke-fixed \
+            fixed_nodes | tee /tmp/smoke-fixed.log
+          grep -Fxq $'activated\tfalse' /tmp/s4-smoke-fixed/s4-smoke-manifest.tsv
+      - name: Run paired clock development smoke
+        shell: bash
+        env:
+          S4_SMOKE_EXPECTED_VALUE_CHECKSUM: 520db5dd58086a8a
+        run: |
+          set -euo pipefail
+          export S4_SMOKE_SOURCE_SHA="$GITHUB_SHA"
+          export S4_SMOKE_BUILD_IDENTITY="ubuntu-24.04-x86_64-rustc-1.97.1-release"
+          export S4_SMOKE_EXACT_INVOCATION="target/release/s4_candidate_smoke /tmp/s4-selected-output/candidate-weights.txt /tmp/s4-smoke-clock clock_ms"
+          target/release/s4_candidate_smoke \
+            /tmp/s4-selected-output/candidate-weights.txt \
+            /tmp/s4-smoke-clock \
+            clock_ms | tee /tmp/smoke-clock.log
+          grep -Fxq $'activated\tfalse' /tmp/s4-smoke-clock/s4-smoke-manifest.tsv
+      - name: Summarize diagnostic match evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' | tee /tmp/s4-smoke-summary.tsv
+          import struct
+          from pathlib import Path
+
+          def decode(bits):
+              return struct.unpack('>d', int(bits, 16).to_bytes(8, 'big'))[0]
+
+          def parse_report(path):
+              fields = {}
+              for line in Path(path).read_text().splitlines():
+                  if '=' in line and not line.startswith('game_'):
+                      key, value = line.split('=', 1)
+                      fields.setdefault(key, value)
+              required = [
+                  'game_count','candidate_wins','draws','candidate_losses','unfinished',
+                  'illegal_moves','crashes','time_forfeits','infrastructure_failures',
+                  'mean_pair_score','pair_score_standard_error','lower_confidence_bound',
+                  'decision','activated','checksum'
+              ]
+              missing = [key for key in required if key not in fields]
+              if missing:
+                  raise SystemExit(f'{path}: missing report fields {missing}')
+              for key in ['illegal_moves','crashes','time_forfeits','infrastructure_failures']:
+                  if int(fields[key]) != 0:
+                      raise SystemExit(f'{path}: first-party game/infrastructure failure: {key}={fields[key]}')
+              if fields['activated'] != 'false':
+                  raise SystemExit(f'{path}: report unexpectedly activated')
+              return fields
+
+          print('protocol\tgames\twins\tdraws\tlosses\tunfinished\tmean_pair_score\tstandard_error\tlower_confidence_bound\tdecision\treport_checksum\tactivated')
+          for protocol, directory in [('fixed_nodes', '/tmp/s4-smoke-fixed'), ('clock_ms', '/tmp/s4-smoke-clock')]:
+              report = next(Path(directory).glob('s4-development-*.report'))
+              fields = parse_report(report)
+              print(
+                  f"{protocol}\t{fields['game_count']}\t{fields['candidate_wins']}\t{fields['draws']}\t{fields['candidate_losses']}\t{fields['unfinished']}\t"
+                  f"{decode(fields['mean_pair_score']):.17e}\t{decode(fields['pair_score_standard_error']):.17e}\t{decode(fields['lower_confidence_bound']):.17e}\t"
+                  f"{fields['decision']}\t{fields['checksum']}\t{fields['activated']}"
+              )
+          PY
+      - name: Package development smoke evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p s4-development-smoke-evidence
+          cp -a /tmp/s4-selected-output s4-development-smoke-evidence/candidate
+          cp -a /tmp/s4-smoke-fixed s4-development-smoke-evidence/fixed-nodes
+          cp -a /tmp/s4-smoke-clock s4-development-smoke-evidence/clock
+          cp /tmp/s4-stronger.txt /tmp/s4-selected.txt /tmp/stronger.log /tmp/stronger-validate.log /tmp/selected.log /tmp/smoke-fixed.log /tmp/smoke-clock.log /tmp/s4-smoke-summary.tsv s4-development-smoke-evidence/
+          printf '%s\n' "$GITHUB_SHA" > s4-development-smoke-evidence/source-sha.txt
+          printf 'candidate_value_checksum\t520db5dd58086a8a\nactivated\tfalse\n' > s4-development-smoke-evidence/disposition.tsv
+      - name: Upload development smoke evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: s4-development-strength-smoke-${{ github.sha }}
+          path: s4-development-smoke-evidence
+          if-no-files-found: error
+          retention-days: 60
