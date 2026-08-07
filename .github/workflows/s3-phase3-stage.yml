@@ -35,6 +35,31 @@ jobs:
         run: |
           python3 .github/s3_phase3_fix.py
           python3 .github/s3_phase3.py
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('crates/chess-tools/src/s3_cli.rs')
+          text = path.read_text()
+          for block in [
+              '''pub(crate) fn dataset_text(directory: &Path) -> Result<String, String> {
+              let path = directory.join(DATASET_NAME);
+              fs::read_to_string(&path)
+                  .map_err(|error| format!("failed to read S3 dataset {path:?}: {error}"))
+          }
+
+          ''',
+              '''pub(crate) fn manifest_text(directory: &Path) -> Result<String, String> {
+              let path = directory.join(MANIFEST_NAME);
+              fs::read_to_string(&path)
+                  .map_err(|error| format!("failed to read S3 manifest {path:?}: {error}"))
+          }
+
+          ''',
+          ]:
+              if block not in text:
+                  raise SystemExit(f'missing dead helper block: {block.splitlines()[0]}')
+              text = text.replace(block, '', 1)
+          path.write_text(text)
+          PY
 
       - name: Format generated Rust changes
         run: cargo fmt --all
