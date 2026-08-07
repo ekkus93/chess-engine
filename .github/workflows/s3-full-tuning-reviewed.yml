@@ -1,0 +1,113 @@
+name: S3 Reviewed Full Evaluator Tuning
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/s3-full-tuning-reviewed.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: s3-reviewed-full-tuning-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  full-pass:
+    name: Reviewed full 810-parameter pass
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release tooling
+        run: cargo build --locked --release -p chess-tools --bin chess-tools
+
+      - name: Generate admitted deterministic dataset
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/s3-self-play.txt <<'EOF'
+          schema=1
+          games=32
+          seed=1395864373
+          maximum_plies=256
+          white_limit=depth:1
+          white_tt_mib=1
+          white_check_extension=false
+          black_limit=depth:1
+          black_tt_mib=1
+          black_check_extension=false
+          claimable_draw=accept
+          opening_positions=exclude
+          split_train=70
+          split_validation=20
+          split_test=10
+          opening_path=fixtures/self_play_openings.tsv
+          EOF
+          target/release/chess-tools s3-self-play "$GITHUB_SHA" /tmp/s3-self-play.txt /tmp/s3-data | tee /tmp/dataset.log
+          target/release/chess-tools s3-self-play-validate /tmp/s3-data | tee /tmp/validate.log
+          grep -Fxq $'admitted_for_tuning\ttrue' /tmp/validate.log
+
+      - name: Run reviewed full-evaluator pass
+        shell: bash
+        run: |
+          set -euo pipefail
+          config=/tmp/full.txt
+          printf 'CHESS_TUNING_CONFIG\t1\n' > "$config"
+          cat >> "$config" <<EOF
+          engine_identifier=5995211731466014277
+          initial_weight_identifier=4774188637087157829
+          candidate_weight_identifier=5995213947818487900
+          source_commit=${GITHUB_SHA}
+          generated_at_unix_seconds=1786110300
+          maximum_iterations=8
+          advance_iterations=8
+          learning_rate=0.5
+          step_decay=0.602
+          perturbation_size=2.0
+          perturbation_decay=0.101
+          stability_constant=10.0
+          minimum_weight=-2000
+          maximum_weight=2000
+          regularization_strength=0.0001
+          random_seed=1395864499
+          k_minimum=0.1
+          k_maximum=3.0
+          k_intervals=20
+          EOF
+          target/release/chess-tools tune-group \
+            full_existing_evaluator \
+            "$config" \
+            /tmp/s3-data \
+            /tmp/full-output \
+            | tee /tmp/full.log
+          test -f /tmp/full-output/ACTIVATION_DISABLED
+          grep -Fxq $'activated\tfalse' /tmp/full-output/s3-summary.tsv
+
+      - name: Record reviewed disposition
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reviewed-full-evidence
+          cp -a /tmp/s3-data reviewed-full-evidence/dataset
+          cp -a /tmp/full-output reviewed-full-evidence/tuning
+          cp /tmp/full.txt reviewed-full-evidence/tuning-config.txt
+          cp /tmp/dataset.log /tmp/validate.log /tmp/full.log reviewed-full-evidence/
+          printf '%s\n' "$GITHUB_SHA" > reviewed-full-evidence/source-sha.txt
+          printf 'preceding_group_review\tdocs/RUST_CHESS_ENGINE_S3_PILOT_EVALUATION_2026-08-07.md\n' > reviewed-full-evidence/review-boundary.tsv
+          printf 'activated\tfalse\n' >> reviewed-full-evidence/review-boundary.tsv
+
+      - name: Upload reviewed full-pass evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: s3-reviewed-full-evaluator-${{ github.sha }}
+          path: reviewed-full-evidence
+          if-no-files-found: error
+          retention-days: 30
