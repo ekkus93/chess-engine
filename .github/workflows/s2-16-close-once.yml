@@ -56,6 +56,11 @@ jobs:
           set -euo pipefail
           python3 -m py_compile .github/s2_16_close.py
           python3 .github/s2_16_close.py
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md')
+          path.write_text(path.read_text().rstrip() + '\n')
+          PY
           git diff --check
 
       - name: Commit closure authority and report
