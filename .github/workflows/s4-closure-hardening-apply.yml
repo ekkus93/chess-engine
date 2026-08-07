@@ -1,0 +1,60 @@
+name: S4 Closure Hardening Apply
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - .github/workflows/s4-closure-hardening-apply.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: s4-closure-hardening-apply
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Apply H0-H6 hardening
+        run: python3 .github/s4_closure_hardening_apply.py
+      - name: Remove temporary controls before validation
+        run: |
+          rm .github/s4_closure_hardening_apply.py
+          rm .github/workflows/s4-closure-hardening-apply.yml
+      - name: Verify shell audit syntax
+        run: |
+          bash -n scripts/task_post_port_review_fix_audit.sh
+          bash -n scripts/task_s3_evaluation_strength_audit.sh
+          bash -n scripts/task_s4_evaluation_tuning_calibration_audit.sh
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Run strict tuning Clippy
+        run: cargo clippy --locked -p chess-tune -p chess-tools --all-targets --all-features -- -D warnings
+      - name: Run tuning and tooling regressions
+        run: cargo test --locked -p chess-tune -p chess-tools --all-targets --all-features
+      - name: Run authority audit
+        run: bash scripts/task_post_port_review_fix_audit.sh
+      - name: Run S4 hardening audit
+        run: bash scripts/task_s4_evaluation_tuning_calibration_audit.sh
+      - name: Verify clean diff
+        run: git diff --check
+      - name: Publish validated hardening implementation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          test -n "$(git status --porcelain)"
+          git commit -m "Harden S4 closure evidence and trace invariants"
+          git push origin HEAD:master
