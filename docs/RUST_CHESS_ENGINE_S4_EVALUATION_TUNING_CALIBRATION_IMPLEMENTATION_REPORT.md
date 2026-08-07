@@ -147,4 +147,6 @@ The selected S4 row is a calibration witness, not an S5 production target.
 
 The technical implementation and evidence through S4-11 are complete. This report is the Phase-A closure candidate. Permanent exact-SHA CI, performance, robustness, Android/JNI, S4 audit, and report-validation evidence must pass before the tracker moves from active authority to historical and this report changes to final closed status.
 
+This documentation-only commit is the explicit permanent-workflow validation trigger; it does not change engine behavior, evidence semantics, candidate state, or release authority.
+
 No activation occurred anywhere in S4.
