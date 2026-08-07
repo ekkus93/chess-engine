@@ -49,10 +49,12 @@ jobs:
         run: cargo test --locked -p chess-tune
 
       - name: Run S3 tooling tests
-        run: cargo test --locked -p chess-tools s3::
+        run: |
+          cargo test --locked -p chess-tools 's3::'
 
       - name: Preserve self-play and tuning regressions
-        run: cargo test --locked -p chess-tools tuning::
+        run: |
+          cargo test --locked -p chess-tools 'tuning::'
 
       - name: Check permanent S3 audit syntax
         run: bash -n scripts/task_s3_evaluation_strength_audit.sh
