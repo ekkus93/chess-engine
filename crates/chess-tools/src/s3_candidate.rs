@@ -3,9 +3,7 @@
 use core::{fmt, str::FromStr};
 use std::collections::{BTreeMap, BTreeSet};
 
-use chess_search::{
-    EvaluationWeightSet, EvaluationWeights, BASELINE_WEIGHT_SET_ID, WEIGHT_VALUE_COUNT,
-};
+use chess_search::{EvaluationWeightSet, WEIGHT_VALUE_COUNT};
 use chess_tune::{
     EvaluationParameterGroup, NamedWeightArtifact, NamedWeightArtifactError,
     TUNABLE_PARAMETER_COUNT,
@@ -284,7 +282,8 @@ impl S3CandidateEnvelope {
             return Err(S3CandidateError::EmptyIdentity("source commit"));
         }
         let baseline = EvaluationWeightSet::baseline();
-        if self.baseline_identifier != baseline.identifier || self.baseline_checksum != baseline.checksum
+        if self.baseline_identifier != baseline.identifier
+            || self.baseline_checksum != baseline.checksum
         {
             return Err(S3CandidateError::BaselineIdentityMismatch);
         }
@@ -336,7 +335,10 @@ impl S3CandidateEnvelope {
     }
 
     /// Validates this envelope against the exact named-weight payload.
-    pub fn validate_artifact(&self, artifact: &NamedWeightArtifact) -> Result<(), S3CandidateError> {
+    pub fn validate_artifact(
+        &self,
+        artifact: &NamedWeightArtifact,
+    ) -> Result<(), S3CandidateError> {
         artifact.validate()?;
         if artifact.identifier != self.candidate_identifier
             || artifact.checksum != self.artifact_checksum
@@ -376,7 +378,9 @@ impl S3CandidateEnvelope {
     pub fn from_text(text: &str) -> Result<Self, S3CandidateError> {
         let mut lines = text.lines();
         if lines.next() != Some(CANDIDATE_MARKER) {
-            return Err(S3CandidateError::Malformed("invalid candidate marker".to_owned()));
+            return Err(S3CandidateError::Malformed(
+                "invalid candidate marker".to_owned(),
+            ));
         }
         let mut fields = BTreeMap::new();
         for line in lines {
@@ -384,20 +388,41 @@ impl S3CandidateEnvelope {
                 .split_once('=')
                 .ok_or_else(|| S3CandidateError::Malformed(format!("invalid field {line:?}")))?;
             if key.is_empty() || value.is_empty() || key.trim() != key || value.trim() != value {
-                return Err(S3CandidateError::Malformed(format!("non-canonical field {line:?}")));
+                return Err(S3CandidateError::Malformed(format!(
+                    "non-canonical field {line:?}"
+                )));
             }
             if fields.insert(key.to_owned(), value.to_owned()).is_some() {
-                return Err(S3CandidateError::Malformed(format!("duplicate field {key:?}")));
+                return Err(S3CandidateError::Malformed(format!(
+                    "duplicate field {key:?}"
+                )));
             }
         }
         const KEYS: [&str; 24] = [
-            "schema", "format_identifier", "candidate_type", "candidate_identifier",
-            "source_commit", "baseline_identifier", "baseline_checksum", "artifact_checksum",
-            "value_checksum", "dense_vector_length", "tunable_parameter_count", "group",
-            "mask_fingerprint", "generated_at_unix_seconds", "tuning_config_checksum",
-            "dataset_checksum", "dataset_manifest_checksum", "tuning_report_checksum",
-            "exact_invocation", "loss_decision", "training_loss_delta_bits",
-            "validation_loss_delta_bits", "activated", "checksum",
+            "schema",
+            "format_identifier",
+            "candidate_type",
+            "candidate_identifier",
+            "source_commit",
+            "baseline_identifier",
+            "baseline_checksum",
+            "artifact_checksum",
+            "value_checksum",
+            "dense_vector_length",
+            "tunable_parameter_count",
+            "group",
+            "mask_fingerprint",
+            "generated_at_unix_seconds",
+            "tuning_config_checksum",
+            "dataset_checksum",
+            "dataset_manifest_checksum",
+            "tuning_report_checksum",
+            "exact_invocation",
+            "loss_decision",
+            "training_loss_delta_bits",
+            "validation_loss_delta_bits",
+            "activated",
+            "checksum",
         ];
         if fields.len() != KEYS.len() || KEYS.iter().any(|key| !fields.contains_key(*key)) {
             return Err(S3CandidateError::Malformed(
@@ -409,27 +434,42 @@ impl S3CandidateEnvelope {
             schema_version: parse_number(&fields["schema"], "schema")?,
             format_identifier: parse_hex(&fields["format_identifier"], "format_identifier")?,
             candidate_type: fields["candidate_type"].parse()?,
-            candidate_identifier: parse_hex(&fields["candidate_identifier"], "candidate_identifier")?,
-            source_commit: parse_commit(&fields["source_commit"] )?,
+            candidate_identifier: parse_hex(
+                &fields["candidate_identifier"],
+                "candidate_identifier",
+            )?,
+            source_commit: parse_commit(&fields["source_commit"])?,
             baseline_identifier: parse_hex(&fields["baseline_identifier"], "baseline_identifier")?,
             baseline_checksum: parse_hex(&fields["baseline_checksum"], "baseline_checksum")?,
             artifact_checksum: parse_hex(&fields["artifact_checksum"], "artifact_checksum")?,
             value_checksum: parse_hex(&fields["value_checksum"], "value_checksum")?,
-            dense_vector_length: parse_number(&fields["dense_vector_length"], "dense_vector_length")?,
-            tunable_parameter_count: parse_number(&fields["tunable_parameter_count"], "tunable_parameter_count")?,
+            dense_vector_length: parse_number(
+                &fields["dense_vector_length"],
+                "dense_vector_length",
+            )?,
+            tunable_parameter_count: parse_number(
+                &fields["tunable_parameter_count"],
+                "tunable_parameter_count",
+            )?,
             group,
             mask_fingerprint: parse_hex(&fields["mask_fingerprint"], "mask_fingerprint")?,
             generated_at_unix_seconds: parse_number(
                 &fields["generated_at_unix_seconds"],
                 "generated_at_unix_seconds",
             )?,
-            tuning_config_checksum: parse_hex(&fields["tuning_config_checksum"], "tuning_config_checksum")?,
+            tuning_config_checksum: parse_hex(
+                &fields["tuning_config_checksum"],
+                "tuning_config_checksum",
+            )?,
             dataset_checksum: parse_hex(&fields["dataset_checksum"], "dataset_checksum")?,
             dataset_manifest_checksum: parse_hex(
                 &fields["dataset_manifest_checksum"],
                 "dataset_manifest_checksum",
             )?,
-            tuning_report_checksum: parse_hex(&fields["tuning_report_checksum"], "tuning_report_checksum")?,
+            tuning_report_checksum: parse_hex(
+                &fields["tuning_report_checksum"],
+                "tuning_report_checksum",
+            )?,
             exact_invocation: fields["exact_invocation"].clone(),
             loss_decision: fields["loss_decision"].parse()?,
             training_loss_delta_bits: parse_hex(
@@ -469,26 +509,59 @@ impl S3CandidateEnvelope {
     fn canonical_fields(&self, include_checksum: bool) -> Vec<(&'static str, String)> {
         let mut fields = vec![
             ("schema", self.schema_version.to_string()),
-            ("format_identifier", format!("{:016x}", self.format_identifier)),
+            (
+                "format_identifier",
+                format!("{:016x}", self.format_identifier),
+            ),
             ("candidate_type", self.candidate_type.name().to_owned()),
-            ("candidate_identifier", format!("{:016x}", self.candidate_identifier)),
+            (
+                "candidate_identifier",
+                format!("{:016x}", self.candidate_identifier),
+            ),
             ("source_commit", format_commit(self.source_commit)),
-            ("baseline_identifier", format!("{:016x}", self.baseline_identifier)),
-            ("baseline_checksum", format!("{:016x}", self.baseline_checksum)),
-            ("artifact_checksum", format!("{:016x}", self.artifact_checksum)),
+            (
+                "baseline_identifier",
+                format!("{:016x}", self.baseline_identifier),
+            ),
+            (
+                "baseline_checksum",
+                format!("{:016x}", self.baseline_checksum),
+            ),
+            (
+                "artifact_checksum",
+                format!("{:016x}", self.artifact_checksum),
+            ),
             ("value_checksum", format!("{:016x}", self.value_checksum)),
             ("dense_vector_length", self.dense_vector_length.to_string()),
-            ("tunable_parameter_count", self.tunable_parameter_count.to_string()),
+            (
+                "tunable_parameter_count",
+                self.tunable_parameter_count.to_string(),
+            ),
             ("group", self.group.name().to_owned()),
-            ("mask_fingerprint", format!("{:016x}", self.mask_fingerprint)),
-            ("generated_at_unix_seconds", self.generated_at_unix_seconds.to_string()),
-            ("tuning_config_checksum", format!("{:016x}", self.tuning_config_checksum)),
-            ("dataset_checksum", format!("{:016x}", self.dataset_checksum)),
+            (
+                "mask_fingerprint",
+                format!("{:016x}", self.mask_fingerprint),
+            ),
+            (
+                "generated_at_unix_seconds",
+                self.generated_at_unix_seconds.to_string(),
+            ),
+            (
+                "tuning_config_checksum",
+                format!("{:016x}", self.tuning_config_checksum),
+            ),
+            (
+                "dataset_checksum",
+                format!("{:016x}", self.dataset_checksum),
+            ),
             (
                 "dataset_manifest_checksum",
                 format!("{:016x}", self.dataset_manifest_checksum),
             ),
-            ("tuning_report_checksum", format!("{:016x}", self.tuning_report_checksum)),
+            (
+                "tuning_report_checksum",
+                format!("{:016x}", self.tuning_report_checksum),
+            ),
             ("exact_invocation", self.exact_invocation.clone()),
             ("loss_decision", self.loss_decision.name().to_owned()),
             (
@@ -544,19 +617,37 @@ impl S3CandidateRegistry {
 /// Strict candidate construction or validation error.
 #[derive(Debug, PartialEq)]
 pub enum S3CandidateError {
-    SchemaVersion { expected: u16, found: u16 },
-    FormatIdentifier { expected: u64, found: u64 },
+    SchemaVersion {
+        expected: u16,
+        found: u16,
+    },
+    FormatIdentifier {
+        expected: u64,
+        found: u64,
+    },
     UnsupportedCandidateType(String),
     UnsupportedLossDecision(String),
     EmptyIdentity(&'static str),
     BaselineIdentityMismatch,
-    DenseVectorLength { expected: usize, found: u32 },
-    TunableParameterCount { expected: usize, found: u32 },
+    DenseVectorLength {
+        expected: usize,
+        found: u32,
+    },
+    TunableParameterCount {
+        expected: usize,
+        found: u32,
+    },
     MaskIdentityMismatch,
     ActivationForbidden,
-    InvalidLoss { label: &'static str, value_bits: u64 },
+    InvalidLoss {
+        label: &'static str,
+        value_bits: u64,
+    },
     InvalidDeltaBits,
-    ChecksumMismatch { expected: u64, found: u64 },
+    ChecksumMismatch {
+        expected: u64,
+        found: u64,
+    },
     ArtifactIdentityMismatch,
     ArtifactValueMismatch,
     DuplicateCandidateIdentifier(u64),
@@ -575,7 +666,10 @@ impl fmt::Display for S3CandidateError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::SchemaVersion { expected, found } => {
-                write!(formatter, "expected S3 candidate schema {expected}, found {found}")
+                write!(
+                    formatter,
+                    "expected S3 candidate schema {expected}, found {found}"
+                )
             }
             Self::FormatIdentifier { expected, found } => write!(
                 formatter,
@@ -590,13 +684,21 @@ impl fmt::Display for S3CandidateError {
             Self::EmptyIdentity(label) => write!(formatter, "{label} must be non-zero"),
             Self::BaselineIdentityMismatch => formatter.write_str("S3 baseline identity mismatch"),
             Self::DenseVectorLength { expected, found } => {
-                write!(formatter, "expected dense vector length {expected}, found {found}")
+                write!(
+                    formatter,
+                    "expected dense vector length {expected}, found {found}"
+                )
             }
             Self::TunableParameterCount { expected, found } => {
-                write!(formatter, "expected tunable count {expected}, found {found}")
+                write!(
+                    formatter,
+                    "expected tunable count {expected}, found {found}"
+                )
             }
             Self::MaskIdentityMismatch => formatter.write_str("S3 group-mask identity mismatch"),
-            Self::ActivationForbidden => formatter.write_str("S3 candidate artifacts must remain inactive"),
+            Self::ActivationForbidden => {
+                formatter.write_str("S3 candidate artifacts must remain inactive")
+            }
             Self::InvalidLoss { label, value_bits } => {
                 write!(formatter, "invalid {label} bits {value_bits:016x}")
             }
@@ -605,10 +707,17 @@ impl fmt::Display for S3CandidateError {
                 formatter,
                 "S3 candidate checksum mismatch: expected {expected:016x}, found {found:016x}"
             ),
-            Self::ArtifactIdentityMismatch => formatter.write_str("named-weight artifact identity mismatch"),
-            Self::ArtifactValueMismatch => formatter.write_str("named-weight artifact value checksum mismatch"),
+            Self::ArtifactIdentityMismatch => {
+                formatter.write_str("named-weight artifact identity mismatch")
+            }
+            Self::ArtifactValueMismatch => {
+                formatter.write_str("named-weight artifact value checksum mismatch")
+            }
             Self::DuplicateCandidateIdentifier(identifier) => {
-                write!(formatter, "duplicate S3 candidate identifier {identifier:016x}")
+                write!(
+                    formatter,
+                    "duplicate S3 candidate identifier {identifier:016x}"
+                )
             }
             Self::Artifact(error) => error.fmt(formatter),
             Self::Weight(message) | Self::Malformed(message) => formatter.write_str(message),
@@ -634,7 +743,9 @@ fn parse_group(value: &str) -> Result<EvaluationParameterGroup, S3CandidateError
 fn validate_invocation(value: &str) -> Result<(), S3CandidateError> {
     if value.is_empty()
         || value.trim() != value
-        || value.bytes().any(|byte| matches!(byte, b'\n' | b'\r' | b'\0'))
+        || value
+            .bytes()
+            .any(|byte| matches!(byte, b'\n' | b'\r' | b'\0'))
     {
         return Err(S3CandidateError::Malformed(
             "exact invocation must be non-empty canonical single-line text".to_owned(),
@@ -697,21 +808,15 @@ mod tests {
     };
 
     use super::{
-        S3CandidateEnvelope, S3CandidateError, S3CandidateRegistry, S3LossDecision,
-        S3LossEvidence, S3_VALIDATION_LOSS_TOLERANCE,
+        S3CandidateEnvelope, S3CandidateError, S3CandidateRegistry, S3LossDecision, S3LossEvidence,
+        S3_VALIDATION_LOSS_TOLERANCE,
     };
 
     fn artifact(identifier: u64) -> NamedWeightArtifact {
         NamedWeightArtifact::new(
             identifier,
             TrainingMetadata::new(
-                TrainingRunProvenance::new(
-                    0x5333_5455_4e45_3031,
-                    [0x22; 20],
-                    7,
-                    8,
-                    1_786_110_300,
-                ),
+                TrainingRunProvenance::new(0x5333_5455_4e45_3031, [0x22; 20], 7, 8, 1_786_110_300),
                 TrainingDatasetProvenance::new(1, 0x1111_2222_3333_4444, 128, 32),
             ),
             EvaluationWeights::DEFAULT,
@@ -739,21 +844,12 @@ mod tests {
             unchanged.decision(),
             S3LossDecision::RejectNoTrainingImprovement
         );
-        let improved = S3LossEvidence::assess(
-            0.1,
-            0.09,
-            0.2,
-            0.2 + S3_VALIDATION_LOSS_TOLERANCE,
-        )
-        .expect("finite losses");
+        let improved = S3LossEvidence::assess(0.1, 0.09, 0.2, 0.2 + S3_VALIDATION_LOSS_TOLERANCE)
+            .expect("finite losses");
         assert_eq!(improved.decision(), S3LossDecision::Advance);
-        let regressed = S3LossEvidence::assess(
-            0.1,
-            0.09,
-            0.2,
-            0.2 + S3_VALIDATION_LOSS_TOLERANCE * 2.0,
-        )
-        .expect("finite losses");
+        let regressed =
+            S3LossEvidence::assess(0.1, 0.09, 0.2, 0.2 + S3_VALIDATION_LOSS_TOLERANCE * 2.0)
+                .expect("finite losses");
         assert_eq!(
             regressed.decision(),
             S3LossDecision::RejectValidationRegression
@@ -780,24 +876,26 @@ mod tests {
         let candidate = envelope(0x5333_4341_4e44_3032, loss);
         let text = candidate.to_text().expect("candidate serializes");
         assert!(S3CandidateEnvelope::from_text(&text.replace("schema=1", "schema=2")).is_err());
-        assert!(S3CandidateEnvelope::from_text(
-            &text.replace("candidate_type=existing_evaluation_weights", "candidate_type=nnue")
-        )
+        assert!(S3CandidateEnvelope::from_text(&text.replace(
+            "candidate_type=existing_evaluation_weights",
+            "candidate_type=nnue"
+        ))
         .is_err());
         assert!(S3CandidateEnvelope::from_text(
             &text.replace("dense_vector_length=816", "dense_vector_length=815")
         )
         .is_err());
-        assert!(S3CandidateEnvelope::from_text(
-            &text.replace(
-                &format!("baseline_identifier={BASELINE_WEIGHT_SET_ID:016x}"),
-                "baseline_identifier=0000000000000001",
-            )
-        )
+        assert!(S3CandidateEnvelope::from_text(&text.replace(
+            &format!("baseline_identifier={BASELINE_WEIGHT_SET_ID:016x}"),
+            "baseline_identifier=0000000000000001",
+        ))
         .is_err());
         let mut corrupt = text;
         let checksum_position = corrupt.rfind("checksum=").expect("checksum field exists");
-        corrupt.replace_range(checksum_position + 9..checksum_position + 25, "0000000000000001");
+        corrupt.replace_range(
+            checksum_position + 9..checksum_position + 25,
+            "0000000000000001",
+        );
         assert!(matches!(
             S3CandidateEnvelope::from_text(&corrupt),
             Err(S3CandidateError::ChecksumMismatch { .. })
@@ -809,11 +907,13 @@ mod tests {
         let loss = S3LossEvidence::assess(0.1, 0.1, 0.2, 0.2).expect("finite losses");
         let candidate = envelope(0x5333_4341_4e44_3033, loss);
         let mut wrong = artifact(candidate.candidate_identifier);
-        wrong.weights.passed_pawn.mg += 1;
+        wrong.weights.passed_pawn.middlegame += 1;
         assert!(candidate.validate_artifact(&wrong).is_err());
 
         let mut registry = S3CandidateRegistry::default();
-        registry.register(candidate.clone()).expect("first registration");
+        registry
+            .register(candidate.clone())
+            .expect("first registration");
         assert_eq!(registry.len(), 1);
         assert!(matches!(
             registry.register(candidate),
