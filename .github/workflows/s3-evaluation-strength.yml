@@ -20,7 +20,7 @@ jobs:
   guardrails:
     name: S3 guardrails
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -54,6 +54,13 @@ jobs:
         run: |
           cargo test --locked -p chess-tools 's3::'
 
+      - name: Run tuning report regressions
+        run: |
+          cargo test --locked -p chess-tools 'tuning::report::tests::'
+
       - name: Preserve tuning adapter regressions
         run: |
           cargo test --locked -p chess-tools 'tuning::'
+
+      - name: Build S3 command binary
+        run: cargo build --locked -p chess-tools --bin chess-tools
