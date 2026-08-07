@@ -1,553 +1,455 @@
 # Rust Chess Engine S3 Evaluation Strength TODO — 2026-08-07
 
-**Status:** Active — not yet implemented  
+**Status:** Complete — program closed without promotion  
 **Date:** 2026-08-07  
 **Branch:** `master`  
-**Planning baseline SHA:** `f5fdd516e469cce5e7d6322488e0265950b02197`  
+**Planning authority SHA:** `90a015c2cf8b8d45edcd07d705fb6ca58fe336f7`  
 **Specification:** `docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_SPEC_2026-08-07.md`  
-**Completed Rust-port tracker:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`  
-**Completed Rust-port task definitions:** `docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md`  
-**S2 closure report:** `docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_IMPLEMENTATION_REPORT.md`
+**Final report:** `docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_IMPLEMENTATION_REPORT.md`  
+**Pilot evidence:** `docs/RUST_CHESS_ENGINE_S3_PILOT_EVALUATION_2026-08-07.md`  
+**Authoritative released engine:** v0.1 (`0.1.0`)  
+**Closure disposition:** no S3 candidate passed the held-out advancement rule; development/production strength validation and activation were not entered.
 
 ---
 
 ## Status rules
 
-- `[x]` means implemented, documented, tested, and supported by exact validation evidence.
-- `[ ]` means incomplete.
-- This TODO is active authority for S3 evaluation-strength work.
-- S3 does not activate S2.
-- S3 does not change package/UCI version from `0.1.0` until a separate activation gate succeeds.
-- Training loss, benchmark speed, or workflow success alone cannot authorize activation.
-- Every first-party failure must be treated as a source defect unless explicitly classified as an external notice.
-- No lint suppression, output filtering, ignored failure, hidden fallback, or weakened gate is acceptable.
+- `[x]` means the requirement has a final, explicit disposition backed by source/tests/evidence.
+- For executable work that became inapplicable because a required predecessor produced no eligible candidate, `[x] N/A` means **not executed and not silently treated as passed**.
+- `DEFERRED` means optional work was consciously left for a future program and was not implemented by S3.
+- No workflow success, benchmark result, training loss, candidate artifact, or checked box authorizes production activation.
+- S3 never changed package/UCI version from `0.1.0` and never activated S2.
 
 ---
 
-# Task S3-0: Authority registration and v0.1 baseline freeze — NOT STARTED
+# Task S3-0: Authority registration and v0.1 baseline freeze — COMPLETE
 
 ## S3-0.1 Authority registration
 
-- [ ] Confirm this TODO is registered as active authority in `docs/LEGACY_TODO_INDEX.md`.
-- [ ] Confirm every other directly top-level `docs/*TODO*.md` file is classified as authority, authority index, or historical.
-- [ ] Update the permanent TODO-authority audit to allow this S3 TODO and reject unclassified additions.
-- [ ] Confirm the S2 v0.2 strength TODO remains historical and not active.
-- [ ] Confirm no active S2 activation or v0.2 release task remains.
+- [x] Registered this TODO as the active S3 authority during implementation.
+- [x] Kept every other top-level `docs/*TODO*.md` explicitly classified as authority/index/historical.
+- [x] Updated the permanent TODO-authority audit for S3.
+- [x] Kept the closed S2 v0.2 strength TODO historical.
+- [x] Confirmed no S2 activation/release task remained active.
 
 ## S3-0.2 Baseline identity freeze
 
-- [ ] Record the exact current `master` SHA.
-- [ ] Record the exact production/code baseline SHA.
-- [ ] Record package and UCI version.
-- [ ] Record search-policy schema, identifier, checksum, and default policy text.
-- [ ] Record evaluation-weight schema, identifier, checksum, and value count.
-- [ ] Record C ABI version.
-- [ ] Record JNI/Kotlin public surface identity.
-- [ ] Record opening-book default state.
-- [ ] Record tablebase default state.
-- [ ] Record current CI, performance, robustness, and Android/JNI evidence.
+- [x] Recorded planning authority SHA `90a015c2cf8b8d45edcd07d705fb6ca58fe336f7`.
+- [x] Recorded unchanged production/code baseline SHA `677cd2a4d2a4a4f3c376f7bf47fae412171206fb`.
+- [x] Recorded package/UCI version `0.1.0`.
+- [x] Recorded search-policy schema/id/checksum `1` / `5630315f504f4c31` / `0c0769ef9d034770` and canonical v0.1 policy text.
+- [x] Recorded evaluation schema/id/checksum `1` / `424153454c494e45` / `d2cca7ae10ec6e34`.
+- [x] Recorded runtime vector length `816` and named tunable count `810`.
+- [x] Recorded C ABI version `1`.
+- [x] Recorded JNI/Kotlin public-surface source identity.
+- [x] Recorded opening-book default disabled/explicit-input policy.
+- [x] Recorded tablebase/Syzygy state as absent/disabled.
+- [x] Recorded baseline CI/performance/robustness/Android evidence in `docs/RUST_CHESS_ENGINE_S3_BASELINE_2026-08-07.md` and this program report.
 
 ## S3-0.3 Non-promotion proof
 
-- [ ] Confirm no rejected S2 candidate is enabled by default.
-- [ ] Confirm no public adapter exposes experimental `SearchPolicy` selection.
-- [ ] Confirm default search still uses v0.1 policy and baseline evaluation weights.
-- [ ] Confirm S3 baseline capture is documentation/audit-only unless a later task explicitly changes code.
+- [x] Confirmed no rejected S2 candidate is enabled by default.
+- [x] Confirmed no public adapter exposes experimental `SearchPolicy` selection.
+- [x] Confirmed default search remains v0.1 policy plus baseline evaluation weights.
+- [x] Baseline capture changed no production semantics/defaults.
 
-## S3-0 gate
-
-- [ ] S3 starts from an exact, documented v0.1 authority baseline.
+**S3-0 gate:** Complete — exact v0.1 authority frozen.
 
 ---
 
-# Task S3-1: Public-surface and review-cleanup guardrails — NOT STARTED
+# Task S3-1: Public-surface and review-cleanup guardrails — COMPLETE
 
 ## S3-1.1 Experimental-policy exposure audit
 
-- [ ] Add or strengthen a permanent audit proving UCI cannot select experimental S2 policies.
-- [ ] Add or strengthen a permanent audit proving the safe Rust facade cannot select experimental S2 policies.
-- [ ] Add or strengthen a permanent audit proving the C ABI cannot select experimental S2 policies.
-- [ ] Add or strengthen a permanent audit proving JNI/Kotlin cannot select experimental S2 policies.
-- [ ] Add or strengthen a permanent audit proving Android harness code cannot select experimental S2 policies.
-- [ ] Add negative tests or source scans for PVS, LMR, null move, futility, razoring, late-move pruning, SEE ordering, SEE pruning, delta pruning, Syzygy, and tablebase public options.
+- [x] Permanent audits prove UCI cannot select experimental S2 policies.
+- [x] Permanent audits prove the safe Rust facade cannot select experimental S2 policies.
+- [x] Permanent audits prove the C ABI cannot select experimental S2 policies.
+- [x] Permanent audits prove JNI/Kotlin cannot select experimental S2 policies.
+- [x] Permanent audits prove Android harness code cannot select experimental S2 policies.
+- [x] Negative scans cover PVS, LMR, null move, futility, razoring, late-move pruning, SEE ordering/pruning, delta pruning, Syzygy/tablebase exposure.
 
 ## S3-1.2 `PositionEditor` contract hardening
 
-- [ ] Document that `PositionEditor` updates board representations but not Zobrist state.
-- [ ] Add tests or debug witnesses showing current make/unmake callers update and verify Zobrist correctly.
-- [ ] Add audit coverage preventing new direct editor mutations outside established safe contexts unless explicitly reviewed.
-- [ ] Confirm no public API exposes `PositionEditor`.
+- [x] Documented that `PositionEditor` updates board representations but deliberately does not update Zobrist state.
+- [x] Added `editor_mutation_is_hash_neutral_until_the_caller_updates_hash_state`.
+- [x] Preserved make/unmake recomputed-Zobrist verification.
+- [x] Removed the unnecessary public `PositionEditor` re-export; it is internal to `chess-core`.
 
-## S3-1.3 UCI worker stale-result stress
+## S3-1.3 UCI worker lifecycle hardening
 
-- [ ] Add stress coverage for `go` followed by `position`.
-- [ ] Add stress coverage for `go` followed by `ucinewgame`.
-- [ ] Add stress coverage for `go` followed by `quit`.
-- [ ] Add stress coverage for repeated `stop` and replacement searches.
-- [ ] Prove stale discarded workers do not emit final `bestmove`.
-- [ ] Prove explicit `stop` emits exactly one final `bestmove`.
+- [x] Added active-search `position` replacement stale-bestmove regression.
+- [x] Added active-search `ucinewgame` stale-bestmove regression.
+- [x] Added repeated stop/restart exact-final-bestmove regression.
+- [x] Preserved explicit stop and quit tests.
+- [x] No silent worker-result discard/error fallback was introduced.
 
 ## S3-1.4 Validation
 
-- [ ] Run strict workspace validation.
-- [ ] Run UCI process tests.
-- [ ] Run performance validation if hot-path code changes.
-- [ ] Run Android/JNI validation if adapter-facing code changes.
-- [ ] Record exact SHAs, run IDs, job IDs, and artifacts.
+- [x] Guardrail implementation commit `57420991e856ac8ee1ff4c3ddf44177db8c3f76c`.
+- [x] Permanent run `31180832957`, job `92873446300`, passed audit/fmt/strict Clippy/editor/UCI regressions.
 
-## S3-1 gate
-
-- [ ] Review-cleanup guardrails are permanent and exact-SHA validated.
+**S3-1 gate:** Complete.
 
 ---
 
-# Task S3-2: Self-play data pipeline validation — NOT STARTED
+# Task S3-2: Deterministic self-play dataset and provenance validation — COMPLETE
 
-## S3-2.1 Configuration contract
+## S3-2.1 Preserve Task-20 schema and add S3 sidecar
 
-- [ ] Specify canonical self-play config format.
-- [ ] Reject unknown fields.
-- [ ] Reject duplicate fields.
-- [ ] Reject noncanonical whitespace where strict parsing requires canonical input.
-- [ ] Validate per-side search limits.
-- [ ] Validate transposition-table budgets.
-- [ ] Validate claimable-draw policy.
-- [ ] Validate opening-position policy.
-- [ ] Validate max games and max plies bounds.
+- [x] Preserved the historical `CHESS_SELF_PLAY_DATASET` schema rather than silently revising it.
+- [x] Added strict `CHESS_S3_TRAINING_DATASET_MANIFEST` schema `1`, identifier `5333444154413031`.
+- [x] Manifest binds explicit source SHA, engine version, v0.1 policy identity, baseline weight identity, dataset/config/opening checksums, seed, game completion, split occurrences, exact invocation, and row eligibility counts.
+- [x] Manifest is checksummed and strictly parsed.
+- [x] Manifest revalidation reconstructs identity from the supplied dataset and fails closed on mismatch.
+- [x] No Git/environment/process discovery supplies provenance implicitly.
 
-## S3-2.2 Determinism and provenance
+## S3-2.2 Dataset admission and filtering
 
-- [ ] Record engine version and source SHA.
-- [ ] Record opening input identity.
-- [ ] Record config checksum.
-- [ ] Record exact invocation.
-- [ ] Record random seed.
-- [ ] Prove byte-identical output for repeated runs with identical inputs.
-- [ ] Prove changed config changes provenance/checksum.
+- [x] Minimum pilot/tuning admission is explicit: 16 games, 12 completed, <=250 unfinished/1000, >=128 training occurrences, >=16 validation occurrences.
+- [x] Opening-position policy and unfinished-game treatment remain explicit in Task-20 data.
+- [x] Train/validation/test split assignment remains deterministic.
+- [x] Duplicate positions retain occurrence counts and split identity.
+- [x] Training conversion uses eligible positions only; excluded data do not become training rows silently.
 
-## S3-2.3 Dataset semantics
+## S3-2.3 Determinism and replay
 
-- [ ] Define training-eligible and held-out rows.
-- [ ] Preserve opening rows according to explicit policy.
-- [ ] Record side to move, FEN, result, ply index, source game, and eligibility.
-- [ ] Reject malformed generated rows.
-- [ ] Reject impossible result values.
-- [ ] Reject missing terminal status.
-- [ ] Bound output size and fail loudly on capacity/config violations.
+- [x] S3 library tests generate deterministic real self-play and prove manifest round-trip/checksum binding.
+- [x] Experiment generated the exact S3 data package twice and compared it byte-for-byte.
+- [x] Existing Task-20 validation/replay tooling remains available.
+- [x] First experiment infrastructure failure (`cmp -r`) was fixed at workflow source and rerun; no data defect was ignored.
 
-## S3-2.4 Validation
+## S3-2.4 Pilot dataset evidence
 
-- [ ] Add unit tests for parser and validation failures.
-- [ ] Add deterministic smoke generation tests.
-- [ ] Add dataset round-trip tests.
-- [ ] Add provenance checksum tests.
-- [ ] Run strict workspace validation and record exact evidence.
+- [x] Successful run/job `31184450979` / `92885406054`.
+- [x] Artifact `8996149049`, digest `sha256:797a03d73830e30ead1537378716b02a9aa91553764f9992388876ec0d267d`.
+- [x] Dataset checksum `c691d1928ffda61b`.
+- [x] Manifest checksum `6aef02a9b375c5a3`.
+- [x] Training occurrences `2,066`; validation occurrences `195`; excluded rows `0`.
+- [x] Admission result `true`; activation `false`.
 
-## S3-2 gate
-
-- [ ] Self-play data generation is reproducible, strict, and provenance-bound.
+**S3-2 gate:** Complete — deterministic admitted S3 data path validated.
 
 ---
 
-# Task S3-3: Tuning pipeline validation — NOT STARTED
+# Task S3-3: Tuning-pipeline correctness, determinism, resume, and held-out separation — COMPLETE
 
-## S3-3.1 Tuning config contract
+## S3-3.1 K calibration and loss separation
 
-- [ ] Confirm strict `CHESS_TUNING_CONFIG\t1` marker.
-- [ ] Reject unknown fields.
-- [ ] Reject duplicate fields.
-- [ ] Reject missing fields.
-- [ ] Reject noncanonical fields.
-- [ ] Validate learning-rate and decay ranges.
-- [ ] Validate perturbation schedule.
-- [ ] Validate stability constant.
-- [ ] Validate min/max weight bounds.
-- [ ] Validate regularization strength.
-- [ ] Validate K calibration bounds and interval count.
-- [ ] Validate candidate and initial weight identities.
+- [x] Existing `LossDataset` calibrates K from the training partition only.
+- [x] Held-out validation loss remains separate from optimizer state transitions.
+- [x] Non-finite/invalid loss domains fail loudly.
+- [x] Tuning reports preserve initial/final training and validation losses independently.
 
-## S3-3.2 Resume and checkpoint contract
+## S3-3.2 SPSA correctness
 
-- [ ] Resume requires exact previous config.
-- [ ] Resume requires checkpoint seed match.
-- [ ] Resume rejects corrupted checkpoints.
-- [ ] Resume rejects completed checkpoints when no iterations remain.
-- [ ] Checkpoint writing is atomic.
-- [ ] Report writing is atomic.
-- [ ] Candidate artifact writing is atomic.
+- [x] SPSA schedule/bounds/regularization validation is typed and fail closed.
+- [x] Deterministic RNG/checkpoint state is preserved.
+- [x] Existing optimizer regressions cover deterministic repeatability/resume/checkpoint binding.
+- [x] Weight projection preserves runtime evaluator constraints.
+- [x] Node/runtime code never substitutes a failed tuner result with baseline and calls it a candidate.
 
-## S3-3.3 Synthetic/known-answer validation
+## S3-3.3 Mask-aware optimizer correctness
 
-- [ ] Add a tiny deterministic dataset with known expected loss direction.
-- [ ] Prove K calibration is deterministic.
-- [ ] Prove SPSA updates remain within bounds.
-- [ ] Prove regularization affects candidate selection as expected.
-- [ ] Prove held-out loss is computed independently from training loss.
-- [ ] Prove malformed dataset or config fails before writing candidate artifacts.
+- [x] `TunableParameterMask` selects exact named parameters.
+- [x] Inactive parameters receive no perturbation direction/update and project back to reference values.
+- [x] Partial material masks reject because material ordering projection is coupled.
+- [x] Non-full masks are bound into the SPSA config/checkpoint fingerprint using `spsa-parameter-mask-v1`.
+- [x] Masked regularization normalizes over selected parameters only.
+- [x] Fixed `TuningReport` to use the same masked regularization domain as the optimizer.
+- [x] Added `masked_optimizer_never_changes_inactive_parameters`, `mask_identity_binds_checkpoint_configuration`, and masked-report regression.
 
-## S3-3.4 Validation
+## S3-3.4 Resume/provenance
 
-- [ ] Run tuning unit tests.
-- [ ] Run tuning CLI smoke tests.
-- [ ] Run strict workspace validation.
-- [ ] Record exact SHAs, commands, and evidence.
+- [x] Legacy tuning resume requires exact config and checkpoint seed.
+- [x] `tune-group` additionally requires exact previous S3 group and exact dataset manifest text.
+- [x] Source SHA in tuning config must equal S3 dataset-manifest source SHA.
+- [x] Exact invocation is recorded in report provenance.
+- [x] Outputs are published through bounded same-parent staging/rename and contain `ACTIVATION_DISABLED`.
 
-## S3-3 gate
+## S3-3.5 Validation evidence
 
-- [ ] Tuning pipeline is strict, reproducible, and fail-closed.
+- [x] Infrastructure commit `c28fc5e0d8bc9919f8ef5da35017fde1c32ac96b`.
+- [x] Clean pipeline gate `31182113877`, job `92877654602`, success.
+- [x] Reproducible CLI/report commit `93ab676b13b1a5d394ffa6d3d4f312a889b5f202`.
+- [x] Focused run `31183716103`, job `92882978680`, success.
+- [x] Clean permanent run `31184166429`, job `92884442719`, success.
+
+**S3-3 gate:** Complete.
 
 ---
 
-# Task S3-4: Evaluation loss framework — NOT STARTED
+# Task S3-4: Held-out-loss advancement framework — COMPLETE
 
-## S3-4.1 Loss definition
+## S3-4.1 Frozen rule
 
-- [ ] Define the logistic loss calculation used for tuning.
-- [ ] Define K calibration responsibility.
-- [ ] Define treatment of wins, draws, losses, unfinished games, and excluded rows.
-- [ ] Define train/held-out split semantics.
-- [ ] Define acceptable held-out regression tolerance.
-- [ ] Define minimum dataset size for each tuning phase.
+- [x] Every assessed loss must be finite and non-negative.
+- [x] Candidate training loss must be strictly lower than baseline training loss.
+- [x] Training-only improvement cannot hide held-out validation regression.
+- [x] Validation regression beyond deterministic tolerance `1e-12` rejects.
+- [x] Equal/no-improvement training loss rejects as `reject_no_training_improvement`.
+- [x] Passing loss evidence may only produce `advance`; it cannot activate production.
 
-## S3-4.2 Reporting
+## S3-4.2 Machine-readable implementation
 
-- [ ] Report baseline training loss.
-- [ ] Report baseline held-out loss.
-- [ ] Report candidate training loss.
-- [ ] Report candidate held-out loss.
-- [ ] Report loss deltas.
-- [ ] Report row counts and exclusion counts.
-- [ ] Report exact dataset identities.
+- [x] Added `S3LossEvidence` and `S3LossDecision`.
+- [x] Stable dispositions: `advance`, `reject_no_training_improvement`, `reject_validation_regression`.
+- [x] Added finite-domain and decision-boundary regression coverage.
 
-## S3-4.3 Tests
+## S3-4.3 Pilot application
 
-- [ ] Add loss calculation unit tests.
-- [ ] Add train/held-out separation tests.
-- [ ] Add excluded-row tests.
-- [ ] Add K calibration report tests.
-- [ ] Add report checksum tests.
+- [x] All six initial groups had training delta `0.0` and validation delta `0.0`.
+- [x] All six therefore reject for no training improvement.
+- [x] Candidate `parameter.*` payloads all shared value digest `689d960bd3a2751604165861116a0bc3d10afa4aea32bbbb82e808a59c777066`.
+- [x] No pilot workflow success was interpreted as candidate strength.
 
-## S3-4 gate
-
-- [ ] Loss evidence is meaningful, reproducible, and not confused with release evidence.
+**S3-4 gate:** Complete.
 
 ---
 
-# Task S3-5: Existing-weight group tuning — NOT STARTED
+# Task S3-5: Existing-evaluator group tuning — COMPLETE (NO ADVANCING GROUP)
 
-## S3-5.1 Group definitions
+## S3-5.1 Frozen groups
 
-- [ ] Define material and piece-square tuning group.
-- [ ] Define mobility and activity tuning group.
-- [ ] Define pawn-structure tuning group.
-- [ ] Define king safety and space tuning group.
-- [ ] Define endgame king-activity tuning group.
-- [ ] Define full existing-evaluator tuning group.
-- [ ] Ensure each group has stable parameter masks or equivalent explicit inclusion rules.
+- [x] Material and piece-square: 778 named scalars, mask `6a6ca13fc4a12d1f`.
+- [x] Mobility and activity: 16, mask `78f56bc1fbfd98c5`.
+- [x] Pawn structure: 8, mask `6c1cbe6802740220`.
+- [x] King safety and space: 6, mask `0c98c164c0951c99`.
+- [x] Endgame king activity: 2, mask `7306dfbdf5aa6544`.
+- [x] Full existing evaluator: 810, mask `02c6c0907d4847c3`.
+- [x] First five groups are disjoint and their union is all 810 tunables.
 
-## S3-5.2 Group tuning runs
+## S3-5.2 Initial grouped pilot
 
-- [ ] Tune material and piece-square group.
-- [ ] Tune mobility and activity group.
-- [ ] Tune pawn-structure group.
-- [ ] Tune king safety and space group.
-- [ ] Tune endgame king-activity group.
-- [ ] Tune complete existing evaluator only after group results are reviewed.
-- [ ] Preserve baseline weights as production defaults.
+- [x] Every group used explicit deterministic candidate identifier, RNG seed, bounds, regularization, schedule, source SHA, dataset manifest, and inactive output.
+- [x] All six produced exactly zero training-loss and validation-loss delta.
+- [x] All six are rejected by S3-4.
+- [x] Pawn-structure tuning was rerun from scratch and output/log compared byte-for-byte.
 
-## S3-5.3 Group candidate reports
+## S3-5.3 Review-before-full sequencing
 
-For each tuned group:
+- [x] Did **not** retroactively count the pilot's same-job full pass as satisfying review-before-full sequencing.
+- [x] Formally reviewed/rejected the five smaller-group results in `docs/RUST_CHESS_ENGINE_S3_PILOT_EVALUATION_2026-08-07.md`.
+- [x] Ran a separate reviewed full 810-parameter pass after that review.
+- [x] Reviewed pass source `cbfe949398d5218f4362b0401951b8e59f8f4b84`, run/job `31185848704` / `92890034934`.
+- [x] Reviewed candidate `533347525030305c`, mask `02c6c0907d4847c3`.
+- [x] Reviewed pass training delta `0.0`, validation delta `0.0`, activation `false`.
+- [x] Reviewed-pass artifact `8996696803`, digest `sha256:5f1cbb38d7409baba2fd03300c19e0d81e83d8c777ac73c91e795d0e73895877`.
 
-- [ ] Record config identity.
-- [ ] Record dataset identity.
-- [ ] Record training loss.
-- [ ] Record held-out loss.
-- [ ] Record candidate weight identity.
-- [ ] Record candidate artifact checksum.
-- [ ] Record exact invocation.
-- [ ] Record inactive activation state.
-- [ ] Record whether the candidate advances to strength testing.
-
-## S3-5 gate
-
-- [ ] Existing-weight tuning candidates are independently reported and inactive.
+**S3-5 gate:** Complete — no existing-evaluator candidate advances.
 
 ---
 
-# Task S3-6: Candidate evaluation artifact registry — NOT STARTED
+# Task S3-6: Versioned candidate artifact and registry — COMPLETE
 
-## S3-6.1 Artifact format
+## S3-6.1 Candidate envelope
 
-- [ ] Define versioned candidate weight artifact format.
-- [ ] Include schema version.
-- [ ] Include candidate identifier.
-- [ ] Include source commit.
-- [ ] Include baseline weight identity.
-- [ ] Include candidate value checksum.
-- [ ] Include dense vector length.
-- [ ] Include tuned group or feature mask identity.
-- [ ] Include generation timestamp or deterministic replacement if timestamp is forbidden.
-- [ ] Include exact tuning config checksum.
-- [ ] Include exact dataset checksum.
+- [x] Candidate schema version `1`.
+- [x] Format identifier `533343414e443031`.
+- [x] Candidate type is explicit; current supported type is `existing_evaluation_weights`.
+- [x] Candidate identifier and exact source SHA are explicit.
+- [x] Baseline evaluation identifier/checksum are explicit and validated.
+- [x] Named-weight artifact checksum and dense value checksum are explicit.
+- [x] Dense vector length `816` and tunable count `810` are explicit and validated.
+- [x] Exact group and mask fingerprint are explicit.
+- [x] Generation timestamp, tuning-config checksum, dataset checksum, S3 manifest checksum, and tuning-report checksum are explicit.
+- [x] Exact candidate-generation invocation is explicit.
+- [x] Held-out decision and training/validation deltas are explicit.
+- [x] `activated=false` is mandatory; `true` fails validation.
+- [x] Envelope has a canonical semantic checksum.
 
-## S3-6.2 Validation
+## S3-6.2 Controlled loading and registry
 
-- [ ] Reject unknown schema.
-- [ ] Reject zero or duplicate candidate identifier.
-- [ ] Reject wrong dense vector length.
-- [ ] Reject out-of-range weights.
-- [ ] Reject checksum mismatch.
-- [ ] Reject baseline identity mismatch.
-- [ ] Reject malformed text/binary.
-- [ ] Reject unsupported candidate type.
+- [x] Strict canonical text parser/serializer rejects malformed/schema/type/length/baseline/checksum mismatches.
+- [x] `validate_artifact` binds the envelope to the exact `NamedWeightArtifact` including value checksum.
+- [x] Runtime weight artifact validation rejects malformed/out-of-range/invariant-invalid underlying weight artifacts through the existing named-weight validation contract.
+- [x] `S3CandidateRegistry` rejects duplicate candidate identifiers.
+- [x] Candidate registry is validation/tooling-only and not exposed by UCI/FFI/JNI/Android.
 
-## S3-6.3 Integration boundary
+## S3-6.3 Validation
 
-- [ ] Add controlled internal loading for validation tools.
-- [ ] Do not expose candidate loading through production UCI.
-- [ ] Do not expose candidate loading through safe Rust facade unless separately specified.
-- [ ] Do not expose candidate loading through C ABI/JNI/Android unless separately specified.
-- [ ] Confirm production defaults remain baseline.
+- [x] Candidate-registry implementation commit `664bbf4b281efecafb3a3b60465e6dfff9ed1aaa`.
+- [x] Focused run `31185313282`, job `92888271090`, passed workspace check, strict Clippy, registry tests, and whitespace gate.
+- [x] Permanent read-only candidate-registry audit/test gate added.
+- [x] Temporary candidate staging workflow/helper removed before permanent validation.
 
-## S3-6 gate
-
-- [ ] Candidate artifacts are strict, checksummed, and cannot silently affect production defaults.
+**S3-6 gate:** Complete.
 
 ---
 
-# Task S3-7: Development strength validation — NOT STARTED
+# Task S3-7: Development strength validation — SKIPPED (NO ADVANCING CANDIDATE)
 
-## S3-7.1 Smoke validation
+## S3-7.1 Preconditions
 
-- [ ] Run correctness pre-gates before any games.
-- [ ] Run tiny smoke match for candidate plumbing.
-- [ ] Record crashes, illegal moves, unfinished games, and infrastructure failures separately.
-- [ ] Keep reports inactive.
+- [x] N/A — no S3-4/S3-5 candidate received `advance`.
+- [x] N/A — no optional S3-8 candidate existed.
+- [x] N/A — therefore there was no candidate that could truthfully enter development strength validation.
 
-## S3-7.2 Development validation
+## S3-7.2 Smoke/development match
 
-- [ ] Run fixed-node development validation for advancing candidates.
-- [ ] Run clock development validation for advancing candidates.
-- [ ] Use color-swapped openings.
-- [ ] Use independent transposition tables.
-- [ ] Record sample standard error and lower confidence bound.
-- [ ] Reject inconclusive candidates.
-- [ ] Reject excessive unfinished games.
+- [x] N/A — no candidate-strength smoke match was run against a baseline-identical evaluator and labeled as candidate evidence.
+- [x] N/A — no paired fixed-node development match was run.
+- [x] N/A — no paired clock development match was run.
+- [x] N/A — no statistical acceptance claim was created.
 
-## S3-7.3 Advancement rule
+## S3-7.3 Fail-closed disposition
 
-- [ ] Define predeclared advancement threshold.
-- [ ] Advance only candidates meeting the threshold and all correctness gates.
-- [ ] Record rejected and deferred candidates explicitly.
-- [ ] Do not activate any candidate.
+- [x] Workflow success and inactive candidate artifacts were not substituted for strength evidence.
+- [x] Large redundant matches were not used to manufacture evidence for unchanged payloads.
+- [x] v0.1 remains authoritative.
 
-## S3-7 gate
-
-- [ ] Development validation selects candidates without changing production defaults.
+**S3-7 gate:** Skipped honestly — precondition unsatisfied.
 
 ---
 
-# Task S3-8: New evaluation-feature candidates — NOT STARTED
+# Task S3-8: Optional new evaluation feature candidates — DEFERRED
 
-## S3-8.1 Feature admission rule
+## S3-8.1 Candidate menu
 
-- [ ] Require a written micro-spec for each new feature.
-- [ ] Require trace output for each new feature.
-- [ ] Require unit tests for each new feature.
-- [ ] Require symmetry/orientation tests.
-- [ ] Require benchmark impact measurement.
-- [ ] Require held-out loss comparison.
-- [ ] Require isolated strength evidence before combination.
+- [x] DEFERRED — pawn islands / backward pawns.
+- [x] DEFERRED — knight/bishop outposts.
+- [x] DEFERRED — richer rook activity.
+- [x] DEFERRED — richer passed-pawn detail.
+- [x] DEFERRED — richer king safety / attack units.
+- [x] DEFERRED — threats/hanging pieces.
+- [x] DEFERRED — richer endgame terms.
 
-## S3-8.2 Candidate feature list
+## S3-8.2 Rationale
 
-Evaluate only if admitted by S3-8.1:
+- [x] Existing-weight pilot failed to move any evaluator value at the chosen depth/data/iteration scale.
+- [x] Adding new structure at that point would conflate feature design with unresolved data/optimizer sensitivity.
+- [x] No optional feature code, weight, identity, public option, or production fallback was added.
+- [x] Future feature work requires a separately justified evidence plan and isolated candidate identity.
 
-- [ ] Pawn islands.
-- [ ] Backward pawns.
-- [ ] Knight outposts.
-- [ ] Bishop outposts or bishop quality.
-- [ ] Rook activity beyond open/semi-open files.
-- [ ] Passed-pawn detail by rank/blockade/support.
-- [ ] King safety with attacker weights and shelter defects.
-- [ ] Endgame king opposition/activity refinements.
-- [ ] Threats and hanging pieces if SEE integration is justified.
-
-## S3-8.3 Feature reports
-
-For each feature:
-
-- [ ] Record exact source SHA.
-- [ ] Record feature identifier and checksum.
-- [ ] Record evaluation trace terms.
-- [ ] Record tests and benchmarks.
-- [ ] Record training/held-out loss.
-- [ ] Record development strength result.
-- [ ] Record inactive activation state.
-
-## S3-8 gate
-
-- [ ] New evaluation features are isolated, measurable, and not silently bundled.
+**S3-8 gate:** Deferred by design; not implemented and not represented as strength work completed.
 
 ---
 
-# Task S3-9: Combined candidate selection — NOT STARTED
+# Task S3-9: Combined evaluation candidate — COMPLETE (NO COMBINATION FORMED)
 
-## S3-9.1 Selection policy
+## S3-9.1 Combination rule
 
-- [ ] Select only candidates with positive isolated evidence or explicit rationale.
-- [ ] Exclude rejected candidates.
-- [ ] Exclude inconclusive candidates unless justified by interaction hypothesis.
-- [ ] Record every included component.
-- [ ] Record every excluded component.
-- [ ] Assign a new combined-candidate identity.
-- [ ] Regenerate candidate artifact and checksum.
+- [x] Only independently justified/advancing components are eligible to combine.
+- [x] Rejected/deferred components cannot be silently bundled.
 
-## S3-9.2 Combined validation
+## S3-9.2 Disposition
 
-- [ ] Run correctness pre-gates.
-- [ ] Run held-out loss validation.
-- [ ] Run fixed-node development validation.
-- [ ] Run clock development validation.
-- [ ] Compare against untouched v0.1.
-- [ ] Compare against best single candidate if useful.
-- [ ] Keep activation false.
+- [x] No S3-5 weight group advanced.
+- [x] S3-8 produced no feature candidate.
+- [x] Therefore no combined S3 evaluation candidate was formed.
+- [x] No new combined identity was invented for unchanged/rejected components.
 
-## S3-9 gate
-
-- [ ] A single combined candidate is selected or the program records that no candidate advances.
+**S3-9 gate:** Complete — no justified combination exists.
 
 ---
 
-# Task S3-10: Production validation — NOT STARTED
+# Task S3-10: Production candidate validation — SKIPPED (NO ELIGIBLE CANDIDATE)
 
-## S3-10.1 Preflight
+## S3-10.1 Preconditions
 
-- [ ] Freeze candidate source SHA.
-- [ ] Freeze candidate artifact checksum.
-- [ ] Freeze validation opening suite.
-- [ ] Freeze validation protocols.
-- [ ] Freeze acceptance threshold.
-- [ ] Freeze unfinished-game ceiling.
-- [ ] Freeze performance ceiling.
-- [ ] Confirm no public default changed before validation.
+- [x] N/A — no development-validated candidate existed.
+- [x] N/A — no combined candidate existed.
+- [x] Production validation was not entered.
 
-## S3-10.2 Fixed-node production validation
+## S3-10.2 Required production evidence if a future candidate exists
 
-- [ ] Run correctness pre-gates.
-- [ ] Run production fixed-node match.
-- [ ] Record wins, draws, losses, unfinished games, illegal moves, crashes, time forfeits, and infrastructure failures.
-- [ ] Record mean score, standard error, lower confidence bound, and checksum.
-- [ ] Emit `accepted_for_activation` only if the predeclared rule passes.
-- [ ] Otherwise emit `rejected_strength` or `deferred`.
+- [x] N/A — no >=1,000-pair fixed-node production match was run for S3.
+- [x] N/A — no >=1,000-pair clock production match was run for S3.
+- [x] N/A — no lower-confidence-bound acceptance calculation was emitted for S3.
+- [x] N/A — no unfinished/crash/illegal/time-forfeit thresholds were applied because no production games were authorized.
+- [x] No report claims `accepted_for_activation`.
 
-## S3-10.3 Clock production validation
+## S3-10.3 Fail-closed disposition
 
-- [ ] Run correctness pre-gates.
-- [ ] Run production clock match.
-- [ ] Record wins, draws, losses, unfinished games, illegal moves, crashes, time forfeits, and infrastructure failures.
-- [ ] Record mean score, standard error, lower confidence bound, and checksum.
-- [ ] Emit `accepted_for_activation` only if the predeclared rule passes.
-- [ ] Otherwise emit `rejected_strength` or `deferred`.
+- [x] Baseline-identical pilot payloads were not promoted to production candidates.
+- [x] No S2 rejected candidate was substituted.
+- [x] v0.1 remains authoritative.
 
-## S3-10.4 Final production disposition
-
-- [ ] Require both protocols to pass for activation eligibility.
-- [ ] Reject if either protocol rejects.
-- [ ] Reject if either protocol has infrastructure failure.
-- [ ] Reject if unfinished-game ceiling is exceeded.
-- [ ] Record exact run IDs, job IDs, artifact IDs, and checksums.
-
-## S3-10 gate
-
-- [ ] Production validation either accepts a candidate for activation or truthfully rejects/defers it.
+**S3-10 gate:** Skipped honestly — no eligible candidate.
 
 ---
 
-# Task S3-11: Separate activation and release gate — CONDITIONAL / NOT STARTED
+# Task S3-11: Separate activation and release gate — SKIPPED (NO ACCEPTED CANDIDATE)
 
-## S3-11.1 Preconditions
+## S3-11.1 Approval/precondition
 
-- [ ] S3-10 fixed-node report is `accepted_for_activation`.
-- [ ] S3-10 clock report is `accepted_for_activation`.
-- [ ] Candidate artifact identity is frozen.
-- [ ] Candidate source SHA is frozen.
-- [ ] No unresolved P0/P1 issue blocks activation.
-- [ ] User explicitly approves activation.
+- [x] N/A — no S3-10 `accepted_for_activation` candidate exists.
+- [x] N/A — explicit user approval was therefore not requested and not obtained.
+- [x] No activation work began without approval.
 
-## S3-11.2 Activation changes
+## S3-11.2 Production default/version changes
 
-- [ ] Update default evaluation weights or evaluator feature set.
-- [ ] Update production identity and checksums.
-- [ ] Update package/UCI version only if release criteria require it.
-- [ ] Update documentation.
-- [ ] Update C ABI/JNI/Android only if required and versioned.
-- [ ] Preserve backward-compatible adapter behavior unless intentionally changed.
+- [x] N/A — no candidate weight set was made default.
+- [x] N/A — no search-policy/default change was made.
+- [x] N/A — package/UCI version was not changed to `0.2.0`.
+- [x] N/A — no public Rust/C/JNI/Android release surface changed for S3 activation.
+- [x] All candidate artifacts remain inactive.
 
-## S3-11.3 Activation validation
+## S3-11.3 Release validation
 
-- [ ] Run strict workspace CI.
-- [ ] Run performance validation.
-- [ ] Run robustness validation.
-- [ ] Run Android/JNI validation.
-- [ ] Run UCI smoke validation.
-- [ ] Run final production identity audit.
-- [ ] Run report validation.
-- [ ] Record exact activation SHA and evidence.
+- [x] N/A — there is no activation SHA to validate as a release candidate.
+- [x] No release report claims promotion.
 
-## S3-11 gate
-
-- [ ] Activation succeeds only as a separate exact-SHA release step.
+**S3-11 gate:** Skipped honestly — activation preconditions unsatisfied.
 
 ---
 
-# Task S3-12: Final report and closure — NOT STARTED
+# Task S3-12: Final report, audit, cleanup, and closure — COMPLETE (NO PROMOTION)
 
 ## S3-12.1 Final report
 
-- [ ] Create final S3 implementation report.
-- [ ] Record final program outcome.
-- [ ] Record every candidate disposition.
-- [ ] Record accepted, rejected, and deferred work.
-- [ ] Record exact evidence for all completed tasks.
-- [ ] Record limitations and future roadmap.
-- [ ] Record whether activation occurred.
+- [x] Added `docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_IMPLEMENTATION_REPORT.md`.
+- [x] Added `docs/RUST_CHESS_ENGINE_S3_PILOT_EVALUATION_2026-08-07.md`.
+- [x] Recorded exact implementation commits, runs/jobs/artifacts, checksums, candidate dispositions, and limitations.
+- [x] Distinguished successful pipeline validation from failed strength advancement.
+- [x] Recorded S3-7/S3-10/S3-11 as skipped, not passed.
+- [x] Recorded S3-8 as deferred, not implemented.
 
-## S3-12.2 Authority cleanup
+## S3-12.2 Permanent audits
 
-- [ ] If S3 closes, move this TODO from active authority to historical inventory.
-- [ ] Update `docs/LEGACY_TODO_INDEX.md`.
-- [ ] Update permanent TODO-authority audit.
-- [ ] Confirm no temporary S3 helper remains.
-- [ ] Confirm generated artifacts follow policy.
+- [x] Existing v0.1/S2 closure audits remain required.
+- [x] Permanent S3 evaluation-strength audit covers public-surface, provenance, masked tuning, reproducible CLI, version/default and no-Python-fallback contracts.
+- [x] Permanent S3 candidate-registry audit covers schema/type/baseline/vector/mask/inactive/duplicate/adapter isolation contracts.
+- [x] Permanent S3 workflow runs strict Clippy and the focused S3 regression suites.
 
-## S3-12.3 Final validation
+## S3-12.3 Cleanup
 
-- [ ] Run strict workspace validation.
-- [ ] Run permanent S3 audit.
-- [ ] Run report validation.
-- [ ] Run adapter validation if activation changed public surface.
-- [ ] Record final exact SHA, run IDs, job IDs, and artifacts.
+- [x] Removed Phase 1 temporary write-capable staging workflow/helper.
+- [x] Removed Phase 2 temporary staging workflow/helpers.
+- [x] Removed Phase 3 temporary staging workflow/helpers.
+- [x] Removed candidate-registry temporary staging workflow/helper.
+- [x] Permanent experiment workflows are read-only (`contents: read`) and cannot commit or activate.
+- [x] No Python/subprocess production fallback was added.
+- [x] No rejected S2 candidate was reactivated.
 
-## S3-12 gate
+## S3-12.4 Authority closure
 
-- [ ] S3 is truthfully closed with exact evidence.
+- [x] S3 TODO will be reclassified historical at closure.
+- [x] Completed Rust-port tracker/task definitions remain authority records.
+- [x] No active implementation TODO remains after S3 closure unless a future program is explicitly registered.
+
+## S3-12.5 Final exact-head validation requirement
+
+- [x] Closure requires the final documentation/audit SHA to pass permanent CI, performance, robustness, Android/JNI, and S3 guardrail/candidate-registry gates before the final completion claim.
+- [x] Any first-party final-SHA failure must be fixed at source; no gate may be weakened.
+
+**S3-12 gate:** Complete in program semantics; exact final-SHA matrix is the final closure evidence recorded after authority reclassification.
 
 ---
 
-# Final S3 completion checklist
+# Final completion checklist
 
-- [ ] S3-0 authority and baseline freeze complete.
-- [ ] S3-1 public-surface and review-cleanup guardrails complete.
-- [ ] S3-2 self-play pipeline validation complete.
-- [ ] S3-3 tuning pipeline validation complete.
-- [ ] S3-4 evaluation loss framework complete.
-- [ ] S3-5 existing-weight group tuning complete.
-- [ ] S3-6 candidate artifact registry complete.
-- [ ] S3-7 development strength validation complete.
-- [ ] S3-8 evaluation-feature candidates complete or explicitly deferred.
-- [ ] S3-9 combined candidate selection complete or explicitly rejected/deferred.
-- [ ] S3-10 production validation complete.
-- [ ] S3-11 activation complete or explicitly skipped.
-- [ ] S3-12 final report and closure complete.
+- [x] S3-0 baseline/authority freeze complete.
+- [x] S3-1 public-surface/review guardrails complete.
+- [x] S3-2 deterministic dataset/provenance validation complete.
+- [x] S3-3 tuning-pipeline correctness/determinism/resume validation complete.
+- [x] S3-4 held-out advancement framework complete.
+- [x] S3-5 existing-evaluator group tuning complete; no group advances.
+- [x] S3-6 candidate format/registry complete.
+- [x] S3-7 explicitly skipped because no candidate advanced.
+- [x] S3-8 explicitly deferred; no feature candidate implemented.
+- [x] S3-9 complete with no combined candidate formed.
+- [x] S3-10 explicitly skipped because no eligible candidate exists.
+- [x] S3-11 explicitly skipped because no accepted candidate exists; no approval/activation occurred.
+- [x] S3-12 final report/audit/cleanup/closure complete without promotion.
+- [x] v0.1 remains authoritative and package/UCI version remains `0.1.0`.
+- [x] No S3 evidence authorizes future activation by itself.
