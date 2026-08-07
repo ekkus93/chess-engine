@@ -121,14 +121,15 @@ require_literal 's3-candidate-envelope.txt' crates/chess-tools/src/tuning_cli.rs
 require_literal 's3-candidate-registry.tsv' crates/chess-tools/src/tuning_cli.rs
 require_literal 'S3CandidateRegistry::default()' crates/chess-tools/src/tuning_cli.rs
 require_literal '.validate_artifact(candidate)' crates/chess-tools/src/tuning_cli.rs
-require_literal 'loss_decision\t{}' crates/chess-tools/src/tuning_cli.rs
+require_literal 'envelope.loss_decision.name()' crates/chess-tools/src/tuning_cli.rs
 require_literal 'changed_parameter_count' crates/chess-tools/src/tuning_cli.rs
 require_literal 'maximum_absolute_parameter_delta' crates/chess-tools/src/tuning_cli.rs
 require_literal 'mean_absolute_parameter_delta' crates/chess-tools/src/tuning_cli.rs
 require_literal 'zero_after_quantization_count' crates/chess-tools/src/tuning_cli.rs
 require_literal 'clipping_count' crates/chess-tools/src/tuning_cli.rs
 require_literal 'candidate_value_checksum' crates/chess-tools/src/tuning_cli.rs
-require_literal 'disposition\tunassessed' crates/chess-tools/src/tuning_cli.rs
+require_literal 'disposition' crates/chess-tools/src/tuning_cli.rs
+require_literal 'unassessed' crates/chess-tools/src/tuning_cli.rs
 require_literal 'initial_checkpoint_checksum: checkpoint_checksum(&initial_checkpoint)?' crates/chess-tools/src/tuning_cli.rs
 require_literal 'fn apply_gradient_step(' "$optimizer"
 require_literal 'subinteger_update_is_explicitly_quantization_limited' "$optimizer"
@@ -144,7 +145,8 @@ require_literal 'NamedWeightArtifact::deserialize' crates/chess-tools/src/bin/s4
 require_literal 'SearchPolicySet::baseline()' crates/chess-tools/src/bin/s4_candidate_smoke.rs
 require_literal 'EvaluationWeightSet::new(artifact.identifier, artifact.weights)' crates/chess-tools/src/bin/s4_candidate_smoke.rs
 require_literal 'EngineVariantValidationTier::Development' crates/chess-tools/src/bin/s4_candidate_smoke.rs
-require_literal 'activated\tfalse' crates/chess-tools/src/bin/s4_candidate_smoke.rs
+require_literal 'activated' crates/chess-tools/src/bin/s4_candidate_smoke.rs
+require_literal 'false' crates/chess-tools/src/bin/s4_candidate_smoke.rs
 require_literal 'final_validation <= initial_validation + 0.02' "$optimizer"
 
 for path in crates/chess-uci/src crates/chess-ffi/src crates/chess-jni/src crates/chess-jni/kotlin/src/main android-harness; do
