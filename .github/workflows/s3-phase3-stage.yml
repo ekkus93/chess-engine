@@ -71,30 +71,40 @@ jobs:
 
           s3 = Path('crates/chess-tools/src/s3.rs')
           s3_text = s3.read_text()
-          engine_block = '''        writeln!(output, "engine_version={}", self.engine_version)
-              .expect("String write cannot fail");
-          '''
-          invocation_line = '''        writeln!(output, "exact_invocation={}", self.exact_invocation)
-              .expect("String write cannot fail");
-          '''
+
+          def insert_before_literal(text: str, literal: str, insertion: str) -> str:
+              if text.count(literal) != 1:
+                  raise SystemExit(f'expected one anchor {literal!r}, found {text.count(literal)}')
+              index = text.index(literal)
+              line_start = text.rfind('\n', 0, index) + 1
+              return text[:line_start] + insertion + text[line_start:]
+
           if 'exact_invocation={}' not in s3_text:
-              if s3_text.count(engine_block) != 1:
-                  raise SystemExit(f'expected one engine serialization block, found {s3_text.count(engine_block)}')
-              s3_text = s3_text.replace(engine_block, engine_block + invocation_line, 1)
-          test_block = '''        writeln!(output, "test_occurrences={}", self.test_occurrences)
-              .expect("String write cannot fail");
-          '''
-          row_lines = '''        writeln!(output, "total_position_rows={}", self.total_position_rows)
-              .expect("String write cannot fail");
-          writeln!(output, "eligible_position_rows={}", self.eligible_position_rows)
-              .expect("String write cannot fail");
-          writeln!(output, "excluded_position_rows={}", self.excluded_position_rows)
-              .expect("String write cannot fail");
-          '''
+              s3_text = insert_before_literal(
+                  s3_text,
+                  'writeln!(output, "search_policy_schema={}", self.search_policy_schema)',
+                  '        writeln!(output, "exact_invocation={}", self.exact_invocation)\n'
+                  '            .expect("String write cannot fail");\n',
+              )
+
           if 'total_position_rows={}' not in s3_text:
-              if s3_text.count(test_block) != 1:
-                  raise SystemExit(f'expected one test-occurrence serialization block, found {s3_text.count(test_block)}')
-              s3_text = s3_text.replace(test_block, test_block + row_lines, 1)
+              s3_text = insert_before_literal(
+                  s3_text,
+                  'writeln!(output, "checksum={:016x}", self.checksum)',
+                  '        writeln!(output, "total_position_rows={}", self.total_position_rows)\n'
+                  '            .expect("String write cannot fail");\n'
+                  '        writeln!(output, "eligible_position_rows={}", self.eligible_position_rows)\n'
+                  '            .expect("String write cannot fail");\n'
+                  '        writeln!(output, "excluded_position_rows={}", self.excluded_position_rows)\n'
+                  '            .expect("String write cannot fail");\n',
+              )
+
+          if s3_text.count('exact_invocation={}') != 1:
+              raise SystemExit('exact invocation serialization is not unique')
+          if s3_text.count('total_position_rows={}') != 1:
+              raise SystemExit('row-count serialization is not unique')
+          if 'const KEYS: [&str; 25]' not in s3_text:
+              raise SystemExit('manifest parser does not declare the 25-field schema')
           s3.write_text(s3_text)
           PY
 
