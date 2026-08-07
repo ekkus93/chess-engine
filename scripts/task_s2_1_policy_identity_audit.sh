@@ -43,8 +43,11 @@ if grep -E --line-number 'std::env|std::fs|File::|read_to_string|var\(' \
   exit 1
 fi
 
+# Match only actual S2-1 staging names. A broad `*s2-1*` glob also matches
+# later tasks such as `s2-14-*`, which would incorrectly reject permanent
+# workflows for S2-10 through S2-19.
 if find .github/workflows -maxdepth 1 -type f \
-  \( -name '*s2-1*' -o -name '*policy-patch*' \) -print | grep -q .; then
+  \( -name 's2-1.yml' -o -name 's2-1-*' -o -name '*policy-patch*' \) -print | grep -q .; then
   echo 'temporary S2-1 workflow remains in the repository' >&2
   exit 1
 fi
