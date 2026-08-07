@@ -1,8 +1,11 @@
 # Rust Chess Engine v0.2 Strength Program TODO
 
-**Status:** In progress
+**Status:** Complete — program closed without v0.2 promotion
 **Date:** 2026-08-05
 **Branch:** `master`
+**Closure disposition:** Completed without promotion; S2-15 activation was skipped because S2-14 produced `rejected_strength`, not `accepted_for_activation`.
+**Authoritative released engine:** v0.1 (`0.1.0`)
+**Final report:** `docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_IMPLEMENTATION_REPORT.md`
 **Specification:** `docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_SPEC_2026-08-05.md`
 **Completed v0.1 tracker:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`
 **Completed v0.1 report:** `docs/RUST_CHESS_ENGINE_PORT_IMPLEMENTATION_REPORT.md`
@@ -342,8 +345,8 @@
 | S2-12 | Optional Syzygy tablebase decision/integration | **Complete — deferred; no compliant backend integrated; inactive** |
 | S2-13 | API, UCI, ABI/JNI, Android, CI, and documentation integration | **Complete — internal candidate infrastructure integrated; public adapters unchanged; inactive** |
 | S2-14 | Production candidate selection and validation | **Complete — PVS rejected_strength; v0.1 remains authoritative; inactive** |
-| S2-15 | Separate activation and v0.2 release gate | **Not started** |
-| S2-16 | Final audit, report, and closure | **Not started** |
+| S2-15 | Separate activation and v0.2 release gate | **Skipped — activation precondition unsatisfied; no v0.2 promotion** |
+| S2-16 | Final audit, report, and closure | **Complete — program closed without promotion; v0.1 remains authoritative** |
 
 ---
 
@@ -1029,7 +1032,9 @@
 
 ---
 
-# Task S2-15: Separate activation and v0.2 release gate — NOT STARTED
+# Task S2-15: Separate activation and v0.2 release gate — SKIPPED (NO ACCEPTED CANDIDATE)
+
+**Disposition:** Skipped by design. S2-14's frozen PVS production reports both returned `rejected_strength` with `activated=false`; therefore S2-15.1's `accepted_for_activation` precondition is false. No activation commit, package/UCI version change, default-policy change, ABI/JNI release change, or v0.2 release was authorized. The unchecked S2-15 checklist is intentionally preserved to prove those release actions were not executed.
 
 ## S2-15.1 Preconditions
 
@@ -1066,62 +1071,62 @@
 - [ ] Public API/ABI versions are accurate.
 - [ ] No report is rewritten to claim it activated the engine.
 
-**S2-15 gate:** A separately accepted candidate is explicitly activated and passes the full exact-SHA release matrix as v0.2.
+**S2-15 gate:** Not applicable for this closure. No candidate satisfied `accepted_for_activation`, so the explicit no-release disposition path is authoritative and no S2-15 activation/release action is permitted from this program's evidence.
 
 ---
 
-# Task S2-16: Final audit, report, and closure — NOT STARTED
+# Task S2-16: Final audit, report, and closure — COMPLETE (NO PROMOTION)
 
 ## S2-16.1 Final implementation report
 
-- [ ] Create `docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_IMPLEMENTATION_REPORT.md`.
-- [ ] Record whether v0.2 released or the program completed without promotion.
-- [ ] Map every task to implementation/evidence/disposition.
-- [ ] Record exact authoritative source, policy, weight, ABI/JNI, report, opening, and tablebase identities.
-- [ ] Record all accepted, rejected, revised, and deferred candidates.
-- [ ] Record exact workflow run/job/artifact IDs.
-- [ ] Record known limitations and next roadmap.
+- [x] Create `docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_IMPLEMENTATION_REPORT.md`.
+- [x] Record whether v0.2 released or the program completed without promotion.
+- [x] Map every task to implementation/evidence/disposition.
+- [x] Record exact authoritative source, policy, weight, ABI/JNI, report, opening, and tablebase identities.
+- [x] Record all accepted, rejected, revised, and deferred candidates.
+- [x] Record exact workflow run/job/artifact IDs.
+- [x] Record known limitations and next roadmap.
 
 ## S2-16.2 Final permanent audit
 
-- [ ] Require complete spec/TODO/report traceability.
-- [ ] Require exact validated implementation SHA.
-- [ ] Require active TODO authority consistency.
-- [ ] Require activation boundary consistency.
-- [ ] Reject placeholder SHAs/IDs/decisions.
-- [ ] Reject temporary helper workflows/scripts.
-- [ ] Reject hidden Python embedding/spawn in production crates.
-- [ ] Reject implicit data discovery and silent optional-capability fallback.
-- [ ] Chain all inherited permanent audits.
+- [x] Require complete spec/TODO/report traceability.
+- [x] Require exact validated implementation SHA.
+- [x] Require active TODO authority consistency.
+- [x] Require activation boundary consistency.
+- [x] Reject placeholder SHAs/IDs/decisions.
+- [x] Reject temporary helper workflows/scripts.
+- [x] Reject hidden Python embedding/spawn in production crates.
+- [x] Reject implicit data discovery and silent optional-capability fallback.
+- [x] Chain all inherited permanent audits.
 
 ## S2-16.3 Closure consistency
 
-- [ ] Mark tasks complete only after their gates pass.
-- [ ] Reclassify this TODO as completed historical authority when the program closes.
-- [ ] If no candidate passed, keep package/UCI v0.1 and say so explicitly.
-- [ ] If v0.2 released, verify README/report/default identity agree.
-- [ ] Verify no unresolved P0/P1 issue exists.
-- [ ] Verify no rejected candidate is active.
+- [x] Mark tasks complete only after their gates pass.
+- [x] Reclassify this TODO as completed historical authority when the program closes.
+- [x] If no candidate passed, keep package/UCI v0.1 and say so explicitly.
+- [x] If v0.2 released, verify README/report/default identity agree.
+- [x] Verify no unresolved P0/P1 issue exists.
+- [x] Verify no rejected candidate is active.
 
 ## S2-16.4 Final gate
 
-- [ ] S2-0 gate.
-- [ ] S2-1 gate.
-- [ ] S2-2 gate.
-- [ ] S2-3 gate.
-- [ ] S2-4 gate.
-- [ ] S2-5 gate.
-- [ ] S2-6 gate.
-- [ ] S2-7 gate.
-- [ ] S2-8 gate.
-- [ ] S2-9 gate.
-- [ ] S2-10 gate.
-- [ ] S2-11 gate.
-- [ ] S2-12 gate.
-- [ ] S2-13 gate.
-- [ ] S2-14 gate.
-- [ ] S2-15 gate, or explicit no-release disposition if no candidate was accepted.
-- [ ] S2-16 gate.
+- [x] S2-0 gate.
+- [x] S2-1 gate.
+- [x] S2-2 gate.
+- [x] S2-3 gate.
+- [x] S2-4 gate.
+- [x] S2-5 gate.
+- [x] S2-6 gate.
+- [x] S2-7 gate.
+- [x] S2-8 gate.
+- [x] S2-9 gate.
+- [x] S2-10 gate.
+- [x] S2-11 gate.
+- [x] S2-12 gate.
+- [x] S2-13 gate.
+- [x] S2-14 gate.
+- [x] S2-15 gate, or explicit no-release disposition if no candidate was accepted.
+- [x] S2-16 gate.
 
 **S2-16 gate:** The strength program is completely auditable and either releases an evidence-backed v0.2 or truthfully closes without promotion.
 
@@ -1154,3 +1159,13 @@ Remaining risks:
 ## Initial next action
 
 Begin with **S2-10.1 only**: decide whether a separately versioned, shallow non-PV futility-pruning candidate is justified by the current profile and accepted baseline. Do not combine it with rejected PVS, LMR, SEE/delta, or null-move candidates, and do not activate or expose it through production adapters without its own correctness and strength disposition.
+
+## S2-16 closure record
+
+- Disposition: complete without v0.2 promotion; v0.1 remains authoritative.
+- Exact unchanged production/code baseline SHA entering closure: `677cd2a4d2a4a4f3c376f7bf47fae412171206fb`.
+- Closure is documentation/audit-only. No engine/search semantics, policy defaults, evaluation weights, package/UCI version, C ABI, JNI/Kotlin API, Android behavior, benchmark reference, or activation state changes in S2-16.
+- S2-15 was skipped because S2-14 returned `rejected_strength`; its activation checklist remains unchecked and is not retroactively treated as completed.
+- No open GitHub issue labeled P0 or P1 was present at closure review time.
+- The final implementation report preserves the complete S2-0 through S2-14 evidence ledger and the explicit S2-15 no-release disposition.
+- Permanent audits reject the one-shot S2-16 helpers after cleanup, hidden Python/subprocess production fallbacks, implicit optional-capability discovery, and any activation/default/version drift.

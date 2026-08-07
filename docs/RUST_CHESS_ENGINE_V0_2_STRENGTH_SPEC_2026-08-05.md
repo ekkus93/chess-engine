@@ -1,9 +1,11 @@
 # Rust Chess Engine v0.2 Strength Program Specification
 
-**Status:** Proposed
+**Status:** Complete — program closed without v0.2 promotion
 **Date:** 2026-08-05
 **Branch:** `master`
 **Companion TODO:** `docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md`
+**Closure report:** `docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_IMPLEMENTATION_REPORT.md`
+**Closure outcome:** No candidate was promoted; package/UCI v0.1 remains authoritative.
 **Completed v0.1 port tracker:** `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`
 **Completed port report:** `docs/RUST_CHESS_ENGINE_PORT_IMPLEMENTATION_REPORT.md`
 **Post-port review record:** `docs/RUST_CHESS_ENGINE_POST_PORT_REVIEW_FIX_TODO_2026-08-04.md`

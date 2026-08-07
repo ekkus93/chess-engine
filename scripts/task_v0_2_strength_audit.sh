@@ -59,6 +59,7 @@ required_paths=(
   docs/RUST_CHESS_ENGINE_V0_2_S2_14_CANDIDATE_SELECTION_2026-08-06.md
   docs/RUST_CHESS_ENGINE_V0_2_S2_14_SEE_LMR_PREFLIGHT_REJECTION_2026-08-06.md
   docs/RUST_CHESS_ENGINE_V0_2_S2_14_PRODUCTION_VALIDATION_2026-08-06.md
+  docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_IMPLEMENTATION_REPORT.md
   docs/RUST_DEVELOPER_WORKFLOWS.md
   docs/RUST_GENERATED_ARTIFACT_POLICY.md
   crates/chess-tools/src/bin/s2_13_variant_control.rs
@@ -83,17 +84,30 @@ legacy=crates/chess-tools/src/candidate_validation.rs
 control=crates/chess-tools/src/bin/s2_13_variant_control.rs
 workflow=.github/workflows/variant-validation.yml
 s2_14_report=docs/RUST_CHESS_ENGINE_V0_2_S2_14_PRODUCTION_VALIDATION_2026-08-06.md
+final_report=docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_IMPLEMENTATION_REPORT.md
+legacy_index=docs/LEGACY_TODO_INDEX.md
 
 require_literal '| S2-13 | API, UCI, ABI/JNI, Android, CI, and documentation integration | **Complete — internal candidate infrastructure integrated; public adapters unchanged; inactive** |' "$tracker"
 require_literal '| S2-14 | Production candidate selection and validation | **Complete — PVS rejected_strength; v0.1 remains authoritative; inactive** |' "$tracker"
 require_literal '# Task S2-13: API, UCI, ABI/JNI, Android, CI, and documentation integration — COMPLETE' "$tracker"
 require_literal '# Task S2-14: Production candidate selection and validation — COMPLETE (REJECTED)' "$tracker"
+require_literal '| S2-15 | Separate activation and v0.2 release gate | **Skipped — activation precondition unsatisfied; no v0.2 promotion** |' "$tracker"
+require_literal '| S2-16 | Final audit, report, and closure | **Complete — program closed without promotion; v0.1 remains authoritative** |' "$tracker"
+require_literal '# Task S2-15: Separate activation and v0.2 release gate — SKIPPED (NO ACCEPTED CANDIDATE)' "$tracker"
+require_literal '# Task S2-16: Final audit, report, and closure — COMPLETE (NO PROMOTION)' "$tracker"
+require_literal '**Status:** Complete — program closed without v0.2 promotion' "$tracker"
 s2_13="$(sed -n '/^# Task S2-13:/,/^# Task S2-14:/p' "$tracker")"
 test "$(grep -Fc -- '- [x]' <<<"$s2_13")" -eq 33 || fail 'S2-13 must contain exactly 33 completed requirements'
 test "$(grep -Fc -- '- [ ]' <<<"$s2_13")" -eq 0 || fail 'S2-13 retains incomplete requirements'
 s2_14="$(sed -n '/^# Task S2-14:/,/^# Task S2-15:/p' "$tracker")"
 test "$(grep -Fc -- '- [x]' <<<"$s2_14")" -eq 31 || fail 'S2-14 must contain exactly 31 completed requirements'
 test "$(grep -Fc -- '- [ ]' <<<"$s2_14")" -eq 0 || fail 'S2-14 retains incomplete requirements'
+s2_15="$(sed -n '/^# Task S2-15:/,/^# Task S2-16:/p' "$tracker")"
+test "$(grep -Fc -- '- [x]' <<<"$s2_15")" -eq 0 || fail 'S2-15 activation/release work was incorrectly marked complete'
+test "$(grep -Fc -- '- [ ]' <<<"$s2_15")" -gt 0 || fail 'S2-15 skipped checklist was not preserved'
+s2_16="$(sed -n '/^# Task S2-16:/,$p' "$tracker")"
+test "$(grep -Fc -- '- [ ]' <<<"$s2_16")" -eq 0 || fail 'S2-16 retains incomplete requirements'
+test "$(grep -Fc -- '- [x]' <<<"$s2_16")" -gt 0 || fail 'S2-16 has no completed requirements'
 
 # S2-14 is an evidence-backed rejection, not an activation. Pin the immutable
 # candidate SHA and both independent production decisions so documentation
@@ -111,6 +125,29 @@ require_literal 'Artifact `8982375018`' "$s2_14_report"
 require_literal '0.4578061271735924' "$s2_14_report"
 require_literal '0.45802189803116894' "$s2_14_report"
 require_literal 'does not authorize S2-15 activation' "$s2_14_report"
+
+# S2-16 closes through the explicit no-release path.
+require_literal '**Status:** Complete — program closed without v0.2 promotion' "$final_report"
+require_literal '**Program outcome:** Completed without promotion' "$final_report"
+require_literal '**S2-15 disposition:** Skipped — no `accepted_for_activation` candidate' "$final_report"
+require_literal '**Validated production/code baseline SHA:** `677cd2a4d2a4a4f3c376f7bf47fae412171206fb`' "$final_report"
+require_literal 'Package/UCI version: `0.1.0`' "$final_report"
+require_literal 'Search policy identifier/checksum: `5630315f504f4c31` / `0c0769ef9d034770`' "$final_report"
+require_literal 'Evaluation-weight identifier/checksum: `424153454c494e45` / `d2cca7ae10ec6e34`' "$final_report"
+require_literal 'C ABI version: `1`' "$final_report"
+require_literal 'Production PVS report checksums: `bad7aa1f69e9d18e` / `d3b883442ec6107b`' "$final_report"
+require_literal 'Opening file SHA-256: `6c3ff4cc9837bc66dd517d4a7c60d56e71a9b3a4e1fb1aabd904de81dad4e9b7`' "$final_report"
+require_literal 'Tablebase identity: disabled' "$final_report"
+require_literal 'CI run `31157401828`' "$final_report"
+require_literal 'Performance run `31157401863`' "$final_report"
+require_literal 'Robustness run `31157401842`' "$final_report"
+require_literal 'Android/JNI run `31157401847`' "$final_report"
+require_literal 'Strength tracker run `31157401822`' "$final_report"
+require_literal 'Report-master validation run `31158574619`' "$final_report"
+require_literal '`docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md`' "$legacy_index"
+if grep -Fq '| Active v0.2 strength program |' "$legacy_index"; then
+  fail 'closed v0.2 strength tracker is still active authority'
+fi
 
 # Exact schema and identity boundaries.
 require_literal 'pub const SEARCH_POLICY_SCHEMA_VERSION: u16 = 1;' "$policy"
@@ -225,6 +262,8 @@ temporary_paths=(
   .github/s2_13_payload_03
   .github/s2_14_close_once.py
   .github/workflows/s2-14-close-once.yml
+  .github/s2_16_close.py
+  .github/workflows/s2-16-close-once.yml
 )
 for path in "${temporary_paths[@]}"; do
   test ! -e "$path" || fail "temporary S2-13 asset remains: $path"
@@ -242,4 +281,4 @@ require_literal '**Activation:** `false`' "$report"
 require_literal '**Public adapter change:** none' "$report"
 require_literal '**Next task:** S2-14' "$report"
 
-echo 'v0.2 strength integration audit passed'
+echo 'v0.2 strength program closure audit passed'

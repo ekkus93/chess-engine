@@ -34,11 +34,15 @@ grep -Fq 'activated=false' "$tracker"
 grep -Fqi 'baseline weights remain authoritative' "$tracker"
 grep -Fqi 'separate strength change' "$tracker"
 grep -Fq '**Status:** Complete' "$postport_record"
+grep -Fq '**Status:** Complete — program closed without v0.2 promotion' "$v0_2_todo"
+if grep -Fq '| Active v0.2 strength program |' "$legacy_index"; then
+    echo "closed v0.2 strength TODO is still classified as active" >&2
+    exit 1
+fi
 
 authority_todos=(
     "$tracker"
     "$definitions"
-    "$v0_2_todo"
 )
 for authority in "${authority_todos[@]}"; do
     grep -Fq "\`$authority\`" "$legacy_index"
@@ -51,7 +55,7 @@ grep -Fq "**Specification:** \`$v0_2_spec\`" "$v0_2_todo"
 
 while IFS= read -r todo_path; do
     case "$todo_path" in
-        "$tracker"|"$definitions"|"$v0_2_todo"|"$legacy_index")
+        "$tracker"|"$definitions"|"$legacy_index")
             ;;
         *)
             grep -Fq "\`$todo_path\`" "$legacy_index" || {

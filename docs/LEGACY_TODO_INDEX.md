@@ -8,14 +8,13 @@ This file prevents historical planning documents from being mistaken for current
 |---|---|---|
 | Completed Rust-port tracker | `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md` | Authoritative completion record for the Rust-port program. |
 | Completed Rust-port task definitions | `docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md` | Detailed definitions and evidence for the completed Rust-port program. |
-| Active v0.2 strength program | `docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md` | Authoritative live execution tracker for the Rust Engine v0.2 strength program. |
 | Authority index, not an implementation TODO | `docs/LEGACY_TODO_INDEX.md` | Classifies active, completed-authority, and historical TODO-named documents. |
 
 ## Exhaustive classification rule
 
-Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO` and is not one of the three authority documents above is a historical or legacy reference. Those files preserve implementation history, but they are not active instructions and must not override the active v0.2 tracker or the completed Rust-port authority records.
+Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO` and is not one of the two authority documents above is a historical or legacy reference. Those files preserve implementation history, but they are not active instructions and must not override the active v0.2 tracker or the completed Rust-port authority records.
 
-Inventory captured on 2026-08-05: **72 TODO-named files total; 3 authority documents; 1 authority index; 68 historical.**
+Inventory captured on 2026-08-05 and reclassified at S2-16 closure on 2026-08-07: **72 TODO-named files total; 2 authority documents; 1 authority index; 69 historical.**
 
 ## Historical TODO inventory
 
@@ -63,6 +62,7 @@ Inventory captured on 2026-08-05: **72 TODO-named files total; 3 authority docum
 - `docs/MIDDLEGAME_FIX1_TODO.md`
 - `docs/REFACTOR_BOARD_TODO.md`
 - `docs/RUST_CHESS_ENGINE_POST_PORT_REVIEW_FIX_TODO_2026-08-04.md`
+- `docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md`
 - `docs/RUST_ENGINE_REVIEW_FIX_TODO_2026-08-02.md`
 - `docs/STOCKFISH1_TODO.md`
 - `docs/STRATEGY10_TODO.md`
