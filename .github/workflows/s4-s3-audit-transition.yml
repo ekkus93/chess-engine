@@ -1,0 +1,47 @@
+name: S4 S3 Audit Transition Stage
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - .github/s4_s3_audit_transition.py
+      - .github/workflows/s4-s3-audit-transition.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: s4-s3-audit-transition
+  cancel-in-progress: false
+
+jobs:
+  stage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply audit transition
+        run: python3 .github/s4_s3_audit_transition.py
+      - name: Verify syntax and new invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n scripts/task_s3_evaluation_strength_audit.sh
+          grep -Fq 'if !mask.contains(tunable) {' crates/chess-tune/src/optimizer.rs
+          grep -Fq 'if direction != 0 {' crates/chess-tune/src/optimizer.rs
+          grep -Fq 'if !matches!(direction, -1 | 1) {' crates/chess-tune/src/optimizer.rs
+          git diff --check
+      - name: Commit validated transition
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Phillip Chin"
+          git config user.email "ekkus93@gmail.com"
+          git add scripts/task_s3_evaluation_strength_audit.sh
+          git commit -m "ci: align S3 audit with stricter S4 mask transition"
+          git fetch origin master
+          git rebase origin/master
+          git push origin HEAD:master
