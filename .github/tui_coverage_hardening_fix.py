@@ -41,3 +41,13 @@ replace_once(
     '    assert!(too_small.contains("40×10"));\n',
     '',
 )
+
+replace_once(
+    "crates/chess-tui/src/ui/hardening_tests.rs",
+    '''    handle_overlay_key(&mut app, &mut runtime, ctrl(KeyCode::Char('x')))
+        .expect("control char ignored");
+''',
+    '''    handle_key(&mut app, &mut runtime, ctrl(KeyCode::Char('x')))
+        .expect("control-modified key ignored");
+''',
+)
