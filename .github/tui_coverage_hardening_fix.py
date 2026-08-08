@@ -51,3 +51,24 @@ replace_once(
         .expect("control-modified key ignored");
 ''',
 )
+
+# The temporary Actions token intentionally cannot update workflow files.
+# Keep CI workflow bookkeeping out of the self-published source commit; the
+# connector applies any permanent workflow edit after the validated source lands.
+replace_once(
+    ".github/workflows/ci.yml",
+    '''          test -f scripts/dev.sh
+          test -f scripts/tui_coverage.sh
+          test -f .github/workflows/tui-coverage.yml
+''',
+    '''          test -f scripts/dev.sh
+''',
+)
+replace_once(
+    ".github/workflows/ci.yml",
+    '''            scripts/dev.sh \\
+            scripts/tui_coverage.sh \\
+''',
+    '''            scripts/dev.sh \\
+''',
+)
