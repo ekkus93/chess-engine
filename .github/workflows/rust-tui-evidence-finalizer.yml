@@ -79,22 +79,23 @@ jobs:
               elif checked not in todo:
                   raise SystemExit(f"missing final check: {check}")
 
-          evidence = f"""
-## Permanent automated validation evidence
-
-- Final implementation/source SHA: `{implementation_sha}`.
-- Permanent CI run `31228282277` completed successfully on that exact SHA. Rust workspace quality job `93026823684` passed the permanent audits, committed-lock verification, `cargo fmt --all -- --check`, workspace check, strict workspace Clippy, `cargo test --locked --workspace --all-targets --all-features`, authoritative release perft, rustdoc, debug/release workspace builds, UCI smoke, and the pinned differential corpus/seeded playout oracle. ARM64 workspace job `93026823636` also passed metadata, debug build, test compilation, and release build.
-- Permanent Robustness run `31228282261` completed successfully on that exact SHA. Miri job `93026823576`, native sanitizer job `93026823565`, and fuzz/corpus job `93026823590` all passed, including TSan concurrent cancellation and bounded libFuzzer campaigns.
-- Focused TUI run `31227985266` / job `93025997708` passed TUI check, strict Clippy, unit/integration tests, release build, PTY terminal lifecycle smoke, and the explicit Rust 1.75 MSRV check; PTY lifecycle run `31227882334` / job `93025710323` observed both alternate-screen enter and leave sequences on clean quit.
-- The final implementation diff from baseline `925f2e33271cd7657757f4428544a698268b6a7d` to `{implementation_sha}` contains the new TUI/integration/tests/documentation/workspace wiring plus the TODO-authority registration required by permanent CI. It does not modify existing `chess-core`, `chess-search`, `chess-book`, `chess-uci`, evaluation, tuning, or promotion implementation sources.
-- Search failure remains fail-closed at the TUI boundary: the TUI never consumes `SearchResult::best_move()` when only the generic emergency cancellation fallback exists; only an exact `result.completed().best_move()` may become a played move. Normal cancellation/shutdown paths explicitly join and surface errors. `Drop` cleanup is necessarily best-effort because Rust destructors cannot return errors, but it cannot synthesize or apply a fallback move.
-- The evidence-bookkeeping commit following `{implementation_sha}` contains no engine/search/evaluation/tuning behavior change and is revalidated by permanent workflows before final reporting.
-"""
+          evidence_lines = [
+              "## Permanent automated validation evidence",
+              "",
+              f"- Final implementation/source SHA: `{implementation_sha}`.",
+              "- Permanent CI run `31228282277` completed successfully on that exact SHA. Rust workspace quality job `93026823684` passed the permanent audits, committed-lock verification, `cargo fmt --all -- --check`, workspace check, strict workspace Clippy, `cargo test --locked --workspace --all-targets --all-features`, authoritative release perft, rustdoc, debug/release workspace builds, UCI smoke, and the pinned differential corpus/seeded playout oracle. ARM64 workspace job `93026823636` also passed metadata, debug build, test compilation, and release build.",
+              "- Permanent Robustness run `31228282261` completed successfully on that exact SHA. Miri job `93026823576`, native sanitizer job `93026823565`, and fuzz/corpus job `93026823590` all passed, including TSan concurrent cancellation and bounded libFuzzer campaigns.",
+              "- Focused TUI run `31227985266` / job `93025997708` passed TUI check, strict Clippy, unit/integration tests, release build, PTY terminal lifecycle smoke, and the explicit Rust 1.75 MSRV check; PTY lifecycle run `31227882334` / job `93025710323` observed both alternate-screen enter and leave sequences on clean quit.",
+              f"- The final implementation diff from baseline `925f2e33271cd7657757f4428544a698268b6a7d` to `{implementation_sha}` contains the new TUI/integration/tests/documentation/workspace wiring plus the TODO-authority registration required by permanent CI. It does not modify existing `chess-core`, `chess-search`, `chess-book`, `chess-uci`, evaluation, tuning, or promotion implementation sources.",
+              "- Search failure remains fail-closed at the TUI boundary: the TUI never consumes `SearchResult::best_move()` when only the generic emergency cancellation fallback exists; only an exact `result.completed().best_move()` may become a played move. Normal cancellation/shutdown paths explicitly join and surface errors. `Drop` cleanup is necessarily best-effort because Rust destructors cannot return errors, but it cannot synthesize or apply a fallback move.",
+              f"- The evidence-bookkeeping commit following `{implementation_sha}` contains no engine/search/evaluation/tuning behavior change and is revalidated by permanent workflows before final reporting.",
+          ]
+          evidence = "\n".join(evidence_lines)
           marker = "\n## Phase 13 — Final evidence and closure\n"
           if "## Permanent automated validation evidence" not in todo:
               if marker not in todo:
                   raise SystemExit("Phase 13 marker missing")
-              todo = todo.replace(marker, "\n" + evidence.strip() + marker, 1)
+              todo = todo.replace(marker, "\n" + evidence + marker, 1)
           todo_path.write_text(todo)
 
           status_path = Path("docs/RUST_TUI_RALPH_STATUS.md")
@@ -104,20 +105,21 @@ jobs:
               f"Status: Rust implementation plus focused and permanent automated acceptance are complete on implementation/source SHA `{implementation_sha}`. Human-operated real-terminal acceptance remains the only closure gate.",
               1,
           )
-          permanent = f"""
-## Permanent validation evidence
-
-- Implementation/source SHA `{implementation_sha}`.
-- Permanent CI run `31228282277`: success. Workspace quality job `93026823684` and Linux ARM64 workspace job `93026823636` both succeeded.
-- Permanent Robustness run `31228282261`: success. Miri `93026823576`, native sanitizers `93026823565`, and fuzz/corpus `93026823590` all succeeded.
-- Permanent CI covered the repository audits, lockfile reproduction, formatting, workspace check/Clippy/tests, authoritative release perft, rustdoc, debug/release builds, UCI smoke, and pinned differential validation.
-- The baseline-to-implementation diff changes no existing core/search/book/UCI/evaluation/tuning/promotion implementation source.
-"""
+          permanent_lines = [
+              "## Permanent validation evidence",
+              "",
+              f"- Implementation/source SHA `{implementation_sha}`.",
+              "- Permanent CI run `31228282277`: success. Workspace quality job `93026823684` and Linux ARM64 workspace job `93026823636` both succeeded.",
+              "- Permanent Robustness run `31228282261`: success. Miri `93026823576`, native sanitizers `93026823565`, and fuzz/corpus `93026823590` all succeeded.",
+              "- Permanent CI covered the repository audits, lockfile reproduction, formatting, workspace check/Clippy/tests, authoritative release perft, rustdoc, debug/release builds, UCI smoke, and pinned differential validation.",
+              "- The baseline-to-implementation diff changes no existing core/search/book/UCI/evaluation/tuning/promotion implementation source.",
+          ]
+          permanent = "\n".join(permanent_lines)
           remaining_marker = "\n## Remaining closure gates\n"
           if "## Permanent validation evidence" not in status:
               if remaining_marker not in status:
                   raise SystemExit("remaining closure marker missing")
-              status = status.replace(remaining_marker, "\n" + permanent.strip() + remaining_marker, 1)
+              status = status.replace(remaining_marker, "\n" + permanent + remaining_marker, 1)
           status = status.replace(
               "Permanent CI must pass on the final repository SHA after the temporary Ralph workflow is removed, including workspace format/check/strict-Clippy/tests, release perft, differential/core correctness, UCI coverage, and relevant robustness jobs.\n\n",
               "Permanent CI and Robustness have passed on the exact implementation/source SHA recorded above. The evidence-only bookkeeping commit is separately revalidated before final reporting.\n\n",
