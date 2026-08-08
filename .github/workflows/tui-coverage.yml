@@ -67,6 +67,9 @@ jobs:
       - name: Generate LCOV report
         run: bash scripts/tui_coverage.sh lcov
 
+      - name: Generate HTML report
+        run: bash scripts/tui_coverage.sh html
+
       - name: Verify coverage reports
         shell: bash
         run: |
@@ -74,6 +77,7 @@ jobs:
           test -s target/chess-tui-coverage-summary.txt
           test -s target/chess-tui-coverage-summary.json
           test -s target/chess-tui-lcov.info
+          test -s target/llvm-cov/html/index.html
 
       - name: Upload focused coverage evidence
         uses: actions/upload-artifact@v4
@@ -85,3 +89,30 @@ jobs:
             target/chess-tui-coverage-summary.txt
             target/chess-tui-coverage-summary.json
             target/chess-tui-lcov.info
+            target/llvm-cov/html/
+
+  msrv:
+    name: Rust 1.75 chess-tui compatibility
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust 1.75 toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.75.0
+
+      - name: Cache Cargo data
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-tui-msrv-1.75
+
+      - name: Record MSRV toolchain identity
+        run: rustc -vV
+
+      - name: Check chess-tui on repository MSRV
+        run: cargo check --locked -p chess-tui --all-targets --all-features
