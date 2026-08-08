@@ -49,8 +49,10 @@ Status: Rust implementation plus focused and permanent automated acceptance are 
 - Permanent Robustness run `31228282261`: success. Miri `93026823576`, native sanitizers `93026823565`, and fuzz/corpus `93026823590` all succeeded.
 - Permanent CI covered the repository audits, lockfile reproduction, formatting, workspace check/Clippy/tests, authoritative release perft, rustdoc, debug/release builds, UCI smoke, and pinned differential validation.
 - The baseline-to-implementation diff changes no existing core/search/book/UCI/evaluation/tuning/promotion implementation source.
+- Evidence-bookkeeping SHA `b3ea047d5f16d1e26379522ad6fad6eeb2d324e3` reconciles the TODO/status/audit records and removes the temporary finalizer workflow; it contains no engine/search/evaluation/tuning behavior change.
+
 ## Remaining closure gates
 
-Permanent CI and Robustness have passed on the exact implementation/source SHA recorded above. The evidence-only bookkeeping commit is separately revalidated before final reporting.
+Permanent CI and Robustness have passed on the exact implementation/source SHA recorded above. This connector-authored evidence-only status commit intentionally triggers the permanent workflows once more so the final repository SHA is also validated before reporting.
 
 The following TODO items intentionally remain human-operated and are not satisfied by headless/unit/PTY automation: play several legal plies as White, play several legal plies as Black, interactively exercise Self-play pause/resume/step, resignation confirmation, menu/quit while thinking, live resize, save success/failure, and visually confirm shell restoration on every exercised exit path.
