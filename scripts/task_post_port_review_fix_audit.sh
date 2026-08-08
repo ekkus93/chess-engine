@@ -60,7 +60,7 @@ grep -Fq '**Status:** Complete — tuning method accepted for future experimenta
 grep -Fq '**Status:** Complete — closure hardening validated; no production promotion' "$hardening_todo"
 grep -Fq '**Status:** Complete — closure hardening validated; no production promotion' "$hardening_spec"
 grep -Fq '**Status:** Complete — closure hardening validated; no production promotion' "$hardening_report"
-grep -Fq 'Status: implementation complete through Phase 11; permanent regression gates and manual real-terminal acceptance remain open.' "$tui_todo"
+grep -Fq 'Status: automated implementation and permanent regression validation complete; manual real-terminal acceptance remains open.' "$tui_todo"
 
 for stale in '| Active v0.2 strength program |' '| Active S3 evaluation strength program |' '| Active S4 evaluation tuning calibration program |'; do
     if grep -Fq "$stale" "$legacy_index"; then

@@ -1,6 +1,6 @@
 # Rust TUI Ralph Status
 
-Status: Rust implementation and focused automated acceptance are complete. Permanent workspace/robustness validation and the specification's human-operated real-terminal acceptance remain closure gates.
+Status: Rust implementation plus focused and permanent automated acceptance are complete on implementation/source SHA `a41a61e6b673aaa249aab9c378d2bd6f5018e0d7`. Human-operated real-terminal acceptance remains the only closure gate.
 
 ## Source identity
 
@@ -42,8 +42,15 @@ Status: Rust implementation and focused automated acceptance are complete. Perma
 4. The first responsive-layout thresholds could render a truncated board at dimensions called supported. Layout selection now requires enough rows for the complete board and uses a clear minimum-size message otherwise.
 5. A temporary Ralph workflow revision had invalid YAML indentation. That run never created a job and is not counted as code validation evidence.
 
+## Permanent validation evidence
+
+- Implementation/source SHA `a41a61e6b673aaa249aab9c378d2bd6f5018e0d7`.
+- Permanent CI run `31228282277`: success. Workspace quality job `93026823684` and Linux ARM64 workspace job `93026823636` both succeeded.
+- Permanent Robustness run `31228282261`: success. Miri `93026823576`, native sanitizers `93026823565`, and fuzz/corpus `93026823590` all succeeded.
+- Permanent CI covered the repository audits, lockfile reproduction, formatting, workspace check/Clippy/tests, authoritative release perft, rustdoc, debug/release builds, UCI smoke, and pinned differential validation.
+- The baseline-to-implementation diff changes no existing core/search/book/UCI/evaluation/tuning/promotion implementation source.
 ## Remaining closure gates
 
-Permanent CI must pass on the final repository SHA after the temporary Ralph workflow is removed, including workspace format/check/strict-Clippy/tests, release perft, differential/core correctness, UCI coverage, and relevant robustness jobs.
+Permanent CI and Robustness have passed on the exact implementation/source SHA recorded above. The evidence-only bookkeeping commit is separately revalidated before final reporting.
 
 The following TODO items intentionally remain human-operated and are not satisfied by headless/unit/PTY automation: play several legal plies as White, play several legal plies as Black, interactively exercise Self-play pause/resume/step, resignation confirmation, menu/quit while thinking, live resize, save success/failure, and visually confirm shell restoration on every exercised exit path.

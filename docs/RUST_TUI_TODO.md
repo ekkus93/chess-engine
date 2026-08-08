@@ -2,7 +2,7 @@
 
 Companion specification: `docs/RUST_TUI_SPEC.md`
 
-Status: implementation complete through Phase 11; permanent regression gates and manual real-terminal acceptance remain open.
+Status: automated implementation and permanent regression validation complete; manual real-terminal acceptance remains open.
 
 The objective is a native Rust `chess-tui` application based behaviorally on the historical Python Textual TUI while using the authoritative Rust core/search implementation. This work is a frontend/integration milestone. It must not alter engine strength, evaluation weights, search policy, tuning state, or candidate-promotion disposition.
 
@@ -283,19 +283,19 @@ Use existing observer/progress APIs rather than instrumenting the search algorit
 
 Run on the exact intended final source SHA.
 
-- [ ] `cargo fmt --all -- --check`
-- [ ] workspace `cargo check` through the supported developer workflow.
-- [ ] workspace strict Clippy through the supported developer workflow.
-- [ ] workspace Rust tests.
-- [ ] `cargo test -p chess-tui`.
-- [ ] release build of `chess-tui`.
-- [ ] existing core perft gate remains unchanged and green.
-- [ ] existing differential/core correctness gates remain unchanged and green.
-- [ ] existing UCI tests remain green.
-- [ ] relevant robustness gates remain green.
-- [ ] no Python production/runtime dependency was added.
-- [ ] no generated tuning/weight candidate became active.
-- [ ] no default evaluation/search policy changed.
+- [x] `cargo fmt --all -- --check`
+- [x] workspace `cargo check` through the supported developer workflow.
+- [x] workspace strict Clippy through the supported developer workflow.
+- [x] workspace Rust tests.
+- [x] `cargo test -p chess-tui`.
+- [x] release build of `chess-tui`.
+- [x] existing core perft gate remains unchanged and green.
+- [x] existing differential/core correctness gates remain unchanged and green.
+- [x] existing UCI tests remain green.
+- [x] relevant robustness gates remain green.
+- [x] no Python production/runtime dependency was added.
+- [x] no generated tuning/weight candidate became active.
+- [x] no default evaluation/search policy changed.
 - [ ] manually launch the release TUI in a real terminal.
 - [ ] manually play at least several legal plies as White.
 - [ ] manually play at least several legal plies as Black.
@@ -306,15 +306,24 @@ Run on the exact intended final source SHA.
 - [ ] manually exercise a save success and a save failure.
 - [ ] confirm terminal state is restored after every tested exit path.
 
+## Permanent automated validation evidence
+
+- Final implementation/source SHA: `a41a61e6b673aaa249aab9c378d2bd6f5018e0d7`.
+- Permanent CI run `31228282277` completed successfully on that exact SHA. Rust workspace quality job `93026823684` passed the permanent audits, committed-lock verification, `cargo fmt --all -- --check`, workspace check, strict workspace Clippy, `cargo test --locked --workspace --all-targets --all-features`, authoritative release perft, rustdoc, debug/release workspace builds, UCI smoke, and the pinned differential corpus/seeded playout oracle. ARM64 workspace job `93026823636` also passed metadata, debug build, test compilation, and release build.
+- Permanent Robustness run `31228282261` completed successfully on that exact SHA. Miri job `93026823576`, native sanitizer job `93026823565`, and fuzz/corpus job `93026823590` all passed, including TSan concurrent cancellation and bounded libFuzzer campaigns.
+- Focused TUI run `31227985266` / job `93025997708` passed TUI check, strict Clippy, unit/integration tests, release build, PTY terminal lifecycle smoke, and the explicit Rust 1.75 MSRV check; PTY lifecycle run `31227882334` / job `93025710323` observed both alternate-screen enter and leave sequences on clean quit.
+- The final implementation diff from baseline `925f2e33271cd7657757f4428544a698268b6a7d` to `a41a61e6b673aaa249aab9c378d2bd6f5018e0d7` contains the new TUI/integration/tests/documentation/workspace wiring plus the TODO-authority registration required by permanent CI. It does not modify existing `chess-core`, `chess-search`, `chess-book`, `chess-uci`, evaluation, tuning, or promotion implementation sources.
+- Search failure remains fail-closed at the TUI boundary: the TUI never consumes `SearchResult::best_move()` when only the generic emergency cancellation fallback exists; only an exact `result.completed().best_move()` may become a played move. Normal cancellation/shutdown paths explicitly join and surface errors. `Drop` cleanup is necessarily best-effort because Rust destructors cannot return errors, but it cannot synthesize or apply a fallback move.
+- The evidence-bookkeeping commit following `a41a61e6b673aaa249aab9c378d2bd6f5018e0d7` contains no engine/search/evaluation/tuning behavior change and is revalidated by permanent workflows before final reporting.
 ## Phase 13 — Final evidence and closure
 
-- [ ] Record final implementation SHA.
-- [ ] Record exact validation commands and results.
-- [ ] Record relevant CI run/job URLs or IDs.
-- [ ] Confirm CI ran against the exact final SHA rather than an earlier implementation commit.
-- [ ] Confirm the final diff contains only intended TUI/integration/documentation changes.
-- [ ] Confirm no silent fallback behavior was introduced.
-- [ ] Confirm no search/evaluation/tuning/promotion behavior changed.
+- [x] Record final implementation SHA.
+- [x] Record exact validation commands and results.
+- [x] Record relevant CI run/job URLs or IDs.
+- [x] Confirm CI ran against the exact final SHA rather than an earlier implementation commit.
+- [x] Confirm the final diff contains only intended TUI/integration/documentation changes.
+- [x] Confirm no silent fallback behavior was introduced.
+- [x] Confirm no search/evaluation/tuning/promotion behavior changed.
 - [ ] Mark this TODO complete only after all required gates are green.
 
 ## Definition of done
