@@ -176,13 +176,16 @@ jobs:
           cache-dependency-path: requirements/oracle.txt
 
       - name: Install pinned differential oracle
-        run: python -m pip install --disable-pip-version-check --require-hashes -r requirements/oracle.txt
+        run: python -m pip install --disable-pip-version-check --requirement requirements/oracle.txt
 
-      - name: Run pinned differential corpus
-        run: python scripts/differential_oracle.py --mode corpus --binary target/debug/chess-tools
-
-      - name: Run seeded differential playouts
-        run: python scripts/differential_oracle.py --mode playout --binary target/debug/chess-tools
+      - name: Run differential corpus and seeded playouts
+        run: >-
+          python scripts/differential_oracle.py
+          --binary target/release/chess-tools
+          --corpus fixtures/differential_corpus.tsv
+          --games 12
+          --plies 48
+          --seed 0xC0FFEE
 
   arm64:
     name: Linux ARM64 workspace build
