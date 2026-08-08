@@ -20,6 +20,7 @@ hardening_report="docs/RUST_CHESS_ENGINE_S4_CLOSURE_HARDENING_IMPLEMENTATION_REP
 tui_todo="docs/RUST_TUI_TODO.md"
 tui_coverage_spec="docs/RUST_TUI_TEST_COVERAGE_HARDENING_SPEC.md"
 tui_coverage_todo="docs/RUST_TUI_TEST_COVERAGE_HARDENING_TODO.md"
+tui_coverage_report="docs/RUST_TUI_TEST_COVERAGE_HARDENING_IMPLEMENTATION.md"
 legacy_index="docs/LEGACY_TODO_INDEX.md"
 fen_doc="docs/RUST_FEN_AND_UCI_NOTATION.md"
 fen_source="crates/chess-core/src/position/fen.rs"
@@ -41,6 +42,7 @@ for required in \
     "$tui_todo" \
     "$tui_coverage_spec" \
     "$tui_coverage_todo" \
+    "$tui_coverage_report" \
     "$legacy_index" \
     "$fen_doc" \
     "$fen_source"; do
@@ -65,7 +67,8 @@ grep -Fq '**Status:** Complete — closure hardening validated; no production pr
 grep -Fq '**Status:** Complete — closure hardening validated; no production promotion' "$hardening_spec"
 grep -Fq '**Status:** Complete — closure hardening validated; no production promotion' "$hardening_report"
 grep -Fq 'Status: automated implementation and permanent regression validation complete; manual real-terminal acceptance remains open.' "$tui_todo"
-grep -Fq 'Status: active implementation plan; not yet implemented.' "$tui_coverage_todo"
+grep -Fq 'Status: complete — Rust TUI test/coverage hardening validated; coverage remains diagnostic and no engine/search/evaluation/tuning behavior changed.' "$tui_coverage_todo"
+grep -Fq 'Status: complete — targeted Rust TUI hardening and diagnostic coverage integration validated.' "$tui_coverage_report"
 
 for stale in '| Active v0.2 strength program |' '| Active S3 evaluation strength program |' '| Active S4 evaluation tuning calibration program |'; do
     if grep -Fq "$stale" "$legacy_index"; then
@@ -97,9 +100,9 @@ if grep -Fq '| Active S4 closure hardening program |' "$legacy_index"; then
     echo 'closure-candidate hardening TODO is still active' >&2
     exit 1
 fi
-grep -Fq 'Active implementation TODOs: `docs/RUST_TUI_TODO.md` and `docs/RUST_TUI_TEST_COVERAGE_HARDENING_TODO.md`.' "$legacy_index"
+grep -Fq 'Active implementation TODO: `docs/RUST_TUI_TODO.md`.' "$legacy_index"
 grep -Fq 'Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO`, is not one of the two completed-authority documents above, and is not explicitly registered as active in the authority table' "$legacy_index"
-grep -Fq '77 TODO-named files total; 2 completed-authority documents; 2 active authority documents; 1 authority index; 72 historical' "$legacy_index"
+grep -Fq '77 TODO-named files total; 2 completed-authority documents; 1 active authority document; 1 authority index; 73 historical' "$legacy_index"
 grep -Fq "**Companion TODO:** \`$v0_2_todo\`" "$v0_2_spec"
 grep -Fq "**Specification:** \`$v0_2_spec\`" "$v0_2_todo"
 grep -Fq "**Companion TODO:** \`$s3_todo\`" "$s3_spec"
@@ -124,7 +127,7 @@ grep -Fq 'H7 is complete.' "$hardening_report"
 
 while IFS= read -r todo_path; do
     case "$todo_path" in
-        "$tracker"|"$definitions"|"$tui_todo"|"$tui_coverage_todo"|"$legacy_index")
+        "$tracker"|"$definitions"|"$tui_todo"|"$legacy_index")
             ;;
         *)
             grep -Fq "\`$todo_path\`" "$legacy_index" || {
@@ -145,7 +148,12 @@ for temporary in \
     ".github/ppr_implementation.py" \
     ".github/workflows/ppr-implementation.yml" \
     ".github/ppr_close.py" \
-    ".github/workflows/ppr-closure.yml"; do
+    ".github/workflows/ppr-closure.yml" \
+    ".github/tui_coverage_hardening_patch.py" \
+    ".github/tui_coverage_hardening_fix.py" \
+    ".github/workflows/tui-coverage-hardening-implementation.yml" \
+    ".github/tui_coverage_checklist_patch.py" \
+    ".github/workflows/tui-coverage-checklist-validation.yml"; do
     if test -e "$temporary"; then
         echo "temporary post-port helper remains: $temporary" >&2
         exit 1

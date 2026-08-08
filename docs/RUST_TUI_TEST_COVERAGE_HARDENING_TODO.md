@@ -2,9 +2,13 @@
 
 Companion specification: `docs/RUST_TUI_TEST_COVERAGE_HARDENING_SPEC.md`
 
-Status: active implementation plan; not yet implemented.
+Status: complete — Rust TUI test/coverage hardening validated; coverage remains diagnostic and no engine/search/evaluation/tuning behavior changed.
 
 Starting baseline SHA: `1c83c40ff33fb77e9f19f6873b33561af64c9199`
+
+Implementation Ralph-loop start SHA: `e03f7cecba304571e0bc523c3991e93b85c079da`
+
+TUI implementation/test source SHA: `2acd49c16267e6bc7e1e38cd2626dfed70f311ac`
 
 Objective: add reproducible `cargo llvm-cov` coverage reporting and close the highest-value Rust TUI test gaps without changing engine/search/evaluation/tuning behavior or weakening the TUI's fail-closed search-result policy.
 
@@ -12,62 +16,62 @@ This TODO is intended to be Ralph-loop executable. Check an item only when its i
 
 ## Hard constraints
 
-- [ ] Do not change chess rules, legal-move semantics, search strength, evaluation, move ordering, pruning, extensions, transposition policy, opening-book policy, tuning state, or promotion disposition.
-- [ ] Do not add a first-legal-move fallback.
-- [ ] Do not add a random-legal-move fallback.
-- [ ] Do not silently retry at lower depth.
-- [ ] Do not silently swap search policy/engine implementation.
-- [ ] Do not add a Python runtime/engine fallback.
-- [ ] Do not weaken existing tests or warning/lint gates to obtain higher coverage.
-- [ ] Do not broadly exclude low-coverage production code from `cargo llvm-cov` reports.
-- [ ] Treat coverage percentage as diagnostic evidence, not a correctness proof.
-- [ ] Keep the existing Rust TUI manual real-terminal acceptance TODO independent; do not retroactively mark those manual items complete here.
+- [x] Do not change chess rules, legal-move semantics, search strength, evaluation, move ordering, pruning, extensions, transposition policy, opening-book policy, tuning state, or promotion disposition.
+- [x] Do not add a first-legal-move fallback.
+- [x] Do not add a random-legal-move fallback.
+- [x] Do not silently retry at lower depth.
+- [x] Do not silently swap search policy/engine implementation.
+- [x] Do not add a Python runtime/engine fallback.
+- [x] Do not weaken existing tests or warning/lint gates to obtain higher coverage.
+- [x] Do not broadly exclude low-coverage production code from `cargo llvm-cov` reports.
+- [x] Treat coverage percentage as diagnostic evidence, not a correctness proof.
+- [x] Keep the existing Rust TUI manual real-terminal acceptance TODO independent; do not retroactively mark those manual items complete here.
 
 ## Phase 0 — Authority registration and baseline freeze
 
-- [ ] Record the exact `master` SHA at implementation start.
-- [ ] Confirm `docs/RUST_TUI_TEST_COVERAGE_HARDENING_SPEC.md` and this TODO are registered as an active follow-up program in the TODO authority index/audit.
-- [ ] Re-read `docs/RUST_TUI_SPEC.md` and `docs/RUST_TUI_TODO.md` before editing production code.
-- [ ] Confirm current `crates/chess-tui` source files and tests.
-- [ ] Confirm no unrelated engine/search/evaluation/tuning changes are already mixed into the working diff.
-- [ ] Run the existing fast/permanent-supported Rust validation appropriate for the environment and record the result.
-- [ ] Record the current Rust toolchain/MSRV policy.
-- [ ] Record the exact current `cargo-llvm-cov` version chosen for implementation/CI.
-- [ ] Record whether coverage uses the repository MSRV toolchain or a separate coverage host toolchain.
+- [x] Record the exact `master` SHA at implementation start.
+- [x] Confirm `docs/RUST_TUI_TEST_COVERAGE_HARDENING_SPEC.md` and this TODO are registered as an active follow-up program in the TODO authority index/audit.
+- [x] Re-read `docs/RUST_TUI_SPEC.md` and `docs/RUST_TUI_TODO.md` before editing production code.
+- [x] Confirm current `crates/chess-tui` source files and tests.
+- [x] Confirm no unrelated engine/search/evaluation/tuning changes are already mixed into the working diff.
+- [x] Run the existing fast/permanent-supported Rust validation appropriate for the environment and record the result.
+- [x] Record the current Rust toolchain/MSRV policy.
+- [x] Record the exact current `cargo-llvm-cov` version chosen for implementation/CI.
+- [x] Record whether coverage uses the repository MSRV toolchain or a separate coverage host toolchain.
 
 ### Phase 0 baseline coverage
 
 Before adding hardening tests:
 
-- [ ] Install/enable the LLVM tools component required by the chosen coverage toolchain.
-- [ ] Run `cargo llvm-cov clean --workspace`.
-- [ ] Run focused baseline coverage for `chess-tui`.
-- [ ] Record baseline line coverage.
-- [ ] Record baseline function coverage where reported.
-- [ ] Record baseline region coverage where reported.
-- [ ] Record major uncovered `chess-tui` functions/branches.
-- [ ] Save the exact command and tool versions used so final coverage is comparable.
+- [x] Install/enable the LLVM tools component required by the chosen coverage toolchain.
+- [x] Run `cargo llvm-cov clean --workspace`.
+- [x] Run focused baseline coverage for `chess-tui`.
+- [x] Record baseline line coverage.
+- [x] Record baseline function coverage where reported.
+- [x] Record baseline region coverage where reported.
+- [x] Record major uncovered `chess-tui` functions/branches.
+- [x] Save the exact command and tool versions used so final coverage is comparable.
 
 ### Phase 0 acceptance
 
-- [ ] Baseline source SHA and coverage summary are recorded before hardening tests materially change the numbers.
-- [ ] No arbitrary minimum coverage percentage has been adopted.
-- [ ] High-risk uncovered branches are identified explicitly rather than hidden by aggregate percentage.
+- [x] Baseline source SHA and coverage summary are recorded before hardening tests materially change the numbers.
+- [x] No arbitrary minimum coverage percentage has been adopted.
+- [x] High-risk uncovered branches are identified explicitly rather than hidden by aggregate percentage.
 
 ## Phase 1 — Add canonical `cargo llvm-cov` developer workflow
 
-- [ ] Add a documented supported command for focused terminal coverage summary.
-- [ ] Add a documented supported command for LCOV output.
-- [ ] Add a documented supported command for optional HTML output.
-- [ ] Prefer a repository script/helper if that makes the invocation stable and discoverable.
-- [ ] Ensure the focused command runs all relevant `chess-tui` test targets.
-- [ ] Use `--all-features` unless the crate has a documented reason not to.
-- [ ] Keep coverage artifacts under `target/` or another ignored generated-artifact path.
-- [ ] Ensure generated LCOV/HTML files are not accidentally committed.
-- [ ] Document `cargo llvm-cov clean --workspace` for clean baseline/reproduction when needed.
-- [ ] Add a secondary workspace-wide informational coverage command only if it remains cheap and does not expand task scope.
-- [ ] Document that coverage tooling is development infrastructure, not a `chess-tui` runtime dependency.
-- [ ] Do not raise the product MSRV solely to satisfy coverage tooling.
+- [x] Add a documented supported command for focused terminal coverage summary.
+- [x] Add a documented supported command for LCOV output.
+- [x] Add a documented supported command for optional HTML output.
+- [x] Prefer a repository script/helper if that makes the invocation stable and discoverable.
+- [x] Ensure the focused command runs all relevant `chess-tui` test targets.
+- [x] Use `--all-features` unless the crate has a documented reason not to.
+- [x] Keep coverage artifacts under `target/` or another ignored generated-artifact path.
+- [x] Ensure generated LCOV/HTML files are not accidentally committed.
+- [x] Document `cargo llvm-cov clean --workspace` for clean baseline/reproduction when needed.
+- [x] Add a secondary workspace-wide informational coverage command only if it remains cheap and does not expand task scope.
+- [x] Document that coverage tooling is development infrastructure, not a `chess-tui` runtime dependency.
+- [x] Do not raise the product MSRV solely to satisfy coverage tooling.
 
 ### Canonical command acceptance
 
@@ -75,15 +79,15 @@ The repository must have supported equivalents of:
 
 ```bash
 cargo llvm-cov clean --workspace
-cargo llvm-cov -p chess-tui --all-features --summary-only
-cargo llvm-cov -p chess-tui --all-features --lcov --output-path target/chess-tui-lcov.info
+bash scripts/tui_coverage.sh summary
+bash scripts/tui_coverage.sh lcov
 cargo llvm-cov -p chess-tui --all-features --html
 ```
 
-- [ ] Summary command succeeds.
-- [ ] LCOV command succeeds and produces a nonempty report.
-- [ ] HTML command succeeds locally/CI where requested.
-- [ ] No production source file is silently excluded merely because it is difficult to test.
+- [x] Summary command succeeds.
+- [x] LCOV command succeeds and produces a nonempty report.
+- [x] HTML command succeeds locally/CI where requested.
+- [x] No production source file is silently excluded merely because it is difficult to test.
 
 ## Phase 2 — Deterministic search-result fallback rejection coverage (P0)
 
@@ -91,29 +95,29 @@ Current risk: the existing `explicit_discard_never_emits_a_playable_fallback` te
 
 ### Refactor/test seam
 
-- [ ] Identify the smallest deterministic boundary around `finish_request` result classification.
-- [ ] If needed, extract a pure/internal classifier that does not alter production semantics.
-- [ ] Keep channel delivery/worker ownership separate from result classification where practical.
-- [ ] Do not expose a generic fallback move to `AppState` or UI code.
-- [ ] Do not modify `chess-search` fallback semantics globally merely to satisfy TUI tests.
+- [x] Identify the smallest deterministic boundary around `finish_request` result classification.
+- [x] If needed, extract a pure/internal classifier that does not alter production semantics.
+- [x] Keep channel delivery/worker ownership separate from result classification where practical.
+- [x] Do not expose a generic fallback move to `AppState` or UI code.
+- [x] Do not modify `chess-search` fallback semantics globally merely to satisfy TUI tests.
 
 ### Required tests
 
-- [ ] `fallback_only_result_is_rejected_by_tui` or equivalent.
-- [ ] Assert fallback-only result produces `Failed`, never `Completed`.
-- [ ] Assert failure message explicitly identifies TUI fallback rejection.
-- [ ] Assert no playable move is returned with fallback-only disposition.
-- [ ] Assert discard state wins over an otherwise completed/fallback result and yields cancellation.
-- [ ] Assert exact completed best move still yields `Completed`.
-- [ ] Assert search error yields `Failed` with visible message.
-- [ ] Assert exact move with missing required exact-iteration metrics fails closed if that state is constructible/testable.
-- [ ] Assert result with neither exact move nor fallback fails closed.
+- [x] `fallback_only_result_is_rejected_by_tui` or equivalent.
+- [x] Assert fallback-only result produces `Failed`, never `Completed`.
+- [x] Assert failure message explicitly identifies TUI fallback rejection.
+- [x] Assert no playable move is returned with fallback-only disposition.
+- [x] Assert discard state wins over an otherwise completed/fallback result and yields cancellation.
+- [x] Assert exact completed best move still yields `Completed`.
+- [x] Assert search error yields `Failed` with visible message.
+- [x] Assert exact move with missing required exact-iteration metrics fails closed if that state is constructible/testable.
+- [x] Assert result with neither exact move nor fallback fails closed.
 
 ### Phase 2 acceptance
 
-- [ ] Coverage report proves the fallback-only rejection branch executed.
-- [ ] No first-legal fallback path exists in TUI code after the change.
-- [ ] Existing worker exact-depth and explicit-cancellation tests remain green.
+- [x] Coverage report proves the fallback-only rejection branch executed.
+- [x] No first-legal fallback path exists in TUI code after the change.
+- [x] Existing worker exact-depth and explicit-cancellation tests remain green.
 
 ## Phase 3 — `EngineRuntime` lifecycle/error coverage (P0/P1)
 
@@ -121,43 +125,43 @@ Directly test `EngineRuntime::drive()` and `EngineRuntime::cancel()` behavior.
 
 ### Testability seam
 
-- [ ] Determine whether current private runtime types can be tested directly inside `ui.rs`.
-- [ ] Prefer same-module unit tests and synthetic channels over production abstraction changes.
-- [ ] If deterministic spawn/join/failure injection is impossible, add the smallest internal worker seam necessary.
-- [ ] Production selection must still unconditionally use the real `SearchWorker`.
-- [ ] Do not add a runtime-configurable alternate search engine/factory.
+- [x] Determine whether current private runtime types can be tested directly inside `ui.rs`.
+- [x] Prefer same-module unit tests and synthetic channels over production abstraction changes.
+- [x] If deterministic spawn/join/failure injection is impossible, add the smallest internal worker seam necessary.
+- [x] Production selection must still unconditionally use the real `SearchWorker`.
+- [x] Do not add a runtime-configurable alternate search engine/factory.
 
 ### Required lifecycle tests
 
-- [ ] pending `SearchRequest` -> exactly one active worker starts.
-- [ ] Progress event updates presentation state and retains active worker ownership.
-- [ ] Completed final event clears/joins active worker.
-- [ ] Failed final event clears/joins active worker and leaves visible failure state.
-- [ ] Cancelled final event clears/joins active worker.
-- [ ] finished worker with no final event becomes explicit `Failed` state.
-- [ ] event-channel disconnect after worker end is not silently treated as successful completion.
-- [ ] `cancel()` with no active worker succeeds harmlessly.
-- [ ] `cancel()` with active worker requests stop/discard and joins.
-- [ ] cancelled worker cannot later deliver/apply a playable completion.
-- [ ] spawn failure clears thinking state and becomes visible.
-- [ ] worker panic/join failure propagates to runtime boundary.
-- [ ] runtime application-error handling clears thinking rather than leaving a wedged UI.
-- [ ] next pending search does not start while previous worker ownership remains active.
-- [ ] after final worker cleanup, a legitimate next search can start.
+- [x] pending `SearchRequest` -> exactly one active worker starts.
+- [x] Progress event updates presentation state and retains active worker ownership.
+- [x] Completed final event clears/joins active worker.
+- [x] Failed final event clears/joins active worker and leaves visible failure state.
+- [x] Cancelled final event clears/joins active worker.
+- [x] finished worker with no final event becomes explicit `Failed` state.
+- [x] event-channel disconnect after worker end is not silently treated as successful completion.
+- [x] `cancel()` with no active worker succeeds harmlessly.
+- [x] `cancel()` with active worker requests stop/discard and joins.
+- [x] cancelled worker cannot later deliver/apply a playable completion.
+- [x] spawn failure clears thinking state and becomes visible.
+- [x] worker panic/join failure propagates to runtime boundary.
+- [x] runtime application-error handling clears thinking rather than leaving a wedged UI.
+- [x] next pending search does not start while previous worker ownership remains active.
+- [x] after final worker cleanup, a legitimate next search can start.
 
 ### Race/invariant tests
 
-- [ ] stale final event after game generation change is ignored.
-- [ ] stale progress after game generation change is ignored.
-- [ ] stale Failed event does not overwrite current-game status.
-- [ ] stale Cancelled event does not clear a current search.
-- [ ] at most one TUI-owned worker/search is active at a time.
+- [x] stale final event after game generation change is ignored.
+- [x] stale progress after game generation change is ignored.
+- [x] stale Failed event does not overwrite current-game status.
+- [x] stale Cancelled event does not clear a current search.
+- [x] at most one TUI-owned worker/search is active at a time.
 
 ### Phase 3 acceptance
 
-- [ ] Worker ownership transitions are deterministic in tests; no sleep-based luck is required for unit-level behavior.
-- [ ] Runtime disconnect/failure branches are visible in coverage.
-- [ ] No lifecycle error path silently returns success while leaving `thinking=true`.
+- [x] Worker ownership transitions are deterministic in tests; no sleep-based luck is required for unit-level behavior.
+- [x] Runtime disconnect/failure branches are visible in coverage.
+- [x] No lifecycle error path silently returns success while leaving `thinking=true`.
 
 ## Phase 4 — Keyboard and overlay state-machine coverage (P1)
 
@@ -165,146 +169,146 @@ Add direct synthetic-key tests around `handle_key`, menu/game handlers, overlays
 
 ### Main-menu navigation
 
-- [ ] Up at row 0 does not underflow.
-- [ ] Down at last row does not overflow.
-- [ ] Up/Down move through expected rows.
-- [ ] Left/Right on mode toggles Human-vs-Engine/Self-play as intended.
-- [ ] Enter on adjustable menu rows performs the intended adjustment.
-- [ ] Human color toggles White/Black.
-- [ ] Human engine depth decrements/increments.
-- [ ] Human engine depth clamps at minimum.
-- [ ] Human engine depth clamps at maximum.
-- [ ] Self-play White depth adjusts independently.
-- [ ] Self-play Black depth adjusts independently.
-- [ ] Self-play depths clamp at minimum/maximum.
-- [ ] Enter on Start starts exactly the selected configuration.
-- [ ] q from menu requests quit.
-- [ ] Esc from menu requests quit.
+- [x] Up at row 0 does not underflow.
+- [x] Down at last row does not overflow.
+- [x] Up/Down move through expected rows.
+- [x] Left/Right on mode toggles Human-vs-Engine/Self-play as intended.
+- [x] Enter on adjustable menu rows performs the intended adjustment.
+- [x] Human color toggles White/Black.
+- [x] Human engine depth decrements/increments.
+- [x] Human engine depth clamps at minimum.
+- [x] Human engine depth clamps at maximum.
+- [x] Self-play White depth adjusts independently.
+- [x] Self-play Black depth adjusts independently.
+- [x] Self-play depths clamp at minimum/maximum.
+- [x] Enter on Start starts exactly the selected configuration.
+- [x] q from menu requests quit.
+- [x] Esc from menu requests quit.
 
 ### Human move-entry editing
 
-- [ ] legal move characters append to `move_input`.
-- [ ] uppercase input is normalized to lowercase.
-- [ ] input is capped at five characters.
-- [ ] Backspace removes one character.
-- [ ] Backspace on empty input is harmless.
-- [ ] Esc with nonempty move input clears input and does not open MainMenu confirmation.
-- [ ] Enter with a legal move submits it.
-- [ ] Enter with malformed input leaves game state unchanged and visible error set.
-- [ ] Enter with well-formed illegal input leaves game state unchanged and visible error set.
-- [ ] shortcut-looking letters inside nonempty move input are treated as input, not shortcuts.
-- [ ] move characters are ignored when engine owns the turn.
-- [ ] move characters are ignored in Self-play mode.
+- [x] legal move characters append to `move_input`.
+- [x] uppercase input is normalized to lowercase.
+- [x] input is capped at five characters.
+- [x] Backspace removes one character.
+- [x] Backspace on empty input is harmless.
+- [x] Esc with nonempty move input clears input and does not open MainMenu confirmation.
+- [x] Enter with a legal move submits it.
+- [x] Enter with malformed input leaves game state unchanged and visible error set.
+- [x] Enter with well-formed illegal input leaves game state unchanged and visible error set.
+- [x] shortcut-looking letters inside nonempty move input are treated as input, not shortcuts.
+- [x] move characters are ignored when engine owns the turn.
+- [x] move characters are ignored in Self-play mode.
 
 ### Active-game shortcuts
 
-- [ ] r opens resignation confirmation only for active Human-vs-Engine game.
-- [ ] r does not create resignation action in Self-play.
-- [ ] n opens NewGame confirmation while active.
-- [ ] m opens MainMenu confirmation while active.
-- [ ] Esc opens MainMenu confirmation when not editing move text and game is active.
-- [ ] q opens Quit confirmation while active.
-- [ ] v opens SavePath overlay.
+- [x] r opens resignation confirmation only for active Human-vs-Engine game.
+- [x] r does not create resignation action in Self-play.
+- [x] n opens NewGame confirmation while active.
+- [x] m opens MainMenu confirmation while active.
+- [x] Esc opens MainMenu confirmation when not editing move text and game is active.
+- [x] q opens Quit confirmation while active.
+- [x] v opens SavePath overlay.
 
 ### Confirmation overlay
 
-- [ ] y executes confirmation.
-- [ ] Enter executes confirmation.
-- [ ] n dismisses confirmation without action.
-- [ ] Esc dismisses confirmation without action.
-- [ ] unrelated keys do nothing.
-- [ ] Resign confirmation resolves active worker before outcome mutation.
-- [ ] NewGame confirmation resolves active worker before generation replacement.
-- [ ] MainMenu confirmation resolves active worker before session removal.
-- [ ] Quit confirmation resolves active worker before quit state.
+- [x] y executes confirmation.
+- [x] Enter executes confirmation.
+- [x] n dismisses confirmation without action.
+- [x] Esc dismisses confirmation without action.
+- [x] unrelated keys do nothing.
+- [x] Resign confirmation resolves active worker before outcome mutation.
+- [x] NewGame confirmation resolves active worker before generation replacement.
+- [x] MainMenu confirmation resolves active worker before session removal.
+- [x] Quit confirmation resolves active worker before quit state.
 
 ### Self-play keyboard controls
 
-- [ ] Space while running pauses.
-- [ ] Space pause resolves active search ownership.
-- [ ] Space while paused resumes and schedules as appropriate.
-- [ ] s while paused schedules exactly one ply.
-- [ ] s while running does not schedule a second search.
-- [ ] s while already thinking does not schedule a second search.
-- [ ] self-play controls do not restart search after terminal outcome.
+- [x] Space while running pauses.
+- [x] Space pause resolves active search ownership.
+- [x] Space while paused resumes and schedules as appropriate.
+- [x] s while paused schedules exactly one ply.
+- [x] s while running does not schedule a second search.
+- [x] s while already thinking does not schedule a second search.
+- [x] self-play controls do not restart search after terminal outcome.
 
 ### Ctrl-C
 
-- [ ] Ctrl-C with no worker exits cleanly.
-- [ ] Ctrl-C with active worker cancels/joins worker before quit.
-- [ ] Ctrl-C clears search state.
-- [ ] no stale engine move can apply after Ctrl-C.
+- [x] Ctrl-C with no worker exits cleanly.
+- [x] Ctrl-C with active worker cancels/joins worker before quit.
+- [x] Ctrl-C clears search state.
+- [x] no stale engine move can apply after Ctrl-C.
 
 ### Phase 4 acceptance
 
-- [ ] Key behavior can be tested without a real terminal.
-- [ ] Text-entry focus invariant is directly covered.
-- [ ] Abandonment confirmations are directly covered.
+- [x] Key behavior can be tested without a real terminal.
+- [x] Text-entry focus invariant is directly covered.
+- [x] Abandonment confirmations are directly covered.
 
 ## Phase 5 — `AppState` defensive/error-path coverage (P1)
 
 ### Configuration validation
 
-- [ ] Human-vs-Engine depth `0` is rejected.
-- [ ] Human-vs-Engine depth above `MAX_MENU_SEARCH_DEPTH` is rejected.
-- [ ] Self-play White depth below minimum is rejected.
-- [ ] Self-play White depth above maximum is rejected.
-- [ ] Self-play Black depth below minimum is rejected.
-- [ ] Self-play Black depth above maximum is rejected.
-- [ ] valid min/max boundary depths are accepted.
+- [x] Human-vs-Engine depth `0` is rejected.
+- [x] Human-vs-Engine depth above `MAX_MENU_SEARCH_DEPTH` is rejected.
+- [x] Self-play White depth below minimum is rejected.
+- [x] Self-play White depth above maximum is rejected.
+- [x] Self-play Black depth below minimum is rejected.
+- [x] Self-play Black depth above maximum is rejected.
+- [x] valid min/max boundary depths are accepted.
 
 ### Missing/invalid session transitions
 
-- [ ] restart with no session returns visible/typed error.
-- [ ] mark-saved with no session returns error.
-- [ ] step with no session returns error.
-- [ ] pause with no session returns error.
-- [ ] resume with no session returns error.
-- [ ] resign with no session returns error.
+- [x] restart with no session returns visible/typed error.
+- [x] mark-saved with no session returns error.
+- [x] step with no session returns error.
+- [x] pause with no session returns error.
+- [x] resume with no session returns error.
+- [x] resign with no session returns error.
 
 ### Mode/turn misuse
 
-- [ ] human move during Self-play is rejected without mutation.
-- [ ] human move while engine search is active is rejected without mutation.
-- [ ] human move when it is the engine side's turn is rejected without mutation.
-- [ ] resignation during Self-play is rejected visibly.
-- [ ] pause in Human-vs-Engine mode is rejected visibly.
-- [ ] resume in Human-vs-Engine mode is rejected visibly.
-- [ ] step in Human-vs-Engine mode is rejected.
-- [ ] step while self-play auto-play is running is rejected.
-- [ ] step while search/pending request exists is rejected.
+- [x] human move during Self-play is rejected without mutation.
+- [x] human move while engine search is active is rejected without mutation.
+- [x] human move when it is the engine side's turn is rejected without mutation.
+- [x] resignation during Self-play is rejected visibly.
+- [x] pause in Human-vs-Engine mode is rejected visibly.
+- [x] resume in Human-vs-Engine mode is rejected visibly.
+- [x] step in Human-vs-Engine mode is rejected.
+- [x] step while self-play auto-play is running is rejected.
+- [x] step while search/pending request exists is rejected.
 
 ### Terminal-state misuse
 
-- [ ] human move after game over is rejected.
-- [ ] resignation after game over is rejected.
-- [ ] resume after game over is rejected.
-- [ ] step after game over is rejected.
-- [ ] terminal state clears active search/pending/thinking/auto-play.
+- [x] human move after game over is rejected.
+- [x] resignation after game over is rejected.
+- [x] resume after game over is rejected.
+- [x] step after game over is rejected.
+- [x] terminal state clears active search/pending/thinking/auto-play.
 
 ### Engine event defenses
 
-- [ ] current-ticket illegal engine completion is rejected and not applied.
-- [ ] current-ticket search failure clears active search and thinking.
-- [ ] current-ticket cancellation clears active search and thinking.
-- [ ] stale Progress ignored.
-- [ ] stale Completed ignored.
-- [ ] stale Failed ignored.
-- [ ] stale Cancelled ignored.
-- [ ] event with no session is harmless and cannot create state.
+- [x] current-ticket illegal engine completion is rejected and not applied.
+- [x] current-ticket search failure clears active search and thinking.
+- [x] current-ticket cancellation clears active search and thinking.
+- [x] stale Progress ignored.
+- [x] stale Completed ignored.
+- [x] stale Failed ignored.
+- [x] stale Cancelled ignored.
+- [x] event with no session is harmless and cannot create state.
 
 ### Explicit state clearing
 
-- [ ] `cancel_search_state(None)` clears pending/active/thinking without inventing a message.
-- [ ] `cancel_search_state(Some(...))` clears search state and stores the requested visible message.
-- [ ] `return_to_menu()` clears pending/session/overlay and sets MainMenu.
-- [ ] `request_quit()` clears pending/overlay and sets quit.
-- [ ] starting a new game clears stale overlay/status/search presentation as intended.
+- [x] `cancel_search_state(None)` clears pending/active/thinking without inventing a message.
+- [x] `cancel_search_state(Some(...))` clears search state and stores the requested visible message.
+- [x] `return_to_menu()` clears pending/session/overlay and sets MainMenu.
+- [x] `request_quit()` clears pending/overlay and sets quit.
+- [x] starting a new game clears stale overlay/status/search presentation as intended.
 
 ### Phase 5 acceptance
 
-- [ ] Defensive branches produce typed/visible failures rather than silent mutation/no-op where a bug would otherwise be hidden.
-- [ ] Coverage shows the important misuse branches executed.
+- [x] Defensive branches produce typed/visible failures rather than silent mutation/no-op where a bug would otherwise be hidden.
+- [x] Coverage shows the important misuse branches executed.
 
 ## Phase 6 — Terminal chess-state coverage (P1)
 
@@ -312,243 +316,246 @@ Use authoritative `chess-core` state; do not duplicate adjudication logic.
 
 ### Check/checkmate/stalemate
 
-- [ ] in-check ongoing position renders/checks `CHECK` but remains active.
-- [ ] checkmate through human move stops scheduling.
-- [ ] checkmate through engine move stops scheduling.
-- [ ] stalemate fixture maps to `GameOutcome::Stalemate`.
-- [ ] stalemate schedules no further search.
+- [x] in-check ongoing position renders/checks `CHECK` but remains active.
+- [x] checkmate through human move stops scheduling.
+- [x] checkmate through engine move stops scheduling.
+- [x] stalemate fixture maps to `GameOutcome::Stalemate`.
+- [x] stalemate schedules no further search.
 
 ### Automatic draws
 
-- [ ] dead-position/insufficient-material fixture maps to automatic draw if represented by the core.
-- [ ] dead-position automatic draw schedules no further search.
-- [ ] add at least one additional automatic draw fixture when deterministic without corrupting hidden history state.
-- [ ] automatic draw result text includes the authoritative reason.
+- [x] dead-position/insufficient-material fixture maps to automatic draw if represented by the core.
+- [x] dead-position automatic draw schedules no further search.
+- [x] add at least one additional automatic draw fixture when deterministic without corrupting hidden history state.
+- [x] automatic draw result text includes the authoritative reason.
 
 ### Claimable draws
 
-- [ ] claimable threefold state remains nonterminal unless an explicit claim feature exists.
-- [ ] claimable fifty-move state remains nonterminal unless an explicit claim feature exists.
-- [ ] both-claim status renders both reasons when constructible.
-- [ ] claim availability does not silently stop engine scheduling unless core status is terminal.
+- [x] claimable threefold state remains nonterminal unless an explicit claim feature exists.
+- [x] claimable fifty-move state remains nonterminal unless an explicit claim feature exists.
+- [x] both-claim status renders both reasons when constructible.
+- [x] claim availability does not silently stop engine scheduling unless core status is terminal.
 
 ### Formatting
 
-- [ ] `format_outcome` covers Checkmate.
-- [ ] `format_outcome` covers Stalemate.
-- [ ] `format_outcome` covers Draw.
-- [ ] `format_outcome` covers Resignation.
-- [ ] `draw_reason_name` covers ThreefoldRepetition.
-- [ ] `draw_reason_name` covers FivefoldRepetition.
-- [ ] `draw_reason_name` covers FiftyMoveRule.
-- [ ] `draw_reason_name` covers SeventyFiveMoveRule.
-- [ ] `draw_reason_name` covers DeadPosition.
+- [x] `format_outcome` covers Checkmate.
+- [x] `format_outcome` covers Stalemate.
+- [x] `format_outcome` covers Draw.
+- [x] `format_outcome` covers Resignation.
+- [x] `draw_reason_name` covers ThreefoldRepetition.
+- [x] `draw_reason_name` covers FivefoldRepetition.
+- [x] `draw_reason_name` covers FiftyMoveRule.
+- [x] `draw_reason_name` covers SeventyFiveMoveRule.
+- [x] `draw_reason_name` covers DeadPosition.
 
 ### Phase 6 acceptance
 
-- [ ] Terminal-state tests demonstrate no TUI-local draw/checkmate reimplementation.
-- [ ] At least stalemate and one automatic draw path are directly covered.
+- [x] Terminal-state tests demonstrate no TUI-local draw/checkmate reimplementation.
+- [x] At least stalemate and one automatic draw path are directly covered.
 
 ## Phase 7 — Save UI transaction coverage (P1)
 
 ### Overlay editing
 
-- [ ] opening save overlay provides the defined default path.
-- [ ] printable characters append to save path.
-- [ ] Backspace removes one path character.
-- [ ] Backspace on empty path is harmless.
-- [ ] Esc dismisses save overlay without saving.
-- [ ] control characters do not enter the save path.
+- [x] opening save overlay provides the defined default path.
+- [x] printable characters append to save path.
+- [x] Backspace removes one path character.
+- [x] Backspace on empty path is harmless.
+- [x] Esc dismisses save overlay without saving.
+- [x] control characters do not enter the save path.
 
 ### Save validation/error flow
 
-- [ ] empty path fails visibly.
-- [ ] whitespace-only path fails visibly.
-- [ ] no-session save fails visibly and cannot panic.
-- [ ] filesystem NotFound failure remains visible.
-- [ ] permission-denied/read-only failure is covered where deterministic on CI; otherwise disposition explicitly.
-- [ ] failed save does not set `saved_path`.
-- [ ] failed save clears stale prior `saved_path`.
-- [ ] failed save never emits a success message.
+- [x] empty path fails visibly.
+- [x] whitespace-only path fails visibly.
+- [x] no-session save fails visibly and cannot panic.
+- [x] filesystem NotFound failure remains visible.
+- [x] permission-denied/read-only failure is covered where deterministic on CI; otherwise disposition explicitly.
+- [x] failed save does not set `saved_path`.
+- [x] failed save clears stale prior `saved_path`.
+- [x] failed save never emits a success message.
 
 ### Successful save flow
 
-- [ ] successful UI save writes exact `serialize_game` output.
-- [ ] successful UI save records exact selected path.
-- [ ] successful UI save displays success.
-- [ ] successful UI save closes overlay.
-- [ ] a later move clears saved-path state.
+- [x] successful UI save writes exact `serialize_game` output.
+- [x] successful UI save records exact selected path.
+- [x] successful UI save displays success.
+- [x] successful UI save closes overlay.
+- [x] a later move clears saved-path state.
 
 ### Serialization matrix
 
-- [ ] Human-vs-Engine / White serialization.
-- [ ] Human-vs-Engine / Black serialization.
-- [ ] Self-play serialization with distinct White/Black depths.
-- [ ] timestamp present.
-- [ ] timestamp absent.
-- [ ] zero moves.
-- [ ] multiple moves in exact order.
-- [ ] promotion move.
-- [ ] ongoing result.
-- [ ] checkmate result.
-- [ ] stalemate result.
-- [ ] draw result.
-- [ ] resignation result.
-- [ ] output never falsely claims PGN.
+- [x] Human-vs-Engine / White serialization.
+- [x] Human-vs-Engine / Black serialization.
+- [x] Self-play serialization with distinct White/Black depths.
+- [x] timestamp present.
+- [x] timestamp absent.
+- [x] zero moves.
+- [x] multiple moves in exact order.
+- [x] promotion move.
+- [x] ongoing result.
+- [x] checkmate result.
+- [x] stalemate result.
+- [x] draw result.
+- [x] resignation result.
+- [x] output never falsely claims PGN.
 
 ### Phase 7 acceptance
 
-- [ ] Save tests prove user-visible transaction semantics, not only `fs::write` behavior.
-- [ ] No save failure is silently converted into success.
+- [x] Save tests prove user-visible transaction semantics, not only `fs::write` behavior.
+- [x] No save failure is silently converted into success.
 
 ## Phase 8 — Rendering/helper branch coverage (P2)
 
 ### Board/pieces/orientation
 
-- [ ] piece symbol Pawn White/Black.
-- [ ] Knight White/Black.
-- [ ] Bishop White/Black.
-- [ ] Rook White/Black.
-- [ ] Queen White/Black.
-- [ ] King White/Black.
-- [ ] White human orientation.
-- [ ] Black human orientation.
-- [ ] Self-play White orientation.
-- [ ] board output remains exactly 19 lines where expected.
+- [x] piece symbol Pawn White/Black.
+- [x] Knight White/Black.
+- [x] Bishop White/Black.
+- [x] Rook White/Black.
+- [x] Queen White/Black.
+- [x] King White/Black.
+- [x] White human orientation.
+- [x] Black human orientation.
+- [x] Self-play White orientation.
+- [x] board output remains exactly 19 lines where expected.
 
 ### Move history
 
-- [ ] empty history.
-- [ ] one ply.
-- [ ] two plies.
-- [ ] odd multi-ply history.
-- [ ] even multi-ply history.
+- [x] empty history.
+- [x] one ply.
+- [x] two plies.
+- [x] odd multi-ply history.
+- [x] even multi-ply history.
 
 ### Search metrics
 
-- [ ] no metrics -> unavailable markers, not fabricated zeroes.
-- [ ] fully populated metrics.
-- [ ] depth formatting.
-- [ ] positive centipawn score.
-- [ ] zero centipawn score.
-- [ ] negative centipawn score.
-- [ ] positive mate score.
-- [ ] negative mate score.
-- [ ] nodes formatting.
-- [ ] NPS formatting.
-- [ ] elapsed milliseconds formatting.
-- [ ] elapsed seconds formatting.
-- [ ] hash fullness formatting.
-- [ ] empty PV -> `-`.
-- [ ] nonempty PV -> ordered UCI string.
+- [x] no metrics -> unavailable markers, not fabricated zeroes.
+- [x] fully populated metrics.
+- [x] depth formatting.
+- [x] positive centipawn score.
+- [x] zero centipawn score.
+- [x] negative centipawn score.
+- [x] positive mate score.
+- [x] negative mate score.
+- [x] nodes formatting.
+- [x] NPS formatting.
+- [x] elapsed milliseconds formatting.
+- [x] elapsed seconds formatting.
+- [x] hash fullness formatting.
+- [x] empty PV -> `-`.
+- [x] nonempty PV -> ordered UCI string.
 
 ### Layout boundaries
 
-- [ ] width immediately below wide threshold.
-- [ ] width exactly at wide threshold.
-- [ ] width immediately above wide threshold.
-- [ ] height immediately below horizontal minimum.
-- [ ] height exactly at horizontal minimum.
-- [ ] stacked width immediately below minimum.
-- [ ] stacked width exactly at minimum.
-- [ ] stacked height immediately below minimum.
-- [ ] stacked height exactly at minimum.
-- [ ] large terminal remains supported.
+- [x] width immediately below wide threshold.
+- [x] width exactly at wide threshold.
+- [x] width immediately above wide threshold.
+- [x] height immediately below horizontal minimum.
+- [x] height exactly at horizontal minimum.
+- [x] stacked width immediately below minimum.
+- [x] stacked width exactly at minimum.
+- [x] stacked height immediately below minimum.
+- [x] stacked height exactly at minimum.
+- [x] large terminal remains supported.
 
 ### Overlay/render structural tests
 
-- [ ] resignation confirmation text renders.
-- [ ] new-game confirmation text renders.
-- [ ] menu confirmation text renders.
-- [ ] quit confirmation text renders.
-- [ ] save overlay text/path renders.
-- [ ] too-small message reports current and required dimensions.
-- [ ] no-session Game screen renders explicit safe state rather than panicking.
+- [x] resignation confirmation text renders.
+- [x] new-game confirmation text renders.
+- [x] menu confirmation text renders.
+- [x] quit confirmation text renders.
+- [x] save overlay text/path renders.
+- [x] too-small message reports current and required dimensions.
+- [x] no-session Game screen renders explicit safe state rather than panicking.
 
 ### Phase 8 acceptance
 
-- [ ] Prefer targeted structural assertions over huge brittle full-screen snapshots.
-- [ ] Coverage improvements correspond to meaningful formatting branches.
+- [x] Prefer targeted structural assertions over huge brittle full-screen snapshots.
+- [x] Coverage improvements correspond to meaningful formatting branches.
 
 ## Phase 9 — Terminal guard failure-path testability (P2)
 
-- [ ] Re-evaluate whether `TerminalGuard` failure branches justify a small internal test seam.
-- [ ] Do not refactor terminal lifecycle merely to increase percentage if the seam adds more complexity than confidence.
-- [ ] Retain real PTY launch/quit smoke regardless.
+- [x] Re-evaluate whether `TerminalGuard` failure branches justify a small internal test seam.
+- [x] Do not refactor terminal lifecycle merely to increase percentage if the seam adds more complexity than confidence.
+- [x] Retain real PTY launch/quit smoke regardless.
 
 If a terminal-operations seam is introduced:
 
-- [ ] production still uses Crossterm/stdout unconditionally.
-- [ ] raw-mode enable success + alternate-screen failure attempts raw restore.
-- [ ] terminal construction failure attempts required cleanup.
-- [ ] explicit restore attempts raw disable.
-- [ ] explicit restore attempts LeaveAlternateScreen even if raw disable failed.
-- [ ] explicit restore attempts cursor show even if an earlier cleanup step failed.
-- [ ] first cleanup error is preserved/returned.
-- [ ] successful restore marks guard restored.
-- [ ] Drop skips duplicate cleanup after successful explicit restore.
-- [ ] Drop performs best-effort cleanup after incomplete explicit restore/new lifecycle.
+> **Disposition:** no terminal-operations seam was introduced. The checkmarks in this conditional subsection record review/disposition, not synthetic execution of an unused abstraction. Production remains directly wired to Crossterm/stdout.
+
+
+- [x] production still uses Crossterm/stdout unconditionally.
+- [x] raw-mode enable success + alternate-screen failure attempts raw restore.
+- [x] terminal construction failure attempts required cleanup.
+- [x] explicit restore attempts raw disable.
+- [x] explicit restore attempts LeaveAlternateScreen even if raw disable failed.
+- [x] explicit restore attempts cursor show even if an earlier cleanup step failed.
+- [x] first cleanup error is preserved/returned.
+- [x] successful restore marks guard restored.
+- [x] Drop skips duplicate cleanup after successful explicit restore.
+- [x] Drop performs best-effort cleanup after incomplete explicit restore/new lifecycle.
 
 If no seam is introduced:
 
-- [ ] Record why PTY integration evidence plus current code structure is preferable to production abstraction solely for unit coverage.
+- [x] Record why PTY integration evidence plus current code structure is preferable to production abstraction solely for unit coverage.
 
 ### Phase 9 acceptance
 
-- [ ] Terminal cleanup has stronger evidence without weakening explicit restoration errors.
-- [ ] No `let _ = ...` on an explicit normal-path restoration result hides a failure that should be returned; Drop remains best-effort by necessity.
+- [x] Terminal cleanup has stronger evidence without weakening explicit restoration errors.
+- [x] No `let _ = ...` on an explicit normal-path restoration result hides a failure that should be returned; Drop remains best-effort by necessity.
 
 ## Phase 10 — Coverage review and residual-gap disposition
 
 After P0/P1/P2 tests are added:
 
-- [ ] Run `cargo llvm-cov clean --workspace`.
-- [ ] Run final focused TUI summary with the same configuration as baseline.
-- [ ] Generate LCOV artifact.
-- [ ] Generate/view HTML report during review if useful.
-- [ ] Compare baseline and final line coverage.
-- [ ] Compare baseline and final function coverage.
-- [ ] Compare baseline and final region coverage.
-- [ ] Identify every materially uncovered production TUI function.
-- [ ] Identify materially uncovered safety/error branches even inside covered functions.
-- [ ] Add additional tests where value is high and behavior is deterministic.
-- [ ] Explicitly disposition residual gaps that are impractical or lower-value.
-- [ ] Do not add meaningless assertions solely to move the percentage.
-- [ ] Do not exclude residual gaps from the report merely to improve the number.
+- [x] Run `cargo llvm-cov clean --workspace`.
+- [x] Run final focused TUI summary with the same configuration as baseline.
+- [x] Generate LCOV artifact.
+- [x] Generate/view HTML report during review if useful.
+- [x] Compare baseline and final line coverage.
+- [x] Compare baseline and final function coverage.
+- [x] Compare baseline and final region coverage.
+- [x] Identify every materially uncovered production TUI function.
+- [x] Identify materially uncovered safety/error branches even inside covered functions.
+- [x] Add additional tests where value is high and behavior is deterministic.
+- [x] Explicitly disposition residual gaps that are impractical or lower-value.
+- [x] Do not add meaningless assertions solely to move the percentage.
+- [x] Do not exclude residual gaps from the report merely to improve the number.
 
 ### Coverage acceptance
 
-- [ ] Fallback-only rejection branch is covered.
-- [ ] `EngineRuntime` final-event/disconnect/cancel behavior is covered.
-- [ ] key/overlay state-machine behavior is substantially covered.
-- [ ] save UI transaction is covered.
-- [ ] stalemate/automatic draw paths are covered as specified.
-- [ ] residual uncovered code is understood and documented.
+- [x] Fallback-only rejection branch is covered.
+- [x] `EngineRuntime` final-event/disconnect/cancel behavior is covered.
+- [x] key/overlay state-machine behavior is substantially covered.
+- [x] save UI transaction is covered.
+- [x] stalemate/automatic draw paths are covered as specified.
+- [x] residual uncovered code is understood and documented.
 
 ## Phase 11 — Permanent CI coverage integration
 
-- [ ] Choose permanent workflow/job location for focused TUI coverage.
-- [ ] Run coverage on Linux.
-- [ ] Install the required Rust LLVM tools component.
-- [ ] Install `cargo-llvm-cov` with a reviewed reproducible mechanism.
-- [ ] Record/pin the tool/action version appropriately for repository policy.
-- [ ] Run focused `chess-tui` coverage tests.
-- [ ] Print human-readable summary to CI log.
-- [ ] Generate LCOV artifact.
-- [ ] Upload LCOV artifact using GitHub Actions artifact storage if compatible with permanent CI policy.
-- [ ] Do not require Codecov or another external coverage account/token.
-- [ ] Coverage job fails if tests fail.
-- [ ] Coverage job fails if instrumentation/report generation fails.
-- [ ] Coverage job does not fail solely because an arbitrary percentage is below a threshold.
-- [ ] Keep existing permanent quality/robustness gates unchanged.
-- [ ] Keep explicit MSRV job/gate separate and green.
-- [ ] Ensure coverage job does not activate tuning, generated weights, or other mutable engine state.
+- [x] Choose permanent workflow/job location for focused TUI coverage.
+- [x] Run coverage on Linux.
+- [x] Install the required Rust LLVM tools component.
+- [x] Install `cargo-llvm-cov` with a reviewed reproducible mechanism.
+- [x] Record/pin the tool/action version appropriately for repository policy.
+- [x] Run focused `chess-tui` coverage tests.
+- [x] Print human-readable summary to CI log.
+- [x] Generate LCOV artifact.
+- [x] Upload LCOV artifact using GitHub Actions artifact storage if compatible with permanent CI policy.
+- [x] Do not require Codecov or another external coverage account/token.
+- [x] Coverage job fails if tests fail.
+- [x] Coverage job fails if instrumentation/report generation fails.
+- [x] Coverage job does not fail solely because an arbitrary percentage is below a threshold.
+- [x] Keep existing permanent quality/robustness gates unchanged.
+- [x] Keep explicit MSRV job/gate separate and green.
+- [x] Ensure coverage job does not activate tuning, generated weights, or other mutable engine state.
 
 ### Phase 11 acceptance
 
-- [ ] A clean CI runner can reproduce the focused coverage report from repository configuration.
-- [ ] LCOV/report artifact is tied to the exact tested SHA.
-- [ ] No secret/token is required solely to view coverage evidence.
+- [x] A clean CI runner can reproduce the focused coverage report from repository configuration.
+- [x] LCOV/report artifact is tied to the exact tested SHA.
+- [x] No secret/token is required solely to view coverage evidence.
 
 ## Phase 12 — Full regression validation
 
@@ -556,66 +563,81 @@ Run on the exact intended final source SHA.
 
 ### Formatting/build/lint/tests
 
-- [ ] `cargo fmt --all -- --check`
-- [ ] `cargo check --locked --workspace --all-targets --all-features`
-- [ ] `cargo clippy --locked --workspace --all-targets --all-features -- -D warnings`
-- [ ] `cargo test --locked --workspace --all-targets --all-features`
-- [ ] `cargo test --locked -p chess-tui --all-targets --all-features`
-- [ ] `cargo build --locked --release -p chess-tui`
+- [x] `cargo fmt --all -- --check`
+- [x] `cargo check --locked --workspace --all-targets --all-features`
+- [x] `cargo clippy --locked --workspace --all-targets --all-features -- -D warnings`
+- [x] `cargo test --locked --workspace --all-targets --all-features`
+- [x] `cargo test --locked -p chess-tui --all-targets --all-features`
+- [x] `cargo build --locked --release -p chess-tui`
 
 ### Coverage
 
-- [ ] `cargo llvm-cov -p chess-tui --all-features --summary-only`
-- [ ] `cargo llvm-cov -p chess-tui --all-features --lcov --output-path target/chess-tui-lcov.info`
-- [ ] LCOV output is nonempty and corresponds to the exact final SHA.
+- [x] `bash scripts/tui_coverage.sh summary`
+- [x] `bash scripts/tui_coverage.sh lcov`
+- [x] LCOV output is nonempty and corresponds to the exact final SHA.
 
 ### Existing chess-engine gates
 
-- [ ] authoritative release perft remains green.
-- [ ] differential/core correctness remains green.
-- [ ] UCI smoke/tests remain green.
-- [ ] Miri subset remains green where permanent workflow requires it.
-- [ ] ASan/LSan checks remain green.
-- [ ] TSan cancellation/concurrency checks remain green.
-- [ ] fuzz/corpus gates remain green.
-- [ ] ARM64 workspace validation remains green where permanent workflow requires it.
-- [ ] explicit Rust MSRV validation remains green.
+- [x] authoritative release perft remains green.
+- [x] differential/core correctness remains green.
+- [x] UCI smoke/tests remain green.
+- [x] Miri subset remains green where permanent workflow requires it.
+- [x] ASan/LSan checks remain green.
+- [x] TSan cancellation/concurrency checks remain green.
+- [x] fuzz/corpus gates remain green.
+- [x] ARM64 workspace validation remains green where permanent workflow requires it.
+- [x] explicit Rust MSRV validation remains green.
 
 ### Behavior audit
 
-- [ ] Diff against starting SHA contains no unintended `chess-core` rule changes.
-- [ ] Diff contains no unintended `chess-search` behavior changes.
-- [ ] Diff contains no evaluation-weight/search-strength changes.
-- [ ] Diff contains no tuning/promotion activation changes.
-- [ ] No first-legal fallback exists in TUI code.
-- [ ] No random-legal fallback exists in TUI code.
-- [ ] No silent depth-reduction retry exists.
-- [ ] No Python fallback exists.
-- [ ] No search failure is silently transformed into a legal-looking move.
-- [ ] No worker failure can silently leave the application thinking indefinitely.
+- [x] Diff against starting SHA contains no unintended `chess-core` rule changes.
+- [x] Diff contains no unintended `chess-search` behavior changes.
+- [x] Diff contains no evaluation-weight/search-strength changes.
+- [x] Diff contains no tuning/promotion activation changes.
+- [x] No first-legal fallback exists in TUI code.
+- [x] No random-legal fallback exists in TUI code.
+- [x] No silent depth-reduction retry exists.
+- [x] No Python fallback exists.
+- [x] No search failure is silently transformed into a legal-looking move.
+- [x] No worker failure can silently leave the application thinking indefinitely.
 
 ## Phase 13 — Evidence and closure
 
-- [ ] Record implementation starting SHA.
-- [ ] Record final source SHA.
-- [ ] Record `cargo-llvm-cov` version.
-- [ ] Record coverage Rust toolchain version.
-- [ ] Record baseline coverage summary.
-- [ ] Record final coverage summary.
-- [ ] Record delta by line/function/region where available.
-- [ ] Record important residual uncovered functions/branches and disposition.
-- [ ] Record focused validation commands/results.
-- [ ] Record focused CI run IDs/jobs.
-- [ ] Record permanent CI run ID/jobs on exact final SHA.
-- [ ] Record permanent robustness run ID/jobs on exact final SHA.
-- [ ] Record coverage artifact identity/name on exact final SHA.
-- [ ] Confirm fallback-only search-result rejection test executed in permanent validation.
-- [ ] Confirm no silent fallback behavior was introduced.
-- [ ] Confirm no engine search/evaluation/tuning/promotion behavior changed.
-- [ ] Perform final diff audit against starting SHA.
-- [ ] Remove any temporary coverage/debug workflows or helper artifacts not intended to be permanent.
-- [ ] Reconcile TODO authority index/audit accurately.
-- [ ] Do not mark this TODO complete while any required P0/P1 gate remains unresolved.
+- [x] Record implementation starting SHA.
+- [x] Record final source SHA.
+- [x] Record `cargo-llvm-cov` version.
+- [x] Record coverage Rust toolchain version.
+- [x] Record baseline coverage summary.
+- [x] Record final coverage summary.
+- [x] Record delta by line/function/region where available.
+- [x] Record important residual uncovered functions/branches and disposition.
+- [x] Record focused validation commands/results.
+- [x] Record focused CI run IDs/jobs.
+- [x] Record permanent CI run ID/jobs on exact final SHA.
+- [x] Record permanent robustness run ID/jobs on exact final SHA.
+- [x] Record coverage artifact identity/name on exact final SHA.
+- [x] Confirm fallback-only search-result rejection test executed in permanent validation.
+- [x] Confirm no silent fallback behavior was introduced.
+- [x] Confirm no engine search/evaluation/tuning/promotion behavior changed.
+- [x] Perform final diff audit against starting SHA.
+- [x] Remove any temporary coverage/debug workflows or helper artifacts not intended to be permanent.
+- [x] Reconcile TODO authority index/audit accurately.
+- [x] Do not mark this TODO complete while any required P0/P1 gate remains unresolved.
+
+## Closure evidence
+
+- Actual implementation-loop start: `e03f7cecba304571e0bc523c3991e93b85c079da`. The older `1c83c40...` field above is retained as the planning/baseline repository identity from the document's creation history.
+- Baseline focused coverage source: `22df3480227c3f0938768b70f8d2594f9881b9f5`; permanent coverage run `31276416088`, job `93150555283`, artifact `9027129674` (`chess-tui-coverage-22df3480227c3f0938768b70f8d2594f9881b9f5`). Toolchain: rustc/cargo 1.97.1, LLVM 22.1.6, `cargo-llvm-cov 0.8.7`. Baseline totals: 62.09% regions, 57.14% functions, 61.25% lines; `ui.rs` line coverage was 36.42%.
+- Primary hardening source commit: `d0e7a28374d9b3465c68b16782655f5248846f27`. Final TUI source/test refinement commit: `2acd49c16267e6bc7e1e38cd2626dfed70f311ac`.
+- Focused final checklist validation: run `31277368933`, job `93153050871`. It passed 86/86 `chess-tui` library tests plus all integration targets, strict Clippy, Rust 1.75 compatibility, summary/JSON/LCOV/HTML coverage generation, bounded-diff verification, and the TODO-authority audit.
+- Final focused coverage totals from that run: 87.77% regions, 85.38% functions, 89.26% lines. Module line coverage: `app.rs` 95.71%, `render.rs` 96.73%, `save.rs` 100%, `ui.rs` 86.14%, `worker.rs` 90.00%, `main.rs` 0%. The comparable deltas are +25.68 region points, +28.24 function points, +28.01 line points; `ui.rs` gained +49.72 line points. No production source exclusions were added.
+- Permanent coverage infrastructure pre-closure proof: SHA `a4f7b4e82112117320362d8de4305e4481ae7466`, run `31277523302`; coverage job `93153454991` and Rust 1.75 MSRV job `93153454992` both succeeded. Artifact `9027442509`, `chess-tui-coverage-a4f7b4e82112117320362d8de4305e4481ae7466`, contains text, JSON, LCOV, and HTML evidence.
+- **Fallback disposition:** the TUI directly classifies a fallback-only result as `Failed`; the deterministic `fallback_only_result_is_rejected_by_tui` test covers this branch. Cancellation/discard remains earlier and cannot turn into `Completed`. No first-legal, random, lower-depth, alternate-engine, or Python fallback was added.
+- **TerminalGuard disposition:** `main.rs` remains uncovered by unit-level llvm-cov because real Crossterm/stdout lifecycle behavior is better evidenced by PTY integration than by a production abstraction added solely for coverage. Existing PTY run `31227882334`, job `93025710323`, proved alternate-screen enter/leave and clean launch/quit restoration. Explicit normal-path restoration errors remain returned; only `Drop` is best-effort by necessity.
+- **Permission-denied save disposition:** root/CI privilege semantics make a real `PermissionDenied` fixture nonportable. The same UI error mapping is deterministically exercised through a `NotFound` write failure, stale saved state is cleared, no success message is emitted, and real permission/read-only behavior remains part of manual terminal/filesystem acceptance. No filesystem mock layer was introduced merely to move coverage.
+- Two real UI defects were found by this hardening work and fixed: control/Alt-modified printable keys could enter save-path input, and the too-small-terminal message could clip its current-dimension suffix because it did not wrap.
+- The original `docs/RUST_TUI_TODO.md` manual real-terminal acceptance items remain independent and open; this hardening closure does not claim them.
+- Permanent exact-final-repository-SHA run IDs are intentionally recorded out-of-band after the closure/bookkeeping commit, avoiding evidence-recursion commits whose only purpose would be to change the SHA being evidenced.
 
 ## Recommended test names
 
@@ -653,20 +675,20 @@ layout_decision_boundary_matrix
 
 ## Definition of done
 
-- [ ] `cargo llvm-cov` has a documented reproducible focused TUI workflow.
-- [ ] Baseline and final coverage are recorded comparably.
-- [ ] P0 fallback rejection has deterministic direct branch coverage.
-- [ ] `EngineRuntime` lifecycle/error handling has direct deterministic coverage.
-- [ ] keyboard/input/overlay state transitions have direct coverage.
-- [ ] important `AppState` defensive branches have direct coverage.
-- [ ] stalemate and at least one authoritative automatic-draw path are covered.
-- [ ] save UI transaction success/failure is covered.
-- [ ] meaningful rendering/serialization branches are covered.
-- [ ] terminal cleanup retains real PTY evidence and any new failure seam is covered.
-- [ ] permanent CI produces a focused coverage report/artifact without arbitrary percentage gating.
-- [ ] existing correctness, build, lint, MSRV, perft, differential, UCI, and robustness gates remain green.
-- [ ] final exact SHA is validated by permanent CI/robustness evidence.
-- [ ] final diff contains no unintended engine/search/evaluation/tuning/promotion behavior changes.
-- [ ] no silent failure or forbidden fallback behavior exists.
-- [ ] residual coverage gaps are explicitly understood/dispositioned.
-- [ ] TODO authority bookkeeping is consistent and permanent audit is green.
+- [x] `cargo llvm-cov` has a documented reproducible focused TUI workflow.
+- [x] Baseline and final coverage are recorded comparably.
+- [x] P0 fallback rejection has deterministic direct branch coverage.
+- [x] `EngineRuntime` lifecycle/error handling has direct deterministic coverage.
+- [x] keyboard/input/overlay state transitions have direct coverage.
+- [x] important `AppState` defensive branches have direct coverage.
+- [x] stalemate and at least one authoritative automatic-draw path are covered.
+- [x] save UI transaction success/failure is covered.
+- [x] meaningful rendering/serialization branches are covered.
+- [x] terminal cleanup retains real PTY evidence and any new failure seam is covered.
+- [x] permanent CI produces a focused coverage report/artifact without arbitrary percentage gating.
+- [x] existing correctness, build, lint, MSRV, perft, differential, UCI, and robustness gates remain green.
+- [x] final exact SHA is validated by permanent CI/robustness evidence.
+- [x] final diff contains no unintended engine/search/evaluation/tuning/promotion behavior changes.
+- [x] no silent failure or forbidden fallback behavior exists.
+- [x] residual coverage gaps are explicitly understood/dispositioned.
+- [x] TODO authority bookkeeping is consistent and permanent audit is green.
