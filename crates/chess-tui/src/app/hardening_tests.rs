@@ -348,3 +348,57 @@ fn seventy_five_move_draw_is_automatic_but_fifty_move_claim_remains_active() {
         .expect("claimable draw stays playable");
     assert!(claimable.take_pending_search().is_some());
 }
+
+#[test]
+fn claimable_threefold_remains_active_and_does_not_stop_scheduling() {
+    let mut app = self_play_app();
+    app.cancel_search_state(None);
+    let mut game = Game::starting();
+    for uci in [
+        "g1f3", "g8f6", "f3g1", "f6g8", "g1f3", "g8f6", "f3g1", "f6g8",
+    ] {
+        let current = legal_move(&mut game, uci);
+        game.make_move(current).expect("repetition move applies");
+    }
+    {
+        let session = app.session.as_mut().expect("session");
+        session.game = game;
+        session.auto_play = true;
+    }
+    app.refresh_terminal_state()
+        .expect("claimable status refreshes");
+    assert!(app.session.as_ref().expect("session").outcome.is_none());
+    app.schedule_if_needed()
+        .expect("claimable repetition remains schedulable");
+    assert!(app.take_pending_search().is_some());
+}
+
+#[test]
+fn quit_and_menu_clear_a_real_pending_search() {
+    let mut quit = human_app(Color::Black);
+    assert!(quit.take_pending_search().is_some());
+    quit.start_game(GameConfig::HumanVsEngine {
+        human_color: Color::Black,
+        engine_depth: 1,
+    })
+    .expect("replacement black game starts");
+    quit.open_confirmation(ConfirmationAction::Quit);
+    quit.request_quit();
+    assert!(quit.should_quit);
+    assert!(quit.overlay.is_none());
+    assert!(quit.take_pending_search().is_none());
+
+    let mut menu = human_app(Color::Black);
+    assert!(menu.take_pending_search().is_some());
+    menu.start_game(GameConfig::HumanVsEngine {
+        human_color: Color::Black,
+        engine_depth: 1,
+    })
+    .expect("replacement black game starts");
+    menu.open_confirmation(ConfirmationAction::MainMenu);
+    menu.return_to_menu();
+    assert_eq!(menu.screen, AppScreen::MainMenu);
+    assert!(menu.session.is_none());
+    assert!(menu.overlay.is_none());
+    assert!(menu.take_pending_search().is_none());
+}

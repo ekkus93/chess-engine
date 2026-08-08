@@ -450,7 +450,8 @@ fn render_game(frame: &mut Frame<'_>, app: &AppState) {
         frame.render_widget(
             Paragraph::new(text)
                 .block(Block::default().borders(Borders::ALL).title("Chess Engine"))
-                .alignment(Alignment::Center),
+                .alignment(Alignment::Center)
+                .wrap(Wrap { trim: false }),
             size,
         );
         return;
