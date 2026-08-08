@@ -40,6 +40,10 @@ jobs:
       - name: Apply closure bookkeeping
         run: python3 .github/tui_coverage_close.py
 
+      - name: Normalize generated report whitespace
+        shell: bash
+        run: sed -i 's/[[:space:]]\+$//' docs/RUST_TUI_TEST_COVERAGE_HARDENING_IMPLEMENTATION.md
+
       - name: Validate authority audit
         run: bash scripts/task_post_port_review_fix_audit.sh
 
