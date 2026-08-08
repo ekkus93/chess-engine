@@ -93,19 +93,17 @@ jobs:
       - name: Run TODO authority audit
         run: bash scripts/task_post_port_review_fix_audit.sh
 
-      - name: Commit validated implementation and remove temporary helper
+      - name: Commit and publish validated source changes
         shell: bash
         run: |
           set -euo pipefail
-          rm -f .github/tui_coverage_hardening_patch.py
-          rm -f .github/tui_coverage_hardening_fix.py
-          rm -f .github/workflows/tui-coverage-hardening-implementation.yml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
+          git reset -- .github/tui_coverage_hardening_patch.py .github/tui_coverage_hardening_fix.py .github/workflows/tui-coverage-hardening-implementation.yml .github/workflows/ci.yml
           git diff --cached --check
           if git diff --cached --quiet; then
-            echo '::error::No validated hardening changes were produced.'
+            echo '::error::No validated source hardening changes were produced.'
             exit 1
           fi
           git commit -m 'Harden Rust TUI test coverage'
