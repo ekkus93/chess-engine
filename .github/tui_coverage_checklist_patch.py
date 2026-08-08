@@ -124,12 +124,21 @@ fn every_abandonment_confirmation_resolves_active_worker_first() {
         let mut runtime = EngineRuntime::default();
         runtime.drive(&mut app).expect("active worker starts");
         assert!(runtime.active.is_some());
+        let old_generation = app.session.as_ref().expect("session").generation;
         execute_confirmation(&mut app, &mut runtime, action).expect("confirmation executes");
         assert!(runtime.active.is_none());
-        assert!(app
-            .session
-            .as_ref()
-            .is_none_or(|session| !session.thinking && session.active_search.is_none()));
+        match action {
+            ConfirmationAction::NewGame => {
+                let session = app.session.as_ref().expect("replacement session");
+                assert_ne!(session.generation, old_generation);
+                assert!(session.thinking);
+                assert!(app.take_pending_search().is_some());
+            }
+            _ => assert!(app
+                .session
+                .as_ref()
+                .map_or(true, |session| !session.thinking && session.active_search.is_none())),
+        }
     }
 }
 
