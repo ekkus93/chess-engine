@@ -166,7 +166,7 @@ jobs:
         run: cargo build --locked --release --workspace --all-targets --all-features
 
       - name: UCI smoke
-        run: bash scripts/task_26_uci_smoke.sh
+        run: bash scripts/task_26_uci_smoke.sh target/release/chess-uci
 
       - name: Install pinned Python oracle runtime
         uses: actions/setup-python@v5
