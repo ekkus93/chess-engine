@@ -152,7 +152,7 @@ jobs:
         run: cargo test --locked --workspace --all-targets --all-features
 
       - name: Run authoritative release perft
-        run: cargo run --locked --release -p chess-tools -- suite 4
+        run: cargo run --locked --release -p chess-tools --bin chess-tools -- suite 4
 
       - name: Build documentation
         env:
