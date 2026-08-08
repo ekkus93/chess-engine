@@ -1,6 +1,15 @@
 from pathlib import Path
 
 
+def replace_once(path: str, old: str, new: str) -> None:
+    target = Path(path)
+    text = target.read_text()
+    count = text.count(old)
+    if count != 1:
+        raise SystemExit(f"{path}: expected one patch anchor, found {count}")
+    target.write_text(text.replace(old, new, 1))
+
+
 def append_once(path: str, marker: str, addition: str) -> None:
     target = Path(path)
     text = target.read_text()
@@ -10,6 +19,19 @@ def append_once(path: str, marker: str, addition: str) -> None:
         text += "\n"
     target.write_text(text + addition)
 
+
+replace_once(
+    "crates/chess-tui/src/ui.rs",
+    '''            Paragraph::new(text)
+                .block(Block::default().borders(Borders::ALL).title("Chess Engine"))
+                .alignment(Alignment::Center),
+''',
+    '''            Paragraph::new(text)
+                .block(Block::default().borders(Borders::ALL).title("Chess Engine"))
+                .alignment(Alignment::Center)
+                .wrap(Wrap { trim: false }),
+''',
+)
 
 append_once(
     "crates/chess-tui/src/ui/hardening_tests.rs",
