@@ -57,3 +57,5 @@ jobs:
           git diff --cached --check
           git commit -m 'Close Rust TUI coverage hardening program'
           git push origin HEAD:master
+
+# This workflow is temporary closure machinery and is deleted after successful publication.
