@@ -6,6 +6,7 @@ on:
       - master
     paths:
       - .github/tui_coverage_hardening_patch.py
+      - .github/tui_coverage_hardening_fix.py
       - .github/workflows/tui-coverage-hardening-implementation.yml
 
 permissions:
@@ -44,7 +45,11 @@ jobs:
           fallback: none
 
       - name: Apply hardening patch
-        run: python3 .github/tui_coverage_hardening_patch.py
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/tui_coverage_hardening_patch.py
+          python3 .github/tui_coverage_hardening_fix.py
 
       - name: Format patched Rust
         run: cargo fmt --all
@@ -93,6 +98,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -f .github/tui_coverage_hardening_patch.py
+          rm -f .github/tui_coverage_hardening_fix.py
           rm -f .github/workflows/tui-coverage-hardening-implementation.yml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
