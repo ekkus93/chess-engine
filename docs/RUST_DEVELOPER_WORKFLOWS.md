@@ -91,6 +91,22 @@ printf 'uci\nisready\nposition startpos\ngo depth 3\nquit\n' | bash scripts/dev.
 
 See `docs/RUST_UCI_PROCESS_INTEGRATION.md` and `docs/RUST_OPENING_BOOK_ADAPTER_INTEGRATION.md` for protocol and ownership details.
 
+## Rust TUI coverage
+
+Focused source-based coverage for the native Rust TUI uses `cargo-llvm-cov` as diagnostic evidence. Coverage is intentionally separate from the Rust 1.75 product MSRV gate: CI runs coverage on the current stable Rust toolchain with `llvm-tools-preview`, while product compatibility remains validated independently. The permanent workflow pins `cargo-llvm-cov` 0.8.7.
+
+Install a compatible `cargo-llvm-cov` locally and ensure `llvm-tools-preview` is present, then use:
+
+```bash
+bash scripts/dev.sh tui-coverage clean
+bash scripts/dev.sh tui-coverage summary
+bash scripts/dev.sh tui-coverage json
+bash scripts/dev.sh tui-coverage lcov
+bash scripts/dev.sh tui-coverage html
+```
+
+The JSON summary is written to `target/chess-tui-coverage-summary.json`, LCOV to `target/chess-tui-lcov.info`, and HTML under `target/llvm-cov/html/`. `target/` is ignored. Coverage commands run the relevant `chess-tui` tests with all features and do not enforce an arbitrary percentage threshold; uncovered safety/error branches are reviewed explicitly. The permanent `Rust TUI coverage` workflow uploads text, JSON, and LCOV evidence tied to the tested commit SHA without requiring Codecov or another external coverage service. Coverage tooling is development infrastructure and is not a `chess-tui` runtime dependency.
+
 ## Android/JNI
 
 Set the NDK explicitly, then build both JNI ABIs, lint/build the Android harness, build its test APK, and run the host-JVM JNI contract:

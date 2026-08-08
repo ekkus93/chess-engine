@@ -104,3 +104,6 @@ mod tests {
         assert_eq!(error.kind(), std::io::ErrorKind::NotFound);
     }
 }
+
+#[cfg(test)]
+mod hardening_tests;

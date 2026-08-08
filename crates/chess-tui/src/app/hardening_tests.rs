@@ -29,7 +29,8 @@ fn self_play_app() -> AppState {
 fn set_position(app: &mut AppState, fen: &str) {
     let position = Position::from_fen(fen).expect("fixture FEN parses");
     app.session.as_mut().expect("session").game = Game::new(position);
-    app.refresh_terminal_state().expect("status refresh succeeds");
+    app.refresh_terminal_state()
+        .expect("status refresh succeeds");
 }
 
 fn legal_move(game: &mut Game, uci: &str) -> chess_core::Move {
@@ -221,7 +222,8 @@ fn stale_failure_and_cancellation_do_not_touch_current_search() {
         let mut app = human_app(Color::Black);
         let request = app.take_pending_search().expect("request");
         app.session.as_mut().expect("session").status_message = Some("current".to_owned());
-        app.handle_engine_event(stale).expect("stale event is harmless");
+        app.handle_engine_event(stale)
+            .expect("stale event is harmless");
         let session = app.session.as_ref().expect("session");
         assert_eq!(session.active_search, Some(request.ticket));
         assert!(session.thinking);
@@ -324,10 +326,7 @@ fn stalemate_and_dead_position_are_terminal_and_clear_search_state() {
 #[test]
 fn seventy_five_move_draw_is_automatic_but_fifty_move_claim_remains_active() {
     let mut automatic = self_play_app();
-    set_position(
-        &mut automatic,
-        "7k/8/8/8/8/8/R7/K7 w - - 150 76",
-    );
+    set_position(&mut automatic, "7k/8/8/8/8/8/R7/K7 w - - 150 76");
     assert_eq!(
         automatic.session.as_ref().expect("session").outcome,
         Some(GameOutcome::Draw(DrawReason::SeventyFiveMoveRule))
@@ -337,11 +336,15 @@ fn seventy_five_move_draw_is_automatic_but_fifty_move_claim_remains_active() {
     let mut claimable = self_play_app();
     claimable.cancel_search_state(None);
     claimable.session.as_mut().expect("session").auto_play = true;
-    set_position(
-        &mut claimable,
-        "7k/8/8/8/8/8/R7/K7 w - - 100 51",
-    );
-    assert!(claimable.session.as_ref().expect("session").outcome.is_none());
-    claimable.schedule_if_needed().expect("claimable draw stays playable");
+    set_position(&mut claimable, "7k/8/8/8/8/8/R7/K7 w - - 100 51");
+    assert!(claimable
+        .session
+        .as_ref()
+        .expect("session")
+        .outcome
+        .is_none());
+    claimable
+        .schedule_if_needed()
+        .expect("claimable draw stays playable");
     assert!(claimable.take_pending_search().is_some());
 }

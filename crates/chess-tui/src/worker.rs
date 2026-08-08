@@ -199,6 +199,101 @@ impl SearchWorker {
         self.stop_flag.request_stop();
         self.join()
     }
+
+    #[cfg(test)]
+    pub(crate) fn finished_with_events_for_test(
+        events: Vec<EngineEvent>,
+    ) -> (Self, Receiver<EngineEvent>) {
+        let stop_flag = SearchStopFlag::new();
+        let discard_final = Arc::new(AtomicBool::new(false));
+        let (sender, receiver) = mpsc::channel();
+        for event in events {
+            sender
+                .send(event)
+                .expect("synthetic event receiver remains open");
+        }
+        drop(sender);
+        let handle = thread::spawn(|| Ok(()));
+        while !handle.is_finished() {
+            thread::yield_now();
+        }
+        (
+            Self {
+                stop_flag,
+                discard_final,
+                handle: Some(handle),
+            },
+            receiver,
+        )
+    }
+
+    #[cfg(test)]
+    pub(crate) fn waiting_with_event_for_test(event: EngineEvent) -> (Self, Receiver<EngineEvent>) {
+        let stop_flag = SearchStopFlag::new();
+        let discard_final = Arc::new(AtomicBool::new(false));
+        let worker_discard = Arc::clone(&discard_final);
+        let (sender, receiver) = mpsc::channel();
+        sender
+            .send(event)
+            .expect("synthetic event receiver remains open");
+        drop(sender);
+        let handle = thread::spawn(move || {
+            while !worker_discard.load(Ordering::Acquire) {
+                thread::yield_now();
+            }
+            Ok(())
+        });
+        (
+            Self {
+                stop_flag,
+                discard_final,
+                handle: Some(handle),
+            },
+            receiver,
+        )
+    }
+
+    #[cfg(test)]
+    pub(crate) fn finished_without_event_for_test() -> (Self, Receiver<EngineEvent>) {
+        let stop_flag = SearchStopFlag::new();
+        let discard_final = Arc::new(AtomicBool::new(false));
+        let (sender, receiver) = mpsc::channel();
+        drop(sender);
+        let handle = thread::spawn(|| Ok(()));
+        while !handle.is_finished() {
+            thread::yield_now();
+        }
+        (
+            Self {
+                stop_flag,
+                discard_final,
+                handle: Some(handle),
+            },
+            receiver,
+        )
+    }
+
+    #[cfg(test)]
+    pub(crate) fn panicking_for_test() -> (Self, Receiver<EngineEvent>) {
+        let stop_flag = SearchStopFlag::new();
+        let discard_final = Arc::new(AtomicBool::new(false));
+        let (sender, receiver) = mpsc::channel();
+        drop(sender);
+        let handle = thread::spawn(|| -> Result<(), SearchWorkerError> {
+            panic!("synthetic TUI search worker panic")
+        });
+        while !handle.is_finished() {
+            thread::yield_now();
+        }
+        (
+            Self {
+                stop_flag,
+                discard_final,
+                handle: Some(handle),
+            },
+            receiver,
+        )
+    }
 }
 
 impl Drop for SearchWorker {
@@ -307,35 +402,41 @@ fn finish_request(
         }
     };
 
-    if let Some(best_move) = result.completed().best_move() {
-        let Some(metrics) = SearchMetrics::from_result(&result) else {
-            send_event(
-                sender,
-                EngineEvent::Failed {
-                    ticket,
-                    message: "search returned an exact move without an exact iteration".to_owned(),
-                },
-            )?;
-            return Ok(());
-        };
-        send_event(
-            sender,
-            EngineEvent::Completed {
-                ticket,
-                best_move,
-                metrics,
-            },
-        )?;
-        return Ok(());
-    }
+    let event = classify_success(
+        ticket,
+        result.completed().best_move(),
+        SearchMetrics::from_result(&result),
+        result.fallback().is_some(),
+    );
+    send_event(sender, event)
+}
 
-    let message = if result.fallback().is_some() {
-        "search ended before completing depth one; TUI rejected the search fallback".to_owned()
-    } else {
-        "search completed without an exact best move".to_owned()
-    };
-    send_event(sender, EngineEvent::Failed { ticket, message })?;
-    Ok(())
+fn classify_success(
+    ticket: SearchTicket,
+    best_move: Option<Move>,
+    metrics: Option<SearchMetrics>,
+    has_fallback: bool,
+) -> EngineEvent {
+    match (best_move, metrics, has_fallback) {
+        (Some(best_move), Some(metrics), _) => EngineEvent::Completed {
+            ticket,
+            best_move,
+            metrics,
+        },
+        (Some(_), None, _) => EngineEvent::Failed {
+            ticket,
+            message: "search returned an exact move without an exact iteration".to_owned(),
+        },
+        (None, _, true) => EngineEvent::Failed {
+            ticket,
+            message: "search ended before completing depth one; TUI rejected the search fallback"
+                .to_owned(),
+        },
+        (None, _, false) => EngineEvent::Failed {
+            ticket,
+            message: "search completed without an exact best move".to_owned(),
+        },
+    }
 }
 
 fn send_event(sender: &Sender<EngineEvent>, event: EngineEvent) -> Result<(), SearchWorkerError> {
@@ -404,3 +505,6 @@ mod tests {
             .any(|event| matches!(event, EngineEvent::Completed { .. })));
     }
 }
+
+#[cfg(test)]
+mod hardening_tests;

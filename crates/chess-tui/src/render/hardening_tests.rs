@@ -228,33 +228,33 @@ fn outcome_and_draw_reason_formatting_cover_every_variant() {
 
 #[test]
 fn turn_status_reports_check_and_claimable_draws_without_terminalizing_them() {
-    let check = Game::new(
-        Position::from_fen("7k/8/8/8/8/8/7R/K7 b - - 0 1").expect("check fixture"),
-    );
+    let check =
+        Game::new(Position::from_fen("7k/8/8/8/8/8/7R/K7 b - - 0 1").expect("check fixture"));
     let check_status = turn_status(&session(check));
     assert!(check_status.contains("Black to move"));
     assert!(check_status.contains("CHECK"));
 
-    let fifty = Game::new(
-        Position::from_fen("7k/8/8/8/8/8/R7/K7 w - - 100 51").expect("fifty fixture"),
-    );
+    let fifty =
+        Game::new(Position::from_fen("7k/8/8/8/8/8/R7/K7 w - - 100 51").expect("fifty fixture"));
     let fifty_status = turn_status(&session(fifty));
     assert!(fifty_status.contains("draw claim available (fifty-move)"));
 
     let mut threefold = Game::starting();
-    for uci in ["g1f3", "g8f6", "f3g1", "f6g8", "g1f3", "g8f6", "f3g1", "f6g8"] {
+    for uci in [
+        "g1f3", "g8f6", "f3g1", "f6g8", "g1f3", "g8f6", "f3g1", "f6g8",
+    ] {
         apply_uci(&mut threefold, uci);
     }
     let repetition_status = turn_status(&session(threefold));
     assert!(repetition_status.contains("draw claim available (threefold)"));
 
     let mut both = Game::new(
-        Position::from_fen(
-            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 92 1",
-        )
-        .expect("combined claim fixture"),
+        Position::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 92 1")
+            .expect("combined claim fixture"),
     );
-    for uci in ["g1f3", "g8f6", "f3g1", "f6g8", "g1f3", "g8f6", "f3g1", "f6g8"] {
+    for uci in [
+        "g1f3", "g8f6", "f3g1", "f6g8", "g1f3", "g8f6", "f3g1", "f6g8",
+    ] {
         apply_uci(&mut both, uci);
     }
     let both_status = turn_status(&session(both));

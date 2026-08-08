@@ -15,6 +15,7 @@ Commands:
   perft [DEPTH]                     Run the authoritative perft suite (default: 4).
   uci [--book PATH]                 Run the Linux UCI engine on stdin/stdout.
   tui                               Run the native Rust terminal interface.
+  tui-coverage COMMAND              Run focused Rust TUI llvm-cov coverage.
   android                           Build JNI libraries and the Android harness.
   self-play CONFIG OUTPUT           Generate one versioned offline dataset.
   tune CONFIG DATASET OUTPUT [CKPT] Run/resume offline SPSA; candidate stays inactive.
@@ -148,6 +149,10 @@ case "${command}" in
   tui)
     [[ $# -eq 0 ]] || { usage; exit 2; }
     cargo run --locked -p chess-tui
+    ;;
+  tui-coverage)
+    [[ $# -eq 1 ]] || { usage; exit 2; }
+    bash scripts/tui_coverage.sh "$1"
     ;;
   android) [[ $# -eq 0 ]] || { usage; exit 2; }; android ;;
   self-play)

@@ -100,24 +100,33 @@ impl EngineRuntime {
         if self.active.is_none() {
             if let Some(request) = app.take_pending_search() {
                 let ticket = request.ticket;
-                match SearchWorker::spawn(request) {
-                    Ok((worker, receiver)) => {
-                        self.active = Some(ActiveWorker {
-                            ticket,
-                            worker,
-                            receiver,
-                        });
-                    }
-                    Err(error) => {
-                        if let Err(app_error) = app.handle_engine_event(EngineEvent::Failed {
-                            ticket,
-                            message: error.to_string(),
-                        }) {
-                            app.cancel_search_state(Some(format!(
-                                "Search spawn failed: {app_error}"
-                            )));
-                        }
-                    }
+                let spawn_result = SearchWorker::spawn(request);
+                self.handle_spawn_result(app, ticket, spawn_result)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn handle_spawn_result(
+        &mut self,
+        app: &mut AppState,
+        ticket: SearchTicket,
+        spawn_result: Result<(SearchWorker, Receiver<EngineEvent>), SearchWorkerError>,
+    ) -> Result<(), SearchWorkerError> {
+        match spawn_result {
+            Ok((worker, receiver)) => {
+                self.active = Some(ActiveWorker {
+                    ticket,
+                    worker,
+                    receiver,
+                });
+            }
+            Err(error) => {
+                if let Err(app_error) = app.handle_engine_event(EngineEvent::Failed {
+                    ticket,
+                    message: error.to_string(),
+                }) {
+                    app.cancel_search_state(Some(format!("Search spawn failed: {app_error}")));
                 }
             }
         }
@@ -140,6 +149,10 @@ fn handle_key(app: &mut AppState, runtime: &mut EngineRuntime, key: KeyEvent) ->
         runtime.cancel()?;
         app.cancel_search_state(None);
         app.request_quit();
+        return Ok(());
+    }
+
+    if key.modifiers.contains(KeyModifiers::CONTROL) || key.modifiers.contains(KeyModifiers::ALT) {
         return Ok(());
     }
 
@@ -342,8 +355,8 @@ fn save_current_game(app: &mut AppState) -> io::Result<()> {
         return Ok(());
     }
     let Some(session) = app.session.as_ref() else {
-        app.mark_save_failed("Save failed: no game exists".to_owned());
-        return Ok(());
+        app.dismiss_overlay();
+        return Err(io::Error::other("Save failed: no game exists"));
     };
     let timestamp = unix_timestamp_label()?;
     let contents = serialize_game(session, Some(&timestamp));
@@ -671,3 +684,6 @@ mod tests {
         draw(&app, 20, 8);
     }
 }
+
+#[cfg(test)]
+mod hardening_tests;

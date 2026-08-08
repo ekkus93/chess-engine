@@ -70,9 +70,8 @@ fn serialization_preserves_explicit_promotion_identity() {
         engine_depth: 1,
     })
     .expect("game starts");
-    app.session.as_mut().expect("session").game = Game::new(
-        Position::from_fen("7k/4P3/8/8/8/8/8/7K w - - 0 1").expect("promotion fixture"),
-    );
+    app.session.as_mut().expect("session").game =
+        Game::new(Position::from_fen("7k/4P3/8/8/8/8/8/7K w - - 0 1").expect("promotion fixture"));
     app.submit_human_move("e7e8q").expect("promotion applies");
     let text = serialize_game(app.session.as_ref().expect("session"), None);
     assert!(text.contains("moves: e7e8q\n"));
