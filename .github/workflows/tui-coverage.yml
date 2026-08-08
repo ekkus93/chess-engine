@@ -1,0 +1,87 @@
+name: Rust TUI coverage
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rust-tui-coverage-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  coverage:
+    name: Focused chess-tui llvm-cov
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install coverage Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+
+      - name: Install pinned cargo-llvm-cov
+        uses: taiki-e/install-action@v2.79.11
+        with:
+          tool: cargo-llvm-cov@0.8.7
+          fallback: none
+
+      - name: Cache Cargo data
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: rust-tui-coverage
+
+      - name: Record coverage toolchain identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc -vV
+          cargo -V
+          cargo llvm-cov --version
+
+      - name: Clean stale coverage artifacts
+        run: bash scripts/tui_coverage.sh clean
+
+      - name: Run focused coverage summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target
+          bash scripts/tui_coverage.sh summary | tee target/chess-tui-coverage-summary.txt
+
+      - name: Generate machine-readable coverage summary
+        run: bash scripts/tui_coverage.sh json
+
+      - name: Generate LCOV report
+        run: bash scripts/tui_coverage.sh lcov
+
+      - name: Verify coverage reports
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s target/chess-tui-coverage-summary.txt
+          test -s target/chess-tui-coverage-summary.json
+          test -s target/chess-tui-lcov.info
+
+      - name: Upload focused coverage evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: chess-tui-coverage-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            target/chess-tui-coverage-summary.txt
+            target/chess-tui-coverage-summary.json
+            target/chess-tui-lcov.info
