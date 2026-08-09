@@ -22,6 +22,8 @@ const SNAPSHOT_VERSION: &str = "1";
 const SNAPSHOT_END: &str = "END";
 const WHITE_CODE: jint = 1;
 const BLACK_CODE: jint = 2;
+const MIN_ANDROID_DEPTH: u16 = 1;
+const MAX_ANDROID_DEPTH: u16 = 12;
 
 static NEXT_HANDLE: AtomicU64 = AtomicU64::new(1);
 static REGISTRY: OnceLock<Mutex<HashMap<u64, Arc<Mutex<AppGame>>>>> = OnceLock::new();
@@ -64,9 +66,7 @@ impl AppGame {
 
     fn restart(&mut self) -> BridgeResult<()> {
         self.cancel_active(None)?;
-        self.controller
-            .restart_current_game()
-            .map_err(app_error)?;
+        self.controller.restart_current_game().map_err(app_error)?;
         self.spawn_pending()
     }
 
@@ -188,13 +188,15 @@ impl AppGame {
         result
     }
 
-    fn snapshot(&self) -> BridgeResult<String> {
-        let session = self.controller.session.as_ref().ok_or_else(|| {
-            BridgeError::Abi {
+    fn snapshot(&mut self) -> BridgeResult<String> {
+        let session = self
+            .controller
+            .session
+            .as_mut()
+            .ok_or_else(|| BridgeError::Abi {
                 code: ChessEngineResultCode::GameError,
                 message: "Android game session is not active".to_owned(),
-            }
-        })?;
+            })?;
         let legal_moves = session
             .game
             .legal_moves()
@@ -288,7 +290,11 @@ fn registry() -> &'static Mutex<HashMap<u64, Arc<Mutex<AppGame>>>> {
 
 pub(crate) fn create_game(human_color: jint, depth: jint) -> BridgeResult<jlong> {
     let color = parse_color(human_color)?;
-    let depth = u16::try_from(depth).map_err(|_| invalid_argument("search depth is out of range"))?;
+    let depth =
+        u16::try_from(depth).map_err(|_| invalid_argument("search depth is out of range"))?;
+    if !(MIN_ANDROID_DEPTH..=MAX_ANDROID_DEPTH).contains(&depth) {
+        return Err(invalid_argument("search depth must be between 1 and 12"));
+    }
     let game = AppGame::new(color, depth)?;
     let token = NEXT_HANDLE.fetch_add(1, Ordering::Relaxed);
     if token == 0 {
@@ -308,12 +314,28 @@ pub(crate) fn destroy_game(handle: jlong) -> BridgeResult<()> {
     let game = registry()
         .lock()
         .map_err(|_| internal_error("Android game registry lock was poisoned"))?
-        .remove(&token)
+        .get(&token)
+        .cloned()
         .ok_or_else(|| invalid_handle(token))?;
-    let mut game = game
+
+    {
+        let mut game_guard = game
+            .lock()
+            .map_err(|_| internal_error("Android game lock was poisoned"))?;
+        game_guard.close()?;
+    }
+
+    let mut entries = registry()
         .lock()
-        .map_err(|_| internal_error("Android game lock was poisoned"))?;
-    game.close()
+        .map_err(|_| internal_error("Android game registry lock was poisoned"))?;
+    let current = entries.get(&token).ok_or_else(|| invalid_handle(token))?;
+    if !Arc::ptr_eq(current, &game) {
+        return Err(internal_error(
+            "Android game registry handle changed during close",
+        ));
+    }
+    entries.remove(&token);
+    Ok(())
 }
 
 pub(crate) fn snapshot(handle: jlong) -> BridgeResult<String> {
