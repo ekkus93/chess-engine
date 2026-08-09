@@ -130,7 +130,7 @@ The permanent CI run `31338059357` then passed the same `Run console PTY accepta
 
 The original `docs/RUST_CONSOLE_TODO.md` is retained as the detailed historical implementation checklist. It is **not** mass-backfilled with checkmarks where evidence was never captured. In particular, the exact pre-extraction `fast`/TUI-PTY baseline commands were not recorded before extraction, so those historical baseline items cannot truthfully be marked complete after the fact.
 
-`docs/RUST_CONSOLE_TODO_CLOSURE_2026-08-09.md` is the evidence-backed closure disposition for the checklist: implementation phases are automated-complete where proved; missing historical baseline execution is recorded as an evidence exception; subjective human UX review remains open.
+`docs/RUST_CONSOLE_CLOSURE_EVIDENCE_2026-08-09.md` is the evidence-backed closure disposition for the checklist: implementation phases are automated-complete where proved; missing historical baseline execution is recorded as an evidence exception; subjective human UX review remains open.
 
 ## Remaining manual acceptance
 
