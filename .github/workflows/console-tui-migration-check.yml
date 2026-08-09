@@ -84,7 +84,7 @@ jobs:
           ui_tests = Path('crates/chess-tui/src/ui/hardening_tests.rs')
           text = ui_tests.read_text()
           replacements = [
-              ('app.session.as_ref().expect("session").move_input', 'app.move_input', 1),
+              ('app.session.as_ref().expect("session").move_input', 'app.move_input', 3),
               ('engine_turn\n        .session\n        .as_ref()\n        .expect("session")\n        .move_input', 'engine_turn.move_input', 1),
               ('self_play\n        .session\n        .as_ref()\n        .expect("session")\n        .move_input', 'self_play.move_input', 1),
               ('assert_eq!(session.saved_path, None);', 'assert_eq!(app.saved_path, None);', 2),
