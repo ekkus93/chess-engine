@@ -145,7 +145,9 @@ mod tests {
         write_game(&path, "contents").expect("write succeeds");
         let temp_name = format!(
             ".{}.tmp",
-            path.file_name().expect("path has a file name").display()
+            path.file_name()
+                .expect("path has a file name")
+                .to_string_lossy()
         );
         let temp_path = path.with_file_name(temp_name);
         assert!(
