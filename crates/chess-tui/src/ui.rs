@@ -27,6 +27,37 @@ use crate::{
 
 const EVENT_POLL_INTERVAL: Duration = Duration::from_millis(50);
 
+// RF-006.2: named layout constants. render.rs's own MIN_TERMINAL_WIDTH/
+// MIN_TERMINAL_HEIGHT/etc. were already named and derived against the
+// board's fixed 19-line, 35-column render (see render.rs::board_lines); the
+// values below were previously inlined here as bare literals with no link
+// back to that derivation, or to each other.
+
+/// Width of the board pane in the horizontal (side-by-side) layout.
+/// `board_lines` renders a fixed 35-column-wide board (2-space gutter +
+/// 8 four-column files); 44 leaves headroom for the pane's border and
+/// title without the board ever wrapping.
+const BOARD_PANE_WIDTH: u16 = 44;
+/// Minimum width for the Moves/Engine side panel in the horizontal layout —
+/// enough for the widest move-history line (`" 99. e7e8q  e7e8q"`, ~17
+/// columns) plus borders and the panel title, with margin.
+const SIDE_PANEL_MIN_WIDTH: u16 = 30;
+/// Board/side-panel height split in the stacked (narrow-terminal) layout.
+/// The board needs the larger share since it's a fixed 19 lines regardless
+/// of terminal size, while the side panel can scroll (see RF-002).
+const STACKED_BOARD_HEIGHT_PERCENT: u16 = 60;
+const STACKED_SIDE_PANEL_HEIGHT_PERCENT: u16 = 40;
+/// Centered dialog sizes. Unlike the layout constants above, these aren't
+/// tightly derived from fixed content — they're generous fixed sizes chosen
+/// to comfortably fit each dialog's longest line with room to spare, then
+/// clamped to the actual terminal size by `centered_rect`.
+const MENU_DIALOG_WIDTH: u16 = 64;
+const MENU_DIALOG_HEIGHT: u16 = 15;
+const OVERLAY_DIALOG_WIDTH: u16 = 56;
+const OVERLAY_DIALOG_HEIGHT: u16 = 9;
+const GAME_OVER_DIALOG_WIDTH: u16 = 48;
+const GAME_OVER_DIALOG_HEIGHT: u16 = 7;
+
 pub fn run<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
     let mut app = AppState::new();
     let mut runtime = EngineRuntime::default();
@@ -66,6 +97,7 @@ struct ActiveWorker {
 impl EngineRuntime {
     fn drive(&mut self, app: &mut AppState) -> Result<(), SearchWorkerError> {
         let mut saw_final = false;
+        let mut join_failure = None;
         if let Some(active) = self.active.as_mut() {
             loop {
                 match active.receiver.try_recv() {
@@ -81,14 +113,30 @@ impl EngineRuntime {
             }
             if active.worker.is_finished() && !saw_final {
                 let ticket = active.ticket;
-                active.worker.join()?;
-                app.handle_engine_event(EngineEvent::Failed {
-                    ticket,
-                    message: "search worker ended without a final event".to_owned(),
-                })
-                .map_err(|_| SearchWorkerError::EventChannelClosed)?;
-                saw_final = true;
+                match active.worker.join() {
+                    Ok(()) => {
+                        app.handle_engine_event(EngineEvent::Failed {
+                            ticket,
+                            message: "search worker ended without a final event".to_owned(),
+                        })
+                        .map_err(|_| SearchWorkerError::EventChannelClosed)?;
+                        saw_final = true;
+                    }
+                    Err(error) => join_failure = Some(error),
+                }
             }
+        }
+
+        // RF-006.3: clear the defunct worker as soon as a join failure is
+        // detected, rather than leaving it occupying the "at most one active
+        // search" slot for the caller to notice and clean up a poll tick
+        // later. `thinking` was already unaffected by this delay (the
+        // caller's error handler clears it immediately either way), but a
+        // legitimately-scheduled new search would otherwise wait an extra
+        // tick behind the defunct handle.
+        if let Some(error) = join_failure {
+            self.active = None;
+            return Err(error);
         }
 
         if saw_final {
@@ -296,7 +344,17 @@ fn handle_overlay_key(
     let overlay = app.overlay.clone();
     match overlay {
         Some(Overlay::Confirmation(action)) => match key.code {
-            KeyCode::Char('y') | KeyCode::Enter => execute_confirmation(app, runtime, action),
+            KeyCode::Char('y') | KeyCode::Enter => {
+                if action == ConfirmationAction::OverwriteSave {
+                    // Confirming an overwrite has nothing to do with
+                    // abandoning an active game/search, unlike every other
+                    // confirmation action — do not route it through
+                    // execute_confirmation's unconditional runtime.cancel().
+                    commit_pending_save(app)
+                } else {
+                    execute_confirmation(app, runtime, action)
+                }
+            }
             KeyCode::Char('n') | KeyCode::Esc => {
                 app.dismiss_overlay();
                 Ok(())
@@ -345,6 +403,13 @@ fn execute_confirmation(
             app.request_quit();
             Ok(())
         }
+        ConfirmationAction::OverwriteSave => {
+            debug_assert!(
+                false,
+                "OverwriteSave must be dispatched to commit_pending_save, not execute_confirmation"
+            );
+            commit_pending_save(app)
+        }
     }
 }
 
@@ -354,6 +419,31 @@ fn save_current_game(app: &mut AppState) -> io::Result<()> {
         app.mark_save_failed("Save failed: path must not be empty".to_owned());
         return Ok(());
     }
+    if app.session.is_none() {
+        app.dismiss_overlay();
+        return Err(io::Error::other("Save failed: no game exists"));
+    }
+    if Path::new(&path_text).exists() {
+        // RF-006.4: confirm before silently overwriting an existing file —
+        // a typo in the save path must not clobber unrelated data.
+        app.request_overwrite_confirmation(path_text);
+        return Ok(());
+    }
+    write_current_game(app, path_text)
+}
+
+/// Commits the save staged by `save_current_game`'s overwrite confirmation.
+/// Reached only via `ConfirmationAction::OverwriteSave`.
+fn commit_pending_save(app: &mut AppState) -> io::Result<()> {
+    let Some(path_text) = app.take_pending_overwrite_path() else {
+        app.dismiss_overlay();
+        return Ok(());
+    };
+    app.dismiss_overlay();
+    write_current_game(app, path_text)
+}
+
+fn write_current_game(app: &mut AppState, path_text: String) -> io::Result<()> {
     let Some(session) = app.session.as_ref() else {
         app.dismiss_overlay();
         return Err(io::Error::other("Save failed: no game exists"));
@@ -421,7 +511,11 @@ fn render_game_over_panel(frame: &mut Frame<'_>, app: &AppState) {
     let Some(outcome) = session.outcome else {
         return;
     };
-    let area = centered_rect(48, 7, frame.size());
+    let area = centered_rect(
+        GAME_OVER_DIALOG_WIDTH,
+        GAME_OVER_DIALOG_HEIGHT,
+        frame.size(),
+    );
     frame.render_widget(Clear, area);
     frame.render_widget(
         Paragraph::new(format!(
@@ -442,7 +536,7 @@ fn render_menu(frame: &mut Frame<'_>, app: &AppState) {
         return;
     }
 
-    let area = centered_rect(64, 15, frame.size());
+    let area = centered_rect(MENU_DIALOG_WIDTH, MENU_DIALOG_HEIGHT, frame.size());
     let mode = match app.menu.mode {
         MenuMode::HumanVsEngine => "Human vs Engine",
         MenuMode::SelfPlay => "Self-play",
@@ -547,7 +641,10 @@ fn render_game(frame: &mut Frame<'_>, app: &AppState) {
         LayoutDecision::Horizontal => {
             let body = Layout::default()
                 .direction(Direction::Horizontal)
-                .constraints([Constraint::Length(44), Constraint::Min(30)])
+                .constraints([
+                    Constraint::Length(BOARD_PANE_WIDTH),
+                    Constraint::Min(SIDE_PANEL_MIN_WIDTH),
+                ])
                 .split(outer[1]);
             render_board(frame, session, body[0]);
             render_side_panel(frame, session, body[1]);
@@ -555,7 +652,10 @@ fn render_game(frame: &mut Frame<'_>, app: &AppState) {
         LayoutDecision::Vertical => {
             let body = Layout::default()
                 .direction(Direction::Vertical)
-                .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
+                .constraints([
+                    Constraint::Percentage(STACKED_BOARD_HEIGHT_PERCENT),
+                    Constraint::Percentage(STACKED_SIDE_PANEL_HEIGHT_PERCENT),
+                ])
                 .split(outer[1]);
             render_board(frame, session, body[0]);
             render_side_panel(frame, session, body[1]);
@@ -653,15 +753,21 @@ fn render_overlay(frame: &mut Frame<'_>, app: &AppState) {
     let Some(overlay) = app.overlay.as_ref() else {
         return;
     };
-    let area = centered_rect(56, 9, frame.size());
+    let area = centered_rect(OVERLAY_DIALOG_WIDTH, OVERLAY_DIALOG_HEIGHT, frame.size());
     frame.render_widget(Clear, area);
     let text = match overlay {
         Overlay::Confirmation(action) => {
             let prompt = match action {
-                ConfirmationAction::Resign => "Resign this game?",
-                ConfirmationAction::NewGame => "Abandon this game and start a new one?",
-                ConfirmationAction::MainMenu => "Abandon this game and return to the menu?",
-                ConfirmationAction::Quit => "Abandon this game and quit?",
+                ConfirmationAction::Resign => "Resign this game?".to_owned(),
+                ConfirmationAction::NewGame => "Abandon this game and start a new one?".to_owned(),
+                ConfirmationAction::MainMenu => {
+                    "Abandon this game and return to the menu?".to_owned()
+                }
+                ConfirmationAction::Quit => "Abandon this game and quit?".to_owned(),
+                ConfirmationAction::OverwriteSave => {
+                    let path = app.pending_overwrite_path().unwrap_or("this path");
+                    format!("{path}\nalready exists — overwrite it?")
+                }
             };
             format!("{prompt}\n\ny / Enter = confirm\nn / Esc = cancel")
         }

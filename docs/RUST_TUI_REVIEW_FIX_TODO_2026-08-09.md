@@ -165,32 +165,35 @@
 
 ## RF-006.1 Duplicated search-state-clear logic
 
-- [ ] Confirmed no code path outside `cancel_search_state` mutates more than one of `pending_search`/`active_search`/`thinking` directly (post RF-001).
-- [ ] Decision recorded: introduced a structurally-enforced `SearchSlot`-style type, OR confirmed convention (single helper) is sufficient for this pass.
+- [x] Confirmed (by direct grep audit) that before this fix, 5 separate sites hand-rolled the same `active_search = None; thinking = false;` pair: `cancel_search_state`, and 3 branches of `handle_engine_event` (Completed/Cancelled/Failed), plus `refresh_terminal_state`.
+- [x] Decision recorded: introduced a structurally-enforced fix — a private `GameSession::clear_search()` method is now the *only* code that touches both fields, so they can no longer be cleared independently by a future call site. Judged a full cross-struct `SearchSlot` type (unifying `AppState.pending_search` with `GameSession.{active_search,thinking}`) too invasive for this pass, since the two live on different structs; deferred.
+- [x] All 5 sites now call `session.clear_search()`.
 
 ## RF-006.2 Unnamed layout magic numbers
 
-- [ ] `ui.rs`'s layout `Constraint`/`centered_rect` values that were tuned against `render.rs`'s named thresholds are themselves named, with a short derivation comment.
+- [x] Named all 5 previously-bare layout literals in `ui.rs`: `BOARD_PANE_WIDTH`, `SIDE_PANEL_MIN_WIDTH`, `STACKED_BOARD_HEIGHT_PERCENT`, `STACKED_SIDE_PANEL_HEIGHT_PERCENT`, and the 3 dialog size pairs (`MENU_DIALOG_*`, `OVERLAY_DIALOG_*`, `GAME_OVER_DIALOG_*`), each with a derivation comment noting whether it's tightly derived from fixed board content or a generous fixed dialog size.
 
 ## RF-006.3 `EngineRuntime::drive` cleanup delay
 
-- [ ] `self.active` is cleared at the point a worker-join failure is detected, not on a subsequent poll tick.
-- [ ] Existing panic-path test(s) still pass and, if needed, are updated to assert immediate cleanup.
+- [x] `self.active` is cleared at the point a worker-join failure is detected (a new `join_failure` local, checked immediately after the borrow of `self.active` ends), not on a subsequent poll tick.
+- [x] `runtime_worker_panic_propagates_and_boundary_can_clear_thinking` updated to assert `runtime.active.is_none()` immediately after the first (panicking) `drive()` call — previously this couldn't be asserted because the old code didn't clear it until a second call.
 
 ## RF-006.4 Save-path guardrails
 
-- [ ] Decision recorded: overwrite confirmation added (reusing `Overlay::Confirmation`), and whether path-traversal sanitization was also added or explicitly deferred.
-- [ ] If overwrite confirmation added: a test confirms saving to an existing path requires confirmation before it is overwritten.
+- [x] Decision recorded: added overwrite confirmation, reusing `Overlay::Confirmation` via a new `ConfirmationAction::OverwriteSave` variant and `AppState::request_overwrite_confirmation`/`pending_overwrite_path`/`take_pending_overwrite_path`. Path-traversal sanitization was explicitly **not** added — deferred, since this is a local single-user "type your own destination" flow and the overwrite confirmation is the guardrail that matters (an accidental destination now requires an explicit "yes, overwrite" rather than silently succeeding).
+- [x] Two tests added: `saving_to_an_existing_path_requires_confirmation_before_overwrite` (confirms the write is staged, not immediate, and the confirmed path then writes correctly) and `declining_an_overwrite_confirmation_leaves_the_file_and_session_unchanged`.
+- Note: `execute_confirmation` unconditionally cancels any active search before dispatching — correct for Resign/NewGame/MainMenu/Quit (all abandon the active game/search) but wrong for a save-overwrite confirmation, which has nothing to do with the search. `OverwriteSave` is special-cased in `handle_overlay_key` to route to a separate `commit_pending_save` function instead, bypassing that cancel.
 
 ## RF-006.5 Atomic save write
 
-- [ ] `write_game` writes to a temporary file in the target directory and renames it into place, rather than truncating the target directly.
-- [ ] I/O errors from either the temp-write or rename step propagate through the existing `io::Result<()>` return type.
-- [ ] Existing save tests (golden serialization, successful write, failed write) still pass against the new implementation.
+- [x] `write_game` writes to a temporary file in the target directory (`.{filename}.tmp`) and renames it into place, rather than truncating the target directly. `fs::rename` also atomically replaces an existing destination, which pairs correctly with RF-006.4's overwrite confirmation.
+- [x] I/O errors from either the temp-write or rename step propagate through the existing `io::Result<()>` return type; the temp file is best-effort cleaned up on either failure path.
+- [x] Existing save tests (golden serialization, successful write, failed write) still pass unmodified against the new implementation.
+- [x] Two new tests added: `successful_write_leaves_no_temp_file_behind` and `overwriting_an_existing_file_replaces_its_contents_atomically`.
 
 ## RF-006 gate
 
-- [ ] Items RF-006.1–RF-006.5 are each either fixed or explicitly deferred with a recorded reason.
+- [x] Items RF-006.1–RF-006.5 are all fixed (none deferred outright; two sub-decisions — the cross-struct `SearchSlot` type and path-traversal sanitization — were explicitly narrowed out of scope with reasons recorded above).
 
 ---
 

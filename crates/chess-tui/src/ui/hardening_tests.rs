@@ -552,6 +552,13 @@ fn runtime_worker_panic_propagates_and_boundary_can_clear_thinking() {
     };
     let error = runtime.drive(&mut app).expect_err("panic must propagate");
     assert!(matches!(error, SearchWorkerError::ThreadPanicked));
+    // RF-006.3: the defunct worker must be cleared on this exact call, not
+    // left occupying the "at most one active search" slot for a later
+    // drive() call to notice and clean up a tick behind.
+    assert!(
+        runtime.active.is_none(),
+        "a join failure must clear the active worker immediately"
+    );
     app.cancel_search_state(Some(format!("Search worker failed: {error}")));
     let session = app.session.as_ref().expect("session");
     assert!(!session.thinking);
@@ -758,6 +765,81 @@ fn successful_save_transaction_records_exact_path_contents_and_clears_after_move
 
     app.submit_human_move("e2e4").expect("later move applies");
     assert_eq!(app.session.as_ref().expect("session").saved_path, None);
+    fs::remove_file(path).expect("temporary save removed");
+}
+
+#[test]
+fn saving_to_an_existing_path_requires_confirmation_before_overwrite() {
+    // RF-006.4: a save destination that already exists must not be silently
+    // clobbered — it needs an explicit overwrite confirmation first, reusing
+    // the same Overlay::Confirmation mechanism as resign/abandon prompts.
+    let path = unique_path("overwrite");
+    fs::write(&path, "pre-existing content").expect("fixture file exists");
+
+    let mut app = human_app(Color::White);
+    let mut runtime = EngineRuntime::default();
+    app.overlay = Some(Overlay::SavePath {
+        input: path.display().to_string(),
+    });
+    save_current_game(&mut app).expect("existing path becomes a confirmation, not a write");
+
+    assert_eq!(
+        app.overlay,
+        Some(Overlay::Confirmation(ConfirmationAction::OverwriteSave))
+    );
+    assert_eq!(
+        app.pending_overwrite_path(),
+        Some(path.to_string_lossy().as_ref())
+    );
+    assert_eq!(
+        fs::read_to_string(&path).expect("fixture file still readable"),
+        "pre-existing content",
+        "the file must not be overwritten before confirmation"
+    );
+    assert_eq!(app.session.as_ref().expect("session").saved_path, None);
+
+    handle_overlay_key(&mut app, &mut runtime, key(KeyCode::Char('y')))
+        .expect("confirmed overwrite succeeds");
+
+    assert!(app.overlay.is_none());
+    assert!(app.pending_overwrite_path().is_none());
+    let session = app.session.as_ref().expect("session");
+    assert_eq!(
+        session.saved_path.as_deref(),
+        Some(path.to_string_lossy().as_ref())
+    );
+    let contents = fs::read_to_string(&path).expect("save file readable");
+    assert_ne!(
+        contents, "pre-existing content",
+        "the file must now contain the saved game"
+    );
+
+    fs::remove_file(path).expect("temporary save removed");
+}
+
+#[test]
+fn declining_an_overwrite_confirmation_leaves_the_file_and_session_unchanged() {
+    let path = unique_path("overwrite-declined");
+    fs::write(&path, "pre-existing content").expect("fixture file exists");
+
+    let mut app = human_app(Color::White);
+    let mut runtime = EngineRuntime::default();
+    app.overlay = Some(Overlay::SavePath {
+        input: path.display().to_string(),
+    });
+    save_current_game(&mut app).expect("existing path becomes a confirmation");
+
+    handle_overlay_key(&mut app, &mut runtime, key(KeyCode::Char('n')))
+        .expect("declining is harmless");
+
+    assert!(app.overlay.is_none());
+    assert!(app.pending_overwrite_path().is_none());
+    assert_eq!(app.session.as_ref().expect("session").saved_path, None);
+    assert_eq!(
+        fs::read_to_string(&path).expect("fixture file still readable"),
+        "pre-existing content"
+    );
+
     fs::remove_file(path).expect("temporary save removed");
 }
 

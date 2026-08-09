@@ -147,6 +147,9 @@ pub enum ConfirmationAction {
     NewGame,
     MainMenu,
     Quit,
+    /// RF-006.4: confirm before silently overwriting an existing file at the
+    /// save path in `AppState::pending_overwrite_path`.
+    OverwriteSave,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -193,6 +196,16 @@ impl GameSession {
     pub fn is_active(&self) -> bool {
         self.outcome.is_none()
     }
+
+    /// Clears `active_search`/`thinking` together as a single unit (RF-006.1).
+    /// These two fields must always change in lockstep; before this helper
+    /// existed, five separate call sites each hand-rolled the same pair,
+    /// which is exactly the kind of duplication that let RF-001's
+    /// mutate-before-validate bug slip in unnoticed.
+    fn clear_search(&mut self) {
+        self.active_search = None;
+        self.thinking = false;
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -221,6 +234,9 @@ pub struct AppState {
     pub overlay: Option<Overlay>,
     pub should_quit: bool,
     pending_search: Option<SearchRequest>,
+    /// Save destination awaiting overwrite confirmation (RF-006.4). Set only
+    /// while `overlay == Some(Overlay::Confirmation(ConfirmationAction::OverwriteSave))`.
+    pending_overwrite_path: Option<String>,
     next_generation: u64,
     next_request: u64,
 }
@@ -234,6 +250,7 @@ impl Default for AppState {
             overlay: None,
             should_quit: false,
             pending_search: None,
+            pending_overwrite_path: None,
             next_generation: 1,
             next_request: 1,
         }
@@ -308,6 +325,25 @@ impl AppState {
 
     pub fn dismiss_overlay(&mut self) {
         self.overlay = None;
+        self.pending_overwrite_path = None;
+    }
+
+    /// RF-006.4: opens the overwrite-confirmation overlay for `path`, which
+    /// already exists on disk. Call sites must check existence before
+    /// calling this — it unconditionally stages `path` for a later write.
+    pub fn request_overwrite_confirmation(&mut self, path: String) {
+        self.pending_overwrite_path = Some(path);
+        self.overlay = Some(Overlay::Confirmation(ConfirmationAction::OverwriteSave));
+    }
+
+    #[must_use]
+    pub fn pending_overwrite_path(&self) -> Option<&str> {
+        self.pending_overwrite_path.as_deref()
+    }
+
+    #[must_use]
+    pub fn take_pending_overwrite_path(&mut self) -> Option<String> {
+        self.pending_overwrite_path.take()
     }
 
     pub fn save_input_mut(&mut self) -> Option<&mut String> {
@@ -487,8 +523,7 @@ impl AppState {
     pub fn cancel_search_state(&mut self, message: Option<String>) {
         self.pending_search = None;
         if let Some(session) = self.session.as_mut() {
-            session.active_search = None;
-            session.thinking = false;
+            session.clear_search();
             if let Some(message) = message {
                 session.status_message = Some(message);
             }
@@ -522,8 +557,7 @@ impl AppState {
                 let session = self.session.as_mut().ok_or_else(|| {
                     AppError::InvalidState("active search lost its game session".to_owned())
                 })?;
-                session.active_search = None;
-                session.thinking = false;
+                session.clear_search();
                 session.engine_info = Some(metrics);
 
                 let legal_moves = session
@@ -547,16 +581,14 @@ impl AppState {
             }
             EngineEvent::Cancelled { .. } => {
                 if let Some(session) = self.session.as_mut() {
-                    session.active_search = None;
-                    session.thinking = false;
+                    session.clear_search();
                     session.status_message = Some("Search cancelled".to_owned());
                 }
                 Ok(())
             }
             EngineEvent::Failed { message, .. } => {
                 if let Some(session) = self.session.as_mut() {
-                    session.active_search = None;
-                    session.thinking = false;
+                    session.clear_search();
                     session.status_message = Some(format!("Search failed: {message}"));
                 }
                 Ok(())
@@ -579,8 +611,7 @@ impl AppState {
             GameStatus::Ongoing | GameStatus::ClaimableDraw(_) => None,
         };
         if session.outcome.is_some() {
-            session.active_search = None;
-            session.thinking = false;
+            session.clear_search();
             session.auto_play = false;
             self.pending_search = None;
         }
