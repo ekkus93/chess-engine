@@ -13,6 +13,7 @@ description = "Native Ratatui frontend for the Rust chess engine."
 workspace = true
 
 [dependencies]
+chess-app = { path = "../chess-app" }
 chess-core = { path = "../chess-core" }
 chess-search = { path = "../chess-search" }
 crossterm = "0.27.0"

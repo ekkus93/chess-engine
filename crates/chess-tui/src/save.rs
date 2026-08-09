@@ -1,8 +1,4 @@
-use std::{
-    ffi::OsString,
-    fs, io,
-    path::{Path, PathBuf},
-};
+use std::{io, path::Path};
 
 use crate::{
     app::{GameConfig, GameSession},
@@ -50,43 +46,8 @@ pub fn serialize_game(session: &GameSession, timestamp: Option<&str>) -> String 
     lines.join("\n")
 }
 
-/// Writes `contents` to `path` atomically (RF-006.5): writes to a temporary
-/// file in the same directory first, then renames it into place. This
-/// avoids a torn/partial file being left behind (and, since `mark_saved`
-/// only runs after this returns `Ok`, being reported as saved) if the
-/// process is interrupted mid-write. `fs::rename` also atomically replaces
-/// an existing destination, so this pairs correctly with the overwrite
-/// confirmation in `ui.rs::save_current_game`.
 pub fn write_game(path: &Path, contents: &str) -> io::Result<()> {
-    let temp_path = temp_write_path(path);
-    if let Err(error) = fs::write(&temp_path, contents) {
-        let _ = fs::remove_file(&temp_path);
-        return Err(error);
-    }
-    if let Err(error) = fs::rename(&temp_path, path) {
-        let _ = fs::remove_file(&temp_path);
-        return Err(error);
-    }
-    Ok(())
-}
-
-/// Derives a same-directory temporary path so the final `fs::rename` stays
-/// on one filesystem (required for it to be atomic). A fixed, non-random
-/// suffix is deliberate: this crate never writes to the same destination
-/// concurrently (saves are one explicit user action at a time), so a leftover
-/// temp file from an interrupted prior write is simply overwritten by the
-/// next attempt rather than accumulating.
-fn temp_write_path(path: &Path) -> PathBuf {
-    let temp_name = path.file_name().map_or_else(
-        || OsString::from(".chess-tui-save.tmp"),
-        |name| {
-            let mut temp_name = OsString::from(".");
-            temp_name.push(name);
-            temp_name.push(".tmp");
-            temp_name
-        },
-    );
-    path.with_file_name(temp_name)
+    chess_app::save::atomic_write(path, contents)
 }
 
 #[cfg(test)]
@@ -108,7 +69,7 @@ mod tests {
     }
 
     #[test]
-    fn serialization_is_deterministic_and_explicit() {
+    fn serialization_remains_byte_compatible_with_tui_v1() {
         let mut app = AppState::new();
         app.start_game(GameConfig::HumanVsEngine {
             human_color: Color::White,
@@ -126,7 +87,7 @@ mod tests {
     }
 
     #[test]
-    fn successful_write_persists_exact_serialization() {
+    fn shared_atomic_write_persists_exact_tui_serialization() {
         let path = unique_path("write");
         write_game(&path, "exact\ncontents\n").expect("write succeeds");
         assert_eq!(
@@ -137,41 +98,7 @@ mod tests {
     }
 
     #[test]
-    fn successful_write_leaves_no_temp_file_behind() {
-        // RF-006.5: write_game writes to a same-directory temp file and
-        // renames it into place; confirm the temp artifact doesn't survive
-        // a successful write.
-        let path = unique_path("no-temp-leak");
-        write_game(&path, "contents").expect("write succeeds");
-        let temp_name = format!(
-            ".{}.tmp",
-            path.file_name()
-                .expect("path has a file name")
-                .to_string_lossy()
-        );
-        let temp_path = path.with_file_name(temp_name);
-        assert!(
-            !temp_path.exists(),
-            "temp file must not remain after a successful write: {}",
-            temp_path.display()
-        );
-        fs::remove_file(path).expect("temporary save is removed");
-    }
-
-    #[test]
-    fn overwriting_an_existing_file_replaces_its_contents_atomically() {
-        let path = unique_path("overwrite-atomic");
-        write_game(&path, "first version").expect("first write succeeds");
-        write_game(&path, "second version").expect("second write succeeds");
-        assert_eq!(
-            fs::read_to_string(&path).expect("read succeeds"),
-            "second version"
-        );
-        fs::remove_file(path).expect("temporary save is removed");
-    }
-
-    #[test]
-    fn failed_write_is_reported() {
+    fn failed_write_is_still_reported() {
         let path = unique_path("missing-parent").join("game.txt");
         let error = write_game(&path, "data").expect_err("missing parent must fail");
         assert_eq!(error.kind(), std::io::ErrorKind::NotFound);
