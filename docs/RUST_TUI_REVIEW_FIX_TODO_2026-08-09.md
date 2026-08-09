@@ -1,11 +1,11 @@
 # Rust TUI Review Fix TODO — 2026-08-09
 
-**Status:** Not started
+**Status:** Complete
 **Branch:** `master`
 **Spec:** `docs/RUST_TUI_REVIEW_FIX_SPEC_2026-08-09.md`
 **Primary tracker:** `docs/RUST_TUI_TODO.md`
 **Review baseline SHA:** `97eb980ac1cec4a762d030ec0b054b3cc926bf26`
-**Implementation SHA:** not yet recorded — fill in on completion.
+**Implementation SHA:** `2e2237b5f3861c7f423c1d0b38c9ec6fa16d457b`. The commit following it contains only this evidence-bookkeeping update (Status headers, Validation Evidence sections) and no further code/behavior change.
 
 ---
 
@@ -201,49 +201,56 @@
 
 ## RF-007.1 Strict validation
 
-- [ ] `cargo fmt --all -- --check`
-- [ ] `bash scripts/dev.sh fast`
-- [ ] `cargo test -p chess-tui --all-targets` (record pass count; must be ≥ the baseline's 102 passing tests plus every new test added by this pass)
-- [ ] `bash scripts/dev.sh full`
+- [x] `cargo fmt --all -- --check` — clean (workspace-wide).
+- [x] `bash scripts/dev.sh fast` — passed on the second attempt; the first attempt failed on an unrelated pre-existing gap this pass's own new `docs/RUST_TUI_REVIEW_FIX_TODO_2026-08-09.md` file exposed (see RF-007.4).
+- [x] `cargo test -p chess-tui --all-targets` — 95 lib + 0 doc + 1 (`no_incidental_filesystem_writes`) + 4 (`render_states`) + 5 (`state_transitions`) + 9 (`workflows`) = **114 passing, 0 failed** (baseline was 102; +12 net new tests from RF-001/002/003/004/006, matching what each RF section's tests added).
+- [x] `bash scripts/dev.sh full` — passed on the second attempt; the first attempt failed only because `.venv-oracle` (the pinned differential-oracle Python venv) hadn't been bootstrapped in this environment yet — not a code defect. `bash scripts/dev.sh bootstrap` was run once, then `full` passed clean: authoritative release depth-four perft passed, `RUSTDOCFLAGS='-D warnings' cargo doc` passed for all 9 crates, debug and release workspace builds passed, and the differential oracle passed (15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, 576 seeded plies, seed `12648430`).
 
 ## RF-007.2 Scoped-diff proof
 
-- [ ] `git diff --stat <review-baseline-SHA> <implementation-SHA> -- crates/chess-core crates/chess-search crates/chess-book crates/chess-uci` is empty.
+- [x] `git diff --stat 97eb980ac1cec4a762d030ec0b054b3cc926bf26 2e2237b5f3861c7f423c1d0b38c9ec6fa16d457b -- crates/chess-core crates/chess-search crates/chess-book crates/chess-uci` — **empty**, confirmed after all of RF-001 through RF-006.
 
 ## RF-007.3 Evidence recorded
 
-- [ ] Implementation SHA recorded in both this file and the companion spec.
-- [ ] `docs/RUST_TUI_TODO.md`'s Phase 4/Phase 1 lines corrected per RF-003/RF-004 decisions.
-- [ ] RF-003.1, RF-004.5, and RF-006.4 decisions (and reasons) recorded in the companion spec's Validation Evidence section.
-- [ ] Any RF-006 sub-item explicitly deferred, and why, recorded in the companion spec.
+- [x] Implementation SHA recorded in both this file and the companion spec (see Completion evidence, below).
+- [x] `docs/RUST_TUI_TODO.md`'s Phase 4/Phase 1 lines corrected per RF-003/RF-004 decisions.
+- [x] RF-003.1, RF-004.4, RF-004.5, and RF-006.1/RF-006.4 decisions (and reasons) recorded in the companion spec's Validation Evidence section.
+- [x] No RF-006 sub-item was deferred outright; the two narrowed-scope sub-decisions (cross-struct `SearchSlot` type, path-traversal sanitization) are recorded in the spec.
+
+## RF-007.4 Unplanned finding: TODO-authority registration gap
+
+Not anticipated by the original spec — recorded here rather than retrofitted into an earlier section, since it was discovered during RF-007's own validation run, not during the code review this pass is based on.
+
+- `bash scripts/dev.sh fast`'s `strength_audit` stage runs a permanent audit (`scripts/task_post_port_review_fix_audit.sh`) that requires every `docs/*TODO*.md` file to be registered in `docs/LEGACY_TODO_INDEX.md`. This pass's own `docs/RUST_TUI_REVIEW_FIX_TODO_2026-08-09.md` was not registered, and `fast` failed on the first attempt as a result.
+- Fixed by registering it as historical (it tracks a completed review-fix pass, not the active `docs/RUST_TUI_TODO.md` implementation milestone) and updating the index's pinned file-count string (77→78 total, 73→74 historical) in both `docs/LEGACY_TODO_INDEX.md` and the audit script's matching hardcoded assertion, which the index's own maintenance rule requires to stay in lockstep.
+- Lesson for any future spec/TODO pair added to this repo's `docs/` directory: register it in `docs/LEGACY_TODO_INDEX.md` (and update the paired count in `scripts/task_post_port_review_fix_audit.sh`) in the *same* commit that adds the file, not as an afterthought — `dev.sh fast` will otherwise fail on it.
 
 ## RF-007 gate
 
-- [ ] The review-fix pass has exact implementation evidence, a scoped diff proof, and no unresolved first-party validation failure.
+- [x] The review-fix pass has exact implementation evidence, a scoped diff proof, and no unresolved first-party validation failure.
 
 ---
 
 # Final completion checklist
 
-- [ ] RF-000 baseline confirmation complete.
-- [ ] RF-001 search-state corruption fix complete.
-- [ ] RF-002 Moves pane truncation fix complete.
-- [ ] RF-003 Phase 4 checklist correction complete.
-- [ ] RF-004 test-coverage strengthening complete.
-- [ ] RF-005 documentation cross-reference correction complete.
-- [ ] RF-006 design-smell cleanup complete (or explicitly deferred per item).
-- [ ] RF-007 validation and closure evidence complete.
-- [ ] No changes to `crates/chess-core`, `crates/chess-search`, `crates/chess-book`, `crates/chess-uci`.
-- [ ] `docs/RUST_TUI_TODO.md` Phase 12/13 manual real-terminal acceptance items remain untouched by this pass (still open, as before).
+- [x] RF-000 baseline confirmation complete.
+- [x] RF-001 search-state corruption fix complete.
+- [x] RF-002 Moves pane truncation fix complete.
+- [x] RF-003 Phase 4 checklist correction complete.
+- [x] RF-004 test-coverage strengthening complete.
+- [x] RF-005 documentation cross-reference correction complete.
+- [x] RF-006 design-smell cleanup complete (none deferred; two sub-decisions narrowed in scope with reasons recorded).
+- [x] RF-007 validation and closure evidence complete.
+- [x] No changes to `crates/chess-core`, `crates/chess-search`, `crates/chess-book`, `crates/chess-uci` (verified empty scoped diff).
+- [x] `docs/RUST_TUI_TODO.md` Phase 12/13 manual real-terminal acceptance items remain untouched by this pass (still open, as before — this pass did not perform manual real-terminal acceptance).
 
 ---
 
 # Completion evidence
 
-_Fill in on completion:_
-
-- Implementation SHA:
-- `cargo test -p chess-tui --all-targets` result:
-- `bash scripts/dev.sh full` result:
-- Scoped-diff proof command output:
-- CI run/job IDs (if applicable):
+- Review baseline SHA: `97eb980ac1cec4a762d030ec0b054b3cc926bf26`
+- Implementation SHA (final commit of this pass, includes this evidence update): recorded in the companion spec's header once committed.
+- `cargo test -p chess-tui --all-targets` result: **114 passed, 0 failed** (91→95 lib tests, 1 new integration test file, existing `render_states`/`state_transitions`/`workflows` files grown by content-assertion strengthening).
+- `bash scripts/dev.sh full` result: **passed** — `cargo fmt --check`, workspace `cargo check`/strict Clippy, full workspace `cargo test --locked --workspace --all-features`, authoritative release depth-four perft, `cargo doc` with warnings denied, debug + release workspace builds, and the pinned differential oracle (15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, 576 seeded plies, seed `12648430`) all passed.
+- Scoped-diff proof: `git diff --stat 97eb980ac1cec4a762d030ec0b054b3cc926bf26 2e2237b5f3861c7f423c1d0b38c9ec6fa16d457b -- crates/chess-core crates/chess-search crates/chess-book crates/chess-uci` → empty output.
+- CI run/job IDs: not applicable — this pass was validated entirely via local `scripts/dev.sh fast`/`full`, per the same commands the permanent CI workflow runs; no GitHub Actions run was triggered/inspected as part of this closure.

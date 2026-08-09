@@ -1,11 +1,11 @@
 # Rust TUI Review Fix Spec — 2026-08-09
 
-**Status:** Not started
+**Status:** Complete
 **Branch:** `master`
 **Companion TODO:** `docs/RUST_TUI_REVIEW_FIX_TODO_2026-08-09.md`
 **Primary tracker:** `docs/RUST_TUI_TODO.md`
 **Review baseline SHA:** `97eb980ac1cec4a762d030ec0b054b3cc926bf26`
-**Implementation SHA:** not yet recorded — fill in on completion.
+**Implementation SHA:** `2e2237b5f3861c7f423c1d0b38c9ec6fa16d457b`. The commit following it contains only this evidence-bookkeeping update (Status headers, Validation Evidence sections) and no further code/behavior change.
 
 ---
 
@@ -211,13 +211,12 @@ This pass is complete when:
 
 ## 10. Validation evidence
 
-_Fill in on completion:_
-
-- Implementation SHA:
-- `bash scripts/dev.sh fast` result:
-- `cargo test -p chess-tui --all-targets` result (pass/fail counts):
-- `bash scripts/dev.sh full` result:
-- CI run/job IDs (if applicable):
+- Review baseline SHA: `97eb980ac1cec4a762d030ec0b054b3cc926bf26`
+- `bash scripts/dev.sh fast` result: **passed** (second attempt — see the RF-007.4 unplanned finding in the companion TODO for what the first attempt caught: this pass's own new TODO file wasn't yet registered in `docs/LEGACY_TODO_INDEX.md`, an existing repo-wide requirement unrelated to the review findings themselves).
+- `cargo test -p chess-tui --all-targets` result: **114 passed, 0 failed** (baseline 102; +12 net new tests across RF-001/002/003/004/006).
+- `bash scripts/dev.sh full` result: **passed** (second attempt — the first needed `bash scripts/dev.sh bootstrap` to create `.venv-oracle`, an environment-setup gap, not a code defect). Authoritative release depth-four perft, `cargo doc` with warnings denied for all 9 crates, debug/release workspace builds, and the differential oracle (15 corpus positions, 293 child FENs, 272,991 oracle perft nodes, 576 seeded plies, seed `12648430`) all passed.
+- Scoped-diff proof: `git diff --stat 97eb980ac1cec4a762d030ec0b054b3cc926bf26 2e2237b5f3861c7f423c1d0b38c9ec6fa16d457b -- crates/chess-core crates/chess-search crates/chess-book crates/chess-uci` → empty.
+- CI run/job IDs: not applicable — validated locally via the same commands the permanent CI workflow runs; no GitHub Actions run was triggered as part of this closure.
 - RF-003.1 decision: implemented a real game-over panel (`render_game_over_panel` in `ui.rs`, a `Clear` + bordered "Game Over" block via `centered_rect(48, 7, ...)`) rather than reword the TODO line — the status-line-only presentation was judged a genuine UX gap worth closing given how cheap the fix was, matching the existing `render_overlay` pattern. Also fixed RF-003.2 (menu small-terminal guard) by extracting a shared `render_too_small_message` helper used by both `render_game` and `render_menu`, removing duplication that a naive fix would have introduced.
 - RF-004.5 decision: reworded `docs/RUST_TUI_TODO.md`'s Phase 1 line to cite external historical CI evidence explicitly rather than add a real PTY-driving test — a reliable PTY test needs a new dependency and is meaningfully larger scope than the rest of this pass; better suited to a deliberate follow-up.
 - RF-004.4 finding: already satisfied by pre-existing coverage (`empty_and_failed_save_paths_never_mark_success` in `ui/hardening_tests.rs`) that the original review missed due to a gap between two reviewers' file scopes — no new test needed.
