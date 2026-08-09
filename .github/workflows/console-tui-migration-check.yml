@@ -1,0 +1,116 @@
+name: Temporary console TUI migration check
+
+on:
+  push:
+    paths:
+      - .github/workflows/console-tui-migration-check.yml
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply compatibility migration edits
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def exact(path, old, new, count=1):
+              p = Path(path)
+              text = p.read_text()
+              actual = text.count(old)
+              if actual != count:
+                  raise SystemExit(f'{path}: expected {count} matches, found {actual}: {old!r}')
+              p.write_text(text.replace(old, new))
+
+          exact(
+              'crates/chess-tui/src/app.rs',
+              '        self.pending_search = None;\n        self.controller.resign_human()?;\n',
+              '        self.controller.resign_human()?;\n        self.pending_search = None;\n',
+          )
+
+          exact(
+              'crates/chess-tui/src/ui.rs',
+              '    let input_nonempty = !session.move_input.is_empty();',
+              '    let input_nonempty = !app.move_input.is_empty();',
+          )
+          exact(
+              'crates/chess-tui/src/ui.rs',
+              '                let input = app\n                    .session\n                    .as_ref()\n                    .map(|current| current.move_input.clone())\n                    .unwrap_or_default();',
+              '                let input = app.move_input.clone();',
+          )
+          exact(
+              'crates/chess-tui/src/ui.rs',
+              '            KeyCode::Backspace => {\n                if let Some(session) = app.session.as_mut() {\n                    session.move_input.pop();\n                }\n            }',
+              '            KeyCode::Backspace => {\n                app.move_input.pop();\n            }',
+          )
+          exact(
+              'crates/chess-tui/src/ui.rs',
+              '            KeyCode::Esc => {\n                if let Some(session) = app.session.as_mut() {\n                    session.move_input.clear();\n                }\n            }',
+              '            KeyCode::Esc => {\n                app.move_input.clear();\n            }',
+          )
+          exact(
+              'crates/chess-tui/src/ui.rs',
+              '        format!("Move: {}_", session.move_input)',
+              '        format!("Move: {}_", app.move_input)',
+          )
+          exact(
+              'crates/chess-tui/src/ui.rs',
+              'fn append_move_character(app: &mut AppState, character: char) {\n    if let Some(session) = app.session.as_mut() {\n        if session.move_input.len() < 5 {\n            session.move_input.push(character.to_ascii_lowercase());\n        }\n    }\n}',
+              'fn append_move_character(app: &mut AppState, character: char) {\n    if app.move_input.len() < 5 {\n        app.move_input.push(character.to_ascii_lowercase());\n    }\n}',
+          )
+
+          ui_tests = Path('crates/chess-tui/src/ui/hardening_tests.rs')
+          text = ui_tests.read_text()
+          replacements = {
+              'app.session.as_ref().expect("session").move_input': 'app.move_input',
+              'engine_turn\n        .session\n        .as_ref()\n        .expect("session")\n        .move_input': 'engine_turn.move_input',
+              'self_play\n        .session\n        .as_ref()\n        .expect("session")\n        .move_input': 'self_play.move_input',
+          }
+          for old, new in replacements.items():
+              if old not in text:
+                  raise SystemExit(f'ui hardening expected pattern missing: {old!r}')
+              text = text.replace(old, new)
+          ui_tests.write_text(text)
+
+          render_tests = Path('crates/chess-tui/src/render/hardening_tests.rs')
+          text = render_tests.read_text()
+          for old in ['        move_input: String::new(),\n', '        saved_path: None,\n']:
+              if old not in text:
+                  raise SystemExit(f'render hardening expected field missing: {old!r}')
+              text = text.replace(old, '')
+          render_tests.write_text(text)
+          PY
+      - name: Format migration
+        run: cargo fmt --all
+      - name: Resolve workspace lockfile from manifests
+        run: cargo check -p chess-tui --all-targets
+      - name: Verify shared layer locked
+        run: cargo check --locked -p chess-app --all-targets
+      - name: Verify TUI locked
+        run: cargo check --locked -p chess-tui --all-targets
+      - name: Strict Clippy shared and TUI
+        run: |
+          cargo clippy --locked -p chess-app --all-targets -- -D warnings
+          cargo clippy --locked -p chess-tui --all-targets -- -D warnings
+      - name: Test shared and TUI
+        run: |
+          cargo test --locked -p chess-app --all-targets
+          cargo test --locked -p chess-tui --all-targets
+      - name: Run TUI PTY acceptance suite
+        run: bash scripts/dev.sh tui-pty-smoke
+      - name: Commit validated migration and self-delete
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/console-tui-migration-check.yml
+          git add Cargo.lock crates/chess-tui crates/chess-app
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'test(chess-tui): validate shared application migration'
+          git push origin HEAD:master
