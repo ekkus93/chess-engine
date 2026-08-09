@@ -133,7 +133,7 @@ fn next_line(input: &Receiver<InputEvent>) -> io::Result<Option<String>> {
 mod tests {
     use std::sync::mpsc;
 
-    use chess_app::GameConfig;
+    use chess_app::{GameConfig, DEFAULT_SEARCH_DEPTH};
     use chess_core::Color;
 
     use super::{prompt_menu, MenuSelection};
@@ -154,13 +154,25 @@ mod tests {
     }
 
     #[test]
-    fn defaults_choose_human_white_depth_three() {
+    fn defaults_choose_human_white_default_depth() {
         let (selection, _) = run(&["", "", ""]);
         assert_eq!(
             selection,
             Some(MenuSelection::Game(GameConfig::HumanVsEngine {
                 human_color: Color::White,
-                engine_depth: 3,
+                engine_depth: DEFAULT_SEARCH_DEPTH,
+            }))
+        );
+    }
+
+    #[test]
+    fn self_play_defaults_choose_independent_default_depths() {
+        let (selection, _) = run(&["2", "", ""]);
+        assert_eq!(
+            selection,
+            Some(MenuSelection::Game(GameConfig::SelfPlay {
+                white_depth: DEFAULT_SEARCH_DEPTH,
+                black_depth: DEFAULT_SEARCH_DEPTH,
             }))
         );
     }
@@ -186,8 +198,8 @@ mod tests {
     }
 
     #[test]
-    fn invalid_depth_is_reprompted_not_clamped() {
-        let (selection, output) = run(&["1", "1", "99", "4"]);
+    fn invalid_menu_selection_reprompts_before_starting_game() {
+        let (selection, output) = run(&["bogus", "1", "1", "4"]);
         assert_eq!(
             selection,
             Some(MenuSelection::Game(GameConfig::HumanVsEngine {
@@ -195,6 +207,33 @@ mod tests {
                 engine_depth: 4,
             }))
         );
+        assert!(output.contains("Invalid selection. Choose 1, 2, or 3."));
+    }
+
+    #[test]
+    fn invalid_color_reprompts_without_changing_requested_color() {
+        let (selection, output) = run(&["1", "purple", "2", "4"]);
+        assert_eq!(
+            selection,
+            Some(MenuSelection::Game(GameConfig::HumanVsEngine {
+                human_color: Color::Black,
+                engine_depth: 4,
+            }))
+        );
+        assert!(output.contains("Invalid color. Choose 1/White or 2/Black."));
+    }
+
+    #[test]
+    fn invalid_numeric_and_non_numeric_depths_reprompt_without_clamping() {
+        let (selection, output) = run(&["1", "1", "banana", "99", "4"]);
+        assert_eq!(
+            selection,
+            Some(MenuSelection::Game(GameConfig::HumanVsEngine {
+                human_color: Color::White,
+                engine_depth: 4,
+            }))
+        );
+        assert!(output.contains("Invalid depth: enter a number"));
         assert!(output.contains("value was not clamped"));
     }
 }
