@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "crates/chess-app",
     "crates/chess-book",
     "crates/chess-core",
     "crates/chess-search",

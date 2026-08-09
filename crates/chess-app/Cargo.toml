@@ -1,0 +1,17 @@
+[package]
+name = "chess-app"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Shared interactive application/session layer for Rust chess frontends."
+
+[lints]
+workspace = true
+
+[dependencies]
+chess-core = { path = "../chess-core" }
+chess-search = { path = "../chess-search" }
