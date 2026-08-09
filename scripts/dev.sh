@@ -174,9 +174,10 @@ case "${command}" in
     ;;
   console-pty-smoke)
     [[ $# -eq 0 ]] || { usage; exit 2; }
-    # Exercise the actual console binary through a real OS pseudo-terminal.
-    # Keep this serialized because each test owns a PTY and real search process.
-    cargo test --locked -p chess-console --test pty_acceptance -- --ignored --test-threads=1
+    # Reuse chess-tui's existing test-only portable-pty dependency without
+    # adding terminal-control dependencies to the console crate itself.
+    cargo build --locked -p chess-console
+    cargo test --locked -p chess-tui --test console_pty_acceptance -- --ignored --test-threads=1
     ;;
   android) [[ $# -eq 0 ]] || { usage; exit 2; }; android ;;
   self-play)

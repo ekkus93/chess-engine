@@ -1,11 +1,16 @@
 //! PTY-driven terminal-semantic acceptance coverage for `chess-console`.
 //!
-//! The ordinary process acceptance suite proves stdin/stdout behavior through
-//! pipes. These ignored tests add a real OS pseudo-terminal so the repository
-//! can automatically exercise the objective parts of the Phase 19 real-terminal
-//! smoke pass: canonical terminal input, scrollback-style output, both human
-//! colors, confirmations, save/error paths, Self-play controls, and clean exit
-//! while search is active.
+//! This integration test lives in the `chess-tui` test crate solely to reuse
+//! its existing test-only `portable-pty` dependency. It does not couple either
+//! production frontend to the other. `bash scripts/dev.sh console-pty-smoke`
+//! first builds `chess-console`, then this harness locates that exact sibling
+//! debug binary and drives it through a real OS pseudo-terminal.
+//!
+//! The ordinary console process suite proves stdin/stdout behavior through
+//! pipes. These ignored tests add the objective parts of the Phase 19
+//! real-terminal smoke pass: canonical terminal input, scrollback-style output,
+//! both human colors, confirmations, save/error paths, Self-play controls, and
+//! clean exit while search is active.
 //!
 //! This is additional automated evidence, not a claim that subjective human UX
 //! has been reviewed. Readability, prompt clarity, and overall terminal feel
@@ -48,7 +53,7 @@ impl PtySession {
                 pixel_height: 0,
             })
             .expect("openpty succeeds");
-        let cmd = CommandBuilder::new(env!("CARGO_BIN_EXE_chess-console"));
+        let cmd = CommandBuilder::new(console_binary());
         let child = pair
             .slave
             .spawn_command(cmd)
@@ -89,8 +94,6 @@ impl PtySession {
         self.writer
             .write_all(line.as_bytes())
             .expect("write PTY input");
-        // A real terminal Enter key sends carriage return; the canonical PTY
-        // input discipline maps it to the line ending consumed by stdin.
         self.writer.write_all(b"\r").expect("write PTY Enter");
         self.writer.flush().expect("flush PTY input");
     }
@@ -177,6 +180,19 @@ impl Drop for PtySession {
     fn drop(&mut self) {
         let _ = self.child.kill();
     }
+}
+
+fn console_binary() -> PathBuf {
+    let test_binary = std::env::current_exe().expect("current test executable path");
+    let deps_dir = test_binary.parent().expect("integration test lives in deps");
+    let debug_dir = deps_dir.parent().expect("deps lives under target/debug");
+    let binary = debug_dir.join(format!("chess-console{}", std::env::consts::EXE_SUFFIX));
+    assert!(
+        binary.is_file(),
+        "expected prebuilt chess-console binary at {}; run through bash scripts/dev.sh console-pty-smoke",
+        binary.display()
+    );
+    binary
 }
 
 fn contains_bytes(haystack: &[u8], needle: &[u8]) -> bool {
@@ -357,8 +373,6 @@ fn pty_self_play_auto_pause_repeated_step_resume_and_quit() {
     session.wait_for_since("Self-play step scheduled.", first_step);
     session.wait_for_since("Engine plays:", first_step);
 
-    // A second accepted step proves the first completion left Self-play paused
-    // rather than silently resuming automatic scheduling.
     let second_step = session.output_len();
     session.send_line("step");
     session.wait_for_since("Self-play step scheduled.", second_step);
