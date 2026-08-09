@@ -1,6 +1,9 @@
 package com.ekkus93.chessengine
 
 import java.io.Closeable
+import java.lang.ref.PhantomReference
+import java.lang.ref.ReferenceQueue
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 
 /** Human side for the high-level interactive Android game API. */
@@ -84,6 +87,74 @@ data class ChessGameSnapshot(
     }
 }
 
+private class NativeGameHandleState(initialHandle: Long) {
+    private val handle = AtomicLong(initialHandle)
+
+    fun current(): Long = handle.get()
+
+    fun requireOpen(): Long = current().takeIf { it != 0L }
+        ?: throw IllegalStateException("Android chess game is closed")
+
+    fun clear(expected: Long): Boolean = handle.compareAndSet(expected, 0L)
+
+    fun take(): Long = handle.getAndSet(0L)
+}
+
+/**
+ * Leak fallback for a forgotten [ChessGame.close]. Explicit close remains authoritative.
+ * An unreachable owner cannot receive a cleanup exception, so this mirrors the existing
+ * low-level ChessEngine reaper rather than pretending GC cleanup is a normal success path.
+ */
+private object NativeGameReaper {
+    private val queue = ReferenceQueue<ChessGame>()
+    private val references = ConcurrentHashMap.newKeySet<GameReference>()
+
+    init {
+        Thread(
+            {
+                while (true) {
+                    val reference = queue.remove() as GameReference
+                    references.remove(reference)
+                    reference.destroyLeakedHandle()
+                    reference.clear()
+                }
+            },
+            "chess-app-native-reaper",
+        ).apply {
+            isDaemon = true
+            start()
+        }
+    }
+
+    fun register(owner: ChessGame, state: NativeGameHandleState): GameReference {
+        val reference = GameReference(owner, state, queue)
+        references.add(reference)
+        return reference
+    }
+
+    fun unregister(reference: GameReference) {
+        references.remove(reference)
+        reference.clear()
+    }
+
+    class GameReference(
+        owner: ChessGame,
+        private val state: NativeGameHandleState,
+        queue: ReferenceQueue<ChessGame>,
+    ) : PhantomReference<ChessGame>(owner, queue) {
+        fun destroyLeakedHandle() {
+            val handle = state.take()
+            if (handle != 0L) {
+                try {
+                    NativeChessAppBindings.nativeDestroy(handle)
+                } catch (_: RuntimeException) {
+                    // An unreachable owner cannot receive the failure. Explicit close is authoritative.
+                }
+            }
+        }
+    }
+}
+
 /**
  * High-level Android owner for one Human-vs-Engine game.
  *
@@ -93,46 +164,44 @@ data class ChessGameSnapshot(
  * is true so completed Rust worker events are folded into the shared controller.
  */
 class ChessGame private constructor(
-    private val handle: AtomicLong,
+    private val state: NativeGameHandleState,
 ) : Closeable {
+    private val reaperReference = NativeGameReaper.register(this, state)
+
     @Synchronized
     fun snapshot(): ChessGameSnapshot =
-        ChessGameSnapshot.parse(NativeChessAppBindings.nativeSnapshot(requireOpen()))
+        ChessGameSnapshot.parse(NativeChessAppBindings.nativeSnapshot(state.requireOpen()))
 
     @Synchronized
     fun poll(): ChessGameSnapshot =
-        ChessGameSnapshot.parse(NativeChessAppBindings.nativePoll(requireOpen()))
+        ChessGameSnapshot.parse(NativeChessAppBindings.nativePoll(state.requireOpen()))
 
     @Synchronized
     fun submitMove(move: String): ChessGameSnapshot {
         require(move.isNotBlank()) { "move must not be blank" }
         return ChessGameSnapshot.parse(
-            NativeChessAppBindings.nativeSubmitMove(requireOpen(), move),
+            NativeChessAppBindings.nativeSubmitMove(state.requireOpen(), move),
         )
     }
 
     @Synchronized
     fun restart(): ChessGameSnapshot =
-        ChessGameSnapshot.parse(NativeChessAppBindings.nativeRestart(requireOpen()))
+        ChessGameSnapshot.parse(NativeChessAppBindings.nativeRestart(state.requireOpen()))
 
     @Synchronized
     fun resign(): ChessGameSnapshot =
-        ChessGameSnapshot.parse(NativeChessAppBindings.nativeResign(requireOpen()))
+        ChessGameSnapshot.parse(NativeChessAppBindings.nativeResign(state.requireOpen()))
 
     @Synchronized
     override fun close() {
-        val current = handle.get()
+        val current = state.current()
         if (current == 0L) {
             return
         }
         NativeChessAppBindings.nativeDestroy(current)
-        check(handle.compareAndSet(current, 0L)) {
-            "Android chess game handle changed during close"
-        }
+        check(state.clear(current)) { "Android chess game handle changed during close" }
+        NativeGameReaper.unregister(reaperReference)
     }
-
-    private fun requireOpen(): Long = handle.get().takeIf { it != 0L }
-        ?: throw IllegalStateException("Android chess game is closed")
 
     companion object {
         fun create(
@@ -142,7 +211,7 @@ class ChessGame private constructor(
             require(engineDepth in 1..12) { "engine depth must be between 1 and 12" }
             val handle = NativeChessAppBindings.nativeCreate(humanSide.nativeCode, engineDepth)
             check(handle != 0L) { "native Android game returned a null handle" }
-            return ChessGame(AtomicLong(handle))
+            return ChessGame(NativeGameHandleState(handle))
         }
     }
 }
