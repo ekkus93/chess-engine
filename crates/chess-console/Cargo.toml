@@ -1,0 +1,17 @@
+[package]
+name = "chess-console"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Human-facing scrolling console frontend for the Rust chess engine."
+
+[lints]
+workspace = true
+
+[dependencies]
+chess-app = { path = "../chess-app" }
+chess-core = { path = "../chess-core" }

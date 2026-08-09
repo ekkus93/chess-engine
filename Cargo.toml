@@ -2,6 +2,7 @@
 members = [
     "crates/chess-app",
     "crates/chess-book",
+    "crates/chess-console",
     "crates/chess-core",
     "crates/chess-search",
     "crates/chess-uci",

@@ -17,6 +17,8 @@ Commands:
   tui                               Run the native Rust terminal interface.
   tui-coverage COMMAND              Run focused Rust TUI llvm-cov coverage.
   tui-pty-smoke                     Run additional chess-tui PTY regression coverage.
+  console                           Run the human-facing scrolling Rust console app.
+  console-smoke                     Run real-process chess-console acceptance coverage.
   android                           Build JNI libraries and the Android harness.
   self-play CONFIG OUTPUT           Generate one versioned offline dataset.
   tune CONFIG DATASET OUTPUT [CKPT] Run/resume offline SPSA; candidate stays inactive.
@@ -160,6 +162,14 @@ case "${command}" in
     # --test-threads=1: each test spawns a real PTY + chess-tui process;
     # single-threaded avoids PTY resource contention between tests.
     cargo test --locked -p chess-tui --test pty_acceptance -- --ignored --test-threads=1
+    ;;
+  console)
+    [[ $# -eq 0 ]] || { usage; exit 2; }
+    cargo run --locked -p chess-console
+    ;;
+  console-smoke)
+    [[ $# -eq 0 ]] || { usage; exit 2; }
+    cargo test --locked -p chess-console --test process_acceptance -- --test-threads=1
     ;;
   android) [[ $# -eq 0 ]] || { usage; exit 2; }; android ;;
   self-play)
