@@ -15,4 +15,6 @@ pub use controller::{
     AppError, GameConfig, GameController, GameOutcome, GameSession, DEFAULT_SEARCH_DEPTH,
     MAX_SEARCH_DEPTH, MIN_SEARCH_DEPTH,
 };
-pub use worker::{EngineEvent, SearchMetrics, SearchRequest, SearchTicket, SearchWorker, SearchWorkerError};
+pub use worker::{
+    EngineEvent, SearchMetrics, SearchRequest, SearchTicket, SearchWorker, SearchWorkerError,
+};

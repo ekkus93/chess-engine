@@ -575,7 +575,15 @@ mod tests {
         assert!(controller.submit_human_move("e2e5").is_err());
         assert_eq!(controller.session.as_ref().expect("session").game, before);
         controller.submit_human_move("e2e4").expect("legal move");
-        assert_eq!(controller.session.as_ref().expect("session").game.ply_count(), 1);
+        assert_eq!(
+            controller
+                .session
+                .as_ref()
+                .expect("session")
+                .game
+                .ply_count(),
+            1
+        );
         assert!(controller.take_pending_search().is_some());
     }
 
@@ -588,11 +596,13 @@ mod tests {
                 engine_depth: 1,
             })
             .expect("game starts");
-        controller.session.as_mut().expect("session").game = Game::new(
-            Position::from_fen("7k/4P3/8/8/8/8/8/7K w - - 0 1").expect("fixture"),
-        );
+        controller.session.as_mut().expect("session").game =
+            Game::new(Position::from_fen("7k/4P3/8/8/8/8/8/7K w - - 0 1").expect("fixture"));
         controller.submit_human_move("e7e8q").expect("promotion");
-        assert_eq!(controller.session.as_ref().expect("session").game.moves()[0].to_uci(), "e7e8q");
+        assert_eq!(
+            controller.session.as_ref().expect("session").game.moves()[0].to_uci(),
+            "e7e8q"
+        );
     }
 
     #[test]
@@ -619,7 +629,10 @@ mod tests {
             })
             .expect("stale ignored");
         assert_eq!(controller.session.as_ref().expect("session").game, before);
-        assert_eq!(controller.session.as_ref().expect("session").active_search, Some(request.ticket));
+        assert_eq!(
+            controller.session.as_ref().expect("session").active_search,
+            Some(request.ticket)
+        );
 
         opening.make_move(e2e4).expect("white move");
         let e7e5 = legal_move(&mut opening, "e7e5");
@@ -682,11 +695,13 @@ mod tests {
         assert!(controller.take_pending_search().is_some());
 
         controller.cancel_search_state(None);
-        controller.session.as_mut().expect("session").game = Game::new(
-            Position::from_fen("7k/5Q2/6K1/8/8/8/8/8 b - - 0 1").expect("stalemate"),
-        );
+        controller.session.as_mut().expect("session").game =
+            Game::new(Position::from_fen("7k/5Q2/6K1/8/8/8/8/8 b - - 0 1").expect("stalemate"));
         controller.refresh_terminal_state().expect("refresh");
-        assert_eq!(controller.session.as_ref().expect("session").outcome, Some(GameOutcome::Stalemate));
+        assert_eq!(
+            controller.session.as_ref().expect("session").outcome,
+            Some(GameOutcome::Stalemate)
+        );
         assert!(!controller.has_pending_search());
     }
 

@@ -3,7 +3,10 @@ use std::time::Duration;
 use chess_core::{Color, DrawReason, Move, Piece, PieceKind, Position, Square};
 use chess_search::{Score, MATE_SCORE, MAX_EVALUATION};
 
-use crate::{controller::{GameConfig, GameOutcome, GameSession}, worker::SearchMetrics};
+use crate::{
+    controller::{GameConfig, GameOutcome, GameSession},
+    worker::SearchMetrics,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BoardOrientation {
@@ -85,7 +88,9 @@ pub fn format_move_history(moves: &[Move]) -> String {
     for (index, pair) in moves.chunks(2).enumerate() {
         let move_number = index + 1;
         let white = pair[0].to_uci();
-        let black = pair.get(1).map_or(String::new(), |current| current.to_uci());
+        let black = pair
+            .get(1)
+            .map_or(String::new(), |current| current.to_uci());
         if black.is_empty() {
             lines.push(format!("{move_number:>3}. {white}"));
         } else {
@@ -133,11 +138,19 @@ pub fn format_search_metrics(metrics: Option<&SearchMetrics>) -> String {
     let Some(metrics) = metrics else {
         return "depth  -\nscore  -\nnodes  -\nnps    -\ntime   -\nhash   -\npv     -".to_owned();
     };
-    let depth = metrics.depth.map_or_else(|| "-".to_owned(), |value| value.to_string());
+    let depth = metrics
+        .depth
+        .map_or_else(|| "-".to_owned(), |value| value.to_string());
     let score = metrics.score.map_or_else(|| "-".to_owned(), format_score);
-    let nodes = metrics.nodes.map_or_else(|| "-".to_owned(), |value| value.to_string());
-    let nps = metrics.nps.map_or_else(|| "-".to_owned(), |value| value.to_string());
-    let elapsed = metrics.elapsed.map_or_else(|| "-".to_owned(), format_duration);
+    let nodes = metrics
+        .nodes
+        .map_or_else(|| "-".to_owned(), |value| value.to_string());
+    let nps = metrics
+        .nps
+        .map_or_else(|| "-".to_owned(), |value| value.to_string());
+    let elapsed = metrics
+        .elapsed
+        .map_or_else(|| "-".to_owned(), format_duration);
     let hash = metrics
         .hash_full_per_mille
         .map_or_else(|| "-".to_owned(), |value| format!("{value}‰"));
@@ -208,7 +221,10 @@ mod tests {
         board_lines, format_duration, format_move_history, format_score, format_search_metrics,
         orientation_for_config, piece_symbol, turn_status, BoardOrientation,
     };
-    use crate::{controller::{GameConfig, GameController}, worker::SearchMetrics};
+    use crate::{
+        controller::{GameConfig, GameController},
+        worker::SearchMetrics,
+    };
 
     fn apply_uci(game: &mut Game, uci: &str) {
         let syntax = uci.parse::<UciMove>().expect("fixture syntax");
@@ -230,8 +246,14 @@ mod tests {
         let black = board_lines(&Position::starting(), BoardOrientation::Black);
         assert_eq!(black[0], "    h   g   f   e   d   c   b   a");
         assert!(black[2].starts_with("1 |"));
-        assert_eq!(piece_symbol(Piece::new(Color::White, PieceKind::Knight)), 'N');
-        assert_eq!(piece_symbol(Piece::new(Color::Black, PieceKind::Knight)), 'n');
+        assert_eq!(
+            piece_symbol(Piece::new(Color::White, PieceKind::Knight)),
+            'N'
+        );
+        assert_eq!(
+            piece_symbol(Piece::new(Color::Black, PieceKind::Knight)),
+            'n'
+        );
         assert_eq!(
             orientation_for_config(GameConfig::HumanVsEngine {
                 human_color: Color::Black,
@@ -247,7 +269,10 @@ mod tests {
         for uci in ["e2e4", "e7e5", "g1f3"] {
             apply_uci(&mut game, uci);
         }
-        assert_eq!(format_move_history(game.moves()), "  1. e2e4   e7e5\n  2. g1f3");
+        assert_eq!(
+            format_move_history(game.moves()),
+            "  1. e2e4   e7e5\n  2. g1f3"
+        );
     }
 
     #[test]
@@ -286,9 +311,8 @@ mod tests {
                 engine_depth: 1,
             })
             .expect("game starts");
-        controller.session.as_mut().expect("session").game = Game::new(
-            Position::from_fen("7k/8/8/8/8/8/7R/K7 b - - 0 1").expect("check fixture"),
-        );
+        controller.session.as_mut().expect("session").game =
+            Game::new(Position::from_fen("7k/8/8/8/8/8/7R/K7 b - - 0 1").expect("check fixture"));
         assert!(turn_status(controller.session.as_ref().expect("session")).contains("CHECK"));
     }
 }

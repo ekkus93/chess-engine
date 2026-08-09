@@ -54,7 +54,10 @@ mod tests {
         let path = unique_path("write");
         let temp = temp_write_path(&path);
         atomic_write(&path, "exact\ncontents\n").expect("write succeeds");
-        assert_eq!(fs::read_to_string(&path).expect("read"), "exact\ncontents\n");
+        assert_eq!(
+            fs::read_to_string(&path).expect("read"),
+            "exact\ncontents\n"
+        );
         assert!(!temp.exists());
         fs::remove_file(path).expect("cleanup");
     }

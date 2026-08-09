@@ -131,10 +131,15 @@ impl fmt::Display for SearchWorkerError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::ThreadSpawn { kind, message } => {
-                write!(formatter, "failed to spawn interactive search worker ({kind:?}): {message}")
+                write!(
+                    formatter,
+                    "failed to spawn interactive search worker ({kind:?}): {message}"
+                )
             }
             Self::ThreadPanicked => formatter.write_str("interactive search worker panicked"),
-            Self::EventChannelClosed => formatter.write_str("interactive search event channel closed"),
+            Self::EventChannelClosed => {
+                formatter.write_str("interactive search event channel closed")
+            }
         }
     }
 }
@@ -513,8 +518,12 @@ mod tests {
         .expect("worker can start");
         worker.join().expect("worker joins");
         let events: Vec<_> = receiver.try_iter().collect();
-        assert!(events.iter().any(|event| matches!(event, EngineEvent::Failed { .. })));
-        assert!(!events.iter().any(|event| matches!(event, EngineEvent::Completed { .. })));
+        assert!(events
+            .iter()
+            .any(|event| matches!(event, EngineEvent::Failed { .. })));
+        assert!(!events
+            .iter()
+            .any(|event| matches!(event, EngineEvent::Completed { .. })));
     }
 
     #[test]
@@ -556,8 +565,12 @@ mod tests {
         .expect("worker starts");
         worker.cancel_and_join().expect("cancel joins");
         let events: Vec<_> = receiver.try_iter().collect();
-        assert!(events.iter().any(|event| matches!(event, EngineEvent::Cancelled { .. })));
-        assert!(!events.iter().any(|event| matches!(event, EngineEvent::Completed { .. })));
+        assert!(events
+            .iter()
+            .any(|event| matches!(event, EngineEvent::Cancelled { .. })));
+        assert!(!events
+            .iter()
+            .any(|event| matches!(event, EngineEvent::Completed { .. })));
     }
 
     #[test]
