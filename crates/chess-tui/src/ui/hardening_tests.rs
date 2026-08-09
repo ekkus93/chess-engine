@@ -904,3 +904,40 @@ fn too_small_message_reports_current_and_required_dimensions_when_space_allows()
     assert!(text.contains("58×46"));
     assert!(text.contains("79×45"));
 }
+
+#[test]
+fn moves_pane_scrolls_to_keep_the_most_recent_ply_visible_on_long_games() {
+    // RF-002 regression: at 80x32 (the minimum supported horizontal layout)
+    // the Moves pane has room for roughly 8-9 lines of move-pair text. Before
+    // the fix, the Paragraph always rendered from the top with no scroll
+    // offset, so once a game outgrew the pane it silently froze on the
+    // earliest moves and never showed the current position again.
+    let mut app = human_app(Color::White);
+    let mut game = Game::starting();
+    let mut last_move_uci = String::new();
+    for ply in 0..30u32 {
+        let legal = game.legal_moves().expect("legal moves generate");
+        let count = legal.len();
+        assert!(count > 0, "game ended before the fixture reached 30 plies");
+        // Vary the picked move by ply to avoid a degenerate always-first-move
+        // cycle; any legal sequence exercises the pane the same way.
+        let chosen = legal
+            .iter()
+            .nth((ply as usize) % count)
+            .expect("index within legal move count");
+        last_move_uci = chosen.to_uci();
+        game.make_move(chosen).expect("legal move applies");
+    }
+    app.session.as_mut().expect("session").game = game;
+
+    let text = rendered_text(&app, 80, 32);
+
+    assert!(
+        text.contains(&last_move_uci),
+        "most recent move {last_move_uci} must be visible in the rendered Moves pane:\n{text}"
+    );
+    assert!(
+        !text.contains("  1. "),
+        "move 1 should have scrolled out of view once the game outgrew the pane:\n{text}"
+    );
+}

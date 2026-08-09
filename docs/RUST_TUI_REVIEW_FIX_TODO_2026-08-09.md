@@ -68,17 +68,17 @@
 
 ## RF-002.1 Fix
 
-- [ ] `render_side_panel`'s Moves pane keeps the most recent move(s) visible as the game grows, within the pane's available height (scroll-offset or tail-truncation approach — see spec section 4.2).
-- [ ] `save.rs`'s serialization continues to include the full, untruncated move list, unaffected by the presentation-side fix.
+- [x] `render_side_panel`'s Moves pane keeps the most recent move(s) visible as the game grows, within the pane's available height (scroll-offset approach: `Paragraph::scroll((line_count.saturating_sub(visible_rows), 0))`, computed from the pane's actual rendered height each frame).
+- [x] `save.rs`'s serialization continues to include the full, untruncated move list, unaffected by the presentation-side fix — confirmed by inspection: the fix touches only `ui.rs::render_side_panel`, not `render.rs::format_move_history` or `save.rs::serialize_game`, which are unchanged.
 
 ## RF-002.2 Tests
 
-- [ ] A rendering test plays enough plies to exceed the pane's line capacity at the smallest supported terminal size and asserts the most recent move pair's text is visible in the rendered buffer.
-- [ ] A regression test proves `save.rs`'s serialized move list is unaffected by the pane-side fix.
+- [x] A rendering test (`moves_pane_scrolls_to_keep_the_most_recent_ply_visible_on_long_games`) plays 30 plies and asserts, at 80×32, that the most recent move's UCI text is visible in the rendered buffer AND that move 1's line has scrolled out of view (proves genuine scrolling, not just no-panic rendering).
+- [x] `save.rs`'s serialized move list is already regression-covered by the pre-existing `serialization_preserves_multiple_moves_in_exact_order` test, which continues to pass unmodified — no new test needed since the fix never touches `save.rs`'s code path.
 
 ## RF-002 gate
 
-- [ ] The Moves pane shows the current tail of the game at every tested terminal size and ply count.
+- [x] The Moves pane shows the current tail of the game at every tested terminal size and ply count.
 
 ---
 

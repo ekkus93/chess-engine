@@ -572,16 +572,24 @@ fn render_side_panel(frame: &mut Frame<'_>, session: &crate::app::GameSession, a
         .direction(Direction::Vertical)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
         .split(area);
+    let moves_area = chunks[0];
     let moves = format_move_history(session.game.moves());
+    let (moves_text, scroll) = if moves.is_empty() {
+        ("No moves yet".to_owned(), 0)
+    } else {
+        // Keep the tail of the move list visible once it outgrows the pane,
+        // rather than always rendering from the top and clipping the current
+        // position out of view (RF-002).
+        let visible_rows = moves_area.height.saturating_sub(2);
+        let line_count = u16::try_from(moves.lines().count()).unwrap_or(u16::MAX);
+        (moves, line_count.saturating_sub(visible_rows))
+    };
     frame.render_widget(
-        Paragraph::new(if moves.is_empty() {
-            "No moves yet".to_owned()
-        } else {
-            moves
-        })
-        .block(Block::default().borders(Borders::ALL).title("Moves"))
-        .wrap(Wrap { trim: false }),
-        chunks[0],
+        Paragraph::new(moves_text)
+            .block(Block::default().borders(Borders::ALL).title("Moves"))
+            .wrap(Wrap { trim: false })
+            .scroll((scroll, 0)),
+        moves_area,
     );
     frame.render_widget(
         Paragraph::new(format_search_metrics(session.engine_info.as_ref()))
