@@ -391,22 +391,27 @@ impl AppState {
     }
 
     pub fn resign_human(&mut self) -> Result<(), AppError> {
-        self.pending_search = None;
+        let human_color = {
+            let session = self
+                .session
+                .as_mut()
+                .ok_or_else(|| AppError::InvalidState("no active game".to_owned()))?;
+            if session.outcome.is_some() {
+                return visible_error(session, "the game is already over");
+            }
+            let Some(human_color) = session.config.human_color() else {
+                return visible_error(
+                    session,
+                    "resignation is only available in Human vs Engine mode",
+                );
+            };
+            human_color
+        };
+        self.cancel_search_state(None);
         let session = self
             .session
             .as_mut()
-            .ok_or_else(|| AppError::InvalidState("no active game".to_owned()))?;
-        if session.outcome.is_some() {
-            return visible_error(session, "the game is already over");
-        }
-        let Some(human_color) = session.config.human_color() else {
-            return visible_error(
-                session,
-                "resignation is only available in Human vs Engine mode",
-            );
-        };
-        session.active_search = None;
-        session.thinking = false;
+            .expect("session presence was validated above");
         session.outcome = Some(GameOutcome::Resignation {
             winner: human_color.opposite(),
         });
@@ -416,17 +421,21 @@ impl AppState {
     }
 
     pub fn pause_self_play(&mut self) -> Result<(), AppError> {
-        self.pending_search = None;
+        {
+            let session = self
+                .session
+                .as_mut()
+                .ok_or_else(|| AppError::InvalidState("no active game".to_owned()))?;
+            if !session.config.is_self_play() {
+                return visible_error(session, "pause is only available during self-play");
+            }
+        }
+        self.cancel_search_state(None);
         let session = self
             .session
             .as_mut()
-            .ok_or_else(|| AppError::InvalidState("no active game".to_owned()))?;
-        if !session.config.is_self_play() {
-            return visible_error(session, "pause is only available during self-play");
-        }
+            .expect("session presence was validated above");
         session.auto_play = false;
-        session.active_search = None;
-        session.thinking = false;
         session.status_message = Some("Self-play paused".to_owned());
         Ok(())
     }

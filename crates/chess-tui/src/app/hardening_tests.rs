@@ -94,12 +94,36 @@ fn missing_session_operations_return_typed_errors() {
 fn mode_and_turn_misuse_is_rejected_without_game_mutation() {
     let mut self_play = self_play_app();
     let before = self_play.session.as_ref().expect("session").game.clone();
+    let (pending_before, active_before, thinking_before) = {
+        let session = self_play.session.as_ref().expect("session");
+        (
+            self_play.pending_search.is_some(),
+            session.active_search,
+            session.thinking,
+        )
+    };
     assert!(self_play.submit_human_move("e2e4").is_err());
     assert_eq!(self_play.session.as_ref().expect("session").game, before);
     assert!(self_play.resign_human().is_err());
+    assert_eq!(self_play.pending_search.is_some(), pending_before);
+    let session = self_play.session.as_ref().expect("session");
+    assert_eq!(session.active_search, active_before);
+    assert_eq!(session.thinking, thinking_before);
 
     let mut human_white = human_app(Color::White);
+    let (pending_before, active_before, thinking_before) = {
+        let session = human_white.session.as_ref().expect("session");
+        (
+            human_white.pending_search.is_some(),
+            session.active_search,
+            session.thinking,
+        )
+    };
     assert!(human_white.pause_self_play().is_err());
+    assert_eq!(human_white.pending_search.is_some(), pending_before);
+    let session = human_white.session.as_ref().expect("session");
+    assert_eq!(session.active_search, active_before);
+    assert_eq!(session.thinking, thinking_before);
     assert!(human_white.resume_self_play().is_err());
     assert!(human_white.step_self_play().is_err());
 
@@ -110,6 +134,61 @@ fn mode_and_turn_misuse_is_rejected_without_game_mutation() {
     human_black.cancel_search_state(None);
     assert!(human_black.submit_human_move("e2e4").is_err());
     assert_eq!(human_black.session.as_ref().expect("session").game, before);
+}
+
+#[test]
+fn rejected_resign_leaves_search_state_untouched() {
+    // Self-play has no human side, so resignation must be rejected. Before the
+    // RF-001 fix, `resign_human` cleared `pending_search` unconditionally as
+    // its first statement, before this precondition check ran, stranding the
+    // session with `thinking == true` and no pending request left to spawn.
+    let mut self_play = self_play_app();
+    let pending_before = self_play.pending_search.is_some();
+    let (active_before, thinking_before) = {
+        let session = self_play.session.as_ref().expect("session");
+        (session.active_search, session.thinking)
+    };
+    assert!(pending_before, "fixture must start with a pending search");
+    assert!(thinking_before, "fixture must start in the thinking state");
+
+    assert!(self_play.resign_human().is_err());
+
+    assert_eq!(
+        self_play.pending_search.is_some(),
+        pending_before,
+        "pending_search must be untouched by a rejected resign_human call"
+    );
+    let session = self_play.session.as_ref().expect("session");
+    assert_eq!(session.active_search, active_before);
+    assert_eq!(session.thinking, thinking_before);
+}
+
+#[test]
+fn rejected_pause_leaves_search_state_untouched() {
+    // Human vs Engine (Black) starts with the engine searching White's first
+    // move, so pause_self_play must be rejected (pause is self-play only).
+    // Before the RF-001 fix, `pause_self_play` cleared `pending_search`
+    // unconditionally before this precondition check ran, with the same
+    // stuck-`thinking` outcome as `resign_human`.
+    let mut human_black = human_app(Color::Black);
+    let pending_before = human_black.pending_search.is_some();
+    let (active_before, thinking_before) = {
+        let session = human_black.session.as_ref().expect("session");
+        (session.active_search, session.thinking)
+    };
+    assert!(pending_before, "fixture must start with a pending search");
+    assert!(thinking_before, "fixture must start in the thinking state");
+
+    assert!(human_black.pause_self_play().is_err());
+
+    assert_eq!(
+        human_black.pending_search.is_some(),
+        pending_before,
+        "pending_search must be untouched by a rejected pause_self_play call"
+    );
+    let session = human_black.session.as_ref().expect("session");
+    assert_eq!(session.active_search, active_before);
+    assert_eq!(session.thinking, thinking_before);
 }
 
 #[test]
