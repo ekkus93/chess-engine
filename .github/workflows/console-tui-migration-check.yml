@@ -107,6 +107,17 @@ jobs:
           text = text.replace(exact_unused, '    assert_eq!(\n        app.saved_path.as_deref(),\n')
           ui_tests.write_text(text)
 
+          exact(
+              'crates/chess-tui/tests/workflows.rs',
+              '            session.saved_path, None,\n',
+              '            app.saved_path, None,\n',
+          )
+          exact(
+              'crates/chess-tui/tests/state_transitions.rs',
+              '    assert_eq!(session.saved_path, None);',
+              '    assert_eq!(app.saved_path, None);',
+          )
+
           render_tests = Path('crates/chess-tui/src/render/hardening_tests.rs')
           text = render_tests.read_text()
           for old in ['        move_input: String::new(),\n', '        saved_path: None,\n']:
