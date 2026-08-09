@@ -18,17 +18,22 @@ jobs:
           components: rustfmt, clippy
       - name: Regenerate lockfile for staged manifest
         run: cargo generate-lockfile
-      - name: Check formatting
-        run: cargo fmt --all -- --check
+      - name: Format staged Rust sources
+        run: cargo fmt --all
       - name: Check JNI bridge
         run: cargo check -p chess-jni --all-targets
+      - name: Run strict JNI Clippy
+        run: cargo clippy -p chess-jni --all-targets -- -D warnings
       - name: Run JNI bridge tests
         run: cargo test -p chess-jni app_bridge::tests -- --test-threads=1
-      - name: Upload regenerated lockfile
+      - name: Upload regenerated lockfile and formatted sources
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: android-app-stage-lock-${{ github.sha }}
-          path: Cargo.lock
+          name: android-app-stage-output-${{ github.sha }}
+          path: |
+            Cargo.lock
+            crates/chess-jni/src/app_bridge.rs
+            crates/chess-jni/src/lib.rs
           if-no-files-found: error
           retention-days: 1
