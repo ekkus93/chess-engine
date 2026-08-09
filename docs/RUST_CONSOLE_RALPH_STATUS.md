@@ -1,21 +1,19 @@
 # Rust Console Ralph Status
 
-Status: shared `chess-app` extraction, preserved Rust TUI migration, Rust console implementation, focused automated acceptance, and explicit fail-loud audit fixes are complete. Permanent exact-source repository CI is the remaining automated closure step. Human-operated real-terminal console acceptance remains a separate manual gate.
+Status: **automated implementation and repository validation complete**. The only remaining acceptance item is a short **human subjective UX/readability review** in a real terminal. Objective terminal behavior is now covered by permanent PTY CI and is no longer treated as manual-only evidence.
 
-## Source identity
+## Final automated source identity
 
-- Planning baseline recorded by the console documents: `0964371d93b5a54c340769acf2909b86b47da7a6`.
-- Console specification commit: `a6880532a43d6cc1f85ae33049b5257b1750aa6f`.
-- Console TODO commit: `45e315dfb01670b97f86f25f6ecfc627ad7b9be0`.
-- Authority-index repair after the new TODO exposed an existing documentation-audit requirement: `170b3dcc2c4223ee52205cfd68f87553b67c5d84`.
-- Shared application-layer checkpoint after lockfile repair: `a1551e863134c2502cae441a568b7e71942c7551`.
-- TUI shared-layer migration checkpoint: `6972824e3751c2825ee33b218314cd9ca2e3e8a5`.
-- Initial validated console checkpoint: `cc181dcb2327bd10952fac70b81a98cdb006b09a`.
-- Current fail-loud implementation checkpoint after the dedicated fallback/silent-failure audit: `d540b6b3f7db80ed1935a16a5ba8de551f1c318b`.
+- Clean automated-closure source SHA: `4875a7e29bf87d2e5026e3a25e419a4bbc3c93df`.
+- `master` at automated closure: `4875a7e29bf87d2e5026e3a25e419a4bbc3c93df`.
+- Permanent CI run: `31338059357`.
+- Rust workspace quality job: `93307080189` — success.
+- Linux ARM64 workspace build job: `93307080185` — success.
+- Permanent `Run console PTY acceptance` step: success.
+
+The permanent quality job passed repository authority audits, committed lockfile verification, workspace metadata, rustfmt, workspace check, strict Clippy, full workspace tests, console PTY acceptance, authoritative release perft, rustdoc, debug/release builds, UCI smoke, and the pinned Python differential oracle. ARM64 metadata/debug/test-compile/release also passed.
 
 ## Implemented architecture
-
-The intended architecture is now present:
 
 ```text
 chess-core        chess-search
@@ -31,151 +29,117 @@ chess-uci remains an independent machine-facing adapter.
 
 `chess-app` owns presentation-neutral interactive game/session lifecycle, search request/ticket identity, exact search worker events, stale-result rejection, shared text formatting, and atomic saves. `chess-core` remains authoritative for chess rules and move legality. `chess-search` remains authoritative for evaluation/search/cancellation.
 
-The full-screen Ratatui/Crossterm `chess-tui` remains supported. It was not replaced by the console. TUI-only menus, overlays, move-entry editing, save UI state, layout, key handling, raw-mode/alternate-screen lifecycle, and rendering remain in `chess-tui`.
+The full-screen Ratatui/Crossterm `chess-tui` remains supported and was not replaced. `chess-console` is an additional line-oriented stdin/stdout frontend with normal scrollback.
 
-`chess-console` is an additional line-oriented stdin/stdout frontend with ordinary terminal scrollback, menu/configuration prompts, a command parser, confirmations, explicit saves, and a state-free stdin event reader.
+Supported launch commands remain:
 
-## TUI preservation evidence
-
-The shared-layer migration was deliberately validated before substantive console completion.
-
-- Focused migration run: `31331840727`.
-- Job: `93291224158`.
-- Tested migration source: `fc48e7870f15e5fc0ed5a0c9ae18a03cc52ce9ea`.
-- Resulting validated/self-cleaned checkpoint: `6972824e3751c2825ee33b218314cd9ca2e3e8a5`.
-- Result: success.
-
-That run passed locked checks, strict Clippy, `chess-app` and `chess-tui` tests, and the complete existing real-PTY TUI acceptance suite. `crates/chess-tui/src/worker.rs` is now a compatibility re-export/test shim over the shared worker rather than an independent worker implementation.
-
-## Console implemented surface
-
-- `crates/chess-console` safe Rust crate with `#![forbid(unsafe_code)]`.
-- Direct dependencies limited to `chess-app` and `chess-core`.
-- No `chess-uci`, Python, Ratatui, Crossterm, JNI, FFI, or Android runtime dependency.
-- Startup Human-vs-Engine / Self-play / Quit workflow.
-- Human White and Human Black configuration.
-- Independent White/Black Self-play depths.
-- Explicit supported depth validation with no silent clamping.
-- White/Black board orientation and shared board/status/history rendering.
-- Bare UCI moves and `move <uci>`.
-- `board`, `moves`, `status`, `engine`, `help`, `resign`, `save <path>`, `new`, `menu`, `quit`, `pause`, `resume`, and `step`.
-- Case-insensitive command words and deterministic whitespace handling.
-- Visible malformed/illegal/mode-invalid input failures.
-- Human White and Human Black engine workflows using the in-process shared search worker.
-- Engine progress with only available depth/score/nodes/NPS/time/hash/PV fields.
-- Self-play automatic alternation, pause, one-ply step, and resume.
-- Explicit destructive confirmations with empty response defaulting to No.
-- Deterministic explicit-path non-PGN save format and overwrite confirmation.
-- State-free stdin reader and application-thread-owned `GameController`.
-- EOF handling distinct from empty input.
-- Active engine worker cancellation/join on EOF and confirmed destructive exits.
+```bash
+bash scripts/dev.sh tui
+bash scripts/dev.sh console
+```
 
 ## Fail-closed interactive search policy
 
-Interactive frontends accept only an exact completed search result.
+The completed shared application layer and both human frontends preserve the repository's fail-closed policy:
 
-- Search fallback/emergency moves are rejected as gameplay results.
-- An exact move without exact completed-iteration metrics fails closed.
-- A search ending before completed depth one does not provide a playable fallback.
-- Missing exact best move fails closed.
-- Returned engine moves are revalidated against the current legal move set before application.
-- Generation/request tickets reject stale completions.
-- Search failure does not schedule an alternate move source.
-- No random legal move fallback exists.
-- No first-legal-move production fallback exists.
-- No silent depth reduction/retry exists.
-- No Python runtime fallback exists.
-- No `chess-uci` subprocess fallback exists.
-- No implicit opening-book/config/save discovery was added.
+- no random legal-move fallback;
+- no first-legal-move production fallback;
+- no playable emergency/fallback `SearchResult`;
+- no silent depth reduction or alternate-limit retry;
+- no Python runtime fallback;
+- no UCI subprocess fallback;
+- no implicit opening-book/config/save discovery;
+- stale search completions cannot mutate a new/restarted/abandoned game;
+- returned engine moves are revalidated before application;
+- search worker/channel/panic failures remain visible;
+- operational cancellation paths resolve the active engine worker rather than detaching it;
+- save failures remain visible and cannot report success.
 
-`get(0)`/first-move selection that remains in shared/TUI worker code is confined to test-fixture helpers used to construct a known legal move; it is not a production search-failure fallback.
+The dedicated fallback/silent-failure audit also removed two convenience behaviors: raw-input echo as a fallback after an authoritative human move, and discarded secondary temp-file cleanup errors after save failure.
 
-## Input/worker lifecycle
-
-`GameController` is owned and mutated by one application thread. The background console stdin reader owns only the OS input handle and typed event sender.
-
-The reader sends `Line`, `Eof`, or `Error` events. It does not own game/search state. On piped input/EOF it terminates and can be joined. On explicit interactive process quit an OS-blocked stdin read may remain process-lifetime; this is documented honestly and is not treated as a successfully joined thread.
-
-Engine workers do not receive that exception. At most one console-owned engine worker is active, and operational cancellation/destructive/EOF paths explicitly resolve it. Worker/channel/panic failure is converted to visible failure state/output.
-
-`SearchWorker::Drop` and `ConsoleGame::Drop` retain best-effort final cleanup because Rust destructors cannot return an error. Normal operational paths do not rely on destructor cleanup for success/failure reporting; explicit join/cancel methods are used where errors can be surfaced.
-
-## Save failure policy
-
-Console saves use an explicit path and shared same-directory temporary write + rename.
-
-A successful save is reported only after the final write/rename succeeds. Primary write/rename failures remain visible. The final audit additionally changed shared atomic-save cleanup so a secondary failure to remove a temporary artifact is included in the returned error rather than silently discarded. `NotFound` during cleanup remains harmless because it means no temporary artifact remains.
-
-## Focused Ralph evidence
+## Core implementation evidence
 
 ### Shared layer
 
-- Run `31330821745`, job `93288662605`: rustfmt, locked `chess-app` check, strict Clippy, and focused shared tests succeeded.
+- Run `31330821745`, job `93288662605`: focused `chess-app` formatting, locked check, strict Clippy, and tests succeeded.
 
-### TUI migration
+### TUI preservation/migration
 
-- Run `31331840727`, job `93291224158`: shared/TUI locked checks, strict Clippy, focused tests, and complete real-PTY TUI acceptance succeeded.
+- Run `31331840727`, job `93291224158`: shared/TUI locked checks, strict Clippy, focused tests, and the complete existing real-PTY TUI acceptance suite succeeded.
+- Resulting validated migration checkpoint: `6972824e3751c2825ee33b218314cd9ca2e3e8a5`.
 
-### Console checkpoint
+### Console implementation and fail-loud audit
 
-- Initial console compile run `31332075424`, job `93291810112` failed before behavioral validation because `CommandParseError::UnexpectedArgument` incorrectly required a `'static` borrow from a normalized local command string.
-- The parser error variant was changed to own its command name rather than weakening the parser.
-- Corrected run `31332121813`, job `93291926330`: formatting, lockfile resolution and locked checks, strict Clippy, focused shared/console/TUI tests, real-process console acceptance, and complete TUI PTY acceptance all succeeded.
-- Resulting self-cleaned checkpoint: `cc181dcb2327bd10952fac70b81a98cdb006b09a`.
+- Corrected console validation run `31332121813`, job `93291926330`: focused shared/console/TUI tests, real-process console acceptance, strict Clippy, formatting/locked checks, and TUI PTY acceptance succeeded.
+- Dedicated fail-loud audit validation run `31332721254`, job `93293413075`: success.
+- Fail-loud implementation checkpoint: `d540b6b3f7db80ed1935a16a5ba8de551f1c318b`.
 
-### Final fail-loud audit fixes
+### Checklist-coverage closure
 
-The explicit dangerous-fallback/silent-failure audit found two convenience behaviors worth removing:
+- Coverage-closure run `31334008959`, job `93296723675`: focused shared/console/TUI tests, expanded real-process console acceptance, and TUI PTY acceptance succeeded.
+- Exact supported developer-workflow run `31334062722`, job `93296869345`, against implementation source `591e1d304275674b8f6b83f11a83944853615ac4`: `bash scripts/dev.sh fast`, `console-smoke`, and `tui-pty-smoke` succeeded.
 
-1. After a successful human move the console used the authoritative last move for display, but silently fell back to echoing raw user input if authoritative move history was unexpectedly empty. That could mask an invariant failure. It now returns a visible invariant error instead.
-2. Shared atomic save cleanup discarded a secondary temporary-file cleanup error after a primary write/rename failure. The returned error now includes that cleanup failure, with a focused regression.
+### Broader repository evidence
 
-Validation:
+The first permanent green implementation freeze also passed the repository's broader suites:
 
-- Run `31332721254`.
-- Job `93293413075`.
-- Tested workflow source: `32118ea8e928e163770e247fba828f3e7232afee`.
-- Result: success.
-- Passed formatting/locked checks, strict Clippy, all focused shared/console/TUI tests, real console process acceptance, and complete TUI PTY acceptance.
-- Resulting self-cleaned implementation checkpoint: `d540b6b3f7db80ed1935a16a5ba8de551f1c318b`.
+- CI `31332859799`: x86 job `93293761321` success; ARM64 job `93293761303` success.
+- Performance `31332859798`: success.
+- Robustness `31332859817`: Miri subset, fuzz/corpus/libFuzzer, ASan/LSan, and TSan success.
+- Android JNI `31332859740`: host JVM JNI contract, Android lint, API 35 JNI smoke, and instrumented lifecycle success.
 
-## Real-process console acceptance coverage
+A later temporary evidence-writing workflow was rejected by the permanent v0.2 strength audit because it had source-write permission. That workflow was removed rather than weakening the audit. The clean replacement CI subsequently passed.
 
-`crates/chess-console/tests/process_acceptance.rs` drives the actual executable with bounded timeouts and waits for persistent output markers rather than arbitrary sleeps. It covers:
+## Real-process console acceptance
 
-- startup/menu quit;
-- Human White `e2e4` followed by a real exact engine response and return to White turn;
-- Human Black engine-first move and Black-oriented board;
-- visible/non-mutating illegal move;
-- resignation default-No/decline and confirmed resignation;
-- overwrite decline preserving an existing file;
-- confirmed overwrite and deterministic non-PGN save;
-- visible save failure;
-- Self-play pause, repeated one-ply step while paused, resume, and quit;
-- confirmed quit during a deeper active engine search;
-- EOF during active engine search without hanging.
+`crates/chess-console/tests/process_acceptance.rs` drives the actual executable with bounded timeouts and captured stdout/stderr. Coverage includes startup/menu quit, Human White with real engine response, Human Black engine-first flow, visible/non-mutating illegal moves, explicit board output, confirmation behavior, save success/failure/overwrite, Self-play controls, active-search quit, and EOF shutdown.
 
-## Ralph-discovered defects and repairs
+## Real-PTY console acceptance
 
-1. Adding the new TODO exposed the repository's historical authority-index rule for `docs/*TODO*.md`; the new document was classified rather than disabling the audit.
-2. An early manually staged lockfile edit changed unrelated checksum lines; the diff was inspected and those changes were restored before continuing.
-3. Initial TUI extraction exposed save-state ownership/test seams and a borrow issue; `saved_path` remained TUI presentation state, tests were retargeted to the correct owner, and the existing PTY suite was preserved.
-4. The first console compile exposed an owned-vs-borrowed parser error; the error type now owns the normalized command name.
-5. The explicit silent-failure audit removed the raw-input display fallback after successful human moves.
-6. The explicit silent-failure audit made secondary atomic-save cleanup errors visible.
+The console now has a permanent real-PTY acceptance layer, exposed through:
 
-No first-party lint suppression was added to bypass these findings.
+```bash
+bash scripts/dev.sh console-pty-smoke
+```
 
-## Permanent validation evidence
+It builds the actual `chess-console` binary and drives it through an OS pseudo-terminal. Objective Phase 19 behavior covered includes:
 
-Pending for the final evidence/source freeze. Permanent CI must validate the exact final source identity; earlier permanent runs are supporting evidence only and are not used to claim final exact-SHA closure.
+- real PTY launch and terminal resize;
+- Human White and Human Black flows;
+- board orientation for both colors;
+- `board`, `moves`, `status`, `engine`, and `help`;
+- malformed and illegal move visibility;
+- real engine replies;
+- resignation confirmation;
+- save success, save failure, and overwrite confirmation;
+- Self-play automatic start, pause, repeated one-ply step, resume, and quit;
+- confirmed quit while engine activity is present;
+- normal scrollback semantics with explicit rejection of alternate-screen enter/leave and screen-clear escape sequences.
 
-## Remaining closure gates
+Focused PTY verification after correcting one obsolete test expectation:
 
-Automated source behavior is focused-green at `d540b6b3f7db80ed1935a16a5ba8de551f1c318b`. Remaining gates are:
+- Run `31338021176`.
+- Job `93306954822`.
+- `bash scripts/dev.sh console-pty-smoke`: success, 5/5 scenarios.
 
-1. permanent exact-source repository validation after this evidence state is frozen;
-2. update `docs/RUST_CONSOLE_TODO.md` from exact evidence rather than assumptions;
-3. human-operated real-terminal console acceptance.
+The test expectation defect did not reflect a console bug: `engine` correctly renders unavailable metric fields as `-`; `info unavailable` is reserved for a separate progress-line formatting path.
 
-The manual console acceptance section intentionally remains open until a human actually launches `bash scripts/dev.sh console` in a real terminal and records the user-visible UX checks. Automated process tests do not substitute for that manual claim.
+The permanent CI run `31338059357` then passed the same `Run console PTY acceptance` gate on clean source SHA `4875a7e29bf87d2e5026e3a25e419a4bbc3c93df`.
+
+## TODO disposition
+
+The original `docs/RUST_CONSOLE_TODO.md` is retained as the detailed historical implementation checklist. It is **not** mass-backfilled with checkmarks where evidence was never captured. In particular, the exact pre-extraction `fast`/TUI-PTY baseline commands were not recorded before extraction, so those historical baseline items cannot truthfully be marked complete after the fact.
+
+`docs/RUST_CONSOLE_TODO_CLOSURE_2026-08-09.md` is the evidence-backed closure disposition for the checklist: implementation phases are automated-complete where proved; missing historical baseline execution is recorded as an evidence exception; subjective human UX review remains open.
+
+## Remaining manual acceptance
+
+No objective command-path or terminal-lifecycle correctness check needs to be repeated manually. The remaining human pass is deliberately limited to subjective UX judgment:
+
+1. Launch `bash scripts/dev.sh console` in a normal terminal.
+2. Confirm the board and normal scrollback are visually readable.
+3. Confirm prompts, confirmations, errors, engine metrics, and move history are understandable at a glance.
+4. Confirm the overall scrolling-console interaction feels acceptable for normal use.
+5. Record terminal/OS, source SHA, and any UX notes.
+
+Until that human judgment is recorded, the full milestone should be described as **automated-complete / human UX signoff pending**, not as having a fabricated manual acceptance result.
