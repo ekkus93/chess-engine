@@ -15,3 +15,9 @@ workspace = true
 [dependencies]
 chess-app = { path = "../chess-app" }
 chess-core = { path = "../chess-core" }
+
+[dev-dependencies]
+# Drives the real chess-console binary through an OS pseudo-terminal for
+# terminal-semantic acceptance coverage. Test-only; production remains a
+# plain stdin/stdout frontend with no terminal-control dependency.
+portable-pty = "0.8.1"

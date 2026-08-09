@@ -19,6 +19,7 @@ Commands:
   tui-pty-smoke                     Run additional chess-tui PTY regression coverage.
   console                           Run the human-facing scrolling Rust console app.
   console-smoke                     Run real-process chess-console acceptance coverage.
+  console-pty-smoke                 Run pseudo-terminal chess-console acceptance coverage.
   android                           Build JNI libraries and the Android harness.
   self-play CONFIG OUTPUT           Generate one versioned offline dataset.
   tune CONFIG DATASET OUTPUT [CKPT] Run/resume offline SPSA; candidate stays inactive.
@@ -170,6 +171,12 @@ case "${command}" in
   console-smoke)
     [[ $# -eq 0 ]] || { usage; exit 2; }
     cargo test --locked -p chess-console --test process_acceptance -- --test-threads=1
+    ;;
+  console-pty-smoke)
+    [[ $# -eq 0 ]] || { usage; exit 2; }
+    # Exercise the actual console binary through a real OS pseudo-terminal.
+    # Keep this serialized because each test owns a PTY and real search process.
+    cargo test --locked -p chess-console --test pty_acceptance -- --ignored --test-threads=1
     ;;
   android) [[ $# -eq 0 ]] || { usage; exit 2; }; android ;;
   self-play)
