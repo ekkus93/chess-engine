@@ -17,3 +17,4 @@ dependencyResolutionManagement {
 rootProject.name = "ChessEngineAndroidHarness"
 include(":host-jvm")
 include(":android-smoke")
+include(":android-app")

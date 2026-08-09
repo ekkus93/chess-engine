@@ -2,3 +2,4 @@
 local.properties
 **/build/
 android-smoke/src/main/jniLibs/
+android-app/src/main/jniLibs/
