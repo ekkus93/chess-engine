@@ -262,11 +262,12 @@ impl AppState {
 
     pub fn mark_saved(&mut self, path: String) -> Result<(), AppError> {
         let session = self
+            .controller
             .session
             .as_mut()
             .ok_or_else(|| AppError::InvalidState("no game exists to mark saved".to_owned()))?;
-        self.saved_path = Some(path.clone());
         session.status_message = Some(format!("Saved to {path}"));
+        self.saved_path = Some(path.clone());
         self.overlay = None;
         Ok(())
     }
@@ -286,8 +287,8 @@ impl AppState {
     }
 
     pub fn resign_human(&mut self) -> Result<(), AppError> {
-        self.pending_search = None;
         self.controller.resign_human()?;
+        self.pending_search = None;
         self.overlay = None;
         Ok(())
     }
@@ -334,7 +335,8 @@ impl AppState {
         self.sync_pending_search()
     }
 
-    fn refresh_terminal_state(&mut self) -> Result<(), AppError> {
+    #[doc(hidden)]
+    pub fn refresh_terminal_state(&mut self) -> Result<(), AppError> {
         self.controller.refresh_terminal_state()?;
         if self
             .session
@@ -343,6 +345,12 @@ impl AppState {
         {
             self.pending_search = None;
         }
+        self.sync_pending_search()
+    }
+
+    #[doc(hidden)]
+    pub fn schedule_if_needed(&mut self) -> Result<(), AppError> {
+        self.controller.schedule_if_needed()?;
         self.sync_pending_search()
     }
 

@@ -39,9 +39,7 @@ fn session(game: Game) -> GameSession {
         auto_play: false,
         outcome: None,
         status_message: None,
-        move_input: String::new(),
         engine_info: None,
-        saved_path: None,
     }
 }
 

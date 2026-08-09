@@ -144,13 +144,13 @@ fn move_input_is_lowercased_length_limited_and_focus_safe() {
         handle_game_key(&mut app, &mut runtime, key(KeyCode::Char(character)))
             .expect("move character accepted");
     }
-    assert_eq!(app.session.as_ref().expect("session").move_input, "e2e4q");
+    assert_eq!(app.move_input, "e2e4q");
     assert!(app.overlay.is_none(), "q inside input must not quit");
 
     handle_game_key(&mut app, &mut runtime, key(KeyCode::Backspace)).expect("backspace works");
-    assert_eq!(app.session.as_ref().expect("session").move_input, "e2e4");
+    assert_eq!(app.move_input, "e2e4");
     handle_game_key(&mut app, &mut runtime, key(KeyCode::Esc)).expect("escape clears input");
-    assert!(app.session.as_ref().expect("session").move_input.is_empty());
+    assert!(app.move_input.is_empty());
     assert!(app.overlay.is_none());
     handle_game_key(&mut app, &mut runtime, key(KeyCode::Backspace))
         .expect("empty backspace harmless");
@@ -200,21 +200,11 @@ fn move_characters_are_ignored_when_input_is_not_owned_by_human() {
     let mut runtime = EngineRuntime::default();
     let mut engine_turn = human_app(Color::Black);
     handle_game_key(&mut engine_turn, &mut runtime, key(KeyCode::Char('e'))).expect("key handled");
-    assert!(engine_turn
-        .session
-        .as_ref()
-        .expect("session")
-        .move_input
-        .is_empty());
+    assert!(engine_turn.move_input.is_empty());
 
     let mut self_play = self_play_app();
     handle_game_key(&mut self_play, &mut runtime, key(KeyCode::Char('e'))).expect("key handled");
-    assert!(self_play
-        .session
-        .as_ref()
-        .expect("session")
-        .move_input
-        .is_empty());
+    assert!(self_play.move_input.is_empty());
 }
 
 #[test]
@@ -699,7 +689,7 @@ fn empty_and_failed_save_paths_never_mark_success() {
         });
         save_current_game(&mut app).expect("empty path becomes visible failure");
         let session = app.session.as_ref().expect("session");
-        assert_eq!(session.saved_path, None);
+        assert_eq!(app.saved_path, None);
         assert!(session
             .status_message
             .as_deref()
@@ -715,7 +705,7 @@ fn empty_and_failed_save_paths_never_mark_success() {
     });
     save_current_game(&mut app).expect("write failure is represented in state");
     let session = app.session.as_ref().expect("session");
-    assert_eq!(session.saved_path, None);
+    assert_eq!(app.saved_path, None);
     assert!(session
         .status_message
         .as_deref()
@@ -754,7 +744,7 @@ fn successful_save_transaction_records_exact_path_contents_and_clears_after_move
     let session = app.session.as_ref().expect("session");
     assert_eq!(contents, serialize_game(session, Some(timestamp)));
     assert_eq!(
-        session.saved_path.as_deref(),
+        app.saved_path.as_deref(),
         Some(path.to_string_lossy().as_ref())
     );
     assert!(session
@@ -764,7 +754,7 @@ fn successful_save_transaction_records_exact_path_contents_and_clears_after_move
     assert!(app.overlay.is_none());
 
     app.submit_human_move("e2e4").expect("later move applies");
-    assert_eq!(app.session.as_ref().expect("session").saved_path, None);
+    assert_eq!(app.saved_path, None);
     fs::remove_file(path).expect("temporary save removed");
 }
 
@@ -796,16 +786,15 @@ fn saving_to_an_existing_path_requires_confirmation_before_overwrite() {
         "pre-existing content",
         "the file must not be overwritten before confirmation"
     );
-    assert_eq!(app.session.as_ref().expect("session").saved_path, None);
+    assert_eq!(app.saved_path, None);
 
     handle_overlay_key(&mut app, &mut runtime, key(KeyCode::Char('y')))
         .expect("confirmed overwrite succeeds");
 
     assert!(app.overlay.is_none());
     assert!(app.pending_overwrite_path().is_none());
-    let session = app.session.as_ref().expect("session");
     assert_eq!(
-        session.saved_path.as_deref(),
+        app.saved_path.as_deref(),
         Some(path.to_string_lossy().as_ref())
     );
     let contents = fs::read_to_string(&path).expect("save file readable");
@@ -834,7 +823,7 @@ fn declining_an_overwrite_confirmation_leaves_the_file_and_session_unchanged() {
 
     assert!(app.overlay.is_none());
     assert!(app.pending_overwrite_path().is_none());
-    assert_eq!(app.session.as_ref().expect("session").saved_path, None);
+    assert_eq!(app.saved_path, None);
     assert_eq!(
         fs::read_to_string(&path).expect("fixture file still readable"),
         "pre-existing content"

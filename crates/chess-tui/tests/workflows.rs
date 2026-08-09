@@ -105,7 +105,7 @@ fn self_play_never_marks_a_save_without_an_explicit_save_action() {
         drive_one_exact_search(&mut app);
         let session = app.session.as_ref().expect("session remains active");
         assert_eq!(
-            session.saved_path, None,
+            app.saved_path, None,
             "self-play must never mark a save on its own"
         );
         if session.outcome.is_some() {

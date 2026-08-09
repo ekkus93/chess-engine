@@ -1,7 +1,7 @@
 pub use chess_app::text::{
-    board_lines, color_name, draw_reason_name, format_duration, format_move_history, format_outcome,
-    format_score, format_search_metrics, orientation_for_config, piece_symbol, turn_status,
-    BoardOrientation,
+    board_lines, color_name, draw_reason_name, format_duration, format_move_history,
+    format_outcome, format_score, format_search_metrics, orientation_for_config, piece_symbol,
+    turn_status, BoardOrientation,
 };
 
 pub const MIN_TERMINAL_WIDTH: u16 = 58;

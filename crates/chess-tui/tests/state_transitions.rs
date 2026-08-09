@@ -129,7 +129,7 @@ fn failed_save_state_is_visible_and_never_remains_marked_saved() {
     app.mark_save_failed("Save failed: permission denied".to_owned());
 
     let session = app.session.as_ref().expect("session remains active");
-    assert_eq!(session.saved_path, None);
+    assert_eq!(app.saved_path, None);
     assert_eq!(
         session.status_message.as_deref(),
         Some("Save failed: permission denied")

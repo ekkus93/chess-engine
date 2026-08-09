@@ -242,7 +242,7 @@ fn handle_game_key(
         return Ok(());
     };
     let human_to_move = session.human_to_move();
-    let input_nonempty = !session.move_input.is_empty();
+    let input_nonempty = !app.move_input.is_empty();
     let self_play = session.config.is_self_play();
     let auto_play = session.auto_play;
     let active_game = session.is_active();
@@ -250,11 +250,7 @@ fn handle_game_key(
     if human_to_move && input_nonempty {
         match key.code {
             KeyCode::Enter => {
-                let input = app
-                    .session
-                    .as_ref()
-                    .map(|current| current.move_input.clone())
-                    .unwrap_or_default();
+                let input = app.move_input.clone();
                 if let Err(error) = app.submit_human_move(&input) {
                     if let Some(session) = app.session.as_mut() {
                         session.status_message = Some(error.to_string());
@@ -262,14 +258,10 @@ fn handle_game_key(
                 }
             }
             KeyCode::Backspace => {
-                if let Some(session) = app.session.as_mut() {
-                    session.move_input.pop();
-                }
+                app.move_input.pop();
             }
             KeyCode::Esc => {
-                if let Some(session) = app.session.as_mut() {
-                    session.move_input.clear();
-                }
+                app.move_input.clear();
             }
             KeyCode::Char(character) if is_move_input_character(character) => {
                 append_move_character(app, character);
@@ -467,10 +459,8 @@ fn unix_timestamp_label() -> io::Result<String> {
 }
 
 fn append_move_character(app: &mut AppState, character: char) {
-    if let Some(session) = app.session.as_mut() {
-        if session.move_input.len() < 5 {
-            session.move_input.push(character.to_ascii_lowercase());
-        }
+    if app.move_input.len() < 5 {
+        app.move_input.push(character.to_ascii_lowercase());
     }
 }
 
@@ -670,7 +660,7 @@ fn render_game(frame: &mut Frame<'_>, app: &AppState) {
     };
     let message = session.status_message.as_deref().unwrap_or("");
     let input = if session.human_to_move() {
-        format!("Move: {}_", session.move_input)
+        format!("Move: {}_", app.move_input)
     } else if session.config.is_self_play() {
         let state = if session.auto_play {
             "running"

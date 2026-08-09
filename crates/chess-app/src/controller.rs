@@ -406,7 +406,7 @@ impl GameController {
         Ok(())
     }
 
-    fn schedule_if_needed(&mut self) -> Result<(), AppError> {
+    pub fn schedule_if_needed(&mut self) -> Result<(), AppError> {
         let Some(session) = self.session.as_ref() else {
             return Ok(());
         };
