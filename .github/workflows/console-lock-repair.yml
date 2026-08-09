@@ -1,0 +1,35 @@
+name: Temporary console lock repair
+
+on:
+  push:
+    paths:
+      - .github/workflows/console-lock-repair.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Repair exact unintended checksum and self-delete
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('Cargo.lock')
+          text = path.read_text()
+          wrong = 'checksum = "fc652a48c352aef3ea3aed5da78602a020c991775b0aff04"'
+          right = 'checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"'
+          if text.count(wrong) != 1:
+              raise SystemExit('unexpected Cargo.lock checksum state')
+          path.write_text(text.replace(wrong, right))
+          PY
+          git rm .github/workflows/console-lock-repair.yml
+          git add Cargo.lock
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(lock): restore bytes checksum exactly'
+          git push origin HEAD:master
