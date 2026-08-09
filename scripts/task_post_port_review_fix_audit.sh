@@ -21,6 +21,7 @@ tui_todo="docs/RUST_TUI_TODO.md"
 tui_coverage_spec="docs/RUST_TUI_TEST_COVERAGE_HARDENING_SPEC.md"
 tui_coverage_todo="docs/RUST_TUI_TEST_COVERAGE_HARDENING_TODO.md"
 tui_coverage_report="docs/RUST_TUI_TEST_COVERAGE_HARDENING_IMPLEMENTATION.md"
+console_todo="docs/RUST_CONSOLE_TODO.md"
 legacy_index="docs/LEGACY_TODO_INDEX.md"
 fen_doc="docs/RUST_FEN_AND_UCI_NOTATION.md"
 fen_source="crates/chess-core/src/position/fen.rs"
@@ -43,6 +44,7 @@ for required in \
     "$tui_coverage_spec" \
     "$tui_coverage_todo" \
     "$tui_coverage_report" \
+    "$console_todo" \
     "$legacy_index" \
     "$fen_doc" \
     "$fen_source"; do
@@ -92,6 +94,7 @@ grep -Fq "\`$s4_todo\`" "$legacy_index"
 grep -Fq "\`$hardening_todo\`" "$legacy_index"
 grep -Fq "\`$tui_todo\`" "$legacy_index"
 grep -Fq "\`$tui_coverage_todo\`" "$legacy_index"
+grep -Fq "\`$console_todo\`" "$legacy_index"
 if grep -Fq 'Active S4 evaluation tuning calibration program' "$legacy_index"; then
     echo 'closed S4 TODO is still active' >&2
     exit 1
@@ -100,9 +103,9 @@ if grep -Fq '| Active S4 closure hardening program |' "$legacy_index"; then
     echo 'closure-candidate hardening TODO is still active' >&2
     exit 1
 fi
-grep -Fq 'Active implementation TODO: `docs/RUST_TUI_TODO.md`.' "$legacy_index"
+grep -Fq 'Active implementation TODO: `docs/RUST_CONSOLE_TODO.md`.' "$legacy_index"
 grep -Fq 'Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO`, is not one of the two completed-authority documents above, and is not explicitly registered as active in the authority table' "$legacy_index"
-grep -Fq '78 TODO-named files total; 2 completed-authority documents; 1 active authority document; 1 authority index; 74 historical' "$legacy_index"
+grep -Fq '79 TODO-named files total; 2 completed-authority documents; 1 active authority document; 1 authority index; 75 historical' "$legacy_index"
 grep -Fq "**Companion TODO:** \`$v0_2_todo\`" "$v0_2_spec"
 grep -Fq "**Specification:** \`$v0_2_spec\`" "$v0_2_todo"
 grep -Fq "**Companion TODO:** \`$s3_todo\`" "$s3_spec"
@@ -127,7 +130,7 @@ grep -Fq 'H7 is complete.' "$hardening_report"
 
 while IFS= read -r todo_path; do
     case "$todo_path" in
-        "$tracker"|"$definitions"|"$tui_todo"|"$legacy_index")
+        "$tracker"|"$definitions"|"$console_todo"|"$legacy_index")
             ;;
         *)
             grep -Fq "\`$todo_path\`" "$legacy_index" || {
