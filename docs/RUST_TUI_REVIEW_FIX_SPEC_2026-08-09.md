@@ -219,6 +219,7 @@ _Fill in on completion:_
 - `bash scripts/dev.sh full` result:
 - CI run/job IDs (if applicable):
 - RF-003.1 decision: implemented a real game-over panel (`render_game_over_panel` in `ui.rs`, a `Clear` + bordered "Game Over" block via `centered_rect(48, 7, ...)`) rather than reword the TODO line — the status-line-only presentation was judged a genuine UX gap worth closing given how cheap the fix was, matching the existing `render_overlay` pattern. Also fixed RF-003.2 (menu small-terminal guard) by extracting a shared `render_too_small_message` helper used by both `render_game` and `render_menu`, removing duplication that a naive fix would have introduced.
-- RF-004.5 decision (PTY test added vs. TODO reworded) and reason:
+- RF-004.5 decision: reworded `docs/RUST_TUI_TODO.md`'s Phase 1 line to cite external historical CI evidence explicitly rather than add a real PTY-driving test — a reliable PTY test needs a new dependency and is meaningfully larger scope than the rest of this pass; better suited to a deliberate follow-up.
+- RF-004.4 finding: already satisfied by pre-existing coverage (`empty_and_failed_save_paths_never_mark_success` in `ui/hardening_tests.rs`) that the original review missed due to a gap between two reviewers' file scopes — no new test needed.
 - RF-006.4 decision (overwrite confirmation only vs. also path sanitization) and reason:
 - Any RF-006 sub-item explicitly deferred, and why:

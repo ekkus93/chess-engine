@@ -705,9 +705,34 @@ mod tests {
             .expect("render succeeds");
     }
 
+    // RF-004.1: unlike `draw`, this returns the rendered buffer as text so
+    // callers can assert on real content, not just "did not panic."
+    fn draw_text(app: &AppState, width: u16, height: u16) -> String {
+        let backend = TestBackend::new(width, height);
+        let mut terminal = Terminal::new(backend).expect("test terminal");
+        terminal
+            .draw(|frame| render(frame, app))
+            .expect("render succeeds");
+        let buffer = terminal.backend().buffer();
+        let mut text = String::new();
+        for y in 0..height {
+            for x in 0..width {
+                text.push_str(buffer.get(x, y).symbol());
+            }
+            text.push('\n');
+        }
+        text
+    }
+
     #[test]
     fn menu_renders_headlessly() {
-        draw(&AppState::new(), 100, 30);
+        // 100x30 is below MIN_TERMINAL_HEIGHT (32) and was, before RF-003.2,
+        // rendering the real menu anyway only because render_menu had no
+        // small-terminal guard. Use a genuinely supported size so this test
+        // exercises real menu content, not the "too small" message.
+        let text = draw_text(&AppState::new(), 100, 32);
+        assert!(text.contains("Mode: Human vs Engine"), "{text}");
+        assert!(text.contains("Start game"), "{text}");
     }
 
     #[test]
@@ -719,7 +744,12 @@ mod tests {
                 engine_depth: 1,
             })
             .expect("game starts");
-        draw(&human, 120, 32);
+        let text = draw_text(&human, 120, 32);
+        assert!(text.contains("Human vs Engine"), "{text}");
+        assert!(
+            !text.contains("thinking"),
+            "human-to-move state must not show the thinking indicator:\n{text}"
+        );
 
         let mut thinking = AppState::new();
         thinking
@@ -728,7 +758,11 @@ mod tests {
                 engine_depth: 1,
             })
             .expect("game starts");
-        draw(&thinking, 120, 32);
+        let text = draw_text(&thinking, 120, 32);
+        assert!(
+            text.contains("thinking"),
+            "engine-searching state must show the thinking indicator:\n{text}"
+        );
     }
 
     #[test]
@@ -739,7 +773,17 @@ mod tests {
             black_depth: 1,
         })
         .expect("self-play starts");
-        draw(&app, 80, 28);
+        // 80x28 is below MIN_TERMINAL_HEIGHT (32), so render_game already
+        // shows the "too small" message there, not real self-play content —
+        // use the smallest genuinely supported horizontal size (80x32) to
+        // assert on the actual self-play screen.
+        let text = draw_text(&app, 80, 32);
+        assert!(text.contains("Self-play"), "{text}");
+        assert!(
+            text.contains("running") || text.contains("thinking"),
+            "self-play state must show it is actively running:\n{text}"
+        );
+        // Still exercise a genuinely too-small size to confirm it doesn't panic.
         draw(&app, 20, 8);
     }
 }

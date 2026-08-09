@@ -83,6 +83,38 @@ fn self_play_alternates_two_legal_plies_and_can_pause_between_searches() {
 }
 
 #[test]
+fn self_play_never_marks_a_save_without_an_explicit_save_action() {
+    // RF-004.3: the "no tuning/evaluation files are written by self-play"
+    // claim was previously an architectural inference (no test asserted it).
+    // `saved_path` is only ever set by `AppState::mark_saved`, which is only
+    // reachable from the explicit save action (`ui.rs::save_current_game`,
+    // itself only reachable via the save overlay's Enter key) — so an
+    // unset `saved_path` after real, unattended self-play play is direct
+    // evidence no implicit write occurred through this crate's own state
+    // machine. See also `tests/no_incidental_filesystem_writes.rs`, which
+    // proves no filesystem-write API is even reachable from self-play code
+    // at the source level.
+    let mut app = AppState::new();
+    app.start_game(GameConfig::SelfPlay {
+        white_depth: 1,
+        black_depth: 1,
+    })
+    .expect("self-play starts");
+
+    for _ in 0..4 {
+        drive_one_exact_search(&mut app);
+        let session = app.session.as_ref().expect("session remains active");
+        assert_eq!(
+            session.saved_path, None,
+            "self-play must never mark a save on its own"
+        );
+        if session.outcome.is_some() {
+            break;
+        }
+    }
+}
+
+#[test]
 fn self_play_step_applies_exactly_one_ply_and_remains_paused() {
     let mut app = AppState::new();
     app.start_game(GameConfig::SelfPlay {

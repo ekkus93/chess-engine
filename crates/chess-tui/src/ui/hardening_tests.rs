@@ -390,6 +390,36 @@ fn runtime_starts_one_pending_worker_and_cancel_joins_it() {
 }
 
 #[test]
+fn cancellation_of_a_real_search_never_mutates_the_game() {
+    // RF-004.2: the review found this behavior correct by code inspection
+    // (worker.rs never emits Completed once discard_final is set, and the
+    // app-side ticket check independently rejects stale events), but no
+    // test spawned a real search, cancelled it, and directly asserted
+    // session.game equality the way the human-move/engine-completion tests
+    // already do. This closes that gap with a genuine end-to-end spawn.
+    let mut app = human_app(Color::Black);
+    let before = app.session.as_ref().expect("session").game.clone();
+    let mut runtime = EngineRuntime::default();
+    // Drive once to actually spawn the real SearchWorker thread (depth 1,
+    // but cancellation races the thread regardless of how quickly it could
+    // finish — cancel_and_join blocks until the thread has genuinely
+    // observed the stop flag and returned).
+    runtime.drive(&mut app).expect("pending worker starts");
+    assert!(runtime.active.is_some(), "a real worker must be active");
+
+    runtime.cancel().expect("worker cancels and joins");
+    app.cancel_search_state(None);
+
+    let after = app.session.as_ref().expect("session").game.clone();
+    assert_eq!(
+        after, before,
+        "cancelling an active search must never mutate the game"
+    );
+    assert!(!app.session.as_ref().expect("session").thinking);
+    assert_eq!(app.session.as_ref().expect("session").active_search, None);
+}
+
+#[test]
 fn runtime_progress_keeps_worker_active_until_cancelled() {
     let mut app = human_app(Color::Black);
     let request = app.take_pending_search().expect("request");

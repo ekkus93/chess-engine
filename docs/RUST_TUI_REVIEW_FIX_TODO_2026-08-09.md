@@ -110,34 +110,37 @@
 
 ## RF-004.1 Render-state content assertions
 
-- [ ] Menu render test asserts specific expected content (e.g. mode label), not only "renders without panicking."
-- [ ] Human-game render test asserts specific expected content.
-- [ ] Self-play render test asserts self-play-specific text (e.g. running/paused indicator).
-- [ ] Thinking-state render test asserts the "thinking…" indicator text is present in the buffer.
-- [ ] None of the above removed the existing no-panic coverage.
+- [x] Menu render test asserts specific expected content (`Mode: Human vs Engine`, `Start game`), not only "renders without panicking."
+- [x] Human-game render test asserts specific expected content (`Human vs Engine` title; asserts the thinking indicator is absent when human-to-move).
+- [x] Self-play render test asserts self-play-specific text (`Self-play` title, running/thinking state).
+- [x] Thinking-state render test asserts the "thinking…" indicator text is present in the buffer (engine-to-move Human-vs-Engine fixture).
+- [x] None of the above removed the existing no-panic coverage (the small-terminal `draw` call in the self-play test is unchanged).
+- **Side finding**: two of the three fixtures being strengthened (`menu_renders_headlessly` at 100×30, the self-play test's first draw at 80×28) were themselves below the crate's own minimum supported terminal size (`MIN_TERMINAL_HEIGHT = 32`). Before RF-003.2, `render_menu` had no small-terminal guard so 100×30 rendered the real menu anyway; the self-play fixture's 80×28 was already silently hitting the "too small" message even before this pass, invisibly, because the old test never checked content. Both fixtures were corrected to genuinely supported sizes (100×32, 80×32) so they now test what they claim to test.
 
 ## RF-004.2 Cancellation game-equality test
 
-- [ ] A test spawns a real search, cancels it before completion, and asserts `session.game` is unchanged via `Game`'s `PartialEq`.
+- [x] `cancellation_of_a_real_search_never_mutates_the_game` (`ui/hardening_tests.rs`) spawns a real `SearchWorker` via `EngineRuntime::drive`, cancels it, and asserts `session.game` is unchanged via `Game`'s `PartialEq`.
 
 ## RF-004.3 Self-play no-file-write test
 
-- [ ] A test asserts self-play produces no filesystem writes other than through an explicit save action (temp-dir-based assertion, or a narrower code-path assertion if a filesystem-based test is impractical here — record which approach was used).
+- [x] Decision recorded: added both a runtime assertion and a narrower structural (source-scan) assertion, since a real temp-dir/cwd filesystem-monitoring test would be flaky under `cargo test`'s parallel execution (other tests legitimately write their own temp files concurrently).
+- [x] `self_play_never_marks_a_save_without_an_explicit_save_action` (`tests/workflows.rs`) runs 4 real self-play plies and asserts `session.saved_path` stays `None` throughout.
+- [x] `only_save_rs_references_filesystem_write_apis` (`tests/no_incidental_filesystem_writes.rs`) scans every `chess-tui` source file at test time and asserts no filesystem-write API (`fs::write`, `File::create`, `OpenOptions`, etc.) appears outside `save.rs` (excluding `#[cfg(test)]`-only `hardening_tests.rs` fixture-cleanup code).
 
 ## RF-004.4 Failed-save app-level test
 
-- [ ] A test calls the `AppState`-level save path with a failing destination and asserts `session.status_message` reflects the failure.
-- [ ] The same test asserts `session.saved_path` remains `None` afterward.
+- **Already satisfied by pre-existing coverage** — `empty_and_failed_save_paths_never_mark_success` (`ui/hardening_tests.rs`, present before this review-fix pass) already calls the real `save_current_game` with a genuinely failing destination (a path whose parent directory does not exist) and asserts both `session.saved_path == None` and `session.status_message` starts with `"Save failed:"`. The original code review's finding here was inaccurate: it fell in a gap between two reviewers' file scopes (the save.rs-focused review didn't check `ui/hardening_tests.rs`; the render/ui-focused review wasn't asked to check save-integration tests specifically). No new test was needed.
+- [x] Confirmed `session.status_message` reflects the failure.
+- [x] Confirmed `session.saved_path` remains `None` afterward.
 
 ## RF-004.5 PTY smoke-test decision
 
-- [ ] Decision recorded: add a real PTY-driving test to the crate, OR correct `docs/RUST_TUI_TODO.md`'s Phase 1 line to cite only external historical CI evidence rather than implying a repository-resident test exists.
-- [ ] If added: the test drives the release binary under a pseudo-terminal and asserts alternate-screen enter/leave on clean quit.
-- [ ] If reworded: the TODO line no longer implies a test exists in the repository when it does not.
+- [x] Decision recorded: **reworded** `docs/RUST_TUI_TODO.md`'s Phase 1 line rather than added a real PTY-driving test. A genuinely reliable PTY test needs a new dependency (e.g. `portable-pty`), is inherently slower/more platform-sensitive than this crate's existing unit-test suite, and represents meaningfully larger new test infrastructure than the other fixes in this pass — better scoped as a deliberate follow-up than rushed through here.
+- [x] The TODO line now cites the historical CI run/job IDs as the (external, non-reproducible-from-this-repo) evidence, and states plainly that no PTY-driving test/script is repository-resident.
 
 ## RF-004 gate
 
-- [ ] All five test-coverage gaps are closed with tests asserting the specific claimed behavior, or (RF-004.5 only) the TODO wording is corrected.
+- [x] Four of five test-coverage gaps closed with new tests; the fifth (RF-004.4) was found already satisfied by pre-existing coverage; RF-004.5's TODO wording corrected per the recorded decision.
 
 ---
 

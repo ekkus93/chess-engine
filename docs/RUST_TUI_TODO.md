@@ -41,7 +41,7 @@ The objective is a native Rust `chess-tui` application based behaviorally on the
 - [x] `cargo fmt --all -- --check`
 - [x] `cargo check -p chess-tui`
 - [x] `cargo clippy -p chess-tui --all-targets -- -D warnings`
-- [x] Launch/quit smoke test restores the shell terminal correctly.
+- [x] Launch/quit smoke test restores the shell terminal correctly (external evidence: historical focused-Ralph PTY runs `31227985266`/`31227882334`, see "Focused Ralph evidence" below — no PTY-driving test/script is repository-resident as of the RF-004.5 review-fix pass; `main.rs`'s `TerminalGuard` RAII cleanup is covered by unit-level construction/Drop tests instead, see `docs/RUST_TUI_REVIEW_FIX_TODO_2026-08-09.md` RF-004.5).
 
 ## Phase 2 — Presentation-neutral application/session model
 
