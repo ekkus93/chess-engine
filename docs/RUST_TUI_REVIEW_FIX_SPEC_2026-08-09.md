@@ -218,7 +218,7 @@ _Fill in on completion:_
 - `cargo test -p chess-tui --all-targets` result (pass/fail counts):
 - `bash scripts/dev.sh full` result:
 - CI run/job IDs (if applicable):
-- RF-003.2 decision (game-over panel implemented vs. TODO reworded) and reason:
+- RF-003.1 decision: implemented a real game-over panel (`render_game_over_panel` in `ui.rs`, a `Clear` + bordered "Game Over" block via `centered_rect(48, 7, ...)`) rather than reword the TODO line — the status-line-only presentation was judged a genuine UX gap worth closing given how cheap the fix was, matching the existing `render_overlay` pattern. Also fixed RF-003.2 (menu small-terminal guard) by extracting a shared `render_too_small_message` helper used by both `render_game` and `render_menu`, removing duplication that a naive fix would have introduced.
 - RF-004.5 decision (PTY test added vs. TODO reworded) and reason:
 - RF-006.4 decision (overwrite confirmation only vs. also path sanitization) and reason:
 - Any RF-006 sub-item explicitly deferred, and why:

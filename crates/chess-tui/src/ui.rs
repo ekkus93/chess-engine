@@ -17,8 +17,8 @@ use ratatui::{
 use crate::{
     app::{AppScreen, AppState, ConfirmationAction, GameConfig, MenuMode, Overlay},
     render::{
-        board_lines, color_name, format_move_history, format_search_metrics, layout_decision,
-        orientation_for_config, turn_status, LayoutDecision, MIN_TERMINAL_HEIGHT,
+        board_lines, color_name, format_move_history, format_outcome, format_search_metrics,
+        layout_decision, orientation_for_config, turn_status, LayoutDecision, MIN_TERMINAL_HEIGHT,
         MIN_TERMINAL_WIDTH, STACKED_MIN_TERMINAL_HEIGHT, WIDE_TERMINAL_WIDTH,
     },
     save::{serialize_game, write_game},
@@ -397,10 +397,51 @@ pub fn render(frame: &mut Frame<'_>, app: &AppState) {
         AppScreen::MainMenu => render_menu(frame, app),
         AppScreen::Game => render_game(frame, app),
     }
+    render_game_over_panel(frame, app);
     render_overlay(frame, app);
 }
 
+/// Renders a distinguishable "Game Over" panel over the game screen once the
+/// session has a terminal outcome (RF-003.1). The ordinary in-game status
+/// area continues to show the same result text via `turn_status`/
+/// `format_outcome`; this panel makes the terminal state visually
+/// unmistakable rather than folding it into routine status text, matching
+/// how `render_overlay` already distinguishes confirmation/save prompts.
+fn render_game_over_panel(frame: &mut Frame<'_>, app: &AppState) {
+    if app.screen != AppScreen::Game {
+        return;
+    }
+    let size = frame.size();
+    if layout_decision(size.width, size.height) == LayoutDecision::TooSmall {
+        return;
+    }
+    let Some(session) = app.session.as_ref() else {
+        return;
+    };
+    let Some(outcome) = session.outcome else {
+        return;
+    };
+    let area = centered_rect(48, 7, frame.size());
+    frame.render_widget(Clear, area);
+    frame.render_widget(
+        Paragraph::new(format!(
+            "{}\n\nn new   m menu   v save   q quit",
+            format_outcome(outcome)
+        ))
+        .block(Block::default().borders(Borders::ALL).title("Game Over"))
+        .alignment(Alignment::Center)
+        .wrap(Wrap { trim: false }),
+        area,
+    );
+}
+
 fn render_menu(frame: &mut Frame<'_>, app: &AppState) {
+    let size = frame.size();
+    if layout_decision(size.width, size.height) == LayoutDecision::TooSmall {
+        render_too_small_message(frame, size);
+        return;
+    }
+
     let area = centered_rect(64, 15, frame.size());
     let mode = match app.menu.mode {
         MenuMode::HumanVsEngine => "Human vs Engine",
@@ -440,20 +481,29 @@ fn render_menu(frame: &mut Frame<'_>, app: &AppState) {
     );
 }
 
+/// Renders the shared minimum-size message when the terminal is below the
+/// smallest supported layout, on whichever screen the caller is drawing.
+/// Used by both `render_game` and `render_menu` (RF-003.2) so a menu at an
+/// unusably small terminal fails the same way the game screen already does,
+/// instead of unconditionally attempting a fixed-size centered layout.
+fn render_too_small_message(frame: &mut Frame<'_>, size: Rect) {
+    let text = format!(
+        "Terminal too small. Need {WIDE_TERMINAL_WIDTH}×{MIN_TERMINAL_HEIGHT} for the wide layout or {MIN_TERMINAL_WIDTH}×{STACKED_MIN_TERMINAL_HEIGHT} for the stacked layout; current {}×{}.",
+        size.width, size.height
+    );
+    frame.render_widget(
+        Paragraph::new(text)
+            .block(Block::default().borders(Borders::ALL).title("Chess Engine"))
+            .alignment(Alignment::Center)
+            .wrap(Wrap { trim: false }),
+        size,
+    );
+}
+
 fn render_game(frame: &mut Frame<'_>, app: &AppState) {
     let size = frame.size();
     if layout_decision(size.width, size.height) == LayoutDecision::TooSmall {
-        let text = format!(
-            "Terminal too small. Need {WIDE_TERMINAL_WIDTH}×{MIN_TERMINAL_HEIGHT} for the wide layout or {MIN_TERMINAL_WIDTH}×{STACKED_MIN_TERMINAL_HEIGHT} for the stacked layout; current {}×{}.",
-            size.width, size.height
-        );
-        frame.render_widget(
-            Paragraph::new(text)
-                .block(Block::default().borders(Borders::ALL).title("Chess Engine"))
-                .alignment(Alignment::Center)
-                .wrap(Wrap { trim: false }),
-            size,
-        );
+        render_too_small_message(frame, size);
         return;
     }
 

@@ -41,6 +41,41 @@ fn game_over_state_renders_terminal_result() {
 }
 
 #[test]
+fn game_over_state_renders_a_distinguishable_panel() {
+    // RF-003.1: the terminal result must be visible in a distinguishable
+    // panel, not only folded into the routine in-game status text that
+    // `game_over_state_renders_terminal_result` already covers.
+    let mut app = AppState::new();
+    app.start_game(GameConfig::HumanVsEngine {
+        human_color: Color::White,
+        engine_depth: 1,
+    })
+    .expect("game starts");
+    app.session.as_mut().expect("session").outcome = Some(GameOutcome::Resignation {
+        winner: Color::Black,
+    });
+
+    let text = rendered_text(&app, 120, 40);
+    assert!(
+        text.contains("Game Over"),
+        "expected a distinct 'Game Over' panel title:\n{text}"
+    );
+
+    let mut in_progress = AppState::new();
+    in_progress
+        .start_game(GameConfig::HumanVsEngine {
+            human_color: Color::White,
+            engine_depth: 1,
+        })
+        .expect("game starts");
+    let mid_game_text = rendered_text(&in_progress, 120, 40);
+    assert!(
+        !mid_game_text.contains("Game Over"),
+        "the panel must not appear before the game has a terminal outcome:\n{mid_game_text}"
+    );
+}
+
+#[test]
 fn visible_error_state_renders_status_message() {
     let mut app = AppState::new();
     app.start_game(GameConfig::HumanVsEngine {

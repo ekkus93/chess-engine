@@ -86,24 +86,23 @@
 
 ## RF-003.1 Game-over panel/modal
 
-- [ ] Decision recorded: implement a genuinely distinguishable game-over panel/modal, OR reword the `docs/RUST_TUI_TODO.md` line to describe the actual status-line presentation.
-- [ ] If implemented: game-over result is shown via a distinguishable overlay (bordered block/title/state), consistent with `Overlay::Confirmation`/`Overlay::SavePath` rendering.
-- [ ] If reworded: `docs/RUST_TUI_TODO.md`'s Phase 4 line no longer claims a panel/modal that does not exist.
+- [x] Decision recorded: **implemented** a genuinely distinguishable game-over panel (`render_game_over_panel` in `ui.rs`) rather than reworded the TODO line, since the existing status-line presentation was a real UX gap worth closing, not just a documentation inaccuracy.
+- [x] Game-over result is shown via a distinguishable overlay (`Clear` + bordered block titled "Game Over", `centered_rect(48, 7, ...)`), consistent with how `render_overlay` already distinguishes confirmation/save prompts. The ordinary in-game status line's result text (`turn_status`/`format_outcome`) is unchanged and still present alongside it.
 
 ## RF-003.2 Small-terminal menu guard
 
-- [ ] `render_menu` has the same `LayoutDecision::TooSmall` handling `render_game` already has.
-- [ ] `render_menu` no longer unconditionally calls `centered_rect(64, 15, ...)` below the minimum supported terminal size.
+- [x] `render_menu` has the same `LayoutDecision::TooSmall` handling `render_game` already has, via a new shared `render_too_small_message` helper (removes the duplication that would otherwise result from adding the same guard twice).
+- [x] `render_menu` no longer unconditionally calls `centered_rect(64, 15, ...)` below the minimum supported terminal size.
 
 ## RF-003.3 Tests
 
-- [ ] If a game-over panel was implemented: a render test asserts its distinct presence in the buffer.
-- [ ] A render test for `render_menu` at the smallest supported terminal size asserts the minimum-size message is shown, not a corrupted/panicking layout.
+- [x] `game_over_state_renders_a_distinguishable_panel` (`tests/render_states.rs`) asserts the "Game Over" panel title appears once the session has a terminal outcome, and does not appear mid-game.
+- [x] `menu_screen_also_shows_the_minimum_size_message_when_too_small` (`ui/hardening_tests.rs`) asserts the menu screen shows the minimum-size message at 79×45 and does not attempt to render "Start game" at that size.
 
 ## RF-003 gate
 
-- [ ] `docs/RUST_TUI_TODO.md`'s Phase 4 checklist accurately reflects the implementation for both items.
-- [ ] The menu screen has the same small-terminal protection as the game screen.
+- [x] `docs/RUST_TUI_TODO.md`'s Phase 4 checklist accurately reflects the implementation for both items (no wording change needed — both lines are now true statements).
+- [x] The menu screen has the same small-terminal protection as the game screen.
 
 ---
 

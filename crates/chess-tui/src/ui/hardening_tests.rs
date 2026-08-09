@@ -906,6 +906,25 @@ fn too_small_message_reports_current_and_required_dimensions_when_space_allows()
 }
 
 #[test]
+fn menu_screen_also_shows_the_minimum_size_message_when_too_small() {
+    // RF-003.2 regression: render_menu previously had no small-terminal
+    // guard at all and unconditionally attempted centered_rect(64, 15, ...),
+    // unlike render_game, which already showed this message. The menu must
+    // now behave the same way the game screen does at the same size.
+    let app = AppState::new();
+    assert_eq!(app.screen, AppScreen::MainMenu);
+    let text = rendered_text(&app, 79, 45);
+    assert!(
+        text.contains("Terminal too small"),
+        "menu screen must show the minimum-size message below the supported size:\n{text}"
+    );
+    assert!(
+        !text.contains("Start game"),
+        "the real menu must not attempt to render at an unusably small size:\n{text}"
+    );
+}
+
+#[test]
 fn moves_pane_scrolls_to_keep_the_most_recent_ply_visible_on_long_games() {
     // RF-002 regression: at 80x32 (the minimum supported horizontal layout)
     // the Moves pane has room for roughly 8-9 lines of move-pair text. Before
