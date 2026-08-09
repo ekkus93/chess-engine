@@ -17,7 +17,7 @@ Active implementation TODO: `docs/RUST_TUI_TODO.md`. The completed Rust TUI test
 
 Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO`, is not one of the two completed-authority documents above, and is not explicitly registered as active in the authority table is a historical or legacy reference. Those files preserve implementation history, but they are not active instructions and must not override the completed Rust-port authority records or any future TODO explicitly registered in the authority table.
 
-Inventory captured on 2026-08-05, reclassified at S2-16 closure on 2026-08-07, activated for S3 on 2026-08-07, reclassified again at S3 closure on 2026-08-07, activated for S4 on 2026-08-07, reclassified at S4 closure on 2026-08-07, updated for the Rust TUI program on 2026-08-07, and updated for Rust TUI test/coverage hardening on 2026-08-08: **77 TODO-named files total; 2 completed-authority documents; 1 active authority document; 1 authority index; 73 historical.**
+Inventory captured on 2026-08-05, reclassified at S2-16 closure on 2026-08-07, activated for S3 on 2026-08-07, reclassified again at S3 closure on 2026-08-07, activated for S4 on 2026-08-07, reclassified at S4 closure on 2026-08-07, updated for the Rust TUI program on 2026-08-07, updated for Rust TUI test/coverage hardening on 2026-08-08, and updated for the Rust TUI post-milestone review-fix pass on 2026-08-09: **78 TODO-named files total; 2 completed-authority documents; 1 active authority document; 1 authority index; 74 historical.**
 
 ## Historical TODO inventory
 
@@ -70,6 +70,7 @@ Inventory captured on 2026-08-05, reclassified at S2-16 closure on 2026-08-07, a
 - `docs/RUST_CHESS_ENGINE_S4_CLOSURE_HARDENING_TODO_2026-08-07.md`
 - `docs/RUST_CHESS_ENGINE_V0_2_STRENGTH_TODO_2026-08-05.md`
 - `docs/RUST_ENGINE_REVIEW_FIX_TODO_2026-08-02.md`
+- `docs/RUST_TUI_REVIEW_FIX_TODO_2026-08-09.md`
 - `docs/RUST_TUI_TEST_COVERAGE_HARDENING_TODO.md`
 - `docs/STOCKFISH1_TODO.md`
 - `docs/STRATEGY10_TODO.md`

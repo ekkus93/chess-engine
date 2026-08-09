@@ -102,7 +102,7 @@ if grep -Fq '| Active S4 closure hardening program |' "$legacy_index"; then
 fi
 grep -Fq 'Active implementation TODO: `docs/RUST_TUI_TODO.md`.' "$legacy_index"
 grep -Fq 'Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO`, is not one of the two completed-authority documents above, and is not explicitly registered as active in the authority table' "$legacy_index"
-grep -Fq '77 TODO-named files total; 2 completed-authority documents; 1 active authority document; 1 authority index; 73 historical' "$legacy_index"
+grep -Fq '78 TODO-named files total; 2 completed-authority documents; 1 active authority document; 1 authority index; 74 historical' "$legacy_index"
 grep -Fq "**Companion TODO:** \`$v0_2_todo\`" "$v0_2_spec"
 grep -Fq "**Specification:** \`$v0_2_spec\`" "$v0_2_todo"
 grep -Fq "**Companion TODO:** \`$s3_todo\`" "$s3_spec"
