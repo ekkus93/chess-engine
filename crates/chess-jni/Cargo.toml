@@ -7,7 +7,7 @@ authors.workspace = true
 repository.workspace = true
 license.workspace = true
 publish.workspace = true
-description = "Android JNI adapter over the stable chess engine boundary."
+description = "Android JNI adapters over the stable engine and shared application boundaries."
 
 [lib]
 crate-type = ["rlib", "cdylib"]
@@ -16,5 +16,7 @@ crate-type = ["rlib", "cdylib"]
 workspace = true
 
 [dependencies]
+chess-app = { path = "../chess-app" }
+chess-core = { path = "../chess-core" }
 chess-ffi = { path = "../chess-ffi" }
 jni = "=0.21.1"

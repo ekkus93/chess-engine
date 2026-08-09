@@ -1,11 +1,12 @@
-//! Android JNI adapter over the stable `chess-ffi` C boundary.
+//! Android JNI adapters for the stable engine boundary and shared interactive app layer.
 //!
-//! The exported methods use the opaque engine and cancellation tokens from the
-//! stable C ABI. JNI conversion, Java exception creation, and the small amount
-//! of required unsafe pointer access remain isolated in this crate. Chess rules,
-//! search behavior, ownership registries, and result-code semantics are not
-//! duplicated here.
+//! `NativeChessEngineBindings` continues to expose the established low-level
+//! `chess-ffi` API. `NativeChessAppBindings` adds a high-level Human-vs-Engine
+//! session API backed by `chess-app`, so Android presentation code does not
+//! duplicate game lifecycle, search scheduling, stale-result rejection, or
+//! interactive fail-closed search policy.
 
+mod app_bridge;
 mod bridge;
 
 use bridge::{boundary, null_jstring, output_string, SearchArguments};
@@ -220,5 +221,81 @@ pub extern "system" fn native_search(
             },
         )?;
         output_string(env, &result)
+    })
+}
+
+#[export_name = "Java_com_ekkus93_chessengine_NativeChessAppBindings_nativeCreate"]
+pub extern "system" fn native_app_create(
+    mut env: JNIEnv<'_>,
+    _binding: JObject<'_>,
+    human_color: jint,
+    depth: jint,
+) -> jlong {
+    boundary(&mut env, 0, |_env| app_bridge::create_game(human_color, depth))
+}
+
+#[export_name = "Java_com_ekkus93_chessengine_NativeChessAppBindings_nativeDestroy"]
+pub extern "system" fn native_app_destroy(
+    mut env: JNIEnv<'_>,
+    _binding: JObject<'_>,
+    handle: jlong,
+) {
+    boundary(&mut env, (), |_env| app_bridge::destroy_game(handle));
+}
+
+#[export_name = "Java_com_ekkus93_chessengine_NativeChessAppBindings_nativeSnapshot"]
+pub extern "system" fn native_app_snapshot(
+    mut env: JNIEnv<'_>,
+    _binding: JObject<'_>,
+    handle: jlong,
+) -> jstring {
+    boundary(&mut env, null_jstring(), |env| {
+        output_string(env, &app_bridge::snapshot(handle)?)
+    })
+}
+
+#[export_name = "Java_com_ekkus93_chessengine_NativeChessAppBindings_nativePoll"]
+pub extern "system" fn native_app_poll(
+    mut env: JNIEnv<'_>,
+    _binding: JObject<'_>,
+    handle: jlong,
+) -> jstring {
+    boundary(&mut env, null_jstring(), |env| {
+        output_string(env, &app_bridge::poll(handle)?)
+    })
+}
+
+#[export_name = "Java_com_ekkus93_chessengine_NativeChessAppBindings_nativeSubmitMove"]
+pub extern "system" fn native_app_submit_move(
+    mut env: JNIEnv<'_>,
+    _binding: JObject<'_>,
+    handle: jlong,
+    move_text: JString<'_>,
+) -> jstring {
+    boundary(&mut env, null_jstring(), |env| {
+        let move_text = bridge::java_string(env, move_text)?;
+        output_string(env, &app_bridge::submit_move(handle, &move_text)?)
+    })
+}
+
+#[export_name = "Java_com_ekkus93_chessengine_NativeChessAppBindings_nativeRestart"]
+pub extern "system" fn native_app_restart(
+    mut env: JNIEnv<'_>,
+    _binding: JObject<'_>,
+    handle: jlong,
+) -> jstring {
+    boundary(&mut env, null_jstring(), |env| {
+        output_string(env, &app_bridge::restart(handle)?)
+    })
+}
+
+#[export_name = "Java_com_ekkus93_chessengine_NativeChessAppBindings_nativeResign"]
+pub extern "system" fn native_app_resign(
+    mut env: JNIEnv<'_>,
+    _binding: JObject<'_>,
+    handle: jlong,
+) -> jstring {
+    boundary(&mut env, null_jstring(), |env| {
+        output_string(env, &app_bridge::resign(handle)?)
     })
 }

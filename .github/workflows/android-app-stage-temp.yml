@@ -1,0 +1,34 @@
+name: Android app Rust bridge staging
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  rust-bridge:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Regenerate lockfile for staged manifest
+        run: cargo generate-lockfile
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Check JNI bridge
+        run: cargo check -p chess-jni --all-targets
+      - name: Run JNI bridge tests
+        run: cargo test -p chess-jni app_bridge::tests -- --test-threads=1
+      - name: Upload regenerated lockfile
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-app-stage-lock-${{ github.sha }}
+          path: Cargo.lock
+          if-no-files-found: error
+          retention-days: 1
