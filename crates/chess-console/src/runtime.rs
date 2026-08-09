@@ -190,7 +190,11 @@ impl ConsoleGame {
                         .as_ref()
                         .and_then(|session| session.game.moves().last())
                         .map(|current| current.to_uci())
-                        .unwrap_or(input);
+                        .ok_or_else(|| {
+                            io::Error::other(
+                                "human move reported success but authoritative move history is empty",
+                            )
+                        })?;
                     writeln!(output, "You played: {played}")?;
                     self.print_board_and_status(output)?;
                     self.spawn_pending(output)?;
