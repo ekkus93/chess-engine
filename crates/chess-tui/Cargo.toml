@@ -20,3 +20,15 @@ ratatui = "0.26.3"
 # Ratatui permits newer unicode-segmentation releases whose MSRV now exceeds
 # this workspace's Rust 1.75 contract. Keep resolution within the supported MSRV.
 unicode-segmentation = "=1.12.0"
+
+[dev-dependencies]
+# Drives the real chess-tui binary under an OS pseudo-terminal for the
+# additional PTY regression coverage in tests/pty_acceptance.rs. This is
+# test-only: not a production dependency, not part of the crate's own
+# #![forbid(unsafe_code)] surface (each tests/*.rs file is its own crate).
+portable-pty = "0.8.1"
+# Terminal emulation to reconstruct the actual screen grid from the raw PTY
+# byte stream — ratatui's Crossterm backend uses cursor-position jumps to
+# skip unchanged/blank cells rather than writing literal spaces, so plain
+# substring matching against the raw stream does not work.
+vt100 = "0.15.2"

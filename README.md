@@ -96,6 +96,8 @@ Game controls:
 
 Saves use the deterministic Rust TUI text format documented in [`docs/RUST_TUI_IMPLEMENTATION.md`](docs/RUST_TUI_IMPLEMENTATION.md); they are not labeled as PGN. Filesystem failures remain visible and do not mark the game saved.
 
+`bash scripts/dev.sh tui-pty-smoke` runs `crates/chess-tui/tests/pty_acceptance.rs`: additional regression coverage that drives the real binary through an OS pseudo-terminal (menu navigation, a human move and engine reply, Self-play pause/step/resume, resignation, quitting mid-search, a live resize, and a save success/failure), reconstructing the actual screen with a terminal emulator rather than matching raw bytes. This is automated evidence in addition to, not a substitute for, the human-operated real-terminal acceptance items tracked in `docs/RUST_TUI_TODO.md` — see `docs/RUST_TUI_RALPH_STATUS.md` for why those remain a deliberate manual gate.
+
 ## Workspace
 
 - `crates/chess-core` — position representation, rules, legal generation, FEN, hashing, history, and exact perft.

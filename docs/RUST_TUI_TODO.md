@@ -41,7 +41,7 @@ The objective is a native Rust `chess-tui` application based behaviorally on the
 - [x] `cargo fmt --all -- --check`
 - [x] `cargo check -p chess-tui`
 - [x] `cargo clippy -p chess-tui --all-targets -- -D warnings`
-- [x] Launch/quit smoke test restores the shell terminal correctly (external evidence: historical focused-Ralph PTY runs `31227985266`/`31227882334`, see "Focused Ralph evidence" below — no PTY-driving test/script is repository-resident as of the RF-004.5 review-fix pass; `main.rs`'s `TerminalGuard` RAII cleanup is covered by unit-level construction/Drop tests instead, see `docs/RUST_TUI_REVIEW_FIX_TODO_2026-08-09.md` RF-004.5).
+- [x] Launch/quit smoke test restores the shell terminal correctly. A PTY-driving test is now repository-resident: `crates/chess-tui/tests/pty_acceptance.rs::launch_shows_menu_and_quit_exits_cleanly` (run via `bash scripts/dev.sh tui-pty-smoke`) spawns the real binary under an OS pseudo-terminal and asserts the exact `\x1b[?1049h`/`\x1b[?1049l` Crossterm alternate-screen sequences, matching what the historical focused-Ralph PTY runs `31227985266`/`31227882334` (see "Focused Ralph evidence" below) claimed to observe. Added after the RF-004.5 review-fix pass, which had instead only reworded this line to cite that external evidence — see `docs/RUST_TUI_REVIEW_FIX_TODO_2026-08-09.md` RF-004.5 for that history. `main.rs`'s `TerminalGuard` RAII cleanup is also covered by unit-level construction/Drop tests.
 
 ## Phase 2 — Presentation-neutral application/session model
 
@@ -305,6 +305,8 @@ Run on the exact intended final source SHA.
 - [ ] manually exercise terminal resize.
 - [ ] manually exercise a save success and a save failure.
 - [ ] confirm terminal state is restored after every tested exit path.
+
+`bash scripts/dev.sh tui-pty-smoke` (`crates/chess-tui/tests/pty_acceptance.rs`) now exercises every scenario above via a scripted PTY session — real launch, a human move with a real engine reply, Self-play pause/step/resume, resignation, quitting mid-search, a live resize, and a save success/failure, with terminal-restoration evidence (alternate-screen enter/leave) on the launch/quit case specifically. Per `docs/RUST_TUI_RALPH_STATUS.md`, this is deliberately **not** treated as satisfying these checkboxes: a scripted keystroke sequence proves the code behaves mechanically correctly, not that a human's actual experience in a real terminal emulator is sound. These items remain open until a human performs them.
 
 ## Permanent automated validation evidence
 

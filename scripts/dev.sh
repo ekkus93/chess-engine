@@ -16,6 +16,7 @@ Commands:
   uci [--book PATH]                 Run the Linux UCI engine on stdin/stdout.
   tui                               Run the native Rust terminal interface.
   tui-coverage COMMAND              Run focused Rust TUI llvm-cov coverage.
+  tui-pty-smoke                     Run additional chess-tui PTY regression coverage.
   android                           Build JNI libraries and the Android harness.
   self-play CONFIG OUTPUT           Generate one versioned offline dataset.
   tune CONFIG DATASET OUTPUT [CKPT] Run/resume offline SPSA; candidate stays inactive.
@@ -153,6 +154,12 @@ case "${command}" in
   tui-coverage)
     [[ $# -eq 1 ]] || { usage; exit 2; }
     bash scripts/tui_coverage.sh "$1"
+    ;;
+  tui-pty-smoke)
+    [[ $# -eq 0 ]] || { usage; exit 2; }
+    # --test-threads=1: each test spawns a real PTY + chess-tui process;
+    # single-threaded avoids PTY resource contention between tests.
+    cargo test --locked -p chess-tui --test pty_acceptance -- --ignored --test-threads=1
     ;;
   android) [[ $# -eq 0 ]] || { usage; exit 2; }; android ;;
   self-play)
