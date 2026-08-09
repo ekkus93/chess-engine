@@ -23,7 +23,7 @@ pub enum CommandParseError {
     Empty,
     Unknown(String),
     MissingArgument(&'static str),
-    UnexpectedArgument(&'static str),
+    UnexpectedArgument(String),
 }
 
 impl fmt::Display for CommandParseError {
@@ -58,7 +58,7 @@ pub fn parse_command(input: &str) -> Result<Command, CommandParseError> {
             return Err(CommandParseError::MissingArgument("move"));
         };
         if parts.next().is_some() {
-            return Err(CommandParseError::UnexpectedArgument("move"));
+            return Err(CommandParseError::UnexpectedArgument("move".to_owned()));
         }
         return Ok(Command::Move(value.to_ascii_lowercase()));
     }
@@ -93,7 +93,7 @@ pub fn parse_command(input: &str) -> Result<Command, CommandParseError> {
                 "exit" | "q" => "quit",
                 other => other,
             };
-            return Err(CommandParseError::UnexpectedArgument(name));
+            return Err(CommandParseError::UnexpectedArgument(name.to_owned()));
         }
         return Ok(command);
     }
@@ -152,7 +152,7 @@ mod tests {
         );
         assert_eq!(
             parse_command("status extra"),
-            Err(CommandParseError::UnexpectedArgument("status"))
+            Err(CommandParseError::UnexpectedArgument("status".to_owned()))
         );
     }
 }
