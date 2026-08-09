@@ -169,7 +169,6 @@ impl PtySession {
             status.success(),
             "chess-console PTY exit status: {status:?}"
         );
-        drop(self.writer);
         if let Some(reader) = self.reader.take() {
             reader.join().expect("PTY reader joins");
         }
