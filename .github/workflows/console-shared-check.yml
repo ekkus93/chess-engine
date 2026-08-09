@@ -1,0 +1,39 @@
+name: Temporary console shared-layer check
+
+on:
+  push:
+    paths:
+      - .github/workflows/console-shared-check.yml
+      - crates/chess-app/**
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install workspace Rust toolchain
+        run: rustup show
+      - name: Format shared layer
+        run: cargo fmt --all
+      - name: Check shared layer
+        run: cargo check --locked -p chess-app --all-targets
+      - name: Strict Clippy shared layer
+        run: cargo clippy --locked -p chess-app --all-targets -- -D warnings
+      - name: Test shared layer
+        run: cargo test --locked -p chess-app --all-targets
+      - name: Commit formatting and self-delete
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/console-shared-check.yml
+          git add crates/chess-app Cargo.toml Cargo.lock
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git diff --cached --quiet; then
+            exit 1
+          fi
+          git commit -m 'chore(chess-app): validate shared layer checkpoint'
+          git push origin HEAD:master
