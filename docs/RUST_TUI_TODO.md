@@ -9,7 +9,7 @@ The objective is a native Rust `chess-tui` application based behaviorally on the
 ## Phase 0 — Baseline and architecture confirmation
 
 - [x] Record the starting `master` SHA before implementation.
-- [ ] Run the existing fast Rust validation and record the result.
+- [x] Run the existing fast Rust validation and record the result: `bash scripts/dev.sh fast` passed clean on SHA `2e2237b5f3861c7f423c1d0b38c9ec6fa16d457b` (RF-007 closure of `docs/RUST_TUI_REVIEW_FIX_TODO_2026-08-09.md`) — `cargo test -p chess-tui --all-targets` 114/114 passing, `cargo fmt --check`/workspace `cargo check`/strict Clippy/`cargo test --locked --workspace --all-features`/artifact-audit/strength-audit all clean.
 - [x] Confirm `crates/chess-core`, `crates/chess-search`, `crates/chess-book`, and `crates/chess-uci` public APIs needed by the TUI.
 - [x] Map historical Python behaviors from `chess_game/tui.py` and `chess_game/tui_game.py` to Rust APIs.
 - [x] Explicitly classify Python-only behavior that will not be ported, especially online self-learning/automatic weight mutation.
