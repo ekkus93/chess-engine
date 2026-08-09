@@ -148,13 +148,16 @@
 
 ## RF-005.1 Fix
 
-- [ ] `docs/RUST_WORKSPACE_ARCHITECTURE.md`'s crate table includes `chess-tui`.
-- [ ] `docs/RUST_WORKSPACE_ARCHITECTURE.md`'s crate table includes `chess-book`.
-- [ ] `docs/RUST_WORKSPACE_ARCHITECTURE.md`'s dependency graph reflects both additions consistently with how other adapter crates are described.
+- [x] `docs/RUST_WORKSPACE_ARCHITECTURE.md`'s crate table includes `chess-tui`.
+- [x] `docs/RUST_WORKSPACE_ARCHITECTURE.md`'s crate table includes `chess-book`.
+- [x] `docs/RUST_WORKSPACE_ARCHITECTURE.md`'s dependency graph reflects both additions.
+- **Scope note**: while fixing this, found the existing table/graph were stale in three additional ways beyond the missing rows (verified directly against each crate's `Cargo.toml`): `chess-uci` and `chess-ffi` were shown depending only on `chess-search`, when both also depend on `chess-book` and `chess-core` directly; `chess-tools` was shown depending only on `chess-core`/`chess-search`, omitting its real `chess-ffi`/`chess-tune` dependencies; and the "forbid unsafe code" claim was scoped to only `chess-core`/`chess-search` when 7 of 9 crates do (only `chess-ffi`/`chess-jni` don't, for their necessary FFI/JNI unsafe code). Fixed all of these in the same edit rather than leaving a doc that would still mislead about crate dependencies after only adding two rows to it — same file, same "dependency direction and crate ownership" purpose the finding was about, verified against the same source of truth (each crate's `Cargo.toml`).
+- Replaced the ASCII diamond-tree dependency graph with a per-crate outbound-dependency listing, since the actual graph is not a simple tree (`chess-uci`, `chess-ffi`, `chess-tools` each depend on more than one sibling) and an ASCII tree would have re-introduced a different inaccuracy.
+- Left the document's "Initial skeleton contract" and license-policy sections untouched — those describe historical Task-1 bootstrap narrative, a different kind of staleness than the dependency-accuracy finding this item was about, and rewriting them is out of scope for this pass.
 
 ## RF-005 gate
 
-- [ ] `docs/RUST_WORKSPACE_ARCHITECTURE.md` lists every crate in the current workspace.
+- [x] `docs/RUST_WORKSPACE_ARCHITECTURE.md` lists every crate in the current workspace with accurate direct dependencies and unsafe-code posture, verified against each crate's `Cargo.toml`.
 
 ---
 

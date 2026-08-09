@@ -14,37 +14,39 @@ The workspace isolates portable chess logic from protocols, operating-system ada
 | Crate | Type | Responsibility | Allowed direct workspace dependencies |
 |---|---|---|---|
 | `chess-core` | library | Position model, moves, attacks, rules, FEN, make/unmake, hashing, and game-rule primitives | none |
+| `chess-book` | library | Explicit opening-book interfaces and indexed format | `chess-core` |
 | `chess-search` | library | Evaluation, search, transposition table, move ordering, limits, diagnostics, and principal variation | `chess-core` |
-| `chess-uci` | binary | Standalone Universal Chess Interface process adapter | `chess-search` |
-| `chess-ffi` | library | Stable C ABI and opaque-handle boundary | `chess-search` |
+| `chess-uci` | binary | Standalone Universal Chess Interface process adapter | `chess-book`, `chess-core`, `chess-search` |
+| `chess-tui` | binary | Native Ratatui/Crossterm terminal application over the same core/search crates used by the UCI engine | `chess-core`, `chess-search` |
+| `chess-ffi` | library | Stable C ABI and opaque-handle boundary | `chess-book`, `chess-core`, `chess-search` |
 | `chess-jni` | library | Android JNI adapter over the C/safe engine boundary | `chess-ffi` |
-| `chess-tools` | binary | Perft, divide, fixtures, benchmarks, and self-play commands | `chess-core`, `chess-search` |
+| `chess-tools` | binary | Perft, divide, fixtures, benchmarks, self-play, and tuning-candidate commands | `chess-core`, `chess-ffi`, `chess-search`, `chess-tune` |
 | `chess-tune` | binary | Offline datasets, parameter tuning, and candidate validation | `chess-core`, `chess-search` |
 
 ## Dependency graph
 
+Listed as each crate's direct outbound workspace dependencies (source of truth: each crate's `Cargo.toml`; a diamond-shaped ASCII tree would misrepresent the actual graph, since several crates — `chess-uci`, `chess-ffi`, `chess-tools` — depend on more than one sibling crate at once):
+
 ```text
-chess-core
-    ^
-    |
-chess-search
-    ^       ^        ^
-    |       |        |
-chess-uci chess-ffi chess-tools
-              ^       ^
-              |       |
-          chess-jni chess-tune
+chess-core                                    (no workspace dependencies)
+chess-book        -> chess-core
+chess-search      -> chess-core
+chess-uci         -> chess-book, chess-core, chess-search
+chess-tui         -> chess-core, chess-search
+chess-ffi         -> chess-book, chess-core, chess-search
+chess-jni         -> chess-ffi
+chess-tools       -> chess-core, chess-ffi, chess-search, chess-tune
+chess-tune        -> chess-core, chess-search
 ```
 
-`chess-tools` and `chess-tune` also depend directly on `chess-core` for rule-level operations that do not require a search engine.
+`chess-tui` depends only on `chess-core`/`chess-search`, not `chess-uci`: it does not launch `chess-uci` as a subprocess, and has no Python runtime dependency.
 
 ## Enforced boundaries
 
 - `chess-core` has no workspace dependencies.
-- `chess-search` depends only on `chess-core` among workspace crates.
-- `chess-uci`, `chess-ffi`, `chess-jni`, `chess-tools`, and `chess-tune` are outward adapters or tools.
-- `chess-core` and `chess-search` forbid unsafe code.
-- FFI/JNI unsafe code is not present in the initial skeleton. Future unsafe blocks must be narrowly scoped, documented, and tested; warnings may not be suppressed.
+- `chess-book` and `chess-search` depend only on `chess-core` among workspace crates.
+- `chess-uci`, `chess-tui`, `chess-ffi`, `chess-jni`, `chess-tools`, and `chess-tune` are outward adapters or tools.
+- `chess-core`, `chess-book`, `chess-search`, `chess-uci`, `chess-tui`, `chess-tools`, and `chess-tune` forbid unsafe code (`#![forbid(unsafe_code)]`). Only `chess-ffi` and `chess-jni` own the small amount of necessary unsafe pointer/FFI/JNI code, which must be narrowly scoped, documented, and tested; warnings may not be suppressed anywhere in the workspace.
 - Core/search crates do not read files, print, own UI state, use Android APIs, or terminate processes.
 - Optional files cannot silently change engine behavior. Books, weights, and configuration must be injected explicitly.
 
