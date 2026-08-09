@@ -2,14 +2,16 @@
 
 ## Active implementation
 
-The Rust workspace is the active chess engine. The Python tree is retained only as historical/reference material. Do not add Python features, repair Python-only behavior, or restore Python CI unless the user explicitly reverses that decision.
+The Rust workspace is the active chess engine. The Python tree is retained only as historical/reference material. Do not add Python engine features, repair Python-only behavior, or restore Python engine CI unless the user explicitly reverses that decision.
 
-Authoritative documents:
+Authoritative documents include:
 
 - `docs/RUST_CHESS_ENGINE_PORT_SPEC_2026-08-01.md`;
 - `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md`;
 - `docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md`;
-- `docs/RUST_DEVELOPER_WORKFLOWS.md`.
+- `docs/RUST_DEVELOPER_WORKFLOWS.md`;
+- `docs/RUST_CONSOLE_SPEC.md`;
+- `docs/RUST_CONSOLE_TODO.md`.
 
 ## Repository workflow
 
@@ -17,20 +19,34 @@ Authoritative documents:
 - Do not create a branch or pull request unless the user explicitly requests one.
 - Do not mark a task complete merely because it compiles.
 - Preserve exact commands, run URLs, job IDs, artifact IDs, and validated commit SHAs for major gates.
-- Update the authoritative TODO, Ralph status, and `memory.md` only after exact evidence exists.
+- Update authoritative TODO/status/evidence files only after exact evidence exists.
+- Update `memory.md` only with exact timestamp/commit evidence.
 
 ## Core architecture
 
 - `chess-core` owns rules, position state, notation, history, hashing, and perft.
 - `chess-search` owns evaluation, transposition storage, search, limits, and cancellation.
 - `chess-book` owns the explicit opening-book abstraction/format.
-- UCI, C ABI, JNI, Android, tooling, and tuning are outward adapters.
-- `chess-core` and `chess-search` forbid unsafe code.
-- Recursive search uses make/unmake, not clone-per-child.
-- Search and repetition use typed/incremental identities, not string keys.
-- No adapter discovers weights, books, datasets, or configuration from conventional paths.
-- Rust panics must not cross C or JNI boundaries.
-- Performance and strength evidence never override correctness gates.
+- `chess-app` owns presentation-neutral interactive game/session lifecycle, search worker events, search ticket/generation safety, shared text formatting, and atomic save primitives.
+- `chess-tui` is the retained full-screen Ratatui/Crossterm human frontend. It owns TUI presentation/input/terminal state and consumes `chess-app` for shared gameplay/search lifecycle.
+- `chess-console` is an additional human-facing scrolling stdin/stdout frontend. It consumes `chess-app`; it does not replace `chess-tui`.
+- `chess-uci` remains a separate machine-facing protocol adapter and does not become the implementation backend for either human frontend.
+- C ABI, JNI, Android, tooling, and tuning remain outward adapters/tools.
+
+Do not duplicate `GameController`/`SearchWorker` behavior in `chess-tui` or `chess-console`. Do not move Ratatui/Crossterm/console prompt concerns into `chess-app`.
+
+## Interactive correctness policy
+
+- Human move legality comes from `chess-core`.
+- Interactive engine moves come from `chess-search` through the shared `chess-app::SearchWorker`/controller lifecycle.
+- Only an exact completed search move may be played.
+- Search fallback/emergency moves must never become an interactive move.
+- Never substitute a random legal move or first legal move after search failure.
+- Never silently reduce depth, retry with a different policy, launch Python, or launch `chess-uci` as a fallback.
+- Revalidate returned engine moves against current legal moves before applying them.
+- Preserve generation/ticket rejection so stale results cannot mutate a restarted/abandoned game.
+- Search/channel/worker/save failures must be visible.
+- Engine workers must not be detached; destructive and EOF paths must resolve them explicitly.
 
 ## Coordinate contract
 
@@ -48,15 +64,22 @@ bash scripts/dev.sh fast
 bash scripts/dev.sh full
 bash scripts/dev.sh perft
 bash scripts/dev.sh uci
+bash scripts/dev.sh tui
+bash scripts/dev.sh tui-pty-smoke
+bash scripts/dev.sh console
+bash scripts/dev.sh console-smoke
 bash scripts/dev.sh android
 bash scripts/dev.sh fuzz-smoke
+bash scripts/dev.sh strength-audit
+bash scripts/dev.sh artifact-audit
 ```
 
-Use `bash scripts/dev.sh help` for explicit self-play and tuning syntax. Generated outputs must follow `docs/RUST_GENERATED_ARTIFACT_POLICY.md`.
+Use `bash scripts/dev.sh help` for exact self-play, tuning, TUI coverage, and variant-control syntax. Generated outputs must follow `docs/RUST_GENERATED_ARTIFACT_POLICY.md`.
 
 ## Testing rules
 
 - Add focused regressions for every behavioral fix.
+- Preserve both console real-process acceptance and TUI real-PTY acceptance when changing `chess-app`.
 - Keep exact perft, state restoration, hash identity, differential validation, fuzz/Miri/sanitizers, ABI/JNI lifecycle, Android instrumentation, performance, and strength gates independent.
 - Do not suppress first-party Rust warnings with `allow` or `expect`; fix them structurally.
 - Do not weaken a test or fixture merely to restore a green run.

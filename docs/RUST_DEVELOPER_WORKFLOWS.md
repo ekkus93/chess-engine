@@ -1,6 +1,6 @@
 # Rust developer workflows
 
-The Rust workspace is the actively developed engine. The Python implementation remains historical reference material only: Python CI and Python feature development are intentionally retired after migration signoff.
+The Rust workspace is the actively developed engine. The Python implementation remains historical reference material only: Python engine feature development and Python engine CI are retired.
 
 All repository-supported local commands go through one dispatcher:
 
@@ -8,7 +8,7 @@ All repository-supported local commands go through one dispatcher:
 bash scripts/dev.sh help
 ```
 
-The dispatcher uses the committed lockfiles and explicit input/output paths. It does not discover opening books, datasets, checkpoints, or weight artifacts from conventional locations.
+The dispatcher uses committed lockfiles and explicit input/output paths. It does not discover opening books, datasets, checkpoints, weights, configuration, or frontend save destinations from conventional locations.
 
 ## Bootstrap
 
@@ -25,7 +25,7 @@ Run once after cloning or after dependency/toolchain changes:
 bash scripts/dev.sh bootstrap
 ```
 
-This installs the required Rust components and targets, fetches the locked Cargo dependencies, and creates `.venv-oracle` from `requirements/oracle.txt`. The generated virtual environment is ignored and must not be committed.
+This installs required Rust components and targets, fetches locked Cargo dependencies, and creates `.venv-oracle` from `requirements/oracle.txt`.
 
 ## Validation
 
@@ -35,7 +35,7 @@ Fast validation:
 bash scripts/dev.sh fast
 ```
 
-It runs the generated-artifact audit, script unit tests, shell syntax checks, rustfmt, locked all-target/all-feature check, strict Clippy, and the complete Rust workspace test suite.
+It runs the generated-artifact audit, script unit tests, shell syntax checks, consolidated strength/authority audit, rustfmt, locked all-target/all-feature check, strict Clippy, and the complete Rust workspace test suite.
 
 Full local validation:
 
@@ -45,15 +45,13 @@ bash scripts/dev.sh full
 
 It includes the fast gate plus release depth-four perft, warning-free rustdoc, debug/release workspace builds, and the pinned differential corpus/seeded-playout oracle. Run bootstrap first so `.venv-oracle` exists.
 
-The slow depth-five perft, bounded fuzz campaigns, Miri, sanitizers, dual-architecture performance measurements, Android API-35 instrumentation, the historical 400-game strength control, and complete-variant controls remain independent CI workflows because they require specialized runners or extended execution.
+The slow depth-five perft, bounded fuzz campaigns, Miri, sanitizers, dual-architecture performance measurements, Android API-35 instrumentation, historical strength control, and complete-variant controls remain independent CI workflows because they require specialized runners or extended execution.
 
 Run the consolidated v0.2 authority audit directly with:
 
 ```bash
 bash scripts/dev.sh strength-audit
 ```
-
-This chains the completed v0.1/full-port/post-port audits and every permanent v0.2 search-decision audit, then verifies schema identities, activation boundaries, stable adapters, read-only workflows, documentation authority, and absence of temporary or hidden runtime fallback machinery.
 
 ## Perft
 
@@ -62,16 +60,11 @@ bash scripts/dev.sh perft       # authoritative suite through depth 4
 bash scripts/dev.sh perft 5     # full depth-five suite
 ```
 
-For one position or divide output, use the underlying explicit tooling:
-
-```bash
-cargo run --locked --release -p chess-tools -- perft 4 '<six-field FEN>'
-cargo run --locked --release -p chess-tools -- divide 4 '<six-field FEN>'
-```
+For one position or divide output, use the underlying explicit tooling as documented by `bash scripts/dev.sh help` and the perft documentation.
 
 ## UCI
 
-Run the Linux UCI process on stdin/stdout:
+Run the machine-facing Linux UCI process on stdin/stdout:
 
 ```bash
 bash scripts/dev.sh uci
@@ -89,13 +82,27 @@ A smoke transcript can be sent without a GUI:
 printf 'uci\nisready\nposition startpos\ngo depth 3\nquit\n' | bash scripts/dev.sh uci
 ```
 
-See `docs/RUST_UCI_PROCESS_INTEGRATION.md` and `docs/RUST_OPENING_BOOK_ADAPTER_INTEGRATION.md` for protocol and ownership details.
+See `docs/RUST_UCI_PROCESS_INTEGRATION.md` and `docs/RUST_OPENING_BOOK_ADAPTER_INTEGRATION.md`.
 
-## Rust TUI coverage
+## Native Rust TUI
 
-Focused source-based coverage for the native Rust TUI uses `cargo-llvm-cov` as diagnostic evidence. Coverage is intentionally separate from the Rust 1.75 product MSRV gate: CI runs coverage on the current stable Rust toolchain with `llvm-tools-preview`, while product compatibility remains validated independently. The permanent workflow pins `cargo-llvm-cov` 0.8.7.
+Run the existing full-screen Ratatui/Crossterm frontend with:
 
-Install a compatible `cargo-llvm-cov` locally and ensure `llvm-tools-preview` is present, then use:
+```bash
+bash scripts/dev.sh tui
+```
+
+The TUI is retained as a supported frontend. It consumes the shared `chess-app` game/session/search layer while keeping its own menus, overlays, key handling, responsive rendering, and raw/alternate-screen terminal lifecycle.
+
+Additional real-PTY acceptance coverage:
+
+```bash
+bash scripts/dev.sh tui-pty-smoke
+```
+
+The PTY suite drives the actual `chess-tui` process and preserves launch/quit, Human White move + engine reply, Self-play pause/step/resume, resignation, quit-during-search, resize, and save success/failure behavior.
+
+Focused source-based TUI coverage remains available through:
 
 ```bash
 bash scripts/dev.sh tui-coverage clean
@@ -105,7 +112,58 @@ bash scripts/dev.sh tui-coverage lcov
 bash scripts/dev.sh tui-coverage html
 ```
 
-The JSON summary is written to `target/chess-tui-coverage-summary.json`, LCOV to `target/chess-tui-lcov.info`, and HTML under `target/llvm-cov/html/`. `target/` is ignored. Coverage commands run the relevant `chess-tui` tests with all features and do not enforce an arbitrary percentage threshold; uncovered safety/error branches are reviewed explicitly. The permanent `Rust TUI coverage` workflow uploads text, JSON, and LCOV evidence tied to the tested commit SHA without requiring Codecov or another external coverage service. Coverage tooling is development infrastructure and is not a `chess-tui` runtime dependency.
+## Scrolling Rust console
+
+Run the separate human-facing line-oriented console frontend with:
+
+```bash
+bash scripts/dev.sh console
+```
+
+This application uses ordinary stdin/stdout and normal terminal scrollback. It does not use Ratatui/Crossterm raw mode or alternate screen, and it does not launch `chess-uci` or Python. Shared game/search lifecycle comes from `chess-app`.
+
+Startup supports:
+
+1. Human vs Engine;
+2. Self-play;
+3. Quit.
+
+Human mode selects White/Black and engine depth. Self-play selects independent White/Black depths. Empty selections use documented defaults; invalid/out-of-range depths are rejected and reprompted rather than silently clamped.
+
+During a game, supported commands are:
+
+```text
+e2e4 | move e2e4
+board
+moves
+status
+engine
+help
+resign
+save <path>
+new
+menu
+quit
+pause
+resume
+step
+```
+
+Move legality remains core-owned. `pause`/`resume`/`step` are Self-play-only, and `resign` is Human-vs-Engine-only. Destructive active-game actions and overwrite of an existing save require explicit confirmation; empty confirmation defaults to No.
+
+Console saves are deterministic versioned text, not PGN. They have explicit paths, no automatic save directory, and no auto-save. The final file is published through the shared atomic same-directory write/rename primitive; failures are printed and never reported as success.
+
+The stdin reader is state-free: it sends typed input events but never owns `GameController` or an engine worker. EOF is distinct from an empty command, cancels/joins any active engine worker, and exits deterministically. An interactive OS stdin read may remain blocked after explicit process quit; this is documented rather than falsely described as joined. Engine workers are always resolved explicitly.
+
+Run real-process acceptance coverage with:
+
+```bash
+bash scripts/dev.sh console-smoke
+```
+
+This drives the actual `chess-console` executable through piped stdin/stdout and covers menu quit, Human White and Black engine flows, illegal-move visibility, resignation confirmation, save/overwrite/failure behavior, Self-play pause/step/resume, confirmed quit during active search, and EOF during active search.
+
+See `docs/RUST_CONSOLE_SPEC.md`, `docs/RUST_CONSOLE_TODO.md`, and `docs/RUST_CONSOLE_IMPLEMENTATION.md`.
 
 ## Android/JNI
 
@@ -128,11 +186,11 @@ bash scripts/dev.sh self-play \
   self-play-output/dataset.txt
 ```
 
-Every path is explicit. The output is generated evidence and is ignored by default. Promote a dataset into `fixtures/` only through an intentional review that records its schema, provenance, and purpose.
+Every path is explicit. The output is generated evidence and is ignored by default. Promote a dataset into `fixtures/` only through an intentional review that records schema, provenance, and purpose.
 
 ## Offline tuning
 
-Create a real configuration from `fixtures/tuning_config.example`. Replace the source commit, timestamp, and candidate identifiers with exact values for the run.
+Create a real configuration from `fixtures/tuning_config.example`, then run:
 
 ```bash
 bash scripts/dev.sh tune \
@@ -141,27 +199,7 @@ bash scripts/dev.sh tune \
   tuning-output/candidate-001
 ```
 
-Resume from a previous complete output directory into a new output directory:
-
-```bash
-bash scripts/dev.sh tune \
-  /path/to/tuning-config.txt \
-  /path/to/self-play-dataset.txt \
-  tuning-output/candidate-002 \
-  tuning-output/candidate-001
-```
-
-A successful output directory contains:
-
-- `tuning-config.txt` — exact configuration required for strict resume;
-- `checkpoint.bin` — strict checksummed resume state;
-- `tuning-report.txt` — complete versioned provenance, losses, configuration, and all 810 deltas;
-- `candidate-weights.txt` — versioned named candidate artifact;
-- `summary.tsv` — concise numerical result;
-- `ACTIVATION_DISABLED` — explicit proof that the run did not change runtime defaults.
-
-The command refuses an existing output directory, publishes through a sibling staging directory, and deletes incomplete staging output on failure. Candidate activation remains the independent Task 21 process.
-
+Resume from a previous complete output directory into a new output directory by supplying the checkpoint/output path as the fourth argument. Candidates remain inactive until a separate explicit validation/activation process succeeds.
 
 ## Complete-variant control evidence
 
@@ -174,16 +212,7 @@ bash scripts/dev.sh variant-control \
   fixed_nodes
 ```
 
-The accepted tiers are `smoke`, `development`, and `production`; protocols are `fixed_nodes` and `clock_ms`. The dispatcher records the exact Git commit, Rust target/toolchain/profile identity, and command. It refuses a dirty checkout or an existing output directory. The output contains a versioned opening suite, strict checksummed report, provenance manifest, and validation summary. It always records `activated=false` and cannot change runtime defaults.
-
-Validate any complete report independently:
-
-```bash
-cargo run --locked --release -p chess-tools -- \
-  variant-report-validate /path/to/report
-```
-
-The permanent `Variant validation` workflow runs bounded native x86-64 and ARM64 smoke controls on relevant changes, scheduled development and production controls, and explicit manual tiers/protocols. These are infrastructure controls. A behaviorally distinct production candidate remains the separate S2-14 process.
+The command records exact source/build/invocation provenance, refuses a dirty checkout or existing output directory, and cannot activate runtime defaults.
 
 ## Fuzzing
 
@@ -197,14 +226,14 @@ Bounded libFuzzer, Miri, and sanitizer commands are documented in `docs/RUST_FUZ
 
 ## CI matrix
 
-Permanent independent workflows are:
+Permanent independent workflows include:
 
 - `CI`: x86-64 quality/release/perft/oracle plus native ARM64 workspace builds;
 - `Android JNI`: lint, host JVM, dual JNI ABIs, APKs, and API-35 instrumentation;
 - `Robustness`: fuzz, Miri, ASan/LSan, and TSan;
 - `Performance`: x86-64/ARM64 budgets and scheduled Callgrind;
 - `Slow perft`: scheduled/manual depth-five fixtures;
-- `Strength`: scheduled/manual 200-pair/400-game historical weight-only baseline control;
+- `Strength`: scheduled/manual historical strength control;
 - `Variant validation`: native x86-64/ARM64 complete-identity smoke, development, and production controls.
 
-`report-master-validation.yml` reports completed exact-`master` runs to the repository validation issue. No workflow combines a performance, strength, or robustness result with correctness in a way that can hide a failure.
+`report-master-validation.yml` reports completed exact-`master` runs to the repository validation issue. No workflow combines performance, strength, or robustness results with correctness in a way that can hide a failure.
