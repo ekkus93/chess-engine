@@ -46,8 +46,13 @@ jobs:
           )
           exact(
               'crates/chess-tui/src/app.rs',
+              '    fn refresh_terminal_state(&mut self) -> Result<(), AppError> {',
+              '    #[doc(hidden)]\n    pub fn refresh_terminal_state(&mut self) -> Result<(), AppError> {',
+          )
+          exact(
+              'crates/chess-tui/src/app.rs',
               '    fn sync_pending_search(&mut self) -> Result<(), AppError> {',
-              '    fn schedule_if_needed(&mut self) -> Result<(), AppError> {\n        self.controller.schedule_if_needed()?;\n        self.sync_pending_search()\n    }\n\n    fn sync_pending_search(&mut self) -> Result<(), AppError> {',
+              '    #[doc(hidden)]\n    pub fn schedule_if_needed(&mut self) -> Result<(), AppError> {\n        self.controller.schedule_if_needed()?;\n        self.sync_pending_search()\n    }\n\n    fn sync_pending_search(&mut self) -> Result<(), AppError> {',
           )
 
           exact(
@@ -96,6 +101,10 @@ jobs:
               if actual != expected:
                   raise SystemExit(f'ui hardening expected {expected} matches, found {actual}: {old!r}')
               text = text.replace(old, new)
+          exact_unused = '    let session = app.session.as_ref().expect("session");\n    assert_eq!(\n        app.saved_path.as_deref(),\n'
+          if text.count(exact_unused) != 1:
+              raise SystemExit(f'ui hardening unused session seam count={text.count(exact_unused)}')
+          text = text.replace(exact_unused, '    assert_eq!(\n        app.saved_path.as_deref(),\n')
           ui_tests.write_text(text)
 
           render_tests = Path('crates/chess-tui/src/render/hardening_tests.rs')
