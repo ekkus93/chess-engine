@@ -1,0 +1,44 @@
+name: Temporary console checklist coverage closure
+
+on:
+  push:
+    paths:
+      - .github/workflows/console-coverage-closure-temp.yml
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Format and locked checks
+        run: |
+          cargo fmt --all -- --check
+          cargo check --locked -p chess-app --all-targets
+          cargo check --locked -p chess-console --all-targets
+          cargo check --locked -p chess-tui --all-targets
+      - name: Strict Clippy
+        run: |
+          cargo clippy --locked -p chess-app --all-targets -- -D warnings
+          cargo clippy --locked -p chess-console --all-targets -- -D warnings
+          cargo clippy --locked -p chess-tui --all-targets -- -D warnings
+      - name: Focused tests
+        run: |
+          cargo test --locked -p chess-app --all-targets
+          cargo test --locked -p chess-console --all-targets
+          cargo test --locked -p chess-tui --all-targets
+      - name: Real console process acceptance
+        run: bash scripts/dev.sh console-smoke
+      - name: Preserve TUI PTY acceptance
+        run: bash scripts/dev.sh tui-pty-smoke
+      - name: Self-delete after success
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/console-coverage-closure-temp.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'test(chess-console): validate checklist coverage closure'
+          git push origin HEAD:master
