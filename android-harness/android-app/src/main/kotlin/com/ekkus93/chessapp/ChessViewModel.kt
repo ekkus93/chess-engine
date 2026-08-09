@@ -57,33 +57,30 @@ class ChessViewModel : ViewModel() {
         if (!configuration.isSetup || configuration.busy) {
             return
         }
+        if (game != null) {
+            mutableState.update {
+                it.copy(errorMessage = "A native game is still active; close it before starting another.")
+            }
+            return
+        }
         val generation = nextOperation()
         mutableState.update { it.copy(busy = true, errorMessage = null) }
         viewModelScope.launch {
-            val previous = game
-            game = null
             val created = try {
                 withContext(Dispatchers.Default) {
-                    previous?.close()
                     ChessGame.create(configuration.humanSide, configuration.engineDepth)
                 }
             } catch (error: RuntimeException) {
-                if (isCurrent(generation)) {
-                    mutableState.update {
-                        it.copy(busy = false, errorMessage = displayMessage(error))
-                    }
-                }
+                publishError(generation, error)
                 return@launch
             }
             if (!isCurrent(generation)) {
                 withContext(Dispatchers.Default) { created.close() }
                 return@launch
             }
-            game = created
             val snapshot = try {
                 withContext(Dispatchers.Default) { created.snapshot() }
             } catch (error: RuntimeException) {
-                game = null
                 withContext(Dispatchers.Default) {
                     try {
                         created.close()
@@ -91,45 +88,57 @@ class ChessViewModel : ViewModel() {
                         Log.e(LOG_TAG, "failed to close game after snapshot failure", closeError)
                     }
                 }
-                mutableState.update {
-                    it.copy(busy = false, errorMessage = displayMessage(error))
-                }
+                publishError(generation, error)
                 return@launch
             }
+            game = created
             publishSnapshot(generation, snapshot)
             monitorSearch(created, generation, snapshot)
         }
     }
 
     fun returnToSetup() {
+        val current = game ?: run {
+            mutableState.update {
+                it.copy(
+                    snapshot = null,
+                    selectedSquare = null,
+                    promotionMoves = emptyList(),
+                    busy = false,
+                    errorMessage = null,
+                )
+            }
+            return
+        }
         val generation = nextOperation()
-        val current = game
-        game = null
         mutableState.update {
             it.copy(
-                snapshot = null,
+                busy = true,
                 selectedSquare = null,
                 promotionMoves = emptyList(),
-                busy = current != null,
                 errorMessage = null,
             )
-        }
-        if (current == null) {
-            mutableState.update { it.copy(busy = false) }
-            return
         }
         viewModelScope.launch {
             try {
                 withContext(Dispatchers.Default) { current.close() }
-                if (isCurrent(generation)) {
-                    mutableState.update { it.copy(busy = false) }
-                }
             } catch (error: RuntimeException) {
-                if (isCurrent(generation)) {
-                    mutableState.update {
-                        it.copy(busy = false, errorMessage = displayMessage(error))
-                    }
-                }
+                publishError(generation, error)
+                return@launch
+            }
+            if (!isCurrent(generation)) {
+                return@launch
+            }
+            check(game === current) { "native game ownership changed during close" }
+            game = null
+            mutableState.update {
+                it.copy(
+                    snapshot = null,
+                    selectedSquare = null,
+                    promotionMoves = emptyList(),
+                    busy = false,
+                    errorMessage = null,
+                )
             }
         }
     }
@@ -316,10 +325,10 @@ class ChessViewModel : ViewModel() {
     override fun onCleared() {
         monitorJob?.cancel()
         val current = game
-        game = null
         if (current != null) {
             try {
                 current.close()
+                game = null
             } catch (error: RuntimeException) {
                 Log.e(LOG_TAG, "failed to close native chess game during ViewModel cleanup", error)
             }
