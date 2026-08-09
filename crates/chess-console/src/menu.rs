@@ -1,4 +1,7 @@
-use std::{io::{self, Write}, sync::mpsc::Receiver};
+use std::{
+    io::{self, Write},
+    sync::mpsc::Receiver,
+};
 
 use chess_app::{GameConfig, DEFAULT_SEARCH_DEPTH, MAX_SEARCH_DEPTH, MIN_SEARCH_DEPTH};
 use chess_core::Color;
@@ -103,7 +106,10 @@ fn prompt_depth<W: Write>(
             return Ok(Some(DEFAULT_SEARCH_DEPTH));
         }
         let Ok(depth) = trimmed.parse::<u16>() else {
-            writeln!(output, "Invalid depth: enter a number from {MIN_SEARCH_DEPTH} to {MAX_SEARCH_DEPTH}.")?;
+            writeln!(
+                output,
+                "Invalid depth: enter a number from {MIN_SEARCH_DEPTH} to {MAX_SEARCH_DEPTH}."
+            )?;
             continue;
         };
         if !(MIN_SEARCH_DEPTH..=MAX_SEARCH_DEPTH).contains(&depth) {
@@ -136,7 +142,9 @@ mod tests {
     fn run(lines: &[&str]) -> (Option<MenuSelection>, String) {
         let (sender, receiver) = mpsc::channel();
         for line in lines {
-            sender.send(InputEvent::Line((*line).to_owned())).expect("send");
+            sender
+                .send(InputEvent::Line((*line).to_owned()))
+                .expect("send");
         }
         sender.send(InputEvent::Eof).expect("eof");
         drop(sender);

@@ -289,10 +289,7 @@ impl ConsoleGame {
             return Ok(None);
         }
         if !matches!(normalized.as_str(), "y" | "yes") {
-            writeln!(
-                output,
-                "Please answer y/yes or n/no. Empty input means No."
-            )?;
+            writeln!(output, "Please answer y/yes or n/no. Empty input means No.")?;
             return Ok(None);
         }
         let Some(action) = self.confirmation.take() else {
@@ -703,7 +700,10 @@ fn print_help<W: Write>(output: &mut W) -> io::Result<()> {
     writeln!(output, "  e2e4 | move e2e4   make a human move")?;
     writeln!(output, "  board               print the board")?;
     writeln!(output, "  moves               print numbered move history")?;
-    writeln!(output, "  status              print turn/check/result status")?;
+    writeln!(
+        output,
+        "  status              print turn/check/result status"
+    )?;
     writeln!(output, "  engine              print latest engine metrics")?;
     writeln!(
         output,
@@ -769,8 +769,7 @@ mod tests {
 
     #[test]
     fn human_mode_invalid_command_and_declined_quit_preserve_game() {
-        let (reason, output) =
-            scripted(&["1", "1", "1", "foobar", "quit", "", "quit", "yes"]);
+        let (reason, output) = scripted(&["1", "1", "1", "foobar", "quit", "", "quit", "yes"]);
         assert_eq!(reason, ExitReason::Quit);
         assert!(output.contains("unknown command: foobar"));
         assert!(output.contains("Cancelled."));

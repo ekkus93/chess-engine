@@ -3,7 +3,10 @@ use std::{
     io::{Read, Write},
     path::PathBuf,
     process::{Child, ChildStdin, Command, ExitStatus, Stdio},
-    sync::{mpsc::{self, Receiver}, Mutex, MutexGuard},
+    sync::{
+        mpsc::{self, Receiver},
+        Mutex, MutexGuard,
+    },
     thread::{self, JoinHandle},
     time::{Duration, Instant, SystemTime},
 };
@@ -12,7 +15,9 @@ const TIMEOUT: Duration = Duration::from_secs(15);
 static PROCESS_TEST_LOCK: Mutex<()> = Mutex::new(());
 
 fn process_test_guard() -> MutexGuard<'static, ()> {
-    PROCESS_TEST_LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+    PROCESS_TEST_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
 struct Harness {
@@ -78,7 +83,9 @@ impl Harness {
     fn wait_for_since(&mut self, marker: &str, start: usize) {
         let deadline = Instant::now() + TIMEOUT;
         loop {
-            if String::from_utf8_lossy(&self.output[start.min(self.output.len())..]).contains(marker) {
+            if String::from_utf8_lossy(&self.output[start.min(self.output.len())..])
+                .contains(marker)
+            {
                 return;
             }
             if let Some(status) = self.child.try_wait().expect("child status") {
@@ -242,7 +249,10 @@ fn real_binary_save_success_failure_and_overwrite_confirmation_are_visible() {
     harness.wait_for("Overwrite existing file");
     harness.send("\n");
     harness.wait_for("Cancelled.");
-    assert_eq!(fs::read_to_string(&path).expect("read sentinel"), "sentinel\n");
+    assert_eq!(
+        fs::read_to_string(&path).expect("read sentinel"),
+        "sentinel\n"
+    );
 
     harness.send(&format!("save {}\nyes\n", path.display()));
     harness.wait_for("Saved to ");

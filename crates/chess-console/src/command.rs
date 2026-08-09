@@ -128,7 +128,10 @@ mod tests {
     #[test]
     fn command_words_are_case_insensitive_and_whitespace_is_stable() {
         assert_eq!(parse_command("  BoArD  ").expect("board"), Command::Board);
-        assert_eq!(parse_command("\tReSuMe\n").expect("resume"), Command::Resume);
+        assert_eq!(
+            parse_command("\tReSuMe\n").expect("resume"),
+            Command::Resume
+        );
         assert_eq!(
             parse_command("save   /tmp/a game.txt ").expect("save"),
             Command::Save("/tmp/a game.txt".to_owned())

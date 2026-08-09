@@ -1,6 +1,9 @@
 use std::{io, path::Path};
 
-use chess_app::{text::{color_name, format_outcome}, GameConfig, GameSession};
+use chess_app::{
+    text::{color_name, format_outcome},
+    GameConfig, GameSession,
+};
 
 #[must_use]
 pub fn serialize_game(session: &GameSession, timestamp: Option<&str>) -> String {

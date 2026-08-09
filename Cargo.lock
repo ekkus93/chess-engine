@@ -87,6 +87,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "chess-console"
+version = "0.1.0"
+dependencies = [
+ "chess-app",
+ "chess-core",
+]
+
+[[package]]
 name = "chess-core"
 version = "0.1.0"
 
