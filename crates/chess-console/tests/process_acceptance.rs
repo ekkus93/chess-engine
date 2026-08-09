@@ -80,7 +80,8 @@ impl Harness {
     fn wait_for_since(&mut self, marker: &str, start: usize) {
         let deadline = Instant::now() + TIMEOUT;
         loop {
-            if String::from_utf8_lossy(&self.stdout[start.min(self.stdout.len())..]).contains(marker)
+            if String::from_utf8_lossy(&self.stdout[start.min(self.stdout.len())..])
+                .contains(marker)
             {
                 return;
             }
