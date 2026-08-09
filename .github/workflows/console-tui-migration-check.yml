@@ -29,9 +29,25 @@ jobs:
               p.write_text(text.replace(old, new))
 
           exact(
+              'crates/chess-app/src/controller.rs',
+              '    fn schedule_if_needed(&mut self) -> Result<(), AppError> {',
+              '    pub fn schedule_if_needed(&mut self) -> Result<(), AppError> {',
+          )
+
+          exact(
               'crates/chess-tui/src/app.rs',
               '        self.pending_search = None;\n        self.controller.resign_human()?;\n',
               '        self.controller.resign_human()?;\n        self.pending_search = None;\n',
+          )
+          exact(
+              'crates/chess-tui/src/app.rs',
+              '        let session = self\n            .session\n            .as_mut()\n            .ok_or_else(|| AppError::InvalidState("no game exists to mark saved".to_owned()))?;\n        self.saved_path = Some(path.clone());\n        session.status_message = Some(format!("Saved to {path}"));',
+              '        let session = self\n            .controller\n            .session\n            .as_mut()\n            .ok_or_else(|| AppError::InvalidState("no game exists to mark saved".to_owned()))?;\n        session.status_message = Some(format!("Saved to {path}"));\n        self.saved_path = Some(path.clone());',
+          )
+          exact(
+              'crates/chess-tui/src/app.rs',
+              '    fn sync_pending_search(&mut self) -> Result<(), AppError> {',
+              '    fn schedule_if_needed(&mut self) -> Result<(), AppError> {\n        self.controller.schedule_if_needed()?;\n        self.sync_pending_search()\n    }\n\n    fn sync_pending_search(&mut self) -> Result<(), AppError> {',
           )
 
           exact(
@@ -67,14 +83,18 @@ jobs:
 
           ui_tests = Path('crates/chess-tui/src/ui/hardening_tests.rs')
           text = ui_tests.read_text()
-          replacements = {
-              'app.session.as_ref().expect("session").move_input': 'app.move_input',
-              'engine_turn\n        .session\n        .as_ref()\n        .expect("session")\n        .move_input': 'engine_turn.move_input',
-              'self_play\n        .session\n        .as_ref()\n        .expect("session")\n        .move_input': 'self_play.move_input',
-          }
-          for old, new in replacements.items():
-              if old not in text:
-                  raise SystemExit(f'ui hardening expected pattern missing: {old!r}')
+          replacements = [
+              ('app.session.as_ref().expect("session").move_input', 'app.move_input', 1),
+              ('engine_turn\n        .session\n        .as_ref()\n        .expect("session")\n        .move_input', 'engine_turn.move_input', 1),
+              ('self_play\n        .session\n        .as_ref()\n        .expect("session")\n        .move_input', 'self_play.move_input', 1),
+              ('assert_eq!(session.saved_path, None);', 'assert_eq!(app.saved_path, None);', 2),
+              ('session.saved_path.as_deref()', 'app.saved_path.as_deref()', 2),
+              ('app.session.as_ref().expect("session").saved_path', 'app.saved_path', 3),
+          ]
+          for old, new, expected in replacements:
+              actual = text.count(old)
+              if actual != expected:
+                  raise SystemExit(f'ui hardening expected {expected} matches, found {actual}: {old!r}')
               text = text.replace(old, new)
           ui_tests.write_text(text)
 
