@@ -121,9 +121,13 @@ class ChessGame private constructor(
 
     @Synchronized
     override fun close() {
-        val current = handle.getAndSet(0L)
-        if (current != 0L) {
-            NativeChessAppBindings.nativeDestroy(current)
+        val current = handle.get()
+        if (current == 0L) {
+            return
+        }
+        NativeChessAppBindings.nativeDestroy(current)
+        check(handle.compareAndSet(current, 0L)) {
+            "Android chess game handle changed during close"
         }
     }
 
