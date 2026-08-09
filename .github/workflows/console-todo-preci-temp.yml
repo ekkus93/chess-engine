@@ -1,0 +1,166 @@
+name: Temporary console TODO pre-CI evidence
+
+on:
+  push:
+    paths:
+      - .github/workflows/console-todo-preci-temp.yml
+
+permissions:
+  contents: write
+
+jobs:
+  update-evidence:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update TODO and Ralph status from exact evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          todo = Path('docs/RUST_CONSOLE_TODO.md')
+          text = todo.read_text()
+          text = text.replace(
+              'Status: proposed / not started',
+              'Status: automated implementation complete through Phase 17 evidence; permanent CI closure pending; manual Phase 19 acceptance pending',
+              1,
+          )
+
+          def mark_between(value: str, start: str, end: str) -> str:
+              a = value.index(start)
+              b = value.index(end, a)
+              chunk = value[a:b].replace('- [ ]', '- [x]')
+              return value[:a] + chunk + value[b:]
+
+          # Phase 0 was not fully captured before extraction. Mark only the items
+          # that are backed by repository/history inspection, leaving the missing
+          # pre-change execution evidence visibly open.
+          phase0_start = text.index('## Phase 0 — Establish exact baseline and implementation map')
+          phase1_start = text.index('## Phase 1 — Create the `chess-app` shared library crate', phase0_start)
+          phase0 = text[phase0_start:phase1_start]
+          keep_open = {
+              '- [ ] Run `bash scripts/dev.sh fast` on the exact implementation starting SHA.',
+              '- [ ] Record whether the existing workspace is green before code changes.',
+              '- [ ] Run the existing focused TUI tests through supported `scripts/dev.sh` commands.',
+              '- [ ] Run the real TUI PTY acceptance suite through its supported developer command.',
+              '- [ ] Record the baseline TUI test/PTY results before extraction.',
+              '- [ ] Baseline `fast` result is recorded.',
+              '- [ ] Baseline TUI PTY result is recorded.',
+          }
+          rebuilt = []
+          for line in phase0.splitlines():
+              if line.startswith('- [ ]') and line not in keep_open:
+                  line = line.replace('- [ ]', '- [x]', 1)
+              rebuilt.append(line)
+          phase0 = '\n'.join(rebuilt)
+          note = (
+              '\n\n### Phase 0 evidence note\n\n'
+              'The implementation starting TODO commit did not receive a clean recorded pre-change `fast`/PTY baseline. '
+              'Its permanent CI run `31328908993` was red because the newly added `docs/RUST_CONSOLE_TODO.md` had not yet been classified by the repository authority-index audit. '
+              'That documentation-audit requirement was repaired at `170b3dcc2c4223ee52205cfd68f87553b67c5d84` rather than disabled. '
+              'Because no exact pre-extraction `fast` and PTY transcript was recorded before code movement began, the corresponding baseline execution boxes above intentionally remain unchecked. '
+              'Subsequent shared-layer/TUI migration and final exact-source gates provide the regression evidence used by later phases.\n'
+          )
+          if '### Phase 0 evidence note' not in phase0:
+              phase0 = phase0.rstrip() + note + '\n\n'
+          text = text[:phase0_start] + phase0 + text[phase1_start:]
+
+          # Phases 1 through 16 are implemented and backed by focused/shared,
+          # real-process console, real-PTY TUI, documentation and fail-loud audit evidence.
+          for number in range(1, 17):
+              start = f'## Phase {number} '
+              a = text.index(start)
+              if number < 16:
+                  b = text.index(f'## Phase {number + 1} ', a)
+              else:
+                  b = text.index('## Phase 17 ', a)
+              chunk = text[a:b].replace('- [ ]', '- [x]')
+              text = text[:a] + chunk + text[b:]
+
+          # Phase 17 items already proven by the exact local-workflow run.
+          phase17_proven = [
+              'Record exact intended final source SHA.',
+              'Run `bash scripts/dev.sh fast` on that exact SHA.',
+              'Run focused `chess-app` tests.',
+              'Run focused `chess-console` tests.',
+              'Run real-process console acceptance tests.',
+              'Run focused `chess-tui` tests.',
+              'Run TUI PTY acceptance suite.',
+              'Run existing UCI tests.',
+              'Confirm artifact audit remains green.',
+              'Confirm strength audit remains green/no candidate activation change.',
+              'Confirm no Python production/runtime dependency was added.',
+              'Confirm supported MSRV policy for new dependencies/crates.',
+              'Confirm lockfile is intentional and locked checks pass.',
+          ]
+          for label in phase17_proven:
+              old = f'- [ ] {label}'
+              if old not in text:
+                  raise SystemExit(f'missing Phase 17 checkbox: {old}')
+              text = text.replace(old, f'- [x] {label}', 1)
+
+          record_old = '''### Phase 17 evidence record
+
+- Final source SHA:
+- `fast` command/result:
+- full command/result:
+- `chess-app` focused command/result:
+- `chess-console` focused command/result:
+- console real-process command/result:
+- TUI focused command/result:
+- TUI PTY command/result:
+- UCI command/result:
+- other relevant gate results:'''
+          record_new = '''### Phase 17 evidence record
+
+- Final intended implementation source SHA: `591e1d304275674b8f6b83f11a83944853615ac4`.
+- `fast` command/result: `bash scripts/dev.sh fast` — success on exact `591e1d304275674b8f6b83f11a83944853615ac4` in run `31334062722`, job `93296869345`.
+- full command/result: pending final permanent-CI equivalent on the evidence/source freeze.
+- `chess-app` focused command/result: workspace/focused tests green; exact-source `fast` success in run `31334062722`.
+- `chess-console` focused command/result: focused tests plus real-process suite green; checklist-closure run `31334008959`, job `93296723675`; exact-source gate `31334062722`, job `93296869345`.
+- console real-process command/result: `bash scripts/dev.sh console-smoke` — success on exact `591e1d304275674b8f6b83f11a83944853615ac4` in run `31334062722`.
+- TUI focused command/result: TUI tests green in exact-source `fast`; earlier extraction gate `31331840727`, job `93291224158` also green.
+- TUI PTY command/result: `bash scripts/dev.sh tui-pty-smoke` — success on exact `591e1d304275674b8f6b83f11a83944853615ac4` in run `31334062722`.
+- UCI command/result: existing UCI tests included in exact-source workspace `fast`; permanent UCI smoke pending final permanent-CI freeze.
+- other relevant gate results: coverage-closure run `31334008959` passed locked checks, strict Clippy, focused shared/console/TUI tests, expanded console real-process acceptance, and the unchanged TUI PTY suite.'''
+          if record_old not in text:
+              raise SystemExit('Phase 17 evidence record block not found')
+          text = text.replace(record_old, record_new, 1)
+          todo.write_text(text)
+
+          status = Path('docs/RUST_CONSOLE_RALPH_STATUS.md')
+          value = status.read_text()
+          addition = '''
+
+## Checklist coverage closure and exact developer-workflow evidence
+
+A literal TODO audit after the first permanent green run identified several behaviors that were implemented but not separately asserted. Additional tests now cover Self-play defaults, invalid menu/color/non-numeric depth reprompts, explicit `board` output, invalid confirmation input, declined `new`/`menu`/`quit`, Human-mode `pause`/`resume`/`step` rejection, Self-play resignation rejection, idle Human-game EOF, declined quit while a depth-12 search remains active, and stdout/stderr capture in real-process diagnostics.
+
+- Checklist-closure validation run: `31334008959`.
+- Job: `93296723675`.
+- Result: success.
+- Resulting formatted/self-cleaned source checkpoint: `591e1d304275674b8f6b83f11a83944853615ac4`.
+- Exact-source developer-workflow validation run: `31334062722`.
+- Job: `93296869345`.
+- Validator explicitly checked out `591e1d304275674b8f6b83f11a83944853615ac4` before execution.
+- `bash scripts/dev.sh fast`: success.
+- `bash scripts/dev.sh console-smoke`: success.
+- `bash scripts/dev.sh tui-pty-smoke`: success.
+
+This closes the final automated local-workflow/checklist coverage gaps without changing the TUI/console product architecture. Permanent exact-source CI and manual human terminal acceptance remain separate gates.
+'''
+          if '## Checklist coverage closure and exact developer-workflow evidence' not in value:
+              value = value.rstrip() + addition + '\n'
+          status.write_text(value)
+          PY
+      - name: Self-delete and commit staged evidence
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/console-todo-preci-temp.yml
+          git add docs/RUST_CONSOLE_TODO.md docs/RUST_CONSOLE_RALPH_STATUS.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'docs(chess-console): record automated Ralph evidence'
+          git push origin HEAD:master
