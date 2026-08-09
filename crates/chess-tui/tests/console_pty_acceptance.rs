@@ -263,7 +263,7 @@ fn pty_human_white_commands_errors_engine_reply_and_resignation() {
         ("board", "    a   b   c   d   e   f   g   h"),
         ("moves", "(no moves)"),
         ("status", "White to move"),
-        ("engine", "info unavailable"),
+        ("engine", "pv     -"),
         ("help", "Commands:"),
     ] {
         let start = session.output_len();
