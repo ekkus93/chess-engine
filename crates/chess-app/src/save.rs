@@ -8,18 +8,28 @@ use std::{
 ///
 /// Interactive frontends must report any returned error; this function never
 /// converts a failed write into success and cleans up its temporary artifact on
-/// both write and rename failure paths.
+/// both write and rename failure paths. If cleanup itself fails, that secondary
+/// failure is included in the returned error instead of being silently lost.
 pub fn atomic_write(path: &Path, contents: &str) -> io::Result<()> {
     let temp_path = temp_write_path(path);
     if let Err(error) = fs::write(&temp_path, contents) {
-        let _cleanup_result = fs::remove_file(&temp_path);
-        return Err(error);
+        return Err(with_cleanup_result(&temp_path, error));
     }
     if let Err(error) = fs::rename(&temp_path, path) {
-        let _cleanup_result = fs::remove_file(&temp_path);
-        return Err(error);
+        return Err(with_cleanup_result(&temp_path, error));
     }
     Ok(())
+}
+
+fn with_cleanup_result(temp_path: &Path, original: io::Error) -> io::Error {
+    match fs::remove_file(temp_path) {
+        Ok(()) => original,
+        Err(cleanup) if cleanup.kind() == io::ErrorKind::NotFound => original,
+        Err(cleanup) => io::Error::new(
+            original.kind(),
+            format!("{original}; temporary save cleanup also failed: {cleanup}"),
+        ),
+    }
 }
 
 fn temp_write_path(path: &Path) -> PathBuf {
@@ -77,5 +87,22 @@ mod tests {
         let error = atomic_write(&path, "data").expect_err("missing parent fails");
         assert_eq!(error.kind(), std::io::ErrorKind::NotFound);
         assert!(!temp_write_path(&path).exists());
+    }
+
+    #[test]
+    fn secondary_temp_cleanup_failure_is_not_silent() {
+        let path = unique_path("cleanup-failure");
+        let temp = temp_write_path(&path);
+        fs::create_dir(&temp).expect("blocking temp directory created");
+
+        let error = atomic_write(&path, "data").expect_err("write through temp directory fails");
+        assert!(
+            error
+                .to_string()
+                .contains("temporary save cleanup also failed"),
+            "secondary cleanup failure must be visible: {error}"
+        );
+
+        fs::remove_dir(temp).expect("blocking temp directory removed");
     }
 }
