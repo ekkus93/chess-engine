@@ -165,7 +165,10 @@ impl PtySession {
             }
             thread::sleep(POLL_INTERVAL);
         };
-        assert!(status.success(), "chess-console PTY exit status: {status:?}");
+        assert!(
+            status.success(),
+            "chess-console PTY exit status: {status:?}"
+        );
         drop(self.writer);
         if let Some(reader) = self.reader.take() {
             reader.join().expect("PTY reader joins");
@@ -184,7 +187,9 @@ impl Drop for PtySession {
 
 fn console_binary() -> PathBuf {
     let test_binary = std::env::current_exe().expect("current test executable path");
-    let deps_dir = test_binary.parent().expect("integration test lives in deps");
+    let deps_dir = test_binary
+        .parent()
+        .expect("integration test lives in deps");
     let debug_dir = deps_dir.parent().expect("deps lives under target/debug");
     let binary = debug_dir.join(format!("chess-console{}", std::env::consts::EXE_SUFFIX));
     assert!(
@@ -331,7 +336,10 @@ fn pty_save_success_failure_and_overwrite_confirmation() {
     session.wait_for_since("Overwrite existing file", decline);
     session.send_line("");
     session.wait_for_since("Cancelled.", decline);
-    assert_eq!(fs::read_to_string(&path).expect("read sentinel"), "sentinel\n");
+    assert_eq!(
+        fs::read_to_string(&path).expect("read sentinel"),
+        "sentinel\n"
+    );
 
     let replace = session.output_len();
     session.send_line(&format!("save {}", path.display()));
