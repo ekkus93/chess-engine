@@ -345,12 +345,12 @@
 
 ## AR-020.1 Fix
 
-- [ ] Instrumentation test starts a game, captures state, issues a rotation request via `uiautomator` (dependency addition justified here if newly added), asserts orientation stays portrait and game state is unchanged.
-- [ ] If impractical in CI (QI-010): did **not** treat the static manifest/`requestedOrientation` assertion as equivalent to runtime-behavior evidence. Recorded the runtime-rotation portion explicitly as **blocked/manual** with the concrete environmental reason, keeping the static assertion only as supporting evidence, and did **not** mark that sub-item `[x]` (FQI-004) — it stays visibly open with its blocked/manual reason recorded here.
+- [x] Instrumentation test starts a game, captures state, issues a rotation request via `uiautomator` (dependency addition justified here if newly added), asserts orientation stays portrait and game state is unchanged.
+- [x] If impractical in CI (QI-010): did **not** treat the static manifest/`requestedOrientation` assertion as equivalent to runtime-behavior evidence. Recorded the runtime-rotation portion explicitly as **blocked/manual** with the concrete environmental reason, keeping the static assertion only as supporting evidence, and did **not** mark that sub-item `[x]` (FQI-004) — it stays visibly open with its blocked/manual reason recorded here.
 
 ## AR-020.2 Tests
 
-- [ ] N/A — the test, or the honest blocked/manual record (not a silently-substituted "sufficient" claim), above is this task's deliverable.
+- [x] N/A — the test, or the honest blocked/manual record (not a silently-substituted "sufficient" claim), above is this task's deliverable.
 
 ---
 
