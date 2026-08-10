@@ -50,6 +50,10 @@ internal fun MoveHistoryPanel(
             listState.isScrollInProgress to nearBottom
         }.collect { (scrolling, nearBottom) ->
             // Layout growth alone cannot change follow mode; only an actual scroll does.
+            // isScrollInProgress is also true during our animateScrollToItem below. This is
+            // safe for real gameplay because history grows one row at a time, so the automatic
+            // hop stays near the bottom. A future bulk-history replacement must re-examine this
+            // assumption before relying on followLatest.
             if (scrolling) {
                 followLatest = nearBottom
             }

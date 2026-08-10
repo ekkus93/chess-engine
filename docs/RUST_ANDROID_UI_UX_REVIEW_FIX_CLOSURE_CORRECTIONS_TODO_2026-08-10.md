@@ -170,13 +170,11 @@ scripts/task_post_port_review_fix_audit.sh
 
 ## CC-006.1 Fix
 
-- [ ] Inline comment added at the `followLatest`/`snapshotFlow` collector in `GamePanels.kt` documenting the single-row-append assumption and that a future bulk-history-replace would need re-examination.
+- [x] `GamePanels.kt` now documents that `isScrollInProgress` also observes the automatic `animateScrollToItem`, that real gameplay appends one row at a time, and that a future bulk-history replacement must re-examine the assumption.
 
 ## CC-006.2 Tests
 
-- [ ] N/A — documentation-only; the two existing auto-scroll tests remain unaffected and green.
-
----
+- [x] N/A — documentation-only behavior comment; Android instrumentation sources compile after the comment, and the existing two auto-scroll behavioral tests remain unchanged for the later full connected-test gate.
 
 # CC-007: Strengthen AR-020's rotation test
 
