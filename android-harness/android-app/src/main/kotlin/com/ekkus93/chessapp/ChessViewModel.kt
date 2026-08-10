@@ -325,12 +325,20 @@ class ChessViewModel : ViewModel() {
     override fun onCleared() {
         monitorJob?.cancel()
         val current = game
+        game = null
         if (current != null) {
-            try {
-                current.close()
-                game = null
-            } catch (error: RuntimeException) {
-                Log.e(LOG_TAG, "failed to close native chess game during ViewModel cleanup", error)
+            Thread(
+                {
+                    try {
+                        current.close()
+                    } catch (error: RuntimeException) {
+                        Log.e(LOG_TAG, "failed to close native chess game during ViewModel cleanup", error)
+                    }
+                },
+                "chess-app-cleanup",
+            ).apply {
+                isDaemon = true
+                start()
             }
         }
         super.onCleared()

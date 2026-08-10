@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{hash_map::Entry, HashMap},
     sync::{
         atomic::{AtomicU64, Ordering},
         mpsc::{Receiver, TryRecvError},
@@ -288,6 +288,20 @@ fn registry() -> &'static Mutex<HashMap<u64, Arc<Mutex<AppGame>>>> {
     REGISTRY.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
+fn register_game(
+    entries: &mut HashMap<u64, Arc<Mutex<AppGame>>>,
+    token: u64,
+    game: AppGame,
+) -> BridgeResult<()> {
+    match entries.entry(token) {
+        Entry::Occupied(_) => Err(internal_error("Android game handle collision")),
+        Entry::Vacant(entry) => {
+            entry.insert(Arc::new(Mutex::new(game)));
+            Ok(())
+        }
+    }
+}
+
 pub(crate) fn create_game(human_color: jint, depth: jint) -> BridgeResult<jlong> {
     let color = parse_color(human_color)?;
     let depth =
@@ -303,9 +317,7 @@ pub(crate) fn create_game(human_color: jint, depth: jint) -> BridgeResult<jlong>
     let mut entries = registry()
         .lock()
         .map_err(|_| internal_error("Android game registry lock was poisoned"))?;
-    if entries.insert(token, Arc::new(Mutex::new(game))).is_some() {
-        return Err(internal_error("Android game handle collision"));
-    }
+    register_game(&mut entries, token, game)?;
     Ok(token_to_jlong(token))
 }
 
@@ -447,11 +459,16 @@ fn internal_error(message: &str) -> BridgeError {
 
 #[cfg(test)]
 mod tests {
-    use std::{thread, time::Duration};
+    use std::{
+        collections::HashMap,
+        sync::{Arc, Mutex},
+        thread,
+        time::Duration,
+    };
 
     use chess_core::Color;
 
-    use super::{AppGame, SNAPSHOT_END, SNAPSHOT_SEPARATOR};
+    use super::{register_game, AppGame, SNAPSHOT_END, SNAPSHOT_SEPARATOR};
 
     #[test]
     fn snapshot_protocol_is_complete_and_versioned() {
@@ -465,6 +482,26 @@ mod tests {
         assert_eq!(fields[6], "0");
         assert_eq!(fields[16], SNAPSHOT_END);
         game.close().expect("game closes");
+    }
+
+    #[test]
+    fn handle_collision_preserves_existing_registered_game() {
+        let mut entries = HashMap::new();
+        let existing = Arc::new(Mutex::new(
+            AppGame::new(Color::White, 1).expect("existing game starts"),
+        ));
+        entries.insert(7, Arc::clone(&existing));
+        let replacement = AppGame::new(Color::White, 1).expect("replacement game starts");
+
+        let error = register_game(&mut entries, 7, replacement).expect_err("collision rejected");
+        assert!(error.to_string().contains("handle collision"));
+        assert!(Arc::ptr_eq(entries.get(&7).expect("existing preserved"), &existing));
+
+        existing
+            .lock()
+            .expect("existing game lock")
+            .close()
+            .expect("existing game closes");
     }
 
     #[test]
