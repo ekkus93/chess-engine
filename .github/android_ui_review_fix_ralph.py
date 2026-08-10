@@ -8,8 +8,6 @@ ROOT = Path(__file__).resolve().parents[1]
 TODO = ROOT / "docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md"
 APP = ROOT / "android-harness/android-app"
 ATEST = APP / "src/androidTest/kotlin/com/ekkus93/chessapp"
-UTEST = APP / "src/test/kotlin"
-SAN = ROOT / "crates/chess-core/src/san.rs"
 JNI_CONTRACT = ROOT / "crates/chess-jni/tests/jni_contract.rs"
 BUILD = APP / "build.gradle.kts"
 
@@ -61,108 +59,14 @@ def compile_tests() -> str:
 run("git", "config", "user.name", "Ralph Loop")
 run("git", "config", "user.email", "actions@users.noreply.github.com")
 
-# AR-017: add cases inside the existing test module and use its established helpers.
-marker = '''    #[test]\n    fn history_replays_from_standard_root_without_mutating_source() {\n'''
-insert = r'''    #[test]
-    fn piece_capture_uses_capture_notation() {
-        let game = game("4k3/8/8/4p3/8/5N2/8/4K3 w - - 0 1");
-        let current = resolve(&game, "f3e5");
-        assert_eq!(move_to_san(&game, current).expect("SAN"), "Nxe5");
-    }
-
-    #[test]
-    fn disambiguated_piece_capture_keeps_file_prefix() {
-        let game = game("4k3/8/8/8/4p3/2N5/5N2/4K3 w - - 0 1");
-        let current = resolve(&game, "c3e4");
-        assert_eq!(move_to_san(&game, current).expect("SAN"), "Ncxe4");
-    }
-
-    #[test]
-    fn capture_promotion_can_carry_check() {
-        let game = game("k2r4/4P3/8/8/8/8/8/4K3 w - - 0 1");
-        let current = resolve(&game, "e7d8q");
-        assert_eq!(move_to_san(&game, current).expect("SAN"), "exd8=Q+");
-    }
-
-'''
-replace(SAN, marker, insert + marker)
-sh("cargo fmt --all")
-mark("AR-017")
-commit(
-    "AR-017",
-    "test(core): cover SAN capture edge cases",
-    [TODO, SAN],
-    ["cargo fmt --all -- --check", "cargo test --locked -p chess-core san -- --nocapture"],
-)
-
-# AR-018: fail-closed Kotlin snapshot parser coverage.
-parser_dir = UTEST / "com/ekkus93/chessengine"
-parser_dir.mkdir(parents=True, exist_ok=True)
-parser_test = parser_dir / "ChessGameSnapshotParseTest.kt"
-parser_test.write_text(r'''package com.ekkus93.chessengine
-
-import org.junit.Assert.assertThrows
-import org.junit.Test
-
-class ChessGameSnapshotParseTest {
-    private val validFields = listOf(
-        "2",
-        "8/8/8/8/8/8/4K3/7k w - - 0 1",
-        "",
-        "",
-        "",
-        "white",
-        "white",
-        "0",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "END",
-    )
-
-    private fun encoded(fields: List<String>): String = fields.joinToString("\u001f")
-
-    @Test
-    fun rejectsWrongFieldCount() {
-        assertThrows(IllegalArgumentException::class.java) {
-            ChessGameSnapshot.parse(encoded(validFields.dropLast(1)))
-        }
-    }
-
-    @Test
-    fun rejectsWrongVersion() {
-        assertThrows(IllegalArgumentException::class.java) {
-            ChessGameSnapshot.parse(encoded(validFields.toMutableList().apply { this[0] = "999" }))
-        }
-    }
-
-    @Test
-    fun rejectsCorruptedTerminator() {
-        assertThrows(IllegalArgumentException::class.java) {
-            ChessGameSnapshot.parse(encoded(validFields.toMutableList().apply { this[lastIndex] = "BROKEN" }))
-        }
-    }
-}
-''')
-mark("AR-018")
-commit(
-    "AR-018",
-    "test(android): cover snapshot parser rejection paths",
-    [TODO, parser_test],
-    ["gradle -p android-harness :android-app:testDebugUnitTest --no-daemon --stacktrace --console=plain"],
-)
-
 # AR-019: static high-level Rust/Kotlin snapshot contract parity.
 replace(
     JNI_CONTRACT,
-    'const KOTLIN_BINDINGS: &str = include_str!("../kotlin/src/main/kotlin/com/ekkus93/chessengine/NativeChessEngineBindings.kt");\n',
-    'const KOTLIN_BINDINGS: &str = include_str!("../kotlin/src/main/kotlin/com/ekkus93/chessengine/NativeChessEngineBindings.kt");\nconst APP_BRIDGE: &str = include_str!("../src/app_bridge.rs");\nconst KOTLIN_GAME: &str = include_str!("../kotlin/src/main/kotlin/com/ekkus93/chessengine/ChessGame.kt");\n',
+    'const RUST_EXPORTS: &str = include_str!("../src/lib.rs");\n',
+    'const RUST_EXPORTS: &str = include_str!("../src/lib.rs");\n'
+    'const APP_BRIDGE: &str = include_str!("../src/app_bridge.rs");\n'
+    'const KOTLIN_GAME: &str =\n'
+    '    include_str!("../kotlin/src/main/kotlin/com/ekkus93/chessengine/ChessGame.kt");\n',
 )
 JNI_CONTRACT.write_text(JNI_CONTRACT.read_text().rstrip() + r'''
 
@@ -268,4 +172,4 @@ commit(
     [compile_tests(), connected("com.ekkus93.chessapp.PortraitRotationInstrumentedTest")],
 )
 
-print("STAGE3_REPAIR_COMPLETE", subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip())
+print("STAGE3_FINAL_COMPLETE", subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip())
