@@ -250,12 +250,12 @@
 
 ## AR-013.1 Fix
 
-- [ ] Full-metrics test asserts each formatted metric value renders as visible text.
-- [ ] Partial-metrics test asserts present fields show real values and absent fields show `"—"`, not fabricated zeros.
+- [x] Full-metrics test asserts each formatted metric value renders as visible text.
+- [x] Partial-metrics test asserts present fields show real values and absent fields show `"—"`, not fabricated zeros.
 
 ## AR-013.2 Tests
 
-- [ ] N/A — the tests above are this task's deliverable.
+- [x] N/A — the tests above are this task's deliverable.
 
 ---
 
