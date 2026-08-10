@@ -23,6 +23,21 @@ The same verification pass also surfaced three minor, non-blocking hardening not
 
 This pass closes all eight items. It does not reopen any other AR-00N task, and it does not relitigate any already-resolved QI/FQI pre-implementation item from the prior two rounds.
 
+### 1.1 Pre-implementation resolution note
+
+A pre-implementation review of this spec/TODO pair (`docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_QUESTIONS_AND_ISSUES_2026-08-10.md`, twelve items, QI-001 through QI-012) was resolved and incorporated below. All twelve were legitimate — none rested on a factual misunderstanding of this repository's conventions (unlike the very first review of the parent program, where one item was rejected on precedent grounds; no equivalent rejection applies here).
+
+- **QI-001** (this correction pass changes the tree, so `e9ab0fc` becomes only a review baseline, not a final SHA — and naively "fixing" the citation gap by adding run IDs to a doc creates a new SHA, recursively reopening the same gap) — resolved by an explicit, terminating closure-SHA protocol added to §2 below: exactly one trigger-commit cycle is used at the very end of the pass, its run IDs are recorded once, and no further edit chases that citation forward. See §2's "Closure-SHA protocol" subsection.
+- **QI-002** (touched-file scope omitted `docs/LEGACY_TODO_INDEX.md`, the audit script, and files implied by CC-002/CC-004) — resolved by rewriting §2's scope as a category/surface statement rather than an exhaustive filename list, per the reviewer's own suggested alternative.
+- **QI-003 / QI-004** (CC-002's verify-first process cannot honestly land in one commit if a real defect is found, and "observed correct" needs a precise, reproducible evidence contract) — resolved by splitting CC-002 into CC-002A (observation, its own commit) and CC-002B (conditional remediation, a separate commit only if needed), with an explicit observation-evidence checklist.
+- **QI-005 / QI-006** (CC-003's "one representative operation" is weaker than the original three-operation claim it's correcting, and the task's title implied only one acceptable outcome) — resolved by requiring all three operations be behaviorally tested if a genuine seam is built at all, and retitling the task to make both honest outcomes explicit.
+- **QI-007** (a green CI run does not by itself prove two trees are source-identical; that requires an actual git comparison) — resolved by requiring CC-005 to record the literal git diff/tree-hash comparison output, not just cite the historical CI runs as a proxy for it.
+- **QI-008** (CC-009 registers the new tracker's authority state at the start but never explicitly closes it) — resolved by adding explicit authority-closure requirements to CC-009.
+- **QI-009** (CC-001's "player-reachable string" test risks becoming a brittle reachability inference) — resolved by simplifying CC-001 to a blanket forbid-with-narrow-allowlist rule over all production string literals, per the reviewer's suggested alternative.
+- **QI-010** (CC-004 needed to specify what fixture mechanism is allowed, to prevent scope creep into a general production FEN-loading feature) — resolved by naming the two acceptable options explicitly in CC-004.
+- **QI-011** (CC-009's permanent-CI requirement was conditional — "if cross-workspace changes require it" — despite this pass touching Android source/tests and authoritative docs) — resolved by making it unconditionally mandatory, matching the parent program's own AR-021 standard.
+- **QI-012** (correcting the parent TODO "in place" risks erasing the historical fact that a correction was needed) — resolved by requiring provenance-preserving wording for every corrected claim, added to CC-009.
+
 ---
 
 ## 2. Engineering constraints retained
@@ -30,9 +45,20 @@ This pass closes all eight items. It does not reopen any other AR-00N task, and 
 - All constraints from `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_SPEC_2026-08-10.md` §2 continue to apply unless explicitly widened below: Rust remains authoritative for rules/SAN/opening-book/search; no chess-rule, legality, disambiguation, or opening-book logic is added to Kotlin; the fail-closed policy (no random/first-legal fallback, no silent retry, no silent depth reduction, no fake/default snapshot, no alternate engine path) is not weakened; the one-second reveal delay, portrait-only lock, and no-root-page-scroll invariants are preserved exactly.
 - No first-party lint suppression (`allow`/`expect`, Kotlin `@Suppress`) is added anywhere in this pass.
 - No new production dependency is added without explicit justification recorded in this spec. This pass adds none.
-- This pass touches: `android-harness/android-app/src/main/kotlin/com/ekkus93/chessapp/{ChessViewModel,GamePanels}.kt`, `android-harness/android-app/src/{test,androidTest}/kotlin/com/ekkus93/chessapp/{ReviewFixArchitectureTest,ActiveGameOperationGuardTest,PromotionDialogInstrumentedTest,PortraitRotationInstrumentedTest,ThemeContrastTest}.kt`, `android-harness/android-app/src/main/kotlin/com/ekkus93/chessapp/MainActivity.kt` (only if CC-002's runtime observation shows a fix is actually needed), `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md`, `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_EVIDENCE_2026-08-10.md`, and this spec/TODO pair. It does not touch `crates/chess-app`, `crates/chess-core` (production code — `san.rs` test-only additions are not in scope here, since AR-017 was independently verified correct), `crates/chess-search`, `crates/chess-book`, `crates/chess-uci`, `crates/chess-tui`, or `crates/chess-console`.
+- This pass touches, by category rather than an exhaustive filename list (QI-002 — an exhaustive list proved too narrow once already): production and test Kotlin source under `android-harness/android-app/src/{main,test,androidTest}/kotlin/com/ekkus93/chessapp/` as needed by CC-001 through CC-004 and CC-006 through CC-008 (including, but not limited to, `ChessViewModel.kt`, `GamePanels.kt`, `MainActivity.kt`, `ReviewFixArchitectureTest.kt`, `ActiveGameOperationGuardTest.kt`, `PromotionDialogInstrumentedTest.kt`, `SystemBarAppearanceInstrumentedTest.kt`, `PortraitRotationInstrumentedTest.kt`, `ThemeContrastTest.kt`); the review-fix program's own tracker and closure-evidence documents (`docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md`, `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_EVIDENCE_2026-08-10.md`); the authority-registration documents this correction pass itself required at baseline (`docs/LEGACY_TODO_INDEX.md`, `scripts/task_post_port_review_fix_audit.sh`); and this spec/TODO pair. It does not touch `crates/chess-app`, `crates/chess-core` production code (`san.rs` test-only additions are out of scope here, since AR-017 was independently verified correct), `crates/chess-search`, `crates/chess-book`, `crates/chess-uci`, `crates/chess-tui`, or `crates/chess-console`.
 - Existing passing tests are not weakened or deleted to obtain a green run; every currently-green assertion remains green after this pass.
 - This pass is itself a bounded review-fix tracker under `docs/LEGACY_TODO_INDEX.md`'s existing "Bounded review-fix trackers" classification (see that document's own section by that name) — it is registered there as part of this pass's baseline work, following the identical precedent already established by the four trackers already listed.
+
+### 2.1 Closure-SHA protocol (QI-001)
+
+This pass changes the repository tree across CC-001 through CC-009, so `e9ab0fc623c22bd372ba9c8c2609dfcf74609f84` (this spec's stated review baseline) is **not** the eventual final correction SHA — it is only the state that was reviewed to produce this spec. To avoid the self-referential "write run IDs → new SHA → revalidate → write new run IDs" recursion QI-001 correctly identified, this pass follows a single, terminating protocol, executed once, at CC-009:
+
+1. **Review baseline SHA** (`e9ab0fc...`) is fixed and never reinterpreted as anything else.
+2. **Implementation-start SHA** is captured immediately after CC-000's baseline/authority-registration work lands, mirroring the parent program's own AR-000 pattern.
+3. CC-001 through CC-008 land normally, one task per commit (except CC-002, which is explicitly two commits — see §6).
+4. At CC-009, once every functional/documentation change this pass makes is complete, permanent CI is run against the true final tree exactly once: if the very last commit is itself a source/test change, permanent CI naturally validates it directly; if the very last commit is documentation-only (e.g. writing this pass's own closure-evidence section), push exactly one empty, tree-identical trigger commit — the same mechanism the parent program used for `e9ab0fc` itself — solely to obtain a fresh SHA for permanent CI to validate against that exact final tree.
+5. The resulting run IDs are recorded **once**, in that trigger commit's own citation. **No further commit is made to correct or supplement that citation.** This is the deliberate point where the protocol terminates: since the trigger commit is empty (adds nothing new), the tree it validates is already fully and accurately described by the commit immediately before it, so recording its run IDs is pure metadata addition, not a substantive claim requiring its own re-validation. If a genuine defect is later found in the corrections pass itself, it is fixed via a new, separately-tracked bounded pass — not by reopening this SHA-citation cycle.
+6. This protocol is distinct from CC-005, which edits the **parent** program's closure-evidence document to describe an already-immutable historical SHA (`e9ab0fc`) more completely — that edit does not reopen any self-referential cycle, since it is describing a fact about a tree that is not itself changing.
 
 ---
 
@@ -45,8 +71,8 @@ This pass closes all eight items. It does not reopen any other AR-00N task, and 
 ### 3.2 Fix
 
 - Reword both strings to remove "native" while preserving intended meaning. Suggested (not mandatory): `"A previous game is still active. Retry cleanup before starting another game."` for line 71, and `"Initial game snapshot failed: "` for line 117.
-- Grep the rest of `android-harness/android-app/src/main/kotlin` one more time for "native", "JNI", "shared layer", "architecture" reachable from any player-visible string (not just `errorMessage` — also check dialog titles/bodies, status text, any Composable `Text`/`contentDescription`) and correct any further instance found. The two `check()` internal-invariant messages and the one `Log.e` call in `ChessViewModel.kt` (lines 109, 176, 395 as of the review) are not player-visible and remain out of scope.
-- Broaden the structural test so this defect class cannot recur silently: either extend `setupPlayerCopyDoesNotExposeNativeArchitectureJargon` to scan every `.kt` file under `android-harness/android-app/src/main/kotlin` for these keywords in string literals (with a narrow, explicit allowlist for genuinely internal-only strings like the `check()` messages and log calls, each allowlist entry justified inline), or add a sibling test with equivalent effective coverage. The test must fail if "native"/"JNI"/"shared layer"/"architecture" is reintroduced into any player-reachable string anywhere in the module, not only in `SetupScreen.kt`.
+- Grep the rest of `android-harness/android-app/src/main/kotlin` one more time for "native", "JNI", "shared layer", "architecture" and correct any further instance found in a production string literal.
+- Rebuild the structural test as a blanket rule rather than a reachability inference (QI-009 — statically determining which string literals are "player reachable" risks becoming a brittle pseudo-reachability analysis, and a future implementer could always argue a given string is "not really reachable" to dodge the check). Instead: forbid "native"/"JNI"/"shared layer"/"architecture" in **every** production Kotlin string literal under `android-harness/android-app/src/main/kotlin`, with a small, explicit allowlist for genuinely internal-only sinks — specifically the `check()` invariant-failure messages and the one `Log.e` call already identified in `ChessViewModel.kt` (lines 109, 176, 395 as of the review). Each allowlist entry must be exact/narrow (matched by its specific surrounding function or line, not a broad exemption), justified inline with a one-line comment explaining why that specific sink is not player-visible, and tied to a sink that genuinely cannot reach the UI (a `check()` failure message or a `Log.e` call, not an `errorMessage`/dialog/status string). The test must scan the whole module, not one file.
 
 ### 3.3 Tests
 
@@ -61,23 +87,39 @@ This pass closes all eight items. It does not reopen any other AR-00N task, and 
 
 The spec required observing real API 35 runtime behavior before any production change, and recording the finding either way. Neither the observation nor a "no change needed" narrative exists anywhere. The instrumentation test added (`SystemBarAppearanceInstrumentedTest.kt`) only asserts `isAppearanceLightStatusBars`/`isAppearanceLightNavigationBars` are `false` — flags whose default value plausibly satisfies the assertion regardless of the actual edge-to-edge background/color regression the spec was concerned about.
 
-### 4.2 Fix
+### 4.2 Task structure: two commits, not one (QI-003)
 
-This task requires an actual API 35 emulator/device to execute, which this implementation environment may not have locally — if so, use the permanent Android CI's emulator job as the observation vehicle, exactly as `bash scripts/dev.sh android`'s own environment-availability precedent already establishes for this repository (see the original redesign closure evidence's own disclosed local-execution limitation for the identical class of constraint).
+A genuine verify-first process cannot honestly compress "observe" and "conditionally fix" into a single commit — doing so would recreate the exact evidence-integrity problem this task exists to correct (a fix and its own justification landing simultaneously, indistinguishable from a fix that was never actually verified). This task is therefore explicitly exempted from the one-task/one-commit rule and is split into two sub-tasks, CC-002A and CC-002B, each its own commit; CC-002B only exists/lands if CC-002A's observation shows it's needed.
 
-1. Add a genuinely diagnostic runtime check — not just the icon-appearance-flag check already present, but an assertion (or, if a direct assertion isn't practical, a recorded visual/pixel observation from the existing screenshot-evidence mechanism) that actually distinguishes "system bars render with the dark product background" from "system bars render with a stock light background" on the exercised API level. If the existing icon-appearance-only test is judged sufficient after genuine investigation of what it can and cannot detect, record that reasoning explicitly instead of silently leaving it as-is.
-2. Based on what step 1 actually observes:
-   - If bars render incorrectly: add the explicit `WindowCompat`/`WindowInsetsControllerCompat` (or `enableEdgeToEdge()`) call the original spec described, in `MainActivity.kt`, and re-verify.
-   - If bars already render correctly: write the specific mechanism responsible into this TODO's CC-002 section — do not leave the box unexplained.
-3. Do not mark this task complete without a runtime observation genuinely performed in this pass (CI-executed is acceptable; code-inspection alone is not), recorded with enough specificity (what was observed, on what job/run, with what result) that a future reader does not have to take it on faith.
+### 4.3 CC-002A — Runtime observation (always performed, always its own commit)
 
-### 4.3 Tests
+This task requires an actual API 35 emulator/device to execute, which this implementation environment may not have locally — if so, use the permanent Android CI's emulator job as the observation vehicle, exactly as `bash scripts/dev.sh android`'s own environment-availability precedent already establishes for this repository.
 
-- The strengthened/added diagnostic check (or the recorded observation) is the test evidence for this task. If a new assertion is added, it must be shown to actually distinguish the two states it claims to distinguish — describe how in the TODO.
+Add a genuinely diagnostic runtime check — not just the icon-appearance-flag check already present, but something that actually distinguishes "system bars render with the dark product background" from "system bars render with a stock light background" on the exercised API level.
+
+**Observation-evidence contract (QI-004 — the finding must be precise and reproducible, not an uncheckable narrative):** record, at minimum:
+- the exact API level exercised (35);
+- the emulator/device configuration used (matching the existing permanent Android CI job's configuration, or naming the specific alternative);
+- whether the proof is programmatic (an assertion against `WindowInsetsController`/actual rendered color), screenshot/pixel-based, or both;
+- if pixel-based, the expected product background/color value and the numeric tolerance applied;
+- the preserved artifact/screenshot location if one is captured;
+- the exact CI run/job ID in which the observation was made.
+
+If the existing icon-appearance-only test is judged sufficient after this genuine investigation, record that reasoning and the evidence for it explicitly — do not silently leave the task without a positive finding either way.
+
+### 4.4 CC-002B — Conditional remediation (only if CC-002A found a real defect)
+
+- If bars render incorrectly: add the explicit `WindowCompat`/`WindowInsetsControllerCompat` (or `enableEdgeToEdge()`) call the original spec described, in `MainActivity.kt`, and re-verify using the same observation contract as CC-002A.
+- If CC-002A found no defect: CC-002B does not exist as a commit; record in the TODO that CC-002B was not needed and why, referencing CC-002A's evidence.
+
+### 4.5 Tests
+
+- CC-002A's observation evidence, recorded per the contract above, is the test evidence for that sub-task.
+- If CC-002B lands, its re-verification against the same contract is its test evidence.
 
 ---
 
-## 5. CC-003 — Fix AR-007: add the missing behavioral duplicate-invocation tests
+## 5. CC-003 — Correct AR-007 behavioral-evidence claims; add behavioral coverage where practical
 
 ### 5.1 Defect
 
@@ -85,14 +127,16 @@ This task requires an actual API 35 emulator/device to execute, which this imple
 
 ### 5.2 Fix
 
-Add real behavioral evidence. `ChessGame` (the JNI-backed native session class) has a private constructor and no test seam, which is why this wasn't done directly against a live `ChessViewModel` before — this pass must either:
+Add real behavioral evidence, following one of exactly two policies (QI-005 — a middle ground where only one operation is executed and the other two are treated as behaviorally proven "by analogy" is explicitly disallowed, since the post-guard bodies and side effects of the three functions genuinely differ even though the guard predicate is shared):
 
-- **Preferred:** find or add a genuine, narrowly-scoped test seam (e.g., an internal/test-visible way to construct a `ChessViewModel` against a fake/instrumented game handle, or an androidTest that drives the real `ChessGame` through the full app and counts actual engine-call side effects across a rapid double-tap) sufficient to prove the claimed behavior directly — no second operation launches, no state mutation, no new error — for at least one of the three functions as a representative case, with the other two covered by an argument for why the identical guard code generalizes (not by three separately-unproven behavioral claims).
-- **Acceptable fallback:** if a genuine behavioral test seam is impractical within this pass's scope, reword AR-007.2's checkboxes in the TODO to accurately describe what is actually proven (predicate correctness plus static guard-ordering), and do not leave the stronger "no second engine/native/JNI/cleanup call" claim checked without real evidence for it. Record explicitly which path was taken and why.
+- **Preferred, if a clean test seam exists:** find or add a genuine, narrowly-scoped test seam (e.g., an internal/test-visible way to construct a `ChessViewModel` against a fake/instrumented game handle, or an androidTest that drives the real `ChessGame` through the full app and counts actual engine-call side effects across a rapid double-tap) and use it to behaviorally test **all three** of `restartGame()`, `resign()`, and `submitMove()` — not one representative function — covering both the duplicate-invocation case and the `cleanupRequired` case for each, proving no second operation launches, no state mutation, and no new error is surfaced. If the project is going to pay the complexity cost of building a real seam at all, testing only one function while claiming three were fixed would just recreate the exact "documentation claims more than execution proves" problem this correction pass exists to close.
+- **Preferred, if a clean test seam does not exist:** do not distort production architecture solely to manufacture the test. Instead, correct AR-007.2's checkboxes in `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md` to state exactly what is proven — predicate correctness (`ActiveGameOperationGuardTest.kt`) plus static guard-ordering (`ReviewFixArchitectureTest.kt`) — with the behavioral-proof limitation explicitly and honestly documented, not implied to be stronger than it is.
+
+Record explicitly in the TODO which policy was taken and why.
 
 ### 5.3 Tests
 
-- Whichever path is taken, the TODO's AR-007.2 section accurately reflects what test evidence actually exists after this task — no checkbox may claim behavioral proof that isn't backed by an actual executed test.
+- Whichever policy is taken, the TODO's AR-007.2 section accurately reflects what test evidence actually exists after this task — no checkbox may claim behavioral proof that isn't backed by an actual executed test, and if a seam is built, all three functions are covered by it, not just one.
 
 ---
 
@@ -104,8 +148,12 @@ AR-011's second required deliverable — an end-to-end tap-driven promotion test
 
 ### 6.2 Fix
 
-- Add an end-to-end instrumentation test that drives a real board through a promotion-eligible position via taps (a deterministic FEN/move-sequence fixture reaching a pawn-on-7th-rank-with-a-legal-promotion-move state), opens the promotion dialog through the actual production flow (not by invoking `PromotionDialog` directly), selects a promotion piece via a real tap, and asserts the resulting snapshot/move reflects the correct promotion.
-- If, after a genuine attempt, this proves impractical (e.g., no deterministic fixture reaches a promotion-eligible position within the existing opening-book/self-play test infrastructure without excessive new scaffolding), document the specific blocker in the TODO instead of leaving the checkbox silently unexplained.
+Add an end-to-end instrumentation test that drives a real board through a promotion-eligible position, opens the promotion dialog through the actual production flow (not by invoking `PromotionDialog` directly), selects a promotion piece via a real tap, and asserts the resulting snapshot/move reflects the correct promotion. Reaching that position is explicitly bounded to one of exactly two acceptable mechanisms (QI-010 — this boundary exists specifically to prevent scope creep into a general production FEN-loading capability added only to make the test convenient):
+
+1. **Preferred:** a deterministic sequence of real legal moves, driven through the actual UI (the same board-tap mechanism `PortraitRotationInstrumentedTest.kt`/`ChessAppEndToEndInstrumentedTest.kt` already use), that reaches a promotion-eligible position through ordinary legal play — e.g. racing a pawn down an open file against a depth-1 engine opponent, or an equivalent short, reliable sequence.
+2. **Acceptable if (1) is impractical:** a narrowly-scoped, **test-only** fixture seam (reachable only from `androidTest` sources, never compiled into or reachable from the production app) that initializes the underlying game session directly to a promotion-eligible position. This must not become, or require, a general/player-facing FEN-loading feature, and must not add any chess-rule/legality logic to Kotlin — the seam only needs to reach a state the real `chess-app`/JNI layer already supports constructing.
+
+If, after a genuine attempt at (1), it proves impractical and (2) is also not straightforward within this pass's scope, document the specific blocker in the TODO instead of leaving the checkbox silently unexplained.
 
 ### 6.3 Tests
 
@@ -122,11 +170,11 @@ AR-011's second required deliverable — an end-to-end tap-driven promotion test
 ### 7.2 Fix
 
 - Update `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_EVIDENCE_2026-08-10.md`'s "Permanent exact-source-SHA CI" section to cite the actual final-tree run IDs (`31419183264` for general/Rust CI, `31419183273` for Android CI) with their own job IDs and conclusions, alongside or in place of the `6d9a84d` citation — the document should be self-evidencing for the tree it claims to validate without requiring a reader to independently query GitHub to find the real final-tree evidence.
-- Note explicitly that the `6d9a84d` runs remain valid supporting evidence that no source/test file differs between the two SHAs (a real, still-true claim), but the authoritative "this exact SHA is green" citation must point at the actual final SHA.
+- Note explicitly that the `6d9a84d` runs remain valid supporting evidence, but do not describe green CI runs themselves as proof that the two trees are source-identical (QI-007 — passing CI is not a tree-equivalence proof; only a git comparison is). Instead, record the actual git evidence: run and paste the literal output of a tree/diff comparison between `6d9a84d` and `e9ab0fc` (e.g. `git diff --stat 6d9a84d..e9ab0fc` and/or `git rev-parse 6d9a84d^{tree} e9ab0fc^{tree}` if a tree-hash comparison is more direct for the specific claim being made) into the closure-evidence document, so the no-source-difference claim is backed by a reproducible git command and its output, not by an inference from unrelated CI success.
 
 ### 7.3 Tests
 
-- N/A — documentation-only. Verified by independently re-querying both new run IDs via `gh` during implementation and confirming they match what gets written.
+- N/A — documentation-only. Verified by independently re-querying both new run IDs via `gh` during implementation and confirming they match what gets written, and by independently re-running the recorded git comparison command and confirming its output matches what gets written.
 
 ---
 
@@ -180,9 +228,32 @@ The Resign confirmation dialog's confirm button renders `Danger` content color o
 
 ## 11. CC-009 — Final validation and closure
 
-- Run the full applicable validation surface: Android app JVM/unit tests (including the CC-001/CC-003/CC-008 additions), Android lint, the CC-004 instrumentation addition, and any CI job needed to perform CC-002's runtime observation.
-- Run `bash scripts/dev.sh fast` to confirm no cross-workspace regression, following the same mandatory-whenever-runnable policy established in the parent review-fix program's AR-021.
-- Update `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md` in place: correct the five previously-inaccurate checkboxes (or their surrounding narrative) to reflect what CC-001 through CC-005 actually established, rather than superseding the document with a second parallel tracker for the same program.
+### 11.1 Validation
+
+- Run the full applicable validation surface: Android app JVM/unit tests (including the CC-001/CC-003/CC-008 additions), Android lint, the CC-004 instrumentation addition, and CC-002A's runtime observation (plus CC-002B's re-verification if it landed).
+- Run `bash scripts/dev.sh fast` to confirm no cross-workspace regression.
+- **Permanent CI is mandatory, not conditional** (QI-011 — this pass touches Android source/tests and authoritative documentation, the same standard the parent program's own AR-021 already applied to itself): the permanent Android CI workflow/job and the permanent general/Rust CI workflow/job must both be green on the exact final correction SHA, following the closure-SHA protocol in §2.1. This is not gated on "if cross-workspace changes require it" — it is required unconditionally for this pass.
+
+### 11.2 Provenance-preserving correction of the parent TODO (QI-012)
+
+Update `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md` in place, but do not silently rewrite the five previously-inaccurate checkboxes as if they had always been true — that would erase the historical fact that a post-closure correction was required. For each of AR-003, AR-004, AR-007, AR-011, and the closure-evidence CI citation, use provenance-preserving wording distinguishing:
+
+- what the original closure claimed;
+- that it was corrected by this pass (naming the specific CC-00N task);
+- what the actual final evidence is now, and as of which SHA.
+
+Do not describe corrected checkboxes as though the original AR-00N implementation satisfied them unaided.
+
+### 11.3 Authority closure (QI-008)
+
+- `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_TODO_2026-08-10.md`'s own `Status:` header updated to `Complete`.
+- `docs/LEGACY_TODO_INDEX.md`'s "Bounded review-fix trackers" entry for this tracker updated from "in progress" to "completed," matching the wording pattern already used for the other four entries in that list.
+- `scripts/task_post_port_review_fix_audit.sh` updated if any of its existing assertions assumed an in-progress state.
+- Confirmed no active implementation TODO is registered as a side effect of this closure (the single-slot "active implementation TODO" position remains unaffected by bounded review-fix tracker closure, per the classification's own stated scope).
+- Confirmed no temporary correction/validation helper (any script/workflow added solely to drive this correction pass's own CI, analogous to the parent program's temporary Ralph runner) remains in the tree before final exact-SHA validation.
+
+### 11.4 Closure evidence
+
 - Update `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_EVIDENCE_2026-08-10.md` per CC-005.
-- Record exact commands, results, and CI run/job evidence in the companion TODO's closure section.
+- Record exact commands, results, and CI run/job evidence — per §2.1's closure-SHA protocol — in the companion TODO's closure section.
 - Do not mark any CC task `[x]` without the specific evidence named in its own section above.
