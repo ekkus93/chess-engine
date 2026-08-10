@@ -199,13 +199,13 @@
 
 ## AR-009.1 Fix
 
-- [ ] Black-orientation variant of the 360×640dp compact-layout containment test added.
-- [ ] Black-orientation spatial-stability assertion added (at minimum idle and thinking states).
-- [ ] At least one permanent, Black-specific semantic/coordinate assertion added (QI-008) — not merely generic containment geometry that would pass identically under either orientation.
+- [x] Black-orientation variant of the 360×640dp compact-layout containment test added.
+- [x] Black-orientation spatial-stability assertion added (at minimum idle and thinking states).
+- [x] At least one permanent, Black-specific semantic/coordinate assertion added (QI-008) — not merely generic containment geometry that would pass identically under either orientation.
 
 ## AR-009.2 Tests
 
-- [ ] New tests, including the permanent orientation-specific assertion, verified to fail if `humanSide` fixture wiring is reverted to White (implementation-time sanity check).
+- [x] New tests, including the permanent orientation-specific assertion, verified to fail if `humanSide` fixture wiring is reverted to White (implementation-time sanity check).
 
 ---
 
