@@ -12,6 +12,7 @@
 
 - `[x]` means implemented, documented, tested, and supported by recorded evidence.
 - `[ ]` remains incomplete.
+- `N/A — <reason>` (FFQI-001) is permitted only for an explicitly mutually-exclusive branch (CC-002B, CC-003, CC-004) whose sibling disposition was selected and completed with evidence instead. An `N/A` branch does not make its enclosing task incomplete; the task's own disposition checkbox must still be `[x]` before the task is considered complete. Prefer writing `N/A — <reason>` over leaving an unchecked, unexplained `[ ]` for an untaken alternative — an unexplained `[ ]` reads as unfinished work, which it isn't.
 - No first-party lint suppression is accepted at any point in this pass.
 - This pass does not touch `crates/chess-app`, `crates/chess-core` production code, `crates/chess-search`, `crates/chess-book`, `crates/chess-uci`, `crates/chess-tui`, or `crates/chess-console`.
 - This pass is a bounded review-fix tracker under `docs/LEGACY_TODO_INDEX.md`'s "Bounded review-fix trackers" classification — registered there as part of CC-000 baseline work.
@@ -43,6 +44,8 @@
 - [ ] Confirmed all twelve items were resolved and incorporated into the spec's §2.1 (closure-SHA protocol), CC-001 through CC-005, and CC-009, and into this TODO's matching sections. None was rejected on a factual-precedent basis (unlike one item in the parent program's first review round).
 - [ ] Read `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_FOLLOWUP_QUESTIONS_AND_ISSUES_2026-08-10.md` in full.
 - [ ] Confirmed FQI-001 (the closure-SHA protocol's terminal step was literally impossible — it required recording CI run IDs inside the commit that triggers them, before those IDs exist), FQI-002 (several tasks' checkboxes couldn't honestly all reach `[x]` given their own legitimate mutually-exclusive dispositions), and FQI-003 (CC-005's git evidence needed to be path-scoped to the actual claim, not a whole-tree comparison that would show inequality for unrelated reasons) were all resolved and incorporated into spec §2.1/§11.4 and CC-002B/CC-003/CC-004/CC-005, and into this TODO's matching sections.
+- [ ] Read `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_FINAL_FOLLOWUP_QUESTIONS_AND_ISSUES_2026-08-10.md` in full.
+- [ ] Confirmed FFQI-001 (`N/A` had no formal completion semantics), FFQI-002 (the terminal-trigger decision was based on a "documentation vs. source" file-category guess rather than actual workflow execution), and FFQI-003 (a stale `§6` cross-reference and one remaining unconditional "CC-004 instrumentation addition" phrase) were resolved in the Status rules, spec §2.1, and spec §11.1.
 
 ## CC-000.3 SHA tracking (§2.1 closure-SHA protocol)
 
@@ -229,7 +232,7 @@ implementation handoff per §2.1 — not recorded in this file.)
 
 ## CC-009 acceptance
 
-- [ ] Every CC-001 through CC-008 task is `[x]` with its own recorded evidence.
+- [ ] Every CC-001 through CC-008 task is `[x]` with its own recorded evidence — for CC-002B/CC-003/CC-004, this means the task's disposition checkbox is `[x]` with the selected branch fully evidenced and the untaken branch marked `N/A`, per the Status rules' `N/A` definition.
 - [ ] No first-party lint suppression was added anywhere in this pass.
 - [ ] No existing green test was weakened or deleted to obtain a green run.
 - [ ] Permanent CI (CC-009.1) is green on the exact final correction SHA, independently confirmed via `gh` per the closure-SHA protocol and reported in the final implementation handoff — not recorded in the repository.
