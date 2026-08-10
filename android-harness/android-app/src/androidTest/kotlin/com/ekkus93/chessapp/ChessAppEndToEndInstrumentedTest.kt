@@ -54,7 +54,7 @@ class ChessAppEndToEndInstrumentedTest {
         composeRule.waitForIdle()
         composeRule.onNodeWithText("e4").fetchSemanticsNode()
         composeRule.onNodeWithText("c5").fetchSemanticsNode()
-        composeRule.onNodeWithContentDescription("e4 pawn last move").fetchSemanticsNode()
+        composeRule.onNodeWithContentDescription("c7 last move").fetchSemanticsNode()
         composeRule.onNodeWithContentDescription("c5 pawn last move").fetchSemanticsNode()
 
         composeRule.onNodeWithTag("tab-engine").performClick()
