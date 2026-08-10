@@ -23,6 +23,7 @@ tui_coverage_todo="docs/RUST_TUI_TEST_COVERAGE_HARDENING_TODO.md"
 tui_coverage_report="docs/RUST_TUI_TEST_COVERAGE_HARDENING_IMPLEMENTATION.md"
 console_todo="docs/RUST_CONSOLE_TODO.md"
 android_ui_todo="docs/RUST_ANDROID_UI_UX_REDESIGN_TODO_2026-08-10.md"
+android_ui_closure="docs/RUST_ANDROID_UI_UX_REDESIGN_CLOSURE_EVIDENCE_2026-08-10.md"
 legacy_index="docs/LEGACY_TODO_INDEX.md"
 fen_doc="docs/RUST_FEN_AND_UCI_NOTATION.md"
 fen_source="crates/chess-core/src/position/fen.rs"
@@ -47,6 +48,7 @@ for required in \
     "$tui_coverage_report" \
     "$console_todo" \
     "$android_ui_todo" \
+    "$android_ui_closure" \
     "$legacy_index" \
     "$fen_doc" \
     "$fen_source"; do
@@ -74,7 +76,12 @@ grep -Fq 'Status: automated implementation and permanent regression validation c
 grep -Fq 'Status: complete — Rust TUI test/coverage hardening validated; coverage remains diagnostic and no engine/search/evaluation/tuning behavior changed.' "$tui_coverage_todo"
 grep -Fq 'Status: complete — targeted Rust TUI hardening and diagnostic coverage integration validated.' "$tui_coverage_report"
 
-for stale in '| Active v0.2 strength program |' '| Active S3 evaluation strength program |' '| Active S4 evaluation tuning calibration program |' '| Active Rust console implementation |'; do
+for stale in \
+    '| Active v0.2 strength program |' \
+    '| Active S3 evaluation strength program |' \
+    '| Active S4 evaluation tuning calibration program |' \
+    '| Active Rust console implementation |' \
+    '| Active Android UI/UX redesign implementation |'; do
     if grep -Fq "$stale" "$legacy_index"; then
         echo "closed or superseded TODO is still classified as active: $stale" >&2
         exit 1
@@ -98,6 +105,7 @@ grep -Fq "\`$tui_todo\`" "$legacy_index"
 grep -Fq "\`$tui_coverage_todo\`" "$legacy_index"
 grep -Fq "\`$console_todo\`" "$legacy_index"
 grep -Fq "\`$android_ui_todo\`" "$legacy_index"
+grep -Fq "\`$android_ui_closure\`" "$legacy_index"
 if grep -Fq 'Active S4 evaluation tuning calibration program' "$legacy_index"; then
     echo 'closed S4 TODO is still active' >&2
     exit 1
@@ -106,9 +114,15 @@ if grep -Fq '| Active S4 closure hardening program |' "$legacy_index"; then
     echo 'closure-candidate hardening TODO is still active' >&2
     exit 1
 fi
-grep -Fq 'Active implementation TODO: `docs/RUST_ANDROID_UI_UX_REDESIGN_TODO_2026-08-10.md`.' "$legacy_index"
-grep -Fq 'Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO`, is not one of the two completed-authority documents above, and is not explicitly registered as active in the authority table' "$legacy_index"
-grep -Fq '80 TODO-named files total; 2 completed-authority documents; 1 active authority document; 1 authority index; 76 historical' "$legacy_index"
+grep -Fq '| Archived Android UI/UX redesign planning tracker |' "$legacy_index"
+grep -Fq '| Android UI/UX redesign closure evidence |' "$legacy_index"
+grep -Fq 'There is currently **no active implementation TODO** registered by this index.' "$legacy_index"
+grep -Fq 'Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO`, is not one of the two completed Rust-port authority documents above, and is not explicitly registered as active in the authority table' "$legacy_index"
+grep -Fq '80 TODO-named files total; 2 completed Rust-port authority documents; 0 active implementation TODOs; 1 Android closure-evidence authority; 1 authority index; 77 historical/planning TODO records including the archived Android tracker' "$legacy_index"
+grep -Fq '**Final product/evidence source SHA:** `a93c282699f380d604b214e0950372fd88e33585`' "$android_ui_closure"
+grep -Fq '**Run:** `31383610431`' "$android_ui_closure"
+grep -Fq '**Artifact ID:** `9060954512`' "$android_ui_closure"
+grep -Fq 'A representative physical-phone UX pass was not performed' "$android_ui_closure"
 grep -Fq "**Companion TODO:** \`$v0_2_todo\`" "$v0_2_spec"
 grep -Fq "**Specification:** \`$v0_2_spec\`" "$v0_2_todo"
 grep -Fq "**Companion TODO:** \`$s3_todo\`" "$s3_spec"
@@ -133,7 +147,7 @@ grep -Fq 'H7 is complete.' "$hardening_report"
 
 while IFS= read -r todo_path; do
     case "$todo_path" in
-        "$tracker"|"$definitions"|"$android_ui_todo"|"$legacy_index")
+        "$tracker"|"$definitions"|"$legacy_index")
             ;;
         *)
             grep -Fq "\`$todo_path\`" "$legacy_index" || {
@@ -159,7 +173,9 @@ for temporary in \
     ".github/tui_coverage_hardening_fix.py" \
     ".github/workflows/tui-coverage-hardening-implementation.yml" \
     ".github/tui_coverage_checklist_patch.py" \
-    ".github/workflows/tui-coverage-checklist-validation.yml"; do
+    ".github/workflows/tui-coverage-checklist-validation.yml" \
+    ".github/workflows/android-ui-gallery.yml" \
+    ".github/android_ui_gallery.py"; do
     if test -e "$temporary"; then
         echo "temporary post-port helper remains: $temporary" >&2
         exit 1

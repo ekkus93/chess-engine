@@ -169,11 +169,11 @@ See `docs/RUST_CONSOLE_SPEC.md`, `docs/RUST_CONSOLE_TODO.md`, and `docs/RUST_CON
 
 The Android project contains three separate surfaces:
 
-- `android-harness/android-app` — the playable Kotlin/Jetpack Compose application;
+- `android-harness/android-app` — the playable portrait Kotlin/Jetpack Compose application;
 - `android-harness/android-smoke` — Android JNI/instrumentation harness;
 - `android-harness/host-jvm` — host JVM JNI contract tests.
 
-The playable app uses the high-level Kotlin `ChessGame` owner backed by `chess-app::GameController` and `SearchWorker`. The existing low-level Kotlin `ChessEngine` API over `chess-ffi` remains supported and independently tested.
+The playable app uses the high-level Kotlin `ChessGame` owner backed by `chess-app::GameController` and `SearchWorker`. The existing low-level Kotlin `ChessEngine` API over `chess-ffi` remains supported and independently tested. Rust `chess-core` owns SAN formatting; the high-level snapshot transports both UCI history and Rust-generated SAN, while Kotlin remains presentation/controller glue.
 
 Set the NDK explicitly, then build both JNI ABIs, run app unit/lint gates, build the playable and test APKs, build the historical harness/test APKs, and run the host-JVM JNI contract:
 
@@ -189,7 +189,21 @@ The local command does not start an emulator. The playable debug APK is written 
 android-harness/android-app/build/outputs/apk/debug/android-app-debug.apk
 ```
 
-Permanent Android CI additionally runs API-35 instrumentation. It executes the historical JNI lifecycle/performance suite and the playable application's launcher, Human White, and Human Black shared-Rust-controller flows, then uploads the debug APK as a workflow artifact.
+Permanent Android CI additionally runs API-35 instrumentation. It validates the historical JNI lifecycle/performance suite and the redesigned playable application, including:
+
+- deterministic 360 × 640 dp Setup/Game containment and no root scrolling;
+- enlarged-text containment;
+- selected side/tab/square semantics;
+- stable board/action geometry across idle, thinking, engine reply, and tab changes;
+- internal-only SAN move-history scrolling plus follow-bottom/preserve-history policy;
+- exact promotion mapping;
+- Human White and Human Black shared-Rust-controller flows;
+- the approximately one-second post-human-move reveal interval;
+- themed confirmation, promotion, and error dialogs;
+- SHA-scoped real API-35 device-framebuffer screenshots with a SHA256 manifest;
+- debug APK and performance-evidence artifacts.
+
+The UI evidence capture is a permanent read-only CI behavior; it does not modify repository source or commit generated artifacts. The accepted redesign evidence and exact run/artifact identifiers are recorded in `docs/RUST_ANDROID_UI_UX_REDESIGN_CLOSURE_EVIDENCE_2026-08-10.md`.
 
 See `docs/RUST_ANDROID_JNI.md`, `docs/RUST_ANDROID_TEST_HARNESS.md`, and `docs/RUST_ANDROID_APP.md`.
 
@@ -245,7 +259,7 @@ Bounded libFuzzer, Miri, and sanitizer commands are documented in `docs/RUST_FUZ
 Permanent independent workflows include:
 
 - `CI`: x86-64 quality/release/perft/oracle plus native ARM64 workspace builds;
-- `Android JNI`: Android/Kotlin lint and app unit tests, host JVM low-level JNI contract, focused high-level shared-app bridge tests, dual JNI ABIs, harness/playable APKs, API-35 instrumentation, and a debug-app artifact;
+- `Android JNI`: Android/Kotlin lint and app unit tests, host JVM low-level JNI contract, focused high-level shared-app bridge tests, dual JNI ABIs, harness/playable APKs, API-35 compact/adaptive/accessibility/end-to-end UI instrumentation, real-emulator visual evidence, performance evidence, and a debug-app artifact;
 - `Robustness`: fuzz, Miri, ASan/LSan, and TSan;
 - `Performance`: x86-64/ARM64 budgets and scheduled Callgrind;
 - `Slow perft`: scheduled/manual depth-five fixtures;

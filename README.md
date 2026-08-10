@@ -64,7 +64,7 @@ bash scripts/dev.sh android
 
 ## Human-facing applications
 
-The native TUI, scrolling console, and Android application share presentation-neutral game/search behavior through `chess-app`. `chess-app` owns game configuration and lifecycle, generation/ticket state, exact search-worker events, cancellation, stale-result rejection, and the interactive fail-closed search policy. Chess rules remain in `chess-core` and search remains in `chess-search`.
+The native TUI, scrolling console, and Android application share presentation-neutral game/search behavior through `chess-app`. `chess-app` owns game configuration and lifecycle, generation/ticket state, exact search-worker events, cancellation, stale-result rejection, and the interactive fail-closed search policy. Chess rules and SAN notation remain in `chess-core`; search remains in `chess-search`.
 
 ### Native Rust TUI
 
@@ -119,11 +119,13 @@ Console saves use deterministic text beginning with `Chess Engine Rust Console s
 
 ### Android application
 
-`android-harness/android-app` is a real launcher application built with Kotlin and Jetpack Compose. It is separate from `android-harness/android-smoke`, which remains an instrumentation harness.
+`android-harness/android-app` is a real portrait-only launcher application built with Kotlin and Jetpack Compose. It is separate from `android-harness/android-smoke`, which remains an instrumentation harness.
 
-Android v0.1 supports Human vs Engine play, White/Black selection, engine depths 1–12, tap-to-move board input, explicit promotion choice, human-side board orientation, engine thinking/metrics/PV, move history, restart/resign/new-game confirmations, and visible errors.
+Android v0.1 supports Human vs Engine play, White/Black selection, engine depths 1–12, tap-to-move board input, explicit promotion choice, human-side board orientation, a fixed non-scrolling game shell, Rust-generated SAN move history, bounded engine metrics/PV, restart/resign/new-game confirmations, and visible errors. The redesigned dark UI keeps compact status, square board, Moves/Engine tabs, bounded tab content, and all three game actions visible in one portrait viewport.
 
-The app uses the high-level Kotlin `ChessGame` API in `crates/chess-jni`. Its native owner contains the same Rust `chess_app::GameController` and `SearchWorker` used by the other interactive frontends. Kotlin projects Rust-provided FEN/legal moves into UI state; it does not implement another chess rule engine, choose fallback moves, or independently schedule engine turns.
+The app uses the high-level Kotlin `ChessGame` API in `crates/chess-jni`. Its native owner contains the same Rust `chess_app::GameController` and `SearchWorker` used by the other interactive frontends. Kotlin projects Rust-provided FEN/legal moves/SAN history into UI state; it does not implement another chess rule engine, SAN rules, opening-book policy, fallback move selection, or independent engine-turn scheduling.
+
+Permanent API-35 Compose instrumentation enforces compact 360 × 640 layout containment, enlarged-text behavior, selected-state semantics, stable board geometry, internal-only move-history scrolling, real Human White/Black flows, the one-second human-move reveal interval, dialogs, and SHA-scoped device-framebuffer visual evidence.
 
 Build the Android app and both JNI ABIs with:
 
@@ -133,11 +135,11 @@ export ANDROID_API_LEVEL=24
 bash scripts/dev.sh android
 ```
 
-The debug APK is produced at `android-harness/android-app/build/outputs/apk/debug/android-app-debug.apk`. See [`docs/RUST_ANDROID_APP.md`](docs/RUST_ANDROID_APP.md).
+The debug APK is produced at `android-harness/android-app/build/outputs/apk/debug/android-app-debug.apk`. See [`docs/RUST_ANDROID_APP.md`](docs/RUST_ANDROID_APP.md) and [`docs/RUST_ANDROID_UI_UX_REDESIGN_CLOSURE_EVIDENCE_2026-08-10.md`](docs/RUST_ANDROID_UI_UX_REDESIGN_CLOSURE_EVIDENCE_2026-08-10.md).
 
 ## Workspace
 
-- `crates/chess-core` — position representation, rules, legal generation, FEN, hashing, history, and exact perft.
+- `crates/chess-core` — position representation, rules, legal generation, FEN/UCI/SAN notation, hashing, history, and exact perft.
 - `crates/chess-search` — evaluation, transposition table, iterative deepening, limits, cancellation, and search.
 - `crates/chess-app` — shared human-facing game/session/search orchestration, pure text formatting, and atomic save primitives.
 - `crates/chess-book` — explicit opening-book abstraction and indexed format.
@@ -179,7 +181,7 @@ The authoritative port specification is [`docs/RUST_CHESS_ENGINE_PORT_SPEC_2026-
 Permanent workflows are intentionally separate:
 
 - `CI` — Rust formatting, checks, Clippy, tests, release perft, rustdoc, x86-64 and ARM64 builds, and differential oracle;
-- `Android JNI` — Kotlin/app lint and unit tests, host-JVM JNI, focused shared-app bridge tests, dual native ABIs, playable/test APKs, API-35 low-level JNI lifecycle plus Human White/Human Black app instrumentation, and a downloadable debug APK artifact;
+- `Android JNI` — Kotlin/app lint and unit tests, host-JVM JNI, focused shared-app bridge tests, dual native ABIs, playable/test APKs, API-35 JNI lifecycle and full redesigned-app instrumentation, SHA-scoped real-emulator UI evidence, performance evidence, and a downloadable debug APK artifact;
 - `Robustness` — fuzzing, Miri, ASan/LSan, and TSan;
 - `Performance` — x86-64 and ARM64 regression budgets plus scheduled Callgrind;
 - `Slow perft` — scheduled/manual authoritative depth five;
@@ -200,6 +202,7 @@ Generated-output rules and deliberate evidence promotion are defined in [`docs/R
 - [`docs/RUST_CONSOLE_IMPLEMENTATION.md`](docs/RUST_CONSOLE_IMPLEMENTATION.md)
 - [`docs/RUST_ANDROID_JNI.md`](docs/RUST_ANDROID_JNI.md)
 - [`docs/RUST_ANDROID_APP.md`](docs/RUST_ANDROID_APP.md)
+- [`docs/RUST_ANDROID_UI_UX_REDESIGN_CLOSURE_EVIDENCE_2026-08-10.md`](docs/RUST_ANDROID_UI_UX_REDESIGN_CLOSURE_EVIDENCE_2026-08-10.md)
 - [`docs/RUST_ANDROID_TEST_HARNESS.md`](docs/RUST_ANDROID_TEST_HARNESS.md)
 - [`docs/RUST_FUZZING.md`](docs/RUST_FUZZING.md)
 - [`docs/RUST_SELF_PLAY_DATASET.md`](docs/RUST_SELF_PLAY_DATASET.md)

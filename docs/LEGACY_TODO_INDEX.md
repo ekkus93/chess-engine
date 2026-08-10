@@ -8,16 +8,17 @@ This file prevents historical planning documents from being mistaken for current
 |---|---|---|
 | Completed Rust-port tracker | `docs/RUST_CHESS_ENGINE_PORT_TODO_2026-08-01.md` | Authoritative completion record for the Rust-port program. |
 | Completed Rust-port task definitions | `docs/RUST_CHESS_ENGINE_PORT_TODO_TASK_DEFINITIONS_2026-08-01.md` | Detailed definitions and evidence for the completed Rust-port program. |
-| Active Android UI/UX redesign implementation | `docs/RUST_ANDROID_UI_UX_REDESIGN_TODO_2026-08-10.md` | Active product/frontend TODO for the portrait-only Android UI/UX redesign over the existing Rust-authoritative game/session architecture. |
+| Archived Android UI/UX redesign planning tracker | `docs/RUST_ANDROID_UI_UX_REDESIGN_TODO_2026-08-10.md` | Preserved original implementation checklist. Its historical header/unchecked manual-local items are superseded for shipped-state authority by `docs/RUST_ANDROID_UI_UX_REDESIGN_CLOSURE_EVIDENCE_2026-08-10.md`. |
+| Android UI/UX redesign closure evidence | `docs/RUST_ANDROID_UI_UX_REDESIGN_CLOSURE_EVIDENCE_2026-08-10.md` | Authoritative shipped-state, exact-SHA CI, visual-evidence, anti-fallback, and manual-follow-up record for the completed Android redesign. |
 | Authority index, not an implementation TODO | `docs/LEGACY_TODO_INDEX.md` | Classifies active, completed-authority, and historical TODO-named documents. |
 
-Active implementation TODO: `docs/RUST_ANDROID_UI_UX_REDESIGN_TODO_2026-08-10.md`. The Rust console implementation TODO is retained as historical implementation/planning evidence now that the console product and shared application layer are already present. The Rust TUI implementation record remains important regression history (its automated implementation/PTY validation is complete while a short manual real-terminal smoke list remains open), but it is no longer the active code-implementation authority. Closed TUI hardening and S2, S3, S4 strength/tuning, S4 closure-hardening, and prior frontend TODOs are historical and cannot override the completed Rust-port authority records or this explicitly registered active TODO.
+There is currently **no active implementation TODO** registered by this index. The Android redesign tracker is retained as planning history and must be interpreted through its closure-evidence document rather than by treating its historical `proposed / not started` header or unchecked manual/local-only items as current product state. The Rust console implementation TODO is retained as historical implementation/planning evidence now that the console product and shared application layer are already present. The Rust TUI implementation record remains important regression history (its automated implementation/PTY validation is complete while a short manual real-terminal smoke list remains open), but it is no longer the active code-implementation authority. Closed TUI hardening and S2, S3, S4 strength/tuning, S4 closure-hardening, and prior frontend TODOs are historical and cannot override the completed Rust-port authority records or a future TODO explicitly registered as active.
 
 ## Exhaustive classification rule
 
-Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO`, is not one of the two completed-authority documents above, and is not explicitly registered as active in the authority table is a historical or legacy reference. Those files preserve implementation history, but they are not active instructions and must not override the completed Rust-port authority records or any future TODO explicitly registered in the authority table.
+Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO`, is not one of the two completed Rust-port authority documents above, and is not explicitly registered as active in the authority table is historical/planning evidence unless a separate closure authority is listed above. Those files preserve implementation history, but they are not active instructions and must not override completed authority records, closure evidence, or a future TODO explicitly registered in the authority table.
 
-Inventory captured on 2026-08-05, reclassified at S2-16 closure on 2026-08-07, activated for S3 on 2026-08-07, reclassified again at S3 closure on 2026-08-07, activated for S4 on 2026-08-07, reclassified at S4 closure on 2026-08-07, updated for the Rust TUI program on 2026-08-07, updated for Rust TUI test/coverage hardening on 2026-08-08, updated for the Rust TUI post-milestone review-fix pass on 2026-08-09, activated for the Rust console/application-sharing program on 2026-08-09, and activated for the Android UI/UX redesign on 2026-08-10: **80 TODO-named files total; 2 completed-authority documents; 1 active authority document; 1 authority index; 76 historical.**
+Inventory captured on 2026-08-05, reclassified at S2-16 closure on 2026-08-07, activated for S3 on 2026-08-07, reclassified again at S3 closure on 2026-08-07, activated for S4 on 2026-08-07, reclassified at S4 closure on 2026-08-07, updated for the Rust TUI program on 2026-08-07, updated for Rust TUI test/coverage hardening on 2026-08-08, updated for the Rust TUI post-milestone review-fix pass on 2026-08-09, activated for the Rust console/application-sharing program on 2026-08-09, activated for the Android UI/UX redesign on 2026-08-10, and reclassified at automated Android UI/UX redesign closure on 2026-08-10: **80 TODO-named files total; 2 completed Rust-port authority documents; 0 active implementation TODOs; 1 Android closure-evidence authority; 1 authority index; 77 historical/planning TODO records including the archived Android tracker.**
 
 ## Historical TODO inventory
 
@@ -64,6 +65,7 @@ Inventory captured on 2026-08-05, reclassified at S2-16 closure on 2026-08-07, a
 - `docs/LINT_FIX3_TODO.md`
 - `docs/MIDDLEGAME_FIX1_TODO.md`
 - `docs/REFACTOR_BOARD_TODO.md`
+- `docs/RUST_ANDROID_UI_UX_REDESIGN_TODO_2026-08-10.md`
 - `docs/RUST_CHESS_ENGINE_POST_PORT_REVIEW_FIX_TODO_2026-08-04.md`
 - `docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_TODO_2026-08-07.md`
 - `docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_TODO_2026-08-07.md`
@@ -100,4 +102,4 @@ Inventory captured on 2026-08-05, reclassified at S2-16 closure on 2026-08-07, a
 
 ## Maintenance rule
 
-When a new active TODO is intentionally introduced, add it to the authority table and update the permanent TODO-authority audit. When an active program closes, move its TODO into the historical inventory and update the counts. Otherwise, a newly added `docs/*TODO*.md` file is historical by default and must be listed above.
+When a new active TODO is intentionally introduced, add it to the authority table and update the permanent TODO-authority audit. When an active program closes, reclassify its tracker as historical/planning evidence and register its closure authority if one exists. Otherwise, a newly added `docs/*TODO*.md` file is historical by default and must be listed above.
