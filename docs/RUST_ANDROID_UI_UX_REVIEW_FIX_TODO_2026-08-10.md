@@ -213,11 +213,11 @@
 
 ## AR-010.1 Fix
 
-- [ ] Test captures `chess-board`/`game-actions` bounds before a tab click and asserts unchanged after, using the AR-008 helper.
+- [x] Test captures `chess-board`/`game-actions` bounds before a tab click and asserts unchanged after, using the AR-008 helper.
 
 ## AR-010.2 Tests
 
-- [ ] New test verified to fail against a deliberately-reverted fixed-height regression (implementation-time sanity check).
+- [x] New test verified to fail against a deliberately-reverted fixed-height regression (implementation-time sanity check).
 
 ---
 
