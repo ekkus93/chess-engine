@@ -77,7 +77,8 @@ class ChessAppInstrumentedTest {
             }
 
             val afterHuman = awaitUiState(viewModel) { state ->
-                state.snapshot?.moves == listOf("e2e4") && state.snapshot.thinking
+                val snapshot = state.snapshot
+                snapshot != null && snapshot.moves == listOf("e2e4") && snapshot.thinking
             }
             assertEquals(listOf("e2e4"), afterHuman.snapshot?.moves)
             val humanMoveObservedAt = SystemClock.elapsedRealtime()
