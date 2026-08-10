@@ -39,13 +39,15 @@ pub(crate) fn select_move(position: &Position) -> Result<Option<Move>, String> {
     };
 
     let mut game = Game::new(position.clone());
-    resolve_legal_move(&mut game, selected.uci_move).map(Some).map_err(|message| {
-        format!(
-            "built-in opening book selected invalid move {} for position {}: {message}",
-            selected.uci_move,
-            position.to_fen()
-        )
-    })
+    resolve_legal_move(&mut game, selected.uci_move)
+        .map(Some)
+        .map_err(|message| {
+            format!(
+                "built-in opening book selected invalid move {} for position {}: {message}",
+                selected.uci_move,
+                position.to_fen()
+            )
+        })
 }
 
 fn build_book() -> Result<Vec<BookRecord>, String> {
