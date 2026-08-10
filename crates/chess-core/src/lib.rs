@@ -15,6 +15,7 @@ mod move_encoding;
 mod movegen;
 mod piece;
 mod position;
+mod san;
 mod see;
 mod square;
 mod uci_move;
@@ -39,6 +40,7 @@ pub use position::{
     FenError, LegalMoveError, LegalMoveToken, LegalMoveTokenList, Position, PositionBuildError,
     PositionInvariantError, PositionUndo, SearchNullError, SearchNullUndo,
 };
+pub use san::{move_to_san, san_history_from_start};
 pub use see::{
     static_exchange_evaluation, static_exchange_piece_value, static_exchange_semantic_checksum,
     StaticExchangeClass, StaticExchangeError, StaticExchangeMoveStateError, StaticExchangeValue,
