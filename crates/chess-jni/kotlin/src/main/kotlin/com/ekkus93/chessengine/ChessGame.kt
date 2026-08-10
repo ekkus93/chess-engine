@@ -17,6 +17,7 @@ data class ChessGameSnapshot(
     val fen: String,
     val legalMoves: List<String>,
     val moves: List<String>,
+    val sanMoves: List<String>,
     val humanSide: HumanSide,
     val sideToMove: HumanSide,
     val thinking: Boolean,
@@ -37,8 +38,8 @@ data class ChessGameSnapshot(
         get() = !thinking && !gameOver && sideToMove == humanSide
 
     companion object {
-        private const val FIELD_COUNT = 17
-        private const val VERSION = "1"
+        private const val FIELD_COUNT = 18
+        private const val VERSION = "2"
         private const val END = "END"
         private const val SEPARATOR = '\u001f'
 
@@ -50,23 +51,24 @@ data class ChessGameSnapshot(
             require(fields[0] == VERSION) {
                 "unsupported native Android game snapshot version: ${fields[0]}"
             }
-            require(fields[16] == END) { "native Android game snapshot terminator is missing" }
+            require(fields[17] == END) { "native Android game snapshot terminator is missing" }
             return ChessGameSnapshot(
                 fen = fields[1],
                 legalMoves = fields[2].words(),
                 moves = fields[3].words(),
-                humanSide = parseSide(fields[4]),
-                sideToMove = parseSide(fields[5]),
-                thinking = parseBoolean(fields[6]),
-                outcome = fields[7].ifEmpty { null },
-                statusMessage = fields[8].ifEmpty { null },
-                engineDepth = fields[9].toIntOrNull(),
-                engineScore = fields[10].ifEmpty { null },
-                engineNodes = fields[11].toLongOrNull(),
-                engineNps = fields[12].toLongOrNull(),
-                engineElapsed = fields[13].ifEmpty { null },
-                principalVariation = fields[14].words(),
-                hashFullPerMille = fields[15].toIntOrNull(),
+                sanMoves = fields[4].words(),
+                humanSide = parseSide(fields[5]),
+                sideToMove = parseSide(fields[6]),
+                thinking = parseBoolean(fields[7]),
+                outcome = fields[8].ifEmpty { null },
+                statusMessage = fields[9].ifEmpty { null },
+                engineDepth = fields[10].toIntOrNull(),
+                engineScore = fields[11].ifEmpty { null },
+                engineNodes = fields[12].toLongOrNull(),
+                engineNps = fields[13].toLongOrNull(),
+                engineElapsed = fields[14].ifEmpty { null },
+                principalVariation = fields[15].words(),
+                hashFullPerMille = fields[16].toIntOrNull(),
             )
         }
 
@@ -159,7 +161,7 @@ private object NativeGameReaper {
  * High-level Android owner for one Human-vs-Engine game.
  *
  * Game legality, turn ownership, search scheduling, stale-result rejection,
- * exact-search-result policy, and terminal outcomes live in Rust `chess-app`.
+ * exact-search-result policy, SAN history, and terminal outcomes live in Rust.
  * Kotlin owns presentation and periodically calls [poll] while [ChessGameSnapshot.thinking]
  * is true so completed Rust worker events are folded into the shared controller.
  */
