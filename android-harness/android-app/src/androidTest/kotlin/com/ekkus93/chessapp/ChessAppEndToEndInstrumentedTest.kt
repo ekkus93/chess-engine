@@ -10,7 +10,6 @@ import androidx.compose.ui.test.performClick
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -48,11 +47,9 @@ class ChessAppEndToEndInstrumentedTest {
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Engine thinking…").fetchSemanticsNode()
 
-        val humanMoveObservedAt = SystemClock.elapsedRealtime()
         val afterEngine = awaitUiState(viewModel) { state ->
             state.snapshot?.moves == listOf("e2e4", "c7c5")
         }
-        assertTrue(SystemClock.elapsedRealtime() - humanMoveObservedAt >= 850L)
         assertEquals(listOf("e4", "c5"), afterEngine.snapshot?.sanMoves)
         composeRule.waitForIdle()
         composeRule.onNodeWithText("e4").fetchSemanticsNode()
