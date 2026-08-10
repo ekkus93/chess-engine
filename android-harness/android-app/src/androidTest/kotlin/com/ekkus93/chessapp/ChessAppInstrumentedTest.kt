@@ -1,6 +1,7 @@
 package com.ekkus93.chessapp
 
 import android.os.SystemClock
+import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ekkus93.chessengine.ChessGame
@@ -54,6 +55,46 @@ class ChessAppInstrumentedTest {
         }
     }
 
+    @Test
+    fun humanMoveRemainsVisibleBeforeAndroidRevealsEngineReply() {
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            lateinit var viewModel: ChessViewModel
+            scenario.onActivity { activity ->
+                viewModel = ViewModelProvider(activity)[ChessViewModel::class.java]
+                viewModel.setHumanSide(HumanSide.WHITE)
+                viewModel.setEngineDepth(1)
+                viewModel.startGame()
+            }
+
+            awaitUiState(viewModel) { state ->
+                val snapshot = state.snapshot
+                snapshot != null && !state.busy && snapshot.humanToMove
+            }
+
+            scenario.onActivity {
+                viewModel.onSquareTapped("e2")
+                viewModel.onSquareTapped("e4")
+            }
+
+            val afterHuman = awaitUiState(viewModel) { state ->
+                state.snapshot?.moves == listOf("e2e4") && state.snapshot.thinking
+            }
+            assertEquals(listOf("e2e4"), afterHuman.snapshot?.moves)
+            val humanMoveObservedAt = SystemClock.elapsedRealtime()
+
+            SystemClock.sleep(900)
+            val duringPause = viewModel.state.value
+            assertEquals(listOf("e2e4"), duringPause.snapshot?.moves)
+            assertTrue(duringPause.snapshot?.thinking == true)
+
+            val afterEngine = awaitUiState(viewModel) { state ->
+                state.snapshot?.moves == listOf("e2e4", "c7c5")
+            }
+            assertTrue(SystemClock.elapsedRealtime() - humanMoveObservedAt >= 900L)
+            assertTrue(afterEngine.snapshot?.humanToMove == true || afterEngine.snapshot?.gameOver == true)
+        }
+    }
+
     private fun awaitIdle(
         game: ChessGame,
         initial: ChessGameSnapshot,
@@ -67,5 +108,19 @@ class ChessAppInstrumentedTest {
             snapshot = game.poll()
         }
         error("shared Rust search did not complete before the bounded test deadline")
+    }
+
+    private fun awaitUiState(
+        viewModel: ChessViewModel,
+        predicate: (ChessUiState) -> Boolean,
+    ): ChessUiState {
+        repeat(500) {
+            val state = viewModel.state.value
+            if (predicate(state)) {
+                return state
+            }
+            SystemClock.sleep(10)
+        }
+        error("Android UI state did not reach the expected condition before the bounded deadline")
     }
 }
