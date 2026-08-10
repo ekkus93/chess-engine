@@ -134,12 +134,12 @@
 
 ## AR-005.1 Fix
 
-- [ ] Inline comment added directly above the board-size calculation in `GameScreen.kt` explaining the formula.
-- [ ] `docs/RUST_ANDROID_APP.md`'s layout-structure section names the fixed constants and the shrink-before-clip policy.
+- [x] Inline comment added directly above the board-size calculation in `GameScreen.kt` explaining the formula.
+- [x] `docs/RUST_ANDROID_APP.md`'s layout-structure section names the fixed constants and the shrink-before-clip policy.
 
 ## AR-005.2 Tests
 
-- [ ] N/A — documentation-only; verified by review of the added text against the actual formula.
+- [x] N/A — documentation-only; verified by review of the added text against the actual formula.
 
 ---
 

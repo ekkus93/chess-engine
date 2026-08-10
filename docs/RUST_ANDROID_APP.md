@@ -228,3 +228,7 @@ The local gate does not launch an emulator.
 The permanent UI evidence artifact is SHA-scoped and contains real emulator pixels rather than generated mockups. See `docs/RUST_ANDROID_UI_UX_REDESIGN_CLOSURE_EVIDENCE_2026-08-10.md` for the accepted exact-SHA run, artifact IDs/digests, screenshot hashes, before/after review, and manual-only follow-ups.
 
 The smoke harness remains a test surface; it is not renamed or repurposed as the application.
+
+### Board sizing
+
+The playable Compose shell computes `boardSize` as the minimum of available width and available height after subtracting the fixed `statusHeight`, `tabHeight`, `actionHeight`, `minimumPanelHeight`, and four inter-region gaps. This is a shrink-before-clip policy: the board gives up size before the status, tabs, bounded panel, or action row can be clipped.

@@ -75,6 +75,8 @@ internal fun GameScreen(
         val actionHeight = 48.dp
         val minimumPanelHeight = 100.dp
         val nonBoardHeight = statusHeight + tabHeight + actionHeight + minimumPanelHeight + gap * 4
+        // Use the largest square bounded by viewport width and by remaining height after fixed
+        // status/tab/action regions, the minimum panel, and gaps; the board shrinks first.
         val boardSize = minOf(
             maxWidth,
             (maxHeight - nonBoardHeight).coerceAtLeast(0.dp),
