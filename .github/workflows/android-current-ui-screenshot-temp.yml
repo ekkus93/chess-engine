@@ -73,7 +73,6 @@ jobs:
             -no-snapshot -no-window -gpu swiftshader_indirect
             -noaudio -no-boot-anim -camera-back none
           script: |
-            set -euo pipefail
             adb install -r android-harness/android-app/build/outputs/apk/debug/android-app-debug.apk
             adb shell am force-stop com.ekkus93.chessapp
             adb shell am start -W -n com.ekkus93.chessapp/.MainActivity
