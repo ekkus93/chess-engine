@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -57,7 +56,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -976,9 +974,9 @@ private fun PromotionDialog(
 }
 
 private fun depthLabel(depth: Int): String = when (depth) {
-    1..2 -> "Quick"
-    3..5 -> "Balanced"
-    6..8 -> "Strong"
+    in 1..2 -> "Quick"
+    in 3..5 -> "Balanced"
+    in 6..8 -> "Strong"
     else -> "Deep"
 }
 
