@@ -6,9 +6,13 @@
 //! Chess rules remain in `chess-core`; search/evaluation remain in
 //! `chess-search`. UCI remains an independent external protocol adapter.
 
+mod book;
 pub mod controller;
 pub mod save;
+#[path = "worker.rs"]
+mod search_worker;
 pub mod text;
+#[path = "interactive_worker.rs"]
 pub mod worker;
 
 pub use controller::{

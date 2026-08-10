@@ -1,0 +1,36 @@
+name: Opening book staging
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  format-lock-and-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Format opening-book integration
+        run: cargo fmt --all
+      - name: Regenerate lockfile
+        run: cargo generate-lockfile
+      - name: Check shared app
+        run: cargo check --locked -p chess-app --all-targets
+      - name: Test shared app
+        run: cargo test --locked -p chess-app
+      - name: Preserve formatted sources and lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: opening-book-staging-${{ github.sha }}
+          path: |
+            Cargo.lock
+            crates/chess-app/src/book.rs
+            crates/chess-app/src/interactive_worker.rs
+            crates/chess-app/src/lib.rs
+          if-no-files-found: error

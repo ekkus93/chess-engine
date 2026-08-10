@@ -13,5 +13,6 @@ description = "Shared interactive application/session layer for Rust chess front
 workspace = true
 
 [dependencies]
+chess-book = { path = "../chess-book" }
 chess-core = { path = "../chess-core" }
 chess-search = { path = "../chess-search" }
