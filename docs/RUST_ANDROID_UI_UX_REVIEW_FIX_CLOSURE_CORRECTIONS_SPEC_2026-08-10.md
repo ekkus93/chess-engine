@@ -71,7 +71,7 @@ This pass changes the repository tree across CC-001 through CC-009, so `e9ab0fc6
 
 1. **Review baseline SHA** (`e9ab0fc...`) is fixed and never reinterpreted as anything else.
 2. **Implementation-start SHA** is captured immediately after CC-000's baseline/authority-registration work lands, mirroring the parent program's own AR-000 pattern.
-3. CC-001 through CC-008 land normally, one task per commit (except CC-002, which is explicitly two commits, CC-002A and CC-002B — see §4).
+3. CC-001 through CC-008 land normally, one task per commit, except that CC-002A always lands as its own commit and CC-002B lands as a second commit only if CC-002A proves remediation is required — see §4.
 4. All **repository-resident** evidence — everything CC-001 through CC-008 establish, plus CC-009's own validation-surface results and provenance-preserving corrections to the parent TODO — is written into its final form in the last substantive commit. That commit fully and accurately describes the correction pass; it does not attempt to cite its own not-yet-existing CI results.
 5. Whether an additional trigger commit is needed is decided by **actual workflow execution, not by classifying the changed files as "documentation" versus "source/test"** (FFQI-002 — CC-009 itself may touch files, such as `scripts/task_post_port_review_fix_audit.sh` or authority-index machinery, that are neither cleanly "documentation" nor "product/test source," and whether a permanent workflow fires is determined by its own path/event trigger configuration in `.github/workflows/`, not by our semantic guess about the changed files):
    1. After the last substantive commit lands, check whether **both** required permanent workflows (Android CI, general/Rust CI) actually executed against that exact SHA.
@@ -126,7 +126,7 @@ Add a genuinely diagnostic runtime check — not just the icon-appearance-flag c
 - the preserved artifact/screenshot location if one is captured;
 - the exact CI run/job ID in which the observation was made.
 
-If the existing icon-appearance-only test is judged sufficient after this genuine investigation, record that reasoning and the evidence for it explicitly — do not silently leave the task without a positive finding either way.
+The existing icon-appearance-only assertions may remain as supporting evidence, but they cannot by themselves satisfy CC-002A. The runtime evidence added in this pass must directly distinguish actual dark product-background rendering from the stock-light-background regression the task is meant to detect.
 
 ### 4.4 CC-002B — Conditional remediation (only if CC-002A found a real defect)
 

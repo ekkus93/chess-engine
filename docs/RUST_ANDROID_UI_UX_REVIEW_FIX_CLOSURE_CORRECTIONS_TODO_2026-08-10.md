@@ -87,7 +87,7 @@
 
 - [ ] Genuine runtime observation performed (via permanent Android CI's emulator job if no local API 35 environment is available) distinguishing dark-background-correct from stock-light-regressed system-bar rendering, beyond the existing icon-appearance-only check.
 - [ ] Observation-evidence contract satisfied (spec §4.3/QI-004), recorded here: API level; emulator/device configuration; programmatic vs. screenshot/pixel-based proof (or both); expected color/tolerance if pixel-based; preserved artifact location if any; exact CI run/job ID.
-- [ ] If the existing icon-appearance-only check is judged sufficient after this investigation, that reasoning and its evidence recorded explicitly here.
+- [ ] Existing icon-appearance-only checks retained only as supporting evidence; CC-002A is not satisfied by those flags alone.
 
 ## CC-002B: Conditional remediation (only if CC-002A found a defect)
 
