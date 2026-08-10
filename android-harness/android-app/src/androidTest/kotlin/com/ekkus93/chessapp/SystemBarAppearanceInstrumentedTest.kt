@@ -12,6 +12,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.UiDevice
 import java.io.File
 import java.io.FileOutputStream
 import kotlin.math.abs
@@ -30,9 +31,22 @@ class SystemBarAppearanceInstrumentedTest {
     @Test
     fun api35SystemBarsRenderDarkProductBackground() {
         assertEquals("permanent Android CI observation must run on API 35", 35, Build.VERSION.SDK_INT)
-        composeRule.waitForIdle()
 
         val activity = composeRule.activity
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val device = UiDevice.getInstance(instrumentation)
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            activity.hasWindowFocus() && device.currentPackageName == activity.packageName
+        }
+        assertTrue("MainActivity must own window focus before global screenshot", activity.hasWindowFocus())
+        assertEquals(
+            "MainActivity package must be foreground before global screenshot",
+            activity.packageName,
+            device.currentPackageName,
+        )
+        device.waitForIdle()
+        composeRule.waitForIdle()
+
         val window = activity.window
         val controller = WindowCompat.getInsetsController(window, window.decorView)
         assertFalse(controller.isAppearanceLightStatusBars)
@@ -44,7 +58,7 @@ class SystemBarAppearanceInstrumentedTest {
         assertTrue("status bar inset must be visible", statusHeight > 0)
         assertTrue("navigation bar inset must be visible", navigationHeight > 0)
 
-        val screenshot = requireNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
+        val screenshot = requireNotNull(instrumentation.uiAutomation.takeScreenshot())
         preserveScreenshot(screenshot)
         val expected = AppBackground.toArgb()
         val statusRatio = matchingRatio(
