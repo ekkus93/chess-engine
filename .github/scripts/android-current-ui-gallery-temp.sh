@@ -30,6 +30,18 @@ raise SystemExit(f"UI node not found: {kind}={needle!r}")
 PY
 }
 
+wait_text() {
+  local label="$1"
+  for _ in $(seq 1 30); do
+    if find_bounds text "${label}" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 0.5
+  done
+  echo "timed out waiting for UI text: ${label}" >&2
+  return 1
+}
+
 tap_bounds() {
   local bounds="$1"
   read -r x1 y1 x2 y2 <<<"${bounds}"
@@ -59,6 +71,7 @@ launch_setup() {
 
 launch_setup
 tap_text "Start game"
+wait_text "Your move"
 capture game-white-top.png
 
 tap_desc_prefix "h2"
@@ -86,5 +99,5 @@ tap_text "Cancel"
 launch_setup
 tap_text "Black"
 tap_text "Start game"
-sleep 2
+wait_text "Engine played e2e4"
 capture game-black-top.png
