@@ -495,7 +495,10 @@ mod tests {
 
         let error = register_game(&mut entries, 7, replacement).expect_err("collision rejected");
         assert!(error.to_string().contains("handle collision"));
-        assert!(Arc::ptr_eq(entries.get(&7).expect("existing preserved"), &existing));
+        assert!(Arc::ptr_eq(
+            entries.get(&7).expect("existing preserved"),
+            &existing
+        ));
 
         existing
             .lock()
