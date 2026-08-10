@@ -1,0 +1,27 @@
+name: Temporary Android Review Fix Closure
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/android_review_fix_close.py
+      - .github/workflows/android-review-fix-close.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-android-review-fix-close
+  cancel-in-progress: false
+
+jobs:
+  close:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Close bounded review-fix program
+        run: python3 .github/android_review_fix_close.py
