@@ -3,11 +3,16 @@ package com.ekkus93.chessapp
 import android.content.ContentValues
 import android.graphics.Bitmap
 import android.os.Environment
+import android.os.SystemClock
 import android.provider.MediaStore
 import androidx.test.platform.app.InstrumentationRegistry
 
+private const val FRAMEBUFFER_SETTLE_MILLISECONDS = 300L
+
 internal fun captureVisualEvidence(name: String) {
     val instrumentation = InstrumentationRegistry.getInstrumentation()
+    instrumentation.waitForIdleSync()
+    SystemClock.sleep(FRAMEBUFFER_SETTLE_MILLISECONDS)
     instrumentation.waitForIdleSync()
     val bitmap = instrumentation.uiAutomation.takeScreenshot()
         ?: error("failed to capture device screenshot for $name")
