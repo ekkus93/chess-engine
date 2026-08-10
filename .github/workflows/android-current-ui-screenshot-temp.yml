@@ -1,0 +1,90 @@
+name: Android current UI screenshot
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  screenshot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Resolve hosted Android NDK
+        id: ndk
+        shell: bash
+        run: |
+          set -euo pipefail
+          NDK_HOME="${ANDROID_NDK_LATEST_HOME:-}"
+          if [[ -z "${NDK_HOME}" || ! -d "${NDK_HOME}" ]]; then
+            NDK_HOME="$(find "${ANDROID_SDK_ROOT}/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          fi
+          test -d "${NDK_HOME}"
+          echo "home=${NDK_HOME}" >> "${GITHUB_OUTPUT}"
+
+      - name: Build and stage Android JNI libraries
+        env:
+          ANDROID_NDK_HOME: ${{ steps.ndk.outputs.home }}
+          ANDROID_API_LEVEL: "24"
+        run: bash scripts/prepare_android_harness_jni.sh
+
+      - name: Build playable APK
+        run: >-
+          gradle -p android-harness :android-app:assembleDebug
+          --no-daemon --stacktrace --console=plain
+
+      - name: Enable KVM
+        shell: bash
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Capture exact current setup screen
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_2
+          disable-animations: true
+          emulator-options: >-
+            -no-snapshot -no-window -gpu swiftshader_indirect
+            -noaudio -no-boot-anim -camera-back none
+          script: |
+            set -euo pipefail
+            adb install -r android-harness/android-app/build/outputs/apk/debug/android-app-debug.apk
+            adb shell am force-stop com.ekkus93.chessapp
+            adb shell am start -W -n com.ekkus93.chessapp/.MainActivity
+            sleep 2
+            adb exec-out screencap -p > android-current-setup-screen.png
+            test -s android-current-setup-screen.png
+
+      - name: Upload exact current screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-current-setup-screen-${{ github.sha }}
+          path: android-current-setup-screen.png
+          if-no-files-found: error
+          retention-days: 7
