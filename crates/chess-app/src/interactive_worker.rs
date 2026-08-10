@@ -1,10 +1,10 @@
 use std::sync::mpsc::{self, Receiver};
 
+use crate::search_worker::SearchWorker as SearchOnlyWorker;
 pub use crate::search_worker::{
     calculate_nps, classify_success, EngineEvent, SearchMetrics, SearchRequest, SearchTicket,
     SearchWorkerError,
 };
-use crate::search_worker::SearchWorker as SearchOnlyWorker;
 
 enum WorkerInner {
     Search(SearchOnlyWorker),
@@ -173,10 +173,9 @@ mod tests {
 
     #[test]
     fn uncovered_position_delegates_to_exact_search() {
-        let position = Position::from_fen(
-            "rnbqkbnr/pppppppp/8/8/8/7P/PPPPPPP1/RNBQKBNR b KQkq - 0 1",
-        )
-        .expect("non-book fixture");
+        let position =
+            Position::from_fen("rnbqkbnr/pppppppp/8/8/8/7P/PPPPPPP1/RNBQKBNR b KQkq - 0 1")
+                .expect("non-book fixture");
         let (mut worker, receiver) = SearchWorker::spawn(SearchRequest {
             ticket: ticket(),
             game: Game::new(position),
