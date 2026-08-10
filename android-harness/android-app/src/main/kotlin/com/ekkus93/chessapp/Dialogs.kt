@@ -1,12 +1,12 @@
 package com.ekkus93.chessapp
 
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -105,9 +105,7 @@ internal fun PromotionDialog(
     onChoose: (String) -> Unit,
     onCancel: () -> Unit,
 ) {
-    val ordered = listOf('q', 'r', 'b', 'n').mapNotNull { piece ->
-        moves.firstOrNull { it.lastOrNull() == piece }
-    }
+    val ordered = orderedPromotionMoves(moves)
     AlertDialog(
         onDismissRequest = onCancel,
         confirmButton = {},
@@ -138,6 +136,11 @@ internal fun PromotionDialog(
         textContentColor = OnSurfaceMuted,
     )
 }
+
+internal fun orderedPromotionMoves(moves: List<String>): List<String> =
+    listOf('q', 'r', 'b', 'n').mapNotNull { piece ->
+        moves.firstOrNull { move -> move.length == 5 && move.last() == piece }
+    }
 
 internal fun HumanSide.displayName(): String = when (this) {
     HumanSide.WHITE -> "White"

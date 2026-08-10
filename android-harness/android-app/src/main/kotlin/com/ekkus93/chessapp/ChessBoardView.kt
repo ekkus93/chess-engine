@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -54,6 +55,7 @@ internal fun ChessBoard(
                     val square = "$file$rank"
                     val baseColor = if (isLightSquare(file, rank)) BoardLight else BoardDark
                     val isLastMove = square == lastMove?.source || square == lastMove?.destination
+                    val isSelected = square == selectedSquare
                     val piece = board.pieces[square]
                     val isTarget = square in legalTargets
                     Box(
@@ -71,6 +73,7 @@ internal fun ChessBoard(
                                 },
                             )
                             .semantics {
+                                selected = isSelected
                                 contentDescription = buildString {
                                     append(square)
                                     piece?.let {
@@ -78,7 +81,7 @@ internal fun ChessBoard(
                                         append(pieceName(it))
                                     }
                                     if (isLastMove) append(" last move")
-                                    if (square == selectedSquare) append(" selected")
+                                    if (isSelected) append(" selected")
                                     if (isTarget) {
                                         if (piece == null) append(" legal target")
                                         else append(" legal capture")
@@ -87,11 +90,12 @@ internal fun ChessBoard(
                             },
                         contentAlignment = Alignment.Center,
                     ) {
-                        if (square == selectedSquare) {
+                        if (isSelected) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(BoardSelected),
+                                    .background(BoardSelected)
+                                    .border(2.dp, PrimaryStrong),
                             )
                         }
                         if (isTarget) {

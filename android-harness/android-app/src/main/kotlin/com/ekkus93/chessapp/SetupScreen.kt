@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.ekkus93.chessengine.HumanSide
@@ -184,7 +185,7 @@ private fun SideSelector(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(46.dp)
+            .height(48.dp)
             .clip(MaterialTheme.shapes.medium)
             .background(SurfaceMuted)
             .border(1.dp, Border, MaterialTheme.shapes.medium)
@@ -201,6 +202,7 @@ private fun SideSelector(
                     .clickable(enabled = enabled) { onSideChanged(side) }
                     .testTag(if (side == HumanSide.WHITE) "side-white" else "side-black")
                     .semantics {
+                        this.selected = isSelected
                         contentDescription = buildString {
                             append("Play as ${side.displayName()}")
                             if (isSelected) append(", selected")
@@ -209,7 +211,7 @@ private fun SideSelector(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = side.displayName(),
+                    text = if (isSelected) "✓ ${side.displayName()}" else side.displayName(),
                     style = MaterialTheme.typography.labelLarge,
                     color = if (isSelected) PrimaryStrong else OnSurfaceMuted,
                 )
@@ -218,9 +220,10 @@ private fun SideSelector(
     }
 }
 
-private fun depthLabel(depth: Int): String = when (depth) {
+internal fun depthLabel(depth: Int): String = when (depth) {
     in 1..2 -> "Quick"
     in 3..5 -> "Balanced"
     in 6..8 -> "Strong"
-    else -> "Deep"
+    in 9..12 -> "Deep"
+    else -> error("engine depth must be between 1 and 12")
 }

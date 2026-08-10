@@ -4,7 +4,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -33,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -71,8 +71,8 @@ internal fun GameScreen(
     ) {
         val gap = 6.dp
         val statusHeight = 54.dp
-        val tabHeight = 38.dp
-        val actionHeight = 46.dp
+        val tabHeight = 40.dp
+        val actionHeight = 48.dp
         val minimumPanelHeight = 100.dp
         val nonBoardHeight = statusHeight + tabHeight + actionHeight + minimumPanelHeight + gap * 4
         val boardSize = minOf(
@@ -237,6 +237,7 @@ private fun GameTabs(
                     .clickable { onSelected(tab) }
                     .testTag(if (tab == GameTab.MOVES) "tab-moves" else "tab-engine")
                     .semantics {
+                        this.selected = isSelected
                         contentDescription = buildString {
                             append(if (tab == GameTab.MOVES) "Moves tab" else "Engine tab")
                             if (isSelected) append(", selected")
@@ -245,7 +246,10 @@ private fun GameTabs(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = if (tab == GameTab.MOVES) "Moves" else "Engine",
+                    text = buildString {
+                        if (isSelected) append("✓ ")
+                        append(if (tab == GameTab.MOVES) "Moves" else "Engine")
+                    },
                     style = MaterialTheme.typography.labelLarge,
                     color = if (isSelected) PrimaryStrong else OnSurfaceMuted,
                 )
