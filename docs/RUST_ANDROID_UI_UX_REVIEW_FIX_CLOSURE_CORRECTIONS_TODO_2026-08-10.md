@@ -126,15 +126,17 @@ N/A — `seam-built`: no production seam was added.
 
 ## CC-004.1 Fix
 
-CC-004 reaches exactly one of three dispositions (FQI-002); mark the other two `N/A`.
+- [x] **Disposition reached:** `documented blocker`.
 
-- [ ] **Disposition reached:** "UI-driven fixture," "test-only fixture seam," or "documented blocker" — recorded explicitly here.
-- [ ] If UI-driven fixture or test-only fixture seam: end-to-end instrumentation test added — promotion dialog opens through the real production flow (not direct `PromotionDialog` invocation), a real tap selects a promotion piece, resulting move/snapshot asserted correct. Confirmed no general/production FEN-loading capability or Kotlin chess-rule logic was added to make the fixture work. *(N/A if documented blocker.)*
-- [ ] If documented blocker: specific blocker documented here instead of the checkbox being left silently unexplained; no new instrumentation test added. *(N/A if a fixture disposition was reached.)*
+N/A — `UI-driven fixture`: A genuine bounded attempt was executed with the real JNI `ChessEngine`, reproducing the high-level opponent policy (opening-book reply when present, otherwise deterministic depth-1 search) and beam-searching legal human moves for up to 12 human turns; it did not find a promotion path. The existing production `ChessGame` also exposes no test-only position-injection seam, and adding one would require production/native API expansion solely for this test.
+
+N/A — `test-only fixture seam`: no existing test-only high-level session constructor/FEN seam exists; adding one would expand production/native API surface solely for this test.
+
+- [x] Documented blocker: A genuine bounded attempt was executed with the real JNI `ChessEngine`, reproducing the high-level opponent policy (opening-book reply when present, otherwise deterministic depth-1 search) and beam-searching legal human moves for up to 12 human turns; it did not find a promotion path. The existing production `ChessGame` also exposes no test-only position-injection seam, and adding one would require production/native API expansion solely for this test.
 
 ## CC-004.2 Tests
 
-- [ ] The end-to-end test (or documented-blocker fallback) is this task's deliverable.
+- [x] The bounded real-engine path probe is the empirical blocker evidence; no new instrumentation test is claimed.
 
 ---
 
