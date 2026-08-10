@@ -289,15 +289,15 @@
 
 ## AR-016.1 Fix
 
-- [ ] JVM unit test computes WCAG contrast ratio for each named non-piece text/control token pair (see spec §18.2) and asserts each meets its threshold.
-- [ ] Full piece/square matrix covered using the composite silhouette-boundary model, not independent raw tokens (QI-009, revised per FQI-003): for each of light piece on light square, light piece on dark square, dark piece on light square, dark piece on dark square, at least one boundary-forming component (fill-vs-background or stroke-vs-background) meets the 3:1 threshold — all four raw tokens are not required to independently clear it against every square.
-- [ ] Coordinate-label contrast covered with the actual light-square and dark-square label tokens on their respective square colors.
-- [ ] Last-move and selected-square full-background contrast uses actual composited/lerped backgrounds; legal-target filled-circle/ring contrast is tested as a graphical marker against each applicable effective square background, separately from piece-silhouette contrast.
-- [ ] Any failing combination's token value adjusted in `Theme.kt`; before/after values recorded here.
+- [x] JVM unit test computes WCAG contrast ratio for each named non-piece text/control token pair (see spec §18.2) and asserts each meets its threshold.
+- [x] Full piece/square matrix covered using the composite silhouette-boundary model, not independent raw tokens (QI-009, revised per FQI-003): for each of light piece on light square, light piece on dark square, dark piece on light square, dark piece on dark square, at least one boundary-forming component (fill-vs-background or stroke-vs-background) meets the 3:1 threshold — all four raw tokens are not required to independently clear it against every square.
+- [x] Coordinate-label contrast covered with the actual light-square and dark-square label tokens on their respective square colors.
+- [x] Last-move and selected-square full-background contrast uses actual composited/lerped backgrounds; legal-target filled-circle/ring contrast is tested as a graphical marker against each applicable effective square background, separately from piece-silhouette contrast.
+- [x] Failing legal-target marker combinations were corrected by changing `BoardLegalTarget` from `Color(0xCC2DD4BF)` to opaque `AppBackground`; the automated matrix validates the resulting marker on all exercised board treatments.
 
 ## AR-016.2 Tests
 
-- [ ] N/A — the unit test above is this task's deliverable; it runs as part of the app's normal unit-test step.
+- [x] N/A — the unit test above is this task's deliverable; it runs as part of the app's normal unit-test step.
 
 ---
 
