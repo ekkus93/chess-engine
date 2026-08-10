@@ -24,40 +24,40 @@
 
 ## CC-000.1 Review context
 
-- [ ] Confirmed `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md` declares the review-fix program `Complete` and that an eight-pass independent verification found the large majority genuinely correct, but five specific claims false or overclaimed.
-- [ ] Confirmed AR-003: "native" jargon remains in `ChessViewModel.kt:71,117`, player-visible via `ChessEngineErrorDialog`.
-- [ ] Confirmed AR-004: no verify-first runtime observation is recorded anywhere; the added test is non-diagnostic of the actual regression.
-- [ ] Confirmed AR-007: production guard code is correct, but the claimed behavioral duplicate-invocation tests do not exist.
-- [ ] Confirmed AR-011: the required end-to-end promotion test (or documented-impractical fallback) is absent.
-- [ ] Confirmed the closure-evidence document cites CI run IDs for a superseded SHA (`6d9a84d`) rather than the actual final tree (`e9ab0fc`), whose own runs (`31419183264`, `31419183273`) exist and are green but are uncited.
-- [ ] Confirmed the three minor secondary notes: AR-006's undocumented `isScrollInProgress` scope assumption, AR-020's missing e2-emptiness assertion, AR-016's uncovered Resign-dialog contrast pairing.
-- [ ] Recorded the review baseline SHA: `e9ab0fc623c22bd372ba9c8c2609dfcf74609f84`.
+- [x] Confirmed `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md` declares the review-fix program `Complete` and that an eight-pass independent verification found the large majority genuinely correct, but five specific claims false or overclaimed.
+- [x] Confirmed AR-003: "native" jargon remains in `ChessViewModel.kt:71,117`, player-visible via `ChessEngineErrorDialog`.
+- [x] Confirmed AR-004: no verify-first runtime observation is recorded anywhere; the added test is non-diagnostic of the actual regression.
+- [x] Confirmed AR-007: production guard code is correct, but the claimed behavioral duplicate-invocation tests do not exist.
+- [x] Confirmed AR-011: the required end-to-end promotion test (or documented-impractical fallback) is absent.
+- [x] Confirmed the closure-evidence document cites CI run IDs for a superseded SHA (`6d9a84d`) rather than the actual final tree (`e9ab0fc`), whose own runs (`31419183264`, `31419183273`) exist and are green but are uncited.
+- [x] Confirmed the three minor secondary notes: AR-006's undocumented `isScrollInProgress` scope assumption, AR-020's missing e2-emptiness assertion, AR-016's uncovered Resign-dialog contrast pairing.
+- [x] Recorded the review baseline SHA: `e9ab0fc623c22bd372ba9c8c2609dfcf74609f84`.
 
 ## CC-000.2 Authority registration
 
-- [ ] Registered `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_TODO_2026-08-10.md` in `docs/LEGACY_TODO_INDEX.md`'s "Bounded review-fix trackers" section and historical inventory, following the identical precedent of the four trackers already listed there.
-- [ ] Updated `scripts/task_post_port_review_fix_audit.sh`'s registration/count checks to match.
+- [x] Registered `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_TODO_2026-08-10.md` in `docs/LEGACY_TODO_INDEX.md`'s "Bounded review-fix trackers" section and historical inventory, following the identical precedent of the four trackers already listed there.
+- [x] Updated `scripts/task_post_port_review_fix_audit.sh`'s registration/count checks to match.
 
 ## CC-000.2b Pre-implementation review resolution (QI-001 through QI-012)
 
-- [ ] Read `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_QUESTIONS_AND_ISSUES_2026-08-10.md` in full.
-- [ ] Confirmed all twelve items were resolved and incorporated into the spec's §2.1 (closure-SHA protocol), CC-001 through CC-005, and CC-009, and into this TODO's matching sections. None was rejected on a factual-precedent basis (unlike one item in the parent program's first review round).
-- [ ] Read `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_FOLLOWUP_QUESTIONS_AND_ISSUES_2026-08-10.md` in full.
-- [ ] Confirmed FQI-001 (the closure-SHA protocol's terminal step was literally impossible — it required recording CI run IDs inside the commit that triggers them, before those IDs exist), FQI-002 (several tasks' checkboxes couldn't honestly all reach `[x]` given their own legitimate mutually-exclusive dispositions), and FQI-003 (CC-005's git evidence needed to be path-scoped to the actual claim, not a whole-tree comparison that would show inequality for unrelated reasons) were all resolved and incorporated into spec §2.1/§11.4 and CC-002B/CC-003/CC-004/CC-005, and into this TODO's matching sections.
-- [ ] Read `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_FINAL_FOLLOWUP_QUESTIONS_AND_ISSUES_2026-08-10.md` in full.
-- [ ] Confirmed FFQI-001 (`N/A` had no formal completion semantics), FFQI-002 (the terminal-trigger decision was based on a "documentation vs. source" file-category guess rather than actual workflow execution), and FFQI-003 (a stale `§6` cross-reference and one remaining unconditional "CC-004 instrumentation addition" phrase) were resolved in the Status rules, spec §2.1, and spec §11.1.
+- [x] Read `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_QUESTIONS_AND_ISSUES_2026-08-10.md` in full.
+- [x] Confirmed all twelve items were resolved and incorporated into the spec's §2.1 (closure-SHA protocol), CC-001 through CC-005, and CC-009, and into this TODO's matching sections. None was rejected on a factual-precedent basis (unlike one item in the parent program's first review round).
+- [x] Read `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_FOLLOWUP_QUESTIONS_AND_ISSUES_2026-08-10.md` in full.
+- [x] Confirmed FQI-001 (the closure-SHA protocol's terminal step was literally impossible — it required recording CI run IDs inside the commit that triggers them, before those IDs exist), FQI-002 (several tasks' checkboxes couldn't honestly all reach `[x]` given their own legitimate mutually-exclusive dispositions), and FQI-003 (CC-005's git evidence needed to be path-scoped to the actual claim, not a whole-tree comparison that would show inequality for unrelated reasons) were all resolved and incorporated into spec §2.1/§11.4 and CC-002B/CC-003/CC-004/CC-005, and into this TODO's matching sections.
+- [x] Read `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_FINAL_FOLLOWUP_QUESTIONS_AND_ISSUES_2026-08-10.md` in full.
+- [x] Confirmed FFQI-001 (`N/A` had no formal completion semantics), FFQI-002 (the terminal-trigger decision was based on a "documentation vs. source" file-category guess rather than actual workflow execution), and FFQI-003 (a stale `§6` cross-reference and one remaining unconditional "CC-004 instrumentation addition" phrase) were resolved in the Status rules, spec §2.1, and spec §11.1.
 
 ## CC-000.3 SHA tracking (§2.1 closure-SHA protocol)
 
-- [ ] Review baseline SHA (state this spec/TODO pair reviewed): `e9ab0fc623c22bd372ba9c8c2609dfcf74609f84`.
+- [x] Review baseline SHA (state this spec/TODO pair reviewed): `e9ab0fc623c22bd372ba9c8c2609dfcf74609f84`.
 - [ ] Implementation-start SHA (captured immediately after CC-000 lands): `_____________________________`
-- [ ] Confirmed these are not conflated with each other or with the eventual final correction SHA anywhere in this document.
+- [x] Confirmed these are not conflated with each other or with the eventual final correction SHA anywhere in this document.
 
 ## CC-000.4 Scope discipline
 
-- [ ] Reinspected each of the five confirmed findings and three minor notes immediately before implementing its fix, in case newer source already resolved it.
-- [ ] Did not reopen any other AR-00N task from the parent program.
-- [ ] Did not relitigate any already-resolved QI/FQI pre-implementation item from the prior two rounds.
+- [x] Reinspected each of the five confirmed findings and three minor notes immediately before implementing its fix, in case newer source already resolved it.
+- [x] Did not reopen any other AR-00N task from the parent program.
+- [x] Did not relitigate any already-resolved QI/FQI pre-implementation item from the prior two rounds.
 
 ---
 
