@@ -81,26 +81,27 @@
 
 # CC-002: Fix AR-004 — perform the verify-first system-bar observation
 
-**Note:** this task is explicitly exempted from the one-task/one-commit rule (spec §4.2/QI-003) and lands as two sub-tasks, CC-002A (always) and CC-002B (only if CC-002A finds a real defect).
+**Disposition:** `remediation-not-needed`.
 
 ## CC-002A: Runtime observation
 
-- [ ] Genuine runtime observation performed (via permanent Android CI's emulator job if no local API 35 environment is available) distinguishing dark-background-correct from stock-light-regressed system-bar rendering, beyond the existing icon-appearance-only check.
-- [ ] Observation-evidence contract satisfied (spec §4.3/QI-004), recorded here: API level; emulator/device configuration; programmatic vs. screenshot/pixel-based proof (or both); expected color/tolerance if pixel-based; preserved artifact location if any; exact CI run/job ID.
-- [ ] Existing icon-appearance-only checks retained only as supporting evidence; CC-002A is not satisfied by those flags alone.
+- [x] Genuine rendered-state observation performed on permanent Android CI at exact SHA `6e5fdec216f013fae1257c67899fa26cce02d5e6`: workflow run `31431380577`, API-35 emulator job `93595365511`, conclusion `success`.
+- [x] Observation-evidence contract satisfied: API 35, x86_64 `google_apis`, Pixel 2 profile, headless SwiftShader emulator; actual `UiAutomation` framebuffer screenshot sampled in the status/navigation-bar insets; expected product background `#0B1220`; RGB tolerance ±12/channel; each sampled bar region required at least 70% matching pixels. Screenshot `system-bars-api35.png` was preserved under `/sdcard/Download/RustChessEvidence` and included in the permanent UI-evidence artifact.
+- [x] Existing icon-appearance flags remained supporting assertions only. CC-002A was satisfied by the new framebuffer/pixel diagnostic, not by those flags alone.
 
-## CC-002B: Conditional remediation (only if CC-002A found a defect)
+## CC-002B: Conditional remediation
 
-CC-002B reaches exactly one of two dispositions (FQI-002); mark the untaken one `N/A` rather than leaving it as an incomplete `[ ]`.
+- [x] **Disposition reached:** `remediation-not-needed` — CC-002A proved the API-35 system bars already render with the dark product background.
 
-- [ ] **Disposition reached:** either "remediation-required" (fix landed and re-verified) or "remediation-not-needed" (CC-002A's evidence shows no fix was needed) — recorded explicitly here.
-- [ ] If remediation-required: `WindowCompat`/`WindowInsetsControllerCompat`/`enableEdgeToEdge()` call added in `MainActivity.kt`; re-verified against the same observation-evidence contract as CC-002A; existing `styles.xml` legacy attributes retained. *(N/A if remediation-not-needed.)*
-- [ ] If remediation-not-needed: explicitly recorded as such, referencing CC-002A's evidence. *(N/A if remediation-required.)*
+N/A — `remediation-required`: no `MainActivity.kt`/WindowCompat/edge-to-edge production change was needed because the diagnostic passed on the real API-35 emulator.
+
+- [x] `remediation-not-needed` is backed by run `31431380577`, job `93595365511`, exact SHA `6e5fdec216f013fae1257c67899fa26cce02d5e6`.
 
 ## CC-002 Tests
 
-- [ ] CC-002A's observation evidence is the test evidence for that sub-task.
-- [ ] If CC-002B landed, its re-verification is its test evidence.
+- [x] CC-002A runtime diagnostic and the full Android connected-test step passed in job `93595365511`.
+
+N/A — CC-002B re-verification: no remediation commit landed, so no post-fix rerun was required.
 
 ---
 
