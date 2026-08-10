@@ -82,9 +82,8 @@ fn result_without_exact_move_or_fallback_fails_closed() {
 
 #[test]
 fn invalid_search_limits_fail_without_playable_completion() {
-    let position =
-        Position::from_fen("rnbqkbnr/pppppppp/8/8/8/7P/PPPPPPP1/RNBQKBNR b KQkq - 0 1")
-            .expect("non-book fixture");
+    let position = Position::from_fen("rnbqkbnr/pppppppp/8/8/8/7P/PPPPPPP1/RNBQKBNR b KQkq - 0 1")
+        .expect("non-book fixture");
     let (mut worker, receiver) = SearchWorker::spawn(SearchRequest {
         ticket: ticket(),
         game: Game::new(position),
