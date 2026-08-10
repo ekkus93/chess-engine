@@ -63,7 +63,6 @@ run("git", "config", "user.email", "actions@users.noreply.github.com")
 
 # AR-017 SAN coverage: piece capture, disambiguated capture, capture-promotion with check.
 insert = r'''
-
     #[test]
     fn formats_piece_capture() {
         let position = parse_fen("4k3/8/8/4p3/8/5N2/8/4K3 w - - 0 1").expect("valid FEN");
@@ -85,10 +84,18 @@ insert = r'''
         assert_eq!(format_san(&position, mv).expect("SAN"), "exd8=Q+");
     }
 '''
-text = SAN.read_text()
-SAN.write_text(text.rstrip()[:-1] + insert + "}\n")
+text = SAN.read_text().rstrip()
+assert text.endswith("}")
+SAN.write_text(text[:-1].rstrip() + "\n\n" + insert + "}\n")
+# Apply rustfmt, then independently enforce that the formatted tree is clean.
+sh("cargo fmt --all")
 mark("AR-017")
-commit("AR-017", "test(core): cover SAN capture edge cases", [TODO, SAN], ["cargo fmt --all -- --check", "cargo test --locked -p chess-core san -- --nocapture"])
+commit(
+    "AR-017",
+    "test(core): cover SAN capture edge cases",
+    [TODO, SAN],
+    ["cargo fmt --all -- --check", "cargo test --locked -p chess-core san -- --nocapture"],
+)
 
 # AR-018 fail-closed Kotlin snapshot parser coverage.
 parser_dir = UTEST / "com/ekkus93/chessengine"
@@ -146,7 +153,12 @@ class ChessGameSnapshotParseTest {
 }
 ''')
 mark("AR-018")
-commit("AR-018", "test(android): cover snapshot parser rejection paths", [TODO, parser_test], ["gradle -p android-harness :android-app:testDebugUnitTest --no-daemon --stacktrace --console=plain"])
+commit(
+    "AR-018",
+    "test(android): cover snapshot parser rejection paths",
+    [TODO, parser_test],
+    ["gradle -p android-harness :android-app:testDebugUnitTest --no-daemon --stacktrace --console=plain"],
+)
 
 # AR-019 static high-level Rust/Kotlin contract parity.
 replace(
@@ -169,15 +181,24 @@ fn high_level_snapshot_contract_matches_between_rust_and_kotlin() {
         .split("];")
         .next()
         .expect("snapshot field array end");
-    let field_count = fields.lines().filter(|line| line.trim_end().ends_with(',')).count();
+    let field_count = fields
+        .lines()
+        .filter(|line| line.trim_end().ends_with(','))
+        .count();
     assert_eq!(field_count, 18, "Rust high-level snapshot field count changed");
 }
 '''
 JNI_CONTRACT.write_text(JNI_CONTRACT.read_text().rstrip() + extra + "\n")
+sh("cargo fmt --all")
 mark("AR-019")
-commit("AR-019", "test(jni): pin high-level snapshot protocol parity", [TODO, JNI_CONTRACT], ["cargo fmt --all -- --check", "cargo test --locked -p chess-jni --test jni_contract", "cargo test --locked -p chess-jni"])
+commit(
+    "AR-019",
+    "test(jni): pin high-level snapshot protocol parity",
+    [TODO, JNI_CONTRACT],
+    ["cargo fmt --all -- --check", "cargo test --locked -p chess-jni --test jni_contract", "cargo test --locked -p chess-jni"],
+)
 
-# AR-020 real API-35 rotation request with non-initial game state preserved.
+# AR-020 real API-35 rotation request with a non-initial played position preserved.
 replace(
     BUILD,
     '    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.7.8")\n',
@@ -215,7 +236,9 @@ class PortraitRotationInstrumentedTest {
             composeRule.onNodeWithContentDescription("e2 pawn").performClick()
             composeRule.onNodeWithContentDescription("e4 legal target").performClick()
             composeRule.waitUntil(30_000) {
-                runCatching { composeRule.onNodeWithContentDescription("e4 pawn").fetchSemanticsNode() }.isSuccess
+                runCatching {
+                    composeRule.onNodeWithContentDescription("e4 pawn", substring = true).fetchSemanticsNode()
+                }.isSuccess
             }
 
             device.setOrientationLeft()
@@ -225,7 +248,7 @@ class PortraitRotationInstrumentedTest {
             assertEquals(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, composeRule.activity.requestedOrientation)
             assertEquals(Configuration.ORIENTATION_PORTRAIT, composeRule.activity.resources.configuration.orientation)
             composeRule.onNodeWithTag("chess-board").assertExists()
-            composeRule.onNodeWithContentDescription("e4 pawn").assertExists()
+            composeRule.onNodeWithContentDescription("e4 pawn", substring = true).assertExists()
         } finally {
             device.setOrientationNatural()
             device.waitForIdle()
@@ -236,8 +259,16 @@ class PortraitRotationInstrumentedTest {
 sh(compile_tests())
 rotation = sh(connected("com.ekkus93.chessapp.PortraitRotationInstrumentedTest"), check=False)
 if rotation.returncode != 0:
-    raise RuntimeError("AR-020 runtime rotation-attempt coverage failed in the supported API-35 emulator; refusing to mark blocked/manual without a separate environmental diagnosis")
+    raise RuntimeError(
+        "AR-020 runtime rotation-attempt coverage failed in the supported API-35 emulator; "
+        "refusing to mark it blocked/manual without a distinct environmental diagnosis"
+    )
 mark("AR-020")
-commit("AR-020", "test(android): verify portrait rotation preserves game state", [TODO, BUILD, rotation_test], [compile_tests(), connected("com.ekkus93.chessapp.PortraitRotationInstrumentedTest")])
+commit(
+    "AR-020",
+    "test(android): verify portrait rotation preserves game state",
+    [TODO, BUILD, rotation_test],
+    [compile_tests(), connected("com.ekkus93.chessapp.PortraitRotationInstrumentedTest")],
+)
 
-print("STAGE3_COMPLETE", subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip())
+print("STAGE3_RESUME_COMPLETE", subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip())
