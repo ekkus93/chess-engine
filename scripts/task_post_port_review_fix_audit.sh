@@ -121,12 +121,17 @@ grep -Fq 'Apart from this authority index, every other Markdown file directly un
 grep -Fq '81 TODO-named files total; 2 completed Rust-port authority documents; 0 active implementation TODOs; 1 Android closure-evidence authority; 1 authority index; 78 historical/planning TODO records including the archived Android tracker' "$legacy_index"
 grep -Fq '## Bounded review-fix trackers' "$legacy_index"
 grep -Fq 'a bounded review-fix tracker being executable does not make it the active implementation authority for the program it patches' "$legacy_index"
+bounded_review_fix_section="$(awk '
+    /^## Bounded review-fix trackers$/ { in_section = 1; next }
+    /^## Exhaustive classification rule$/ { in_section = 0 }
+    in_section { print }
+' "$legacy_index")"
 for bounded_review_fix_tracker in \
     'docs/RUST_ENGINE_REVIEW_FIX_TODO_2026-08-02.md' \
     'docs/RUST_CHESS_ENGINE_POST_PORT_REVIEW_FIX_TODO_2026-08-04.md' \
     'docs/RUST_TUI_REVIEW_FIX_TODO_2026-08-09.md' \
     'docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md'; do
-    grep -Fq "\`$bounded_review_fix_tracker\`" "$legacy_index" || {
+    grep -Fq "\`$bounded_review_fix_tracker\`" <<<"$bounded_review_fix_section" || {
         echo "bounded review-fix tracker not listed under its classification: $bounded_review_fix_tracker" >&2
         exit 1
     }

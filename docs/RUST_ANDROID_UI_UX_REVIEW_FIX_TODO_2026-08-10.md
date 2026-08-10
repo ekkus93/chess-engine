@@ -1,6 +1,6 @@
 # Rust Android UI/UX Review Fix TODO — 2026-08-10
 
-**Status:** proposed / not started
+**Status:** In progress — AR-000 baseline confirmed; implementation underway
 **Branch:** `master`
 **Spec:** `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_SPEC_2026-08-10.md`
 **Primary tracker:** `docs/RUST_ANDROID_UI_UX_REDESIGN_TODO_2026-08-10.md`
@@ -25,43 +25,43 @@
 
 ## AR-000.1 Review context
 
-- [ ] Confirmed `docs/RUST_ANDROID_UI_UX_REDESIGN_CLOSURE_EVIDENCE_2026-08-10.md` declares the redesign complete and that the eight-pass independent review found no chess-correctness bug, no fallback/fail-open regression, and no Rust/Kotlin ownership-boundary violation.
-- [ ] Confirmed one missing feature: Phase 9.1's newest-move distinction is not implemented anywhere in `GamePanels.kt`.
-- [ ] Confirmed the dead `BoardLastMove` token (`Theme.kt:30`) and the literal-color leaks in `ChessPiece.kt`/`ChessBoardView.kt`.
-- [ ] Confirmed "native" jargon in `SetupScreen.kt:73,75`.
-- [ ] Confirmed the system-bar theming mechanism relies solely on legacy XML attributes that Android documents as deprecated/no-op under the app's own `targetSdk = 35` edge-to-edge enforcement.
-- [ ] Confirmed the auto-scroll effect's ordering dependency and the busy-guard inconsistency across `restartGame`/`resign`/`submitMove`.
-- [ ] Confirmed the thirteen test-coverage gaps named in the spec, most significantly the Black-orientation layout-coverage blind spot.
-- [ ] Recorded the review baseline SHA: `98e21939b0665f2f54ade7f87cdcaba3fe48025f`.
+- [x] Confirmed `docs/RUST_ANDROID_UI_UX_REDESIGN_CLOSURE_EVIDENCE_2026-08-10.md` declares the redesign complete and that the eight-pass independent review found no chess-correctness bug, no fallback/fail-open regression, and no Rust/Kotlin ownership-boundary violation.
+- [x] Confirmed one missing feature: Phase 9.1's newest-move distinction is not implemented anywhere in `GamePanels.kt`.
+- [x] Confirmed the dead `BoardLastMove` token (`Theme.kt:30`) and the literal-color leaks in `ChessPiece.kt`/`ChessBoardView.kt`.
+- [x] Confirmed "native" jargon in `SetupScreen.kt:73,75`.
+- [x] Confirmed the system-bar theming mechanism relies solely on legacy XML attributes that Android documents as deprecated/no-op under the app's own `targetSdk = 35` edge-to-edge enforcement.
+- [x] Confirmed the auto-scroll effect's ordering dependency and the busy-guard inconsistency across `restartGame`/`resign`/`submitMove`.
+- [x] Confirmed the thirteen test-coverage gaps named in the spec, most significantly the Black-orientation layout-coverage blind spot.
+- [x] Recorded the review baseline SHA: `98e21939b0665f2f54ade7f87cdcaba3fe48025f`.
 
 ## AR-000.2 Pre-implementation review resolution (QI-001 through QI-012)
 
-- [ ] Read `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_QUESTIONS_AND_ISSUES_2026-08-10.md` in full.
-- [ ] Confirmed QI-002 (the `dev.sh fast` in-scope/out-of-scope contradiction) is resolved: `dev.sh fast` is a mandatory gate for this pass (AR-021); this pass does not retroactively satisfy the *prior* program's Phase 17 checkbox.
-- [ ] Confirmed QI-001 (active-authority table registration) is **not** treated as a blocker, per precedent from three prior review-fix passes (`RUST_ENGINE_REVIEW_FIX_TODO_2026-08-02.md`, `RUST_CHESS_ENGINE_POST_PORT_REVIEW_FIX_TODO_2026-08-04.md`, `RUST_TUI_REVIEW_FIX_TODO_2026-08-09.md`), all completed without table registration; no change to `docs/LEGACY_TODO_INDEX.md`'s active-table state is made on this basis.
-- [ ] Confirmed QI-003 through QI-012 were incorporated into the spec's AR-004, AR-006, AR-007, AR-008, AR-009, AR-016, AR-020, and AR-021 sections and into this TODO's matching sections.
-- [ ] Recorded the review baseline SHA above as distinct from the implementation-start SHA below.
+- [x] Read `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_QUESTIONS_AND_ISSUES_2026-08-10.md` in full.
+- [x] Confirmed QI-002 (the `dev.sh fast` in-scope/out-of-scope contradiction) is resolved: `dev.sh fast` is a mandatory gate for this pass (AR-021); this pass does not retroactively satisfy the *prior* program's Phase 17 checkbox.
+- [x] Confirmed QI-001 (active-authority table registration) is **not** treated as a blocker, per precedent from three prior review-fix passes (`RUST_ENGINE_REVIEW_FIX_TODO_2026-08-02.md`, `RUST_CHESS_ENGINE_POST_PORT_REVIEW_FIX_TODO_2026-08-04.md`, `RUST_TUI_REVIEW_FIX_TODO_2026-08-09.md`), all completed without table registration; no change to `docs/LEGACY_TODO_INDEX.md`'s active-table state is made on this basis.
+- [x] Confirmed QI-003 through QI-012 were incorporated into the spec's AR-004, AR-006, AR-007, AR-008, AR-009, AR-016, AR-020, and AR-021 sections and into this TODO's matching sections.
+- [x] Recorded the review baseline SHA above as distinct from the implementation-start SHA below.
 
 ## AR-000.2b Second pre-implementation review resolution (FQI-001 through FQI-005)
 
-- [ ] Read `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_FOLLOWUP_QUESTIONS_AND_ISSUES_2026-08-10.md` in full.
-- [ ] Confirmed FQI-001 is resolved at the source: `docs/LEGACY_TODO_INDEX.md` now defines an explicit "Bounded review-fix trackers" classification naming this document, enforced by `scripts/task_post_port_review_fix_audit.sh` (not merely asserted by precedent as the first resolution round did).
-- [ ] Confirmed FQI-002 is resolved: AR-007 was simplified to global-busy/cleanup duplicate-input suppression matching `startGame()`'s actual guard, since `ChessViewModel` has no operation-identity state to support the original same-operation-vs-different-operation distinction.
-- [ ] Confirmed FQI-003 is resolved: AR-016 now validates rendered-piece composite silhouette-boundary contrast, not independent raw fill/stroke tokens against every square.
-- [ ] Confirmed FQI-004 is resolved: AR-021 now explicitly accommodates a genuinely blocked/manual AR-020 runtime sub-item without requiring it to be falsely marked `[x]`.
-- [ ] Confirmed FQI-005 is resolved: the closure-evidence document is now listed in the spec §2 touched-file scope.
+- [x] Read `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_FOLLOWUP_QUESTIONS_AND_ISSUES_2026-08-10.md` in full.
+- [x] Confirmed FQI-001 is resolved at the source: `docs/LEGACY_TODO_INDEX.md` now defines an explicit "Bounded review-fix trackers" classification naming this document, enforced by `scripts/task_post_port_review_fix_audit.sh` (not merely asserted by precedent as the first resolution round did).
+- [x] Confirmed FQI-002 is resolved: AR-007 was simplified to global-busy/cleanup duplicate-input suppression matching `startGame()`'s actual guard, since `ChessViewModel` has no operation-identity state to support the original same-operation-vs-different-operation distinction.
+- [x] Confirmed FQI-003 is resolved: AR-016 now validates rendered-piece composite silhouette-boundary contrast, not independent raw fill/stroke tokens against every square.
+- [x] Confirmed FQI-004 is resolved: AR-021 now explicitly accommodates a genuinely blocked/manual AR-020 runtime sub-item without requiring it to be falsely marked `[x]`.
+- [x] Confirmed FQI-005 is resolved: the closure-evidence document is now listed in the spec §2 touched-file scope.
 
 ## AR-000.3 SHA tracking (QI-003)
 
-- [ ] Review baseline SHA (shipped-product state that was independently reviewed): `98e21939b0665f2f54ade7f87cdcaba3fe48025f`.
+- [x] Review baseline SHA (shipped-product state that was independently reviewed): `98e21939b0665f2f54ade7f87cdcaba3fe48025f`.
 - [ ] Implementation-start SHA (exact `master` state immediately before AR-001 begins, captured after this spec/TODO pair and its pre-implementation corrections have landed): `_____________________________`
 - [ ] Confirmed these two values are not conflated anywhere in this document or the closure-evidence document.
 
 ## AR-000.4 Scope discipline
 
-- [ ] Reinspected each finding immediately before implementing its fix, in case newer source already resolved it.
-- [ ] Did not reopen `docs/RUST_ANDROID_UI_UX_REDESIGN_TODO_2026-08-10.md`'s checkbox state.
-- [ ] Did not retroactively satisfy Phase 17's literal local `dev.sh android`/`fast` runs or Phase 20's physical-device pass as part of this program (those remain tracked as open in the prior program).
+- [x] Reinspected each finding immediately before implementing its fix, in case newer source already resolved it.
+- [x] Did not reopen `docs/RUST_ANDROID_UI_UX_REDESIGN_TODO_2026-08-10.md`'s checkbox state.
+- [x] Did not retroactively satisfy Phase 17's literal local `dev.sh android`/`fast` runs or Phase 20's physical-device pass as part of this program (those remain tracked as open in the prior program).
 
 ---
 
@@ -88,7 +88,7 @@
 
 - [ ] Last-move highlight in `ChessBoardView.kt` renders from `BoardLastMove` (or a corrected definition of it), not an inline `lerp` literal.
 - [ ] `PieceLightFill`/`PieceDarkFill`/`PieceLightStroke`/`PieceDarkStroke` (or equivalently named) tokens added to `Theme.kt`; `ChessPiece.kt` references them instead of literals.
-- [ ] `CoordinateLabel` (or equivalently named) token added to `Theme.kt`; `ChessBoardView.kt`'s rank/file labels reference it instead of `Color.Black.copy(...)`.
+- [ ] Semantic coordinate-label tokens for light and dark board squares added to `Theme.kt`; `ChessBoardView.kt`'s rank/file labels select the appropriate token instead of `Color.Black.copy(...)`.
 - [ ] Coordinate-label token verified legible against both `BoardLight` and `BoardDark` (cross-reference AR-016's contrast test once it exists).
 
 ## AR-002.2 Tests
@@ -163,7 +163,7 @@
 ## AR-007.1 Fix — global-busy/cleanup duplicate-input suppression (QI-005, revised per FQI-002)
 
 - [ ] Confirmed `ChessViewModel` has no per-operation-type identity state (only `busy`, `operationGeneration`, `monitorJob`, `game`), so the original same-operation-vs-different-operation distinction is not implementable without adding new state this task does not introduce.
-- [ ] `restartGame()`, `resign()`, and `submitMove()` each add the same precondition guard `startGame()` already uses (`busy`/`cleanupRequired` → early return), adapted to each function's applicable preconditions.
+- [ ] `restartGame()`, `resign()`, and `submitMove()` each use the explicit existing-game guard `configuration.isSetup || configuration.busy || configuration.cleanupRequired` → early return; the `isSetup` polarity is intentionally opposite `startGame()` because these operations require an active game.
 - [ ] The guard applies uniformly regardless of whether the new invocation repeats the same button or is a different action attempted while busy — no operation-type distinction is introduced.
 - [ ] Rejection is a silent no-op (plain `return`), matching what `startGame()`'s guard actually does today — not a newly invented "visible rejection" `startGame()` doesn't itself perform.
 - [ ] `cleanupRequired` rejection leaves the already-surfaced cleanup-required state unchanged; no new per-invocation error message is added.
@@ -291,8 +291,8 @@
 
 - [ ] JVM unit test computes WCAG contrast ratio for each named non-piece text/control token pair (see spec §18.2) and asserts each meets its threshold.
 - [ ] Full piece/square matrix covered using the composite silhouette-boundary model, not independent raw tokens (QI-009, revised per FQI-003): for each of light piece on light square, light piece on dark square, dark piece on light square, dark piece on dark square, at least one boundary-forming component (fill-vs-background or stroke-vs-background) meets the 3:1 threshold — all four raw tokens are not required to independently clear it against every square.
-- [ ] Coordinate-label contrast covered on both `BoardLight` and `BoardDark`.
-- [ ] Last-move, selected-square, and legal-target overlay contrast covered using the actual alpha-composited effective background color and the same composite-boundary model, not the raw overlay token compared in isolation.
+- [ ] Coordinate-label contrast covered with the actual light-square and dark-square label tokens on their respective square colors.
+- [ ] Last-move and selected-square full-background contrast uses actual composited/lerped backgrounds; legal-target filled-circle/ring contrast is tested as a graphical marker against each applicable effective square background, separately from piece-silhouette contrast.
 - [ ] Any failing combination's token value adjusted in `Theme.kt`; before/after values recorded here.
 
 ## AR-016.2 Tests
