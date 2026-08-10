@@ -231,7 +231,9 @@ pub extern "system" fn native_app_create(
     human_color: jint,
     depth: jint,
 ) -> jlong {
-    boundary(&mut env, 0, |_env| app_bridge::create_game(human_color, depth))
+    boundary(&mut env, 0, |_env| {
+        app_bridge::create_game(human_color, depth)
+    })
 }
 
 #[export_name = "Java_com_ekkus93_chessengine_NativeChessAppBindings_nativeDestroy"]
