@@ -144,14 +144,27 @@ N/A — `test-only fixture seam`: no existing test-only high-level session const
 
 ## CC-005.1 Fix
 
-- [ ] `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_EVIDENCE_2026-08-10.md`'s "Permanent exact-source-SHA CI" section updated to cite general/Rust CI run `31419183264` and Android CI run `31419183273` (with their own job IDs/conclusions) against SHA `e9ab0fc623c22bd372ba9c8c2609dfcf74609f84`.
-- [ ] The `6d9a84d` runs retained as supporting evidence, but **not** described as proof the two trees are source-identical (spec §7.2/QI-007) — instead, the path-scoped comparison `git diff --exit-code 6d9a84d..e9ab0fc -- android-harness crates` (FQI-003 — scoped to the actual claim, not a whole-tree diff that would show inequality merely because documentation changed) is recorded, along with a supplementary unrestricted `git diff --name-only` showing exactly which documentation/authority files did change.
+- [x] Parent closure evidence now cites authoritative final-tree general/Rust run `31419183264` and Android run `31419183273` against `e9ab0fc623c22bd372ba9c8c2609dfcf74609f84`, including their job IDs and successful conclusions.
+- [x] Earlier `6d9a84d9` runs remain supporting evidence only. Product/test equality is proven by the path-scoped command below, not inferred from green CI:
+
+```text
+git diff --exit-code 6d9a84d910a3e6438aef390aa733a4b62a71dfdd..e9ab0fc623c22bd372ba9c8c2609dfcf74609f84 -- android-harness crates
+(exit 0; empty output)
+```
+
+Supplementary unrestricted changed-file list:
+
+```text
+docs/LEGACY_TODO_INDEX.md
+docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_EVIDENCE_2026-08-10.md
+docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md
+scripts/task_post_port_review_fix_audit.sh
+```
 
 ## CC-005.2 Tests
 
-- [ ] N/A — documentation-only. Both new run IDs independently re-queried via `gh` during implementation and confirmed to match what is written; the recorded path-scoped git comparison independently re-run and confirmed to match its recorded output (empty/zero exit code).
-
----
+- [x] `gh run view 31419183264` and `gh run view 31419183273` independently returned completed/success on `e9ab0fc623c22bd372ba9c8c2609dfcf74609f84` during this task.
+- [x] The recorded path-scoped diff was independently executed in this task and returned exit 0 with empty output.
 
 # CC-006: Document AR-006's residual auto-scroll assumption
 

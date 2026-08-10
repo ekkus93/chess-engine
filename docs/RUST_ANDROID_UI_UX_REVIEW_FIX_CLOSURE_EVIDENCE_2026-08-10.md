@@ -4,6 +4,7 @@
 **Review baseline SHA:** `98e21939b0665f2f54ade7f87cdcaba3fe48025f`
 **Implementation-start SHA:** `218158b15d1b500e940eb7a13077636b446869f5`
 **Validated final source SHA:** `6d9a84d910a3e6438aef390aa733a4b62a71dfdd`
+**Authoritative closure-tree SHA:** `e9ab0fc623c22bd372ba9c8c2609dfcf74609f84`
 **Companion spec:** `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_SPEC_2026-08-10.md`
 **Companion TODO:** `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md`
 
@@ -13,29 +14,51 @@ The bounded Android UI/UX review-fix pass is complete. AR-001 through AR-020 wer
 
 The temporary Ralph validation run also passed before permanent closure: run `31409800032` completed successfully, including Android JVM/unit tests, Android lint, `chess-core`, `chess-jni`, all 39 Android instrumentation tests, `bash scripts/dev.sh fast`, and the TODO-authority audit after removal of the temporary source-modifying runner.
 
-## Permanent exact-source-SHA CI
+## Permanent exact-source-SHA CI — corrected by closure-corrections CC-005
 
-Both required permanent workflows validated the same exact source SHA `6d9a84d910a3e6438aef390aa733a4b62a71dfdd`.
+The original source-tree validation and the later authoritative closure-tree validation are distinct historical facts. The original source SHA remains useful supporting evidence, but the exact authoritative closure tree was `e9ab0fc623c22bd372ba9c8c2609dfcf74609f84` and has its own permanent green runs.
 
-### General / Rust CI
+### Authoritative final closure tree
 
-- Workflow: `CI`
-- Run: `31417242747`
-- Job: `93549046687` — `Rust workspace quality`
-- Conclusion: `success`
-- Validated SHA: `6d9a84d910a3e6438aef390aa733a4b62a71dfdd`
+- SHA: `e9ab0fc623c22bd372ba9c8c2609dfcf74609f84`
+- General/Rust workflow `CI`: run `31419183264`
+  - job `93555556721` — `Rust workspace quality` — `success`
+  - job `93555556826` — `Linux ARM64 workspace build` — `success`
+- Android workflow `Android JNI`: run `31419183273`
+  - job `93555602583` — `Host JVM JNI contract` — `success`
+  - job `93555602709` — `Android/Kotlin lint and unit tests` — `success`
+  - job `93555602727` — `Android API 35 JNI and app smoke` — `success`
 
-The job passed workspace/audit verification, formatting, strict Clippy, workspace tests, console PTY acceptance, release perft, documentation builds, debug/release builds, UCI smoke, and differential corpus/seeded playout validation.
+Both historical runs were independently re-queried during CC-005 via `gh run view`; each reported `status=completed`, `conclusion=success`, and `headSha=e9ab0fc623c22bd372ba9c8c2609dfcf74609f84`.
 
-### Android JNI CI
+### Earlier source-tree supporting evidence
 
-- Workflow: `Android JNI`
-- Run: `31417240241`
-- Job `93549039534` — `Android/Kotlin lint and unit tests` — `success`
-- Job `93549039574` — `Android API 35 JNI and app smoke` — `success`
-- Job `93549039612` — `Host JVM JNI contract` — `success`
-- Overall conclusion: `success`
-- Validated SHA: `6d9a84d910a3e6438aef390aa733a4b62a71dfdd`
+The earlier permanent runs remain valid evidence for source SHA `6d9a84d910a3e6438aef390aa733a4b62a71dfdd`:
+
+- General/Rust run `31417242747`, job `93549046687` — `success`.
+- Android run `31417240241`, jobs `93549039534`, `93549039574`, `93549039612` — `success`.
+
+They are not presented as the authoritative exact-final-SHA citation.
+
+### Product/test-surface equivalence between the two historical SHAs
+
+This claim is supported by git comparison, not inferred from CI success:
+
+```text
+$ git diff --exit-code 6d9a84d910a3e6438aef390aa733a4b62a71dfdd..e9ab0fc623c22bd372ba9c8c2609dfcf74609f84 -- android-harness crates
+(exit 0; empty output)
+```
+
+The unrestricted changed-file list was:
+
+```text
+docs/LEGACY_TODO_INDEX.md
+docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_EVIDENCE_2026-08-10.md
+docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md
+scripts/task_post_port_review_fix_audit.sh
+```
+
+Therefore Android/Rust product and test surfaces were unchanged between the earlier source-validation SHA and the later closure-tree SHA, while the listed documentation/authority files changed as part of closure bookkeeping.
 
 ## Review-fix validation summary
 
