@@ -18,7 +18,16 @@
 3. Two minor code-hardening items: an auto-scroll effect whose correctness depends on an undocumented Compose scheduling assumption, and three ViewModel methods that skip the busy-state re-check pattern used elsewhere.
 4. Thirteen test-coverage gaps, the largest of which is that every automated layout/containment/spatial-stability test in the suite exercises only the White board orientation — the Black-oriented board has zero automated layout coverage despite being a materially different render.
 
-This pass fixes the confirmed bug and design defects, hardens the two code-smell items, and closes every identified test-coverage gap. It does not reopen `docs/RUST_ANDROID_UI_UX_REDESIGN_TODO_2026-08-10.md`'s own checkbox state (that document remains superseded for shipped-state authority by the closure-evidence document, per `docs/LEGACY_TODO_INDEX.md`'s existing convention) and it does not perform Phase 17's still-open literal local `bash scripts/dev.sh android`/`fast` invocations or the Phase 20 physical-device UX pass — both remain honestly disclosed as open in the closure-evidence document and are outside this pass's scope.
+This pass fixes the confirmed bug and design defects, hardens the two code-smell items, and closes every identified test-coverage gap. It does not reopen `docs/RUST_ANDROID_UI_UX_REDESIGN_TODO_2026-08-10.md`'s own checkbox state (that document remains superseded for shipped-state authority by the closure-evidence document, per `docs/LEGACY_TODO_INDEX.md`'s existing convention), and it does not retroactively satisfy Phase 17's still-open literal local `bash scripts/dev.sh android`/`fast` invocations from the prior program or the Phase 20 physical-device UX pass — those specific historical checkbox items remain honestly disclosed as open in the closure-evidence document and are outside this pass's scope. This is a distinct claim from whether `bash scripts/dev.sh fast` runs as *this pass's own* validation gate — it does; see AR-021 and the clarified rule in the companion TODO's Status rules.
+
+### 1.1 Pre-implementation resolution note
+
+Before implementation began, an independent pre-implementation review of this spec/TODO pair (`docs/RUST_ANDROID_UI_UX_REVIEW_FIX_QUESTIONS_AND_ISSUES_2026-08-10.md`, twelve items, QI-001 through QI-012) was resolved and incorporated directly into the sections below. Two items were flagged as blockers:
+
+- **QI-002** (real contradiction between "`dev.sh fast` is out of scope" and AR-021 requiring it) is resolved by the reworded paragraph above and by AR-021 §23 below: `dev.sh fast` is a mandatory validation gate for this pass itself.
+- **QI-001** (the review-fix TODO is not registered in `docs/LEGACY_TODO_INDEX.md`'s "active implementation TODO" table) is **not** treated as a blocker. Three prior review-fix passes — `docs/RUST_ENGINE_REVIEW_FIX_TODO_2026-08-02.md`, `docs/RUST_CHESS_ENGINE_POST_PORT_REVIEW_FIX_TODO_2026-08-04.md`, and `docs/RUST_TUI_REVIEW_FIX_TODO_2026-08-09.md` (the last completed via an identical Ralph-loop pattern to the one this program will use) — were all implemented to completion while registered only in the index's historical inventory, never in the "active implementation TODO" table. That table is reserved for large multi-phase product programs (the Rust port, S3/S4 strength, the console/application-sharing program, the Android redesign itself); a bounded, self-contained review-fix pass against an already-shipped feature is an established distinct category that does not require table registration to be implemented. No change to `docs/LEGACY_TODO_INDEX.md`'s active-table state is made by this pass on that basis.
+
+The remaining ten items (QI-003 through QI-012) were specification-hardening suggestions and are incorporated into the affected AR-00N sections below and into the companion TODO's AR-000 section.
 
 ---
 
@@ -30,8 +39,9 @@ This pass fixes the confirmed bug and design defects, hardens the two code-smell
 - The existing one-second post-human-move reveal delay, portrait-only lock, and no-root-page-scroll invariants are preserved exactly; no task changes their behavior, only their test coverage or presentation polish.
 - No first-party lint suppression (`allow`/`expect`, Kotlin `@Suppress`) is added anywhere in this pass.
 - No new production dependency is added without explicit justification recorded in this spec. AR-016's contrast check and AR-009/AR-010/AR-013's layout assertions must be built from existing `androidx.compose.ui:ui-test-junit4`/JVM-unit-test capability already present in the project; no new test dependency is introduced without being named here first.
-- This pass touches: `android-harness/android-app/src/main/kotlin/**`, `android-harness/android-app/src/{test,androidTest}/kotlin/**`, `crates/chess-core/src/san.rs` (tests only), `crates/chess-jni/kotlin/**` (tests only), `crates/chess-jni/tests/jni_contract.rs`, and this spec/TODO pair. It does not touch `crates/chess-app`, `crates/chess-search`, `crates/chess-book`, `crates/chess-uci`, `crates/chess-tui`, or `crates/chess-console`.
-- `docs/RUST_ANDROID_UI_UX_REDESIGN_TODO_2026-08-10.md` and `docs/RUST_ANDROID_UI_UX_REDESIGN_CLOSURE_EVIDENCE_2026-08-10.md` are left as historical/closure records and are not edited by this pass except where AR-021 records this pass's own closure evidence in a new document.
+- This pass touches: `android-harness/android-app/src/main/kotlin/**`, `android-harness/android-app/src/{test,androidTest}/kotlin/**`, `android-harness/android-app/build.gradle.kts` (solely to add the `androidx.test.uiautomator` test dependency if AR-020 needs it and it is not already present — no other build/dependency change is in scope), `crates/chess-core/src/san.rs` (tests only), `crates/chess-jni/kotlin/**` (tests only), `crates/chess-jni/tests/jni_contract.rs`, `docs/RUST_ANDROID_APP.md` (solely for AR-005's documentation addition), and this spec/TODO pair. It does not touch `crates/chess-app`, `crates/chess-search`, `crates/chess-book`, `crates/chess-uci`, `crates/chess-tui`, or `crates/chess-console`.
+- `docs/RUST_ANDROID_UI_UX_REDESIGN_TODO_2026-08-10.md` and `docs/RUST_ANDROID_UI_UX_REDESIGN_CLOSURE_EVIDENCE_2026-08-10.md` are left as historical/closure records and are not edited by this pass. This pass's own closure evidence is recorded in a new, explicitly named document: `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_EVIDENCE_2026-08-10.md`, created by AR-021.
+- The review baseline SHA (`98e21939b0665f2f54ade7f87cdcaba3fe48025f`, the shipped-product state that was reviewed) is distinct from the implementation-start SHA (the exact `master` state immediately before AR-001 begins, captured after this spec/TODO pair and its pre-implementation corrections have landed). Both are recorded separately in the companion TODO's AR-000 section; the review baseline is never overwritten or reinterpreted to mean implementation start.
 - Existing passing tests are not weakened or deleted to obtain a green run; every currently-green assertion named in the review remains green after this pass.
 
 ---
@@ -104,11 +114,15 @@ Separately, `ChessPiece.kt:25-26` hard-codes piece fill/stroke colors (`Color(0x
 
 Dark status/navigation-bar coordination relies entirely on legacy XML theme attributes (`styles.xml:8-10`: `android:statusBarColor`, `android:navigationBarColor`, `android:windowLightStatusBar`). The app declares `compileSdk`/`targetSdk = 35` (`build.gradle.kts`). Android 15 (API 35) enforces edge-to-edge display by default for apps targeting SDK 35, and Google's own documentation states these exact attributes become deprecated/no-ops under that mode. No `WindowCompat`/`WindowInsetsControllerCompat` call exists anywhere in `MainActivity.kt` or elsewhere to explicitly control system-bar appearance under edge-to-edge. This is a plausible real regression on current-generation devices/emulators that no existing test would catch.
 
-### 6.2 Fix
+### 6.2 Fix — verify-first
 
-- In `MainActivity.kt` (or a small dedicated theming helper), add an explicit edge-to-edge-aware system-bar call: at minimum, use `WindowCompat.getInsetsController(window, view)` to set `isAppearanceLightStatusBars = false` / `isAppearanceLightNavigationBars = false` (the app is unconditionally dark, per AR-002/Phase 1.2), and apply `AppBackground`/`Surface` as the effective bar scrim consistent with the product theme, using `enableEdgeToEdge()` or `WindowCompat.setDecorFitsSystemWindows` as appropriate for the chosen approach.
-- Keep the existing `styles.xml` attributes in place as a pre-Compose-render/legacy fallback (per Phase 1.3's launch-flash requirement) — this task adds the modern mechanism alongside them, it does not remove the XML attributes.
-- Actually run the app on an API 35 emulator (via `bash scripts/dev.sh android`, once locally runnable, or the permanent Android CI's emulator job) and visually confirm the status/navigation bars render dark, not stock light, before marking this task complete — do not mark complete on code-inspection alone given this defect was specifically about a claim that could only be verified at runtime.
+This task is verify-first, not fix-first: the review found a credible risk, not a confirmed runtime defect. Do not add production window-management code before observing actual API 35 behavior.
+
+1. Inspect the current API 35 runtime state first: run the app on an API 35 emulator/device (via `bash scripts/dev.sh android` once locally runnable, or the permanent Android CI's emulator job) and capture/observe the actual rendered status/navigation-bar appearance, or the observable `WindowInsetsController` appearance state if a direct API query is more reliable than pixel inspection.
+2. If the bars render incorrectly (stock light, or the intended dark appearance is not actually established), add an explicit edge-to-edge-aware system-bar call — at minimum `WindowCompat.getInsetsController(window, view)` setting `isAppearanceLightStatusBars = false` / `isAppearanceLightNavigationBars = false` (the app is unconditionally dark, per AR-002/Phase 1.2), using `enableEdgeToEdge()` or `WindowCompat.setDecorFitsSystemWindows` as appropriate — in `MainActivity.kt` or a small dedicated theming helper, and re-verify at runtime.
+3. If current runtime behavior is already correct through another mechanism (e.g. the legacy XML attributes are in fact still honored on the exercised API level), document that finding and the mechanism responsible in the TODO, and do not add unnecessary production code.
+4. Keep the existing `styles.xml` attributes in place regardless of outcome, as the pre-Compose-render/legacy fallback (per Phase 1.3's launch-flash requirement) — this task never removes them.
+5. Do not mark this task complete on code-inspection alone; the runtime observation in step 1 is mandatory evidence either way.
 
 ### 6.3 Tests
 
@@ -140,10 +154,12 @@ Phase 3.1 requires "Document the implemented board-size calculation." No inline 
 
 `GamePanels.kt:38-49`'s "was near bottom" auto-scroll check reads `listState.layoutInfo` inside a `LaunchedEffect(rows.size)` and relies on that read happening before Compose's layout pass reflects the newly appended row. This was traced by hand and confirmed currently correct, and is covered by two dedicated tests (`MoveHistoryAutoScrollInstrumentedTest.kt`). However, the correctness depends on an implementation detail of Compose's effect-dispatch-vs-layout ordering, not a documented public contract — a future Compose runtime change could silently invert this behavior without any source-level signal.
 
-### 8.2 Fix
+### 8.2 Fix — prefer removing the timing dependency, not merely documenting it
 
-- Add an inline comment directly above the `wasNearBottom` computation explaining the ordering dependency explicitly (effect body's synchronous prefix runs before the layout pass that would grow `totalItemsCount`), so a future reader (or future Compose upgrade investigation) understands exactly what assumption is being relied on and why the existing tests are the actual safety net for it.
-- Evaluate whether a more robust formulation is practical without materially changing behavior — for example, capturing the pre-append `layoutInfo` snapshot explicitly via a `remember`ed previous-size comparison rather than relying on effect-ordering timing. If a materially more robust formulation is straightforward, implement it; if it would meaningfully change behavior or risk regressing the two existing auto-scroll tests, keep the current implementation and rely on the comment plus existing tests instead. Record the decision made and why in the TODO.
+1. First attempt a formulation that records the relevant pre-append state explicitly and bases the "was near bottom" decision on that captured state — for example, a `remember`ed previous `rows.size`/last-visible-index snapshot compared against the new value, rather than relying on `LaunchedEffect`'s synchronous-prefix-runs-before-layout ordering. This is the preferred, first-choice resolution.
+2. Preserve the two existing auto-scroll behavior tests unchanged throughout.
+3. Retain the current timing-dependent formulation only if the robust alternative is demonstrably impractical or introduces greater correctness risk than it removes — a source comment alone is the fallback, not the default outcome.
+4. If the timing-dependent formulation is retained, add an inline comment directly above `wasNearBottom` explaining the ordering dependency explicitly (effect body's synchronous prefix runs before the layout pass that would grow `totalItemsCount`), record the decision as explicit tracked technical debt in the TODO, and name the two tests that guard it.
 
 ### 8.3 Tests
 
@@ -159,12 +175,17 @@ Phase 3.1 requires "Document the implemented board-size calculation." No inline 
 
 ### 9.2 Fix
 
-- Add the same defensive `busy`/`cleanupRequired` precondition re-check used by `startGame()` to `restartGame()`, `resign()`, and `submitMove()`, returning early (with the same "reject visibly, do not silently proceed" discipline used elsewhere in this codebase) if the precondition does not hold.
+Add the same defensive `busy`/`cleanupRequired` precondition re-check used by `startGame()` to `restartGame()`, `resign()`, and `submitMove()`. This re-check must distinguish two materially different cases, which both satisfy "exactly one logical operation" but are not the same product behavior:
+
+- **Rapid duplicate UI input referring to the same already-in-flight operation** (a second tap on the same button while its own operation is still busy) is idempotently suppressed — the call returns early with no error dialog, no state mutation, and no second engine/native/JNI/cleanup call. This is deliberate, documented, and tested duplicate-input suppression, not a general silent-failure path, and it must not be extended to cover any other rejection case.
+- **A genuinely invalid operational state** (e.g. `cleanupRequired == true`, or any other precondition failure distinct from ordinary duplicate-tap timing) remains visibly rejected, exactly as `startGame()` already does — surfaced, not silently swallowed.
 - Do not change the generation/ticket cancellation mechanism itself; this task adds a defensive guard in front of it, it does not replace it.
 
 ### 9.3 Tests
 
-- A unit/instrumentation test drives a rapid double-invocation of each of `restartGame()`, `resign()`, and `submitMove()` while `busy == true` and asserts only one logical operation proceeds (the second call is rejected/no-ops rather than starting a second concurrent operation).
+- A unit/instrumentation test drives a rapid duplicate invocation of each of `restartGame()`, `resign()`, and `submitMove()` while its own operation is already busy, and asserts exactly one logical operation proceeds with no error surfaced (idempotent suppression, per the policy above).
+- A separate test drives each of the three while `cleanupRequired == true` (or another genuinely invalid state distinct from duplicate-tap timing) and asserts the call is visibly rejected rather than silently suppressed.
+- No second engine/native/JNI/cleanup call or state mutation occurs in either case.
 
 ---
 
@@ -177,12 +198,14 @@ The bounds-containment helper (`bounds(tag): Rect`, `assertContained(rootTag, ch
 ### 10.2 Fix
 
 - Extract `bounds`, `assertContained`, `assertNoRootScroll`, and `assertSquare` into a single shared top-level file (e.g. `LayoutTestSupport.kt` in `androidTest`, alongside the existing `VisualEvidenceTestSupport.kt` precedent) and update both existing test files to use it instead of their private duplicates.
-- Introduce a small, explicit tolerance constant (e.g. `private const val BOUNDS_TOLERANCE_DP = 0.5f` or equivalent) and apply it to the containment/equality comparisons that currently use exact equality or zero-tolerance inequalities, without loosening them enough to mask a real regression — the tolerance should absorb only legitimate sub-pixel/density rounding, not meaningful layout drift.
+- Normalize measurements to dp before applying the tolerance: Compose's `boundsInRoot`/`Rect` values are in raw pixel space, which changes meaning across device densities, while the layout requirement itself is stated in dp. Convert captured bounds to dp (via the test's `Density`/`LocalDensity`) before comparing, and name the tolerance constant accordingly (e.g. `private const val BOUNDS_TOLERANCE_DP = 0.5f`), so the same nominal tolerance means the same physical slack regardless of the emulator/device density under test. Do not compare a dp-named tolerance directly against raw pixel `Rect`s.
+- Apply the tolerance to containment/equality comparisons that currently use exact equality or zero-tolerance inequalities, without loosening them enough to mask a real regression — the tolerance should absorb only legitimate sub-pixel/density rounding, not meaningful layout drift.
 
 ### 10.3 Tests
 
 - All existing callers of the old private helpers continue to pass using the new shared helper with no change in what they assert.
-- A new test constructs two bounds differing by less than the tolerance and asserts they are treated as equal, and two bounds differing by more than the tolerance and asserts they are treated as different — proving the tolerance is real and bounded, not accidentally unlimited.
+- A new test constructs two bounds differing by less than the tolerance (in dp) and asserts they are treated as equal, and two bounds differing by more than the tolerance and asserts they are treated as different — proving the tolerance is real and bounded, not accidentally unlimited.
+- A test at a non-1.0 density (or an equivalent conversion-level unit test of the dp-normalization step) confirms the helper cannot accidentally treat `0.5 dp` as `0.5 px` — i.e. the tolerance's physical meaning does not silently change with device density.
 
 ---
 
@@ -196,10 +219,11 @@ Every Compose-level containment, no-root-scroll, and spatial-stability test in t
 
 - Add a Black-orientation variant of the existing 360×640dp compact-layout containment test (mirroring `compactGameKeepsStatusBoardTabsPanelAndActionsFullyVisible` or equivalent) that builds its fixture with `humanSide = HumanSide.BLACK` and asserts the same containment/square/no-root-scroll invariants hold.
 - Add a Black-orientation spatial-stability assertion analogous to `boardGeometryDoesNotMoveAcrossThinkingAndReplyStates`, at minimum covering idle and thinking states for Black.
+- Add at least one **permanent, Black-specific semantic/coordinate assertion**, not merely generic containment geometry — containment/squareness/no-root-scroll checks can pass identically regardless of which orientation is actually rendered, so a test accidentally wired back to White could still pass every generic geometric assertion. Assert a known square/piece/file/rank relationship whose screen position or content description genuinely differs between White and Black orientation (e.g. the square rendered at the bottom-left corner, or a specific file/rank label's position), so the test fails if `humanSide`/fixture wiring is reverted to White even when all generic containment geometry remains valid.
 
 ### 11.3 Tests
 
-This task's deliverable is itself the new test coverage described in 11.2; no separate test-of-tests is required beyond confirming the new tests fail if `humanSide` fixture wiring is reverted to White (a sanity check performed during implementation, not a permanent additional test).
+This task's deliverable is the new test coverage described in 11.2, including the permanent orientation-specific assertion — confirmed, as a one-time implementation-time sanity check, to fail both if `humanSide` fixture wiring is reverted to White and if the new orientation-specific assertion itself is deliberately inverted.
 
 ---
 
@@ -311,8 +335,13 @@ Phase 13.3 requires validating primary/secondary text contrast, control-label co
 
 ### 18.2 Fix
 
-- Add a JVM unit test (no Android instrumentation required — this is pure arithmetic over the `Theme.kt` token hex values) that computes the WCAG relative-luminance contrast ratio for each of the following pairs and asserts each meets or exceeds a stated threshold (4.5:1 for normal text, 3:1 for large text/UI components, matching WCAG AA): `OnBackground` on `AppBackground`; `OnSurfaceMuted` on `Surface`; `OnSurfaceMuted` on `SurfaceMuted`; `OnBackground`/button label color on `Primary`/`PrimaryStrong`; button label color on `Danger`; the new `PieceLightFill`/`PieceDarkFill` tokens (from AR-002) on `BoardLight`/`BoardDark` respectively; the new `CoordinateLabel` token (from AR-002) on both `BoardLight` and `BoardDark`.
+- Add a JVM unit test (no Android instrumentation required — this is pure arithmetic over the `Theme.kt` token hex values) that computes the WCAG relative-luminance contrast ratio for each of the following pairs and asserts each meets or exceeds a stated threshold (4.5:1 for normal text, 3:1 for large text/UI components, matching WCAG AA). The matrix must cover the actual rendered combinations, not only nominal token pairs — a light piece can occupy either a light or dark square and vice versa, and overlays can materially alter the effective composited color under a piece or label:
+  - `OnBackground` on `AppBackground`; `OnSurfaceMuted` on `Surface`; `OnSurfaceMuted` on `SurfaceMuted`; `OnBackground`/button label color on `Primary`/`PrimaryStrong`; button label color on `Danger`.
+  - All four piece/square combinations: `PieceLightFill`/`PieceLightStroke` on `BoardLight`; `PieceLightFill`/`PieceLightStroke` on `BoardDark`; `PieceDarkFill`/`PieceDarkStroke` on `BoardLight`; `PieceDarkFill`/`PieceDarkStroke` on `BoardDark` (all four tokens from AR-002).
+  - `CoordinateLabel` (from AR-002) on both `BoardLight` and `BoardDark`.
+  - Piece/label contrast after each board overlay that can coincide with the rendered foreground: the last-move highlight (`BoardLastMove`, per AR-002's rewiring), the selected-square treatment, and the legal-move-target marker — computed as the actual alpha-composited effective background color (overlay color/alpha blended onto the underlying square color), not a comparison of the raw overlay token against the raw foreground token in isolation.
 - If any pair fails the threshold, adjust the offending token's value (in `Theme.kt`, coordinating with AR-002) until it passes, recording the before/after values in the TODO.
+- The goal is an automated "contrast passed" claim that actually covers legal board states shown to a player, not just a nominal token-pair sample.
 
 ### 18.3 Tests
 
@@ -381,17 +410,23 @@ Phase 2.2's "Confirm app remains portrait when device/emulator rotation is reque
 ### 22.2 Fix
 
 - Add an instrumentation test that starts a game, captures the current snapshot/moves state, issues a rotation request via the available Android test API (e.g. `UiDevice.setOrientationLeft()`/`setOrientationNatural()` from `androidx.test.uiautomator`, adding that dependency if not already present and justified per the constraints in §2), and asserts both that the Activity's effective orientation remains portrait and that the captured game state is unchanged afterward.
-- If `uiautomator`-based rotation proves impractical in the CI emulator environment, document the specific blocker in the TODO and fall back to asserting the manifest/runtime `requestedOrientation` lock is sufficient to prevent the OS from ever attempting a layout-changing rotation in the first place — do not mark this task complete without one of these two forms of evidence.
+- If `uiautomator`-based rotation proves impractical in the CI emulator environment: the static manifest/`requestedOrientation` assertion verifies configuration *intent*, not the requested *runtime behavior* (remain-portrait-and-preserve-state under an actual rotation attempt), and the two are not equivalent evidence. In that case, do not mark this task's runtime-behavior requirement as satisfied by the static assertion alone. Instead, keep the static assertion as useful supporting evidence, and explicitly record the runtime-rotation portion as **blocked/manual** in the TODO with the concrete environmental reason it could not be exercised in the supported CI/emulator environment — do not convert "not tested" into "verified" merely because the configuration makes the underlying bug unlikely.
 
 ### 22.3 Tests
 
-The rotation-attempt test described in 22.2, or the documented-blocker fallback, is this task's deliverable.
+The rotation-attempt test described in 22.2 is this task's primary deliverable. If that proves impractical, the static assertion plus an honest blocked/manual record (not a claim of equivalent coverage) is the accepted fallback — a silently-substituted "sufficient" claim is not.
 
 ---
 
 ## 23. AR-021 — Final validation and closure
 
 - Run the full applicable validation surface for this pass: Android app JVM/unit tests, Android lint, `crates/chess-core` tests (for AR-017), `crates/chess-jni` tests including the extended contract test (AR-019), and the full Android instrumentation suite including every test added by this pass.
-- Run `bash scripts/dev.sh fast` to confirm no cross-workspace regression.
-- Record exact commands, results, and (where obtained) CI run/job evidence in the companion TODO's closure section.
+- Run `bash scripts/dev.sh fast` — this is a mandatory gate for this pass whenever the environment can run it, not optional. If a literal local execution is genuinely unavailable for an environmental reason, require the equivalent permanent general CI to be green on the exact final SHA instead, and explicitly record that the literal local command was not run — do not silently treat an unrun local command as passed.
+- **Permanent exact-SHA CI is a mandatory, non-optional closure criterion**, not "where obtained"/"if available" evidence:
+  - the permanent Android CI workflow/job must be green on the exact final source SHA;
+  - the permanent general/Rust CI workflow/job must also be green on the exact final source SHA, because AR-017 and AR-019 touch Rust/JNI test surfaces;
+  - record exact workflow run IDs, job IDs, conclusions, and the exact validated SHA in the closure-evidence document (`docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_EVIDENCE_2026-08-10.md`, per §2's naming);
+  - if a documentation-only closure commit changes the SHA after source CI already passed, follow this repository's established exact-SHA evidence policy (do not claim an earlier SHA validates a later one) rather than treating them as interchangeable.
+- Record exact commands and results in the companion TODO's closure section and the closure-evidence document.
 - Do not mark any AR task `[x]` without the specific test evidence named in its own section above.
+- Do not mark this program `Complete` until the required permanent CI is green for the authoritative final state, per the rule above.

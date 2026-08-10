@@ -15,7 +15,8 @@
 - Every first-party formatting, compiler, Clippy, lint, or test failure introduced or exposed by this pass is treated as a source defect, not a reason to weaken a gate.
 - No first-party lint suppression is accepted at any point in this pass.
 - This pass does not touch `crates/chess-app`, `crates/chess-search`, `crates/chess-book`, `crates/chess-uci`, `crates/chess-tui`, or `crates/chess-console`.
-- This pass does not reopen `docs/RUST_ANDROID_UI_UX_REDESIGN_TODO_2026-08-10.md`'s own checkbox state, and does not perform Phase 17's still-open literal local `bash scripts/dev.sh android`/`fast` invocations or the Phase 20 physical-device UX pass — those remain tracked as open there, unchanged by this pass.
+- This pass does not reopen `docs/RUST_ANDROID_UI_UX_REDESIGN_TODO_2026-08-10.md`'s own checkbox state, and does not retroactively satisfy Phase 17's still-open literal local `bash scripts/dev.sh android`/`fast` invocations from the prior program or the Phase 20 physical-device UX pass — those specific historical checkbox items remain tracked as open there, unchanged by this pass. This is distinct from `bash scripts/dev.sh fast` running as *this pass's own* validation gate in AR-021, which is mandatory.
+- This TODO is a bounded, self-contained review-fix pass, following the same convention as `docs/RUST_ENGINE_REVIEW_FIX_TODO_2026-08-02.md`, `docs/RUST_CHESS_ENGINE_POST_PORT_REVIEW_FIX_TODO_2026-08-04.md`, and `docs/RUST_TUI_REVIEW_FIX_TODO_2026-08-09.md` — all three were implemented to completion while registered only in `docs/LEGACY_TODO_INDEX.md`'s historical inventory, never its "active implementation TODO" table. That table is reserved for large multi-phase product programs; this document does not require table registration to be implemented, and none is added by this pass.
 - Work one AR task at a time; each task lands in its own commit with its own tests passing before the next task begins.
 
 ---
@@ -33,11 +34,25 @@
 - [ ] Confirmed the thirteen test-coverage gaps named in the spec, most significantly the Black-orientation layout-coverage blind spot.
 - [ ] Recorded the review baseline SHA: `98e21939b0665f2f54ade7f87cdcaba3fe48025f`.
 
-## AR-000.2 Scope discipline
+## AR-000.2 Pre-implementation review resolution (QI-001 through QI-012)
+
+- [ ] Read `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_QUESTIONS_AND_ISSUES_2026-08-10.md` in full.
+- [ ] Confirmed QI-002 (the `dev.sh fast` in-scope/out-of-scope contradiction) is resolved: `dev.sh fast` is a mandatory gate for this pass (AR-021); this pass does not retroactively satisfy the *prior* program's Phase 17 checkbox.
+- [ ] Confirmed QI-001 (active-authority table registration) is **not** treated as a blocker, per precedent from three prior review-fix passes (`RUST_ENGINE_REVIEW_FIX_TODO_2026-08-02.md`, `RUST_CHESS_ENGINE_POST_PORT_REVIEW_FIX_TODO_2026-08-04.md`, `RUST_TUI_REVIEW_FIX_TODO_2026-08-09.md`), all completed without table registration; no change to `docs/LEGACY_TODO_INDEX.md`'s active-table state is made on this basis.
+- [ ] Confirmed QI-003 through QI-012 were incorporated into the spec's AR-004, AR-006, AR-007, AR-008, AR-009, AR-016, AR-020, and AR-021 sections and into this TODO's matching sections.
+- [ ] Recorded the review baseline SHA above as distinct from the implementation-start SHA below.
+
+## AR-000.3 SHA tracking (QI-003)
+
+- [ ] Review baseline SHA (shipped-product state that was independently reviewed): `98e21939b0665f2f54ade7f87cdcaba3fe48025f`.
+- [ ] Implementation-start SHA (exact `master` state immediately before AR-001 begins, captured after this spec/TODO pair and its pre-implementation corrections have landed): `_____________________________`
+- [ ] Confirmed these two values are not conflated anywhere in this document or the closure-evidence document.
+
+## AR-000.4 Scope discipline
 
 - [ ] Reinspected each finding immediately before implementing its fix, in case newer source already resolved it.
 - [ ] Did not reopen `docs/RUST_ANDROID_UI_UX_REDESIGN_TODO_2026-08-10.md`'s checkbox state.
-- [ ] Did not perform Phase 17's literal local `dev.sh android`/`fast` runs or Phase 20's physical-device pass as part of this program.
+- [ ] Did not retroactively satisfy Phase 17's literal local `dev.sh android`/`fast` runs or Phase 20's physical-device pass as part of this program (those remain tracked as open in the prior program).
 
 ---
 
@@ -91,11 +106,13 @@
 
 # AR-004: Verify and fix system-bar theming on target SDK 35
 
-## AR-004.1 Fix
+## AR-004.1 Fix — verify-first (QI-011)
 
-- [ ] Explicit `WindowCompat`/`WindowInsetsControllerCompat` call added in `MainActivity.kt` (or a dedicated theming helper) setting dark system-bar appearance under edge-to-edge.
-- [ ] Existing `styles.xml` legacy attributes retained (not removed) as the pre-Compose-render fallback.
-- [ ] Verified on an API 35 emulator/device (not code-inspection alone) that status/navigation bars render dark after this change.
+- [ ] Observed actual API 35 runtime status/navigation-bar appearance (or the observable `WindowInsetsController` state) before writing any production fix.
+- [ ] If bars render incorrectly: explicit `WindowCompat`/`WindowInsetsControllerCompat` call added in `MainActivity.kt` (or a dedicated theming helper) setting dark system-bar appearance under edge-to-edge, then re-verified at runtime.
+- [ ] If bars already render correctly through another mechanism: documented that finding and the responsible mechanism here instead of adding unneeded code.
+- [ ] Existing `styles.xml` legacy attributes retained (not removed) as the pre-Compose-render fallback, regardless of outcome.
+- [ ] Did not mark this task complete on code-inspection alone.
 
 ## AR-004.2 Tests
 
@@ -119,10 +136,11 @@
 
 # AR-006: Document/harden the auto-scroll effect's scheduling dependency
 
-## AR-006.1 Fix
+## AR-006.1 Fix — prefer removing the timing dependency (QI-006)
 
-- [ ] Inline comment added above `wasNearBottom` in `GamePanels.kt` explaining the effect-ordering dependency.
-- [ ] Evaluated whether a more robust formulation is practical; either implemented it, or recorded here why the comment-plus-existing-tests approach was kept instead.
+- [ ] Attempted a formulation that captures pre-append state explicitly (e.g. a `remember`ed previous-size comparison) rather than relying on effect-ordering timing, as the first-choice resolution.
+- [ ] Implemented the robust formulation if practical; if not, recorded here specifically why it was impractical or riskier than the timing-dependent approach.
+- [ ] If the timing-dependent formulation was retained: inline comment added above `wasNearBottom` in `GamePanels.kt` explaining the effect-ordering dependency, and recorded as explicit tracked technical debt here, naming the two guarding tests.
 
 ## AR-006.2 Tests
 
@@ -133,18 +151,20 @@
 
 # AR-007: Add busy-state guard consistency
 
-## AR-007.1 Fix
+## AR-007.1 Fix — idempotent suppression vs. visible rejection (QI-005)
 
-- [ ] `restartGame()` re-checks `busy`/`cleanupRequired` before proceeding, rejecting visibly rather than silently no-oping or double-executing.
-- [ ] `resign()` has the same guard.
-- [ ] `submitMove()` has the same guard.
+- [ ] `restartGame()`, `resign()`, and `submitMove()` each re-check `busy`/`cleanupRequired` before proceeding.
+- [ ] Rapid duplicate UI input referring to an already-in-flight *same* operation is idempotently suppressed: no error dialog, no state mutation, no second engine/native/JNI/cleanup call.
+- [ ] A genuinely invalid operational state (e.g. `cleanupRequired == true`) remains visibly rejected, matching `startGame()`'s existing discipline — not silently swallowed.
+- [ ] The idempotent-suppression exception is not extended to any other rejection case.
 - [ ] Existing generation/ticket cancellation mechanism unchanged.
 
 ## AR-007.2 Tests
 
-- [ ] Rapid double-invocation of `restartGame()` while busy results in exactly one logical operation.
+- [ ] Rapid duplicate invocation of `restartGame()` while its own operation is busy results in exactly one logical operation with no error surfaced.
 - [ ] Same for `resign()`.
 - [ ] Same for `submitMove()`.
+- [ ] Each of the three, invoked while `cleanupRequired == true` (or another genuinely invalid state), is visibly rejected rather than silently suppressed.
 
 ---
 
@@ -154,12 +174,14 @@
 
 - [ ] `bounds`/`assertContained`/`assertNoRootScroll`/`assertSquare` extracted into a single shared file (e.g. `LayoutTestSupport.kt`).
 - [ ] `ChessAppLayoutInstrumentedTest.kt` and `ChessAppAdaptiveLayoutInstrumentedTest.kt` updated to use the shared helper, private duplicates removed.
-- [ ] Explicit small tolerance constant introduced and applied to containment/equality comparisons.
+- [ ] Explicit small tolerance constant introduced, applied to containment/equality comparisons.
+- [ ] Bounds normalized to dp before the tolerance is applied (QI-007) — a dp-named tolerance is never compared directly against raw pixel `Rect`s.
 
 ## AR-008.2 Tests
 
 - [ ] All prior callers continue to pass with unchanged assertions.
-- [ ] A test proves two bounds within tolerance are treated equal, and two bounds outside tolerance are treated different.
+- [ ] A test proves two bounds within tolerance (in dp) are treated equal, and two bounds outside tolerance are treated different.
+- [ ] A test at non-1.0 density (or an equivalent dp-normalization unit test) confirms the tolerance's physical meaning does not change with device density.
 
 ---
 
@@ -169,10 +191,11 @@
 
 - [ ] Black-orientation variant of the 360×640dp compact-layout containment test added.
 - [ ] Black-orientation spatial-stability assertion added (at minimum idle and thinking states).
+- [ ] At least one permanent, Black-specific semantic/coordinate assertion added (QI-008) — not merely generic containment geometry that would pass identically under either orientation.
 
 ## AR-009.2 Tests
 
-- [ ] New tests verified to fail if `humanSide` fixture wiring is reverted to White (implementation-time sanity check, not a permanent test).
+- [ ] New tests, including the permanent orientation-specific assertion, verified to fail if `humanSide` fixture wiring is reverted to White (implementation-time sanity check).
 
 ---
 
@@ -257,6 +280,9 @@
 ## AR-016.1 Fix
 
 - [ ] JVM unit test computes WCAG contrast ratio for each named token pair (see spec §18.2) and asserts each meets its threshold.
+- [ ] Full piece/square matrix covered (QI-009): light piece on light square, light piece on dark square, dark piece on light square, dark piece on dark square — not only the "respective" pairing.
+- [ ] Coordinate-label contrast covered on both `BoardLight` and `BoardDark`.
+- [ ] Last-move, selected-square, and legal-target overlay contrast covered using the actual alpha-composited effective background color, not the raw overlay token compared in isolation.
 - [ ] Any failing pair's token value adjusted in `Theme.kt`; before/after values recorded here.
 
 ## AR-016.2 Tests
@@ -309,11 +335,12 @@
 
 ## AR-020.1 Fix
 
-- [ ] Instrumentation test starts a game, captures state, issues a rotation request via `uiautomator` (dependency addition justified here if newly added), asserts orientation stays portrait and game state is unchanged — **or** documents the specific CI-emulator blocker preventing this and falls back to asserting the manifest/runtime lock is sufficient.
+- [ ] Instrumentation test starts a game, captures state, issues a rotation request via `uiautomator` (dependency addition justified here if newly added), asserts orientation stays portrait and game state is unchanged.
+- [ ] If impractical in CI (QI-010): did **not** treat the static manifest/`requestedOrientation` assertion as equivalent to runtime-behavior evidence. Recorded the runtime-rotation portion explicitly as **blocked/manual** with the concrete environmental reason, keeping the static assertion only as supporting evidence.
 
 ## AR-020.2 Tests
 
-- [ ] N/A — the test (or documented fallback) above is this task's deliverable.
+- [ ] N/A — the test, or the honest blocked/manual record (not a silently-substituted "sufficient" claim), above is this task's deliverable.
 
 ---
 
@@ -326,11 +353,19 @@
 - [ ] `crates/chess-core` tests pass, including AR-017's additions.
 - [ ] `crates/chess-jni` tests pass, including AR-019's extended contract test.
 - [ ] Full Android instrumentation suite passes, including every test added by this pass.
-- [ ] `bash scripts/dev.sh fast` passes.
+- [ ] `bash scripts/dev.sh fast` passes — mandatory whenever the environment can run it (QI-002); if genuinely unavailable, the equivalent permanent general CI on the exact final SHA is required instead, and the unrun local command is explicitly recorded as such, never silently treated as passed.
 
-## AR-021.2 Closure evidence
+## AR-021.2 Mandatory permanent exact-SHA CI (QI-012)
+
+- [ ] Permanent Android CI workflow/job green on the exact final source SHA.
+- [ ] Permanent general/Rust CI workflow/job green on the exact final source SHA (required because AR-017/AR-019 touch Rust/JNI test surfaces — not optional/"if available").
+- [ ] Exact workflow run IDs, job IDs, conclusions, and validated SHA recorded in `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_EVIDENCE_2026-08-10.md`.
+- [ ] If a documentation-only closure commit changed the SHA after source CI passed, the exact-SHA evidence policy was followed rather than treating an earlier validated SHA as covering the later one.
+
+## AR-021.3 Closure evidence
 
 ```text
+Review baseline SHA:                 98e21939b0665f2f54ade7f87cdcaba3fe48025f
 Implementation start SHA:
 Final source SHA:
 
@@ -339,6 +374,9 @@ chess-core test results:
 chess-jni test results:
 Android instrumentation results:
 bash scripts/dev.sh fast result:
+
+Permanent Android CI run/job IDs:
+Permanent general/Rust CI run/job IDs:
 ```
 
 ## AR-021 acceptance
@@ -346,4 +384,5 @@ bash scripts/dev.sh fast result:
 - [ ] Every AR-001 through AR-020 task is `[x]` with its own recorded test evidence.
 - [ ] No first-party lint suppression was added anywhere in this pass.
 - [ ] No existing green test was weakened or deleted to obtain a green run.
+- [ ] Required permanent exact-SHA CI (AR-021.2) is green.
 - [ ] This document's Status header updated to `Complete` only once all of the above holds.
