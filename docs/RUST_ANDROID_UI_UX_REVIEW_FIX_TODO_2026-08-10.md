@@ -319,13 +319,13 @@
 
 ## AR-018.1 Fix
 
-- [ ] Wrong-field-count input asserted to throw `IllegalArgumentException`.
-- [ ] Correct-field-count-wrong-version input asserted to throw the same.
-- [ ] Missing/corrupted-terminator input asserted to throw the same.
+- [x] Wrong-field-count input asserted to throw `IllegalArgumentException`.
+- [x] Correct-field-count-wrong-version input asserted to throw the same.
+- [x] Missing/corrupted-terminator input asserted to throw the same.
 
 ## AR-018.2 Tests
 
-- [ ] N/A — the three tests above are this task's deliverable.
+- [x] N/A — the three tests above are this task's deliverable.
 
 ---
 
