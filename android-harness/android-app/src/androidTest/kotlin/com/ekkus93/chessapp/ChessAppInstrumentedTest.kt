@@ -25,7 +25,7 @@ class ChessAppInstrumentedTest {
     }
 
     @Test
-    fun humanWhiteUsesSharedRustControllerForEngineReply() {
+    fun humanWhiteUsesSharedRustOpeningBookForEngineReply() {
         ChessGame.create(HumanSide.WHITE, engineDepth = 1).use { game ->
             val initial = game.snapshot()
             assertTrue(initial.humanToMove)
@@ -35,20 +35,20 @@ class ChessAppInstrumentedTest {
             val afterHuman = game.submitMove("e2e4")
             assertTrue(afterHuman.thinking)
             val afterEngine = awaitIdle(game, afterHuman)
-            assertEquals(2, afterEngine.moves.size)
+            assertEquals(listOf("e2e4", "c7c5"), afterEngine.moves)
             assertTrue(afterEngine.humanToMove || afterEngine.gameOver)
         }
     }
 
     @Test
-    fun humanBlackReceivesEngineFirstMove() {
+    fun humanBlackReceivesSharedRustOpeningBookFirstMove() {
         ChessGame.create(HumanSide.BLACK, engineDepth = 1).use { game ->
             val initial = game.snapshot()
             assertTrue(initial.thinking)
             assertEquals(HumanSide.WHITE, initial.sideToMove)
 
             val afterEngine = awaitIdle(game, initial)
-            assertEquals(1, afterEngine.moves.size)
+            assertEquals(listOf("e2e4"), afterEngine.moves)
             assertEquals(HumanSide.BLACK, afterEngine.sideToMove)
             assertTrue(afterEngine.humanToMove)
         }
