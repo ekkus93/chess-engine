@@ -61,33 +61,31 @@ def compile_tests() -> str:
 run("git", "config", "user.name", "Ralph Loop")
 run("git", "config", "user.email", "actions@users.noreply.github.com")
 
-# AR-017 SAN coverage: piece capture, disambiguated capture, capture-promotion with check.
-insert = r'''
-    #[test]
-    fn formats_piece_capture() {
-        let position = parse_fen("4k3/8/8/4p3/8/5N2/8/4K3 w - - 0 1").expect("valid FEN");
-        let mv = parse_uci_move("f3e5").expect("valid move");
-        assert_eq!(format_san(&position, mv).expect("SAN"), "Nxe5");
+# AR-017: add cases inside the existing test module and use its established helpers.
+marker = '''    #[test]\n    fn history_replays_from_standard_root_without_mutating_source() {\n'''
+insert = r'''    #[test]
+    fn piece_capture_uses_capture_notation() {
+        let game = game("4k3/8/8/4p3/8/5N2/8/4K3 w - - 0 1");
+        let current = resolve(&game, "f3e5");
+        assert_eq!(move_to_san(&game, current).expect("SAN"), "Nxe5");
     }
 
     #[test]
-    fn formats_disambiguated_piece_capture() {
-        let position = parse_fen("4k3/8/8/8/4p3/2N5/5N2/4K3 w - - 0 1").expect("valid FEN");
-        let mv = parse_uci_move("c3e4").expect("valid move");
-        assert_eq!(format_san(&position, mv).expect("SAN"), "Ncxe4");
+    fn disambiguated_piece_capture_keeps_file_prefix() {
+        let game = game("4k3/8/8/8/4p3/2N5/5N2/4K3 w - - 0 1");
+        let current = resolve(&game, "c3e4");
+        assert_eq!(move_to_san(&game, current).expect("SAN"), "Ncxe4");
     }
 
     #[test]
-    fn formats_capture_promotion_with_check() {
-        let position = parse_fen("k2r4/4P3/8/8/8/8/8/4K3 w - - 0 1").expect("valid FEN");
-        let mv = parse_uci_move("e7d8q").expect("valid move");
-        assert_eq!(format_san(&position, mv).expect("SAN"), "exd8=Q+");
+    fn capture_promotion_can_carry_check() {
+        let game = game("k2r4/4P3/8/8/8/8/8/4K3 w - - 0 1");
+        let current = resolve(&game, "e7d8q");
+        assert_eq!(move_to_san(&game, current).expect("SAN"), "exd8=Q+");
     }
+
 '''
-text = SAN.read_text().rstrip()
-assert text.endswith("}")
-SAN.write_text(text[:-1].rstrip() + "\n\n" + insert + "}\n")
-# Apply rustfmt, then independently enforce that the formatted tree is clean.
+replace(SAN, marker, insert + marker)
 sh("cargo fmt --all")
 mark("AR-017")
 commit(
@@ -97,7 +95,7 @@ commit(
     ["cargo fmt --all -- --check", "cargo test --locked -p chess-core san -- --nocapture"],
 )
 
-# AR-018 fail-closed Kotlin snapshot parser coverage.
+# AR-018: fail-closed Kotlin snapshot parser coverage.
 parser_dir = UTEST / "com/ekkus93/chessengine"
 parser_dir.mkdir(parents=True, exist_ok=True)
 parser_test = parser_dir / "ChessGameSnapshotParseTest.kt"
@@ -160,13 +158,13 @@ commit(
     ["gradle -p android-harness :android-app:testDebugUnitTest --no-daemon --stacktrace --console=plain"],
 )
 
-# AR-019 static high-level Rust/Kotlin contract parity.
+# AR-019: static high-level Rust/Kotlin snapshot contract parity.
 replace(
     JNI_CONTRACT,
     'const KOTLIN_BINDINGS: &str = include_str!("../kotlin/src/main/kotlin/com/ekkus93/chessengine/NativeChessEngineBindings.kt");\n',
     'const KOTLIN_BINDINGS: &str = include_str!("../kotlin/src/main/kotlin/com/ekkus93/chessengine/NativeChessEngineBindings.kt");\nconst APP_BRIDGE: &str = include_str!("../src/app_bridge.rs");\nconst KOTLIN_GAME: &str = include_str!("../kotlin/src/main/kotlin/com/ekkus93/chessengine/ChessGame.kt");\n',
 )
-extra = r'''
+JNI_CONTRACT.write_text(JNI_CONTRACT.read_text().rstrip() + r'''
 
 #[test]
 fn high_level_snapshot_contract_matches_between_rust_and_kotlin() {
@@ -187,8 +185,7 @@ fn high_level_snapshot_contract_matches_between_rust_and_kotlin() {
         .count();
     assert_eq!(field_count, 18, "Rust high-level snapshot field count changed");
 }
-'''
-JNI_CONTRACT.write_text(JNI_CONTRACT.read_text().rstrip() + extra + "\n")
+''' + "\n")
 sh("cargo fmt --all")
 mark("AR-019")
 commit(
@@ -198,7 +195,7 @@ commit(
     ["cargo fmt --all -- --check", "cargo test --locked -p chess-jni --test jni_contract", "cargo test --locked -p chess-jni"],
 )
 
-# AR-020 real API-35 rotation request with a non-initial played position preserved.
+# AR-020: real API-35 rotation request with a non-initial played position preserved.
 replace(
     BUILD,
     '    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.7.8")\n',
@@ -271,4 +268,4 @@ commit(
     [compile_tests(), connected("com.ekkus93.chessapp.PortraitRotationInstrumentedTest")],
 )
 
-print("STAGE3_RESUME_COMPLETE", subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip())
+print("STAGE3_REPAIR_COMPLETE", subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip())
