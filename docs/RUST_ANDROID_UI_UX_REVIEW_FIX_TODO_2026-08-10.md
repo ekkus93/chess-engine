@@ -98,35 +98,39 @@
 
 ---
 
-# AR-003: Remove internal jargon from player-facing setup copy
+# AR-003: Remove internal jargon from player-facing setup copy — corrected by closure-corrections CC-001
+
+The original AR-003 implementation correctly removed the setup-screen jargon, but the original closure overclaimed the module-wide sweep: two player-visible `ChessViewModel` error strings still contained "native". CC-001 corrected those strings and broadened the structural guard so the historical gap is explicit rather than silently rewritten away.
 
 ## AR-003.1 Fix
 
-- [x] `SetupScreen.kt:73`'s subtitle no longer contains "native".
-- [x] `SetupScreen.kt:75`'s cleanup-required message no longer contains "native"/"Native".
-- [x] No other player-visible string literal in `android-harness/android-app/src/main/kotlin` contains "native", "JNI", "shared layer", or "architecture".
+- [x] Original work: `SetupScreen.kt` subtitle and cleanup-required copy no longer contain architecture jargon.
+- [x] CC-001 correction: `ChessViewModel` now says "A previous game is still active..." and "Initial game snapshot failed..." rather than exposing "native" to the player-facing error dialog.
+- [x] CC-001 correction: all production Kotlin string literals are checked for "native"/"JNI"/"shared layer"/"architecture", with only three exact internal-only `check()`/`Log.e` sinks narrowly allowlisted and justified.
 
 ## AR-003.2 Tests
 
-- [x] A structural/unit test asserts the absence of "native"/"JNI" in `SetupScreen.kt`'s player-facing string literals.
-- [x] `ChessAppSemanticsInstrumentedTest.kt`/`ChessAppEndToEndInstrumentedTest.kt` updated for any changed literal-text assertions and remain green.
+- [x] The broadened module-wide structural test passes.
+- [x] Implementation-time negative sanity check proved the broadened test fails when "native" is temporarily reintroduced into the player-visible `ChessViewModel` error string, then passes again after restoration.
 
 ---
 
-# AR-004: Verify and fix system-bar theming on target SDK 35
+# AR-004: Verify and fix system-bar theming on target SDK 35 — corrected by closure-corrections CC-002
 
-## AR-004.1 Fix — verify-first (QI-011)
+The original closure checked the verify-first/runtime-observation boxes without having recorded a genuinely diagnostic observation. CC-002 repaired the evidence rather than assuming the old flag-only test was sufficient.
 
-- [x] Observed actual API 35 runtime status/navigation-bar appearance (or the observable `WindowInsetsController` state) before writing any production fix.
-- [x] If bars render incorrectly: explicit `WindowCompat`/`WindowInsetsControllerCompat` call added in `MainActivity.kt` (or a dedicated theming helper) setting dark system-bar appearance under edge-to-edge, then re-verified at runtime.
-- [x] If bars already render correctly through another mechanism: documented that finding and the responsible mechanism here instead of adding unneeded code.
-- [x] Existing `styles.xml` legacy attributes retained (not removed) as the pre-Compose-render fallback, regardless of outcome.
-- [x] Did not mark this task complete on code-inspection alone.
+## AR-004.1 Fix — verify-first evidence corrected
+
+- [x] CC-002A added a real API-35 framebuffer diagnostic: expected product background `#0B1220`, RGB tolerance ±12/channel, and >=70% matching pixels in sampled status/navigation-bar regions. Icon-appearance flags remain supporting evidence only.
+- [x] Initial permanent observation run `31431380577`, API-35 job `93595365511`, passed on exact SHA `6e5fdec216f013fae1257c67899fa26cce02d5e6`.
+- [x] A later full-suite run exposed a test-order/foreground race rather than a product regression: global `UiAutomation` capture could occur after the activity lost focus. Isolated run `31434333957`, job `93604944381`, artifact `9080478963`, showed the in-test status sample at 100% `#0B1220` while a post-test launcher screencap was light/0%.
+- [x] CC-002A therefore hardened the diagnostic at `05ec27dd099fa5ad74f5e5ff0bea2ae1cc5a801c` to wait for `MainActivity.hasWindowFocus()` and the app package to be foreground before the global screenshot. Permanent Android run `31434848246` then passed all jobs, including API-35 job `93606568633` and the full connected suite.
+- [x] **Disposition:** `remediation-not-needed`. The real rendered state is correct; no `MainActivity`/WindowCompat production change was added. Existing `styles.xml` fallback attributes remain intact.
 
 ## AR-004.2 Tests
 
-- [x] Instrumentation test asserts the actual system-bar appearance state is dark/non-light after `MainActivity` launches.
-- [x] Existing evidence screenshots manually re-reviewed post-fix; confirmation recorded here.
+- [x] Focus-bound API-35 framebuffer diagnostic passes in the full permanent connected suite (`31434848246` / `93606568633`).
+- [x] The preserved isolated evidence distinguishes actual app rendering from the launcher/foreground race; the original flag-only evidence is no longer treated as sufficient by itself.
 
 ---
 
@@ -222,16 +226,20 @@ The original closure marked four stronger behavioral claims complete (rapid dupl
 
 ---
 
-# AR-011: Add a functional promotion-dialog test
+# AR-011: Add a functional promotion-dialog test — corrected by closure-corrections CC-004
+
+The direct `PromotionDialog` callback test from the original implementation is valid. The original closure nevertheless overclaimed the second deliverable: no end-to-end promotion test and no documented impracticality reason existed at that time. CC-004 preserves that history and supplies an empirical blocker disposition rather than inventing coverage.
 
 ## AR-011.1 Fix
 
-- [x] Instrumentation test renders `PromotionDialog` with a real `onChoose` callback, clicks each of the four options, asserts the captured move string is correct for each.
-- [x] End-to-end promotion flow test added if a deterministic fixture/path is practical (or documented here why not practical).
+- [x] Original valid evidence: instrumentation renders `PromotionDialog` with a real `onChoose` callback, taps Queen/Rook/Bishop/Knight, and checks the resulting move strings.
+- [x] CC-004 correction disposition: `documented blocker`. A temporary, uncommitted host-JVM probe drove the real JNI `ChessEngine`, reproduced the app's opening-book/depth-1 opponent policy, and beam-searched legal human paths for up to 12 human turns; no deterministic promotion path was found.
+- [x] The existing high-level `ChessGame` exposes no clean test-only position/FEN injection seam. Adding production/native API solely to manufacture this test was rejected as disproportionate scope expansion.
 
 ## AR-011.2 Tests
 
-- [x] N/A — the tests above are this task's deliverable.
+- [x] Direct promotion-dialog functional instrumentation remains the permanent executable coverage.
+- [x] No end-to-end promotion execution is claimed; the bounded real-engine search above is the recorded blocker evidence.
 
 ---
 
@@ -366,7 +374,10 @@ The original closure marked four stronger behavioral claims complete (rapid dupl
 - [x] Full Android instrumentation suite passes, including every test added by this pass.
 - [x] `bash scripts/dev.sh fast` passes — mandatory whenever the environment can run it (QI-002); if genuinely unavailable, the equivalent permanent general CI on the exact final SHA is required instead, and the unrun local command is explicitly recorded as such, never silently treated as passed.
 
-## AR-021.2 Mandatory permanent exact-SHA CI (QI-012)
+## AR-021.2 Mandatory permanent exact-SHA CI (QI-012) — citation corrected by closure-corrections CC-005
+
+The original closure recorded the earlier source-SHA runs below but omitted the later authoritative closure-tree runs. CC-005 corrected `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_EVIDENCE_2026-08-10.md` to cite the exact final closure tree `e9ab0fc623c22bd372ba9c8c2609dfcf74609f84`: general/Rust run `31419183264` and Android run `31419183273`, all successful. The earlier `6d9a84d...` runs remain supporting source-tree evidence, and a path-scoped git diff proves `android-harness`/`crates` were unchanged between those historical SHAs.
+
 
 - [x] Permanent Android CI workflow/job green on the exact final source SHA.
 - [x] Permanent general/Rust CI workflow/job green on the exact final source SHA (required because AR-017/AR-019 touch Rust/JNI test surfaces — not optional/"if available").
@@ -386,8 +397,11 @@ chess-jni test results:           pass — full-validation run 31409800032; vali
 Android instrumentation results: pass — 39/39 in full-validation run 31409800032; validated implementation HEAD 6747b04f6958208d6c847f131768fe9268454f93
 bash scripts/dev.sh fast result:  pass after temporary runner removal — full-validation run 31409800032
 
-Permanent Android CI run/job IDs: run 31417240241; jobs 93549039534, 93549039574, 93549039612; all success
-Permanent general/Rust CI run/job IDs: run 31417242747; job 93549046687; success
+Earlier source-SHA Android CI:       run 31417240241; jobs 93549039534, 93549039574, 93549039612; all success
+Earlier source-SHA general/Rust CI:  run 31417242747; job 93549046687; success
+Authoritative closure-tree SHA:      e9ab0fc623c22bd372ba9c8c2609dfcf74609f84
+Authoritative Android CI:            run 31419183273; jobs 93555602583, 93555602709, 93555602727; all success
+Authoritative general/Rust CI:       run 31419183264; jobs 93555556721, 93555556826; all success
 ```
 
 ## AR-021 acceptance

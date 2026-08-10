@@ -26,6 +26,8 @@ android_ui_todo="docs/RUST_ANDROID_UI_UX_REDESIGN_TODO_2026-08-10.md"
 android_ui_closure="docs/RUST_ANDROID_UI_UX_REDESIGN_CLOSURE_EVIDENCE_2026-08-10.md"
 android_ui_review_fix_todo="docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md"
 android_ui_review_fix_closure="docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_EVIDENCE_2026-08-10.md"
+android_ui_review_fix_corrections_spec="docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_SPEC_2026-08-10.md"
+android_ui_review_fix_corrections_todo="docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_TODO_2026-08-10.md"
 legacy_index="docs/LEGACY_TODO_INDEX.md"
 fen_doc="docs/RUST_FEN_AND_UCI_NOTATION.md"
 fen_source="crates/chess-core/src/position/fen.rs"
@@ -53,6 +55,8 @@ for required in \
     "$android_ui_closure" \
     "$android_ui_review_fix_todo" \
     "$android_ui_review_fix_closure" \
+    "$android_ui_review_fix_corrections_spec" \
+    "$android_ui_review_fix_corrections_todo" \
     "$legacy_index" \
     "$fen_doc" \
     "$fen_source"; do
@@ -81,6 +85,10 @@ grep -Fq 'Status: complete — Rust TUI test/coverage hardening validated; cover
 grep -Fq 'Status: complete — targeted Rust TUI hardening and diagnostic coverage integration validated.' "$tui_coverage_report"
 grep -Fq '**Status:** Complete' "$android_ui_review_fix_todo"
 grep -Fq '**Status:** Complete — bounded review-fix implementation and permanent exact-source-SHA validation passed' "$android_ui_review_fix_closure"
+grep -Fq '**Status:** Complete' "$android_ui_review_fix_corrections_todo"
+grep -Fq '`claims-downgraded`' "$android_ui_review_fix_corrections_todo"
+grep -Fq '`documented blocker`' "$android_ui_review_fix_corrections_todo"
+grep -Fq '`remediation-not-needed`' "$android_ui_review_fix_corrections_todo"
 
 for stale in \
     '| Active v0.2 strength program |' \
@@ -114,6 +122,8 @@ grep -Fq "\`$android_ui_todo\`" "$legacy_index"
 grep -Fq "\`$android_ui_closure\`" "$legacy_index"
 grep -Fq "\`$android_ui_review_fix_todo\`" "$legacy_index"
 grep -Fq "\`$android_ui_review_fix_closure\`" "$legacy_index"
+grep -Fq "\`$android_ui_review_fix_corrections_todo\`" "$legacy_index"
+grep -Fq "\`$android_ui_review_fix_corrections_todo\` (completed" "$legacy_index"
 if grep -Fq 'Active S4 evaluation tuning calibration program' "$legacy_index"; then
     echo 'closed S4 TODO is still active' >&2
     exit 1
@@ -151,12 +161,15 @@ grep -Fq '**Run:** `31383610431`' "$android_ui_closure"
 grep -Fq '**Artifact ID:** `9060954512`' "$android_ui_closure"
 grep -Fq 'A representative physical-phone UX pass was not performed' "$android_ui_closure"
 grep -Fq '**Validated final source SHA:** `6d9a84d910a3e6438aef390aa733a4b62a71dfdd`' "$android_ui_review_fix_closure"
-grep -Fq 'Run: `31417242747`' "$android_ui_review_fix_closure"
-grep -Fq 'Job: `93549046687`' "$android_ui_review_fix_closure"
-grep -Fq 'Run: `31417240241`' "$android_ui_review_fix_closure"
-grep -Fq 'Job `93549039534`' "$android_ui_review_fix_closure"
-grep -Fq 'Job `93549039574`' "$android_ui_review_fix_closure"
-grep -Fq 'Job `93549039612`' "$android_ui_review_fix_closure"
+grep -Fq '**Authoritative closure-tree SHA:** `e9ab0fc623c22bd372ba9c8c2609dfcf74609f84`' "$android_ui_review_fix_closure"
+grep -Fq 'run `31419183264`' "$android_ui_review_fix_closure"
+grep -Fq 'job `93555556721`' "$android_ui_review_fix_closure"
+grep -Fq 'job `93555556826`' "$android_ui_review_fix_closure"
+grep -Fq 'run `31419183273`' "$android_ui_review_fix_closure"
+grep -Fq 'job `93555602583`' "$android_ui_review_fix_closure"
+grep -Fq 'job `93555602709`' "$android_ui_review_fix_closure"
+grep -Fq 'job `93555602727`' "$android_ui_review_fix_closure"
+grep -Fq 'git diff --exit-code 6d9a84d910a3e6438aef390aa733a4b62a71dfdd..e9ab0fc623c22bd372ba9c8c2609dfcf74609f84 -- android-harness crates' "$android_ui_review_fix_closure"
 grep -Fq "**Companion TODO:** \`$v0_2_todo\`" "$v0_2_spec"
 grep -Fq "**Specification:** \`$v0_2_spec\`" "$v0_2_todo"
 grep -Fq "**Companion TODO:** \`$s3_todo\`" "$s3_spec"
@@ -209,7 +222,10 @@ for temporary in \
     ".github/tui_coverage_checklist_patch.py" \
     ".github/workflows/tui-coverage-checklist-validation.yml" \
     ".github/workflows/android-ui-gallery.yml" \
-    ".github/android_ui_gallery.py"; do
+    ".github/android_ui_gallery.py" \
+    ".github/android_closure_corrections_ralph.py" \
+    ".github/workflows/android-closure-corrections-ralph.yml" \
+    ".github/investigate_system_bars.sh"; do
     if test -e "$temporary"; then
         echo "temporary post-port helper remains: $temporary" >&2
         exit 1
