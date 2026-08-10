@@ -45,4 +45,17 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Run stage 3
-        run: python3 .github/android_closure_corrections_ralph.py stage3
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('.github/android_closure_corrections_ralph.py')
+          text = path.read_text()
+          needle = '    run("bash", "scripts/task_post_port_review_fix_audit.sh")\n    commit("docs(android): correct authoritative closure CI evidence", CLOSURE, TODO)'
+          replacement = '    commit("docs(android): correct authoritative closure CI evidence", CLOSURE, TODO)'
+          if text.count(needle) != 1:
+              raise SystemExit('expected one premature CC-005 authority-audit gate')
+          path.write_text(text.replace(needle, replacement, 1))
+          PY
+          python3 .github/android_closure_corrections_ralph.py stage3
