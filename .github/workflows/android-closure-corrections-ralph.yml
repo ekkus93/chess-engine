@@ -47,4 +47,33 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Finalize closure corrections
-        run: python3 .github/android_closure_corrections_ralph.py finalize
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('.github/android_closure_corrections_ralph.py')
+          text = path.read_text()
+          old = '''    git("status", "--short")
+              validate_source()
+              correct_parent()
+              close_tracker()
+              close_index()
+              update_audit()
+              remove_temporary_helpers()
+
+              run("bash", "scripts/task_post_port_review_fix_audit.sh")'''.replace('              ', '    ')
+          new = '''    git("status", "--short")
+              correct_parent()
+              close_tracker()
+              close_index()
+              update_audit()
+              remove_temporary_helpers()
+
+              run("bash", "scripts/task_post_port_review_fix_audit.sh")
+              validate_source()'''.replace('              ', '    ')
+          if text.count(old) != 1:
+              raise SystemExit('expected exactly one finalizer ordering block')
+          path.write_text(text.replace(old, new, 1))
+          PY
+          python3 .github/android_closure_corrections_ralph.py finalize
