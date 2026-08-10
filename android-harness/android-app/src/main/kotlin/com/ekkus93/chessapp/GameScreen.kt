@@ -71,7 +71,7 @@ internal fun GameScreen(
     ) {
         val gap = 6.dp
         val statusHeight = 54.dp
-        val tabHeight = 40.dp
+        val tabHeight = 54.dp
         val actionHeight = 48.dp
         val minimumPanelHeight = 100.dp
         val nonBoardHeight = statusHeight + tabHeight + actionHeight + minimumPanelHeight + gap * 4
