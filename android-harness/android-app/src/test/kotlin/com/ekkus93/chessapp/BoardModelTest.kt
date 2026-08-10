@@ -2,6 +2,7 @@ package com.ekkus93.chessapp
 
 import com.ekkus93.chessengine.HumanSide
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -39,5 +40,34 @@ class BoardModelTest {
     fun promotionCandidatesRemainExplicit() {
         val legal = listOf("a7a8q", "a7a8r", "a7a8b", "a7a8n")
         assertEquals(legal, candidateMoves(legal, "a7", "a8"))
+    }
+
+    @Test
+    fun lastMoveProjectionKeepsExactUciSourceAndDestination() {
+        assertNull(lastMoveSquares(emptyList()))
+        assertEquals(
+            LastMoveSquares("e2", "e4"),
+            lastMoveSquares(listOf("e2e4")),
+        )
+        assertEquals(
+            LastMoveSquares("a7", "a8"),
+            lastMoveSquares(listOf("e2e4", "a7a8q")),
+        )
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun malformedAuthoritativeMoveFailsInsteadOfInventingHighlight() {
+        lastMoveSquares(listOf("e4"))
+    }
+
+    @Test
+    fun sanHistoryBecomesNumberedRowsWithoutNotationConversion() {
+        assertEquals(
+            listOf(
+                MoveRow(1, "e4", "c5"),
+                MoveRow(2, "Nf3", null),
+            ),
+            moveRows(listOf("e4", "c5", "Nf3")),
+        )
     }
 }
