@@ -79,50 +79,7 @@ jobs:
           profile: pixel_2
           disable-animations: true
           emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: |
-            set +e
-            rm -rf isolated-systembar
-            mkdir -p isolated-systembar
-            adb shell rm -rf /sdcard/Download/RustChessEvidence
-            gradle -p android-harness :android-app:connectedDebugAndroidTest \
-              -Pandroid.testInstrumentationRunnerArguments.class=com.ekkus93.chessapp.SystemBarAppearanceInstrumentedTest \
-              --no-daemon --stacktrace --console=plain
-            status=$?
-            adb pull /sdcard/Download/RustChessEvidence/system-bars-api35.png isolated-systembar/test-screenshot.png || true
-            adb exec-out screencap -p > isolated-systembar/post-test-screen.png || true
-            adb shell dumpsys window > isolated-systembar/dumpsys-window.txt || true
-            python3 - <<'PY'
-            from pathlib import Path
-            try:
-                from PIL import Image
-            except ImportError:
-                raise SystemExit(0)
-            for name in ('test-screenshot.png', 'post-test-screen.png'):
-                path = Path('isolated-systembar') / name
-                if not path.exists() or path.stat().st_size == 0:
-                    continue
-                image = Image.open(path).convert('RGB')
-                pixels = image.load()
-                expected = (11, 18, 32)
-                for label, y0, y1, x0, x1 in (
-                    ('status', 0, min(130, image.height), image.width // 4, image.width * 3 // 4),
-                    ('navigation', max(0, image.height - 130), image.height, image.width // 10, image.width * 4 // 10),
-                ):
-                    total = 0
-                    matches = 0
-                    sums = [0, 0, 0]
-                    for y in range(y0, y1):
-                        for x in range(x0, x1):
-                            rgb = pixels[x, y]
-                            total += 1
-                            for i in range(3):
-                                sums[i] += rgb[i]
-                            if all(abs(rgb[i] - expected[i]) <= 12 for i in range(3)):
-                                matches += 1
-                    mean = tuple(round(v / total, 2) for v in sums)
-                    print(f'{name} {label}: ratio={matches / total:.6f} mean={mean}')
-            PY
-            exit "$status"
+          script: bash .github/investigate_system_bars.sh
 
       - name: Upload isolated diagnostic evidence
         if: always()
