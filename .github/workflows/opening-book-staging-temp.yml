@@ -9,17 +9,19 @@ permissions:
   contents: read
 
 jobs:
-  format-lock-and-test:
+  exact-source-test:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-      - name: Format opening-book integration
-        run: cargo fmt --all
-      - name: Regenerate lockfile
-        run: cargo generate-lockfile
+      - name: Verify formatting
+        run: cargo fmt --all -- --check
+      - name: Verify generated lockfile is unchanged
+        run: |
+          cargo generate-lockfile
+          git diff --exit-code -- Cargo.lock
       - name: Check interactive frontends
         run: cargo check --locked -p chess-app -p chess-tui -p chess-console --all-targets
       - name: Run strict interactive Clippy
@@ -28,15 +30,3 @@ jobs:
         run: cargo test --locked -p chess-app -p chess-tui -p chess-console
       - name: Run console PTY acceptance
         run: bash scripts/dev.sh console-pty-smoke
-      - name: Preserve formatted sources and lockfile
-        uses: actions/upload-artifact@v4
-        with:
-          name: opening-book-staging-${{ github.sha }}
-          path: |
-            Cargo.lock
-            crates/chess-app/src/book.rs
-            crates/chess-app/src/interactive_worker.rs
-            crates/chess-app/src/lib.rs
-            crates/chess-tui/src/worker.rs
-            crates/chess-console/tests/opening_book_acceptance.rs
-          if-no-files-found: error
