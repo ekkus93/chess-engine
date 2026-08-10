@@ -358,12 +358,12 @@
 
 ## AR-021.1 Validation
 
-- [ ] Android app JVM/unit tests pass, including every test added by AR-001 through AR-020.
-- [ ] Android lint passes.
-- [ ] `crates/chess-core` tests pass, including AR-017's additions.
-- [ ] `crates/chess-jni` tests pass, including AR-019's extended contract test.
-- [ ] Full Android instrumentation suite passes, including every test added by this pass.
-- [ ] `bash scripts/dev.sh fast` passes — mandatory whenever the environment can run it (QI-002); if genuinely unavailable, the equivalent permanent general CI on the exact final SHA is required instead, and the unrun local command is explicitly recorded as such, never silently treated as passed.
+- [x] Android app JVM/unit tests pass, including every test added by AR-001 through AR-020.
+- [x] Android lint passes.
+- [x] `crates/chess-core` tests pass, including AR-017's additions.
+- [x] `crates/chess-jni` tests pass, including AR-019's extended contract test.
+- [x] Full Android instrumentation suite passes, including every test added by this pass.
+- [x] `bash scripts/dev.sh fast` passes — mandatory whenever the environment can run it (QI-002); if genuinely unavailable, the equivalent permanent general CI on the exact final SHA is required instead, and the unrun local command is explicitly recorded as such, never silently treated as passed.
 
 ## AR-021.2 Mandatory permanent exact-SHA CI (QI-012)
 
@@ -376,14 +376,14 @@
 
 ```text
 Review baseline SHA:                 98e21939b0665f2f54ade7f87cdcaba3fe48025f
-Implementation start SHA:
-Final source SHA:
+Implementation start SHA:          218158b15d1b500e940eb7a13077636b446869f5
+Final source SHA:                 this AR-021 validation/runner-cleanup commit
 
-Android app unit/lint results:
-chess-core test results:
-chess-jni test results:
-Android instrumentation results:
-bash scripts/dev.sh fast result:
+Android app unit/lint results:    pass — full-validation run 31409800032; validated implementation HEAD 6747b04f6958208d6c847f131768fe9268454f93
+chess-core test results:          pass — full-validation run 31409800032; validated implementation HEAD 6747b04f6958208d6c847f131768fe9268454f93
+chess-jni test results:           pass — full-validation run 31409800032; validated implementation HEAD 6747b04f6958208d6c847f131768fe9268454f93
+Android instrumentation results: pass — 39/39 in full-validation run 31409800032; validated implementation HEAD 6747b04f6958208d6c847f131768fe9268454f93
+bash scripts/dev.sh fast result:  pass after temporary runner removal — full-validation run 31409800032
 
 Permanent Android CI run/job IDs:
 Permanent general/Rust CI run/job IDs:
