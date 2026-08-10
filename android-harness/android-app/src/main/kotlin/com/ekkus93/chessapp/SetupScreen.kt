@@ -65,6 +65,7 @@ internal fun SetupScreen(
             }
             Text(
                 text = "Rust Chess",
+                modifier = Modifier.testTag("setup-title"),
                 style = MaterialTheme.typography.headlineLarge,
                 color = OnBackground,
             )

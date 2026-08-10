@@ -37,7 +37,7 @@ class ChessAppLayoutInstrumentedTest {
 
         composeRule.assertContained(
             rootTag = "setup-screen",
-            childTags = listOf("side-white", "side-black", "depth-control", "start-game"),
+            childTags = listOf("setup-title", "side-white", "side-black", "depth-control", "start-game"),
         )
         composeRule.assertNoRootScroll("setup-screen")
     }

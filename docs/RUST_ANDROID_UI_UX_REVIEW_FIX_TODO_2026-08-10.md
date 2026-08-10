@@ -263,12 +263,12 @@
 
 ## AR-014.1 Fix
 
-- [ ] `testTag("setup-title")` (or equivalent) added to the Setup title composable.
-- [ ] Title tag added to the existing `assertContained("setup-screen", ...)` child list.
+- [x] `testTag("setup-title")` (or equivalent) added to the Setup title composable.
+- [x] Title tag added to the existing `assertContained("setup-screen", ...)` child list.
 
 ## AR-014.2 Tests
 
-- [ ] Extended containment assertion passes; rendered title text matches expected copy (coordinate with AR-003).
+- [x] Extended containment assertion passes; rendered title text matches expected copy (coordinate with AR-003).
 
 ---
 

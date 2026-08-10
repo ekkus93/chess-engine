@@ -72,7 +72,7 @@ class ChessAppAdaptiveLayoutInstrumentedTest {
 
         composeRule.assertContained(
             "setup-screen",
-            listOf("side-white", "side-black", "depth-control", "start-game"),
+            listOf("setup-title", "side-white", "side-black", "depth-control", "start-game"),
         )
         composeRule.assertNoRootScroll("setup-screen")
     }
