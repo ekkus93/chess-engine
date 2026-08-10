@@ -37,6 +37,17 @@ data class BoardPosition(
     }
 }
 
+data class LastMoveSquares(
+    val source: String,
+    val destination: String,
+)
+
+data class MoveRow(
+    val number: Int,
+    val white: String,
+    val black: String?,
+)
+
 fun visibleFiles(side: HumanSide): List<Char> = when (side) {
     HumanSide.WHITE -> ('a'..'h').toList()
     HumanSide.BLACK -> ('h' downTo 'a').toList()
@@ -71,3 +82,22 @@ fun legalTargets(legalMoves: List<String>, from: String?): Set<String> {
         .map { it.substring(2, 4) }
         .toSet()
 }
+
+fun lastMoveSquares(moves: List<String>): LastMoveSquares? {
+    val move = moves.lastOrNull() ?: return null
+    require(move.length in 4..5) { "authoritative UCI move must contain four or five characters" }
+    return LastMoveSquares(
+        source = move.substring(0, 2),
+        destination = move.substring(2, 4),
+    )
+}
+
+fun moveRows(sanMoves: List<String>): List<MoveRow> = sanMoves
+    .chunked(2)
+    .mapIndexed { index, pair ->
+        MoveRow(
+            number = index + 1,
+            white = pair[0],
+            black = pair.getOrNull(1),
+        )
+    }
