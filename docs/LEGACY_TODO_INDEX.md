@@ -18,7 +18,7 @@ There is currently **no active implementation TODO** registered by this index. T
 
 Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO`, is not one of the two completed Rust-port authority documents above, and is not explicitly registered as active in the authority table is historical/planning evidence unless a separate closure authority is listed above. Those files preserve implementation history, but they are not active instructions and must not override completed authority records, closure evidence, or a future TODO explicitly registered in the authority table.
 
-Inventory captured on 2026-08-05, reclassified at S2-16 closure on 2026-08-07, activated for S3 on 2026-08-07, reclassified again at S3 closure on 2026-08-07, activated for S4 on 2026-08-07, reclassified at S4 closure on 2026-08-07, updated for the Rust TUI program on 2026-08-07, updated for Rust TUI test/coverage hardening on 2026-08-08, updated for the Rust TUI post-milestone review-fix pass on 2026-08-09, activated for the Rust console/application-sharing program on 2026-08-09, activated for the Android UI/UX redesign on 2026-08-10, and reclassified at automated Android UI/UX redesign closure on 2026-08-10: **80 TODO-named files total; 2 completed Rust-port authority documents; 0 active implementation TODOs; 1 Android closure-evidence authority; 1 authority index; 77 historical/planning TODO records including the archived Android tracker.**
+Inventory captured on 2026-08-05, reclassified at S2-16 closure on 2026-08-07, activated for S3 on 2026-08-07, reclassified again at S3 closure on 2026-08-07, activated for S4 on 2026-08-07, reclassified at S4 closure on 2026-08-07, updated for the Rust TUI program on 2026-08-07, updated for Rust TUI test/coverage hardening on 2026-08-08, updated for the Rust TUI post-milestone review-fix pass on 2026-08-09, activated for the Rust console/application-sharing program on 2026-08-09, activated for the Android UI/UX redesign on 2026-08-10, reclassified at automated Android UI/UX redesign closure on 2026-08-10, and updated for the Android UI/UX post-closure review-fix pass on 2026-08-10: **81 TODO-named files total; 2 completed Rust-port authority documents; 0 active implementation TODOs; 1 Android closure-evidence authority; 1 authority index; 78 historical/planning TODO records including the archived Android tracker.**
 
 ## Historical TODO inventory
 
@@ -66,6 +66,7 @@ Inventory captured on 2026-08-05, reclassified at S2-16 closure on 2026-08-07, a
 - `docs/MIDDLEGAME_FIX1_TODO.md`
 - `docs/REFACTOR_BOARD_TODO.md`
 - `docs/RUST_ANDROID_UI_UX_REDESIGN_TODO_2026-08-10.md`
+- `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md`
 - `docs/RUST_CHESS_ENGINE_POST_PORT_REVIEW_FIX_TODO_2026-08-04.md`
 - `docs/RUST_CHESS_ENGINE_S3_EVALUATION_STRENGTH_TODO_2026-08-07.md`
 - `docs/RUST_CHESS_ENGINE_S4_EVALUATION_TUNING_CALIBRATION_TODO_2026-08-07.md`
