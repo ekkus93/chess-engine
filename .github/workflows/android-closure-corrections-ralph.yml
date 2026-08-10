@@ -8,23 +8,21 @@ on:
       - .github/workflows/android-closure-corrections-ralph.yml
 
 permissions:
-  contents: write
-  actions: read
+  contents: read
 
 concurrency:
   group: android-closure-corrections-ralph
   cancel-in-progress: false
 
 jobs:
-  stage3:
+  investigate-system-bars:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    env:
-      GH_TOKEN: ${{ github.token }}
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Install Java 17
         uses: actions/setup-java@v4
@@ -37,25 +35,99 @@ jobs:
         with:
           gradle-version: "8.9"
 
-      - name: Configure repository writer
+      - name: Resolve hosted Android NDK
+        id: ndk
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          NDK_HOME="${ANDROID_NDK_LATEST_HOME:-}"
+          if [[ -z "${NDK_HOME}" || ! -d "${NDK_HOME}" ]]; then
+            NDK_HOME="$(find "${ANDROID_SDK_ROOT}/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          fi
+          test -d "${NDK_HOME}"
+          echo "home=${NDK_HOME}" >> "${GITHUB_OUTPUT}"
 
-      - name: Run stage 3
+      - name: Build and stage x86_64 JNI library
+        shell: bash
+        env:
+          ANDROID_NDK_HOME: ${{ steps.ndk.outputs.home }}
+          ANDROID_API_LEVEL: "24"
+          ANDROID_ABI: x86_64
+        run: bash scripts/prepare_android_harness_jni.sh
+
+      - name: Compile app and instrumentation APK
+        run: >-
+          gradle -p android-harness
+          :android-app:assembleDebug
+          :android-app:assembleDebugAndroidTest
+          --no-daemon --stacktrace --console=plain
+
+      - name: Enable KVM
         shell: bash
         run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          path = Path('.github/android_closure_corrections_ralph.py')
-          text = path.read_text()
-          needle = '    run("bash", "scripts/task_post_port_review_fix_audit.sh")\n    commit("docs(android): correct authoritative closure CI evidence", CLOSURE, TODO)'
-          replacement = '    commit("docs(android): correct authoritative closure CI evidence", CLOSURE, TODO)'
-          if text.count(needle) != 1:
-              raise SystemExit('expected one premature CC-005 authority-audit gate')
-          path.write_text(text.replace(needle, replacement, 1))
-          PY
-          python3 .github/android_closure_corrections_ralph.py stage3
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run isolated system-bar diagnostic
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_2
+          disable-animations: true
+          emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: |
+            set +e
+            rm -rf isolated-systembar
+            mkdir -p isolated-systembar
+            adb shell rm -rf /sdcard/Download/RustChessEvidence
+            gradle -p android-harness :android-app:connectedDebugAndroidTest \
+              -Pandroid.testInstrumentationRunnerArguments.class=com.ekkus93.chessapp.SystemBarAppearanceInstrumentedTest \
+              --no-daemon --stacktrace --console=plain
+            status=$?
+            adb pull /sdcard/Download/RustChessEvidence/system-bars-api35.png isolated-systembar/test-screenshot.png || true
+            adb exec-out screencap -p > isolated-systembar/post-test-screen.png || true
+            adb shell dumpsys window > isolated-systembar/dumpsys-window.txt || true
+            python3 - <<'PY'
+            from pathlib import Path
+            try:
+                from PIL import Image
+            except ImportError:
+                raise SystemExit(0)
+            for name in ('test-screenshot.png', 'post-test-screen.png'):
+                path = Path('isolated-systembar') / name
+                if not path.exists() or path.stat().st_size == 0:
+                    continue
+                image = Image.open(path).convert('RGB')
+                pixels = image.load()
+                expected = (11, 18, 32)
+                for label, y0, y1, x0, x1 in (
+                    ('status', 0, min(130, image.height), image.width // 4, image.width * 3 // 4),
+                    ('navigation', max(0, image.height - 130), image.height, image.width // 10, image.width * 4 // 10),
+                ):
+                    total = 0
+                    matches = 0
+                    sums = [0, 0, 0]
+                    for y in range(y0, y1):
+                        for x in range(x0, x1):
+                            rgb = pixels[x, y]
+                            total += 1
+                            for i in range(3):
+                                sums[i] += rgb[i]
+                            if all(abs(rgb[i] - expected[i]) <= 12 for i in range(3)):
+                                matches += 1
+                    mean = tuple(round(v / total, 2) for v in sums)
+                    print(f'{name} {label}: ratio={matches / total:.6f} mean={mean}')
+            PY
+            exit "$status"
+
+      - name: Upload isolated diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: isolated-systembar-${{ github.sha }}
+          path: isolated-systembar/
+          if-no-files-found: warn
