@@ -333,11 +333,11 @@
 
 ## AR-019.1 Fix
 
-- [ ] `crates/chess-jni/tests/jni_contract.rs` extended (or a sibling test added) to statically assert `ChessGame.kt`'s `FIELD_COUNT`/`VERSION` match `app_bridge.rs`'s `SNAPSHOT_VERSION`/encoded field-array length.
+- [x] `crates/chess-jni/tests/jni_contract.rs` extended (or a sibling test added) to statically assert `ChessGame.kt`'s `FIELD_COUNT`/`VERSION` match `app_bridge.rs`'s `SNAPSHOT_VERSION`/encoded field-array length.
 
 ## AR-019.2 Tests
 
-- [ ] New contract test verified to fail if `SNAPSHOT_VERSION` or `FIELD_COUNT`/`VERSION` are deliberately desynced (implementation-time sanity check).
+- [x] New contract test verified to fail if `SNAPSHOT_VERSION` or `FIELD_COUNT`/`VERSION` are deliberately desynced (implementation-time sanity check).
 
 ---
 

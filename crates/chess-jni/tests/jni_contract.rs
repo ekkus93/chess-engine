@@ -1,6 +1,9 @@
 const KOTLIN_WRAPPER: &str =
     include_str!("../kotlin/src/main/kotlin/com/ekkus93/chessengine/ChessEngine.kt");
 const RUST_EXPORTS: &str = include_str!("../src/lib.rs");
+const APP_BRIDGE: &str = include_str!("../src/app_bridge.rs");
+const KOTLIN_GAME: &str =
+    include_str!("../kotlin/src/main/kotlin/com/ekkus93/chessengine/ChessGame.kt");
 
 fn occurrences(haystack: &str, needle: &str) -> usize {
     haystack.match_indices(needle).count()
@@ -72,4 +75,27 @@ fn kotlin_owner_contract_is_explicit_and_background_only() {
 fn compact_search_record_field_count_is_shared_by_both_layers() {
     assert!(KOTLIN_WRAPPER.contains("private const val FIELD_COUNT = 13"));
     assert!(RUST_EXPORTS.contains("SearchArguments"));
+}
+
+#[test]
+fn high_level_snapshot_contract_matches_between_rust_and_kotlin() {
+    assert!(KOTLIN_GAME.contains("private const val FIELD_COUNT = 18"));
+    assert!(KOTLIN_GAME.contains("private const val VERSION = \"2\""));
+    assert!(APP_BRIDGE.contains("const SNAPSHOT_VERSION: &str = \"2\";"));
+
+    let fields = APP_BRIDGE
+        .split("let fields = [")
+        .nth(1)
+        .expect("snapshot field array")
+        .split("];")
+        .next()
+        .expect("snapshot field array end");
+    let field_count = fields
+        .lines()
+        .filter(|line| line.trim_end().ends_with(','))
+        .count();
+    assert_eq!(
+        field_count, 18,
+        "Rust high-level snapshot field count changed"
+    );
 }
