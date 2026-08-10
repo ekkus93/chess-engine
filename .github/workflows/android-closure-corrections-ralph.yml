@@ -76,4 +76,12 @@ jobs:
               raise SystemExit('expected exactly one finalizer ordering block')
           path.write_text(text.replace(old, new, 1))
           PY
-          python3 .github/android_closure_corrections_ralph.py finalize
+          python3 .github/android_closure_corrections_ralph.py finalize 2>&1 | tee /tmp/closure-finalizer.log
+
+      - name: Upload finalizer diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: closure-finalizer-${{ github.sha }}
+          path: /tmp/closure-finalizer.log
+          if-no-files-found: warn
