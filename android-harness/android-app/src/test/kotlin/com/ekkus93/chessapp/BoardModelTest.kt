@@ -2,6 +2,7 @@ package com.ekkus93.chessapp
 
 import com.ekkus93.chessengine.HumanSide
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -25,6 +26,23 @@ class BoardModelTest {
         assertEquals((8 downTo 1).toList(), visibleRanks(HumanSide.WHITE))
         assertEquals(('h' downTo 'a').toList(), visibleFiles(HumanSide.BLACK))
         assertEquals((1..8).toList(), visibleRanks(HumanSide.BLACK))
+    }
+
+    @Test
+    fun boardParityKeepsA1DarkIndependentOfOrientation() {
+        assertFalse(isLightSquare('a', 1))
+        assertTrue(isLightSquare('a', 8))
+        assertTrue(isLightSquare('h', 1))
+        assertFalse(isLightSquare('h', 8))
+
+        val whiteSquares = visibleRanks(HumanSide.WHITE).flatMap { rank ->
+            visibleFiles(HumanSide.WHITE).map { file -> isLightSquare(file, rank) }
+        }
+        val blackSquares = visibleRanks(HumanSide.BLACK).flatMap { rank ->
+            visibleFiles(HumanSide.BLACK).map { file -> isLightSquare(file, rank) }
+        }
+        assertEquals(32, whiteSquares.count { it })
+        assertEquals(32, blackSquares.count { it })
     }
 
     @Test

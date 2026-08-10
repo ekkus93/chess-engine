@@ -52,7 +52,7 @@ internal fun ChessBoard(
             Row(modifier = Modifier.weight(1f)) {
                 files.forEach { file ->
                     val square = "$file$rank"
-                    val baseColor = if (((file - 'a') + rank) % 2 == 0) BoardLight else BoardDark
+                    val baseColor = if (isLightSquare(file, rank)) BoardLight else BoardDark
                     val isLastMove = square == lastMove?.source || square == lastMove?.destination
                     val piece = board.pieces[square]
                     val isTarget = square in legalTargets

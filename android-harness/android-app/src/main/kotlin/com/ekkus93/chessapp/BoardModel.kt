@@ -58,6 +58,12 @@ fun visibleRanks(side: HumanSide): List<Int> = when (side) {
     HumanSide.BLACK -> (1..8).toList()
 }
 
+fun isLightSquare(file: Char, rank: Int): Boolean {
+    require(file in 'a'..'h') { "board file must be a through h" }
+    require(rank in 1..8) { "board rank must be one through eight" }
+    return ((file - 'a') + rank) % 2 == 0
+}
+
 fun candidateMoves(
     legalMoves: List<String>,
     from: String,
