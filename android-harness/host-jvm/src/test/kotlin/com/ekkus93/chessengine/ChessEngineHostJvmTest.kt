@@ -45,6 +45,31 @@ class ChessEngineHostJvmTest {
 
     @Test
     @Timeout(30)
+    fun highLevelSnapshotCarriesRustSanHistoryAlongsideUciIdentity() {
+        ChessGame.create(HumanSide.WHITE, engineDepth = 1).use { game ->
+            val initial = game.snapshot()
+            assertTrue(initial.moves.isEmpty())
+            assertTrue(initial.sanMoves.isEmpty())
+
+            var snapshot = game.submitMove("e2e4")
+            assertEquals(listOf("e2e4"), snapshot.moves)
+            assertEquals(listOf("e4"), snapshot.sanMoves)
+
+            repeat(500) {
+                if (!snapshot.thinking) {
+                    assertEquals(listOf("e2e4", "c7c5"), snapshot.moves)
+                    assertEquals(listOf("e4", "c5"), snapshot.sanMoves)
+                    return@use
+                }
+                Thread.sleep(2)
+                snapshot = game.poll()
+            }
+            error("shared high-level game did not produce its opening-book reply")
+        }
+    }
+
+    @Test
+    @Timeout(30)
     fun invalidFenMapsToTypedExceptionAndPreservesState() {
         ChessEngine.create().use { engine ->
             val before = engine.fen()
