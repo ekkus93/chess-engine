@@ -4,11 +4,17 @@ import android.content.ContentValues
 import android.graphics.Bitmap
 import android.os.Environment
 import android.provider.MediaStore
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.test.platform.app.InstrumentationRegistry
 
-internal fun saveVisualEvidence(name: String, image: ImageBitmap) {
+internal fun captureVisualEvidence(name: String) {
+    val instrumentation = InstrumentationRegistry.getInstrumentation()
+    instrumentation.waitForIdleSync()
+    val bitmap = instrumentation.uiAutomation.takeScreenshot()
+        ?: error("failed to capture device screenshot for $name")
+    saveVisualEvidence(name, bitmap)
+}
+
+private fun saveVisualEvidence(name: String, bitmap: Bitmap) {
     require(name.matches(Regex("[a-z0-9-]+"))) { "evidence name must be a safe lowercase slug" }
     val resolver = InstrumentationRegistry.getInstrumentation().targetContext.contentResolver
     val values = ContentValues().apply {
@@ -24,7 +30,7 @@ internal fun saveVisualEvidence(name: String, image: ImageBitmap) {
         ?: error("failed to allocate visual evidence media entry for $name")
     try {
         resolver.openOutputStream(uri)?.use { output ->
-            check(image.asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, output)) {
+            check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)) {
                 "failed to encode visual evidence image for $name"
             }
         } ?: error("failed to open visual evidence output stream for $name")
@@ -36,5 +42,7 @@ internal fun saveVisualEvidence(name: String, image: ImageBitmap) {
     } catch (error: RuntimeException) {
         resolver.delete(uri, null, null)
         throw error
+    } finally {
+        bitmap.recycle()
     }
 }

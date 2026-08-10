@@ -1,12 +1,10 @@
 package com.ekkus93.chessapp
 
 import android.os.SystemClock
-import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -23,7 +21,7 @@ class ChessAppVisualFlowEvidenceInstrumentedTest {
     @Test
     fun captureRealWhiteAndBlackProductFlow() {
         composeRule.waitForIdle()
-        capture("setup")
+        captureVisualEvidence("setup")
 
         composeRule.onNodeWithTag("start-game").performClick()
         val viewModel = ViewModelProvider(composeRule.activity)[ChessViewModel::class.java]
@@ -31,7 +29,7 @@ class ChessAppVisualFlowEvidenceInstrumentedTest {
             state.snapshot?.humanToMove == true && state.snapshot.moves.isEmpty() && !state.busy
         }
         composeRule.waitForIdle()
-        capture("white-idle")
+        captureVisualEvidence("white-idle")
 
         composeRule.onNodeWithContentDescription("e2 pawn").performClick()
         composeRule.onNodeWithContentDescription("e4 legal target").performClick()
@@ -39,13 +37,13 @@ class ChessAppVisualFlowEvidenceInstrumentedTest {
             state.snapshot?.moves == listOf("e2e4") && state.snapshot.thinking
         }
         composeRule.waitForIdle()
-        capture("white-thinking")
+        captureVisualEvidence("white-thinking")
 
         awaitUiState(viewModel) { state ->
             state.snapshot?.moves == listOf("e2e4", "c7c5") && state.snapshot.humanToMove
         }
         composeRule.waitForIdle()
-        capture("white-engine-reply")
+        captureVisualEvidence("white-engine-reply")
 
         captureDialog("New game", "new-game-dialog")
         captureDialog("Restart", "restart-dialog")
@@ -63,19 +61,15 @@ class ChessAppVisualFlowEvidenceInstrumentedTest {
                 !state.busy
         }
         composeRule.waitForIdle()
-        capture("black-game")
+        captureVisualEvidence("black-game")
     }
 
     private fun captureDialog(actionLabel: String, evidenceName: String) {
         composeRule.onNodeWithText(actionLabel).performClick()
         composeRule.waitForIdle()
-        capture(evidenceName)
+        captureVisualEvidence(evidenceName)
         composeRule.onNodeWithText("Cancel").performClick()
         composeRule.waitForIdle()
-    }
-
-    private fun capture(name: String) {
-        saveVisualEvidence(name, composeRule.onRoot().captureToImage())
     }
 
     private fun awaitUiState(

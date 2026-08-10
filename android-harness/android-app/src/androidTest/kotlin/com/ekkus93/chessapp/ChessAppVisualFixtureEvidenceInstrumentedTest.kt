@@ -3,10 +3,8 @@ package com.ekkus93.chessapp
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.unit.dp
@@ -41,13 +39,13 @@ class ChessAppVisualFixtureEvidenceInstrumentedTest {
         }
 
         composeRule.waitForIdle()
-        capture("moves-multiple")
+        captureVisualEvidence("moves-multiple")
         composeRule.onNodeWithTag("moves-list").performScrollToIndex(12)
         composeRule.waitForIdle()
-        capture("moves-scrolled")
+        captureVisualEvidence("moves-scrolled")
         composeRule.onNodeWithTag("tab-engine").performClick()
         composeRule.waitForIdle()
-        capture("engine-metrics")
+        captureVisualEvidence("engine-metrics")
     }
 
     @Test
@@ -62,7 +60,7 @@ class ChessAppVisualFixtureEvidenceInstrumentedTest {
             }
         }
         composeRule.waitForIdle()
-        capture("promotion-dialog")
+        captureVisualEvidence("promotion-dialog")
     }
 
     @Test
@@ -77,11 +75,7 @@ class ChessAppVisualFixtureEvidenceInstrumentedTest {
             }
         }
         composeRule.waitForIdle()
-        capture("error-dialog")
-    }
-
-    private fun capture(name: String) {
-        saveVisualEvidence(name, composeRule.onRoot().captureToImage())
+        captureVisualEvidence("error-dialog")
     }
 
     private fun gameState(
