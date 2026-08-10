@@ -9,6 +9,11 @@ class ReviewFixArchitectureTest {
     private fun source(name: String): String =
         File(System.getProperty("user.dir"), "src/main/kotlin/com/ekkus93/chessapp/$name").readText()
 
+    private fun productionSources(): Sequence<File> =
+        File(System.getProperty("user.dir"), "src/main/kotlin")
+            .walkTopDown()
+            .filter { it.isFile && it.extension == "kt" }
+
     @Test
     fun boardAndPieceComposablesDoNotOwnProductColorLiterals() {
         for (name in listOf("ChessPiece.kt", "ChessBoardView.kt")) {
@@ -27,11 +32,37 @@ class ReviewFixArchitectureTest {
     }
 
     @Test
-    fun setupPlayerCopyDoesNotExposeNativeArchitectureJargon() {
-        val text = source("SetupScreen.kt")
-        val stringLiterals = Regex("\\\"(?:\\\\.|[^\\\"])*\\\"").findAll(text).map { it.value }.toList()
-        assertFalse(stringLiterals.any { it.contains("native", ignoreCase = true) })
-        assertFalse(stringLiterals.any { it.contains("JNI", ignoreCase = true) })
+    fun productionPlayerCopyDoesNotExposeArchitectureJargon() {
+        val exactInternalOnlySnippets = listOf(
+            // check() invariant text is never copied into ChessUiState.errorMessage or another UI sink.
+            "check(game === created) { \"native game ownership changed during failed startup cleanup\" }",
+            // check() invariant text is never copied into ChessUiState.errorMessage or another UI sink.
+            "check(game === current) { \"native game ownership changed during close\" }",
+            // Log.e() writes only to logcat during ViewModel leak cleanup; it is not rendered to the player.
+            "Log.e(LOG_TAG, \"failed to close native chess game during ViewModel cleanup\", error)",
+        )
+        val stringLiteral = Regex("\\\"(?:\\\\.|[^\\\"])*\\\"")
+        val forbidden = listOf("native", "JNI", "shared layer", "architecture")
+        var internalAllowlistMatches = 0
+
+        for (file in productionSources()) {
+            var text = file.readText()
+            if (file.name == "ChessViewModel.kt") {
+                for (snippet in exactInternalOnlySnippets) {
+                    val count = text.windowed(snippet.length, 1).count { it == snippet }
+                    assertTrue("internal-only allowlist snippet must exist exactly once: $snippet", count == 1)
+                    internalAllowlistMatches += count
+                    text = text.replace(snippet, "")
+                }
+            }
+            for (literal in stringLiteral.findAll(text).map { it.value }) {
+                assertFalse(
+                    "${file.name} production string literal exposes architecture jargon: $literal",
+                    forbidden.any { term -> literal.contains(term, ignoreCase = true) },
+                )
+            }
+        }
+        assertTrue("all three internal-only sinks must be accounted for", internalAllowlistMatches == 3)
     }
 
     @Test

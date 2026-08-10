@@ -50,7 +50,7 @@
 ## CC-000.3 SHA tracking (§2.1 closure-SHA protocol)
 
 - [x] Review baseline SHA (state this spec/TODO pair reviewed): `e9ab0fc623c22bd372ba9c8c2609dfcf74609f84`.
-- [ ] Implementation-start SHA (captured immediately after CC-000 lands): `_____________________________`
+- [x] Implementation-start SHA (captured immediately after CC-000 lands): `fe97117a9d5315a2ae4bff344ed8b22f52d8c86e`
 - [x] Confirmed these are not conflated with each other or with the eventual final correction SHA anywhere in this document.
 
 ## CC-000.4 Scope discipline
@@ -65,17 +65,17 @@
 
 ## CC-001.1 Fix
 
-- [ ] `ChessViewModel.kt:71`'s error message no longer contains "native".
-- [ ] `ChessViewModel.kt:117`'s error message no longer contains "native".
-- [ ] Full re-sweep of `android-harness/android-app/src/main/kotlin` for "native"/"JNI"/"shared layer"/"architecture" in any production string literal completed; any further instance corrected.
-- [ ] `ReviewFixArchitectureTest.kt`'s structural check rebuilt as a blanket forbid-with-narrow-allowlist rule over every production string literal in the module (not a player-reachability inference, and not scoped to one file), per spec §3.2/QI-009.
-- [ ] Each allowlist entry (the `check()` messages and the one `Log.e` call) is exact/narrow, justified inline, and tied to a genuinely internal-only sink.
+- [x] `ChessViewModel.kt:71`'s error message no longer contains "native".
+- [x] `ChessViewModel.kt:117`'s error message no longer contains "native".
+- [x] Full re-sweep of `android-harness/android-app/src/main/kotlin` for "native"/"JNI"/"shared layer"/"architecture" in any production string literal completed; any further instance corrected.
+- [x] `ReviewFixArchitectureTest.kt`'s structural check rebuilt as a blanket forbid-with-narrow-allowlist rule over every production string literal in the module (not a player-reachability inference, and not scoped to one file), per spec §3.2/QI-009.
+- [x] Each allowlist entry (the `check()` messages and the one `Log.e` call) is exact/narrow, justified inline, and tied to a genuinely internal-only sink.
 
 ## CC-001.2 Tests
 
-- [ ] Broadened structural test passes on corrected strings.
-- [ ] Confirmed (implementation-time sanity check) the broadened test fails if "native" is temporarily reintroduced into `ChessViewModel.kt`'s error strings.
-- [ ] Any test hard-coding the old error-string text is updated and remains green.
+- [x] Broadened structural test passes on corrected strings.
+- [x] Confirmed (implementation-time sanity check) the broadened test fails if "native" is temporarily reintroduced into `ChessViewModel.kt`'s error strings.
+- [x] Any test hard-coding the old error-string text is updated and remains green.
 
 ---
 

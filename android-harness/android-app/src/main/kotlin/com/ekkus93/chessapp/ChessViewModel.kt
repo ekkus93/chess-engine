@@ -68,7 +68,7 @@ class ChessViewModel : ViewModel() {
             mutableState.update {
                 it.copy(
                     cleanupRequired = true,
-                    errorMessage = "A native game is still active. Retry cleanup before starting another game.",
+                    errorMessage = "A previous game is still active. Retry cleanup before starting another game.",
                 )
             }
             return
@@ -114,7 +114,7 @@ class ChessViewModel : ViewModel() {
                             promotionMoves = emptyList(),
                             cleanupRequired = true,
                             errorMessage = buildString {
-                                append("Initial native snapshot failed: ")
+                                append("Initial game snapshot failed: ")
                                 append(displayMessage(snapshotError))
                                 append(" Cleanup also failed: ")
                                 append(displayMessage(cleanupError))
