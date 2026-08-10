@@ -162,19 +162,19 @@
 
 ## AR-007.1 Fix — global-busy/cleanup duplicate-input suppression (QI-005, revised per FQI-002)
 
-- [ ] Confirmed `ChessViewModel` has no per-operation-type identity state (only `busy`, `operationGeneration`, `monitorJob`, `game`), so the original same-operation-vs-different-operation distinction is not implementable without adding new state this task does not introduce.
-- [ ] `restartGame()`, `resign()`, and `submitMove()` each use the explicit existing-game guard `configuration.isSetup || configuration.busy || configuration.cleanupRequired` → early return; the `isSetup` polarity is intentionally opposite `startGame()` because these operations require an active game.
-- [ ] The guard applies uniformly regardless of whether the new invocation repeats the same button or is a different action attempted while busy — no operation-type distinction is introduced.
-- [ ] Rejection is a silent no-op (plain `return`), matching what `startGame()`'s guard actually does today — not a newly invented "visible rejection" `startGame()` doesn't itself perform.
-- [ ] `cleanupRequired` rejection leaves the already-surfaced cleanup-required state unchanged; no new per-invocation error message is added.
-- [ ] Existing generation/ticket cancellation mechanism unchanged.
+- [x] Confirmed `ChessViewModel` has no per-operation-type identity state (only `busy`, `operationGeneration`, `monitorJob`, `game`), so the original same-operation-vs-different-operation distinction is not implementable without adding new state this task does not introduce.
+- [x] `restartGame()`, `resign()`, and `submitMove()` each use the explicit existing-game guard `configuration.isSetup || configuration.busy || configuration.cleanupRequired` → early return; the `isSetup` polarity is intentionally opposite `startGame()` because these operations require an active game.
+- [x] The guard applies uniformly regardless of whether the new invocation repeats the same button or is a different action attempted while busy — no operation-type distinction is introduced.
+- [x] Rejection is a silent no-op (plain `return`), matching what `startGame()`'s guard actually does today — not a newly invented "visible rejection" `startGame()` doesn't itself perform.
+- [x] `cleanupRequired` rejection leaves the already-surfaced cleanup-required state unchanged; no new per-invocation error message is added.
+- [x] Existing generation/ticket cancellation mechanism unchanged.
 
 ## AR-007.2 Tests
 
-- [ ] Rapid duplicate invocation of `restartGame()` while `busy == true` results in exactly one logical operation, no second engine/native/JNI/cleanup call, no state mutation, no new error surfaced.
-- [ ] Same for `resign()`.
-- [ ] Same for `submitMove()`.
-- [ ] Each of the three, invoked while `cleanupRequired == true`, is a silent no-op with the already-visible cleanup-required state unchanged.
+- [x] Rapid duplicate invocation of `restartGame()` while `busy == true` results in exactly one logical operation, no second engine/native/JNI/cleanup call, no state mutation, no new error surfaced.
+- [x] Same for `resign()`.
+- [x] Same for `submitMove()`.
+- [x] Each of the three, invoked while `cleanupRequired == true`, is a silent no-op with the already-visible cleanup-required state unchanged.
 
 ---
 

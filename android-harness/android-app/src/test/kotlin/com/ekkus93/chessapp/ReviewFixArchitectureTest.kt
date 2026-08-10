@@ -33,4 +33,16 @@ class ReviewFixArchitectureTest {
         assertFalse(stringLiterals.any { it.contains("native", ignoreCase = true) })
         assertFalse(stringLiterals.any { it.contains("JNI", ignoreCase = true) })
     }
+
+    @Test
+    fun activeGameOperationsGuardBeforeGenerationAdvance() {
+        val text = source("ChessViewModel.kt")
+        for (signature in listOf("fun restartGame()", "fun resign()", "private fun submitMove(move: String)")) {
+            val start = text.indexOf(signature)
+            assertTrue(start >= 0)
+            val end = text.indexOf("nextOperation()", start)
+            val guard = text.indexOf("canRunActiveGameOperation(configuration)", start)
+            assertTrue("$signature must guard before nextOperation", guard >= 0 && end >= 0 && guard < end)
+        }
+    }
 }

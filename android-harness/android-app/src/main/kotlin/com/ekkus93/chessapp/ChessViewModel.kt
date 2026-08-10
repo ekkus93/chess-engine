@@ -189,6 +189,8 @@ class ChessViewModel : ViewModel() {
     }
 
     fun restartGame() {
+        val configuration = mutableState.value
+        if (!canRunActiveGameOperation(configuration)) return
         val current = game ?: return
         val generation = nextOperation()
         mutableState.update {
@@ -212,8 +214,10 @@ class ChessViewModel : ViewModel() {
     }
 
     fun resign() {
+        val configuration = mutableState.value
+        if (!canRunActiveGameOperation(configuration)) return
         val current = game ?: return
-        val snapshot = mutableState.value.snapshot ?: return
+        val snapshot = configuration.snapshot ?: return
         if (snapshot.gameOver) {
             return
         }
@@ -283,6 +287,8 @@ class ChessViewModel : ViewModel() {
     }
 
     private fun submitMove(move: String) {
+        val configuration = mutableState.value
+        if (!canRunActiveGameOperation(configuration)) return
         val current = game ?: return
         val generation = nextOperation()
         mutableState.update {
@@ -398,6 +404,9 @@ class ChessViewModel : ViewModel() {
         super.onCleared()
     }
 }
+
+internal fun canRunActiveGameOperation(state: ChessUiState): Boolean =
+    !state.isSetup && !state.busy && !state.cleanupRequired
 
 private fun displayMessage(error: RuntimeException): String =
     error.message?.takeIf { it.isNotBlank() } ?: error::class.java.simpleName
