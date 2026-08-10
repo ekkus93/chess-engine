@@ -53,7 +53,7 @@ class ChessAppAdaptiveLayoutInstrumentedTest {
     }
 
     @Test
-    fun enlargedTextKeepsCompactSetupAndCoreGameRegionsContained() {
+    fun enlargedTextKeepsCompactSetupContained() {
         composeRule.setContent {
             RustChessTheme {
                 val density = LocalDensity.current
@@ -71,12 +71,16 @@ class ChessAppAdaptiveLayoutInstrumentedTest {
                 }
             }
         }
+
         assertContained(
             "setup-screen",
             listOf("side-white", "side-black", "depth-control", "start-game"),
         )
         assertNoRootScroll("setup-screen")
+    }
 
+    @Test
+    fun enlargedTextKeepsCompactGameRegionsContained() {
         composeRule.setContent {
             RustChessTheme {
                 val density = LocalDensity.current
@@ -99,6 +103,7 @@ class ChessAppAdaptiveLayoutInstrumentedTest {
                 }
             }
         }
+
         assertContained(
             "game-screen",
             listOf("status-region", "chess-board", "game-tabs", "game-tab-body", "game-actions"),
