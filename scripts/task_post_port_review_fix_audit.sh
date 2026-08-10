@@ -24,6 +24,8 @@ tui_coverage_report="docs/RUST_TUI_TEST_COVERAGE_HARDENING_IMPLEMENTATION.md"
 console_todo="docs/RUST_CONSOLE_TODO.md"
 android_ui_todo="docs/RUST_ANDROID_UI_UX_REDESIGN_TODO_2026-08-10.md"
 android_ui_closure="docs/RUST_ANDROID_UI_UX_REDESIGN_CLOSURE_EVIDENCE_2026-08-10.md"
+android_ui_review_fix_todo="docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md"
+android_ui_review_fix_closure="docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_EVIDENCE_2026-08-10.md"
 legacy_index="docs/LEGACY_TODO_INDEX.md"
 fen_doc="docs/RUST_FEN_AND_UCI_NOTATION.md"
 fen_source="crates/chess-core/src/position/fen.rs"
@@ -49,6 +51,8 @@ for required in \
     "$console_todo" \
     "$android_ui_todo" \
     "$android_ui_closure" \
+    "$android_ui_review_fix_todo" \
+    "$android_ui_review_fix_closure" \
     "$legacy_index" \
     "$fen_doc" \
     "$fen_source"; do
@@ -75,6 +79,8 @@ grep -Fq '**Status:** Complete — closure hardening validated; no production pr
 grep -Fq 'Status: automated implementation and permanent regression validation complete; manual real-terminal acceptance remains open.' "$tui_todo"
 grep -Fq 'Status: complete — Rust TUI test/coverage hardening validated; coverage remains diagnostic and no engine/search/evaluation/tuning behavior changed.' "$tui_coverage_todo"
 grep -Fq 'Status: complete — targeted Rust TUI hardening and diagnostic coverage integration validated.' "$tui_coverage_report"
+grep -Fq '**Status:** Complete' "$android_ui_review_fix_todo"
+grep -Fq '**Status:** Complete — bounded review-fix implementation and permanent exact-source-SHA validation passed' "$android_ui_review_fix_closure"
 
 for stale in \
     '| Active v0.2 strength program |' \
@@ -106,6 +112,8 @@ grep -Fq "\`$tui_coverage_todo\`" "$legacy_index"
 grep -Fq "\`$console_todo\`" "$legacy_index"
 grep -Fq "\`$android_ui_todo\`" "$legacy_index"
 grep -Fq "\`$android_ui_closure\`" "$legacy_index"
+grep -Fq "\`$android_ui_review_fix_todo\`" "$legacy_index"
+grep -Fq "\`$android_ui_review_fix_closure\`" "$legacy_index"
 if grep -Fq 'Active S4 evaluation tuning calibration program' "$legacy_index"; then
     echo 'closed S4 TODO is still active' >&2
     exit 1
@@ -116,9 +124,10 @@ if grep -Fq '| Active S4 closure hardening program |' "$legacy_index"; then
 fi
 grep -Fq '| Archived Android UI/UX redesign planning tracker |' "$legacy_index"
 grep -Fq '| Android UI/UX redesign closure evidence |' "$legacy_index"
+grep -Fq '| Android UI/UX review-fix closure evidence |' "$legacy_index"
 grep -Fq 'There is currently **no active implementation TODO** registered by this index.' "$legacy_index"
 grep -Fq 'Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO`, is not one of the two completed Rust-port authority documents above, and is not explicitly registered as active in the authority table' "$legacy_index"
-grep -Fq '81 TODO-named files total; 2 completed Rust-port authority documents; 0 active implementation TODOs; 1 Android closure-evidence authority; 1 authority index; 78 historical/planning TODO records including the archived Android tracker' "$legacy_index"
+grep -Fq '81 TODO-named files total; 2 completed Rust-port authority documents; 0 active implementation TODOs; 2 Android closure-evidence authorities; 1 authority index; 78 historical/planning TODO records including the archived Android tracker' "$legacy_index"
 grep -Fq '## Bounded review-fix trackers' "$legacy_index"
 grep -Fq 'a bounded review-fix tracker being executable does not make it the active implementation authority for the program it patches' "$legacy_index"
 bounded_review_fix_section="$(awk '
@@ -140,6 +149,13 @@ grep -Fq '**Final product/evidence source SHA:** `a93c282699f380d604b214e0950372
 grep -Fq '**Run:** `31383610431`' "$android_ui_closure"
 grep -Fq '**Artifact ID:** `9060954512`' "$android_ui_closure"
 grep -Fq 'A representative physical-phone UX pass was not performed' "$android_ui_closure"
+grep -Fq '**Validated final source SHA:** `6d9a84d910a3e6438aef390aa733a4b62a71dfdd`' "$android_ui_review_fix_closure"
+grep -Fq 'Run: `31417242747`' "$android_ui_review_fix_closure"
+grep -Fq 'Job: `93549046687`' "$android_ui_review_fix_closure"
+grep -Fq 'Run: `31417240241`' "$android_ui_review_fix_closure"
+grep -Fq 'Job `93549039534`' "$android_ui_review_fix_closure"
+grep -Fq 'Job `93549039574`' "$android_ui_review_fix_closure"
+grep -Fq 'Job `93549039612`' "$android_ui_review_fix_closure"
 grep -Fq "**Companion TODO:** \`$v0_2_todo\`" "$v0_2_spec"
 grep -Fq "**Specification:** \`$v0_2_spec\`" "$v0_2_todo"
 grep -Fq "**Companion TODO:** \`$s3_todo\`" "$s3_spec"

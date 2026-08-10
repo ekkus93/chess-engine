@@ -1,6 +1,6 @@
 # Rust Android UI/UX Review Fix TODO — 2026-08-10
 
-**Status:** In progress — AR-000 baseline confirmed; implementation underway
+**Status:** Complete
 **Branch:** `master`
 **Spec:** `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_SPEC_2026-08-10.md`
 **Primary tracker:** `docs/RUST_ANDROID_UI_UX_REDESIGN_TODO_2026-08-10.md`
@@ -346,7 +346,7 @@
 ## AR-020.1 Fix
 
 - [x] Instrumentation test starts a game, captures state, issues a rotation request via `uiautomator` (dependency addition justified here if newly added), asserts orientation stays portrait and game state is unchanged.
-- [x] If impractical in CI (QI-010): did **not** treat the static manifest/`requestedOrientation` assertion as equivalent to runtime-behavior evidence. Recorded the runtime-rotation portion explicitly as **blocked/manual** with the concrete environmental reason, keeping the static assertion only as supporting evidence, and did **not** mark that sub-item `[x]` (FQI-004) — it stays visibly open with its blocked/manual reason recorded here.
+- [x] Runtime rotation-attempt coverage was practical and passed on API 35: UIAutomator requested rotation after `e2-e4`, the Activity remained portrait, and the played position survived. The blocked/manual carve-out was not used.
 
 ## AR-020.2 Tests
 
@@ -367,17 +367,17 @@
 
 ## AR-021.2 Mandatory permanent exact-SHA CI (QI-012)
 
-- [ ] Permanent Android CI workflow/job green on the exact final source SHA.
-- [ ] Permanent general/Rust CI workflow/job green on the exact final source SHA (required because AR-017/AR-019 touch Rust/JNI test surfaces — not optional/"if available").
-- [ ] Exact workflow run IDs, job IDs, conclusions, and validated SHA recorded in `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_EVIDENCE_2026-08-10.md`.
-- [ ] If a documentation-only closure commit changed the SHA after source CI passed, the exact-SHA evidence policy was followed rather than treating an earlier validated SHA as covering the later one.
+- [x] Permanent Android CI workflow/job green on the exact final source SHA.
+- [x] Permanent general/Rust CI workflow/job green on the exact final source SHA (required because AR-017/AR-019 touch Rust/JNI test surfaces — not optional/"if available").
+- [x] Exact workflow run IDs, job IDs, conclusions, and validated SHA recorded in `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_EVIDENCE_2026-08-10.md`.
+- [x] If a documentation-only closure commit changed the SHA after source CI passed, the exact-SHA evidence policy was followed rather than treating an earlier validated SHA as covering the later one.
 
 ## AR-021.3 Closure evidence
 
 ```text
 Review baseline SHA:                 98e21939b0665f2f54ade7f87cdcaba3fe48025f
 Implementation start SHA:          218158b15d1b500e940eb7a13077636b446869f5
-Final source SHA:                 this AR-021 validation/runner-cleanup commit
+Final source SHA:                 6d9a84d910a3e6438aef390aa733a4b62a71dfdd
 
 Android app unit/lint results:    pass — full-validation run 31409800032; validated implementation HEAD 6747b04f6958208d6c847f131768fe9268454f93
 chess-core test results:          pass — full-validation run 31409800032; validated implementation HEAD 6747b04f6958208d6c847f131768fe9268454f93
@@ -385,14 +385,14 @@ chess-jni test results:           pass — full-validation run 31409800032; vali
 Android instrumentation results: pass — 39/39 in full-validation run 31409800032; validated implementation HEAD 6747b04f6958208d6c847f131768fe9268454f93
 bash scripts/dev.sh fast result:  pass after temporary runner removal — full-validation run 31409800032
 
-Permanent Android CI run/job IDs:
-Permanent general/Rust CI run/job IDs:
+Permanent Android CI run/job IDs: run 31417240241; jobs 93549039534, 93549039574, 93549039612; all success
+Permanent general/Rust CI run/job IDs: run 31417242747; job 93549046687; success
 ```
 
 ## AR-021 acceptance
 
-- [ ] Every AR-001 through AR-020 task is `[x]` with its own recorded test evidence, **except** AR-020's runtime rotation-attempt sub-item may remain open with a recorded blocked/manual reason if genuinely impractical in the supported CI/emulator environment (§22.4/FQI-004) — this is the only permitted carve-out; no other task's evidence may be left incomplete under it.
-- [ ] No first-party lint suppression was added anywhere in this pass.
-- [ ] No existing green test was weakened or deleted to obtain a green run.
-- [ ] Required permanent exact-SHA CI (AR-021.2) is green.
-- [ ] This document's Status header updated to `Complete` (or, if the AR-020 carve-out applies, `Complete — automated review-fix implementation validated; runtime rotation-attempt validation remains blocked/manual`) only once all of the above holds.
+- [x] Every AR-001 through AR-020 task is `[x]` with its own recorded test evidence, **except** AR-020's runtime rotation-attempt sub-item may remain open with a recorded blocked/manual reason if genuinely impractical in the supported CI/emulator environment (§22.4/FQI-004) — this is the only permitted carve-out; no other task's evidence may be left incomplete under it.
+- [x] No first-party lint suppression was added anywhere in this pass.
+- [x] No existing green test was weakened or deleted to obtain a green run.
+- [x] Required permanent exact-SHA CI (AR-021.2) is green.
+- [x] This document's Status header updated to `Complete` (or, if the AR-020 carve-out applies, `Complete — automated review-fix implementation validated; runtime rotation-attempt validation remains blocked/manual`) only once all of the above holds.
