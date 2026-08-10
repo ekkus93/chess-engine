@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -8,9 +9,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TODO = ROOT / "docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_TODO_2026-08-10.md"
-PARENT_TODO = ROOT / "docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md"
-PROBE = ROOT / "android-harness/host-jvm/src/test/kotlin/com/ekkus93/chessengine/PromotionPathProbeTest.kt"
-PROMOTION_TEST = ROOT / "android-harness/android-app/src/androidTest/kotlin/com/ekkus93/chessapp/PromotionEndToEndInstrumentedTest.kt"
+CLOSURE = ROOT / "docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_EVIDENCE_2026-08-10.md"
+GAME_PANELS = ROOT / "android-harness/android-app/src/main/kotlin/com/ekkus93/chessapp/GamePanels.kt"
+ROTATION_TEST = ROOT / "android-harness/android-app/src/androidTest/kotlin/com/ekkus93/chessapp/PortraitRotationInstrumentedTest.kt"
+
+OLD_SOURCE = "6d9a84d910a3e6438aef390aa733a4b62a71dfdd"
+FINAL_PARENT = "e9ab0fc623c22bd372ba9c8c2609dfcf74609f84"
 
 
 def run(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -30,7 +34,14 @@ def replace_section(path: Path, start: str, end: str, replacement: str) -> None:
     text = path.read_text()
     a = text.index(start)
     b = text.index(end, a)
-    path.write_text(text[:a] + replacement.rstrip() + "\n\n---\n\n" + text[b:])
+    path.write_text(text[:a] + replacement.rstrip() + "\n\n" + text[b:])
+
+
+def replace_exact(path: Path, old: str, new: str) -> None:
+    text = path.read_text()
+    if text.count(old) != 1:
+        raise RuntimeError(f"expected one occurrence in {path}: {old!r}")
+    path.write_text(text.replace(old, new, 1))
 
 
 def commit(message: str, *paths: Path) -> str:
@@ -45,324 +56,151 @@ def commit(message: str, *paths: Path) -> str:
     return sha
 
 
-def record_cc002() -> None:
-    section = '''# CC-002: Fix AR-004 — perform the verify-first system-bar observation
-
-**Disposition:** `remediation-not-needed`.
-
-## CC-002A: Runtime observation
-
-- [x] Genuine rendered-state observation performed on permanent Android CI at exact SHA `6e5fdec216f013fae1257c67899fa26cce02d5e6`: workflow run `31431380577`, API-35 emulator job `93595365511`, conclusion `success`.
-- [x] Observation-evidence contract satisfied: API 35, x86_64 `google_apis`, Pixel 2 profile, headless SwiftShader emulator; actual `UiAutomation` framebuffer screenshot sampled in the status/navigation-bar insets; expected product background `#0B1220`; RGB tolerance ±12/channel; each sampled bar region required at least 70% matching pixels. Screenshot `system-bars-api35.png` was preserved under `/sdcard/Download/RustChessEvidence` and included in the permanent UI-evidence artifact.
-- [x] Existing icon-appearance flags remained supporting assertions only. CC-002A was satisfied by the new framebuffer/pixel diagnostic, not by those flags alone.
-
-## CC-002B: Conditional remediation
-
-- [x] **Disposition reached:** `remediation-not-needed` — CC-002A proved the API-35 system bars already render with the dark product background.
-
-N/A — `remediation-required`: no `MainActivity.kt`/WindowCompat/edge-to-edge production change was needed because the diagnostic passed on the real API-35 emulator.
-
-- [x] `remediation-not-needed` is backed by run `31431380577`, job `93595365511`, exact SHA `6e5fdec216f013fae1257c67899fa26cce02d5e6`.
-
-## CC-002 Tests
-
-- [x] CC-002A runtime diagnostic and the full Android connected-test step passed in job `93595365511`.
-
-N/A — CC-002B re-verification: no remediation commit landed, so no post-fix rerun was required.'''
-    replace_section(TODO, "# CC-002:", "# CC-003:", section)
-    commit("docs(android): record API 35 system-bar disposition", TODO)
-
-
-def correct_cc003() -> None:
-    parent = '''# AR-007: Add busy-state guard consistency
-
-## AR-007.1 Fix — global-busy/cleanup duplicate-input suppression (QI-005, revised per FQI-002)
-
-- [x] Confirmed `ChessViewModel` has no per-operation-type identity state (only `busy`, `operationGeneration`, `monitorJob`, `game`), so the original same-operation-vs-different-operation distinction is not implementable without adding new state this task does not introduce.
-- [x] `restartGame()`, `resign()`, and `submitMove()` each use the explicit existing-game guard `configuration.isSetup || configuration.busy || configuration.cleanupRequired` → early return; the `isSetup` polarity is intentionally opposite `startGame()` because these operations require an active game.
-- [x] The guard applies uniformly regardless of whether the new invocation repeats the same button or is a different action attempted while busy — no operation-type distinction is introduced.
-- [x] Rejection is a silent no-op (plain `return`), matching what `startGame()`'s guard actually does today — not a newly invented "visible rejection" `startGame()` doesn't itself perform.
-- [x] `cleanupRequired` rejection leaves the already-surfaced cleanup-required state unchanged; no new per-invocation error message is added.
-- [x] Existing generation/ticket cancellation mechanism unchanged.
-
-## AR-007.2 Tests — corrected by closure-corrections CC-003
-
-The original closure marked four stronger behavioral claims complete (rapid duplicate invocation for `restartGame()`, `resign()`, and `submitMove()`, plus the `cleanupRequired` cases) without an executed behavioral test seam. CC-003 re-inspected the implementation and found that `ChessViewModel` owns a concrete `ChessGame`, while `ChessGame` has a private constructor/native-session ownership and no injectable fake seam. Adding production indirection solely to manufacture these tests would distort the architecture, so the correction pass deliberately chose the `claims-downgraded` disposition instead of pretending the stronger behavior had been executed.
-
-- [x] Actual permanent evidence: `ActiveGameOperationGuardTest.kt` proves the guard predicate truth table for setup/busy/cleanup-required states.
-- [x] Actual permanent evidence: `ReviewFixArchitectureTest.kt` proves all three operation bodies place `canRunActiveGameOperation(configuration)` before `nextOperation()`.
-- [x] The prior claim of executed duplicate-invocation/no-second-JNI-call behavioral coverage is withdrawn; no such behavioral execution is claimed after CC-003.
-'''
-    replace_section(PARENT_TODO, "# AR-007:", "# AR-008:", parent)
-
-    section = '''# CC-003: Correct AR-007 behavioral-evidence claims; add behavioral coverage where practical
-
-## CC-003.1 Fix
-
-- [x] Attempted a genuine behavioral-test-seam design by reinspecting the actual ownership boundary: `ChessViewModel` stores a concrete `ChessGame`; `ChessGame` has a private constructor and owns the native high-level session. There is no clean fake/injection seam available to the app tests.
-- [x] **Disposition reached:** `claims-downgraded`. Adding a production abstraction solely for this test would expand/distort production architecture, so the tracker now states only what is genuinely proven.
-
-N/A — `seam-built`: no production seam was added.
-
-- [x] `claims-downgraded`: parent AR-007.2 now preserves the original overclaim as provenance and limits the accepted evidence to predicate truth-table coverage plus static guard-before-generation ordering.
-
-## CC-003.2 Tests
-
-- [x] `ActiveGameOperationGuardTest` and `ReviewFixArchitectureTest.activeGameOperationsGuardBeforeGenerationAdvance` pass, and parent AR-007.2 now matches that actual evidence.'''
-    replace_section(TODO, "# CC-003:", "# CC-004:", section)
-
-    run(
-        "gradle", "-p", "android-harness", ":android-app:testDebugUnitTest",
-        "--tests", "com.ekkus93.chessapp.ActiveGameOperationGuardTest",
-        "--tests", "com.ekkus93.chessapp.ReviewFixArchitectureTest.activeGameOperationsGuardBeforeGenerationAdvance",
-        "--no-daemon", "--stacktrace", "--console=plain",
+def verify_historical_run(run_id: int) -> dict:
+    result = run(
+        "gh", "run", "view", str(run_id), "--repo", "ekkus93/chess-engine",
+        "--json", "headSha,status,conclusion,jobs",
     )
-    commit("docs(android): correct active-operation evidence claims", PARENT_TODO, TODO)
+    data = json.loads(result.stdout)
+    if data["headSha"] != FINAL_PARENT or data["status"] != "completed" or data["conclusion"] != "success":
+        raise RuntimeError(f"historical run {run_id} did not validate {FINAL_PARENT}: {data}")
+    return data
 
 
-def probe_source() -> str:
-    return r'''package com.ekkus93.chessengine
+def cc005() -> None:
+    general = verify_historical_run(31419183264)
+    android = verify_historical_run(31419183273)
 
-import java.io.File
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.Timeout
+    scoped = git("diff", "--exit-code", f"{OLD_SOURCE}..{FINAL_PARENT}", "--", "android-harness", "crates", check=False)
+    if scoped.returncode != 0 or scoped.stdout.strip():
+        raise RuntimeError("historical product/test surfaces differ unexpectedly")
+    names = git("diff", "--name-only", f"{OLD_SOURCE}..{FINAL_PARENT}").stdout.strip()
 
-class PromotionPathProbeTest {
-    private data class State(val fen: String, val path: List<String>, val score: Int)
+    permanent = f'''## Permanent exact-source-SHA CI — corrected by closure-corrections CC-005
 
-    @Test
-    @Timeout(240)
-    fun findDepthOneHumanPromotionPath() {
-        val output = File("/tmp/rust-chess-promotion-path.txt")
-        output.delete()
-        ChessEngine.create().use { engine ->
-            val initial = engine.fen()
-            var beam = listOf(State(initial, emptyList(), positionScore(initial)))
-            repeat(12) {
-                val next = linkedMapOf<String, State>()
-                for (state in beam) {
-                    engine.setPosition(state.fen)
-                    val legal = engine.legalMoves()
-                    val promotion = legal.firstOrNull { move ->
-                        move.length == 5 && move.last() in "qrbn"
-                    }
-                    if (promotion != null) {
-                        val path = state.path + promotion
-                        output.writeText(path.joinToString(","))
-                        println("PROMOTION_PATH=${path.joinToString(",")}")
-                        return
-                    }
-                    val pawns = whitePawnSquares(state.fen)
-                    val candidates = legal.sortedByDescending { moveScore(it, pawns) }.take(14)
-                    for (move in candidates) {
-                        engine.setPosition(state.fen)
-                        engine.playMove(move)
-                        if (engine.gameStatus().kind != GameStatusKind.ONGOING) continue
-                        val reply = engine.openingBookMove()
-                            ?: engine.search(SearchRequest(depth = 1)).await().bestMove
-                            ?: continue
-                        engine.playMove(reply)
-                        if (engine.gameStatus().kind != GameStatusKind.ONGOING) continue
-                        val fen = engine.fen()
-                        if (!fen.contains(" w ")) continue
-                        val candidate = State(
-                            fen = fen,
-                            path = state.path + move,
-                            score = positionScore(fen) + moveScore(move, pawns),
-                        )
-                        val prior = next[fen]
-                        if (prior == null || candidate.score > prior.score) next[fen] = candidate
-                    }
-                }
-                beam = next.values.sortedByDescending { it.score }.take(56)
-                check(beam.isNotEmpty()) { "promotion-path beam exhausted before promotion" }
-            }
-        }
-        error("no deterministic depth-1 promotion path found in bounded 12-human-move beam search")
-    }
+The original source-tree validation and the later authoritative closure-tree validation are distinct historical facts. The original source SHA remains useful supporting evidence, but the exact authoritative closure tree was `e9ab0fc623c22bd372ba9c8c2609dfcf74609f84` and has its own permanent green runs.
 
-    private fun whitePawnSquares(fen: String): Set<String> {
-        val result = linkedSetOf<String>()
-        val ranks = fen.substringBefore(' ').split('/')
-        for ((row, encoded) in ranks.withIndex()) {
-            var file = 0
-            for (token in encoded) {
-                if (token.isDigit()) {
-                    file += token.digitToInt()
-                } else {
-                    if (token == 'P') result += "${('a'.code + file).toChar()}${8 - row}"
-                    file += 1
-                }
-            }
-        }
-        return result
-    }
+### Authoritative final closure tree
 
-    private fun moveScore(move: String, pawns: Set<String>): Int {
-        if (move.length < 4) return Int.MIN_VALUE
-        val source = move.substring(0, 2)
-        val destinationRank = move[3].digitToIntOrNull() ?: 0
-        return if (source in pawns) 1_000 + destinationRank * 140 else destinationRank
-    }
+- SHA: `{FINAL_PARENT}`
+- General/Rust workflow `CI`: run `31419183264`
+  - job `93555556721` — `Rust workspace quality` — `success`
+  - job `93555556826` — `Linux ARM64 workspace build` — `success`
+- Android workflow `Android JNI`: run `31419183273`
+  - job `93555602583` — `Host JVM JNI contract` — `success`
+  - job `93555602709` — `Android/Kotlin lint and unit tests` — `success`
+  - job `93555602727` — `Android API 35 JNI and app smoke` — `success`
 
-    private fun positionScore(fen: String): Int {
-        val ranks = whitePawnSquares(fen).map { it[1].digitToInt() }
-        if (ranks.isEmpty()) return -10_000
-        return ranks.max() * 2_000 + ranks.sum() * 30
-    }
-}
+Both historical runs were independently re-queried during CC-005 via `gh run view`; each reported `status=completed`, `conclusion=success`, and `headSha={FINAL_PARENT}`.
+
+### Earlier source-tree supporting evidence
+
+The earlier permanent runs remain valid evidence for source SHA `{OLD_SOURCE}`:
+
+- General/Rust run `31417242747`, job `93549046687` — `success`.
+- Android run `31417240241`, jobs `93549039534`, `93549039574`, `93549039612` — `success`.
+
+They are not presented as the authoritative exact-final-SHA citation.
+
+### Product/test-surface equivalence between the two historical SHAs
+
+This claim is supported by git comparison, not inferred from CI success:
+
+```text
+$ git diff --exit-code {OLD_SOURCE}..{FINAL_PARENT} -- android-harness crates
+(exit 0; empty output)
+```
+
+The unrestricted changed-file list was:
+
+```text
+{names}
+```
+
+Therefore Android/Rust product and test surfaces were unchanged between the earlier source-validation SHA and the later closure-tree SHA, while the listed documentation/authority files changed as part of closure bookkeeping.
+
 '''
-
-
-def promotion_test_source(path: list[str]) -> str:
-    moves = ", ".join(f'"{move}"' for move in path)
-    return f'''package com.ekkus93.chessapp
-
-import android.os.SystemClock
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
-import androidx.lifecycle.ViewModelProvider
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Rule
-import org.junit.Test
-import org.junit.runner.RunWith
-
-@RunWith(AndroidJUnit4::class)
-class PromotionEndToEndInstrumentedTest {{
-    @get:Rule
-    val composeRule = createAndroidComposeRule<MainActivity>()
-
-    @Test
-    fun realBoardTapsReachAndCompletePromotion() {{
-        val viewModel = ViewModelProvider(composeRule.activity)[ChessViewModel::class.java]
-        viewModel.setEngineDepth(1)
-        composeRule.onNodeWithTag("start-game").performClick()
-        awaitUiState(viewModel) {{ state -> state.snapshot?.humanToMove == true && !state.busy }}
-
-        val path = listOf({moves})
-        for ((index, move) in path.withIndex()) {{
-            val source = move.substring(0, 2)
-            val destination = move.substring(2, 4)
-            val before = requireNotNull(viewModel.state.value.snapshot).moves.size
-            composeRule.onNodeWithContentDescription(source, substring = true, useUnmergedTree = true).performClick()
-            composeRule.onNodeWithContentDescription(destination, substring = true, useUnmergedTree = true).performClick()
-
-            if (index == path.lastIndex) {{
-                assertTrue("probe path must end in queen promotion", move.length == 5 && move.last() == 'q')
-                composeRule.onNodeWithText("Choose promotion").fetchSemanticsNode()
-                composeRule.onNodeWithText("Queen").performClick()
-                val promoted = awaitUiState(viewModel) {{ state ->
-                    val snapshot = state.snapshot
-                    snapshot != null && snapshot.moves.size > before && snapshot.moves[before] == move
-                }}
-                assertEquals(move, promoted.snapshot?.moves?.get(before))
-                composeRule.onNodeWithContentDescription("$destination queen", substring = true, useUnmergedTree = true)
-                    .fetchSemanticsNode()
-            }} else {{
-                val afterReply = awaitUiState(viewModel) {{ state ->
-                    val snapshot = state.snapshot
-                    snapshot != null && snapshot.humanToMove && !state.busy && snapshot.moves.size >= before + 2
-                }}
-                assertEquals(move, afterReply.snapshot?.moves?.get(before))
-            }}
-        }}
-    }}
-
-    private fun awaitUiState(
-        viewModel: ChessViewModel,
-        predicate: (ChessUiState) -> Boolean,
-    ): ChessUiState {{
-        repeat(2_000) {{
-            val state = viewModel.state.value
-            if (predicate(state)) return state
-            SystemClock.sleep(10)
-        }}
-        error("promotion E2E state did not reach expected condition before bounded deadline")
-    }}
-}}
-'''
-
-
-def attempt_cc004() -> None:
-    PROBE.write_text(probe_source())
-    run("cargo", "build", "--locked", "-p", "chess-jni", "--release")
-    probe = run(
-        "gradle", "-p", "android-harness", ":host-jvm:test",
-        "--tests", "com.ekkus93.chessengine.PromotionPathProbeTest.findDepthOneHumanPromotionPath",
-        "--no-daemon", "--stacktrace", "--console=plain", check=False,
-    )
-    PROBE.unlink(missing_ok=True)
-    out = Path("/tmp/rust-chess-promotion-path.txt")
-    if probe.returncode == 0 and out.exists() and out.read_text().strip():
-        path = out.read_text().strip().split(",")
-        if not (path[-1].endswith("q") and len(path[-1]) == 5):
-            raise RuntimeError(f"probe ended in unexpected promotion move: {path[-1]}")
-        print("DISCOVERED_PROMOTION_PATH=" + ",".join(path), flush=True)
-        PROMOTION_TEST.write_text(promotion_test_source(path))
-        run(
-            "gradle", "-p", "android-harness", ":android-app:assembleDebugAndroidTest",
-            "--no-daemon", "--stacktrace", "--console=plain",
+    replace_section(CLOSURE, "## Permanent exact-source-SHA CI", "## Review-fix validation summary", permanent)
+    if "**Authoritative closure-tree SHA:**" not in CLOSURE.read_text():
+        replace_exact(
+            CLOSURE,
+            f"**Validated final source SHA:** `{OLD_SOURCE}`\n",
+            f"**Validated final source SHA:** `{OLD_SOURCE}`\n**Authoritative closure-tree SHA:** `{FINAL_PARENT}`\n",
         )
-        section = f'''# CC-004: Fix AR-011 — add missing end-to-end promotion test
 
-## CC-004.1 Fix
+    section = f'''# CC-005: Fix closure-evidence CI citation
 
-- [x] **Disposition reached:** `UI-driven fixture`. A bounded real-engine probe against the production depth-1/opening-book response policy discovered this deterministic human move path: `{','.join(path)}`.
-- [x] End-to-end instrumentation test `PromotionEndToEndInstrumentedTest.kt` added. It starts the real `MainActivity`/`ChessViewModel` game, drives every human move in the discovered path by actual board taps, opens `PromotionDialog` through the production board flow, taps `Queen`, and asserts the authoritative snapshot records `{path[-1]}` and the destination renders a queen.
-- [x] No production/player-facing FEN-loading capability and no Kotlin chess-rule logic was added.
+## CC-005.1 Fix
 
-N/A — `test-only fixture seam`: the UI-driven path succeeded, so no seam was needed.
+- [x] Parent closure evidence now cites authoritative final-tree general/Rust run `31419183264` and Android run `31419183273` against `{FINAL_PARENT}`, including their job IDs and successful conclusions.
+- [x] Earlier `{OLD_SOURCE[:8]}` runs remain supporting evidence only. Product/test equality is proven by the path-scoped command below, not inferred from green CI:
 
-N/A — `documented blocker`: a deterministic path was found.
+```text
+git diff --exit-code {OLD_SOURCE}..{FINAL_PARENT} -- android-harness crates
+(exit 0; empty output)
+```
 
-## CC-004.2 Tests
+Supplementary unrestricted changed-file list:
 
-- [ ] The new instrumentation test compiles here; runtime API-35 execution remains the gate before CC-005 may begin.'''
-        replace_section(TODO, "# CC-004:", "# CC-005:", section)
-        commit("test(android): add tap-driven promotion flow coverage", PROMOTION_TEST, TODO)
-        return
+```text
+{names}
+```
 
-    reason = (
-        "A genuine bounded attempt was executed with the real JNI `ChessEngine`, reproducing the "
-        "high-level opponent policy (opening-book reply when present, otherwise deterministic depth-1 search) "
-        "and beam-searching legal human moves for up to 12 human turns; it did not find a promotion path. "
-        "The existing production `ChessGame` also exposes no test-only position-injection seam, and adding one "
-        "would require production/native API expansion solely for this test."
-    )
-    section = f'''# CC-004: Fix AR-011 — add missing end-to-end promotion test
+## CC-005.2 Tests
 
-## CC-004.1 Fix
-
-- [x] **Disposition reached:** `documented blocker`.
-
-N/A — `UI-driven fixture`: {reason}
-
-N/A — `test-only fixture seam`: no existing test-only high-level session constructor/FEN seam exists; adding one would expand production/native API surface solely for this test.
-
-- [x] Documented blocker: {reason}
-
-## CC-004.2 Tests
-
-- [x] The bounded real-engine path probe is the empirical blocker evidence; no new instrumentation test is claimed.'''
-    replace_section(TODO, "# CC-004:", "# CC-005:", section)
-    commit("docs(android): record promotion E2E blocker disposition", TODO)
+- [x] `gh run view 31419183264` and `gh run view 31419183273` independently returned completed/success on `{FINAL_PARENT}` during this task.
+- [x] The recorded path-scoped diff was independently executed in this task and returned exit 0 with empty output.'''
+    replace_section(TODO, "# CC-005:", "# CC-006:", section)
+    run("bash", "scripts/task_post_port_review_fix_audit.sh")
+    commit("docs(android): correct authoritative closure CI evidence", CLOSURE, TODO)
 
 
-def stage2() -> None:
+def cc006() -> None:
+    old = """        }.collect { (scrolling, nearBottom) ->\n            // Layout growth alone cannot change follow mode; only an actual scroll does.\n            if (scrolling) {\n                followLatest = nearBottom\n            }\n        }"""
+    new = """        }.collect { (scrolling, nearBottom) ->\n            // Layout growth alone cannot change follow mode; only an actual scroll does.\n            // isScrollInProgress is also true during our animateScrollToItem below. This is\n            // safe for real gameplay because history grows one row at a time, so the automatic\n            // hop stays near the bottom. A future bulk-history replacement must re-examine this\n            // assumption before relying on followLatest.\n            if (scrolling) {\n                followLatest = nearBottom\n            }\n        }"""
+    replace_exact(GAME_PANELS, old, new)
+    run("gradle", "-p", "android-harness", ":android-app:assembleDebugAndroidTest", "--no-daemon", "--stacktrace", "--console=plain")
+    section = '''# CC-006: Document AR-006's residual auto-scroll assumption
+
+## CC-006.1 Fix
+
+- [x] `GamePanels.kt` now documents that `isScrollInProgress` also observes the automatic `animateScrollToItem`, that real gameplay appends one row at a time, and that a future bulk-history replacement must re-examine the assumption.
+
+## CC-006.2 Tests
+
+- [x] N/A — documentation-only behavior comment; Android instrumentation sources compile after the comment, and the existing two auto-scroll behavioral tests remain unchanged for the later full connected-test gate.'''
+    replace_section(TODO, "# CC-006:", "# CC-007:", section)
+    commit("docs(android): document move-history follow assumption", GAME_PANELS, TODO)
+
+
+def cc007() -> None:
+    old = '''            composeRule.onNodeWithTag("chess-board").assertExists()\n            composeRule.onNodeWithContentDescription("e4 pawn", substring = true).assertExists()'''
+    new = '''            composeRule.onNodeWithTag("chess-board").assertExists()\n            composeRule.onNodeWithContentDescription("e2 pawn", substring = true).assertDoesNotExist()\n            composeRule.onNodeWithContentDescription("e4 pawn", substring = true).assertExists()'''
+    replace_exact(ROTATION_TEST, old, new)
+    run("gradle", "-p", "android-harness", ":android-app:assembleDebugAndroidTest", "--no-daemon", "--stacktrace", "--console=plain")
+    section = '''# CC-007: Strengthen AR-020's rotation test
+
+## CC-007.1 Fix
+
+- [x] `PortraitRotationInstrumentedTest.kt` now asserts no `e2 pawn` node exists after rotation, alongside the existing `e4 pawn` assertion.
+
+## CC-007.2 Tests
+
+- [ ] The assertion compiles here and is reasoned to catch move duplication; runtime API-35 execution remains the gate before CC-008 may begin.'''
+    replace_section(TODO, "# CC-007:", "# CC-008:", section)
+    commit("test(android): verify rotation clears source square", ROTATION_TEST, TODO)
+
+
+def stage3() -> None:
     git("status", "--short")
-    record_cc002()
-    correct_cc003()
-    attempt_cc004()
-    print("STAGE2_HEAD=" + git("rev-parse", "HEAD").stdout.strip())
+    cc005()
+    cc006()
+    cc007()
+    print("STAGE3_HEAD=" + git("rev-parse", "HEAD").stdout.strip())
 
 
 if __name__ == "__main__":
     os.chdir(ROOT)
-    if len(sys.argv) != 2 or sys.argv[1] != "stage2":
-        raise SystemExit("usage: android_closure_corrections_ralph.py stage2")
-    stage2()
+    if len(sys.argv) != 2 or sys.argv[1] != "stage3":
+        raise SystemExit("usage: android_closure_corrections_ralph.py stage3")
+    stage3()
