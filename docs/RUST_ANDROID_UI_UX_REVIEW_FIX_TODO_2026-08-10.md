@@ -86,15 +86,15 @@
 
 ## AR-002.1 Fix
 
-- [ ] Last-move highlight in `ChessBoardView.kt` renders from `BoardLastMove` (or a corrected definition of it), not an inline `lerp` literal.
-- [ ] `PieceLightFill`/`PieceDarkFill`/`PieceLightStroke`/`PieceDarkStroke` (or equivalently named) tokens added to `Theme.kt`; `ChessPiece.kt` references them instead of literals.
-- [ ] Semantic coordinate-label tokens for light and dark board squares added to `Theme.kt`; `ChessBoardView.kt`'s rank/file labels select the appropriate token instead of `Color.Black.copy(...)`.
-- [ ] Coordinate-label token verified legible against both `BoardLight` and `BoardDark` (cross-reference AR-016's contrast test once it exists).
+- [x] Last-move highlight in `ChessBoardView.kt` renders from `BoardLastMove` (or a corrected definition of it), not an inline `lerp` literal.
+- [x] `PieceLightFill`/`PieceDarkFill`/`PieceLightStroke`/`PieceDarkStroke` (or equivalently named) tokens added to `Theme.kt`; `ChessPiece.kt` references them instead of literals.
+- [x] Semantic coordinate-label tokens for light and dark board squares added to `Theme.kt`; `ChessBoardView.kt`'s rank/file labels select the appropriate token instead of `Color.Black.copy(...)`.
+- [x] Coordinate-label token verified legible against both `BoardLight` and `BoardDark` (cross-reference AR-016's contrast test once it exists).
 
 ## AR-002.2 Tests
 
-- [ ] A structural test asserts no `Color(0xFF...)`/`Color.Black`/`Color.White` literal remains in `ChessPiece.kt` or `ChessBoardView.kt` outside `Theme.kt`.
-- [ ] Existing `BoardModelTest.kt` orientation/parity tests remain green.
+- [x] A structural test asserts no `Color(0xFF...)`/`Color.Black`/`Color.White` literal remains in `ChessPiece.kt` or `ChessBoardView.kt` outside `Theme.kt`.
+- [x] Existing `BoardModelTest.kt` orientation/parity tests remain green.
 
 ---
 

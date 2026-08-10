@@ -22,8 +22,8 @@ internal fun ChessPiece(
     modifier: Modifier = Modifier,
 ) {
     val isWhite = piece.isUpperCase()
-    val fill = if (isWhite) Color(0xFFF7F3EA) else Color(0xFF172033)
-    val stroke = if (isWhite) Color(0xFF26364D) else Color(0xFFE8EEF7)
+    val fill = if (isWhite) PieceLightFill else PieceDarkFill
+    val stroke = if (isWhite) PieceLightStroke else PieceDarkStroke
     Canvas(modifier = modifier) {
         val side = size.minDimension
         val left = (size.width - side) / 2f

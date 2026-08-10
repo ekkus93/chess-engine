@@ -28,9 +28,15 @@ internal val Danger = Color(0xFFF87171)
 internal val MoveLatest = PrimaryStrong
 internal val BoardLight = Color(0xFFE7D7C4)
 internal val BoardDark = Color(0xFF806A58)
-internal val BoardLastMove = Color(0x665EEAD4)
+internal val BoardLastMove = PrimaryStrong
 internal val BoardSelected = Color(0x992DD4BF)
 internal val BoardLegalTarget = Color(0xCC2DD4BF)
+internal val PieceLightFill = Color(0xFFF7F3EA)
+internal val PieceDarkFill = Color(0xFF172033)
+internal val PieceLightStroke = Color(0xFF26364D)
+internal val PieceDarkStroke = Color(0xFFE8EEF7)
+internal val CoordinateLabelOnLight = AppBackground
+internal val CoordinateLabelOnDark = OnBackground
 
 private val ChessColorScheme = darkColorScheme(
     primary = Primary,

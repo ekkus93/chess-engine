@@ -16,7 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.testTag
@@ -63,7 +62,7 @@ internal fun ChessBoard(
                             .weight(1f)
                             .fillMaxSize()
                             .background(
-                                if (isLastMove) lerp(baseColor, PrimaryStrong, 0.30f) else baseColor,
+                                if (isLastMove) lerp(baseColor, BoardLastMove, 0.30f) else baseColor,
                             )
                             .then(
                                 if (enabled) {
@@ -128,7 +127,7 @@ internal fun ChessBoard(
                                     .padding(2.dp),
                                 fontSize = 8.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color.Black.copy(alpha = 0.58f),
+                                color = if (baseColor == BoardLight) CoordinateLabelOnLight else CoordinateLabelOnDark,
                             )
                         }
                         if (rank == ranks.last()) {
@@ -139,7 +138,7 @@ internal fun ChessBoard(
                                     .padding(2.dp),
                                 fontSize = 8.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color.Black.copy(alpha = 0.58f),
+                                color = if (baseColor == BoardLight) CoordinateLabelOnLight else CoordinateLabelOnDark,
                             )
                         }
                     }
