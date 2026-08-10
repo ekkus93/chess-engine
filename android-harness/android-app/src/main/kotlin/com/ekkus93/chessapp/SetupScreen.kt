@@ -185,7 +185,7 @@ private fun SideSelector(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(48.dp)
+            .height(54.dp)
             .clip(MaterialTheme.shapes.medium)
             .background(SurfaceMuted)
             .border(1.dp, Border, MaterialTheme.shapes.medium)
