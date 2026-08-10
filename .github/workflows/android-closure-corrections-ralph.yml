@@ -9,22 +9,22 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 concurrency:
   group: android-closure-corrections-ralph
   cancel-in-progress: false
 
 jobs:
-  stage2:
+  stage3:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
 
       - name: Install Java 17
         uses: actions/setup-java@v4
@@ -44,5 +44,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Run stage 2
-        run: python3 .github/android_closure_corrections_ralph.py stage2
+      - name: Run stage 3
+        run: python3 .github/android_closure_corrections_ralph.py stage3
