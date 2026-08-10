@@ -1,0 +1,36 @@
+name: Android UI state stage temp
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply exact move-list state patch in disposable checkout
+        run: python3 .github/scripts/android_ui_state_patch_temp.py
+
+      - name: Verify patch shape
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'val moveListState = rememberLazyListState()' android-harness/android-app/src/main/kotlin/com/ekkus93/chessapp/MainActivity.kt
+          grep -Fq 'MoveHistoryPanel(snapshot.sanMoves, moveListState)' android-harness/android-app/src/main/kotlin/com/ekkus93/chessapp/MainActivity.kt
+          grep -Fq 'listState: LazyListState' android-harness/android-app/src/main/kotlin/com/ekkus93/chessapp/MainActivity.kt
+
+      - name: Upload exact patched source
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-ui-state-patched-${{ github.sha }}
+          path: android-harness/android-app/src/main/kotlin/com/ekkus93/chessapp/MainActivity.kt
+          if-no-files-found: error
+          retention-days: 2
