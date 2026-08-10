@@ -7,22 +7,19 @@ pub use chess_app::worker::{
 mod tests {
     use std::time::Duration;
 
-    use chess_core::Game;
+    use chess_core::{Game, Position};
 
     use super::{EngineEvent, SearchRequest, SearchTicket, SearchWorker};
 
     #[test]
-    fn tui_uses_shared_worker_for_an_exact_legal_move() {
-        let game = Game::starting();
-        let mut legality = game.clone();
-        let legal = legality.legal_moves().expect("opening legal moves");
+    fn tui_shared_worker_uses_curated_opening_book() {
         let (mut worker, receiver) = SearchWorker::spawn(SearchRequest {
             ticket: SearchTicket {
                 generation: 1,
                 request: 1,
             },
-            game,
-            depth: 1,
+            game: Game::starting(),
+            depth: 12,
         })
         .expect("worker starts");
 
@@ -33,22 +30,25 @@ mod tests {
             {
                 EngineEvent::Progress { .. } => {}
                 EngineEvent::Completed { best_move, .. } => break best_move,
-                EngineEvent::Cancelled { .. } => panic!("search unexpectedly cancelled"),
-                EngineEvent::Failed { message, .. } => panic!("search failed: {message}"),
+                EngineEvent::Cancelled { .. } => panic!("book lookup unexpectedly cancelled"),
+                EngineEvent::Failed { message, .. } => panic!("book lookup failed: {message}"),
             }
         };
         worker.join().expect("worker joins");
-        assert!(legal.iter().any(|candidate| candidate == best_move));
+        assert_eq!(best_move.to_uci(), "e2e4");
     }
 
     #[test]
     fn tui_shared_worker_cancel_never_emits_a_playable_move() {
+        let position =
+            Position::from_fen("rnbqkbnr/pppppppp/8/8/8/7P/PPPPPPP1/RNBQKBNR b KQkq - 0 1")
+                .expect("non-book fixture");
         let (mut worker, receiver) = SearchWorker::spawn(SearchRequest {
             ticket: SearchTicket {
                 generation: 4,
                 request: 9,
             },
-            game: Game::starting(),
+            game: Game::new(position),
             depth: 12,
         })
         .expect("worker starts");
