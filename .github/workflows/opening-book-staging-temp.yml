@@ -15,15 +15,19 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt
+          components: rustfmt, clippy
       - name: Format opening-book integration
         run: cargo fmt --all
       - name: Regenerate lockfile
         run: cargo generate-lockfile
-      - name: Check shared app
-        run: cargo check --locked -p chess-app --all-targets
-      - name: Test shared app
-        run: cargo test --locked -p chess-app
+      - name: Check interactive frontends
+        run: cargo check --locked -p chess-app -p chess-tui -p chess-console --all-targets
+      - name: Run strict interactive Clippy
+        run: cargo clippy --locked -p chess-app -p chess-tui -p chess-console --all-targets -- -D warnings
+      - name: Test shared app, TUI, and console
+        run: cargo test --locked -p chess-app -p chess-tui -p chess-console
+      - name: Run console PTY acceptance
+        run: bash scripts/dev.sh console-pty-smoke
       - name: Preserve formatted sources and lockfile
         uses: actions/upload-artifact@v4
         with:
@@ -33,4 +37,6 @@ jobs:
             crates/chess-app/src/book.rs
             crates/chess-app/src/interactive_worker.rs
             crates/chess-app/src/lib.rs
+            crates/chess-tui/src/worker.rs
+            crates/chess-console/tests/opening_book_acceptance.rs
           if-no-files-found: error
