@@ -25,6 +25,7 @@ internal val OnSurfaceMuted = Color(0xFF94A3B8)
 internal val Success = Color(0xFF34D399)
 internal val Warning = Color(0xFFFBBF24)
 internal val Danger = Color(0xFFF87171)
+internal val MoveLatest = PrimaryStrong
 internal val BoardLight = Color(0xFFE7D7C4)
 internal val BoardDark = Color(0xFF806A58)
 internal val BoardLastMove = Color(0x665EEAD4)

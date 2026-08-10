@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ekkus93.chessengine.ChessGameSnapshot
@@ -74,6 +75,9 @@ internal fun MoveHistoryPanel(
     ) {
         items(rows.size, key = { rows[it].number }) { index ->
             val row = rows[index]
+            val isNewestRow = index == rows.lastIndex
+            val newestIsWhite = isNewestRow && sanMoves.size % 2 == 1
+            val newestIsBlack = isNewestRow && sanMoves.size % 2 == 0 && row.black != null
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -88,19 +92,29 @@ internal fun MoveHistoryPanel(
                 )
                 Text(
                     text = row.white,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .then(if (newestIsWhite) Modifier.testTag("latest-move") else Modifier),
                     style = MaterialTheme.typography.bodyMedium,
                     fontFamily = FontFamily.Monospace,
-                    color = OnBackground,
+                    fontWeight = if (newestIsWhite) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (newestIsWhite) MoveLatest else OnBackground,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = row.black.orEmpty(),
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .then(if (newestIsBlack) Modifier.testTag("latest-move") else Modifier),
                     style = MaterialTheme.typography.bodyMedium,
                     fontFamily = FontFamily.Monospace,
-                    color = if (row.black == null) OnSurfaceMuted else OnBackground,
+                    fontWeight = if (newestIsBlack) FontWeight.SemiBold else FontWeight.Normal,
+                    color = when {
+                        newestIsBlack -> MoveLatest
+                        row.black == null -> OnSurfaceMuted
+                        else -> OnBackground
+                    },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

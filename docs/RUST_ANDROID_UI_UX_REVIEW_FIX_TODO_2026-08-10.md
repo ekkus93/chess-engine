@@ -54,8 +54,8 @@
 ## AR-000.3 SHA tracking (QI-003)
 
 - [x] Review baseline SHA (shipped-product state that was independently reviewed): `98e21939b0665f2f54ade7f87cdcaba3fe48025f`.
-- [ ] Implementation-start SHA (exact `master` state immediately before AR-001 begins, captured after this spec/TODO pair and its pre-implementation corrections have landed): `_____________________________`
-- [ ] Confirmed these two values are not conflated anywhere in this document or the closure-evidence document.
+- [x] Implementation-start SHA (exact `master` state immediately before AR-001 begins, captured after this spec/TODO pair and its pre-implementation corrections have landed): `218158b15d1b500e940eb7a13077636b446869f5`
+- [x] Confirmed these two values are not conflated anywhere in this document or the closure-evidence document.
 
 ## AR-000.4 Scope discipline
 
@@ -69,16 +69,16 @@
 
 ## AR-001.1 Fix
 
-- [ ] Newest-ply row/column in `MoveHistoryPanel` carries a subtle, restrained visual distinction not present on other rows.
-- [ ] Distinction is sourced from `rows.lastIndex`/parity against the actual `rows` list, not a separately tracked flag.
-- [ ] Distinguishing color comes from a `Theme.kt` token (coordinated with AR-002), not a new literal.
-- [ ] Scroll position, row layout, and numbering are unaffected.
+- [x] Newest-ply row/column in `MoveHistoryPanel` carries a subtle, restrained visual distinction not present on other rows.
+- [x] Distinction is sourced from `rows.lastIndex`/parity against the actual `rows` list, not a separately tracked flag.
+- [x] Distinguishing color comes from a `Theme.kt` token (coordinated with AR-002), not a new literal.
+- [x] Scroll position, row layout, and numbering are unaffected.
 
 ## AR-001.2 Tests
 
-- [ ] A rendered panel with N rows exposes the marker only on the most-recent-ply row/column.
-- [ ] Appending a move moves the marker to the new row/column and removes it from the previous one.
-- [ ] An empty move list renders with no marker and does not crash.
+- [x] A rendered panel with N rows exposes the marker only on the most-recent-ply row/column.
+- [x] Appending a move moves the marker to the new row/column and removes it from the previous one.
+- [x] An empty move list renders with no marker and does not crash.
 
 ---
 
