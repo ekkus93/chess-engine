@@ -169,7 +169,7 @@ jobs:
             mkdir -p android-ui-evidence
             adb pull /sdcard/Download/RustChessEvidence/. android-ui-evidence/
             for image in setup.png white-idle.png white-thinking.png white-engine-reply.png black-game.png moves-multiple.png moves-scrolled.png engine-metrics.png new-game-dialog.png restart-dialog.png resign-dialog.png promotion-dialog.png error-dialog.png; do test -s "android-ui-evidence/${image}"; done
-            sha256sum android-ui-evidence/*.png | sort -k2 > android-ui-evidence/SHA256SUMS.txt
+            (cd android-ui-evidence && sha256sum *.png | sort -k2 > SHA256SUMS.txt)
 
       - name: Preserve Android performance evidence
         uses: actions/upload-artifact@v4
