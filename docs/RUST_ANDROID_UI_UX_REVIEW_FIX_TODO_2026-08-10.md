@@ -42,6 +42,15 @@
 - [ ] Confirmed QI-003 through QI-012 were incorporated into the spec's AR-004, AR-006, AR-007, AR-008, AR-009, AR-016, AR-020, and AR-021 sections and into this TODO's matching sections.
 - [ ] Recorded the review baseline SHA above as distinct from the implementation-start SHA below.
 
+## AR-000.2b Second pre-implementation review resolution (FQI-001 through FQI-005)
+
+- [ ] Read `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_FOLLOWUP_QUESTIONS_AND_ISSUES_2026-08-10.md` in full.
+- [ ] Confirmed FQI-001 is resolved at the source: `docs/LEGACY_TODO_INDEX.md` now defines an explicit "Bounded review-fix trackers" classification naming this document, enforced by `scripts/task_post_port_review_fix_audit.sh` (not merely asserted by precedent as the first resolution round did).
+- [ ] Confirmed FQI-002 is resolved: AR-007 was simplified to global-busy/cleanup duplicate-input suppression matching `startGame()`'s actual guard, since `ChessViewModel` has no operation-identity state to support the original same-operation-vs-different-operation distinction.
+- [ ] Confirmed FQI-003 is resolved: AR-016 now validates rendered-piece composite silhouette-boundary contrast, not independent raw fill/stroke tokens against every square.
+- [ ] Confirmed FQI-004 is resolved: AR-021 now explicitly accommodates a genuinely blocked/manual AR-020 runtime sub-item without requiring it to be falsely marked `[x]`.
+- [ ] Confirmed FQI-005 is resolved: the closure-evidence document is now listed in the spec §2 touched-file scope.
+
 ## AR-000.3 SHA tracking (QI-003)
 
 - [ ] Review baseline SHA (shipped-product state that was independently reviewed): `98e21939b0665f2f54ade7f87cdcaba3fe48025f`.
@@ -151,20 +160,21 @@
 
 # AR-007: Add busy-state guard consistency
 
-## AR-007.1 Fix — idempotent suppression vs. visible rejection (QI-005)
+## AR-007.1 Fix — global-busy/cleanup duplicate-input suppression (QI-005, revised per FQI-002)
 
-- [ ] `restartGame()`, `resign()`, and `submitMove()` each re-check `busy`/`cleanupRequired` before proceeding.
-- [ ] Rapid duplicate UI input referring to an already-in-flight *same* operation is idempotently suppressed: no error dialog, no state mutation, no second engine/native/JNI/cleanup call.
-- [ ] A genuinely invalid operational state (e.g. `cleanupRequired == true`) remains visibly rejected, matching `startGame()`'s existing discipline — not silently swallowed.
-- [ ] The idempotent-suppression exception is not extended to any other rejection case.
+- [ ] Confirmed `ChessViewModel` has no per-operation-type identity state (only `busy`, `operationGeneration`, `monitorJob`, `game`), so the original same-operation-vs-different-operation distinction is not implementable without adding new state this task does not introduce.
+- [ ] `restartGame()`, `resign()`, and `submitMove()` each add the same precondition guard `startGame()` already uses (`busy`/`cleanupRequired` → early return), adapted to each function's applicable preconditions.
+- [ ] The guard applies uniformly regardless of whether the new invocation repeats the same button or is a different action attempted while busy — no operation-type distinction is introduced.
+- [ ] Rejection is a silent no-op (plain `return`), matching what `startGame()`'s guard actually does today — not a newly invented "visible rejection" `startGame()` doesn't itself perform.
+- [ ] `cleanupRequired` rejection leaves the already-surfaced cleanup-required state unchanged; no new per-invocation error message is added.
 - [ ] Existing generation/ticket cancellation mechanism unchanged.
 
 ## AR-007.2 Tests
 
-- [ ] Rapid duplicate invocation of `restartGame()` while its own operation is busy results in exactly one logical operation with no error surfaced.
+- [ ] Rapid duplicate invocation of `restartGame()` while `busy == true` results in exactly one logical operation, no second engine/native/JNI/cleanup call, no state mutation, no new error surfaced.
 - [ ] Same for `resign()`.
 - [ ] Same for `submitMove()`.
-- [ ] Each of the three, invoked while `cleanupRequired == true` (or another genuinely invalid state), is visibly rejected rather than silently suppressed.
+- [ ] Each of the three, invoked while `cleanupRequired == true`, is a silent no-op with the already-visible cleanup-required state unchanged.
 
 ---
 
@@ -279,11 +289,11 @@
 
 ## AR-016.1 Fix
 
-- [ ] JVM unit test computes WCAG contrast ratio for each named token pair (see spec §18.2) and asserts each meets its threshold.
-- [ ] Full piece/square matrix covered (QI-009): light piece on light square, light piece on dark square, dark piece on light square, dark piece on dark square — not only the "respective" pairing.
+- [ ] JVM unit test computes WCAG contrast ratio for each named non-piece text/control token pair (see spec §18.2) and asserts each meets its threshold.
+- [ ] Full piece/square matrix covered using the composite silhouette-boundary model, not independent raw tokens (QI-009, revised per FQI-003): for each of light piece on light square, light piece on dark square, dark piece on light square, dark piece on dark square, at least one boundary-forming component (fill-vs-background or stroke-vs-background) meets the 3:1 threshold — all four raw tokens are not required to independently clear it against every square.
 - [ ] Coordinate-label contrast covered on both `BoardLight` and `BoardDark`.
-- [ ] Last-move, selected-square, and legal-target overlay contrast covered using the actual alpha-composited effective background color, not the raw overlay token compared in isolation.
-- [ ] Any failing pair's token value adjusted in `Theme.kt`; before/after values recorded here.
+- [ ] Last-move, selected-square, and legal-target overlay contrast covered using the actual alpha-composited effective background color and the same composite-boundary model, not the raw overlay token compared in isolation.
+- [ ] Any failing combination's token value adjusted in `Theme.kt`; before/after values recorded here.
 
 ## AR-016.2 Tests
 
@@ -336,7 +346,7 @@
 ## AR-020.1 Fix
 
 - [ ] Instrumentation test starts a game, captures state, issues a rotation request via `uiautomator` (dependency addition justified here if newly added), asserts orientation stays portrait and game state is unchanged.
-- [ ] If impractical in CI (QI-010): did **not** treat the static manifest/`requestedOrientation` assertion as equivalent to runtime-behavior evidence. Recorded the runtime-rotation portion explicitly as **blocked/manual** with the concrete environmental reason, keeping the static assertion only as supporting evidence.
+- [ ] If impractical in CI (QI-010): did **not** treat the static manifest/`requestedOrientation` assertion as equivalent to runtime-behavior evidence. Recorded the runtime-rotation portion explicitly as **blocked/manual** with the concrete environmental reason, keeping the static assertion only as supporting evidence, and did **not** mark that sub-item `[x]` (FQI-004) — it stays visibly open with its blocked/manual reason recorded here.
 
 ## AR-020.2 Tests
 
@@ -381,8 +391,8 @@ Permanent general/Rust CI run/job IDs:
 
 ## AR-021 acceptance
 
-- [ ] Every AR-001 through AR-020 task is `[x]` with its own recorded test evidence.
+- [ ] Every AR-001 through AR-020 task is `[x]` with its own recorded test evidence, **except** AR-020's runtime rotation-attempt sub-item may remain open with a recorded blocked/manual reason if genuinely impractical in the supported CI/emulator environment (§22.4/FQI-004) — this is the only permitted carve-out; no other task's evidence may be left incomplete under it.
 - [ ] No first-party lint suppression was added anywhere in this pass.
 - [ ] No existing green test was weakened or deleted to obtain a green run.
 - [ ] Required permanent exact-SHA CI (AR-021.2) is green.
-- [ ] This document's Status header updated to `Complete` only once all of the above holds.
+- [ ] This document's Status header updated to `Complete` (or, if the AR-020 carve-out applies, `Complete — automated review-fix implementation validated; runtime rotation-attempt validation remains blocked/manual`) only once all of the above holds.
