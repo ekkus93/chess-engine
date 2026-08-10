@@ -180,13 +180,11 @@ scripts/task_post_port_review_fix_audit.sh
 
 ## CC-007.1 Fix
 
-- [ ] `PortraitRotationInstrumentedTest.kt` asserts no `"e2 pawn"` node exists after rotation, alongside the existing `"e4 pawn"` presence assertion.
+- [x] `PortraitRotationInstrumentedTest.kt` now asserts no `e2 pawn` node exists after rotation, alongside the existing `e4 pawn` assertion.
 
 ## CC-007.2 Tests
 
-- [ ] The strengthened assertion is itself the test; reasoned to be meaningful (would catch a hypothetical move-duplication bug).
-
----
+- [ ] The assertion compiles here and is reasoned to catch move duplication; runtime API-35 execution remains the gate before CC-008 may begin.
 
 # CC-008: Add Resign-dialog contrast pairing
 

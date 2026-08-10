@@ -41,6 +41,7 @@ class PortraitRotationInstrumentedTest {
             assertEquals(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, composeRule.activity.requestedOrientation)
             assertEquals(Configuration.ORIENTATION_PORTRAIT, composeRule.activity.resources.configuration.orientation)
             composeRule.onNodeWithTag("chess-board").assertExists()
+            composeRule.onNodeWithContentDescription("e2 pawn", substring = true).assertDoesNotExist()
             composeRule.onNodeWithContentDescription("e4 pawn", substring = true).assertExists()
         } finally {
             device.setOrientationNatural()
