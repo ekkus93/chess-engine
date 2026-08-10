@@ -169,12 +169,13 @@
 - [x] `cleanupRequired` rejection leaves the already-surfaced cleanup-required state unchanged; no new per-invocation error message is added.
 - [x] Existing generation/ticket cancellation mechanism unchanged.
 
-## AR-007.2 Tests
+## AR-007.2 Tests — corrected by closure-corrections CC-003
 
-- [x] Rapid duplicate invocation of `restartGame()` while `busy == true` results in exactly one logical operation, no second engine/native/JNI/cleanup call, no state mutation, no new error surfaced.
-- [x] Same for `resign()`.
-- [x] Same for `submitMove()`.
-- [x] Each of the three, invoked while `cleanupRequired == true`, is a silent no-op with the already-visible cleanup-required state unchanged.
+The original closure marked four stronger behavioral claims complete (rapid duplicate invocation for `restartGame()`, `resign()`, and `submitMove()`, plus the `cleanupRequired` cases) without an executed behavioral test seam. CC-003 re-inspected the implementation and found that `ChessViewModel` owns a concrete `ChessGame`, while `ChessGame` has a private constructor/native-session ownership and no injectable fake seam. Adding production indirection solely to manufacture these tests would distort the architecture, so the correction pass deliberately chose the `claims-downgraded` disposition instead of pretending the stronger behavior had been executed.
+
+- [x] Actual permanent evidence: `ActiveGameOperationGuardTest.kt` proves the guard predicate truth table for setup/busy/cleanup-required states.
+- [x] Actual permanent evidence: `ReviewFixArchitectureTest.kt` proves all three operation bodies place `canRunActiveGameOperation(configuration)` before `nextOperation()`.
+- [x] The prior claim of executed duplicate-invocation/no-second-JNI-call behavioral coverage is withdrawn; no such behavioral execution is claimed after CC-003.
 
 ---
 

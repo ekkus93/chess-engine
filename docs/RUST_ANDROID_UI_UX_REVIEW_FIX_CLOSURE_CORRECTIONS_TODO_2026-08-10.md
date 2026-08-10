@@ -109,16 +109,16 @@ N/A — CC-002B re-verification: no remediation commit landed, so no post-fix re
 
 ## CC-003.1 Fix
 
-CC-003 reaches exactly one of two dispositions (FQI-002); mark the untaken one `N/A`.
+- [x] Attempted a genuine behavioral-test-seam design by reinspecting the actual ownership boundary: `ChessViewModel` stores a concrete `ChessGame`; `ChessGame` has a private constructor and owns the native high-level session. There is no clean fake/injection seam available to the app tests.
+- [x] **Disposition reached:** `claims-downgraded`. Adding a production abstraction solely for this test would expand/distort production architecture, so the tracker now states only what is genuinely proven.
 
-- [ ] Attempted a genuine behavioral test seam (fake/instrumented game handle, or a real androidTest driving the app end-to-end).
-- [ ] **Disposition reached:** either "seam-built" or "claims-downgraded" — recorded explicitly here, with reasoning.
-- [ ] If seam-built: **all three** of `restartGame()`, `resign()`, and `submitMove()` tested behaviorally, not just one representative function (spec §5.2/QI-005) — each covering both the duplicate-invocation case and the `cleanupRequired` case, proving no second operation launches, no state mutation, no new error. *(N/A if claims-downgraded.)*
-- [ ] If claims-downgraded: AR-007.2's checkboxes in `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md` reworded to accurately describe only what is actually proven (predicate correctness + static guard-ordering), with the stronger unproven claim removed or explicitly caveated — not a middle ground where one function is tested and the other two claimed by analogy. *(N/A if seam-built.)*
+N/A — `seam-built`: no production seam was added.
+
+- [x] `claims-downgraded`: parent AR-007.2 now preserves the original overclaim as provenance and limits the accepted evidence to predicate truth-table coverage plus static guard-before-generation ordering.
 
 ## CC-003.2 Tests
 
-- [ ] `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md`'s AR-007.2 section accurately reflects actual test evidence after this task, for all three functions if a seam was built.
+- [x] `ActiveGameOperationGuardTest` and `ReviewFixArchitectureTest.activeGameOperationsGuardBeforeGenerationAdvance` pass, and parent AR-007.2 now matches that actual evidence.
 
 ---
 
