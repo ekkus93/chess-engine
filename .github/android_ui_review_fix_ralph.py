@@ -1,117 +1,74 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TODO = ROOT / "docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md"
-APP = ROOT / "android-harness/android-app"
-ATEST = APP / "src/androidTest/kotlin/com/ekkus93/chessapp"
-BUILD = APP / "build.gradle.kts"
+IMPLEMENTATION_START = "218158b15d1b500e940eb7a13077636b446869f5"
 
 
-def run(*args: str, check: bool = True):
-    print("+", " ".join(args), flush=True)
-    return subprocess.run(args, cwd=ROOT, text=True, check=check)
-
-
-def sh(command: str, check: bool = True):
+def run(command: str) -> None:
     print("+", command, flush=True)
-    return subprocess.run(["bash", "-lc", command], cwd=ROOT, text=True, check=check)
+    subprocess.run(["bash", "-lc", command], cwd=ROOT, text=True, check=True)
 
 
-def replace(path: Path, old: str, new: str, count: int = 1):
-    text = path.read_text()
-    if text.count(old) < count:
-        raise RuntimeError(f"{path}: target missing: {old[:160]!r}")
-    path.write_text(text.replace(old, new, count))
-
-
-def mark(task: str):
+def replace(old: str, new: str, count: int = 1) -> None:
     text = TODO.read_text()
-    start = text.index(f"# {task}:")
-    end = text.find("\n# AR-", start + 1)
-    if end < 0:
-        end = len(text)
-    TODO.write_text(text[:start] + text[start:end].replace("- [ ]", "- [x]") + text[end:])
+    if text.count(old) < count:
+        raise RuntimeError(f"TODO replacement target missing: {old[:160]!r}")
+    TODO.write_text(text.replace(old, new, count))
 
 
-def connected(cls: str) -> str:
-    return "gradle -p android-harness :android-app:connectedDebugAndroidTest --no-daemon --stacktrace --console=plain -Pandroid.testInstrumentationRunnerArguments.class=" + cls
+subprocess.run(["git", "config", "user.name", "Ralph Loop"], cwd=ROOT, check=True)
+subprocess.run(["git", "config", "user.email", "actions@users.noreply.github.com"], cwd=ROOT, check=True)
 
+# Full applicable AR-021 validation surface on the API-35 runner.
+run("gradle -p android-harness :android-app:testDebugUnitTest --no-daemon --stacktrace --console=plain")
+run("gradle -p android-harness :android-app:lintDebug --no-daemon --stacktrace --console=plain")
+run("cargo test --locked -p chess-core")
+run("cargo test --locked -p chess-jni")
+run("gradle -p android-harness :android-app:connectedDebugAndroidTest --no-daemon --stacktrace --console=plain")
+run("bash scripts/dev.sh fast")
+run("bash scripts/task_post_port_review_fix_audit.sh")
 
-def compile_tests() -> str:
-    return "gradle -p android-harness :android-app:assembleDebug :android-app:assembleDebugAndroidTest --no-daemon --stacktrace --console=plain"
+# Ensure this pass did not introduce first-party lint suppressions.
+run(
+    "if git diff --unified=0 " + IMPLEMENTATION_START +
+    "..HEAD -- '*.rs' '*.kt' '*.kts' | grep -E '^\\+.*(#\\[(allow|expect)\\(|@Suppress)' >/tmp/review-fix-suppressions.txt; "
+    "then cat /tmp/review-fix-suppressions.txt; exit 1; fi"
+)
 
+run_id = os.environ.get("GITHUB_RUN_ID", "unknown")
+head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
 
-run("git", "config", "user.name", "Ralph Loop")
-run("git", "config", "user.email", "actions@users.noreply.github.com")
+for line in [
+    "- [ ] Android app JVM/unit tests pass, including every test added by AR-001 through AR-020.",
+    "- [ ] Android lint passes.",
+    "- [ ] `crates/chess-core` tests pass, including AR-017's additions.",
+    "- [ ] `crates/chess-jni` tests pass, including AR-019's extended contract test.",
+    "- [ ] Full Android instrumentation suite passes, including every test added by this pass.",
+    "- [ ] `bash scripts/dev.sh fast` passes — mandatory whenever the environment can run it (QI-002); if genuinely unavailable, the equivalent permanent general CI on the exact final SHA is required instead, and the unrun local command is explicitly recorded as such, never silently treated as passed.",
+]:
+    replace(line, line.replace("- [ ]", "- [x]", 1))
 
 replace(
-    BUILD,
-    '    androidTestImplementation("androidx.compose.ui:ui-test-junit4")\n',
-    '    androidTestImplementation("androidx.compose.ui:ui-test-junit4")\n    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")\n',
+    "Implementation start SHA:\nFinal source SHA:\n\nAndroid app unit/lint results:\nchess-core test results:\nchess-jni test results:\nAndroid instrumentation results:\nbash scripts/dev.sh fast result:\n",
+    f"Implementation start SHA:          {IMPLEMENTATION_START}\n"
+    "Final source SHA:                 pending temporary-runner cleanup\n\n"
+    f"Android app unit/lint results:    pass — full-validation run {run_id} at {head}\n"
+    f"chess-core test results:          pass — full-validation run {run_id} at {head}\n"
+    f"chess-jni test results:           pass — full-validation run {run_id} at {head}\n"
+    f"Android instrumentation results: pass — full-validation run {run_id} at {head}\n"
+    f"bash scripts/dev.sh fast result:  pass — full-validation run {run_id} at {head}\n",
 )
-rotation_test = ATEST / "PortraitRotationInstrumentedTest.kt"
-rotation_test.write_text(r'''package com.ekkus93.chessapp
 
-import android.content.pm.ActivityInfo
-import android.content.res.Configuration
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performClick
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
-import androidx.test.uiautomator.UiDevice
-import org.junit.Assert.assertEquals
-import org.junit.Rule
-import org.junit.Test
-import org.junit.runner.RunWith
-
-@RunWith(AndroidJUnit4::class)
-class PortraitRotationInstrumentedTest {
-    @get:Rule val composeRule = createAndroidComposeRule<MainActivity>()
-
-    @Test
-    fun rotationRequestKeepsPortraitAndPreservesPlayedMove() {
-        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-        try {
-            composeRule.onNodeWithTag("start-game").performClick()
-            composeRule.waitUntil(30_000) {
-                runCatching { composeRule.onNodeWithContentDescription("e2 pawn").fetchSemanticsNode() }.isSuccess
-            }
-            composeRule.onNodeWithContentDescription("e2 pawn").performClick()
-            composeRule.onNodeWithContentDescription("e4 legal target").performClick()
-            composeRule.waitUntil(30_000) {
-                runCatching {
-                    composeRule.onNodeWithContentDescription("e4 pawn", substring = true).fetchSemanticsNode()
-                }.isSuccess
-            }
-
-            device.setOrientationLeft()
-            device.waitForIdle()
-            composeRule.waitForIdle()
-
-            assertEquals(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, composeRule.activity.requestedOrientation)
-            assertEquals(Configuration.ORIENTATION_PORTRAIT, composeRule.activity.resources.configuration.orientation)
-            composeRule.onNodeWithTag("chess-board").assertExists()
-            composeRule.onNodeWithContentDescription("e4 pawn", substring = true).assertExists()
-        } finally {
-            device.setOrientationNatural()
-            device.waitForIdle()
-        }
-    }
-}
-''')
-sh(compile_tests())
-sh(connected("com.ekkus93.chessapp.PortraitRotationInstrumentedTest"))
-mark("AR-020")
-run("git", "diff", "--check")
-sh(compile_tests())
-sh(connected("com.ekkus93.chessapp.PortraitRotationInstrumentedTest"))
-run("git", "add", str(TODO.relative_to(ROOT)), str(BUILD.relative_to(ROOT)), str(rotation_test.relative_to(ROOT)))
-run("git", "commit", "-m", "test(android): verify portrait rotation preserves game state")
-run("git", "push", "origin", "HEAD:master")
-print("AR-020", subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), flush=True)
+# Record the validation state in its own commit. Permanent exact-SHA CI and final
+# closure remain open until temporary Ralph machinery is removed.
+subprocess.run(["git", "diff", "--check"], cwd=ROOT, check=True)
+subprocess.run(["git", "add", str(TODO.relative_to(ROOT))], cwd=ROOT, check=True)
+subprocess.run(["git", "commit", "-m", "docs(android): record review-fix full validation"], cwd=ROOT, check=True)
+subprocess.run(["git", "push", "origin", "HEAD:master"], cwd=ROOT, check=True)
+print("AR-021 full validation recorded", subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), flush=True)
