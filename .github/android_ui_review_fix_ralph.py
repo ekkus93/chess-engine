@@ -7,9 +7,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 TODO = ROOT / "docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md"
 APP = ROOT / "android-harness/android-app"
-MAIN = APP / "src/main/kotlin/com/ekkus93/chessapp"
 ATEST = APP / "src/androidTest/kotlin/com/ekkus93/chessapp"
-UTEST = APP / "src/test/kotlin/com/ekkus93/chessapp"
+UTEST = APP / "src/test/kotlin"
+SAN = ROOT / "crates/chess-core/src/san.rs"
+JNI_CONTRACT = ROOT / "crates/chess-jni/tests/jni_contract.rs"
+BUILD = APP / "build.gradle.kts"
 
 
 def run(*args: str, check: bool = True):
@@ -52,10 +54,6 @@ def connected(cls: str) -> str:
     return "gradle -p android-harness :android-app:connectedDebugAndroidTest --no-daemon --stacktrace --console=plain -Pandroid.testInstrumentationRunnerArguments.class=" + cls
 
 
-def unit() -> str:
-    return "gradle -p android-harness :android-app:testDebugUnitTest --no-daemon --stacktrace --console=plain"
-
-
 def compile_tests() -> str:
     return "gradle -p android-harness :android-app:assembleDebug :android-app:assembleDebugAndroidTest --no-daemon --stacktrace --console=plain"
 
@@ -63,286 +61,183 @@ def compile_tests() -> str:
 run("git", "config", "user.name", "Ralph Loop")
 run("git", "config", "user.email", "actions@users.noreply.github.com")
 
-# AR-012: error dialog rendering/dismiss callback. assertExists is a SemanticsNodeInteraction
-# member in this Compose version, not a top-level import.
-error_test = ATEST / "ErrorDialogInstrumentedTest.kt"
-error_test.write_text(r'''package com.ekkus93.chessapp
+# AR-017 SAN coverage: piece capture, disambiguated capture, capture-promotion with check.
+insert = r'''
 
-import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithText
+    #[test]
+    fn formats_piece_capture() {
+        let position = parse_fen("4k3/8/8/4p3/8/5N2/8/4K3 w - - 0 1").expect("valid FEN");
+        let mv = parse_uci_move("f3e5").expect("valid move");
+        assert_eq!(format_san(&position, mv).expect("SAN"), "Nxe5");
+    }
+
+    #[test]
+    fn formats_disambiguated_piece_capture() {
+        let position = parse_fen("4k3/8/8/8/4p3/2N5/5N2/4K3 w - - 0 1").expect("valid FEN");
+        let mv = parse_uci_move("c3e4").expect("valid move");
+        assert_eq!(format_san(&position, mv).expect("SAN"), "Ncxe4");
+    }
+
+    #[test]
+    fn formats_capture_promotion_with_check() {
+        let position = parse_fen("k2r4/4P3/8/8/8/8/8/4K3 w - - 0 1").expect("valid FEN");
+        let mv = parse_uci_move("e7d8q").expect("valid move");
+        assert_eq!(format_san(&position, mv).expect("SAN"), "exd8=Q+");
+    }
+'''
+text = SAN.read_text()
+SAN.write_text(text.rstrip()[:-1] + insert + "}\n")
+mark("AR-017")
+commit("AR-017", "test(core): cover SAN capture edge cases", [TODO, SAN], ["cargo fmt --all -- --check", "cargo test --locked -p chess-core san -- --nocapture"])
+
+# AR-018 fail-closed Kotlin snapshot parser coverage.
+parser_dir = UTEST / "com/ekkus93/chessengine"
+parser_dir.mkdir(parents=True, exist_ok=True)
+parser_test = parser_dir / "ChessGameSnapshotParseTest.kt"
+parser_test.write_text(r'''package com.ekkus93.chessengine
+
+import org.junit.Assert.assertThrows
+import org.junit.Test
+
+class ChessGameSnapshotParseTest {
+    private val validFields = listOf(
+        "2",
+        "8/8/8/8/8/8/4K3/7k w - - 0 1",
+        "",
+        "",
+        "",
+        "white",
+        "white",
+        "0",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "END",
+    )
+
+    private fun encoded(fields: List<String>): String = fields.joinToString("\u001f")
+
+    @Test
+    fun rejectsWrongFieldCount() {
+        assertThrows(IllegalArgumentException::class.java) {
+            ChessGameSnapshot.parse(encoded(validFields.dropLast(1)))
+        }
+    }
+
+    @Test
+    fun rejectsWrongVersion() {
+        assertThrows(IllegalArgumentException::class.java) {
+            ChessGameSnapshot.parse(encoded(validFields.toMutableList().apply { this[0] = "999" }))
+        }
+    }
+
+    @Test
+    fun rejectsCorruptedTerminator() {
+        assertThrows(IllegalArgumentException::class.java) {
+            ChessGameSnapshot.parse(encoded(validFields.toMutableList().apply { this[lastIndex] = "BROKEN" }))
+        }
+    }
+}
+''')
+mark("AR-018")
+commit("AR-018", "test(android): cover snapshot parser rejection paths", [TODO, parser_test], ["gradle -p android-harness :android-app:testDebugUnitTest --no-daemon --stacktrace --console=plain"])
+
+# AR-019 static high-level Rust/Kotlin contract parity.
+replace(
+    JNI_CONTRACT,
+    'const KOTLIN_BINDINGS: &str = include_str!("../kotlin/src/main/kotlin/com/ekkus93/chessengine/NativeChessEngineBindings.kt");\n',
+    'const KOTLIN_BINDINGS: &str = include_str!("../kotlin/src/main/kotlin/com/ekkus93/chessengine/NativeChessEngineBindings.kt");\nconst APP_BRIDGE: &str = include_str!("../src/app_bridge.rs");\nconst KOTLIN_GAME: &str = include_str!("../kotlin/src/main/kotlin/com/ekkus93/chessengine/ChessGame.kt");\n',
+)
+extra = r'''
+
+#[test]
+fn high_level_snapshot_contract_matches_between_rust_and_kotlin() {
+    assert!(KOTLIN_GAME.contains("private const val FIELD_COUNT = 18"));
+    assert!(KOTLIN_GAME.contains("private const val VERSION = \"2\""));
+    assert!(APP_BRIDGE.contains("const SNAPSHOT_VERSION: &str = \"2\";"));
+
+    let fields = APP_BRIDGE
+        .split("let fields = [")
+        .nth(1)
+        .expect("snapshot field array")
+        .split("];")
+        .next()
+        .expect("snapshot field array end");
+    let field_count = fields.lines().filter(|line| line.trim_end().ends_with(',')).count();
+    assert_eq!(field_count, 18, "Rust high-level snapshot field count changed");
+}
+'''
+JNI_CONTRACT.write_text(JNI_CONTRACT.read_text().rstrip() + extra + "\n")
+mark("AR-019")
+commit("AR-019", "test(jni): pin high-level snapshot protocol parity", [TODO, JNI_CONTRACT], ["cargo fmt --all -- --check", "cargo test --locked -p chess-jni --test jni_contract", "cargo test --locked -p chess-jni"])
+
+# AR-020 real API-35 rotation request with non-initial game state preserved.
+replace(
+    BUILD,
+    '    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.7.8")\n',
+    '    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.7.8")\n    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")\n',
+)
+rotation_test = ATEST / "PortraitRotationInstrumentedTest.kt"
+rotation_test.write_text(r'''package com.ekkus93.chessapp
+
+import android.content.pm.ActivityInfo
+import android.content.res.Configuration
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import org.junit.Assert.assertTrue
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.UiDevice
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class ErrorDialogInstrumentedTest {
-    @get:Rule val composeRule = createComposeRule()
+class PortraitRotationInstrumentedTest {
+    @get:Rule val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun errorMessageRendersAndDismissesOnlyThroughCallback() {
-        var dismissed = false
-        val message = "Deterministic engine failure 8472"
-        composeRule.setContent { RustChessTheme { ChessEngineErrorDialog(message) { dismissed = true } } }
-        composeRule.onNodeWithText(message).assertExists()
-        composeRule.onNodeWithText("OK").performClick()
-        composeRule.runOnIdle { assertTrue(dismissed) }
-    }
-}
-''')
-mark("AR-012")
-commit("AR-012", "test(android): exercise engine error dialog dismissal", [TODO, error_test], [compile_tests(), connected("com.ekkus93.chessapp.ErrorDialogInstrumentedTest")])
-
-# AR-013 engine metrics content, including honest placeholders for absent metrics.
-metrics_test = ATEST / "EnginePanelInstrumentedTest.kt"
-metrics_test.write_text(r'''package com.ekkus93.chessapp
-
-import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithText
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ekkus93.chessengine.ChessGameSnapshot
-import com.ekkus93.chessengine.HumanSide
-import org.junit.Rule
-import org.junit.Test
-import org.junit.runner.RunWith
-
-@RunWith(AndroidJUnit4::class)
-class EnginePanelInstrumentedTest {
-    @get:Rule val composeRule = createComposeRule()
-
-    @Test
-    fun fullMetricsRenderTheirFormattedValues() {
-        composeRule.setContent { RustChessTheme { EnginePanel(snapshot(7, "+0.42", 12345, 987654, "1.2 s", listOf("e2e4", "e7e5"))) } }
-        for (text in listOf("7", "+0.42", "12k", "988k", "Time 1.2 s", "PV e2e4 e7e5")) {
-            composeRule.onNodeWithText(text).assertExists()
-        }
-    }
-
-    @Test
-    fun partialMetricsUseDashInsteadOfFabricatedZeros() {
-        composeRule.setContent { RustChessTheme { EnginePanel(snapshot(5, null, null, null, null, emptyList())) } }
-        composeRule.onNodeWithText("5").assertExists()
-        composeRule.onAllNodesWithText("—").assertCountEquals(3)
-        composeRule.onNodeWithText("Time —").assertExists()
-        composeRule.onNodeWithText("PV —").assertExists()
-    }
-
-    private fun snapshot(depth: Int?, score: String?, nodes: Long?, nps: Long?, elapsed: String?, pv: List<String>) = ChessGameSnapshot(
-        fen = "8/8/8/8/8/8/4K3/7k w - - 0 1", legalMoves = emptyList(), moves = emptyList(), sanMoves = emptyList(),
-        humanSide = HumanSide.WHITE, sideToMove = HumanSide.WHITE, thinking = false, outcome = null, statusMessage = null,
-        engineDepth = depth, engineScore = score, engineNodes = nodes, engineNps = nps, engineElapsed = elapsed,
-        principalVariation = pv, hashFullPerMille = null,
-    )
-}
-''')
-mark("AR-013")
-commit("AR-013", "test(android): validate rendered engine metrics", [TODO, metrics_test], [compile_tests(), connected("com.ekkus93.chessapp.EnginePanelInstrumentedTest")])
-
-# AR-014 setup-title semantic tag and containment.
-setup = MAIN / "SetupScreen.kt"
-replace(setup, '''            Text(
-                text = "Rust Chess",
-                style = MaterialTheme.typography.headlineLarge,
-                color = OnBackground,
-            )
-''', '''            Text(
-                text = "Rust Chess",
-                modifier = Modifier.testTag("setup-title"),
-                style = MaterialTheme.typography.headlineLarge,
-                color = OnBackground,
-            )
-''')
-layout_test = ATEST / "ChessAppLayoutInstrumentedTest.kt"
-adaptive_test = ATEST / "ChessAppAdaptiveLayoutInstrumentedTest.kt"
-for path in (layout_test, adaptive_test):
-    replace(path, 'listOf("side-white", "side-black", "depth-control", "start-game")', 'listOf("setup-title", "side-white", "side-black", "depth-control", "start-game")')
-setup_title_test = ATEST / "SetupTitleInstrumentedTest.kt"
-setup_title_test.write_text(r'''package com.ekkus93.chessapp
-
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.test.assertTextEquals
-import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.unit.dp
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import org.junit.Rule
-import org.junit.Test
-import org.junit.runner.RunWith
-
-@RunWith(AndroidJUnit4::class)
-class SetupTitleInstrumentedTest {
-    @get:Rule val composeRule = createComposeRule()
-
-    @Test
-    fun titleIsTaggedVisibleAndContained() {
-        composeRule.setContent { RustChessTheme { Box(Modifier.requiredSize(360.dp, 640.dp)) { SetupScreen(ChessUiState(), {}, {}, {}) } } }
-        composeRule.onNodeWithTag("setup-title").assertTextEquals("Rust Chess")
-        composeRule.assertContained("setup-screen", listOf("setup-title"))
-    }
-}
-''')
-mark("AR-014")
-commit("AR-014", "test(android): tag and contain setup title", [TODO, setup, layout_test, adaptive_test, setup_title_test], [compile_tests(), connected("com.ekkus93.chessapp.SetupTitleInstrumentedTest"), connected("com.ekkus93.chessapp.ChessAppLayoutInstrumentedTest")])
-
-# AR-015 busy/game-over state must change semantics, not geometry.
-panels = MAIN / "GamePanels.kt"
-replace(panels, '''            modifier = Modifier
-                .weight(1f)
-                .fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 6.dp),
-            shape = MaterialTheme.shapes.small,
-            border = BorderStroke(1.dp, Danger.copy(alpha = 0.65f)),
-''', '''            modifier = Modifier
-                .weight(1f)
-                .fillMaxSize()
-                .testTag("action-resign"),
-            contentPadding = PaddingValues(horizontal = 6.dp),
-            shape = MaterialTheme.shapes.small,
-            border = BorderStroke(1.dp, Danger.copy(alpha = 0.65f)),
-''')
-busy_test = ATEST / "BusyLayoutInstrumentedTest.kt"
-busy_test.write_text(r'''package com.ekkus93.chessapp
-
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.unit.dp
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.ekkus93.chessengine.ChessGameSnapshot
-import com.ekkus93.chessengine.HumanSide
-import org.junit.Rule
-import org.junit.Test
-import org.junit.runner.RunWith
-
-@RunWith(AndroidJUnit4::class)
-class BusyLayoutInstrumentedTest {
-    @get:Rule val composeRule = createComposeRule()
-
-    @Test
-    fun setupBusyStateDisablesWithoutMovingControls() {
-        val state = mutableStateOf(ChessUiState())
-        composeRule.setContent { RustChessTheme { Box(Modifier.requiredSize(360.dp, 640.dp)) { SetupScreen(state.value, {}, {}, {}) } } }
-        val tags = listOf("side-white", "side-black", "depth-control", "start-game")
-        val before = tags.associateWith { composeRule.boundsDp(it) }
-        composeRule.runOnUiThread { state.value = state.value.copy(busy = true) }
-        composeRule.waitForIdle()
-        tags.forEach { assertBoundsEqual(before.getValue(it), composeRule.boundsDp(it), it) }
-        tags.forEach { composeRule.onNodeWithTag(it).assertIsNotEnabled() }
-    }
-
-    @Test
-    fun gameBusyAndGameOverDisableResignWithoutMovingActions() {
-        val state = mutableStateOf(gameState())
-        composeRule.setContent { RustChessTheme { Box(Modifier.requiredSize(360.dp, 640.dp)) { GameScreen(state.value, {}, {}, {}, {}) } } }
-        val before = composeRule.boundsDp("game-actions")
-        composeRule.runOnUiThread { state.value = state.value.copy(busy = true) }
-        composeRule.waitForIdle()
-        assertBoundsEqual(before, composeRule.boundsDp("game-actions"), "busy game-actions")
-        composeRule.onNodeWithTag("action-resign").assertIsNotEnabled()
-        composeRule.runOnUiThread { state.value = gameState(outcome = "White wins") }
-        composeRule.waitForIdle()
-        assertBoundsEqual(before, composeRule.boundsDp("game-actions"), "game-over game-actions")
-        composeRule.onNodeWithTag("action-resign").assertIsNotEnabled()
-    }
-
-    private fun gameState(outcome: String? = null) = ChessUiState(snapshot = ChessGameSnapshot(
-        fen = "8/8/8/8/8/8/4K3/7k w - - 0 1", legalMoves = emptyList(), moves = emptyList(), sanMoves = emptyList(),
-        humanSide = HumanSide.WHITE, sideToMove = HumanSide.WHITE, thinking = false, outcome = outcome, statusMessage = null,
-        engineDepth = null, engineScore = null, engineNodes = null, engineNps = null, engineElapsed = null,
-        principalVariation = emptyList(), hashFullPerMille = null,
-    ))
-}
-''')
-mark("AR-015")
-commit("AR-015", "test(android): pin busy-state layout and actions", [TODO, panels, busy_test], [compile_tests(), connected("com.ekkus93.chessapp.BusyLayoutInstrumentedTest")])
-
-# AR-016 contrast gate. The existing translucent teal legal-target marker does not
-# reach 3:1 against all required board treatments, so use the semantic dark foreground.
-theme = MAIN / "Theme.kt"
-replace(theme, "internal val BoardLegalTarget = Color(0xCC2DD4BF)\n", "internal val BoardLegalTarget = AppBackground\n")
-contrast_test = UTEST / "ThemeContrastTest.kt"
-contrast_test.write_text(r'''package com.ekkus93.chessapp
-
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
-import kotlin.math.max
-import kotlin.math.min
-import org.junit.Assert.assertTrue
-import org.junit.Test
-
-class ThemeContrastTest {
-    private fun linear(c: Float): Double =
-        if (c <= 0.04045f) c.toDouble() / 12.92 else Math.pow((c.toDouble() + 0.055) / 1.055, 2.4)
-
-    private fun luminance(c: Color): Double =
-        0.2126 * linear(c.red) + 0.7152 * linear(c.green) + 0.0722 * linear(c.blue)
-
-    private fun contrast(a: Color, b: Color): Double {
-        val l1 = luminance(a)
-        val l2 = luminance(b)
-        return (max(l1, l2) + 0.05) / (min(l1, l2) + 0.05)
-    }
-
-    private fun composite(fg: Color, bg: Color): Color {
-        val a = fg.alpha + bg.alpha * (1f - fg.alpha)
-        if (a == 0f) return Color.Transparent
-        fun channel(f: Float, b: Float): Float = (f * fg.alpha + b * bg.alpha * (1f - fg.alpha)) / a
-        return Color(channel(fg.red, bg.red), channel(fg.green, bg.green), channel(fg.blue, bg.blue), a)
-    }
-
-    private fun requireRatio(label: String, fg: Color, bg: Color, minimum: Double) {
-        val value = contrast(fg, bg)
-        assertTrue("$label contrast $value < $minimum", value >= minimum)
-    }
-
-    private fun pieceBoundary(label: String, fill: Color, stroke: Color, bg: Color) {
-        val value = max(contrast(fill, bg), contrast(stroke, bg))
-        assertTrue("$label silhouette boundary contrast $value < 3", value >= 3.0)
-    }
-
-    @Test
-    fun textAndControlPairsMeetAa() {
-        requireRatio("OnBackground/AppBackground", OnBackground, AppBackground, 4.5)
-        requireRatio("OnSurfaceMuted/Surface", OnSurfaceMuted, Surface, 4.5)
-        requireRatio("OnSurfaceMuted/SurfaceMuted", OnSurfaceMuted, SurfaceMuted, 4.5)
-        requireRatio("primary label", AppBackground, Primary, 4.5)
-        requireRatio("strong primary label", AppBackground, PrimaryStrong, 4.5)
-        requireRatio("danger label", AppBackground, Danger, 4.5)
-        requireRatio("coordinate on light", CoordinateLabelOnLight, BoardLight, 4.5)
-        requireRatio("coordinate on dark", CoordinateLabelOnDark, BoardDark, 4.5)
-    }
-
-    @Test
-    fun piecesAndLegalTargetsRemainRecognizableAcrossBoardTreatments() {
-        for ((squareName, base) in listOf("light" to BoardLight, "dark" to BoardDark)) {
-            val backgrounds = listOf(
-                "base" to base,
-                "last" to lerp(base, BoardLastMove, 0.30f),
-                "selected" to composite(BoardSelected, base),
-                "last+selected" to composite(BoardSelected, lerp(base, BoardLastMove, 0.30f)),
-            )
-            for ((treatment, bg) in backgrounds) {
-                pieceBoundary("light piece/$squareName/$treatment", PieceLightFill, PieceLightStroke, bg)
-                pieceBoundary("dark piece/$squareName/$treatment", PieceDarkFill, PieceDarkStroke, bg)
-                val marker = composite(BoardLegalTarget, bg)
-                requireRatio("legal target/$squareName/$treatment", marker, bg, 3.0)
+    fun rotationRequestKeepsPortraitAndPreservesPlayedMove() {
+        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        try {
+            composeRule.onNodeWithTag("start-game").performClick()
+            composeRule.waitUntil(30_000) {
+                runCatching { composeRule.onNodeWithContentDescription("e2 pawn").fetchSemanticsNode() }.isSuccess
             }
+            composeRule.onNodeWithContentDescription("e2 pawn").performClick()
+            composeRule.onNodeWithContentDescription("e4 legal target").performClick()
+            composeRule.waitUntil(30_000) {
+                runCatching { composeRule.onNodeWithContentDescription("e4 pawn").fetchSemanticsNode() }.isSuccess
+            }
+
+            device.setOrientationLeft()
+            device.waitForIdle()
+            composeRule.waitForIdle()
+
+            assertEquals(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, composeRule.activity.requestedOrientation)
+            assertEquals(Configuration.ORIENTATION_PORTRAIT, composeRule.activity.resources.configuration.orientation)
+            composeRule.onNodeWithTag("chess-board").assertExists()
+            composeRule.onNodeWithContentDescription("e4 pawn").assertExists()
+        } finally {
+            device.setOrientationNatural()
+            device.waitForIdle()
         }
     }
 }
 ''')
-replace(TODO, "- [ ] Any failing combination's token value adjusted in `Theme.kt`; before/after values recorded here.", "- [x] Failing legal-target marker combinations were corrected by changing `BoardLegalTarget` from `Color(0xCC2DD4BF)` to opaque `AppBackground`; the automated matrix validates the resulting marker on all exercised board treatments.")
-mark("AR-016")
-commit("AR-016", "test(android): enforce UI contrast matrix", [TODO, theme, contrast_test], [unit(), compile_tests()])
+sh(compile_tests())
+rotation = sh(connected("com.ekkus93.chessapp.PortraitRotationInstrumentedTest"), check=False)
+if rotation.returncode != 0:
+    raise RuntimeError("AR-020 runtime rotation-attempt coverage failed in the supported API-35 emulator; refusing to mark blocked/manual without a separate environmental diagnosis")
+mark("AR-020")
+commit("AR-020", "test(android): verify portrait rotation preserves game state", [TODO, BUILD, rotation_test], [compile_tests(), connected("com.ekkus93.chessapp.PortraitRotationInstrumentedTest")])
 
-print("STAGE2_RESUME_COMPLETE", subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip())
+print("STAGE3_COMPLETE", subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip())
