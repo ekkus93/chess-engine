@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -14,7 +13,6 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ekkus93.chessengine.ChessGameSnapshot
 import com.ekkus93.chessengine.HumanSide
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -43,8 +41,8 @@ class ChessAppAdaptiveLayoutInstrumentedTest {
             }
         }
 
-        assertNoRootScroll("game-screen")
-        assertContained("game-screen", listOf("chess-board", "game-tab-body", "game-actions"))
+        composeRule.assertNoRootScroll("game-screen")
+        composeRule.assertContained("game-screen", listOf("chess-board", "game-tab-body", "game-actions"))
         val movesNode = composeRule.onNodeWithTag("moves-list").fetchSemanticsNode()
         assertTrue(
             "long move history must expose internal scrolling",
@@ -72,11 +70,11 @@ class ChessAppAdaptiveLayoutInstrumentedTest {
             }
         }
 
-        assertContained(
+        composeRule.assertContained(
             "setup-screen",
             listOf("side-white", "side-black", "depth-control", "start-game"),
         )
-        assertNoRootScroll("setup-screen")
+        composeRule.assertNoRootScroll("setup-screen")
     }
 
     @Test
@@ -104,42 +102,13 @@ class ChessAppAdaptiveLayoutInstrumentedTest {
             }
         }
 
-        assertContained(
+        composeRule.assertContained(
             "game-screen",
             listOf("status-region", "chess-board", "game-tabs", "game-tab-body", "game-actions"),
         )
-        assertNoRootScroll("game-screen")
-        assertSquare("chess-board")
+        composeRule.assertNoRootScroll("game-screen")
+        composeRule.assertSquare("chess-board")
     }
-
-    private fun assertContained(rootTag: String, childTags: List<String>) {
-        val root = bounds(rootTag)
-        childTags.forEach { tag ->
-            val child = bounds(tag)
-            assertTrue("$tag left edge escaped $rootTag", child.left >= root.left)
-            assertTrue("$tag top edge escaped $rootTag", child.top >= root.top)
-            assertTrue("$tag right edge escaped $rootTag", child.right <= root.right)
-            assertTrue("$tag bottom edge escaped $rootTag", child.bottom <= root.bottom)
-            assertTrue("$tag must have positive width", child.width > 0f)
-            assertTrue("$tag must have positive height", child.height > 0f)
-        }
-    }
-
-    private fun assertNoRootScroll(tag: String) {
-        val node = composeRule.onNodeWithTag(tag).fetchSemanticsNode()
-        assertFalse(
-            "$tag must not expose a root scroll action",
-            node.config.contains(SemanticsActions.ScrollBy),
-        )
-    }
-
-    private fun assertSquare(tag: String) {
-        val value = bounds(tag)
-        assertTrue("$tag must remain square", kotlin.math.abs(value.width - value.height) < 1f)
-    }
-
-    private fun bounds(tag: String): Rect =
-        composeRule.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot
 
     private fun gameState(
         moves: List<String> = emptyList(),

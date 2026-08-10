@@ -182,16 +182,16 @@
 
 ## AR-008.1 Fix
 
-- [ ] `bounds`/`assertContained`/`assertNoRootScroll`/`assertSquare` extracted into a single shared file (e.g. `LayoutTestSupport.kt`).
-- [ ] `ChessAppLayoutInstrumentedTest.kt` and `ChessAppAdaptiveLayoutInstrumentedTest.kt` updated to use the shared helper, private duplicates removed.
-- [ ] Explicit small tolerance constant introduced, applied to containment/equality comparisons.
-- [ ] Bounds normalized to dp before the tolerance is applied (QI-007) — a dp-named tolerance is never compared directly against raw pixel `Rect`s.
+- [x] `bounds`/`assertContained`/`assertNoRootScroll`/`assertSquare` extracted into a single shared file (e.g. `LayoutTestSupport.kt`).
+- [x] `ChessAppLayoutInstrumentedTest.kt` and `ChessAppAdaptiveLayoutInstrumentedTest.kt` updated to use the shared helper, private duplicates removed.
+- [x] Explicit small tolerance constant introduced, applied to containment/equality comparisons.
+- [x] Bounds normalized to dp before the tolerance is applied (QI-007) — a dp-named tolerance is never compared directly against raw pixel `Rect`s.
 
 ## AR-008.2 Tests
 
-- [ ] All prior callers continue to pass with unchanged assertions.
-- [ ] A test proves two bounds within tolerance (in dp) are treated equal, and two bounds outside tolerance are treated different.
-- [ ] A test at non-1.0 density (or an equivalent dp-normalization unit test) confirms the tolerance's physical meaning does not change with device density.
+- [x] All prior callers continue to pass with unchanged assertions.
+- [x] A test proves two bounds within tolerance (in dp) are treated equal, and two bounds outside tolerance are treated different.
+- [x] A test at non-1.0 density (or an equivalent dp-normalization unit test) confirms the tolerance's physical meaning does not change with device density.
 
 ---
 

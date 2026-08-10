@@ -4,8 +4,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -13,9 +11,6 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ekkus93.chessengine.ChessGameSnapshot
 import com.ekkus93.chessengine.HumanSide
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -40,11 +35,11 @@ class ChessAppLayoutInstrumentedTest {
             }
         }
 
-        assertContained(
+        composeRule.assertContained(
             rootTag = "setup-screen",
             childTags = listOf("side-white", "side-black", "depth-control", "start-game"),
         )
-        assertNoRootScroll("setup-screen")
+        composeRule.assertNoRootScroll("setup-screen")
     }
 
     @Test
@@ -63,7 +58,7 @@ class ChessAppLayoutInstrumentedTest {
             }
         }
 
-        assertContained(
+        composeRule.assertContained(
             rootTag = "game-screen",
             childTags = listOf(
                 "status-region",
@@ -73,8 +68,8 @@ class ChessAppLayoutInstrumentedTest {
                 "game-actions",
             ),
         )
-        assertNoRootScroll("game-screen")
-        assertSquare("chess-board")
+        composeRule.assertNoRootScroll("game-screen")
+        composeRule.assertSquare("chess-board")
     }
 
     @Test
@@ -98,11 +93,11 @@ class ChessAppLayoutInstrumentedTest {
         }
 
         composeRule.onNodeWithTag("moves-list").assertExists()
-        val movesBounds = bounds("game-tab-body")
+        val movesBounds = composeRule.boundsDp("game-tab-body")
         composeRule.onNodeWithTag("tab-engine").performClick()
         composeRule.onNodeWithTag("engine-panel").assertExists()
-        assertEquals(movesBounds, bounds("game-tab-body"))
-        assertContained("game-screen", listOf("game-tab-body", "game-actions"))
+        assertBoundsEqual(movesBounds, composeRule.boundsDp("game-tab-body"), "game-tab-body")
+        composeRule.assertContained("game-screen", listOf("game-tab-body", "game-actions"))
     }
 
     @Test
@@ -122,8 +117,8 @@ class ChessAppLayoutInstrumentedTest {
             }
         }
 
-        val idleBoard = bounds("chess-board")
-        val idleActions = bounds("game-actions")
+        val idleBoard = composeRule.boundsDp("chess-board")
+        val idleActions = composeRule.boundsDp("game-actions")
         composeRule.runOnUiThread {
             state.value = gameState(
                 moves = listOf("e2e4"),
@@ -134,8 +129,8 @@ class ChessAppLayoutInstrumentedTest {
             )
         }
         composeRule.waitForIdle()
-        assertEquals(idleBoard, bounds("chess-board"))
-        assertEquals(idleActions, bounds("game-actions"))
+        assertBoundsEqual(idleBoard, composeRule.boundsDp("chess-board"), "chess-board")
+        assertBoundsEqual(idleActions, composeRule.boundsDp("game-actions"), "game-actions")
 
         composeRule.runOnUiThread {
             state.value = gameState(
@@ -145,38 +140,9 @@ class ChessAppLayoutInstrumentedTest {
             )
         }
         composeRule.waitForIdle()
-        assertEquals(idleBoard, bounds("chess-board"))
-        assertEquals(idleActions, bounds("game-actions"))
+        assertBoundsEqual(idleBoard, composeRule.boundsDp("chess-board"), "chess-board")
+        assertBoundsEqual(idleActions, composeRule.boundsDp("game-actions"), "game-actions")
     }
-
-    private fun assertContained(rootTag: String, childTags: List<String>) {
-        val root = bounds(rootTag)
-        childTags.forEach { tag ->
-            val child = bounds(tag)
-            assertTrue("$tag left edge escaped $rootTag", child.left >= root.left)
-            assertTrue("$tag top edge escaped $rootTag", child.top >= root.top)
-            assertTrue("$tag right edge escaped $rootTag", child.right <= root.right)
-            assertTrue("$tag bottom edge escaped $rootTag", child.bottom <= root.bottom)
-            assertTrue("$tag must have positive width", child.width > 0f)
-            assertTrue("$tag must have positive height", child.height > 0f)
-        }
-    }
-
-    private fun assertNoRootScroll(tag: String) {
-        val node = composeRule.onNodeWithTag(tag).fetchSemanticsNode()
-        assertFalse(
-            "$tag must not expose a root scroll action",
-            node.config.contains(SemanticsActions.ScrollBy),
-        )
-    }
-
-    private fun assertSquare(tag: String) {
-        val value = bounds(tag)
-        assertTrue("$tag must remain square", kotlin.math.abs(value.width - value.height) < 1f)
-    }
-
-    private fun bounds(tag: String): Rect =
-        composeRule.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot
 
     private fun gameState(
         moves: List<String> = emptyList(),
