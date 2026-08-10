@@ -276,12 +276,12 @@
 
 ## AR-015.1 Fix
 
-- [ ] Setup-screen busy-state test: bounds of side selector/depth control/Start Game unchanged vs. non-busy; disabled semantics correct.
-- [ ] Game-screen busy-state test: `game-actions` bounds unchanged vs. non-busy; Resign disabled-semantics correct for both `busy` and `gameOver`.
+- [x] Setup-screen busy-state test: bounds of side selector/depth control/Start Game unchanged vs. non-busy; disabled semantics correct.
+- [x] Game-screen busy-state test: `game-actions` bounds unchanged vs. non-busy; Resign disabled-semantics correct for both `busy` and `gameOver`.
 
 ## AR-015.2 Tests
 
-- [ ] N/A — the tests above are this task's deliverable.
+- [x] N/A — the tests above are this task's deliverable.
 
 ---
 

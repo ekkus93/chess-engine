@@ -272,7 +272,8 @@ internal fun GameActions(
             enabled = !busy && !gameOver,
             modifier = Modifier
                 .weight(1f)
-                .fillMaxSize(),
+                .fillMaxSize()
+                .testTag("action-resign"),
             contentPadding = PaddingValues(horizontal = 6.dp),
             shape = MaterialTheme.shapes.small,
             border = BorderStroke(1.dp, Danger.copy(alpha = 0.65f)),
