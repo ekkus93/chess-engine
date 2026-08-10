@@ -41,7 +41,9 @@ internal fun SetupScreen(
     onSideChanged: (HumanSide) -> Unit,
     onDepthChanged: (Int) -> Unit,
     onStart: () -> Unit,
+    onRetryCleanup: () -> Unit = {},
 ) {
+    val configurationEnabled = !state.busy && !state.cleanupRequired
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -67,9 +69,13 @@ internal fun SetupScreen(
                 color = OnBackground,
             )
             Text(
-                text = "Play against the native Rust chess engine.",
+                text = if (state.cleanupRequired) {
+                    "Native cleanup must succeed before another game can start."
+                } else {
+                    "Play against the native Rust chess engine."
+                },
                 style = MaterialTheme.typography.bodyLarge,
-                color = OnSurfaceMuted,
+                color = if (state.cleanupRequired) Warning else OnSurfaceMuted,
             )
         }
 
@@ -91,7 +97,7 @@ internal fun SetupScreen(
                     )
                     SideSelector(
                         selected = state.humanSide,
-                        enabled = !state.busy,
+                        enabled = configurationEnabled,
                         onSideChanged = onSideChanged,
                     )
                 }
@@ -118,7 +124,7 @@ internal fun SetupScreen(
                         onValueChange = { onDepthChanged(it.roundToInt().coerceIn(1, 12)) },
                         valueRange = 1f..12f,
                         steps = 0,
-                        enabled = !state.busy,
+                        enabled = configurationEnabled,
                         colors = SliderDefaults.colors(
                             thumbColor = PrimaryStrong,
                             activeTrackColor = Primary,
@@ -151,15 +157,15 @@ internal fun SetupScreen(
         }
 
         Button(
-            onClick = onStart,
+            onClick = if (state.cleanupRequired) onRetryCleanup else onStart,
             enabled = !state.busy,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp)
-                .testTag("start-game"),
+                .testTag(if (state.cleanupRequired) "retry-cleanup" else "start-game"),
             shape = MaterialTheme.shapes.medium,
             colors = ButtonDefaults.buttonColors(
-                containerColor = Primary,
+                containerColor = if (state.cleanupRequired) Warning else Primary,
                 contentColor = AppBackground,
             ),
         ) {
@@ -170,7 +176,10 @@ internal fun SetupScreen(
                     strokeWidth = 2.dp,
                 )
             } else {
-                Text("Start game", style = MaterialTheme.typography.labelLarge)
+                Text(
+                    if (state.cleanupRequired) "Retry cleanup" else "Start game",
+                    style = MaterialTheme.typography.labelLarge,
+                )
             }
         }
     }

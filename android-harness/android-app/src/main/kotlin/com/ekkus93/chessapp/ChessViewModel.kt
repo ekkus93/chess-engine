@@ -28,6 +28,7 @@ data class ChessUiState(
     val promotionMoves: List<String> = emptyList(),
     val busy: Boolean = false,
     val errorMessage: String? = null,
+    val cleanupRequired: Boolean = false,
 ) {
     val isSetup: Boolean
         get() = snapshot == null
@@ -42,25 +43,33 @@ class ChessViewModel : ViewModel() {
     private var operationGeneration = 0L
 
     fun setHumanSide(side: HumanSide) {
-        if (mutableState.value.isSetup && !mutableState.value.busy) {
+        if (mutableState.value.isSetup && !mutableState.value.busy && !mutableState.value.cleanupRequired) {
             mutableState.update { it.copy(humanSide = side) }
         }
     }
 
     fun setEngineDepth(depth: Int) {
-        if (mutableState.value.isSetup && !mutableState.value.busy && depth in 1..12) {
+        if (
+            mutableState.value.isSetup &&
+            !mutableState.value.busy &&
+            !mutableState.value.cleanupRequired &&
+            depth in 1..12
+        ) {
             mutableState.update { it.copy(engineDepth = depth) }
         }
     }
 
     fun startGame() {
         val configuration = mutableState.value
-        if (!configuration.isSetup || configuration.busy) {
+        if (!configuration.isSetup || configuration.busy || configuration.cleanupRequired) {
             return
         }
         if (game != null) {
             mutableState.update {
-                it.copy(errorMessage = "A native game is still active; close it before starting another.")
+                it.copy(
+                    cleanupRequired = true,
+                    errorMessage = "A native game is still active. Retry cleanup before starting another game.",
+                )
             }
             return
         }
@@ -79,20 +88,43 @@ class ChessViewModel : ViewModel() {
                 withContext(Dispatchers.Default) { created.close() }
                 return@launch
             }
+            game = created
             val snapshot = try {
                 withContext(Dispatchers.Default) { created.snapshot() }
-            } catch (error: RuntimeException) {
-                withContext(Dispatchers.Default) {
+            } catch (snapshotError: RuntimeException) {
+                val cleanupError = withContext(Dispatchers.Default) {
                     try {
                         created.close()
+                        null
                     } catch (closeError: RuntimeException) {
-                        Log.e(LOG_TAG, "failed to close game after snapshot failure", closeError)
+                        closeError
                     }
                 }
-                publishError(generation, error)
+                if (cleanupError == null) {
+                    if (game === created) {
+                        game = null
+                    }
+                    publishError(generation, snapshotError)
+                } else if (isCurrent(generation)) {
+                    check(game === created) { "native game ownership changed during failed startup cleanup" }
+                    mutableState.update {
+                        it.copy(
+                            busy = false,
+                            selectedSquare = null,
+                            promotionMoves = emptyList(),
+                            cleanupRequired = true,
+                            errorMessage = buildString {
+                                append("Initial native snapshot failed: ")
+                                append(displayMessage(snapshotError))
+                                append(" Cleanup also failed: ")
+                                append(displayMessage(cleanupError))
+                                append(" Retry cleanup before starting another game.")
+                            },
+                        )
+                    }
+                }
                 return@launch
             }
-            game = created
             publishSnapshot(generation, snapshot)
             monitorSearch(created, generation, snapshot)
         }
@@ -107,6 +139,7 @@ class ChessViewModel : ViewModel() {
                     promotionMoves = emptyList(),
                     busy = false,
                     errorMessage = null,
+                    cleanupRequired = false,
                 )
             }
             return
@@ -124,7 +157,17 @@ class ChessViewModel : ViewModel() {
             try {
                 withContext(Dispatchers.Default) { current.close() }
             } catch (error: RuntimeException) {
-                publishError(generation, error)
+                if (isCurrent(generation)) {
+                    mutableState.update {
+                        it.copy(
+                            busy = false,
+                            selectedSquare = null,
+                            promotionMoves = emptyList(),
+                            cleanupRequired = true,
+                            errorMessage = displayMessage(error),
+                        )
+                    }
+                }
                 return@launch
             }
             if (!isCurrent(generation)) {
@@ -139,6 +182,7 @@ class ChessViewModel : ViewModel() {
                     promotionMoves = emptyList(),
                     busy = false,
                     errorMessage = null,
+                    cleanupRequired = false,
                 )
             }
         }
@@ -304,6 +348,7 @@ class ChessViewModel : ViewModel() {
                 selectedSquare = null,
                 promotionMoves = emptyList(),
                 errorMessage = null,
+                cleanupRequired = false,
             )
         }
     }

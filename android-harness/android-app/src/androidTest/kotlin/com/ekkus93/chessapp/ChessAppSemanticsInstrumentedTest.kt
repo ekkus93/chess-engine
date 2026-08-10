@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertDoesNotExist
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -17,6 +19,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ekkus93.chessengine.ChessGameSnapshot
 import com.ekkus93.chessengine.HumanSide
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -59,6 +62,31 @@ class ChessAppSemanticsInstrumentedTest {
         composeRule.waitForIdle()
         composeRule.onNodeWithContentDescription("Engine depth 12").fetchSemanticsNode()
         composeRule.runOnIdle { assertEquals(12, state.value.engineDepth) }
+    }
+
+    @Test
+    fun cleanupRequiredShowsExplicitRetryAndLocksConfiguration() {
+        var cleanupRetried = false
+        composeRule.setContent {
+            RustChessTheme {
+                Box(Modifier.requiredSize(360.dp, 640.dp)) {
+                    SetupScreen(
+                        state = ChessUiState(cleanupRequired = true),
+                        onSideChanged = {},
+                        onDepthChanged = {},
+                        onStart = {},
+                        onRetryCleanup = { cleanupRetried = true },
+                    )
+                }
+            }
+        }
+
+        composeRule.onNodeWithTag("start-game").assertDoesNotExist()
+        composeRule.onNodeWithTag("side-white").assertIsNotEnabled()
+        composeRule.onNodeWithTag("side-black").assertIsNotEnabled()
+        composeRule.onNodeWithTag("depth-control").assertIsNotEnabled()
+        composeRule.onNodeWithTag("retry-cleanup").performClick()
+        composeRule.runOnIdle { assertTrue(cleanupRetried) }
     }
 
     @Test

@@ -52,6 +52,7 @@ fun ChessApp(
                     onSideChanged = viewModel::setHumanSide,
                     onDepthChanged = viewModel::setEngineDepth,
                     onStart = viewModel::startGame,
+                    onRetryCleanup = viewModel::returnToSetup,
                 )
             } else {
                 GameScreen(
