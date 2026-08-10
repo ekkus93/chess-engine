@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private const val SEARCH_POLL_MILLISECONDS = 50L
+private const val HUMAN_MOVE_ENGINE_REVEAL_DELAY_MILLISECONDS = 1_000L
 private const val LOG_TAG = "RustChess"
 
 data class ChessUiState(
@@ -256,7 +257,12 @@ class ChessViewModel : ViewModel() {
                 return@launch
             }
             publishSnapshot(generation, snapshot)
-            monitorSearch(current, generation, snapshot)
+            monitorSearch(
+                current,
+                generation,
+                snapshot,
+                firstPollDelayMilliseconds = HUMAN_MOVE_ENGINE_REVEAL_DELAY_MILLISECONDS,
+            )
         }
     }
 
@@ -264,6 +270,7 @@ class ChessViewModel : ViewModel() {
         session: ChessGame,
         generation: Long,
         initial: ChessGameSnapshot,
+        firstPollDelayMilliseconds: Long = SEARCH_POLL_MILLISECONDS,
     ) {
         monitorJob?.cancel()
         if (!initial.thinking || game !== session || !isCurrent(generation)) {
@@ -271,8 +278,10 @@ class ChessViewModel : ViewModel() {
         }
         monitorJob = viewModelScope.launch {
             var snapshot = initial
+            var pollDelayMilliseconds = firstPollDelayMilliseconds
             while (snapshot.thinking && game === session && isCurrent(generation)) {
-                delay(SEARCH_POLL_MILLISECONDS)
+                delay(pollDelayMilliseconds)
+                pollDelayMilliseconds = SEARCH_POLL_MILLISECONDS
                 snapshot = try {
                     withContext(Dispatchers.Default) { session.poll() }
                 } catch (error: RuntimeException) {
