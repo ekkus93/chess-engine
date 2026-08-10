@@ -225,12 +225,12 @@
 
 ## AR-011.1 Fix
 
-- [ ] Instrumentation test renders `PromotionDialog` with a real `onChoose` callback, clicks each of the four options, asserts the captured move string is correct for each.
-- [ ] End-to-end promotion flow test added if a deterministic fixture/path is practical (or documented here why not practical).
+- [x] Instrumentation test renders `PromotionDialog` with a real `onChoose` callback, clicks each of the four options, asserts the captured move string is correct for each.
+- [x] End-to-end promotion flow test added if a deterministic fixture/path is practical (or documented here why not practical).
 
 ## AR-011.2 Tests
 
-- [ ] N/A — the tests above are this task's deliverable.
+- [x] N/A — the tests above are this task's deliverable.
 
 ---
 
