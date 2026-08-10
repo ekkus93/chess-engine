@@ -127,7 +127,7 @@ grep -Fq '| Android UI/UX redesign closure evidence |' "$legacy_index"
 grep -Fq '| Android UI/UX review-fix closure evidence |' "$legacy_index"
 grep -Fq 'There is currently **no active implementation TODO** registered by this index.' "$legacy_index"
 grep -Fq 'Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO`, is not one of the two completed Rust-port authority documents above, and is not explicitly registered as active in the authority table' "$legacy_index"
-grep -Fq '81 TODO-named files total; 2 completed Rust-port authority documents; 0 active implementation TODOs; 2 Android closure-evidence authorities; 1 authority index; 78 historical/planning TODO records including the archived Android tracker' "$legacy_index"
+grep -Fq '82 TODO-named files total; 2 completed Rust-port authority documents; 0 active implementation TODOs; 2 Android closure-evidence authorities; 1 authority index; 79 historical/planning TODO records including the archived Android tracker' "$legacy_index"
 grep -Fq '## Bounded review-fix trackers' "$legacy_index"
 grep -Fq 'a bounded review-fix tracker being executable does not make it the active implementation authority for the program it patches' "$legacy_index"
 bounded_review_fix_section="$(awk '
@@ -139,7 +139,8 @@ for bounded_review_fix_tracker in \
     'docs/RUST_ENGINE_REVIEW_FIX_TODO_2026-08-02.md' \
     'docs/RUST_CHESS_ENGINE_POST_PORT_REVIEW_FIX_TODO_2026-08-04.md' \
     'docs/RUST_TUI_REVIEW_FIX_TODO_2026-08-09.md' \
-    'docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md'; do
+    'docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md' \
+    'docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_TODO_2026-08-10.md'; do
     grep -Fq "\`$bounded_review_fix_tracker\`" <<<"$bounded_review_fix_section" || {
         echo "bounded review-fix tracker not listed under its classification: $bounded_review_fix_tracker" >&2
         exit 1
