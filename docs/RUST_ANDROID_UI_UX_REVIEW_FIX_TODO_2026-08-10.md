@@ -147,14 +147,14 @@
 
 ## AR-006.1 Fix — prefer removing the timing dependency (QI-006)
 
-- [ ] Attempted a formulation that captures pre-append state explicitly (e.g. a `remember`ed previous-size comparison) rather than relying on effect-ordering timing, as the first-choice resolution.
-- [ ] Implemented the robust formulation if practical; if not, recorded here specifically why it was impractical or riskier than the timing-dependent approach.
-- [ ] If the timing-dependent formulation was retained: inline comment added above `wasNearBottom` in `GamePanels.kt` explaining the effect-ordering dependency, and recorded as explicit tracked technical debt here, naming the two guarding tests.
+- [x] Attempted a formulation that captures pre-append state explicitly (e.g. a `remember`ed previous-size comparison) rather than relying on effect-ordering timing, as the first-choice resolution.
+- [x] Implemented the robust formulation if practical; if not, recorded here specifically why it was impractical or riskier than the timing-dependent approach.
+- [x] If the timing-dependent formulation was retained: inline comment added above `wasNearBottom` in `GamePanels.kt` explaining the effect-ordering dependency, and recorded as explicit tracked technical debt here, naming the two guarding tests.
 
 ## AR-006.2 Tests
 
-- [ ] `newestRowStaysVisibleWhenHistoryWasAtBottom` remains green.
-- [ ] `newRowDoesNotStealManualHistoricalPosition` remains green.
+- [x] `newestRowStaysVisibleWhenHistoryWasAtBottom` remains green.
+- [x] `newRowDoesNotStealManualHistoricalPosition` remains green.
 
 ---
 

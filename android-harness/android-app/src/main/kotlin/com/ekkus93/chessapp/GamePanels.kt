@@ -20,7 +20,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -36,15 +40,23 @@ internal fun MoveHistoryPanel(
     listState: LazyListState,
 ) {
     val rows = remember(sanMoves) { moveRows(sanMoves) }
-    LaunchedEffect(rows.size) {
-        if (rows.isEmpty()) {
-            return@LaunchedEffect
+    var followLatest by remember(listState) { mutableStateOf(true) }
+    LaunchedEffect(listState) {
+        snapshotFlow {
+            val layout = listState.layoutInfo
+            val lastVisible = layout.visibleItemsInfo.lastOrNull()?.index
+            val nearBottom = layout.totalItemsCount == 0 ||
+                lastVisible == null || lastVisible >= layout.totalItemsCount - 2
+            listState.isScrollInProgress to nearBottom
+        }.collect { (scrolling, nearBottom) ->
+            // Layout growth alone cannot change follow mode; only an actual scroll does.
+            if (scrolling) {
+                followLatest = nearBottom
+            }
         }
-        val layout = listState.layoutInfo
-        val lastVisible = layout.visibleItemsInfo.lastOrNull()?.index
-        val wasNearBottom = layout.totalItemsCount == 0 ||
-            lastVisible == null || lastVisible >= layout.totalItemsCount - 2
-        if (wasNearBottom) {
+    }
+    LaunchedEffect(rows.size, followLatest) {
+        if (rows.isNotEmpty() && followLatest) {
             listState.animateScrollToItem(rows.lastIndex)
         }
     }
