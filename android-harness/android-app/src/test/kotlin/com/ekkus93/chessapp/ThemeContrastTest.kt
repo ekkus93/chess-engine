@@ -45,6 +45,7 @@ class ThemeContrastTest {
         requireRatio("primary label", AppBackground, Primary, 4.5)
         requireRatio("strong primary label", AppBackground, PrimaryStrong, 4.5)
         requireRatio("danger label", AppBackground, Danger, 4.5)
+        requireRatio("resign dialog confirm", Danger, SurfaceElevated, 4.5)
         requireRatio("coordinate on light", CoordinateLabelOnLight, BoardLight, 4.5)
         requireRatio("coordinate on dark", CoordinateLabelOnDark, BoardDark, 4.5)
     }
