@@ -38,6 +38,14 @@ A pre-implementation review of this spec/TODO pair (`docs/RUST_ANDROID_UI_UX_REV
 - **QI-011** (CC-009's permanent-CI requirement was conditional — "if cross-workspace changes require it" — despite this pass touching Android source/tests and authoritative docs) — resolved by making it unconditionally mandatory, matching the parent program's own AR-021 standard.
 - **QI-012** (correcting the parent TODO "in place" risks erasing the historical fact that a correction was needed) — resolved by requiring provenance-preserving wording for every corrected claim, added to CC-009.
 
+### 1.2 Second pre-implementation resolution note
+
+A follow-up review (`docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_FOLLOWUP_QUESTIONS_AND_ISSUES_2026-08-10.md`, FQI-001 through FQI-003) confirmed the first round's substance held up, but found three further issues, since resolved:
+
+- **FQI-001** (§2.1's terminal step instructed recording the trigger commit's own CI run IDs "in that trigger commit's own citation" — a literal impossibility, since those run IDs don't exist until after the commit is already pushed; writing them into the repo afterward would create a new SHA and restart the exact recursion the protocol was built to stop) — resolved by removing the self-citation instruction entirely. §2.1 now distinguishes repository-resident evidence (everything knowable before the terminal trigger push) from terminal external GitHub Actions metadata (the trigger commit's own run/job IDs, which are verified independently via `gh` and reported in the final implementation handoff, never written back into a new commit).
+- **FQI-002** (several tasks now have legitimate mutually-exclusive outcomes — e.g. CC-002B may correctly not exist as a commit at all — but their checkboxes were still phrased as though every branch must reach `[x]`, which is impossible for whichever branch wasn't taken) — resolved by converting CC-002B, CC-003, and CC-004 to disposition-oriented checklists: one checkbox confirms a valid, evidence-backed disposition was reached, with the untaken branch explicitly marked `N/A` rather than left as a false `[ ]`.
+- **FQI-003** (CC-005's git-comparison evidence used unrestricted/whole-tree commands, which would show inequality merely because documentation changed — the actual claim being made is narrower: that no *product/test* file differs, not that the whole tree is identical) — resolved by path-scoping the comparison to the surfaces the claim is actually about.
+
 ---
 
 ## 2. Engineering constraints retained
@@ -56,9 +64,10 @@ This pass changes the repository tree across CC-001 through CC-009, so `e9ab0fc6
 1. **Review baseline SHA** (`e9ab0fc...`) is fixed and never reinterpreted as anything else.
 2. **Implementation-start SHA** is captured immediately after CC-000's baseline/authority-registration work lands, mirroring the parent program's own AR-000 pattern.
 3. CC-001 through CC-008 land normally, one task per commit (except CC-002, which is explicitly two commits — see §6).
-4. At CC-009, once every functional/documentation change this pass makes is complete, permanent CI is run against the true final tree exactly once: if the very last commit is itself a source/test change, permanent CI naturally validates it directly; if the very last commit is documentation-only (e.g. writing this pass's own closure-evidence section), push exactly one empty, tree-identical trigger commit — the same mechanism the parent program used for `e9ab0fc` itself — solely to obtain a fresh SHA for permanent CI to validate against that exact final tree.
-5. The resulting run IDs are recorded **once**, in that trigger commit's own citation. **No further commit is made to correct or supplement that citation.** This is the deliberate point where the protocol terminates: since the trigger commit is empty (adds nothing new), the tree it validates is already fully and accurately described by the commit immediately before it, so recording its run IDs is pure metadata addition, not a substantive claim requiring its own re-validation. If a genuine defect is later found in the corrections pass itself, it is fixed via a new, separately-tracked bounded pass — not by reopening this SHA-citation cycle.
-6. This protocol is distinct from CC-005, which edits the **parent** program's closure-evidence document to describe an already-immutable historical SHA (`e9ab0fc`) more completely — that edit does not reopen any self-referential cycle, since it is describing a fact about a tree that is not itself changing.
+4. All **repository-resident** evidence — everything CC-001 through CC-008 establish, plus CC-009's own validation-surface results and provenance-preserving corrections to the parent TODO — is written into its final form in the last substantive commit. That commit fully and accurately describes the correction pass; it does not attempt to cite its own not-yet-existing CI results.
+5. If that last substantive commit is documentation-only, push exactly one empty, tree-identical trigger commit — the same mechanism the parent program used for `e9ab0fc` itself — solely to obtain a fresh SHA for permanent CI to validate against that exact final tree. If the last substantive commit itself changes source/test files, it is the trigger; no separate empty commit is needed.
+6. **Terminal exact-SHA GitHub Actions run/job IDs and conclusions are external metadata, not repository content** (FQI-001 — they cannot exist inside the commit that causes them, and writing them into the repo afterward would only create a new SHA and restart the exact recursion this protocol exists to stop). They are independently verified via `gh` after the trigger push, and reported in this pass's final implementation handoff — **no further commit is made to the repository to record them.** The CC-009 acceptance gate requires the terminal CI to be confirmed green by that independent verification; it does not require a further repository mutation to satisfy that requirement.
+7. This protocol is distinct from CC-005, which edits the **parent** program's closure-evidence document to describe an already-immutable historical SHA (`e9ab0fc`) more completely — that edit does not reopen any self-referential cycle, since `e9ab0fc`'s own CI runs already existed (and were already queried) before CC-005's edit, so CC-005 is citing a fact about a prior, already-closed commit, not attempting to cite itself.
 
 ---
 
@@ -109,8 +118,10 @@ If the existing icon-appearance-only test is judged sufficient after this genuin
 
 ### 4.4 CC-002B — Conditional remediation (only if CC-002A found a real defect)
 
-- If bars render incorrectly: add the explicit `WindowCompat`/`WindowInsetsControllerCompat` (or `enableEdgeToEdge()`) call the original spec described, in `MainActivity.kt`, and re-verify using the same observation contract as CC-002A.
-- If CC-002A found no defect: CC-002B does not exist as a commit; record in the TODO that CC-002B was not needed and why, referencing CC-002A's evidence.
+CC-002B has exactly two mutually exclusive valid dispositions (FQI-002 — checkbox-per-branch phrasing is impossible to satisfy honestly here, since only one branch can ever be true for a given observation): **remediation-required** or **remediation-not-needed**. Exactly one disposition is reached and recorded with evidence; the other is marked `N/A` rather than left as a false incomplete `[ ]`.
+
+- **If CC-002A found bars render incorrectly (remediation-required disposition):** add the explicit `WindowCompat`/`WindowInsetsControllerCompat` (or `enableEdgeToEdge()`) call the original spec described, in `MainActivity.kt`, as its own commit; re-verify using the same observation contract as CC-002A.
+- **If CC-002A found bars already correct (remediation-not-needed disposition):** CC-002B lands no commit; the TODO records this disposition explicitly, referencing CC-002A's evidence as the reason.
 
 ### 4.5 Tests
 
@@ -127,12 +138,12 @@ If the existing icon-appearance-only test is judged sufficient after this genuin
 
 ### 5.2 Fix
 
-Add real behavioral evidence, following one of exactly two policies (QI-005 — a middle ground where only one operation is executed and the other two are treated as behaviorally proven "by analogy" is explicitly disallowed, since the post-guard bodies and side effects of the three functions genuinely differ even though the guard predicate is shared):
+CC-003 has exactly two mutually exclusive valid dispositions (FQI-002): **seam-built** or **claims-downgraded**. Exactly one is reached and recorded with evidence; the other is marked `N/A` rather than treated as an independently-required checkbox.
 
-- **Preferred, if a clean test seam exists:** find or add a genuine, narrowly-scoped test seam (e.g., an internal/test-visible way to construct a `ChessViewModel` against a fake/instrumented game handle, or an androidTest that drives the real `ChessGame` through the full app and counts actual engine-call side effects across a rapid double-tap) and use it to behaviorally test **all three** of `restartGame()`, `resign()`, and `submitMove()` — not one representative function — covering both the duplicate-invocation case and the `cleanupRequired` case for each, proving no second operation launches, no state mutation, and no new error is surfaced. If the project is going to pay the complexity cost of building a real seam at all, testing only one function while claiming three were fixed would just recreate the exact "documentation claims more than execution proves" problem this correction pass exists to close.
-- **Preferred, if a clean test seam does not exist:** do not distort production architecture solely to manufacture the test. Instead, correct AR-007.2's checkboxes in `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md` to state exactly what is proven — predicate correctness (`ActiveGameOperationGuardTest.kt`) plus static guard-ordering (`ReviewFixArchitectureTest.kt`) — with the behavioral-proof limitation explicitly and honestly documented, not implied to be stronger than it is.
+- **Seam-built disposition (preferred if a clean test seam exists):** find or add a genuine, narrowly-scoped test seam (e.g., an internal/test-visible way to construct a `ChessViewModel` against a fake/instrumented game handle, or an androidTest that drives the real `ChessGame` through the full app and counts actual engine-call side effects across a rapid double-tap) and use it to behaviorally test **all three** of `restartGame()`, `resign()`, and `submitMove()` — not one representative function (QI-005 — a middle ground where only one operation is executed and the other two are treated as behaviorally proven "by analogy" is explicitly disallowed, since the post-guard bodies and side effects of the three functions genuinely differ even though the guard predicate is shared) — covering both the duplicate-invocation case and the `cleanupRequired` case for each, proving no second operation launches, no state mutation, and no new error is surfaced.
+- **Claims-downgraded disposition (if a clean test seam does not exist):** do not distort production architecture solely to manufacture the test. Instead, correct AR-007.2's checkboxes in `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md` to state exactly what is proven — predicate correctness (`ActiveGameOperationGuardTest.kt`) plus static guard-ordering (`ReviewFixArchitectureTest.kt`) — with the behavioral-proof limitation explicitly and honestly documented, not implied to be stronger than it is.
 
-Record explicitly in the TODO which policy was taken and why.
+Record explicitly in the TODO which disposition was reached and why.
 
 ### 5.3 Tests
 
@@ -148,12 +159,13 @@ AR-011's second required deliverable — an end-to-end tap-driven promotion test
 
 ### 6.2 Fix
 
-Add an end-to-end instrumentation test that drives a real board through a promotion-eligible position, opens the promotion dialog through the actual production flow (not by invoking `PromotionDialog` directly), selects a promotion piece via a real tap, and asserts the resulting snapshot/move reflects the correct promotion. Reaching that position is explicitly bounded to one of exactly two acceptable mechanisms (QI-010 — this boundary exists specifically to prevent scope creep into a general production FEN-loading capability added only to make the test convenient):
+Add an end-to-end instrumentation test that drives a real board through a promotion-eligible position, opens the promotion dialog through the actual production flow (not by invoking `PromotionDialog` directly), selects a promotion piece via a real tap, and asserts the resulting snapshot/move reflects the correct promotion.
 
-1. **Preferred:** a deterministic sequence of real legal moves, driven through the actual UI (the same board-tap mechanism `PortraitRotationInstrumentedTest.kt`/`ChessAppEndToEndInstrumentedTest.kt` already use), that reaches a promotion-eligible position through ordinary legal play — e.g. racing a pawn down an open file against a depth-1 engine opponent, or an equivalent short, reliable sequence.
-2. **Acceptable if (1) is impractical:** a narrowly-scoped, **test-only** fixture seam (reachable only from `androidTest` sources, never compiled into or reachable from the production app) that initializes the underlying game session directly to a promotion-eligible position. This must not become, or require, a general/player-facing FEN-loading feature, and must not add any chess-rule/legality logic to Kotlin — the seam only needs to reach a state the real `chess-app`/JNI layer already supports constructing.
+CC-004 has exactly three mutually exclusive valid dispositions (FQI-002): **UI-driven fixture**, **test-only fixture seam**, or **documented blocker**. Exactly one is reached and recorded with evidence; the other two are marked `N/A`. Reaching the promotion-eligible position is bounded to the first two mechanisms only (QI-010 — this boundary exists specifically to prevent scope creep into a general production FEN-loading capability added only to make the test convenient):
 
-If, after a genuine attempt at (1), it proves impractical and (2) is also not straightforward within this pass's scope, document the specific blocker in the TODO instead of leaving the checkbox silently unexplained.
+1. **UI-driven fixture disposition (preferred):** a deterministic sequence of real legal moves, driven through the actual UI (the same board-tap mechanism `PortraitRotationInstrumentedTest.kt`/`ChessAppEndToEndInstrumentedTest.kt` already use), that reaches a promotion-eligible position through ordinary legal play — e.g. racing a pawn down an open file against a depth-1 engine opponent, or an equivalent short, reliable sequence.
+2. **Test-only fixture seam disposition (if 1 is impractical):** a narrowly-scoped, **test-only** fixture seam (reachable only from `androidTest` sources, never compiled into or reachable from the production app) that initializes the underlying game session directly to a promotion-eligible position. This must not become, or require, a general/player-facing FEN-loading feature, and must not add any chess-rule/legality logic to Kotlin — the seam only needs to reach a state the real `chess-app`/JNI layer already supports constructing.
+3. **Documented-blocker disposition (if both 1 and 2 prove impractical after a genuine attempt):** the specific blocker is documented in the TODO instead of the checkbox being left silently unexplained; no new instrumentation test is added under this disposition.
 
 ### 6.3 Tests
 
@@ -170,7 +182,11 @@ If, after a genuine attempt at (1), it proves impractical and (2) is also not st
 ### 7.2 Fix
 
 - Update `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_EVIDENCE_2026-08-10.md`'s "Permanent exact-source-SHA CI" section to cite the actual final-tree run IDs (`31419183264` for general/Rust CI, `31419183273` for Android CI) with their own job IDs and conclusions, alongside or in place of the `6d9a84d` citation — the document should be self-evidencing for the tree it claims to validate without requiring a reader to independently query GitHub to find the real final-tree evidence.
-- Note explicitly that the `6d9a84d` runs remain valid supporting evidence, but do not describe green CI runs themselves as proof that the two trees are source-identical (QI-007 — passing CI is not a tree-equivalence proof; only a git comparison is). Instead, record the actual git evidence: run and paste the literal output of a tree/diff comparison between `6d9a84d` and `e9ab0fc` (e.g. `git diff --stat 6d9a84d..e9ab0fc` and/or `git rev-parse 6d9a84d^{tree} e9ab0fc^{tree}` if a tree-hash comparison is more direct for the specific claim being made) into the closure-evidence document, so the no-source-difference claim is backed by a reproducible git command and its output, not by an inference from unrelated CI success.
+- Note explicitly that the `6d9a84d` runs remain valid supporting evidence, but do not describe green CI runs themselves as proof that the two trees are source-identical (QI-007 — passing CI is not a tree-equivalence proof; only a git comparison is). Instead, record the actual git evidence — **path-scoped to the specific claim being made** (FQI-003 — the whole-tree diff between these two SHAs is *not* empty, since closure documentation, the authority index, and the audit script all legitimately changed; an unrestricted or whole-tree comparison would show inequality regardless of whether product/test surfaces changed, so it does not establish or refute the narrower claim actually intended):
+  ```bash
+  git diff --exit-code 6d9a84d910a3e6438aef390aa733a4b62a71dfdd..e9ab0fc623c22bd372ba9c8c2609dfcf74609f84 -- android-harness crates
+  ```
+  A zero exit code / empty output from this path-scoped command is the actual evidence that no Android or Rust product/test file differs between the two SHAs. Record its literal output (or its exit code and "empty diff") in the closure-evidence document. Separately, record an unrestricted `git diff --name-only 6d9a84d910a3e6438aef390aa733a4b62a71dfdd..e9ab0fc623c22bd372ba9c8c2609dfcf74609f84` to show exactly which documentation/authority files did change, so the two facts — "product/test surfaces unchanged" and "these specific docs changed" — are each precisely evidenced rather than conflated.
 
 ### 7.3 Tests
 
@@ -232,7 +248,8 @@ The Resign confirmation dialog's confirm button renders `Danger` content color o
 
 - Run the full applicable validation surface: Android app JVM/unit tests (including the CC-001/CC-003/CC-008 additions), Android lint, the CC-004 instrumentation addition, and CC-002A's runtime observation (plus CC-002B's re-verification if it landed).
 - Run `bash scripts/dev.sh fast` to confirm no cross-workspace regression.
-- **Permanent CI is mandatory, not conditional** (QI-011 — this pass touches Android source/tests and authoritative documentation, the same standard the parent program's own AR-021 already applied to itself): the permanent Android CI workflow/job and the permanent general/Rust CI workflow/job must both be green on the exact final correction SHA, following the closure-SHA protocol in §2.1. This is not gated on "if cross-workspace changes require it" — it is required unconditionally for this pass.
+- **Permanent CI is mandatory, not conditional** (QI-011 — this pass touches Android source/tests and authoritative documentation, the same standard the parent program's own AR-021 already applied to itself): the permanent Android CI workflow/job and the permanent general/Rust CI workflow/job must both be green on the exact final correction SHA, following the closure-SHA protocol in §2.1. This is not gated on "if cross-workspace changes require it" — it is required unconditionally for this pass. Per §2.1/FQI-001, satisfying this requirement means independently confirming (via `gh`) that the terminal trigger SHA's CI is green and reporting those run/job IDs in the final implementation handoff — it does not require writing those IDs back into the repository.
+- **CC-004's disposition-dependent validation** (FQI-002): if CC-004 reached the UI-driven-fixture or test-only-fixture-seam disposition, its new instrumentation test passes as part of this validation surface. If CC-004 reached the documented-blocker disposition, there is no new instrumentation test to pass, and this bullet is satisfied by confirming the documented-blocker record is complete instead.
 
 ### 11.2 Provenance-preserving correction of the parent TODO (QI-012)
 
@@ -254,6 +271,7 @@ Do not describe corrected checkboxes as though the original AR-00N implementatio
 
 ### 11.4 Closure evidence
 
-- Update `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_EVIDENCE_2026-08-10.md` per CC-005.
-- Record exact commands, results, and CI run/job evidence — per §2.1's closure-SHA protocol — in the companion TODO's closure section.
+- Update `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_EVIDENCE_2026-08-10.md` per CC-005 (this is a description of the already-immutable **parent** program's historical SHA, not a self-citation — see §2.1 point 7).
+- Record all repository-resident evidence (exact local commands run, their results, and every CC-001 through CC-008 disposition) in the companion TODO's closure section.
+- Per §2.1/FQI-001, do **not** attempt to write the terminal trigger SHA's own permanent CI run/job IDs into this file or any other repository file — that information is external GitHub Actions metadata, independently verified via `gh`, and reported in this pass's final implementation handoff instead.
 - Do not mark any CC task `[x]` without the specific evidence named in its own section above.

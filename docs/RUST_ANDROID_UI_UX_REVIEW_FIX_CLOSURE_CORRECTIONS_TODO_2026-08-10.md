@@ -41,6 +41,8 @@
 
 - [ ] Read `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_QUESTIONS_AND_ISSUES_2026-08-10.md` in full.
 - [ ] Confirmed all twelve items were resolved and incorporated into the spec's §2.1 (closure-SHA protocol), CC-001 through CC-005, and CC-009, and into this TODO's matching sections. None was rejected on a factual-precedent basis (unlike one item in the parent program's first review round).
+- [ ] Read `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_FOLLOWUP_QUESTIONS_AND_ISSUES_2026-08-10.md` in full.
+- [ ] Confirmed FQI-001 (the closure-SHA protocol's terminal step was literally impossible — it required recording CI run IDs inside the commit that triggers them, before those IDs exist), FQI-002 (several tasks' checkboxes couldn't honestly all reach `[x]` given their own legitimate mutually-exclusive dispositions), and FQI-003 (CC-005's git evidence needed to be path-scoped to the actual claim, not a whole-tree comparison that would show inequality for unrelated reasons) were all resolved and incorporated into spec §2.1/§11.4 and CC-002B/CC-003/CC-004/CC-005, and into this TODO's matching sections.
 
 ## CC-000.3 SHA tracking (§2.1 closure-SHA protocol)
 
@@ -86,10 +88,11 @@
 
 ## CC-002B: Conditional remediation (only if CC-002A found a defect)
 
-- [ ] `WindowCompat`/`WindowInsetsControllerCompat`/`enableEdgeToEdge()` call added in `MainActivity.kt`.
-- [ ] Re-verified against the same observation-evidence contract as CC-002A.
-- [ ] Existing `styles.xml` legacy attributes retained regardless of outcome.
-- [ ] If CC-002A found no defect: this sub-task explicitly recorded as not needed, referencing CC-002A's evidence, rather than left silently absent.
+CC-002B reaches exactly one of two dispositions (FQI-002); mark the untaken one `N/A` rather than leaving it as an incomplete `[ ]`.
+
+- [ ] **Disposition reached:** either "remediation-required" (fix landed and re-verified) or "remediation-not-needed" (CC-002A's evidence shows no fix was needed) — recorded explicitly here.
+- [ ] If remediation-required: `WindowCompat`/`WindowInsetsControllerCompat`/`enableEdgeToEdge()` call added in `MainActivity.kt`; re-verified against the same observation-evidence contract as CC-002A; existing `styles.xml` legacy attributes retained. *(N/A if remediation-not-needed.)*
+- [ ] If remediation-not-needed: explicitly recorded as such, referencing CC-002A's evidence. *(N/A if remediation-required.)*
 
 ## CC-002 Tests
 
@@ -102,10 +105,12 @@
 
 ## CC-003.1 Fix
 
+CC-003 reaches exactly one of two dispositions (FQI-002); mark the untaken one `N/A`.
+
 - [ ] Attempted a genuine behavioral test seam (fake/instrumented game handle, or a real androidTest driving the app end-to-end).
-- [ ] If a seam was built: **all three** of `restartGame()`, `resign()`, and `submitMove()` tested behaviorally, not just one representative function (spec §5.2/QI-005) — each covering both the duplicate-invocation case and the `cleanupRequired` case, proving no second operation launches, no state mutation, no new error.
-- [ ] If a genuine seam proved impractical: AR-007.2's checkboxes in `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md` reworded to accurately describe only what is actually proven (predicate correctness + static guard-ordering), with the stronger unproven claim removed or explicitly caveated — not a middle ground where one function is tested and the other two claimed by analogy.
-- [ ] Whichever path taken is recorded explicitly here, with reasoning.
+- [ ] **Disposition reached:** either "seam-built" or "claims-downgraded" — recorded explicitly here, with reasoning.
+- [ ] If seam-built: **all three** of `restartGame()`, `resign()`, and `submitMove()` tested behaviorally, not just one representative function (spec §5.2/QI-005) — each covering both the duplicate-invocation case and the `cleanupRequired` case, proving no second operation launches, no state mutation, no new error. *(N/A if claims-downgraded.)*
+- [ ] If claims-downgraded: AR-007.2's checkboxes in `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md` reworded to accurately describe only what is actually proven (predicate correctness + static guard-ordering), with the stronger unproven claim removed or explicitly caveated — not a middle ground where one function is tested and the other two claimed by analogy. *(N/A if seam-built.)*
 
 ## CC-003.2 Tests
 
@@ -117,9 +122,11 @@
 
 ## CC-004.1 Fix
 
-- [ ] End-to-end instrumentation test added: promotion-eligible position reached via one of the two bounded mechanisms (spec §6.2/QI-010) — preferably a real legal-move sequence driven through the UI, or a narrowly-scoped test-only fixture seam (never production/player-facing) if that proves impractical — promotion dialog opens through the real production flow (not direct `PromotionDialog` invocation), a real tap selects a promotion piece, resulting move/snapshot asserted correct.
-- [ ] Confirmed no general/production FEN-loading capability or Kotlin chess-rule logic was added to make the fixture work.
-- [ ] If genuinely impractical after a real attempt at both mechanisms: specific blocker documented here instead of the checkbox being left silently unexplained.
+CC-004 reaches exactly one of three dispositions (FQI-002); mark the other two `N/A`.
+
+- [ ] **Disposition reached:** "UI-driven fixture," "test-only fixture seam," or "documented blocker" — recorded explicitly here.
+- [ ] If UI-driven fixture or test-only fixture seam: end-to-end instrumentation test added — promotion dialog opens through the real production flow (not direct `PromotionDialog` invocation), a real tap selects a promotion piece, resulting move/snapshot asserted correct. Confirmed no general/production FEN-loading capability or Kotlin chess-rule logic was added to make the fixture work. *(N/A if documented blocker.)*
+- [ ] If documented blocker: specific blocker documented here instead of the checkbox being left silently unexplained; no new instrumentation test added. *(N/A if a fixture disposition was reached.)*
 
 ## CC-004.2 Tests
 
@@ -132,11 +139,11 @@
 ## CC-005.1 Fix
 
 - [ ] `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_EVIDENCE_2026-08-10.md`'s "Permanent exact-source-SHA CI" section updated to cite general/Rust CI run `31419183264` and Android CI run `31419183273` (with their own job IDs/conclusions) against SHA `e9ab0fc623c22bd372ba9c8c2609dfcf74609f84`.
-- [ ] The `6d9a84d` runs retained as supporting evidence, but **not** described as proof the two trees are source-identical (spec §7.2/QI-007) — instead, the literal output of an actual git comparison (`git diff --stat 6d9a84d..e9ab0fc` and/or a tree-hash comparison) is recorded in the closure-evidence document as the backing evidence for that specific claim.
+- [ ] The `6d9a84d` runs retained as supporting evidence, but **not** described as proof the two trees are source-identical (spec §7.2/QI-007) — instead, the path-scoped comparison `git diff --exit-code 6d9a84d..e9ab0fc -- android-harness crates` (FQI-003 — scoped to the actual claim, not a whole-tree diff that would show inequality merely because documentation changed) is recorded, along with a supplementary unrestricted `git diff --name-only` showing exactly which documentation/authority files did change.
 
 ## CC-005.2 Tests
 
-- [ ] N/A — documentation-only. Both new run IDs independently re-queried via `gh` during implementation and confirmed to match what is written; the recorded git comparison command independently re-run and confirmed to match its recorded output.
+- [ ] N/A — documentation-only. Both new run IDs independently re-queried via `gh` during implementation and confirmed to match what is written; the recorded path-scoped git comparison independently re-run and confirmed to match its recorded output (empty/zero exit code).
 
 ---
 
@@ -182,10 +189,10 @@
 
 - [ ] Android app JVM/unit tests pass, including CC-001/CC-003/CC-008 additions.
 - [ ] Android lint passes.
-- [ ] CC-004's instrumentation addition passes.
-- [ ] CC-002A's runtime observation was actually performed (CI-executed acceptable) and recorded; CC-002B's re-verification recorded if it landed.
+- [ ] CC-004's disposition-dependent validation satisfied: its instrumentation test passes if a fixture disposition was reached, or its documented-blocker record is complete if that disposition was reached instead (FQI-002).
+- [ ] CC-002A's runtime observation was actually performed (CI-executed acceptable) and recorded; CC-002B's disposition (remediation-required and re-verified, or remediation-not-needed) recorded.
 - [ ] `bash scripts/dev.sh fast` passes.
-- [ ] **Permanent CI is mandatory (spec §11.1/QI-011), not conditional**: permanent Android CI and permanent general/Rust CI are both green on the exact final correction SHA, following the closure-SHA protocol (spec §2.1).
+- [ ] **Permanent CI is mandatory (spec §11.1/QI-011), not conditional**: permanent Android CI and permanent general/Rust CI are both green on the exact final correction SHA, following the closure-SHA protocol (spec §2.1) — confirmed by independently querying `gh` after the terminal trigger push and reported in the final implementation handoff (FQI-001 — not by writing those run IDs back into the repository).
 
 ## CC-009.2 Provenance-preserving correction of the parent TODO (QI-012)
 
@@ -202,7 +209,8 @@
 ## CC-009.4 Closure evidence
 
 - [ ] `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_EVIDENCE_2026-08-10.md` updated per CC-005.
-- [ ] Exact commands, results, and CI run/job evidence recorded below, per the closure-SHA protocol (spec §2.1) — recorded once, at the terminal trigger commit, with no further citation-chasing edit afterward.
+- [ ] All repository-resident evidence recorded below (FQI-001/§2.1) — everything knowable before the terminal trigger push.
+- [ ] Terminal permanent CI run/job IDs are **not** added to this template after the fact — per §2.1, they are external GitHub Actions metadata, independently verified via `gh`, and reported in this pass's final implementation handoff instead of being written back into the repository.
 
 ```text
 Review baseline SHA:        e9ab0fc623c22bd372ba9c8c2609dfcf74609f84
@@ -210,13 +218,13 @@ Implementation start SHA:
 Final correction source SHA:
 
 Android app unit/lint results:
-CC-004 instrumentation result:
+CC-004 disposition and result:
 CC-002A runtime observation result:
-CC-002B remediation result (if applicable):
+CC-002B disposition and result:
 bash scripts/dev.sh fast result:
 
-Permanent Android CI run/job IDs:
-Permanent general/Rust CI run/job IDs:
+(Terminal permanent CI run/job IDs: reported externally in the final
+implementation handoff per §2.1 — not recorded in this file.)
 ```
 
 ## CC-009 acceptance
@@ -224,5 +232,5 @@ Permanent general/Rust CI run/job IDs:
 - [ ] Every CC-001 through CC-008 task is `[x]` with its own recorded evidence.
 - [ ] No first-party lint suppression was added anywhere in this pass.
 - [ ] No existing green test was weakened or deleted to obtain a green run.
-- [ ] Permanent CI (CC-009.1) is green on the exact final correction SHA, recorded once per the closure-SHA protocol.
+- [ ] Permanent CI (CC-009.1) is green on the exact final correction SHA, independently confirmed via `gh` per the closure-SHA protocol and reported in the final implementation handoff — not recorded in the repository.
 - [ ] This document's Status header updated to `Complete` only once all of the above holds.
