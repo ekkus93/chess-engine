@@ -6,9 +6,9 @@
 [![Performance](https://github.com/ekkus93/chess-engine/actions/workflows/performance.yml/badge.svg?branch=master)](https://github.com/ekkus93/chess-engine/actions/workflows/performance.yml)
 [![Variant validation](https://github.com/ekkus93/chess-engine/actions/workflows/variant-validation.yml/badge.svg?branch=master)](https://github.com/ekkus93/chess-engine/actions/workflows/variant-validation.yml)
 
-A correctness-first Rust chess engine with Linux UCI, native TUI and scrolling-console applications, portable engine/search crates, C and JNI adapters, Android integration, explicit opening-book support, offline self-play and tuning infrastructure, and permanent perft, differential, robustness, performance, and strength gates.
+A correctness-first Rust chess engine with Linux UCI, native TUI, scrolling-console, and Android applications; portable engine/search crates; C and JNI adapters; explicit opening-book support; offline self-play and tuning infrastructure; and permanent perft, differential, robustness, performance, and strength gates.
 
-**Authoritative implementation:** the Rust workspace on `master`. New integrations should use the safe Rust crates, UCI executable, native Rust TUI, scrolling Rust console app, C ABI, or JNI boundary. The full migration, traceability, versions, evidence, and roadmap are recorded in [`docs/RUST_CHESS_ENGINE_PORT_IMPLEMENTATION_REPORT.md`](docs/RUST_CHESS_ENGINE_PORT_IMPLEMENTATION_REPORT.md).
+**Authoritative implementation:** the Rust workspace on `master`. New integrations should use the safe Rust crates, UCI executable, native Rust TUI, scrolling Rust console app, Android application/session API, C ABI, or JNI boundary. The full migration, traceability, versions, evidence, and roadmap are recorded in [`docs/RUST_CHESS_ENGINE_PORT_IMPLEMENTATION_REPORT.md`](docs/RUST_CHESS_ENGINE_PORT_IMPLEMENTATION_REPORT.md).
 
 The former Python implementation remains in the repository as historical reference material. Python development and Python engine CI are intentionally retired after migration signoff. Python remains permitted for the pinned independent `python-chess` differential oracle and repository validation tooling; production Rust crates do not embed or launch Python.
 
@@ -57,11 +57,14 @@ bash scripts/dev.sh console-smoke
 
 # Additional real-PTY TUI acceptance coverage
 bash scripts/dev.sh tui-pty-smoke
+
+# Build JNI, test harnesses, and the playable Android app
+bash scripts/dev.sh android
 ```
 
-## Human-facing Rust applications
+## Human-facing applications
 
-Both human-facing frontends use the same presentation-neutral `chess-app` application/session layer. `chess-app` owns game configuration and lifecycle, generation/ticket state, exact search-worker events, cancellation, stale-result rejection, shared text formatting, and atomic write primitives. Chess rules remain in `chess-core` and search remains in `chess-search`.
+The native TUI, scrolling console, and Android application share presentation-neutral game/search behavior through `chess-app`. `chess-app` owns game configuration and lifecycle, generation/ticket state, exact search-worker events, cancellation, stale-result rejection, and the interactive fail-closed search policy. Chess rules remain in `chess-core` and search remains in `chess-search`.
 
 ### Native Rust TUI
 
@@ -114,6 +117,24 @@ Console saves use deterministic text beginning with `Chess Engine Rust Console s
 
 `bash scripts/dev.sh console-smoke` runs real-process acceptance tests for startup/quit, Human White and Human Black engine flows, illegal-move visibility, resignation confirmation, save/overwrite/failure behavior, Self-play pause/step/resume, confirmed quit during active search, and EOF during active search.
 
+### Android application
+
+`android-harness/android-app` is a real launcher application built with Kotlin and Jetpack Compose. It is separate from `android-harness/android-smoke`, which remains an instrumentation harness.
+
+Android v0.1 supports Human vs Engine play, White/Black selection, engine depths 1–12, tap-to-move board input, explicit promotion choice, human-side board orientation, engine thinking/metrics/PV, move history, restart/resign/new-game confirmations, and visible errors.
+
+The app uses the high-level Kotlin `ChessGame` API in `crates/chess-jni`. Its native owner contains the same Rust `chess_app::GameController` and `SearchWorker` used by the other interactive frontends. Kotlin projects Rust-provided FEN/legal moves into UI state; it does not implement another chess rule engine, choose fallback moves, or independently schedule engine turns.
+
+Build the Android app and both JNI ABIs with:
+
+```bash
+export ANDROID_NDK_HOME="$HOME/Android/Sdk/ndk/<version>"
+export ANDROID_API_LEVEL=24
+bash scripts/dev.sh android
+```
+
+The debug APK is produced at `android-harness/android-app/build/outputs/apk/debug/android-app-debug.apk`. See [`docs/RUST_ANDROID_APP.md`](docs/RUST_ANDROID_APP.md).
+
 ## Workspace
 
 - `crates/chess-core` — position representation, rules, legal generation, FEN, hashing, history, and exact perft.
@@ -124,10 +145,11 @@ Console saves use deterministic text beginning with `Chess Engine Rust Console s
 - `crates/chess-tui` — native Ratatui/Crossterm full-screen frontend over `chess-app`.
 - `crates/chess-console` — human-facing scrolling stdin/stdout frontend over `chess-app`.
 - `crates/chess-ffi` — safe facade and versioned C ABI.
-- `crates/chess-jni` — JNI adapter.
+- `crates/chess-jni` — low-level engine JNI adapter plus high-level `chess-app` interactive session adapter.
 - `crates/chess-tools` — perft, oracle, benchmarks, self-play, tuning orchestration, and candidate evidence.
 - `crates/chess-tune` — loss, named weight schemas, SPSA, checkpoints, and artifacts.
-- `android-harness` — Kotlin/JVM and API-35 integration tests.
+- `android-harness/android-app` — playable Kotlin/Jetpack Compose Android application.
+- `android-harness/android-smoke` and `android-harness/host-jvm` — Android/JVM JNI integration tests.
 - `fuzz` — separate fuzz workspace with committed corpora and minimized regressions.
 - `fixtures` — versioned schemas and authoritative inputs.
 - `benchmarks/task24` — accepted reference performance distributions.
@@ -157,7 +179,7 @@ The authoritative port specification is [`docs/RUST_CHESS_ENGINE_PORT_SPEC_2026-
 Permanent workflows are intentionally separate:
 
 - `CI` — Rust formatting, checks, Clippy, tests, release perft, rustdoc, x86-64 and ARM64 builds, and differential oracle;
-- `Android JNI` — Kotlin lint, host-JVM JNI, dual native ABIs, APKs, API-35 lifecycle and metrics;
+- `Android JNI` — Kotlin/app lint and unit tests, host-JVM JNI, focused shared-app bridge tests, dual native ABIs, playable/test APKs, API-35 low-level JNI lifecycle plus Human White/Human Black app instrumentation, and a downloadable debug APK artifact;
 - `Robustness` — fuzzing, Miri, ASan/LSan, and TSan;
 - `Performance` — x86-64 and ARM64 regression budgets plus scheduled Callgrind;
 - `Slow perft` — scheduled/manual authoritative depth five;
@@ -177,6 +199,8 @@ Generated-output rules and deliberate evidence promotion are defined in [`docs/R
 - [`docs/RUST_CONSOLE_TODO.md`](docs/RUST_CONSOLE_TODO.md)
 - [`docs/RUST_CONSOLE_IMPLEMENTATION.md`](docs/RUST_CONSOLE_IMPLEMENTATION.md)
 - [`docs/RUST_ANDROID_JNI.md`](docs/RUST_ANDROID_JNI.md)
+- [`docs/RUST_ANDROID_APP.md`](docs/RUST_ANDROID_APP.md)
+- [`docs/RUST_ANDROID_TEST_HARNESS.md`](docs/RUST_ANDROID_TEST_HARNESS.md)
 - [`docs/RUST_FUZZING.md`](docs/RUST_FUZZING.md)
 - [`docs/RUST_SELF_PLAY_DATASET.md`](docs/RUST_SELF_PLAY_DATASET.md)
 - [`docs/RUST_TUNING_WORKFLOW.md`](docs/RUST_TUNING_WORKFLOW.md)

@@ -165,9 +165,17 @@ This drives the actual `chess-console` executable through piped stdin/stdout and
 
 See `docs/RUST_CONSOLE_SPEC.md`, `docs/RUST_CONSOLE_TODO.md`, and `docs/RUST_CONSOLE_IMPLEMENTATION.md`.
 
-## Android/JNI
+## Android application and JNI
 
-Set the NDK explicitly, then build both JNI ABIs, lint/build the Android harness, build its test APK, and run the host-JVM JNI contract:
+The Android project contains three separate surfaces:
+
+- `android-harness/android-app` — the playable Kotlin/Jetpack Compose application;
+- `android-harness/android-smoke` — Android JNI/instrumentation harness;
+- `android-harness/host-jvm` — host JVM JNI contract tests.
+
+The playable app uses the high-level Kotlin `ChessGame` owner backed by `chess-app::GameController` and `SearchWorker`. The existing low-level Kotlin `ChessEngine` API over `chess-ffi` remains supported and independently tested.
+
+Set the NDK explicitly, then build both JNI ABIs, run app unit/lint gates, build the playable and test APKs, build the historical harness/test APKs, and run the host-JVM JNI contract:
 
 ```bash
 export ANDROID_NDK_HOME="$HOME/Android/Sdk/ndk/<version>"
@@ -175,7 +183,15 @@ export ANDROID_API_LEVEL=24
 bash scripts/dev.sh android
 ```
 
-The local command does not start an emulator. Permanent CI additionally runs API-35 instrumentation and lifecycle/performance assertions. See `docs/RUST_ANDROID_JNI.md` and `docs/RUST_ANDROID_TEST_HARNESS.md`.
+The local command does not start an emulator. The playable debug APK is written to:
+
+```text
+android-harness/android-app/build/outputs/apk/debug/android-app-debug.apk
+```
+
+Permanent Android CI additionally runs API-35 instrumentation. It executes the historical JNI lifecycle/performance suite and the playable application's launcher, Human White, and Human Black shared-Rust-controller flows, then uploads the debug APK as a workflow artifact.
+
+See `docs/RUST_ANDROID_JNI.md`, `docs/RUST_ANDROID_TEST_HARNESS.md`, and `docs/RUST_ANDROID_APP.md`.
 
 ## Offline self-play
 
@@ -229,7 +245,7 @@ Bounded libFuzzer, Miri, and sanitizer commands are documented in `docs/RUST_FUZ
 Permanent independent workflows include:
 
 - `CI`: x86-64 quality/release/perft/oracle plus native ARM64 workspace builds;
-- `Android JNI`: lint, host JVM, dual JNI ABIs, APKs, and API-35 instrumentation;
+- `Android JNI`: Android/Kotlin lint and app unit tests, host JVM low-level JNI contract, focused high-level shared-app bridge tests, dual JNI ABIs, harness/playable APKs, API-35 instrumentation, and a debug-app artifact;
 - `Robustness`: fuzz, Miri, ASan/LSan, and TSan;
 - `Performance`: x86-64/ARM64 budgets and scheduled Callgrind;
 - `Slow perft`: scheduled/manual depth-five fixtures;

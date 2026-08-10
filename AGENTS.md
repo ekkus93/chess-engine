@@ -11,7 +11,8 @@ Authoritative documents include:
 - `docs/RUST_CHESS_ENGINE_PORT_RALPH_STATUS.md`;
 - `docs/RUST_DEVELOPER_WORKFLOWS.md`;
 - `docs/RUST_CONSOLE_SPEC.md`;
-- `docs/RUST_CONSOLE_TODO.md`.
+- `docs/RUST_CONSOLE_TODO.md`;
+- `docs/RUST_ANDROID_APP.md`.
 
 ## Repository workflow
 
@@ -30,10 +31,12 @@ Authoritative documents include:
 - `chess-app` owns presentation-neutral interactive game/session lifecycle, search worker events, search ticket/generation safety, shared text formatting, and atomic save primitives.
 - `chess-tui` is the retained full-screen Ratatui/Crossterm human frontend. It owns TUI presentation/input/terminal state and consumes `chess-app` for shared gameplay/search lifecycle.
 - `chess-console` is an additional human-facing scrolling stdin/stdout frontend. It consumes `chess-app`; it does not replace `chess-tui`.
-- `chess-uci` remains a separate machine-facing protocol adapter and does not become the implementation backend for either human frontend.
-- C ABI, JNI, Android, tooling, and tuning remain outward adapters/tools.
+- `android-harness/android-app` is the playable Kotlin/Jetpack Compose frontend. Its high-level JNI `ChessGame` owner delegates game/session/search lifecycle to `chess-app`; Kotlin remains presentation/platform code.
+- `chess-uci` remains a separate machine-facing protocol adapter and does not become the implementation backend for human frontends.
+- `chess-ffi` remains the low-level C ABI. `chess-jni` exposes both the existing low-level engine adapter and the high-level Android `chess-app` session adapter.
+- Tooling and tuning remain outward tools.
 
-Do not duplicate `GameController`/`SearchWorker` behavior in `chess-tui` or `chess-console`. Do not move Ratatui/Crossterm/console prompt concerns into `chess-app`.
+Do not duplicate `GameController`/`SearchWorker` behavior in `chess-tui`, `chess-console`, or Android/Kotlin. Do not move Ratatui/Crossterm/console prompt/Compose/platform concerns into `chess-app`.
 
 ## Interactive correctness policy
 
@@ -46,7 +49,8 @@ Do not duplicate `GameController`/`SearchWorker` behavior in `chess-tui` or `che
 - Revalidate returned engine moves against current legal moves before applying them.
 - Preserve generation/ticket rejection so stale results cannot mutate a restarted/abandoned game.
 - Search/channel/worker/save failures must be visible.
-- Engine workers must not be detached; destructive and EOF paths must resolve them explicitly.
+- Engine workers must not be detached; destructive and EOF/close paths must resolve them explicitly.
+- Android native/session close failures must remain visible and retryable; do not clear the final opaque handle before native cleanup succeeds.
 
 ## Coordinate contract
 
@@ -79,7 +83,7 @@ Use `bash scripts/dev.sh help` for exact self-play, tuning, TUI coverage, and va
 ## Testing rules
 
 - Add focused regressions for every behavioral fix.
-- Preserve both console real-process acceptance and TUI real-PTY acceptance when changing `chess-app`.
+- Preserve console real-process acceptance, console/TUI PTY acceptance, and Android Human White/Human Black emulator acceptance when changing `chess-app`.
 - Keep exact perft, state restoration, hash identity, differential validation, fuzz/Miri/sanitizers, ABI/JNI lifecycle, Android instrumentation, performance, and strength gates independent.
 - Do not suppress first-party Rust warnings with `allow` or `expect`; fix them structurally.
 - Do not weaken a test or fixture merely to restore a green run.

@@ -9,7 +9,7 @@
 
 The workspace isolates portable chess logic from protocol, presentation, platform, and offline-tooling layers. Dependencies point outward from the core. No frontend or adapter may become a dependency of a lower-level engine crate.
 
-The human-facing applications share presentation-neutral lifecycle/search behavior through `chess-app`; the full-screen TUI and scrolling console remain separate frontends.
+The human-facing applications share presentation-neutral lifecycle/search behavior through `chess-app`; the full-screen TUI, scrolling console, and Android application remain separate presentation adapters.
 
 ## Crates
 
@@ -23,7 +23,7 @@ The human-facing applications share presentation-neutral lifecycle/search behavi
 | `chess-tui` | binary | Full-screen Ratatui/Crossterm frontend; owns menus, overlays, terminal lifecycle, responsive layout, and TUI-specific input/save UI | `chess-app`, `chess-core`, `chess-search` |
 | `chess-console` | binary/library | Human-facing scrolling stdin/stdout frontend; owns command/menu parsing, input pump, confirmations, and console serialization | `chess-app`, `chess-core` |
 | `chess-ffi` | library | Stable C ABI and opaque-handle boundary | `chess-book`, `chess-core`, `chess-search` |
-| `chess-jni` | library | Android JNI adapter over the C/safe engine boundary | `chess-ffi` |
+| `chess-jni` | library | Android JNI adapters: existing low-level engine API over `chess-ffi` plus high-level interactive session API over `chess-app` | `chess-app`, `chess-core`, `chess-ffi` |
 | `chess-tools` | binary | Perft, divide, fixtures, benchmarks, self-play, and tuning-candidate commands | `chess-core`, `chess-ffi`, `chess-search`, `chess-tune` |
 | `chess-tune` | binary | Offline datasets, parameter tuning, and candidate validation | `chess-core`, `chess-search` |
 
@@ -38,14 +38,14 @@ chess-uci           -> chess-book, chess-core, chess-search
 chess-tui           -> chess-app, chess-core, chess-search
 chess-console       -> chess-app, chess-core
 chess-ffi           -> chess-book, chess-core, chess-search
-chess-jni           -> chess-ffi
+chess-jni           -> chess-app, chess-core, chess-ffi
 chess-tools         -> chess-core, chess-ffi, chess-search, chess-tune
 chess-tune          -> chess-core, chess-search
 ```
 
 `chess-app` is not an engine layer. It is an application/session layer for interactive human-facing frontends. Rules remain authoritative in `chess-core`; evaluation/search/cancellation remain authoritative in `chess-search`.
 
-`chess-uci` deliberately does not depend on `chess-app`: UCI is a machine-facing protocol adapter with its own protocol lifecycle. Conversely, neither `chess-tui` nor `chess-console` launches `chess-uci` as a subprocess.
+`chess-uci` deliberately does not depend on `chess-app`: UCI is a machine-facing protocol adapter with its own protocol lifecycle. Conversely, neither `chess-tui`, `chess-console`, nor the Android application launches `chess-uci` as a subprocess.
 
 ## Human-facing frontend boundary
 
@@ -82,6 +82,29 @@ chess-tune          -> chess-core, chess-search
 - console-specific deterministic non-PGN serialization;
 - normal scrolling terminal output.
 
+### Remains in Android/Kotlin presentation
+
+- Android Activity/ViewModel lifecycle and Compose rendering;
+- setup controls such as human color and requested depth;
+- FEN-to-visible-piece projection for drawing the board;
+- board orientation and tap-selection presentation state;
+- promotion, restart, resign, and new-game dialogs;
+- engine metric/history presentation;
+- off-main-thread JNI calls and bounded polling while the Rust snapshot reports an active search.
+
+The Android application does **not** own a second chess rule engine or independent interactive game controller. `ChessGame` snapshots provide authoritative FEN, legal moves, move history, turn state, outcome, and search metrics from the Rust `GameController`. Android derives selectable squares from the Rust legal-move list and submits the selected UCI move back to Rust.
+
+## Android JNI boundary
+
+`chess-jni` intentionally exposes two layers from the same `libchess_jni.so` artifact:
+
+1. the established low-level `ChessEngine` API over `chess-ffi`, used by engine integrations and contract tests;
+2. the high-level `ChessGame` API over `chess-app`, used by the playable Android application.
+
+The high-level native session owns one `GameController` and at most one active `SearchWorker`. Kotlin polls typed worker events only while the returned snapshot reports `thinking=true`; exact completion is joined, revalidated, and applied in Rust before Kotlin receives the updated position.
+
+Opaque Android game handles remain registered until explicit native close completes successfully. Kotlin clears its corresponding handle only after native destruction succeeds, keeping cleanup failures visible and retryable. A phantom-reference reaper is a last-resort leak backstop, not a substitute for explicit close.
+
 ## Search correctness boundary
 
 Interactive frontends consume only an exact completed search result from `chess-app::SearchWorker`.
@@ -98,7 +121,9 @@ Interactive frontends consume only an exact completed search result from `chess-
 
 The console keeps `GameController` on one application thread. Its background stdin reader sends typed input events only; it owns no game/search state or cleanup-sensitive engine resources. On EOF it terminates and is joinable. On explicit interactive quit, an OS-blocked stdin read may remain process-lifetime; this is documented rather than falsely reported as joined.
 
-Engine workers are different: at most one frontend-owned search worker is active, and destructive/EOF shutdown paths cancel and join it explicitly. Search workers are never intentionally detached.
+The Android high-level JNI owner serializes operations for a game handle, and Kotlin presentation performs JNI operations off the Android main thread. Restart, resignation, and close resolve any active native search worker before the operation is reported successful.
+
+Engine workers are different from process-lifetime input plumbing: at most one frontend-owned search worker is active, and destructive/shutdown paths cancel and join it explicitly. Search workers are never intentionally detached.
 
 ## Enforced boundaries
 
@@ -106,10 +131,11 @@ Engine workers are different: at most one frontend-owned search worker is active
 - `chess-book` and `chess-search` depend only on `chess-core` among workspace crates.
 - `chess-app` depends only on engine-layer crates actually needed for interactive application behavior.
 - `chess-app` must not acquire Ratatui, Crossterm, UCI, FFI, JNI, Android, Python, tuning, or implicit configuration dependencies.
+- `chess-jni` may adapt both the stable low-level engine boundary and the shared `chess-app` interactive boundary, but Android/Kotlin dependencies must never flow inward into `chess-app`, `chess-core`, or `chess-search`.
 - `chess-core`, `chess-book`, `chess-search`, `chess-app`, `chess-uci`, `chess-tui`, `chess-console`, `chess-tools`, and `chess-tune` forbid unsafe code (`#![forbid(unsafe_code)]`). Only `chess-ffi` and `chess-jni` own narrowly scoped necessary unsafe boundary code.
 - Core/search crates do not read files, print, own UI state, use Android APIs, or terminate processes.
 - Optional files cannot silently change engine behavior. Books, weights, datasets, configuration, and frontend save destinations must be explicit.
-- Python is not a production/runtime dependency of the Rust engine or either human-facing Rust frontend.
+- Python is not a production/runtime dependency of the Rust engine or human-facing Rust/Android frontends.
 
 ## Lint policy
 

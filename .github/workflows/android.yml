@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   android-lint:
-    name: Android/Kotlin lint
+    name: Android/Kotlin lint and unit tests
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -35,10 +35,12 @@ jobs:
         with:
           gradle-version: "8.9"
 
-      - name: Run Android Lint
+      - name: Run Android lint and app unit tests
         run: >-
           gradle -p android-harness
           :android-smoke:lintDebug
+          :android-app:lintDebug
+          :android-app:testDebugUnitTest
           --no-daemon --stacktrace --console=plain
 
   host-jvm:
@@ -65,13 +67,16 @@ jobs:
       - name: Build host JNI library
         run: cargo build --locked -p chess-jni --release
 
+      - name: Run high-level shared-app bridge tests
+        run: cargo test --locked -p chess-jni app_bridge::tests -- --test-threads=1
+
       - name: Run host JVM contract tests
         run: >-
           gradle -p android-harness :host-jvm:test
           --no-daemon --stacktrace --console=plain
 
   android-emulator:
-    name: Android API 35 JNI smoke
+    name: Android API 35 JNI and app smoke
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -114,22 +119,26 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ARM64=android-harness/android-smoke/src/main/jniLibs/arm64-v8a/libchess_jni.so
-          X64=android-harness/android-smoke/src/main/jniLibs/x86_64/libchess_jni.so
-          test -s "${ARM64}"
-          test -s "${X64}"
-          file "${ARM64}" | tee /tmp/chess-arm64.txt
-          file "${X64}" | tee /tmp/chess-x64.txt
-          grep -F 'ARM aarch64' /tmp/chess-arm64.txt
-          grep -F 'x86-64' /tmp/chess-x64.txt
-          readelf -Ws "${ARM64}" | grep -F 'Java_com_ekkus93_chessengine_NativeChessEngineBindings_nativeSearch'
-          readelf -Ws "${X64}" | grep -F 'Java_com_ekkus93_chessengine_NativeChessEngineBindings_nativeSearch'
+          for module in android-smoke android-app; do
+            ARM64="android-harness/${module}/src/main/jniLibs/arm64-v8a/libchess_jni.so"
+            X64="android-harness/${module}/src/main/jniLibs/x86_64/libchess_jni.so"
+            test -s "${ARM64}"
+            test -s "${X64}"
+            file "${ARM64}" | tee "/tmp/chess-${module}-arm64.txt"
+            file "${X64}" | tee "/tmp/chess-${module}-x64.txt"
+            grep -F 'ARM aarch64' "/tmp/chess-${module}-arm64.txt"
+            grep -F 'x86-64' "/tmp/chess-${module}-x64.txt"
+            readelf -Ws "${ARM64}" | grep -F 'Java_com_ekkus93_chessengine_NativeChessEngineBindings_nativeSearch'
+            readelf -Ws "${X64}" | grep -F 'Java_com_ekkus93_chessengine_NativeChessAppBindings_nativeCreate'
+          done
 
-      - name: Compile Android library and test APK
+      - name: Compile Android harness and playable app APKs
         run: >-
           gradle -p android-harness
           :android-smoke:assembleDebug
           :android-smoke:assembleDebugAndroidTest
+          :android-app:assembleDebug
+          :android-app:assembleDebugAndroidTest
           --no-daemon --stacktrace --console=plain
 
       - name: Enable KVM
@@ -140,7 +149,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Run instrumented JNI lifecycle and capture metrics
+      - name: Run instrumented JNI lifecycle and playable app smoke
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -152,7 +161,7 @@ jobs:
             -no-snapshot -no-window -gpu swiftshader_indirect
             -noaudio -no-boot-anim -camera-back none
           script: |
-            gradle -p android-harness :android-smoke:connectedDebugAndroidTest --no-daemon --stacktrace --console=plain
+            gradle -p android-harness :android-smoke:connectedDebugAndroidTest :android-app:connectedDebugAndroidTest --no-daemon --stacktrace --console=plain
             adb logcat -d | grep -F 'TASK24_ANDROID_METRIC' | sed 's/^.*TASK24_ANDROID_METRIC/TASK24_ANDROID_METRIC/' | sort -u | tee task24-android-performance.txt
             test -s task24-android-performance.txt
 
@@ -161,5 +170,13 @@ jobs:
         with:
           name: task24-android-performance-${{ github.sha }}
           path: task24-android-performance.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Preserve playable Android debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-chess-android-debug-${{ github.sha }}
+          path: android-harness/android-app/build/outputs/apk/debug/android-app-debug.apk
           if-no-files-found: error
           retention-days: 30

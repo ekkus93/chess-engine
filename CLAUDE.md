@@ -35,7 +35,7 @@ bash scripts/dev.sh artifact-audit
 
 `scripts/dev.sh` is the supported local command dispatcher. The complete command and artifact contract is `docs/RUST_DEVELOPER_WORKFLOWS.md`.
 
-CI (`ci.yml`) runs stricter repository-wide gates than a narrow frontend test. Passing a focused console/TUI check is not proof permanent CI is green.
+CI (`ci.yml`) runs stricter repository-wide gates than a narrow frontend test. Passing a focused console/TUI/Android check is not proof permanent CI is green.
 
 ## Architecture
 
@@ -45,15 +45,17 @@ CI (`ci.yml`) runs stricter repository-wide gates than a narrow frontend test. P
 - `chess-app`: shared presentation-neutral application/session layer for human-facing frontends. It owns interactive configuration/lifecycle, search workers/events, generation/ticket safety, stale-result rejection, shared text formatting, and atomic save primitives.
 - `chess-tui`: retained full-screen Ratatui/Crossterm human frontend over `chess-app`. It owns TUI menus/screens/overlays, key editing, responsive rendering, and terminal lifecycle.
 - `chess-console`: additional scrolling stdin/stdout human frontend over `chess-app`. It owns console prompts/commands, typed stdin events, confirmations, and console-specific save serialization.
+- `android-harness/android-app`: playable Kotlin/Jetpack Compose frontend. It owns Android presentation/platform state and uses the high-level `ChessGame` JNI session backed by `chess-app`; it must not duplicate the game/search controller in Kotlin.
 - `chess-uci`: independent machine-facing UCI protocol adapter; human frontends do not launch it as a subprocess.
-- `chess-ffi`, `chess-jni`: outward C/JNI boundaries.
+- `chess-ffi`: outward C boundary.
+- `chess-jni`: outward JNI boundary with the existing low-level `ChessEngine` API plus the high-level Android `ChessGame`/`chess-app` session adapter.
 - `chess-tools`, `chess-tune`: offline evidence, self-play, loss, SPSA, reports, and validation.
-- `android-harness`: Kotlin/JVM and API-35 lifecycle integration, not a Rust workspace member.
+- `android-harness/android-smoke`, `android-harness/host-jvm`: Android/JVM lifecycle integration tests, not Rust workspace members.
 - `fuzz`: separate locked fuzz workspace.
 
 Full crate dependency direction/ownership: `docs/RUST_WORKSPACE_ARCHITECTURE.md`.
 
-The TUI and console are both supported products. Do not remove one in favor of the other. Shared gameplay/search lifecycle belongs in `chess-app`; presentation-specific state must stay in its frontend.
+The TUI, console, and Android app are supported human-facing products. Shared gameplay/search lifecycle belongs in `chess-app`; presentation-specific state must stay in its frontend.
 
 ## Interactive search policy
 
@@ -67,11 +69,17 @@ Interactive frontends are fail-closed:
 - revalidate engine moves against current legal moves;
 - ignore stale generation/ticket results;
 - surface search worker/channel failures;
-- resolve engine workers on cancellation/destructive/EOF paths rather than intentionally detaching them.
+- resolve engine workers on cancellation/destructive/EOF/close paths rather than intentionally detaching them.
 
 ## Console lifecycle policy
 
 The console uses ordinary line-oriented stdin/stdout. A background stdin reader may send typed input events only and must not own game/search state. EOF is distinct from an empty line and must resolve an active engine worker before exit. If an interactive OS stdin read is blocked during explicit process quit, document that process-lifetime reader honestly; do not pretend it was joined. This exception applies only to the state-free input reader, never an engine search worker.
+
+## Android lifecycle policy
+
+The playable app performs JNI calls off the Android main thread. The native high-level session owns the authoritative `GameController` plus at most one `SearchWorker`. Kotlin may project FEN/legal-move snapshots into UI state, but it must not independently implement move legality or engine scheduling.
+
+Explicit close is authoritative. Native high-level handles remain registered until native cleanup succeeds; Kotlin clears its handle only after native destruction succeeds. A failed explicit close must stay visible and retryable. The phantom-reference reaper is a leak backstop for an unreachable owner, not a normal success path.
 
 ## Coordinate contract
 
@@ -87,7 +95,7 @@ Never add first-party `allow`/`expect` lint suppression. Never delete a regressi
 
 ## Generated artifacts
 
-Follow `docs/RUST_GENERATED_ARTIFACT_POLICY.md`. Self-play data, tuning output, checkpoints, current benchmarks, Callgrind files, Android captures, and build output are transient unless deliberately promoted with schema, provenance, checksum, validator/replay, and review rationale.
+Follow `docs/RUST_GENERATED_ARTIFACT_POLICY.md`. Self-play data, tuning output, checkpoints, current benchmarks, Callgrind files, Android captures/APKs, and build output are transient unless deliberately promoted with schema, provenance, checksum, validator/replay, and review rationale.
 
 Tuning candidates remain inactive until a separate explicit validation/activation decision.
 

@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -343,7 +342,7 @@ private fun ChessBoard(
             Row(modifier = Modifier.weight(1f)) {
                 files.forEach { file ->
                     val square = "$file$rank"
-                    val baseColor = if (((file - 'a') + rank) % 2 == 1) light else dark
+                    val baseColor = if (((file - 'a') + rank) % 2 == 0) light else dark
                     val squareColor = when {
                         square == selectedSquare -> selected
                         square in legalTargets -> target

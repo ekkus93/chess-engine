@@ -20,7 +20,7 @@ Commands:
   console                           Run the human-facing scrolling Rust console app.
   console-smoke                     Run real-process chess-console acceptance coverage.
   console-pty-smoke                 Run pseudo-terminal chess-console acceptance coverage.
-  android                           Build JNI libraries and the Android harness.
+  android                           Build JNI, harness, and playable Android app.
   self-play CONFIG OUTPUT           Generate one versioned offline dataset.
   tune CONFIG DATASET OUTPUT [CKPT] Run/resume offline SPSA; candidate stays inactive.
   fuzz-smoke                        Run stable fuzz entrypoint and corpus regressions.
@@ -129,6 +129,10 @@ android() {
     :android-smoke:lintDebug \
     :android-smoke:assembleDebug \
     :android-smoke:assembleDebugAndroidTest \
+    :android-app:testDebugUnitTest \
+    :android-app:lintDebug \
+    :android-app:assembleDebug \
+    :android-app:assembleDebugAndroidTest \
     :host-jvm:test \
     --no-daemon --stacktrace --console=plain
 }
