@@ -78,7 +78,6 @@ fn resolve_legal_move(game: &mut Game, parsed: UciMove) -> Result<Move, String> 
         .map_err(|error| format!("legal move generation failed: {error}"))?;
     let mut matches = legal_moves
         .iter()
-        .copied()
         .filter(|candidate| parsed.matches(*candidate));
     let Some(chess_move) = matches.next() else {
         return Err(format!("move {parsed} is not legal"));
