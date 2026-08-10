@@ -230,6 +230,27 @@ mod tests {
     }
 
     #[test]
+    fn piece_capture_uses_capture_notation() {
+        let game = game("4k3/8/8/4p3/8/5N2/8/4K3 w - - 0 1");
+        let current = resolve(&game, "f3e5");
+        assert_eq!(move_to_san(&game, current).expect("SAN"), "Nxe5");
+    }
+
+    #[test]
+    fn disambiguated_piece_capture_keeps_file_prefix() {
+        let game = game("4k3/8/8/8/4p3/2N5/5N2/4K3 w - - 0 1");
+        let current = resolve(&game, "c3e4");
+        assert_eq!(move_to_san(&game, current).expect("SAN"), "Ncxe4");
+    }
+
+    #[test]
+    fn capture_promotion_can_carry_check() {
+        let game = game("k2r4/4P3/8/8/8/8/8/4K3 w - - 0 1");
+        let current = resolve(&game, "e7d8q");
+        assert_eq!(move_to_san(&game, current).expect("SAN"), "exd8=Q+");
+    }
+
+    #[test]
     fn history_replays_from_standard_root_without_mutating_source() {
         let mut game = Game::starting();
         for current in ["e2e4", "c7c5", "g1f3"] {

@@ -305,13 +305,13 @@
 
 ## AR-017.1 Fix
 
-- [ ] Piece-capture SAN test added (e.g. `Nxe5`) against a hand-verified real position.
-- [ ] Disambiguation-plus-capture SAN test added (e.g. `Ndxe4`).
-- [ ] Capture-promotion SAN test added (e.g. `exd8=Q`), with a check/mate variant if practical.
+- [x] Piece-capture SAN test added (e.g. `Nxe5`) against a hand-verified real position.
+- [x] Disambiguation-plus-capture SAN test added (e.g. `Ndxe4`).
+- [x] Capture-promotion SAN test added (e.g. `exd8=Q`), with a check/mate variant if practical.
 
 ## AR-017.2 Tests
 
-- [ ] Every new test's expected SAN string hand-verified against real chess legality before being accepted.
+- [x] Every new test's expected SAN string hand-verified against real chess legality before being accepted.
 
 ---
 
