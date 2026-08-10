@@ -11,14 +11,14 @@ use chess_app::{
     text::{format_duration, format_outcome, format_score},
     EngineEvent, GameConfig, GameController, SearchTicket, SearchWorker,
 };
-use chess_core::Color;
+use chess_core::{san_history_from_start, Color};
 use chess_ffi::c_abi::ChessEngineResultCode;
 use jni::sys::{jint, jlong};
 
 use crate::bridge::{token_from_jlong, token_to_jlong, BridgeError, BridgeResult};
 
 const SNAPSHOT_SEPARATOR: char = '\u{001f}';
-const SNAPSHOT_VERSION: &str = "1";
+const SNAPSHOT_VERSION: &str = "2";
 const SNAPSHOT_END: &str = "END";
 const WHITE_CODE: jint = 1;
 const BLACK_CODE: jint = 2;
@@ -215,6 +215,12 @@ impl AppGame {
             .map(|current| current.to_uci())
             .collect::<Vec<_>>()
             .join(" ");
+        let san_moves = san_history_from_start(session.game.moves())
+            .map_err(|error| BridgeError::Abi {
+                code: ChessEngineResultCode::GameError,
+                message: format!("failed to format Android SAN history: {error}"),
+            })?
+            .join(" ");
         let human_color = match session.config.human_color() {
             Some(Color::White) => "white",
             Some(Color::Black) => "black",
@@ -258,6 +264,7 @@ impl AppGame {
             session.game.position().to_fen(),
             legal_moves,
             moves,
+            san_moves,
             human_color.to_owned(),
             side_to_move.to_owned(),
             if session.thinking { "1" } else { "0" }.to_owned(),
@@ -475,12 +482,20 @@ mod tests {
         let mut game = AppGame::new(Color::White, 1).expect("game starts");
         let snapshot = game.snapshot().expect("snapshot");
         let fields: Vec<_> = snapshot.split(SNAPSHOT_SEPARATOR).collect();
-        assert_eq!(fields.len(), 17);
-        assert_eq!(fields[0], "1");
-        assert_eq!(fields[4], "white");
+        assert_eq!(fields.len(), 18);
+        assert_eq!(fields[0], "2");
+        assert_eq!(fields[3], "");
+        assert_eq!(fields[4], "");
         assert_eq!(fields[5], "white");
-        assert_eq!(fields[6], "0");
-        assert_eq!(fields[16], SNAPSHOT_END);
+        assert_eq!(fields[6], "white");
+        assert_eq!(fields[7], "0");
+        assert_eq!(fields[17], SNAPSHOT_END);
+
+        game.submit_move("e2e4").expect("human move applies");
+        let after_move = game.snapshot().expect("post-move snapshot");
+        let after_fields: Vec<_> = after_move.split(SNAPSHOT_SEPARATOR).collect();
+        assert_eq!(after_fields[3], "e2e4");
+        assert_eq!(after_fields[4], "e4");
         game.close().expect("game closes");
     }
 
