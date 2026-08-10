@@ -238,11 +238,11 @@
 
 ## AR-012.1 Fix
 
-- [ ] Instrumentation test renders `ChessEngineErrorDialog` with a known message, asserts the text is present, clicks dismiss, asserts the expected callback/state-clear behavior and no other side effect.
+- [x] Instrumentation test renders `ChessEngineErrorDialog` with a known message, asserts the text is present, clicks dismiss, asserts the expected callback/state-clear behavior and no other side effect.
 
 ## AR-012.2 Tests
 
-- [ ] N/A — the test above is this task's deliverable.
+- [x] N/A — the test above is this task's deliverable.
 
 ---
 
