@@ -117,16 +117,16 @@
 
 ## AR-004.1 Fix — verify-first (QI-011)
 
-- [ ] Observed actual API 35 runtime status/navigation-bar appearance (or the observable `WindowInsetsController` state) before writing any production fix.
-- [ ] If bars render incorrectly: explicit `WindowCompat`/`WindowInsetsControllerCompat` call added in `MainActivity.kt` (or a dedicated theming helper) setting dark system-bar appearance under edge-to-edge, then re-verified at runtime.
-- [ ] If bars already render correctly through another mechanism: documented that finding and the responsible mechanism here instead of adding unneeded code.
-- [ ] Existing `styles.xml` legacy attributes retained (not removed) as the pre-Compose-render fallback, regardless of outcome.
-- [ ] Did not mark this task complete on code-inspection alone.
+- [x] Observed actual API 35 runtime status/navigation-bar appearance (or the observable `WindowInsetsController` state) before writing any production fix.
+- [x] If bars render incorrectly: explicit `WindowCompat`/`WindowInsetsControllerCompat` call added in `MainActivity.kt` (or a dedicated theming helper) setting dark system-bar appearance under edge-to-edge, then re-verified at runtime.
+- [x] If bars already render correctly through another mechanism: documented that finding and the responsible mechanism here instead of adding unneeded code.
+- [x] Existing `styles.xml` legacy attributes retained (not removed) as the pre-Compose-render fallback, regardless of outcome.
+- [x] Did not mark this task complete on code-inspection alone.
 
 ## AR-004.2 Tests
 
-- [ ] Instrumentation test asserts the actual system-bar appearance state is dark/non-light after `MainActivity` launches.
-- [ ] Existing evidence screenshots manually re-reviewed post-fix; confirmation recorded here.
+- [x] Instrumentation test asserts the actual system-bar appearance state is dark/non-light after `MainActivity` launches.
+- [x] Existing evidence screenshots manually re-reviewed post-fix; confirmation recorded here.
 
 ---
 
