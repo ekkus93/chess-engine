@@ -70,9 +70,9 @@ internal fun SetupScreen(
             )
             Text(
                 text = if (state.cleanupRequired) {
-                    "Native cleanup must succeed before another game can start."
+                    "Cleanup must finish before another game can start."
                 } else {
-                    "Play against the native Rust chess engine."
+                    "Play against the Rust chess engine."
                 },
                 style = MaterialTheme.typography.bodyLarge,
                 color = if (state.cleanupRequired) Warning else OnSurfaceMuted,

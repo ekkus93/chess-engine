@@ -102,14 +102,14 @@
 
 ## AR-003.1 Fix
 
-- [ ] `SetupScreen.kt:73`'s subtitle no longer contains "native".
-- [ ] `SetupScreen.kt:75`'s cleanup-required message no longer contains "native"/"Native".
-- [ ] No other player-visible string literal in `android-harness/android-app/src/main/kotlin` contains "native", "JNI", "shared layer", or "architecture".
+- [x] `SetupScreen.kt:73`'s subtitle no longer contains "native".
+- [x] `SetupScreen.kt:75`'s cleanup-required message no longer contains "native"/"Native".
+- [x] No other player-visible string literal in `android-harness/android-app/src/main/kotlin` contains "native", "JNI", "shared layer", or "architecture".
 
 ## AR-003.2 Tests
 
-- [ ] A structural/unit test asserts the absence of "native"/"JNI" in `SetupScreen.kt`'s player-facing string literals.
-- [ ] `ChessAppSemanticsInstrumentedTest.kt`/`ChessAppEndToEndInstrumentedTest.kt` updated for any changed literal-text assertions and remain green.
+- [x] A structural/unit test asserts the absence of "native"/"JNI" in `SetupScreen.kt`'s player-facing string literals.
+- [x] `ChessAppSemanticsInstrumentedTest.kt`/`ChessAppEndToEndInstrumentedTest.kt` updated for any changed literal-text assertions and remain green.
 
 ---
 

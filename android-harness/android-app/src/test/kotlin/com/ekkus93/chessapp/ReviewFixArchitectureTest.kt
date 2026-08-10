@@ -7,8 +7,7 @@ import org.junit.Test
 
 class ReviewFixArchitectureTest {
     private fun source(name: String): String =
-        File(System.getProperty("user.dir"), "src/main/kotlin/com/ekkus93/chessapp/$name")
-            .readText()
+        File(System.getProperty("user.dir"), "src/main/kotlin/com/ekkus93/chessapp/$name").readText()
 
     @Test
     fun boardAndPieceComposablesDoNotOwnProductColorLiterals() {
@@ -25,5 +24,13 @@ class ReviewFixArchitectureTest {
         assertTrue(text.contains("lerp(baseColor, BoardLastMove, 0.30f)"))
         assertTrue(text.contains("CoordinateLabelOnLight"))
         assertTrue(text.contains("CoordinateLabelOnDark"))
+    }
+
+    @Test
+    fun setupPlayerCopyDoesNotExposeNativeArchitectureJargon() {
+        val text = source("SetupScreen.kt")
+        val stringLiterals = Regex("\\\"(?:\\\\.|[^\\\"])*\\\"").findAll(text).map { it.value }.toList()
+        assertFalse(stringLiterals.any { it.contains("native", ignoreCase = true) })
+        assertFalse(stringLiterals.any { it.contains("JNI", ignoreCase = true) })
     }
 }
