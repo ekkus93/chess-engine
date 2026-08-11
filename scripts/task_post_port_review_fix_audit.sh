@@ -28,6 +28,8 @@ android_ui_review_fix_todo="docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.m
 android_ui_review_fix_closure="docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_EVIDENCE_2026-08-10.md"
 android_ui_review_fix_corrections_spec="docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_SPEC_2026-08-10.md"
 android_ui_review_fix_corrections_todo="docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_TODO_2026-08-10.md"
+android_ui_review_fix_second_corrections_spec="docs/RUST_ANDROID_UI_UX_REVIEW_FIX_SECOND_CORRECTIONS_SPEC_2026-08-10.md"
+android_ui_review_fix_second_corrections_todo="docs/RUST_ANDROID_UI_UX_REVIEW_FIX_SECOND_CORRECTIONS_TODO_2026-08-10.md"
 legacy_index="docs/LEGACY_TODO_INDEX.md"
 fen_doc="docs/RUST_FEN_AND_UCI_NOTATION.md"
 fen_source="crates/chess-core/src/position/fen.rs"
@@ -57,6 +59,8 @@ for required in \
     "$android_ui_review_fix_closure" \
     "$android_ui_review_fix_corrections_spec" \
     "$android_ui_review_fix_corrections_todo" \
+    "$android_ui_review_fix_second_corrections_spec" \
+    "$android_ui_review_fix_second_corrections_todo" \
     "$legacy_index" \
     "$fen_doc" \
     "$fen_source"; do
@@ -124,6 +128,7 @@ grep -Fq "\`$android_ui_review_fix_todo\`" "$legacy_index"
 grep -Fq "\`$android_ui_review_fix_closure\`" "$legacy_index"
 grep -Fq "\`$android_ui_review_fix_corrections_todo\`" "$legacy_index"
 grep -Fq "\`$android_ui_review_fix_corrections_todo\` (completed" "$legacy_index"
+grep -Fq "\`$android_ui_review_fix_second_corrections_todo\`" "$legacy_index"
 if grep -Fq 'Active S4 evaluation tuning calibration program' "$legacy_index"; then
     echo 'closed S4 TODO is still active' >&2
     exit 1
@@ -137,7 +142,7 @@ grep -Fq '| Android UI/UX redesign closure evidence |' "$legacy_index"
 grep -Fq '| Android UI/UX review-fix closure evidence |' "$legacy_index"
 grep -Fq 'There is currently **no active implementation TODO** registered by this index.' "$legacy_index"
 grep -Fq 'Apart from this authority index, every other Markdown file directly under `docs/` whose filename contains `TODO`, is not one of the two completed Rust-port authority documents above, and is not explicitly registered as active in the authority table' "$legacy_index"
-grep -Fq '82 TODO-named files total; 2 completed Rust-port authority documents; 0 active implementation TODOs; 2 Android closure-evidence authorities; 1 authority index; 79 historical/planning TODO records including the archived Android tracker' "$legacy_index"
+grep -Fq '83 TODO-named files total; 2 completed Rust-port authority documents; 0 active implementation TODOs; 2 Android closure-evidence authorities; 1 authority index; 80 historical/planning TODO records including the archived Android tracker' "$legacy_index"
 grep -Fq '## Bounded review-fix trackers' "$legacy_index"
 grep -Fq 'a bounded review-fix tracker being executable does not make it the active implementation authority for the program it patches' "$legacy_index"
 bounded_review_fix_section="$(awk '
@@ -150,7 +155,8 @@ for bounded_review_fix_tracker in \
     'docs/RUST_CHESS_ENGINE_POST_PORT_REVIEW_FIX_TODO_2026-08-04.md' \
     'docs/RUST_TUI_REVIEW_FIX_TODO_2026-08-09.md' \
     'docs/RUST_ANDROID_UI_UX_REVIEW_FIX_TODO_2026-08-10.md' \
-    'docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_TODO_2026-08-10.md'; do
+    'docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_TODO_2026-08-10.md' \
+    'docs/RUST_ANDROID_UI_UX_REVIEW_FIX_SECOND_CORRECTIONS_TODO_2026-08-10.md'; do
     grep -Fq "\`$bounded_review_fix_tracker\`" <<<"$bounded_review_fix_section" || {
         echo "bounded review-fix tracker not listed under its classification: $bounded_review_fix_tracker" >&2
         exit 1
