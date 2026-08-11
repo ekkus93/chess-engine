@@ -1,0 +1,26 @@
+name: Android Second Corrections SC003 Finalize
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/android_second_corrections_sc003_finalize.py
+      - .github/workflows/android-second-corrections-sc003-finalize.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    name: Finalize SC-003 provenance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Finalize SC-003 tracker and provenance
+        run: python3 .github/android_second_corrections_sc003_finalize.py
