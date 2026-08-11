@@ -19,7 +19,7 @@ if match is None:
 source = gzip.decompress(base64.b64decode(match.group(1))).decode()
 
 replace_section_block = '''def replace_section(path: Path, start: str, end: str, replacement: str) -> None:\n    text = path.read_text()\n    a = text.index(start)\n    b = text.index(end, a)\n    path.write_text(text[:a] + replacement.rstrip() + "\\n\\n---\\n\\n" + text[b:])\n\n\n'''
-update_section_block = replace_section_block + '''def update_section(path: Path, start: str, end: str, updater) -> None:\n    prefix, section, suffix = section_text(path, start, end)\n    path.write_text(prefix + updater(section) + suffix)\n\n\n'''
+update_section_block = replace_section_block + '''def update_section(path: Path, start: str, end: str, updater) -> None:\n    text = path.read_text()\n    a = text.index(start)\n    b = text.index(end, a)\n    path.write_text(text[:a] + updater(text[a:b]) + text[b:])\n\n\n'''
 if replace_section_block not in source:
     raise RuntimeError("could not locate section helper insertion point")
 source = source.replace(replace_section_block, update_section_block, 1)
