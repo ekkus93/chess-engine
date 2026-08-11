@@ -43,7 +43,7 @@
 ## SC-000.3 SHA tracking
 
 - [x] Review baseline SHA: `a943b67abf4b187f1840a790ad9372d27576c3c5`.
-- [ ] Implementation-start SHA (captured immediately after SC-000 lands): `PENDING_SC000_COMMIT_SHA`
+- [x] Implementation-start SHA (captured immediately after SC-000 lands): `df9155171e84b1be295bf0cd482582d10e5b3d6c`
 
 ## SC-000.4 Scope discipline
 
