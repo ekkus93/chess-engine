@@ -1,0 +1,46 @@
+name: Android Second Corrections Resume
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/android_second_corrections_resume.py
+      - .github/workflows/android-second-corrections-resume.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  resume:
+    name: Resume second-corrections tracker
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Validate resume runner syntax
+        run: python3 -m py_compile .github/android_second_corrections_resume.py
+
+      - name: Resume bounded second-corrections Ralph loop
+        run: python3 .github/android_second_corrections_resume.py
