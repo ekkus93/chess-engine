@@ -86,9 +86,13 @@
 ## CC-002A: Runtime observation
 
 - [x] Direct API-35 framebuffer evidence was added; icon-appearance flags are supporting evidence only.
-- [x] Initial permanent observation: run `31431380577`, API-35 job `93595365511`, exact SHA `6e5fdec216f013fae1257c67899fa26cce02d5e6`, success.
-- [x] The later full-suite 0% status sample was investigated fail-closed rather than ignored. Corrected isolation run `31434333957`, job `93604944381`, artifact `9080478963`, proved the in-test app screenshot had a 100% `#0B1220` status sample while the post-test launcher screenshot was light/0%, identifying a foreground teardown race.
-- [x] Diagnostic hardened at `05ec27dd099fa5ad74f5e5ff0bea2ae1cc5a801c` to require `MainActivity` window focus and foreground package before global screenshot. Permanent Android run `31434848246` then completed all three jobs successfully; API-35 job `93606568633` passed the full connected suite.
+- [x] **API level:** 35, asserted directly by `SystemBarAppearanceInstrumentedTest.kt`.
+- [x] **Emulator/device configuration:** x86_64 `google_apis` system image, Pixel 2 profile, headless emulator using `-gpu swiftshader_indirect`, as defined by `.github/workflows/android.yml`.
+- [x] **Proof type:** `UiAutomation` framebuffer screenshot sampled inside the status/navigation-bar inset regions after `MainActivity` owns window focus and is the foreground package; appearance flags remain supporting assertions only.
+- [x] **Expected color/tolerance:** product background `#0B1220`; RGB tolerance ±12 per channel; both sampled bar regions require a matching-pixel ratio of at least 0.70.
+- [x] **Preserved artifact locations:** device `/sdcard/Download/RustChessEvidence/system-bars-api35.png`; CI workspace after `adb pull`: `android-ui-evidence/system-bars-api35.png`; uploaded Actions artifact `rust-chess-android-ui-evidence-05ec27dd099fa5ad74f5e5ff0bea2ae1cc5a801c` (artifact ID `9080725280`), containing that path under `android-ui-evidence/`.
+- [x] **Stable CI evidence:** permanent Android run `31434848246`, API-35 job `93606568633`, exact SHA `05ec27dd099fa5ad74f5e5ff0bea2ae1cc5a801c`, conclusion `success`.
+- [x] The earlier full-suite 0% sample remains provenance for the foreground-teardown investigation; the focus-bound diagnostic above is the authoritative stable observation.
 
 ## CC-002B: Conditional remediation
 

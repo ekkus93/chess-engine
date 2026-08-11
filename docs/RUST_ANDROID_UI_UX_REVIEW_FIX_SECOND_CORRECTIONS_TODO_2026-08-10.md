@@ -79,14 +79,14 @@
 
 ## SC-002.1 Fix
 
-- [ ] Re-read `SystemBarAppearanceInstrumentedTest.kt`'s actual API-level, tolerance, and threshold values.
-- [ ] Re-read `.github/workflows/android.yml`'s actual emulator/device configuration (API level, ABI, system image, device profile, GPU/rendering mode) and its screenshot pull/artifact-upload steps — this, not the test file, is the source of truth for device/emulator configuration.
-- [ ] `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_TODO_2026-08-10.md`'s CC-002A section updated to include all six required contract fields (spec §4.3 of the CC program), reconciled against **both** sources, not blindly pasted from the old text.
-- [ ] All three artifact-location layers recorded distinctly: device-side path, CI-workspace path after `adb pull`, and uploaded GitHub Actions artifact name/path.
+- [x] Re-read `SystemBarAppearanceInstrumentedTest.kt`: API 35 assertion, ±12 RGB/channel tolerance, ≥0.70 matching-ratio threshold, and device-side screenshot filename/path verified.
+- [x] Re-read `.github/workflows/android.yml`: API 35, x86_64, `google_apis`, Pixel 2 profile, SwiftShader/headless configuration, `adb pull`, and UI-evidence upload configuration verified.
+- [x] CC-002A now records all six evidence-contract dimensions distinctly and reconciles them against both current sources.
+- [x] All three artifact-location layers are explicit: device path, CI-workspace path, and uploaded artifact `rust-chess-android-ui-evidence-05ec27dd099fa5ad74f5e5ff0bea2ae1cc5a801c` / ID `9080725280`.
 
 ## SC-002.2 Tests
 
-- [ ] N/A — documentation-only. Restored text independently re-verified against both `SystemBarAppearanceInstrumentedTest.kt`'s and `.github/workflows/android.yml`'s actual current values.
+- [x] N/A — documentation-only correction; restored text was source-verified against both the instrumentation test and Android workflow before commit.
 
 ---
 
