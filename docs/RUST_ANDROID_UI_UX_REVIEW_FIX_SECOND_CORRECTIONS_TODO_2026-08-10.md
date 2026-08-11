@@ -25,30 +25,30 @@
 
 ## SC-000.1 Review context
 
-- [ ] Confirmed CC-001 fixed its two originally-flagged strings but the identical defect class recurs in `crates/chess-jni/kotlin/.../ChessGame.kt`, outside the scope both the original spec and CC-001's rebuilt test covered.
-- [ ] Confirmed CC-002A's TODO section dropped 3 of 6 required observation-evidence-contract fields between an intermediate commit and the program's closing commit.
-- [ ] Confirmed CC-004's "documented blocker" disposition rests on an unverifiable prose claim with no CI run/artifact/script anywhere in the repository, unlike every comparable claim elsewhere in the CC program.
-- [ ] Recorded the review baseline SHA: `a943b67abf4b187f1840a790ad9372d27576c3c5`.
+- [x] Confirmed CC-001 fixed its two originally-flagged strings but the identical defect class recurs in `crates/chess-jni/kotlin/.../ChessGame.kt`, outside the original scanner root.
+- [x] Confirmed CC-002A's closing TODO text dropped emulator/device configuration, numeric pixel tolerance/threshold detail, and preserved-artifact path information that existed in intermediate evidence.
+- [x] Confirmed CC-004's `documented blocker` rested on prose only: no preserved CI run/artifact/script exists for the bounded promotion-path search.
+- [x] Recorded the review baseline SHA: `a943b67abf4b187f1840a790ad9372d27576c3c5`.
 
 ## SC-000.1b Pre-implementation review resolution
 
-- [ ] Read `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_SECOND_CORRECTIONS_QUESTIONS_AND_ISSUES_2026-08-10.md` in full.
-- [ ] Confirmed all six items were resolved and incorporated into spec §3.2 (SC-001's expanded scan-and-disposition requirement plus mechanical future-directory invariant), §4.2 (SC-002's dual-source-of-truth and three artifact-location layers), §5.2 (SC-003's explicit architectural boundary and authorized multi-commit sequence), §2/§2.1 (touched-file scope and one-commit-per-task exemption for SC-003), and the `§5.3`→`§6.3` cross-reference fix, and into this TODO's matching sections. The reviewer explicitly did not recommend another redesign of the closure-SHA protocol itself.
+- [x] Read `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_SECOND_CORRECTIONS_QUESTIONS_AND_ISSUES_2026-08-10.md` in full.
+- [x] Confirmed all six review items are incorporated into the current spec/TODO: whole-source-root jargon disposition, mechanical Gradle source-root coverage, dual-source system-bar evidence, bounded multi-commit artifact fallback, production-API seam tripwire, and the §6.3 provenance cross-reference.
 
 ## SC-000.2 Authority registration
 
-- [ ] Registered `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_SECOND_CORRECTIONS_TODO_2026-08-10.md` in `docs/LEGACY_TODO_INDEX.md`'s "Bounded review-fix trackers" section and historical inventory.
-- [ ] Updated `scripts/task_post_port_review_fix_audit.sh`'s registration/count checks to match.
+- [x] Confirmed `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_SECOND_CORRECTIONS_TODO_2026-08-10.md` is already registered in `docs/LEGACY_TODO_INDEX.md` as an in-progress bounded review-fix tracker by the pre-implementation spec-resolution commit.
+- [x] Confirmed `scripts/task_post_port_review_fix_audit.sh` already registers the second-corrections spec/TODO and validates the tracker is listed under the bounded-review classification.
 
 ## SC-000.3 SHA tracking
 
-- [ ] Review baseline SHA (state this spec/TODO pair reviewed): `a943b67abf4b187f1840a790ad9372d27576c3c5`.
-- [ ] Implementation-start SHA (captured immediately after SC-000 lands): `_____________________________`
+- [x] Review baseline SHA: `a943b67abf4b187f1840a790ad9372d27576c3c5`.
+- [ ] Implementation-start SHA (captured immediately after SC-000 lands): `PENDING_SC000_COMMIT_SHA`
 
 ## SC-000.4 Scope discipline
 
-- [ ] Reinspected each finding immediately before implementing its fix, in case newer source already resolved it.
-- [ ] Did not reopen any other CC-00N or AR-00N task.
+- [x] Reinspected each finding immediately before implementation; all three remain present at activation.
+- [x] Did not reopen any other CC-00N or AR-00N task.
 
 ---
 
