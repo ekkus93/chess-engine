@@ -30,6 +30,11 @@
 - [ ] Confirmed CC-004's "documented blocker" disposition rests on an unverifiable prose claim with no CI run/artifact/script anywhere in the repository, unlike every comparable claim elsewhere in the CC program.
 - [ ] Recorded the review baseline SHA: `a943b67abf4b187f1840a790ad9372d27576c3c5`.
 
+## SC-000.1b Pre-implementation review resolution
+
+- [ ] Read `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_SECOND_CORRECTIONS_QUESTIONS_AND_ISSUES_2026-08-10.md` in full.
+- [ ] Confirmed all six items were resolved and incorporated into spec §3.2 (SC-001's expanded scan-and-disposition requirement plus mechanical future-directory invariant), §4.2 (SC-002's dual-source-of-truth and three artifact-location layers), §5.2 (SC-003's explicit architectural boundary and authorized multi-commit sequence), §2/§2.1 (touched-file scope and one-commit-per-task exemption for SC-003), and the `§5.3`→`§6.3` cross-reference fix, and into this TODO's matching sections. The reviewer explicitly did not recommend another redesign of the closure-SHA protocol itself.
+
 ## SC-000.2 Authority registration
 
 - [ ] Registered `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_SECOND_CORRECTIONS_TODO_2026-08-10.md` in `docs/LEGACY_TODO_INDEX.md`'s "Bounded review-fix trackers" section and historical inventory.
@@ -54,14 +59,17 @@
 - [ ] Read `android-app/build.gradle.kts`'s actual `sourceSets`/`java.srcDir` configuration to confirm the exact set of Gradle-compiled source directories for this app module (not assumed).
 - [ ] For each of the six "native"-containing strings in `ChessGame.kt` (lines ~49, 52, 54, 78, 84, 215), determined genuine player-reachability by tracing to `ChessViewModel.kt`'s `publishError()` path.
 - [ ] Every genuinely player-reachable string reworded to remove "native" while preserving meaning.
-- [ ] Any string judged genuinely internal-only is allowlisted narrowly and justified inline, matching the existing pattern.
 - [ ] Checked `android-harness/host-jvm/src/test/kotlin/**` for hard-coded old string text; updated if found.
 - [ ] `ReviewFixArchitectureTest.kt` (or a sibling test) extended to scan **all** Gradle-compiled source directories of this module, not just `android-harness/android-app/src/main/kotlin`.
+- [ ] The six originally-reported strings treated as the confirmed triggering defect, not the entire boundary: every additional forbidden-term string literal the expanded scan finds elsewhere in `crates/chess-jni/kotlin/src/main/kotlin/**` (e.g. in `ChessEngine.kt`) is individually dispositioned — reworded, or allowlisted narrowly with inline justification.
+- [ ] Any string judged genuinely internal-only (original six or newly found) is allowlisted narrowly and justified inline, matching the existing pattern.
+- [ ] Mechanical future-directory invariant implemented: either the test derives production source roots from Gradle/source-set metadata at runtime, or a structural assertion parses `build.gradle.kts`'s actual `java.srcDir(...)` declarations and fails if any declared root is absent from the scanner's configured roots.
 
 ## SC-001.2 Tests
 
-- [ ] Extended structural test scans both source directories and passes on corrected strings.
+- [ ] Extended structural test scans both current source directories and passes on all corrected strings (original six plus any newly found).
 - [ ] Implementation-time sanity check: confirmed the extended test fails if "native" is temporarily reintroduced into `ChessGame.kt`.
+- [ ] Implementation-time sanity check: confirmed the mechanical future-directory invariant fails when a hypothetical third `java.srcDir(...)` is temporarily added to `build.gradle.kts` without updating the scanner (then reverted).
 - [ ] Any updated host-JVM test remains green.
 - [ ] Existing Kotlin/JVM and instrumentation tests referencing `ChessGame`/`ChessGameSnapshot` remain green.
 
@@ -71,12 +79,14 @@
 
 ## SC-002.1 Fix
 
-- [ ] Re-read `SystemBarAppearanceInstrumentedTest.kt`'s actual device-config, tolerance, threshold, and artifact-path values.
-- [ ] `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_TODO_2026-08-10.md`'s CC-002A section updated to include all six required contract fields (spec §4.3 of the CC program), reconciled against current test source, not blindly pasted from the old text.
+- [ ] Re-read `SystemBarAppearanceInstrumentedTest.kt`'s actual API-level, tolerance, and threshold values.
+- [ ] Re-read `.github/workflows/android.yml`'s actual emulator/device configuration (API level, ABI, system image, device profile, GPU/rendering mode) and its screenshot pull/artifact-upload steps — this, not the test file, is the source of truth for device/emulator configuration.
+- [ ] `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_TODO_2026-08-10.md`'s CC-002A section updated to include all six required contract fields (spec §4.3 of the CC program), reconciled against **both** sources, not blindly pasted from the old text.
+- [ ] All three artifact-location layers recorded distinctly: device-side path, CI-workspace path after `adb pull`, and uploaded GitHub Actions artifact name/path.
 
 ## SC-002.2 Tests
 
-- [ ] N/A — documentation-only. Restored text independently re-verified against `SystemBarAppearanceInstrumentedTest.kt`'s actual constants.
+- [ ] N/A — documentation-only. Restored text independently re-verified against both `SystemBarAppearanceInstrumentedTest.kt`'s and `.github/workflows/android.yml`'s actual current values.
 
 ---
 
@@ -84,15 +94,16 @@
 
 ## SC-003.1 Fix
 
-- [ ] Attempted to build a narrowly-scoped, test-only fixture seam (androidTest-only, never production-reachable, no Kotlin chess-rule logic, no general FEN-loading feature) initializing a promotion-eligible position.
+- [ ] Checked the explicit architectural boundary **before** attempting the seam: would making the real production UI flow start from a promotion-eligible `ChessGame` state require adding production/native API surface (position/FEN injection) or changing `ChessGame`'s ownership model? If yes, the seam disposition is impractical immediately, without further attempt — proceed directly to `artifact-backed-blocker`.
+- [ ] If the boundary check didn't immediately rule it out: attempted to build a narrowly-scoped, test-only fixture seam (androidTest-only, never production-reachable, no Kotlin chess-rule logic, no general FEN-loading feature) initializing a promotion-eligible position.
 - [ ] **Disposition reached:** either "seam-built" (new end-to-end promotion instrumentation test added and passing) or "artifact-backed-blocker" (the existing prose claim replaced with a preserved, CI-run-backed search log) — recorded explicitly here, with the untaken branch marked `N/A`.
 - [ ] If seam-built: end-to-end test drives the promotion dialog through the real production flow, taps a real promotion choice, and asserts the resulting move/snapshot is correct.
-- [ ] If artifact-backed-blocker: the search that found no promotion path is actually executed and its output preserved as a CI artifact with its own run/job ID — not a second unverifiable prose restatement.
+- [ ] If artifact-backed-blocker: landed as the authorized bounded multi-commit sequence (spec §5.2/§2.1 point 3) — (a) probe/helper + temporary CI workflow committed; (b) that commit's CI run executed and produced the artifact; (c) evidence/disposition recorded citing the real run/job/artifact IDs; (d) temporary workflow/helper removed before SC-004's closure validation. Not a second unverifiable prose restatement.
 
 ## SC-003.2 Tests
 
 - [ ] If seam-built: the new instrumentation test passes and its permanent-CI run/job ID is recorded.
-- [ ] If artifact-backed-blocker: the preserved search evidence's CI run/job ID is recorded.
+- [ ] If artifact-backed-blocker: the preserved search evidence's CI run/job/artifact IDs are recorded, and the temporary workflow/helper's removal is confirmed before final closure.
 
 ---
 
