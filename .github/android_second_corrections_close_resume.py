@@ -16,7 +16,10 @@ pos = source.index(needle)
 # second invocation, which runs against the actual candidate closure tree after cleanup.
 source = source[:pos] + source[pos + len(needle):]
 
-namespace: dict[str, object] = {"__name__": "android_second_corrections_close_payload"}
+namespace: dict[str, object] = {
+    "__name__": "android_second_corrections_close_payload",
+    "__file__": str(CLOSE),
+}
 exec(compile(source, "android_second_corrections_close.payload", "exec"), namespace)
 
 original_close_authority = namespace["close_authority"]
