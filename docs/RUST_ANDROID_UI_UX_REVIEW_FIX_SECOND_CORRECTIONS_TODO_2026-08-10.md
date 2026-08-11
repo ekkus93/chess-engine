@@ -90,20 +90,29 @@
 
 ---
 
-# SC-003: Get real evidence for CC-004's promotion-position claim
+# SC-003: Replace CC-004's unverifiable promotion blocker with executable evidence
 
 ## SC-003.1 Fix
 
-- [ ] Checked the explicit architectural boundary **before** attempting the seam: would making the real production UI flow start from a promotion-eligible `ChessGame` state require adding production/native API surface (position/FEN injection) or changing `ChessGame`'s ownership model? If yes, the seam disposition is impractical immediately, without further attempt — proceed directly to `artifact-backed-blocker`.
-- [ ] If the boundary check didn't immediately rule it out: attempted to build a narrowly-scoped, test-only fixture seam (androidTest-only, never production-reachable, no Kotlin chess-rule logic, no general FEN-loading feature) initializing a promotion-eligible position.
-- [ ] **Disposition reached:** either "seam-built" (new end-to-end promotion instrumentation test added and passing) or "artifact-backed-blocker" (the existing prose claim replaced with a preserved, CI-run-backed search log) — recorded explicitly here, with the untaken branch marked `N/A`.
-- [ ] If seam-built: end-to-end test drives the promotion dialog through the real production flow, taps a real promotion choice, and asserts the resulting move/snapshot is correct.
-- [ ] If artifact-backed-blocker: landed as the authorized bounded multi-commit sequence (spec §5.2/§2.1 point 3) — (a) probe/helper + temporary CI workflow committed; (b) that commit's CI run executed and produced the artifact; (c) evidence/disposition recorded citing the real run/job/artifact IDs; (d) temporary workflow/helper removed before SC-004's closure validation. Not a second unverifiable prose restatement.
+- [x] Checked the architectural boundary first: `ChessGame` has no arbitrary position/FEN injection and adding one solely for testing would expand production/native API surface, so no seam was added.
+- [x] Converted the old blocker claim into a real, bounded, artifact-backed JNI search instead of accepting its prose assertion.
+- [x] Evidence run `31447725972`, job `93645421851`, artifact `9085181028` disproved the blocker by finding a legal route within the original 12-human-turn bound.
+- [x] Preserved discovered path: `a2a3 a3a4 a4a5 b2b3 e2e3 a5a6 b3b4 c2c3 g2g3 a6b7`, followed by promotion move `b7a8b`.
+- [x] **Disposition reached:** `ui-driven-path-built`. The evidence made a fixture seam unnecessary and made `artifact-backed-blocker` factually invalid.
+
+N/A — `seam-built`: no test-only or production position-injection seam was needed or added.
+
+N/A — `artifact-backed-blocker`: the preserved real-JNI search found a promotion path, so retaining the blocker would be false.
+
+- [x] Added `PromotionEndToEndInstrumentedTest`: normal production setup at depth 1, real board taps for the discovered path, real engine replies, real promotion dialog, Bishop tap, and authoritative `b7a8b`/white-bishop-on-`a8` snapshot assertions.
+- [x] Temporary promotion probe test/workflow removed before clean permanent Android validation.
 
 ## SC-003.2 Tests
 
-- [ ] If seam-built: the new instrumentation test passes and its permanent-CI run/job ID is recorded.
-- [ ] If artifact-backed-blocker: the preserved search evidence's CI run/job/artifact IDs are recorded, and the temporary workflow/helper's removal is confirmed before final closure.
+- [x] Historical discovery evidence: run `31447725972`, job `93645421851`, artifact `9085181028`; `RESULT=FOUND`, `FOUND_MOVE=b7a8b`.
+- [x] Permanent Android source/test validation: run `31448304672` on exact SHA `99a5ffd277db22c8a3d383e0206dfa6c010e4506`, all three jobs successful.
+- [x] API-35 connected job `93647206317` passed the full instrumentation suite including the real-flow promotion E2E test.
+- [x] Host-JVM JNI job `93647206339` and Android lint/unit job `93647206354` also passed on the same SHA.
 
 ---
 

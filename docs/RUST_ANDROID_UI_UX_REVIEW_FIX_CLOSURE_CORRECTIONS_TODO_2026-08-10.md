@@ -123,21 +123,21 @@ N/A — `seam-built`: no production seam was added.
 
 ---
 
-# CC-004: Fix AR-011 — add missing end-to-end promotion test
+# CC-004: Fix AR-011 — add missing end-to-end promotion test — superseded by second-corrections SC-003
 
-## CC-004.1 Fix
+## CC-004.1 Historical disposition and correction
 
-- [x] **Disposition reached:** `documented blocker`.
+- [x] **Original CC-004 disposition:** `documented blocker`. CC-004 recorded that an unpreserved temporary JNI search had found no promotion path within 12 human turns and therefore did not add the requested E2E test.
+- [x] **SC-003 correction:** the original blocker was not independently verifiable, so SC-003 reproduced it as an artifact-backed real-JNI search instead of trusting the prose.
+- [x] That preserved search disproved the blocker: run `31447725972`, job `93645421851`, artifact `9085181028` found human path `a2a3 a3a4 a4a5 b2b3 e2e3 a5a6 b3b4 c2c3 g2g3 a6b7` and promotion move `b7a8b`.
+- [x] **Current disposition:** `ui-driven-path-built`. Because a legal normal-start route exists, SC-003 added a real production-flow instrumentation test rather than a test-only position seam.
+- [x] No production/native FEN or position-loading API and no Kotlin chess-rule logic were added.
 
-N/A — `UI-driven fixture`: A genuine bounded attempt was executed with the real JNI `ChessEngine`, reproducing the high-level opponent policy (opening-book reply when present, otherwise deterministic depth-1 search) and beam-searching legal human moves for up to 12 human turns; it did not find a promotion path. The existing production `ChessGame` also exposes no test-only position-injection seam, and adding one would require production/native API expansion solely for this test.
+## CC-004.2 Executable evidence added by SC-003
 
-N/A — `test-only fixture seam`: no existing test-only high-level session constructor/FEN seam exists; adding one would expand production/native API surface solely for this test.
-
-- [x] Documented blocker: A genuine bounded attempt was executed with the real JNI `ChessEngine`, reproducing the high-level opponent policy (opening-book reply when present, otherwise deterministic depth-1 search) and beam-searching legal human moves for up to 12 human turns; it did not find a promotion path. The existing production `ChessGame` also exposes no test-only position-injection seam, and adding one would require production/native API expansion solely for this test.
-
-## CC-004.2 Tests
-
-- [x] The bounded real-engine path probe is the empirical blocker evidence; no new instrumentation test is claimed.
+- [x] `PromotionEndToEndInstrumentedTest` starts from the real setup screen at depth 1, drives every human move through board taps, waits for the real Rust engine replies, opens the production promotion dialog through `b7` → `a8`, taps Bishop, and verifies authoritative move `b7a8b` with a white bishop on `a8`.
+- [x] Permanent Android run `31448304672` on exact SHA `99a5ffd277db22c8a3d383e0206dfa6c010e4506` passed all three jobs; API-35 job `93647206317` executed the connected E2E test successfully.
+- [x] The original CC-004 blocker remains documented above only as historical provenance; it is no longer treated as valid evidence or the active disposition.
 
 ---
 

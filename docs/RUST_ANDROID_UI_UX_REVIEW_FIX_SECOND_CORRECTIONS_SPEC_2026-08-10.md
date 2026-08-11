@@ -112,28 +112,44 @@ All six are reachable from `ChessViewModel.kt` through the identical `catch (err
 
 ---
 
-## 5. SC-003 — Get real evidence for CC-004's promotion-position claim
+## 5. SC-003 — Replace CC-004's unverifiable promotion blocker with executable evidence
 
-### 5.1 Defect
+### 5.1 Defect and evidence-driven correction
 
-CC-004's "documented blocker" disposition rests on an unverifiable prose claim (a bounded search of legal move sequences found no path to a promotion-eligible position) with no CI run, artifact, or preserved script anywhere in the repository — the only claim in the entire CC program without this pass's otherwise-consistent evidentiary standard.
+CC-004's `documented blocker` disposition rested on an unverifiable prose claim that a bounded real-engine search found no legal route to a promotion-eligible position. SC-003 first converted that claim into a reproducible real-JNI probe rather than trusting the prose.
 
-### 5.2 Fix
+The probe itself disproved the blocker. Temporary evidence commit `8c4b8977fd202b8d84f3b8c1ef567c07041eec04` ran permanent evidence workflow `31447725972`, job `93645421851`, and preserved artifact `9085181028`. The bounded search used the real JNI `ChessEngine`, White as the human side, at most 12 human turns, beam width 24, branch cap 10, and the app-equivalent opponent policy of opening-book move when available and otherwise exact depth-1 search. It found:
 
-CC-004's own spec already named a second acceptable disposition beyond "documented blocker": a narrowly-scoped, test-only fixture seam (never production/player-reachable) that initializes the game session directly to a promotion-eligible position, without adding chess-rule logic to Kotlin or a general production FEN-loading feature. CC-004's independent verification already confirmed no such seam exists today, but did not attempt to build one. This task now does:
+```text
+HUMAN_PATH=a2a3 a3a4 a4a5 b2b3 e2e3 a5a6 b3b4 c2c3 g2g3 a6b7
+FOUND_MOVE=b7a8b
+RESULT=FOUND
+```
 
-1. **Preferred:** attempt to build the test-only fixture seam. If practical, add it and use it to implement the end-to-end instrumentation test CC-004 was originally meant to deliver — driving the promotion dialog through the real production flow, tapping a real promotion choice, and asserting the resulting move/snapshot is correct. This directly closes the evidentiary gap by replacing an unverifiable claim with an executable, permanently-passing test.
+Therefore the old `documented blocker` is false and must not be preserved as the active disposition. SC-003 does not weaken or tune the probe to recover that blocker.
 
-   **Explicit architectural boundary (decide before implementation, not during it):** the low-level `ChessEngine` API already supports position injection via `setPosition(fen)`, but the actual UI is driven through the separate high-level `ChessGame` API, which has a private constructor and exposes no arbitrary position/FEN injection — only `create`/`snapshot`/`poll`/`submitMove`/`restart`/`resign`. If making the real production UI flow start from a promotion-eligible high-level `ChessGame` state would require adding production/native API surface or changing `ChessGame`'s ownership model — even surface intended to be "test-only" in spirit — the seam disposition is considered impractical **immediately**, without further attempt, and this task proceeds directly to disposition 2. A test-only implementation must remain non-player-reachable and must not require Kotlin chess-rule logic; testability work must not become an accidental product/API expansion.
-2. **Fallback, if the seam is impractical per the boundary above or proves impractical after a real attempt:** produce artifact-backed evidence for the existing "no promotion path found" claim instead — a preserved CI run (with its own run/job ID) that actually executes the bounded search and records its result, matching the rigor standard the rest of this pass already set. A second unverifiable prose restatement of the same claim does not satisfy this task.
+### 5.2 Final disposition — `ui-driven-path-built`
 
-   **This disposition requires a bounded, explicitly-ordered multi-commit sequence** (§2.1 point 3's exemption applies): a real CI run producing an artifact cannot exist before the commit that triggers it. The sequence is: (a) commit the search probe/helper plus a temporary CI workflow (or workflow step) that executes it and uploads its result as an artifact — scoped under this spec's §2 authorization; (b) let that commit's CI run execute and produce the artifact; (c) commit the evidence/disposition record, citing that run's real run/job ID and artifact ID (mirroring CC-002A's own established precedent for this exact class of temporary CI machinery); (d) remove the temporary workflow/helper in a final commit before SC-004's closure validation, so the final tree carries no leftover temporary machinery.
+The discovered legal path makes a fixture seam unnecessary. SC-003 adds permanent instrumentation coverage starting from the normal production setup flow instead of adding any test-only FEN/position injection surface:
 
-### 5.3 Tests
+1. launch the real `MainActivity` and set engine depth 1 through the production setup control;
+2. start the real high-level `ChessGame` session;
+3. replay the discovered human path exclusively through real board-square taps, waiting for each real Rust engine reply;
+4. reach `b7` with all four legal promotion moves (`b7a8q`, `b7a8r`, `b7a8b`, `b7a8n`);
+5. tap `b7` then `a8` to open the real production promotion dialog;
+6. tap the real **Bishop** choice; and
+7. assert the authoritative post-move snapshot records `b7a8b`, the FEN contains a white bishop on `a8`, and the promotion-choice state is cleared.
 
-- If the seam is built: the new end-to-end promotion instrumentation test passes, is exercised in permanent CI, and its run/job ID is recorded.
-- If the fallback is used: the preserved, artifact-backed search evidence is recorded with its CI run/job ID.
-- Either way, CC-004's TODO section is updated to reflect the new evidentiary basis, provenance-preserving per §6.3 below (this task does not silently rewrite CC-004's own history — it records that SC-003 strengthened it).
+No production/native position-loading API, Kotlin chess-rule logic, general FEN-loading feature, or ownership-model change is added. The temporary probe test/workflow were removed before the clean permanent source validation.
+
+### 5.3 Tests and evidence
+
+- The temporary real-JNI probe run `31447725972` / job `93645421851` / artifact `9085181028` is retained as historical evidence that the prior blocker was false and that the legal UI path was discovered empirically.
+- Permanent Android run `31448304672` on exact source/test SHA `99a5ffd277db22c8a3d383e0206dfa6c010e4506` completed successfully.
+- API-35 job `93647206317` compiled and ran the full connected suite, including `PromotionEndToEndInstrumentedTest`, successfully.
+- Host-JVM JNI job `93647206339` and Android lint/unit job `93647206354` also completed successfully on that exact SHA.
+- The obsolete temporary promotion probe test/workflow are absent from the validated source tree.
+- CC-004's historical section is corrected provenance-preservingly: it records that its original blocker was later disproved and that SC-003 supplied the missing executable E2E coverage.
 
 ---
 
