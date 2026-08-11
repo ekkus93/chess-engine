@@ -39,5 +39,8 @@ jobs:
         with:
           gradle-version: "8.9"
 
+      - name: Validate bounded runner syntax
+        run: python3 -m py_compile .github/android_second_corrections_ralph.py
+
       - name: Execute bounded second-corrections Ralph loop
         run: python3 .github/android_second_corrections_ralph.py
