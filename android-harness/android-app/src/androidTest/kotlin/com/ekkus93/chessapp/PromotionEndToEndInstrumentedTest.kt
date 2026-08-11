@@ -2,7 +2,6 @@ package com.ekkus93.chessapp
 
 import android.os.SystemClock
 import androidx.compose.ui.semantics.SemanticsActions
-import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -95,7 +94,7 @@ class PromotionEndToEndInstrumentedTest {
     }
 
     private fun tapSquare(square: String) {
-        composeRule.onNode(hasContentDescription(square, substring = true)).performClick()
+        composeRule.onNodeWithContentDescription(square, substring = true).performClick()
         composeRule.waitForIdle()
     }
 
