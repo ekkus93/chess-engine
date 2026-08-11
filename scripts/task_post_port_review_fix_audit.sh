@@ -90,6 +90,11 @@ grep -Fq 'Status: complete — targeted Rust TUI hardening and diagnostic covera
 grep -Fq '**Status:** Complete' "$android_ui_review_fix_todo"
 grep -Fq '**Status:** Complete — bounded review-fix implementation and permanent exact-source-SHA validation passed' "$android_ui_review_fix_closure"
 grep -Fq '**Status:** Complete' "$android_ui_review_fix_corrections_todo"
+grep -Fq '**Status:** Complete' "$android_ui_review_fix_second_corrections_spec"
+grep -Fq '**Status:** Complete' "$android_ui_review_fix_second_corrections_todo"
+grep -Fq '`ui-driven-path-built`' "$android_ui_review_fix_second_corrections_todo"
+grep -Fq '31447725972' "$android_ui_review_fix_second_corrections_todo"
+grep -Fq '31448304672' "$android_ui_review_fix_second_corrections_todo"
 grep -Fq '`claims-downgraded`' "$android_ui_review_fix_corrections_todo"
 grep -Fq '`documented blocker`' "$android_ui_review_fix_corrections_todo"
 grep -Fq '`remediation-not-needed`' "$android_ui_review_fix_corrections_todo"
@@ -129,6 +134,7 @@ grep -Fq "\`$android_ui_review_fix_closure\`" "$legacy_index"
 grep -Fq "\`$android_ui_review_fix_corrections_todo\`" "$legacy_index"
 grep -Fq "\`$android_ui_review_fix_corrections_todo\` (completed" "$legacy_index"
 grep -Fq "\`$android_ui_review_fix_second_corrections_todo\`" "$legacy_index"
+grep -Fq "\`$android_ui_review_fix_second_corrections_todo\` (completed" "$legacy_index"
 if grep -Fq 'Active S4 evaluation tuning calibration program' "$legacy_index"; then
     echo 'closed S4 TODO is still active' >&2
     exit 1
@@ -231,7 +237,19 @@ for temporary in \
     ".github/android_ui_gallery.py" \
     ".github/android_closure_corrections_ralph.py" \
     ".github/workflows/android-closure-corrections-ralph.yml" \
-    ".github/investigate_system_bars.sh"; do
+    ".github/investigate_system_bars.sh" \
+    ".github/android_second_corrections_ralph.py" \
+    ".github/workflows/android-second-corrections-ralph.yml" \
+    ".github/android_second_corrections_resume.py" \
+    ".github/workflows/android-second-corrections-resume.yml" \
+    ".github/android_second_corrections_sc003_finalize.py" \
+    ".github/workflows/android-second-corrections-sc003-finalize.yml" \
+    ".github/android_second_corrections_close.py" \
+    ".github/workflows/android-second-corrections-close.yml" \
+    ".github/android_second_corrections_close_resume.py" \
+    ".github/workflows/android-second-corrections-close-resume.yml" \
+    ".github/workflows/android-second-corrections-promotion-probe.yml" \
+    "android-harness/host-jvm/src/test/kotlin/com/ekkus93/chessengine/PromotionPathEvidenceTest.kt"; do
     if test -e "$temporary"; then
         echo "temporary post-port helper remains: $temporary" >&2
         exit 1

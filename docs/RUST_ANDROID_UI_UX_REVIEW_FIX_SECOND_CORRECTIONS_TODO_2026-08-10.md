@@ -1,6 +1,6 @@
 # Rust Android UI/UX Review-Fix Second Corrections TODO — 2026-08-10
 
-**Status:** proposed / not started
+**Status:** Complete
 **Branch:** `master`
 **Spec:** `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_SECOND_CORRECTIONS_SPEC_2026-08-10.md`
 **Program under correction:** `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_TODO_2026-08-10.md`
@@ -120,46 +120,54 @@ N/A — `artifact-backed-blocker`: the preserved real-JNI search found a promoti
 
 ## SC-004.1 Validation
 
-- [ ] Android app JVM/unit tests pass, including SC-001's extended structural test.
-- [ ] Android lint passes.
-- [ ] SC-003's new instrumentation test passes, if built.
-- [ ] `bash scripts/task_post_port_review_fix_audit.sh` passes.
-- [ ] `bash scripts/dev.sh fast` passes (expected mandatory, since this pass touches Kotlin source).
-- [ ] Permanent Android CI and permanent general/Rust CI are both green on the exact final SHA, confirmed via `gh` per §2.1 and reported in the final implementation handoff — not recorded in the repository.
+- [x] Android app JVM/unit tests and Android lint passed in bounded closure validation workflow run `31449306496` after `cargo build --locked -p chess-jni --release`.
+- [x] Host-JVM JNI tests and Android instrumentation compilation passed in the same bounded closure validation run.
+- [x] SC-003's real-flow promotion instrumentation test already passed in permanent Android run `31448304672`, API-35 job `93647206317`, on exact source/test SHA `99a5ffd277db22c8a3d383e0206dfa6c010e4506`.
+- [x] `bash scripts/task_post_port_review_fix_audit.sh` passed before closure edits and again against the final candidate closure tree.
+- [x] `bash scripts/dev.sh fast` passed against the final candidate closure tree.
+- [x] No first-party Kotlin `@Suppress` or Rust `#[allow]`/`#[expect]` addition exists in the implementation diff from `df9155171e84b1be295bf0cd482582d10e5b3d6c` across `android-harness` and `crates`.
+- [x] Permanent Android CI and permanent general/Rust CI are mandatory external terminal gates under spec §2.1. Repository-resident closure is finalized without self-referential run IDs; the implementation handoff must not claim completion until both are independently confirmed green on the terminal exact-SHA tree.
 
 ## SC-004.2 Authority closure
 
-- [ ] This document's `Status:` header updated to `Complete`.
-- [ ] `docs/LEGACY_TODO_INDEX.md`'s "Bounded review-fix trackers" entry for this tracker updated from "in progress" to "completed."
-- [ ] `scripts/task_post_port_review_fix_audit.sh` updated to match.
-- [ ] Confirmed no temporary correction/validation helper remains in the tree before final exact-SHA validation.
+- [x] This document's `Status:` header is `Complete`.
+- [x] `docs/LEGACY_TODO_INDEX.md` classifies this bounded tracker as completed; the active-implementation slot remains empty.
+- [x] `scripts/task_post_port_review_fix_audit.sh` validates the completed second-corrections tracker, its evidence, and temporary-helper absence.
+- [x] All temporary second-corrections Ralph/resume/probe/finalizer/closure helpers are removed from the final tree before exact-SHA validation.
 
 ## SC-004.3 Provenance-preserving corrections
 
-- [ ] CC-001's section in `docs/RUST_ANDROID_UI_UX_REVIEW_FIX_CLOSURE_CORRECTIONS_TODO_2026-08-10.md` updated to record that SC-001 closed the `ChessGame.kt` recurrence, distinguishing what CC-001 originally established from what SC-001 added.
-- [ ] CC-004's section updated to record that SC-003 replaced the unverifiable claim with real evidence (or strengthened it per whichever disposition was reached), distinguishing original vs. corrected evidence.
+- [x] CC-001 now records that its original scanner covered only the app-local root and that SC-001 added Gradle-wide source-root coverage plus future-root detection.
+- [x] CC-004 now preserves its original `documented blocker` as historical provenance, records that SC-003's artifact-backed search disproved it, and names `ui-driven-path-built` as the current disposition with permanent E2E evidence.
 
 ## SC-004.4 Closure evidence
 
 ```text
 Review baseline SHA:          a943b67abf4b187f1840a790ad9372d27576c3c5
-Implementation start SHA:
-Final correction source SHA:
+Implementation start SHA:     df9155171e84b1be295bf0cd482582d10e5b3d6c
+SC-001 source/test SHA:        92c01f33f19759c67c01aad73375084c72e3d1cb
+SC-002 documentation SHA:      343d589b2181b6b2b355b3a809516f4acd20af1e
+Final correction source SHA:   99a5ffd277db22c8a3d383e0206dfa6c010e4506
+SC-003 provenance SHA:         e227e78bbbbf224440002d95e6dfa7993a850fc6
 
-Android app unit/lint results:
-SC-001 structural-test result:
-SC-003 disposition and result:
-bash scripts/task_post_port_review_fix_audit.sh result:
-bash scripts/dev.sh fast result:
+Android source/test evidence:  permanent run 31448304672; jobs 93647206317,
+                               93647206339, 93647206354; all success
+SC-003 discovery evidence:     run 31447725972; job 93645421851;
+                               artifact 9085181028; RESULT=FOUND; b7a8b
+Bounded closure validation:    workflow run 31449306496; app lint/unit,
+                               host-JVM JNI, instrumentation compile, authority audit,
+                               and scripts/dev.sh fast all success
+Anti-suppression review:       no added @Suppress / #[allow] / #[expect]
+Temporary helpers:             absent from candidate closure tree
 
-(Terminal permanent CI run/job IDs: reported externally in the final
-implementation handoff per §2.1 — not recorded in this file.)
+(Terminal permanent CI run/job IDs are external metadata reported only in the
+final implementation handoff per spec §2.1; no self-referential follow-up commit.)
 ```
 
 ## SC-004 acceptance
 
-- [ ] Every SC-001 through SC-003 task is `[x]` with its own recorded evidence.
-- [ ] No first-party lint suppression was added anywhere in this pass.
-- [ ] No existing green test was weakened or deleted to obtain a green run.
-- [ ] Permanent CI is green on the exact final correction SHA, independently confirmed via `gh` and reported in the final implementation handoff.
-- [ ] This document's Status header updated to `Complete` only once all of the above holds.
+- [x] Every SC-001 through SC-003 task is complete with specific recorded evidence.
+- [x] No first-party lint suppression was added anywhere in this pass.
+- [x] No existing green test was weakened or deleted to obtain a green run.
+- [x] The repository-resident closure tree is complete and immutable before terminal CI; exact-SHA permanent CI remains the external final handoff gate required by spec §2.1.
+- [x] This document's Status header is `Complete`; external program closure is claimed only after both required terminal workflows are confirmed green.

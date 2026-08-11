@@ -61,21 +61,23 @@
 
 ---
 
-# CC-001: Fix AR-003 — remove remaining "native" jargon
+# CC-001: Fix AR-003 — remove remaining "native" jargon — extended by second-corrections SC-001
 
-## CC-001.1 Fix
+CC-001 correctly removed the two known `ChessViewModel.kt` player-visible strings and added a blanket scanner over `android-harness/android-app/src/main/kotlin`. Independent verification later found that Gradle compiles a second production Kotlin root, `crates/chess-jni/kotlin/src/main/kotlin`, which CC-001's scanner did not cover. Second-corrections SC-001 closes that recurrence without pretending CC-001 originally covered it.
 
-- [x] `ChessViewModel.kt:71`'s error message no longer contains "native".
-- [x] `ChessViewModel.kt:117`'s error message no longer contains "native".
-- [x] Full re-sweep of `android-harness/android-app/src/main/kotlin` for "native"/"JNI"/"shared layer"/"architecture" in any production string literal completed; any further instance corrected.
-- [x] `ReviewFixArchitectureTest.kt`'s structural check rebuilt as a blanket forbid-with-narrow-allowlist rule over every production string literal in the module (not a player-reachability inference, and not scoped to one file), per spec §3.2/QI-009.
-- [x] Each allowlist entry (the `check()` messages and the one `Log.e` call) is exact/narrow, justified inline, and tied to a genuinely internal-only sink.
+## CC-001.1 Fix and second-corrections extension
 
-## CC-001.2 Tests
+- [x] Original CC-001 work: `ChessViewModel.kt` player-visible error strings were corrected and the app-local production source root was scanned with narrow internal-only exceptions.
+- [x] SC-001 correction at `92c01f33f19759c67c01aad73375084c72e3d1cb`: the scanner now covers both Gradle-compiled Kotlin production roots, including `crates/chess-jni/kotlin/src/main/kotlin`.
+- [x] SC-001 reworded every newly exposed architecture-jargon exception/thread-name string in `ChessGame.kt` and `ChessEngine.kt` rather than broadly allowlisting them. Only exact ABI `System.loadLibrary("chess_jni")` literals and the previously justified internal-only ViewModel sinks remain narrowly allowlisted.
+- [x] SC-001 added a mechanical Gradle-source-root invariant: every production `java.srcDir(...)` declaration in `android-app/build.gradle.kts` must be represented in the scanner configuration.
 
-- [x] Broadened structural test passes on corrected strings.
-- [x] Confirmed (implementation-time sanity check) the broadened test fails if "native" is temporarily reintroduced into `ChessViewModel.kt`'s error strings.
-- [x] Any test hard-coding the old error-string text is updated and remains green.
+## CC-001.2 Tests added/strengthened by SC-001
+
+- [x] The extended structural test passes across both current production roots.
+- [x] Negative jargon sanity: temporarily restoring `"native Android game returned a null handle"` made the structural test fail, then pass after restoration.
+- [x] Negative future-root sanity: temporarily adding a third unscanned `java.srcDir(...)` made the structural test fail, then pass after restoration.
+- [x] Host-JVM JNI, Android app JVM/unit, Android lint, and instrumentation compilation all passed before SC-001 was committed.
 
 ---
 
