@@ -46,12 +46,12 @@ data class ChessGameSnapshot(
         internal fun parse(encoded: String): ChessGameSnapshot {
             val fields = encoded.split(SEPARATOR)
             require(fields.size == FIELD_COUNT) {
-                "native Android game snapshot must contain $FIELD_COUNT fields"
+                "Android game snapshot must contain $FIELD_COUNT fields"
             }
             require(fields[0] == VERSION) {
-                "unsupported native Android game snapshot version: ${fields[0]}"
+                "unsupported Android game snapshot version: ${fields[0]}"
             }
-            require(fields[17] == END) { "native Android game snapshot terminator is missing" }
+            require(fields[17] == END) { "Android game snapshot terminator is missing" }
             return ChessGameSnapshot(
                 fen = fields[1],
                 legalMoves = fields[2].words(),
@@ -75,13 +75,13 @@ data class ChessGameSnapshot(
         private fun parseSide(value: String): HumanSide = when (value) {
             "white" -> HumanSide.WHITE
             "black" -> HumanSide.BLACK
-            else -> error("unknown native side: $value")
+            else -> error("unknown game side: $value")
         }
 
         private fun parseBoolean(value: String): Boolean = when (value) {
             "0" -> false
             "1" -> true
-            else -> error("unknown native boolean: $value")
+            else -> error("unknown game boolean: $value")
         }
 
         private fun String.words(): List<String> =
@@ -121,7 +121,7 @@ private object NativeGameReaper {
                     reference.clear()
                 }
             },
-            "chess-app-native-reaper",
+            "chess-app-reaper",
         ).apply {
             isDaemon = true
             start()
@@ -212,7 +212,7 @@ class ChessGame private constructor(
         ): ChessGame {
             require(engineDepth in 1..12) { "engine depth must be between 1 and 12" }
             val handle = NativeChessAppBindings.nativeCreate(humanSide.nativeCode, engineDepth)
-            check(handle != 0L) { "native Android game returned a null handle" }
+            check(handle != 0L) { "Android game failed to initialize" }
             return ChessGame(NativeGameHandleState(handle))
         }
     }

@@ -56,22 +56,22 @@
 
 ## SC-001.1 Fix
 
-- [ ] Read `android-app/build.gradle.kts`'s actual `sourceSets`/`java.srcDir` configuration to confirm the exact set of Gradle-compiled source directories for this app module (not assumed).
-- [ ] For each of the six "native"-containing strings in `ChessGame.kt` (lines ~49, 52, 54, 78, 84, 215), determined genuine player-reachability by tracing to `ChessViewModel.kt`'s `publishError()` path.
-- [ ] Every genuinely player-reachable string reworded to remove "native" while preserving meaning.
-- [ ] Checked `android-harness/host-jvm/src/test/kotlin/**` for hard-coded old string text; updated if found.
-- [ ] `ReviewFixArchitectureTest.kt` (or a sibling test) extended to scan **all** Gradle-compiled source directories of this module, not just `android-harness/android-app/src/main/kotlin`.
-- [ ] The six originally-reported strings treated as the confirmed triggering defect, not the entire boundary: every additional forbidden-term string literal the expanded scan finds elsewhere in `crates/chess-jni/kotlin/src/main/kotlin/**` (e.g. in `ChessEngine.kt`) is individually dispositioned — reworded, or allowlisted narrowly with inline justification.
-- [ ] Any string judged genuinely internal-only (original six or newly found) is allowlisted narrowly and justified inline, matching the existing pattern.
-- [ ] Mechanical future-directory invariant implemented: either the test derives production source roots from Gradle/source-set metadata at runtime, or a structural assertion parses `build.gradle.kts`'s actual `java.srcDir(...)` declarations and fails if any declared root is absent from the scanner's configured roots.
+- [x] Read `android-app/build.gradle.kts`'s actual `sourceSets`/`java.srcDir` configuration: the app module compiles default `src/main/kotlin` plus `../../crates/chess-jni/kotlin/src/main/kotlin`.
+- [x] Traced all six originally reported `ChessGame.kt` exception strings through the shared `RuntimeException` → `ChessViewModel.publishError()` path; all were treated as potentially player-visible and reworded without architecture jargon.
+- [x] Reworded every additional forbidden-term string literal discovered by the expanded scan in `ChessEngine.kt`/`ChessGame.kt` rather than hiding them behind broad allowlists; this includes parser/error text and internal reaper thread names.
+- [x] Checked host-JVM tests for hard-coded changed messages and synchronized any affected assertions.
+- [x] `ReviewFixArchitectureTest.kt` now scans both current Gradle-compiled Kotlin production roots.
+- [x] The only new JNI-root allowlist entries are the two exact `System.loadLibrary("chess_jni")` ABI/load-contract calls; the existing three exact `ChessViewModel` internal-only sinks remain narrowly justified.
+- [x] Mechanical future-directory invariant implemented: the test parses every production `java.srcDir(...)` declaration in `android-app/build.gradle.kts` and fails if the configured scanner roots do not match the declared additional roots.
 
 ## SC-001.2 Tests
 
-- [ ] Extended structural test scans both current source directories and passes on all corrected strings (original six plus any newly found).
-- [ ] Implementation-time sanity check: confirmed the extended test fails if "native" is temporarily reintroduced into `ChessGame.kt`.
-- [ ] Implementation-time sanity check: confirmed the mechanical future-directory invariant fails when a hypothetical third `java.srcDir(...)` is temporarily added to `build.gradle.kts` without updating the scanner (then reverted).
-- [ ] Any updated host-JVM test remains green.
-- [ ] Existing Kotlin/JVM and instrumentation tests referencing `ChessGame`/`ChessGameSnapshot` remain green.
+- [x] Extended `ReviewFixArchitectureTest` passes across both current production source directories.
+- [x] Negative jargon sanity check passed: temporarily restoring `"native Android game returned a null handle"` made the structural test fail; restoring corrected text made it pass again.
+- [x] Negative source-root sanity check passed: temporarily adding `java.srcDir("src/main/kotlin-third-fixture")` without scanner coverage made the structural test fail; reverting the declaration made it pass again.
+- [x] `cargo build --locked -p chess-jni --release`, Android app lint/unit tests, host-JVM JNI tests, and Android instrumentation compilation all pass on the corrected working tree.
+
+**Implementation-start SHA:** `df9155171e84b1be295bf0cd482582d10e5b3d6c`.
 
 ---
 

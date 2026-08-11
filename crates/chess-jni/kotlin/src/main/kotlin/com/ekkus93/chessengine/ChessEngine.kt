@@ -61,7 +61,7 @@ enum class ChessColor(val nativeCode: Int) {
     companion object {
         fun fromNative(value: Int): ChessColor =
             entries.firstOrNull { it.nativeCode == value }
-                ?: throw IllegalArgumentException("unknown native color code: $value")
+                ?: throw IllegalArgumentException("unknown engine color code: $value")
     }
 }
 
@@ -75,7 +75,7 @@ enum class GameStatusKind(val nativeCode: Int) {
     companion object {
         fun fromNative(value: Int): GameStatusKind =
             entries.firstOrNull { it.nativeCode == value }
-                ?: throw IllegalArgumentException("unknown native status code: $value")
+                ?: throw IllegalArgumentException("unknown engine status code: $value")
     }
 }
 
@@ -90,7 +90,7 @@ enum class DrawReason(val nativeCode: Int) {
     companion object {
         fun fromNative(value: Int): DrawReason =
             entries.firstOrNull { it.nativeCode == value }
-                ?: throw IllegalArgumentException("unknown native draw code: $value")
+                ?: throw IllegalArgumentException("unknown engine draw code: $value")
     }
 }
 
@@ -102,7 +102,7 @@ data class GameStatus(
     companion object {
         internal fun parse(encoded: String): GameStatus {
             val fields = encoded.split(',')
-            require(fields.size == 3) { "native game status must contain three fields" }
+            require(fields.size == 3) { "engine game status must contain three fields" }
             return GameStatus(
                 kind = GameStatusKind.fromNative(fields[0].toInt()),
                 winner = ChessColor.fromNative(fields[1].toInt()),
@@ -120,7 +120,7 @@ data class EvaluationWeightIdentity(
     companion object {
         internal fun parse(encoded: String): EvaluationWeightIdentity {
             val fields = encoded.split(',')
-            require(fields.size == 3) { "native weight identity must contain three fields" }
+            require(fields.size == 3) { "engine weight identity must contain three fields" }
             return EvaluationWeightIdentity(
                 schemaVersion = fields[0].toUShort(),
                 identifier = fields[1].toULong(),
@@ -138,7 +138,7 @@ enum class SearchScoreKind(val nativeCode: Int) {
     companion object {
         fun fromNative(value: Int): SearchScoreKind =
             entries.firstOrNull { it.nativeCode == value }
-                ?: throw IllegalArgumentException("unknown native score code: $value")
+                ?: throw IllegalArgumentException("unknown engine score code: $value")
     }
 }
 
@@ -154,7 +154,7 @@ enum class SearchTerminationKind(val nativeCode: Int) {
     companion object {
         fun fromNative(value: Int): SearchTerminationKind =
             entries.firstOrNull { it.nativeCode == value }
-                ?: throw IllegalArgumentException("unknown native termination code: $value")
+                ?: throw IllegalArgumentException("unknown engine termination code: $value")
     }
 }
 
@@ -166,7 +166,7 @@ enum class SearchFallbackKind(val nativeCode: Int) {
     companion object {
         fun fromNative(value: Int): SearchFallbackKind =
             entries.firstOrNull { it.nativeCode == value }
-                ?: throw IllegalArgumentException("unknown native fallback code: $value")
+                ?: throw IllegalArgumentException("unknown engine fallback code: $value")
     }
 }
 
@@ -212,7 +212,7 @@ data class SearchResult(
         internal fun parse(encoded: String): SearchResult {
             val fields = encoded.split('\n', limit = FIELD_COUNT)
             require(fields.size == FIELD_COUNT) {
-                "native search result must contain exactly $FIELD_COUNT fields"
+                "engine search result must contain exactly $FIELD_COUNT fields"
             }
             return SearchResult(
                 bestMove = fields[0].ifEmpty { null },
@@ -270,7 +270,7 @@ class SearchOperation internal constructor(
         when (cause) {
             is RuntimeException -> throw cause
             is Error -> throw cause
-            else -> throw IllegalStateException("native search failed", cause)
+            else -> throw IllegalStateException("engine search failed", cause)
         }
     }
 }
@@ -298,7 +298,7 @@ private object NativeEngineReaper {
                     reference.clear()
                 }
             },
-            "chess-engine-native-reaper",
+            "chess-engine-reaper",
         ).apply {
             isDaemon = true
             start()
@@ -478,7 +478,7 @@ class ChessEngine private constructor(
         }
 
         check(executor.awaitTermination(CLOSE_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-            "native search worker did not terminate after cancellation"
+            "engine search worker did not terminate after cancellation"
         }
     }
 
