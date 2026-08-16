@@ -48,14 +48,19 @@ class ChessAppEndToEndInstrumentedTest {
         composeRule.onNodeWithText("Engine thinking…").fetchSemanticsNode()
 
         val afterEngine = awaitUiState(viewModel) { state ->
-            state.snapshot?.moves == listOf("e2e4", "c7c5")
+            val moves = state.snapshot?.moves ?: return@awaitUiState false
+            moves.size == 2 && moves.first() == "e2e4"
         }
-        assertEquals(listOf("e4", "c5"), afterEngine.snapshot?.sanMoves)
+        val snapshot = checkNotNull(afterEngine.snapshot)
+        val reply = snapshot.moves[1]
+        val replySan = snapshot.sanMoves[1]
+        val replyFrom = reply.substring(0, 2)
+        val replyTo = reply.substring(2, 4)
         composeRule.waitForIdle()
         composeRule.onNodeWithText("e4").fetchSemanticsNode()
-        composeRule.onNodeWithText("c5").fetchSemanticsNode()
-        composeRule.onNodeWithContentDescription("c7 last move").fetchSemanticsNode()
-        composeRule.onNodeWithContentDescription("c5 pawn last move").fetchSemanticsNode()
+        composeRule.onNodeWithText(replySan).fetchSemanticsNode()
+        composeRule.onNodeWithContentDescription("$replyFrom last move").fetchSemanticsNode()
+        composeRule.onNodeWithContentDescription("$replyTo pawn last move").fetchSemanticsNode()
 
         composeRule.onNodeWithTag("tab-engine").performClick()
         composeRule.onNodeWithTag("engine-panel").fetchSemanticsNode()

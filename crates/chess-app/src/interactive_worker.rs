@@ -25,7 +25,26 @@ impl SearchWorker {
     pub fn spawn(
         request: SearchRequest,
     ) -> Result<(Self, Receiver<EngineEvent>), SearchWorkerError> {
-        match crate::book::select_move(request.game.position()) {
+        Self::spawn_with_book_lookup(request, crate::book::select_move)
+    }
+
+    /// Starts an interactive worker with weighted opening-book selection from
+    /// one explicit adapter-owned seed. Search behavior after a book miss is
+    /// identical to [`Self::spawn`].
+    pub fn spawn_with_book_seed(
+        request: SearchRequest,
+        seed: u64,
+    ) -> Result<(Self, Receiver<EngineEvent>), SearchWorkerError> {
+        Self::spawn_with_book_lookup(request, |position| {
+            crate::book::select_weighted_move(position, seed)
+        })
+    }
+
+    fn spawn_with_book_lookup(
+        request: SearchRequest,
+        lookup: impl FnOnce(&chess_core::Position) -> Result<Option<chess_core::Move>, String>,
+    ) -> Result<(Self, Receiver<EngineEvent>), SearchWorkerError> {
+        match lookup(request.game.position()) {
             Ok(Some(best_move)) => ready_worker(EngineEvent::Completed {
                 ticket: request.ticket,
                 best_move,

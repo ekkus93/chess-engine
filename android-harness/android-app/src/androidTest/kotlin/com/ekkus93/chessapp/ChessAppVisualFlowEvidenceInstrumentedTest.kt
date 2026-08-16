@@ -40,7 +40,8 @@ class ChessAppVisualFlowEvidenceInstrumentedTest {
         captureVisualEvidence("white-thinking")
 
         awaitUiState(viewModel) { state ->
-            state.snapshot?.moves == listOf("e2e4", "c7c5") && state.snapshot.humanToMove
+            val snapshot = state.snapshot ?: return@awaitUiState false
+            snapshot.moves.size == 2 && snapshot.moves.first() == "e2e4" && snapshot.humanToMove
         }
         composeRule.waitForIdle()
         captureVisualEvidence("white-engine-reply")
@@ -56,7 +57,7 @@ class ChessAppVisualFlowEvidenceInstrumentedTest {
         composeRule.onNodeWithTag("start-game").performClick()
         awaitUiState(viewModel) { state ->
             state.snapshot?.humanSide == HumanSide.BLACK &&
-                state.snapshot.moves == listOf("e2e4") &&
+                state.snapshot.moves.size == 1 &&
                 state.snapshot.humanToMove &&
                 !state.busy
         }

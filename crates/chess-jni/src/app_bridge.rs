@@ -5,6 +5,7 @@ use std::{
         mpsc::{Receiver, TryRecvError},
         Arc, Mutex, OnceLock,
     },
+    time::{SystemTime, UNIX_EPOCH},
 };
 
 use chess_app::{
@@ -25,7 +26,10 @@ const BLACK_CODE: jint = 2;
 const MIN_ANDROID_DEPTH: u16 = 1;
 const MAX_ANDROID_DEPTH: u16 = 12;
 
+const BOOK_SEED_INCREMENT: u64 = 0x9e37_79b9_7f4a_7c15;
+
 static NEXT_HANDLE: AtomicU64 = AtomicU64::new(1);
+static NEXT_BOOK_SEED: AtomicU64 = AtomicU64::new(BOOK_SEED_INCREMENT);
 static REGISTRY: OnceLock<Mutex<HashMap<u64, Arc<Mutex<AppGame>>>>> = OnceLock::new();
 
 struct ActiveSearch {
@@ -37,10 +41,16 @@ struct ActiveSearch {
 struct AppGame {
     controller: GameController,
     active: Option<ActiveSearch>,
+    book_seed: u64,
+    book_lookup_index: u64,
 }
 
 impl AppGame {
     fn new(human_color: Color, depth: u16) -> BridgeResult<Self> {
+        Self::new_with_book_seed(human_color, depth, fresh_android_book_seed())
+    }
+
+    fn new_with_book_seed(human_color: Color, depth: u16, book_seed: u64) -> BridgeResult<Self> {
         let mut controller = GameController::new();
         controller
             .start_game(GameConfig::HumanVsEngine {
@@ -51,6 +61,8 @@ impl AppGame {
         let mut game = Self {
             controller,
             active: None,
+            book_seed,
+            book_lookup_index: 0,
         };
         game.spawn_pending()?;
         Ok(game)
@@ -158,7 +170,8 @@ impl AppGame {
             return Ok(());
         };
         let ticket = request.ticket;
-        match SearchWorker::spawn(request) {
+        let book_seed = self.next_book_selection_seed();
+        match SearchWorker::spawn_with_book_seed(request, book_seed) {
             Ok((worker, receiver)) => {
                 self.active = Some(ActiveSearch {
                     ticket,
@@ -177,6 +190,13 @@ impl AppGame {
                 Err(worker_error(error))
             }
         }
+    }
+
+    fn next_book_selection_seed(&mut self) -> u64 {
+        let index = self.book_lookup_index;
+        self.book_lookup_index = self.book_lookup_index.saturating_add(1);
+        self.book_seed
+            .wrapping_add(index.wrapping_mul(BOOK_SEED_INCREMENT))
     }
 
     fn cancel_active(&mut self, message: Option<String>) -> BridgeResult<()> {
@@ -289,6 +309,15 @@ impl Drop for AppGame {
             let _cleanup_result = self.cancel_active(Some("Android game dropped".to_owned()));
         }
     }
+}
+
+fn fresh_android_book_seed() -> u64 {
+    let clock = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |duration| {
+            duration.as_secs() ^ (u64::from(duration.subsec_nanos()) << 32)
+        });
+    clock ^ NEXT_BOOK_SEED.fetch_add(BOOK_SEED_INCREMENT, Ordering::Relaxed)
 }
 
 fn registry() -> &'static Mutex<HashMap<u64, Arc<Mutex<AppGame>>>> {
@@ -520,6 +549,83 @@ mod tests {
             .expect("existing game lock")
             .close()
             .expect("existing game closes");
+    }
+
+    fn poll_until_idle(game: &mut AppGame) {
+        for _ in 0..500 {
+            game.poll().expect("poll succeeds");
+            if !game.controller.session.as_ref().expect("session").thinking {
+                return;
+            }
+            thread::sleep(Duration::from_millis(2));
+        }
+        panic!("engine did not produce an exact reply");
+    }
+
+    #[test]
+    fn android_weighted_book_seed_varies_black_defense() {
+        fn reply_for_seed(seed: u64) -> String {
+            let mut game =
+                AppGame::new_with_book_seed(Color::White, 1, seed).expect("game starts");
+            game.submit_move("e2e4").expect("human move applies");
+            poll_until_idle(&mut game);
+            let reply = game
+                .controller
+                .session
+                .as_ref()
+                .expect("session")
+                .game
+                .moves()[1]
+                .to_uci();
+            game.close().expect("game closes");
+            reply
+        }
+
+        assert_eq!(reply_for_seed(0), "c7c6");
+        assert_eq!(reply_for_seed(13), "c7c5");
+    }
+
+    #[test]
+    fn android_game_stays_in_black_opening_book_beyond_first_reply() {
+        let mut game = AppGame::new_with_book_seed(Color::White, 1, 13).expect("game starts");
+
+        game.submit_move("e2e4").expect("human move applies");
+        poll_until_idle(&mut game);
+        let session = game.controller.session.as_ref().expect("session");
+        assert_eq!(
+            session
+                .game
+                .moves()
+                .iter()
+                .map(|current| current.to_uci())
+                .collect::<Vec<_>>(),
+            ["e2e4", "c7c5"]
+        );
+        assert_eq!(
+            session.engine_info.as_ref().and_then(|metrics| metrics.depth),
+            None,
+            "the first Black reply should be a book completion, not depth-limited search"
+        );
+
+        game.submit_move("g1f3").expect("second human move applies");
+        poll_until_idle(&mut game);
+        let session = game.controller.session.as_ref().expect("session");
+        assert_eq!(
+            session
+                .game
+                .moves()
+                .iter()
+                .map(|current| current.to_uci())
+                .collect::<Vec<_>>(),
+            ["e2e4", "c7c5", "g1f3", "d7d6"]
+        );
+        assert_eq!(
+            session.engine_info.as_ref().and_then(|metrics| metrics.depth),
+            None,
+            "the second Black reply should still come from the opening book"
+        );
+
+        game.close().expect("game closes");
     }
 
     #[test]

@@ -9,6 +9,7 @@ import com.ekkus93.chessengine.ChessGameSnapshot
 import com.ekkus93.chessengine.HumanSide
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -36,7 +37,11 @@ class ChessAppInstrumentedTest {
             val afterHuman = game.submitMove("e2e4")
             assertTrue(afterHuman.thinking)
             val afterEngine = awaitIdle(game, afterHuman)
-            assertEquals(listOf("e2e4", "c7c5"), afterEngine.moves)
+            assertEquals(2, afterEngine.moves.size)
+            assertEquals("e2e4", afterEngine.moves.first())
+            assertTrue(afterEngine.moves[1] in BLACK_E4_BOOK_REPLIES)
+            assertNull(afterEngine.engineDepth)
+            assertNull(afterEngine.engineNodes)
             assertTrue(afterEngine.humanToMove || afterEngine.gameOver)
         }
     }
@@ -49,7 +54,10 @@ class ChessAppInstrumentedTest {
             assertEquals(HumanSide.WHITE, initial.sideToMove)
 
             val afterEngine = awaitIdle(game, initial)
-            assertEquals(listOf("e2e4"), afterEngine.moves)
+            assertEquals(1, afterEngine.moves.size)
+            assertTrue(afterEngine.moves.single() in WHITE_STARTING_BOOK_MOVES)
+            assertNull(afterEngine.engineDepth)
+            assertNull(afterEngine.engineNodes)
             assertEquals(HumanSide.BLACK, afterEngine.sideToMove)
             assertTrue(afterEngine.humanToMove)
         }
@@ -89,11 +97,17 @@ class ChessAppInstrumentedTest {
             assertTrue(duringPause.snapshot?.thinking == true)
 
             val afterEngine = awaitUiState(viewModel) { state ->
-                state.snapshot?.moves == listOf("e2e4", "c7c5")
+                val moves = state.snapshot?.moves ?: return@awaitUiState false
+                moves.size == 2 && moves.first() == "e2e4"
             }
             assertTrue(SystemClock.elapsedRealtime() - humanMoveObservedAt >= 900L)
             assertTrue(afterEngine.snapshot?.humanToMove == true || afterEngine.snapshot?.gameOver == true)
         }
+    }
+
+    private companion object {
+        private val BLACK_E4_BOOK_REPLIES = setOf("c7c5", "c7c6", "d7d5", "d7d6", "e7e5", "e7e6")
+        private val WHITE_STARTING_BOOK_MOVES = setOf("c2c4", "d2d4", "e2e4", "g1f3")
     }
 
     private fun awaitIdle(
