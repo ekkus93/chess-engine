@@ -127,15 +127,246 @@ The app uses the high-level Kotlin `ChessGame` API in `crates/chess-jni`. Its na
 
 Permanent API-35 Compose instrumentation enforces compact 360 × 640 layout containment, enlarged-text behavior, selected-state semantics, stable board geometry, internal-only move-history scrolling, real Human White/Black flows, the one-second human-move reveal interval, dialogs, and SHA-scoped device-framebuffer visual evidence.
 
-Build the Android app and both JNI ABIs with:
+#### Build and install on a physical Android phone
+
+The Android application has a Rust JNI library as well as the Kotlin/Compose application. Build the native JNI library first, then build the APK, then install the APK with `adb`.
+
+The supported Android toolchain is:
+
+- Java 17;
+- Gradle 8.9;
+- Android Gradle Plugin 8.7.3;
+- Kotlin 2.0.21;
+- Android compile/target SDK 35;
+- Android NDK installed through the Android SDK;
+- Rust stable with `rustup` and `cargo`;
+- Android SDK Platform Tools (`adb`);
+- Android API 24 or newer on the phone.
+
+On Linux, Android Studio normally installs the SDK under `$HOME/Android/Sdk`. In Android Studio, use **Tools -> SDK Manager** to install Android SDK Platform 35 and, under **SDK Tools**, Android SDK Build-Tools, Android SDK Platform-Tools, Android SDK Command-line Tools, and NDK (Side by side).
+
+##### 1. Clone the repository and enter its root directory
 
 ```bash
-export ANDROID_NDK_HOME="$HOME/Android/Sdk/ndk/<version>"
+git clone https://github.com/ekkus93/chess-engine.git
+cd chess-engine
+```
+
+If the repository is already cloned, enter that checkout instead. All commands below that use relative paths assume the current directory is the repository root.
+
+Verify that before building:
+
+```bash
+pwd
+test -d android-harness/android-app && echo "repository root OK"
+```
+
+If Gradle reports an error such as `The specified project directory '/tmp/android-harness' does not exist`, the command was run from the wrong directory. `cd` back to the `chess-engine` repository root and rerun it.
+
+##### 2. Configure the Android SDK and NDK environment
+
+For the normal Linux Android Studio SDK location:
+
+```bash
+export ANDROID_HOME="$HOME/Android/Sdk"
+export ANDROID_SDK_ROOT="$ANDROID_HOME"
+export PATH="$ANDROID_HOME/platform-tools:$PATH"
+export ANDROID_NDK_HOME="$(find "$ANDROID_HOME/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
 export ANDROID_API_LEVEL=24
+```
+
+Verify the required tools and NDK:
+
+```bash
+java -version
+gradle --version
+cargo --version
+adb version
+test -d "$ANDROID_NDK_HOME" && echo "Android NDK OK: $ANDROID_NDK_HOME"
+```
+
+`java -version` must report Java 17, and `gradle --version` should report Gradle 8.9.
+
+##### 3. Build and stage the Rust JNI libraries
+
+From the repository root:
+
+```bash
+bash scripts/prepare_android_harness_jni.sh
+```
+
+This cross-compiles `chess-jni` for `arm64-v8a` and `x86_64` and copies the resulting `libchess_jni.so` libraries into the Android modules.
+
+A normal modern physical Android phone uses the ARM64 library. Verify that it exists:
+
+```bash
+test -s android-harness/android-app/src/main/jniLibs/arm64-v8a/libchess_jni.so \
+  && echo "ARM64 JNI library OK"
+```
+
+##### 4. Build the playable debug APK
+
+Still from the repository root, run:
+
+```bash
+gradle -p android-harness \
+  :android-app:assembleDebug \
+  --no-daemon \
+  --stacktrace \
+  --console=plain
+```
+
+The installable APK is produced at:
+
+```text
+android-harness/android-app/build/outputs/apk/debug/android-app-debug.apk
+```
+
+Verify it:
+
+```bash
+ls -lh android-harness/android-app/build/outputs/apk/debug/android-app-debug.apk
+```
+
+For the complete supported local Android validation gate instead of only building the playable APK, run:
+
+```bash
 bash scripts/dev.sh android
 ```
 
-The debug APK is produced at `android-harness/android-app/build/outputs/apk/debug/android-app-debug.apk`. See [`docs/RUST_ANDROID_APP.md`](docs/RUST_ANDROID_APP.md) and [`docs/RUST_ANDROID_UI_UX_REDESIGN_CLOSURE_EVIDENCE_2026-08-10.md`](docs/RUST_ANDROID_UI_UX_REDESIGN_CLOSURE_EVIDENCE_2026-08-10.md).
+That command stages JNI libraries and also runs the Android lint, unit-test, smoke/test-APK, playable-APK, and host-JVM build targets. It does not launch an emulator.
+
+##### 5. Enable USB debugging on the phone
+
+On the Android phone:
+
+1. Open **Settings -> About phone**.
+2. Tap **Build number** seven times to enable Developer Options.
+3. Open **Developer options**.
+4. Enable **USB debugging**.
+5. Connect the phone to the computer with a USB data cable.
+6. Accept the **Allow USB debugging?** authorization prompt on the phone.
+
+Menu names vary slightly by Android vendor.
+
+##### 6. Find the phone's ADB serial number
+
+Run:
+
+```bash
+adb devices
+```
+
+A connected and authorized device is shown with status `device`, for example:
+
+```text
+List of devices attached
+R5CW31AX4FL     device
+```
+
+If more than one phone or emulator is connected, every ADB command must identify the intended target with `-s SERIAL`.
+
+To identify which serial belongs to which phone:
+
+```bash
+adb -s SERIAL shell getprop ro.product.manufacturer
+adb -s SERIAL shell getprop ro.product.model
+```
+
+Replace `SERIAL` with the value shown by `adb devices`.
+
+For a shell that will repeatedly target the same device, `ANDROID_SERIAL` can also be set:
+
+```bash
+export ANDROID_SERIAL=R5CW31AX4FL
+```
+
+After that, plain `adb` commands target that device unless `-s` overrides it.
+
+##### 7. Install the APK
+
+With one device connected, this is sufficient:
+
+```bash
+adb install -r android-harness/android-app/build/outputs/apk/debug/android-app-debug.apk
+```
+
+With multiple devices connected, specify the target explicitly:
+
+```bash
+adb -s SERIAL install -r \
+  android-harness/android-app/build/outputs/apk/debug/android-app-debug.apk
+```
+
+A successful installation ends with:
+
+```text
+Success
+```
+
+The `-r` option replaces an already installed compatible build, which is useful for normal edit/build/install development cycles.
+
+##### 8. Fix `INSTALL_FAILED_UPDATE_INCOMPATIBLE` if necessary
+
+Android will reject an update if an existing `com.ekkus93.chessapp` installation was signed with a different key. The error looks like:
+
+```text
+INSTALL_FAILED_UPDATE_INCOMPATIBLE: Existing package com.ekkus93.chessapp signatures do not match newer version
+```
+
+Remove the differently signed copy from the selected phone:
+
+```bash
+adb -s SERIAL uninstall com.ekkus93.chessapp
+```
+
+Then install the new APK:
+
+```bash
+adb -s SERIAL install \
+  android-harness/android-app/build/outputs/apk/debug/android-app-debug.apk
+```
+
+**Warning:** uninstalling the application removes its local application data. Once a debug APK built with the current machine's debug signing key is installed, subsequent builds from the same signing environment should normally update successfully with `adb install -r`.
+
+##### 9. Launch the installed application
+
+The package name is `com.ekkus93.chessapp`. Launch it from the phone's app launcher, or from the computer with:
+
+```bash
+adb -s SERIAL shell monkey \
+  -p com.ekkus93.chessapp \
+  -c android.intent.category.LAUNCHER \
+  1
+```
+
+##### 10. Normal rebuild-and-install development loop
+
+After the prerequisites are configured, the typical physical-device workflow is:
+
+```bash
+cd /path/to/chess-engine
+
+export ANDROID_HOME="$HOME/Android/Sdk"
+export ANDROID_SDK_ROOT="$ANDROID_HOME"
+export PATH="$ANDROID_HOME/platform-tools:$PATH"
+export ANDROID_NDK_HOME="$(find "$ANDROID_HOME/ndk" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+export ANDROID_API_LEVEL=24
+
+bash scripts/prepare_android_harness_jni.sh
+
+gradle -p android-harness \
+  :android-app:assembleDebug \
+  --no-daemon \
+  --stacktrace \
+  --console=plain
+
+adb devices
+adb -s SERIAL install -r \
+  android-harness/android-app/build/outputs/apk/debug/android-app-debug.apk
+```
+
+See [`docs/RUST_ANDROID_APP.md`](docs/RUST_ANDROID_APP.md) and [`docs/RUST_ANDROID_UI_UX_REDESIGN_CLOSURE_EVIDENCE_2026-08-10.md`](docs/RUST_ANDROID_UI_UX_REDESIGN_CLOSURE_EVIDENCE_2026-08-10.md) for the Android architecture, behavior, testing, and accepted UI evidence.
 
 ## Workspace
 
