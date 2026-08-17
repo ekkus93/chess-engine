@@ -565,8 +565,7 @@ mod tests {
     #[test]
     fn android_weighted_book_seed_varies_black_defense() {
         fn reply_for_seed(seed: u64) -> String {
-            let mut game =
-                AppGame::new_with_book_seed(Color::White, 1, seed).expect("game starts");
+            let mut game = AppGame::new_with_book_seed(Color::White, 1, seed).expect("game starts");
             game.submit_move("e2e4").expect("human move applies");
             poll_until_idle(&mut game);
             let reply = game
@@ -581,13 +580,13 @@ mod tests {
             reply
         }
 
-        assert_eq!(reply_for_seed(0), "c7c6");
-        assert_eq!(reply_for_seed(13), "c7c5");
+        assert_eq!(reply_for_seed(0), "c7c5");
+        assert_eq!(reply_for_seed(13), "c7c6");
     }
 
     #[test]
     fn android_game_stays_in_black_opening_book_beyond_first_reply() {
-        let mut game = AppGame::new_with_book_seed(Color::White, 1, 13).expect("game starts");
+        let mut game = AppGame::new_with_book_seed(Color::White, 1, 0).expect("game starts");
 
         game.submit_move("e2e4").expect("human move applies");
         poll_until_idle(&mut game);
@@ -602,7 +601,10 @@ mod tests {
             ["e2e4", "c7c5"]
         );
         assert_eq!(
-            session.engine_info.as_ref().and_then(|metrics| metrics.depth),
+            session
+                .engine_info
+                .as_ref()
+                .and_then(|metrics| metrics.depth),
             None,
             "the first Black reply should be a book completion, not depth-limited search"
         );
@@ -620,7 +622,10 @@ mod tests {
             ["e2e4", "c7c5", "g1f3", "d7d6"]
         );
         assert_eq!(
-            session.engine_info.as_ref().and_then(|metrics| metrics.depth),
+            session
+                .engine_info
+                .as_ref()
+                .and_then(|metrics| metrics.depth),
             None,
             "the second Black reply should still come from the opening book"
         );

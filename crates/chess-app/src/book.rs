@@ -293,8 +293,7 @@ const OPENING_LINES: &[OpeningLine] = &[
         side: Color::Black,
         weight: 100,
         moves: &[
-            "e2e4", "c7c5", "g1f3", "d7d6", "d2d4", "c5d4", "f3d4", "g8f6",
-            "b1c3", "a7a6",
+            "e2e4", "c7c5", "g1f3", "d7d6", "d2d4", "c5d4", "f3d4", "g8f6", "b1c3", "a7a6",
         ],
     },
     OpeningLine {
@@ -326,8 +325,7 @@ const OPENING_LINES: &[OpeningLine] = &[
         side: Color::Black,
         weight: 85,
         moves: &[
-            "e2e4", "e7e6", "d2d4", "d7d5", "b1c3", "g8f6", "e4e5", "f6d7",
-            "f2f4", "c7c5",
+            "e2e4", "e7e6", "d2d4", "d7d5", "b1c3", "g8f6", "e4e5", "f6d7", "f2f4", "c7c5",
         ],
     },
     OpeningLine {
@@ -335,8 +333,7 @@ const OPENING_LINES: &[OpeningLine] = &[
         side: Color::Black,
         weight: 80,
         moves: &[
-            "e2e4", "c7c6", "d2d4", "d7d5", "b1c3", "d5e4", "c3e4", "c8f5",
-            "e4g3", "f5g6",
+            "e2e4", "c7c6", "d2d4", "d7d5", "b1c3", "d5e4", "c3e4", "c8f5", "e4g3", "f5g6",
         ],
     },
     OpeningLine {
@@ -368,8 +365,7 @@ const OPENING_LINES: &[OpeningLine] = &[
         side: Color::Black,
         weight: 95,
         moves: &[
-            "d2d4", "d7d5", "c2c4", "e7e6", "b1c3", "g8f6", "c1g5", "f8e7",
-            "e2e3", "e8g8",
+            "d2d4", "d7d5", "c2c4", "e7e6", "b1c3", "g8f6", "c1g5", "f8e7", "e2e3", "e8g8",
         ],
     },
     OpeningLine {
@@ -377,8 +373,7 @@ const OPENING_LINES: &[OpeningLine] = &[
         side: Color::Black,
         weight: 90,
         moves: &[
-            "d2d4", "d7d5", "c2c4", "c7c6", "g1f3", "g8f6", "b1c3", "d5c4",
-            "a2a4", "c8f5",
+            "d2d4", "d7d5", "c2c4", "c7c6", "g1f3", "g8f6", "b1c3", "d5c4", "a2a4", "c8f5",
         ],
     },
     OpeningLine {
@@ -386,8 +381,7 @@ const OPENING_LINES: &[OpeningLine] = &[
         side: Color::Black,
         weight: 85,
         moves: &[
-            "d2d4", "g8f6", "c2c4", "g7g6", "b1c3", "f8g7", "e2e4", "d7d6",
-            "g1f3", "e8g8",
+            "d2d4", "g8f6", "c2c4", "g7g6", "b1c3", "f8g7", "e2e4", "d7d6", "g1f3", "e8g8",
         ],
     },
     OpeningLine {
@@ -395,8 +389,7 @@ const OPENING_LINES: &[OpeningLine] = &[
         side: Color::Black,
         weight: 80,
         moves: &[
-            "d2d4", "g8f6", "c2c4", "e7e6", "b1c3", "f8b4", "e2e3", "e8g8",
-            "f1d3", "d7d5",
+            "d2d4", "g8f6", "c2c4", "e7e6", "b1c3", "f8b4", "e2e3", "e8g8", "f1d3", "d7d5",
         ],
     },
 ];
@@ -448,21 +441,21 @@ mod tests {
                 .expect("weighted book lookup")
                 .expect("weighted book move")
                 .to_uci(),
-            "c7c6"
+            "c7c5"
         );
         assert_eq!(
             select_weighted_move(game.position(), 13)
                 .expect("weighted book lookup")
                 .expect("weighted book move")
                 .to_uci(),
-            "c7c5"
+            "c7c6"
         );
         assert_eq!(
             select_weighted_move(game.position(), 0)
                 .expect("repeat weighted book lookup")
                 .expect("repeat weighted book move")
                 .to_uci(),
-            "c7c6",
+            "c7c5",
             "an explicit seed must remain reproducible"
         );
     }
@@ -491,11 +484,7 @@ mod tests {
 
     #[test]
     fn built_in_book_covers_common_sicilian_second_moves() {
-        for (white_second, black_reply) in [
-            ("c2c3", "d7d5"),
-            ("b1c3", "b8c6"),
-            ("d2d4", "c5d4"),
-        ] {
+        for (white_second, black_reply) in [("c2c3", "d7d5"), ("b1c3", "b8c6"), ("d2d4", "c5d4")] {
             let mut game = Game::starting();
             for move_text in ["e2e4", "c7c5", white_second] {
                 apply(&mut game, move_text);

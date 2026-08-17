@@ -24,6 +24,7 @@ bash scripts/dev.sh tui-pty-smoke
 bash scripts/dev.sh tui-coverage COMMAND
 bash scripts/dev.sh console
 bash scripts/dev.sh console-smoke
+bash scripts/dev.sh console-pty-smoke
 bash scripts/dev.sh android
 bash scripts/dev.sh self-play CONFIG OUTPUT
 bash scripts/dev.sh tune CONFIG DATASET OUTPUT [CKPT]
@@ -92,6 +93,8 @@ Correctness comes before strength and speed. Keep exact perft, restoration, incr
 Miri/ASan/LSan/TSan use the separately pinned nightly documented in the robustness workflow, distinct from the normal stable/MSRV product toolchains.
 
 Never add first-party `allow`/`expect` lint suppression. Never delete a regression input or weaken an assertion to obtain a green run.
+
+No panic may cross the `chess-ffi` or `chess-jni` boundary. No clone-per-child recursive search and no string position keys. No implicit weights/book/dataset/config discovery — paths must be explicit.
 
 ## Generated artifacts
 
